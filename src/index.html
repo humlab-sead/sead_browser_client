@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  	<meta charset="utf-8">
+    <META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
+    <META HTTP-EQUIV="PRAGMA" CONTENT="NO-CACHE">
+    <title>SEAD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="/assets/icons/site.webmanifest">
+    <link rel="mask-icon" href="/assets/icons/safari-pinned-tab.svg" color="#5bbad5">
+    <link rel="shortcut icon" href="/assets/icons/favicon.ico">
+    <meta name="apple-mobile-web-app-title" content="SEAD">
+    <meta name="application-name" content="SEAD">
+    <meta name="msapplication-TileColor" content="#2b5797">
+    <meta name="msapplication-config" content="/assets/icons/browserconfig.xml">
+    <meta name="theme-color" content="#ffffff">
+
+    <meta name="google-signin-client_id" content="989880823583-jmp43kmh4puojj41t6klg867uk486sfr.apps.googleusercontent.com">
+    <script src="https://apis.google.com/js/platform.js?onload=renderLoginButton" async defer></script>
+    <script>
+      function renderLoginButton() {
+        //hqs.userManager.renderButton();
+      }
+    </script>
+
+  </head>
+  <body style="display:none;">
+    
+    <div id="cover-tiles"></div>
+    <div id="main-container">
+      <div id="header-container">
+        <div id="facet-menu">
+        </div>
+
+        <div id="portal-menu">
+        </div>
+
+        <div id="aux-menu">
+        </div>
+
+        
+
+		<div id="site-report-exit-menu">
+		</div>
+
+        <div id="header-space">
+          <div id="sead-logo"></div>
+        </div>
+
+        
+
+        <div id="whatisthis-menu">
+        </div>
+
+      </div>
+      
+      <div id="facet-result-panel" class="responsive-layout-container">
+
+        <div id="section-toggle-button">Switch section</div>
+
+        <div class="section-left">
+          <!--<div id="facet-section-title" class="section-title">Filter section</div>-->
+          <div id="facet-auxiliary-controls">
+            <div id="facet-show-only-selections-btn">
+              <div class="fa fa-check facet-head-btn" aria-hidden="true"></div>
+              Show only selections
+            </div>
+          </div>
+
+          <div id="facet-section">
+          </div>
+        </div>
+        <div class="section-right">
+
+         <div id="result-section">
+
+            <div id="result-tabs-container">
+              <h2 id="result-title">Filter Output</h2>
+              <div id="result-menu"></div>
+            </div>
+            <div id="result-container">
+              <div id="result-loading-indicator" class="loading-indicator"></div>
+              <div id="result-msg-container" class="result-module-container"></div>
+              <div id="result-table-container" class="result-module-container"></div>
+              <div id="result-map-container" class="result-module-container"></div>
+              <div id="result-mosaic-container" class="result-module-container"></div>
+            </div>
+            
+         </div>
+         
+        </div>
+      </div>
+      <div id="site-report-panel" class="responsive-layout-container">
+        <div class="section-left">
+	        <div class="site-report-container">
+
+              <div class="site-report-title-container">
+                <h1 class="site-report-title">
+                  <span>Archaeological site datasheet</span>
+                </h1>
+                <h2 class="site-report-title-site-name"></h2>
+              </div>
+
+              <div id="site-report-tabs"></div>
+
+	          <div id="site-report-content">
+	          </div>
+	        </div>
+        </div>
+        <div class="section-right">
+          <div id="site-report-right-container">
+            <!--<div id="site-report-map-container"></div>-->
+            <div class="site-report-aux-info-container"></div>
+          </div>
+        </div>
+
+      </div>
+
+
+      <div id="popover-dialog">
+        <div id="popover-dialog-frame">
+          <div class="popover-close-btn fa fa-times"></div>
+          <h1></h1>
+          <div class="popover-content"></div>
+        </div>
+      </div>
+
+    </div><!-- End of main container -->
+
+
+    <!--<div class="overlay-container"></div>-->
+
+    <!--<div id="popper"></div>-->
+
+    <div id="templates">
+
+	    <div class="site-report-level-container-template">
+
+		    <h3 class="site-report-level-title"></h3>
+		    <div class="site-report-level-content" collapsed="true"></div>
+	    </div>
+
+      <div id="result-msg-contents-template">
+        <div class="section-title">View section</div>
+        <div id="result-info-text-container">
+          <div class="large-info-text">No data</div>
+          <div class="small-info-text">This filtering result in a zero dataset. Try easing up your filters.</div>
+        </div>
+      </div>
+
+      <div id="facet-template" class="facet" facet-id="-1">
+        <div class="facet-header">
+          <h3 class="facet-title">Facet title</h3>
+          <div class="facet-loading-indicator"></div>
+
+          <input class="facet-text-search-input" type="text" />
+          <div class="fa fa-search facet-text-search-btn facet-head-btn" aria-hidden="true"></div>
+          <div class="facet-minimize-btn fa fa-check facet-head-btn facet-size-btn" aria-hidden="true"></div>
+          <!--<div class="facet-maximize-btn fa fa-window-maximize facet-head-btn facet-size-btn" aria-hidden="true"></div>-->
+          <div class="facet-delete-btn fa fa-times facet-head-btn" aria-hidden="true"></div>
+
+        </div>
+        <hr class="facet-header-divider" />
+        <div class="facet-body">
+          <div class="facet-no-data-msg">No Data</div>
+          <div class="list-container"></div>
+          <div class="chart-container">
+            
+            <div class="chart-canvas-container">
+              <canvas class="range-chart-canvas"></canvas>
+            </div>
+
+            <div class="rangeslider-container-wrapper">
+              <div class="rangeslider-container"></div>
+            </div>
+
+
+            <div class='range-facet-manual-input-container' endpoint="upper">
+              <input type='text' maxlength='5' class='range-facet-manual-input' tabindex="2" />
+            </div>
+            <div class='range-facet-manual-input-container' endpoint="lower">
+              <input type='text' maxlength='5' class='range-facet-manual-input' tabindex="1" />
+            </div>
+          
+
+            <div class="range-facet-slider-info-panel">
+              <span class="range-min-value"></span>
+              <span class="range-filter-low-value"></span>
+              <span class="range-filter-high-value"></span>
+              <span class="range-max-value"></span>
+            </div>
+
+          </div>
+          <div class="map-container">
+            <div class="map-help-text">Hold <span class="cmd_key_symbol"></span> to draw a polygon</div>
+          </div>
+
+        </div>
+      </div>
+
+      <div id="slot-template" class="slot" slot-id="-1">
+      </div>
+
+
+
+
+
+      <fieldset id="site-report-render-options-template" class="site-report-display-options-main">
+        <legend class="fa fa-cog site-report-display-settings-btn" aria-hidden="true">&nbsp;<span style="font-weight:bold;">Display options</span></legend>
+
+        <div class="site-report-render-options-container">
+          <label class="site-report-view-selector-label" for="">Display as:</label>
+          <select id="" class="site-report-view-selector-control site-report-render-mode-selector hqs"></select>
+        </div>
+
+
+
+        <div class="site-report-render-options-container site-report-render-options-container-extras">
+          
+        </div>
+      </fieldset>
+
+      <fieldset id="site-report-content-item-export-template" class="site-report-display-options-main">
+        <legend class="fa fa-download site-report-display-settings-btn" aria-hidden="true">&nbsp;<span style="font-weight:bold;">Export</span></legend>
+      </fieldset>
+
+
+
+
+
+
+    </div><!-- end templates -->
+
+
+    <div id="viewstate-load-dialog" class="viewstate-dialog overlay-dialog">
+      <div class="overlay-dialog-close-btn fa fa-times"></div>
+      <h1>Load viewstate</h1>
+	    <div class="overlay-dialog-content">
+        <!--
+        <select id="viewstate-load-list">
+        </select>
+        -->
+        
+        <div id="viewstate-load-list">
+        </div>
+
+
+        <!--<button id="viewstate-load-btn">Load</button>-->
+        
+        <div id="viewStateLoadGoogleLogin"></div>
+	    </div>
+    </div>
+
+    <div id="viewstate-save-dialog" class="viewstate-dialog overlay-dialog">
+      <div class="overlay-dialog-close-btn fa fa-times"></div>
+      <h1>Save viewstate</h1>
+	    <div class="overlay-dialog-content">
+	        <div style="display:flex;">
+		      <input id="viewstate-save-input" class="viewstate-input" type="text" placeholder="Optional: Viewstate name" />
+		      <button id="viewstate-save-btn">Save</button>
+		    </div>
+
+        <p>A viewstate functions as a bookmark, it saves your currently selected filters and other user interface settings as they currently are.</p>
+        <div id="viewStateSaveGoogleLogin"></div>
+	    </div>
+    </div>
+
+    <div id="viewstate-post-save-dialog" class="viewstate-dialog overlay-dialog">
+      <div class="overlay-dialog-close-btn fa fa-times"></div>
+      <h1>Viewstate saved</h1>
+
+	    <div class="overlay-dialog-content">
+	      Your viewstate is now saved with the key:<br />
+	      <span id="viewstate-key"></span>
+
+	      <br /><br />
+
+	      Use this URL to access it:<br />
+	      <span id="viewstate-url"></span>
+	    </div>
+
+    </div>
+
+    <div id="googleLoginTemplate">
+      <p id="googleLoginRecommendationLoad">You need to signin to see viewstates saved on your account. Without signing in you will only see the viewstates stored locally in your browser.</p>
+      <p id="googleLoginRecommendationSave">It is recommended that you signin before saving a viewstate so that it may be stored on our server. If you choose to not signin the viewstate will only be saved locally in your browser.</p>
+        <div id="googleLoginInformation">
+          You are logged in as <span id="googleName"></span>. <span id="google-signout">Sign out</span>.
+        </div>
+        <div id="google-signin"></div>
+    </div>
+
+    <div id="help-section" class="overlay-dialog">
+      <div class="overlay-dialog-close-btn fa fa-times"></div>
+      <h1>How to get started</h1>
+      <p>
+      SEAD contains a vast amount of data, you sort through and view parts of this data by applying filters to it. As you apply your filters a data visualization in either tabular or cartographic format will be displayed on the right. If you have not applied any filters, nothing will be shown, since showing all the data in the database would not be beneficial.
+      </p><p>
+      Start by selecting at least one filter through the filter menu in the top left corner. You then need to make a selection in this filter in order to activate the rendering of a result view. For a list based filter, simply click on the rows you like to apply as filters. For a diagram/span filter, select the span you would like to view by sliding the two handles at the bottom of the filter. For a cartographic filter, create a polygon selecting an area of interesting by holding the CTRL/CMD-key and left clicking.
+      </p>
+      <p>
+      You may also find it beneficial to activate the tutorial mode, which you will find in the settings menu. This will show tooltips at certain points to help explain things.
+      </p>
+    </div>
+
+    <div id="about-section" class="overlay-dialog">
+      <div class="overlay-dialog-close-btn fa fa-times"></div>
+      <h1>The Strategic Environmental Archeology Database</h1>
+      <div class="overlay-dialog-content">
+      <p>
+      SEAD is a national research infrastructure for archaeology and an international standard database for environmental archaeology data. It is being developed and managed at the <a class="about-link" target="_blank" href="http://www.idesam.umu.se/english/mal/?languageId=1">Environmental Archaeology Lab (MAL)</a>, in collaboration with <a class="about-link" target="_blank" href="http://www.humlab.umu.se/en">Humlab</a> at <a class="about-link" target="_blank" href="http://www.umu.se/english">Umeå University</a>. Development and data ingestion is progressing in partnership with <a class="about-link" target="_blank" href="http://www.geol.lu.se/kfl/">The Laboratory for Ceramic Research</a> and <a class="about-link" target="_blank" href="http://www.geol.lu.se/dendro/en/index.htm">National laboratory for wood anatomy and dendrochronology</a> at Lund University, Sweden. Future development plans include integration with the <a class="about-link" target="_blank" href="http://raa.se/om-riksantikvarieambetet/in-english/">Swedish National Heritage Board</a>'s information systems and the capacity to serve as a data source for any system.
+      </p>
+      <p>
+      The system allows the online storage, extraction, analysis and visualisation of data on past climates, environments and human impacts, and forms part of an international network of research infrastructure for environmental archaeology and Quaternary palaeoecology. Our mission is to provide online tools to aid international researchers in these tasks, and to provide access to data that are currently not accessible online. Please click the buttons above for more information.
+      </p>
+      <p>
+      SEAD is the official database infrastructure of the <a class="about-link" target="_blank" href="http://archlab.se/">ArchLab Consortium of Archaeological Research Laboratories</a>, a partner in the <a class="about-link" target="_blank" href="http://neotomadb.org/">Neotoma Paleoecology Database and Community</a> and the newly established NSF funded network for <a class="about-link" target="_blank" href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1439389">Building Cyberinfrastructure for Transdisciplinary Research and Visualization of the Long-Term Human Ecodynamics of the North Atlantic</a>.
+      </p>
+      <p>
+      SEAD has been financed by The <a class="about-link" target="_blank" href="http://www.vr.se/inenglish.html">Swedish Research Council</a>, <a class="about-link" target="_blank" href="http://www.umu.se/english">Umeå University</a> <a class="about-link" target="_blank" href="http://www.humfak.umu.se/english/">Faculty of Arts</a> and the <a class="about-link" target="_blank" href="http://www.idesam.umu.se/english/">Department of Historical, Philosophical and Religious Studies</a>. Component projects have been funded by <a class="about-link" target="_blank" href="http://www.lu.se/">Lund University</a>.
+      </p>
+      
+      <div style="font-weight:bold;">
+
+        <p>
+        SEAD is always interested in hearing from anyone, including students and interns, wishing to undertake projects involving the database. See <a class="about-link" target="_blank" href="http://www.sead.se/people/index.html">people</a> for more information. Please contact the team should you wish to make your data available through the system, or work with us in any other capacity.
+        </p>
+
+
+        <div id="logo-section">
+          <!--<a href="https://www.sead.se/" target="_blank"><img class="about-section-logo" src="assets/SEAD-logo-small.png" /></a>-->
+          <a href="http://www.humlab.umu.se/" target="_blank"><img class="about-section-logo" src="assets/umu-logo-en.png" /></a><br />
+          <a href="https://www.vr.se/inenglish.html" target="_blank"><img class="about-section-logo" src="assets/vr-logo.png" /></a><br />
+          <a href="http://www.idesam.umu.se/english/mal/?languageId=1" target="_blank"><img class="about-section-logo" src="assets/mal-logo.png" /></a><br />
+          <a href="http://www.lu.se/" target="_blank"><img class="about-section-logo" src="assets/lu-logo.png" /></a>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <div id="team-section" class="overlay-dialog">
+      <div class="overlay-dialog-close-btn fa fa-times"></div>
+      <h1>The SEAD Core Team</h1>
+      <div class="overlay-dialog-content">
+      <div class="team-members">
+        <div class="team-member-container">
+          <h5 class="team-member-name">Dr. Philip Buckland</h5>
+          <ul>
+            <li>Director of the SEAD Project</li>
+          </ul>
+          <a class="team-member-link" target="_blank" href="http://www.idesam.umu.se/">@Dept. Historical, Philosophical and Religious Studies
+            Umeå University</a>
+        </div>
+
+        <div class="team-member-container">
+          <h5 class="team-member-name">Mattias Sjölander</h5>
+          <ul>
+            <li>Project Assistant</li>
+          </ul>
+
+          <a class="team-member-link" target="_blank" href="http://www.idesam.umu.se/">@Dept. Historical, Philosophical and Religious Studies
+            Umeå University</a>
+        </div>
+
+        <div class="team-member-container">
+          <h5 class="team-member-name">Johan von Boer</h5>
+          <ul>
+            <li>Client side developer</li>
+            <li>UI designer</li>
+          </ul>
+
+          <a class="team-member-link" target="_blank" href="http://www.humlab.umu.se/">@Humlab, Umeå university</a>
+        </div>
+
+        <div class="team-member-container">
+          <h5 class="team-member-name">Roger Mähler</h5>
+          <ul>
+            <li>Server side developer</li>
+            <li>Database architect</li>
+          </ul>
+
+          <a class="team-member-link" target="_blank" href="http://www.humlab.umu.se/">@Humlab, Umeå university</a>
+        </div>
+
+      </div>
+      </div>
+
+      </div>
+
+    </div>
+
+
+    <div id="cookie-consent-content"></div>
+  </body>
+</html>

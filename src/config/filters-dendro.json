@@ -1,0 +1,135 @@
+[
+   {
+      "facetGroupKey":"space",
+      "displayTitle":"Space",
+      "items":[
+         {
+            "facetCode":"sample_groups",
+            "displayTitle":"Sample group",
+            "facetTypeKey":"discrete",
+            "aggregateType":"count",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [
+               "sites"
+            ],
+            "description": "A collection of samples, usually defined by the excavator or collector"
+         },
+         {
+            "facetCode":"sites",
+            "displayTitle":"Site",
+            "facetTypeKey":"discrete",
+            "aggregateType":"count",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [],
+            "description": "General name for the excavation or sampling location"
+         },
+         {
+            "facetCode":"country",
+            "displayTitle":"Country",
+            "facetTypeKey":"discrete",
+            "aggregateType":"count",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [],
+            "description": "The name of the country, at the time of collection, in which the samples were collected"
+         }
+      ]
+   },
+   {
+      "facetGroupKey":"time",
+      "displayTitle":"Time",
+      "items":[
+         {
+            "enabled": false,
+            "facetCode":"geochronology",
+            "displayTitle":"Geochronology",
+            "facetGroupKey":"time",
+            "facetTypeKey":"range",
+            "aggregateType":"",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [],
+            "description": "Sample ages as retrieved through absolute methods such as radiocarbon dating or other radiometric methods (in method based years before present - e.g. 14C years)"
+         },
+
+         {
+            "facetId":11,
+            "facetCode":"relative_age_name",
+            "displayTitle":"Time periods",
+            "facetTypeKey":"discrete",
+            "aggregateType":"count",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [],
+            "description": "Age of sample as defined by association with a (often regionally specific) cultural or geological period (in years before present)"
+         }
+      ]
+   },
+   {
+      "facetGroupKey":"ecology",
+      "displayTitle":"Ecology",
+      "items":[
+         {
+            "facetCode":"ecocode",
+            "displayTitle":"Ecological/cultural category",
+            "facetGroupKey":"ecology",
+            "facetTypeKey":"discrete",
+            "aggregateType":"count",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [],
+            "description": "Ecological category (trait) or cultural relevance of organisms based on a classification system"
+
+         },
+         {
+            "facetId":30,
+            "facetCode":"ecocode_system",
+            "displayTitle":"Eco code system",
+            "facetGroupKey":"ecology",
+            "facetTypeKey":"discrete",
+            "aggregateType":"count",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [],
+            "description": "Ecological or cultural organism classification system (which groups items in the ecological/cultural category filter)"
+         }
+      ]
+   },
+   {
+      "facetGroupKey":"method",
+      "displayTitle":"Method",
+      "items":[
+         {
+            "facetCode":"tbl_denormalized_measured_values_33_0",
+            "displayTitle":"MS ",
+            "facetTypeKey":"range",
+            "aggregateType":"",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [],
+            "description": ""
+         },
+         {
+            "facetCode":"tbl_denormalized_measured_values_33_82",
+            "displayTitle":"MS Heating 550",
+            "facetTypeKey":"range",
+            "aggregateType":"",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [],
+            "description": ""
+         },
+         {
+            "facetCode":"tbl_denormalized_measured_values_32",
+            "displayTitle":"LOI",
+            "facetTypeKey":"range",
+            "aggregateType":"",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [],
+            "description": "Loss of ignition"
+         },
+         {
+            "facetCode":"tbl_denormalized_measured_values_37",
+            "displayTitle":"P°",
+            "facetTypeKey":"range",
+            "aggregateType":"",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [],
+            "description": ""
+         }
+      ]
+   }
+]

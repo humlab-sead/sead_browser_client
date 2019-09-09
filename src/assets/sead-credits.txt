@@ -1,0 +1,2 @@
+settings.svg:
+http://www.flaticon.com/free-icon/settings_126472#term=cogwheel&page=1&position=2

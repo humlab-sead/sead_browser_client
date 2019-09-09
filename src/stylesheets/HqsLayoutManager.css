@@ -1,0 +1,66 @@
+.responsive-layout-container {
+	display: none;
+	position: relative;
+	/*left: 0px;*/
+
+	margin: 0px;
+	padding: 0px;
+}
+
+
+.section-left {
+	margin: 0px;
+	width: 100vw;
+	height:calc(100vh - 89px);
+	
+	max-width: 70vw;
+	min-width: 30vw;
+	
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+.section-right {
+	margin: 0px;
+	width: 0vw;
+	max-width: 70vw;
+	min-width: 30vw;
+	height:calc(100vh - 89px);
+	
+	border-left-style:solid;
+	border-left-width: 1px;
+	border-left-color: rgba(6, 6, 9, 0.1);
+
+	overflow: auto;
+}
+
+#section-toggle-button {
+	display:none;
+	position:fixed;
+	background-color: brown;
+	transform: rotate(90deg);
+	text-align:center;
+	right: 0px;
+	margin-right:-48px;
+	padding: 5px;
+	padding-top: 25px;
+	top: 50vh;
+	height: 28px;
+	width: 120px;
+	/*border-radius: 5px;*/
+	color: #fff;
+	cursor: pointer;
+	z-index: 10;
+}
+
+.full-section {
+	/*position:fixed;*/ /* probably want to used fixed where for maps, otherwise absolute */
+	position: absolute;
+	width: 100vw !important;
+	max-width: 100vw !important;
+}
+
+.hidden-section {
+	display:none !important;
+	min-width: 0vw !important;
+}

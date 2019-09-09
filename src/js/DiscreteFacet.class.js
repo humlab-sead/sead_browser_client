@@ -1,0 +1,462 @@
+import Config from '../config/config.js'
+import Facet from './Facet.class.js'
+import _ from 'underscore';
+/*
+* Class: DiscreteFacet
+* Subclass of Facet. Renders data in a list.
+*/
+class DiscreteFacet extends Facet {
+	/*
+	* Function: constructor
+	*/
+	constructor(hqs, id = null, template = {}) {
+		super(hqs, id, template);
+		this.contentWindow = [];
+		this.rowHeight = Config.discreteFacetRowHeight;
+		this.viewportItemCapacity = Math.floor(Config.facetBodyHeight / this.rowHeight);
+		this.textSize = Config.discreteFacetTextSize;
+		this.scrollPosition = 0;
+		this.textFilterString = "";
+		this.visibleData = [];
+		
+		this.updateMaxRowTitleLength();
+		this.renderSelections();
+
+		$(this.domObj).find(".facet-body").on("scroll", () => {
+			var data = null;
+			if($(this.getDomRef()).find(".facet-text-search-input").val().length > 0) {
+				data = this.visibleData;
+			}
+			
+			this.updateRenderData(data);
+		});
+
+		this.registerTextSearchEvents();
+		
+		this.hqs.tooltipManager.registerTooltip($(".facet-size-btn", this.getDomRef()), "Show only selections");
+		this.hqs.tooltipManager.registerTooltip($(".facet-text-search-btn", this.getDomRef()), "Filter list by text");
+	}
+	
+	/*
+	 * Function: registerTextSearchEvents
+	 */
+	registerTextSearchEvents() {
+		$(this.getDomRef()).find(".facet-text-search-btn").on("click", () => {
+			if($(this.getDomRef()).find(".facet-text-search-input").css("display") == "none") {
+				$(this.getDomRef()).find(".facet-text-search-input").fadeIn(100).focus();
+			}
+			else {
+				if($(this.getDomRef()).find(".facet-text-search-input").val().length > 0) {
+					$(this.getDomRef()).find(".facet-text-search-input").val("");
+					$(this.getDomRef()).find(".facet-text-search-btn").removeClass("facet-control-active");
+					this.renderData(this.data);
+				}
+				$(this.getDomRef()).find(".facet-text-search-input").fadeOut(100);
+			}
+		});
+		
+		$(this.getDomRef()).find(".facet-text-search-btn").show();
+		$(this.getDomRef()).find(".facet-text-search-input").on("keyup", (evt) =>  {
+			this.textSearch(evt);
+		});
+	}
+	
+	textSearch(evt) {
+		clearTimeout(this.textSearchTimeout);
+		this.textSearchTimeout = setTimeout(() => {
+			this.textFilterString = $(evt.target).val().toLowerCase();
+			this.visibleData = [];
+			if(this.textFilterString.length > 0) {
+				for(var key in this.data) {
+					if(this.data[key].title.toLowerCase().includes(this.textFilterString)) {
+						this.visibleData.push(this.data[key]);
+					}
+				}
+				$(this.getDomRef()).find(".facet-text-search-btn").addClass("facet-control-active");
+			}
+			else {
+				this.visibleData = this.data;
+				$(this.getDomRef()).find(".facet-text-search-btn").removeClass("facet-control-active");
+			}
+			this.renderData(this.visibleData);
+		}, 250);
+	}
+
+	/*
+	* Function: setSelections
+	* 
+	* Parameters:
+	* selections
+	* append
+	*/
+	setSelections(selections, append = true) {
+
+		if(!_.isEqual(this.selections, selections)) {
+			if(append) {
+				this.selections = this.selections.concat(selections);
+			}
+			else {
+				this.selections = selections;
+			}
+			
+			this.broadcastSelection();
+		}
+	}
+	
+	/*
+	* Function: addSelection
+	 */
+	addSelection(selection) {
+		for(var key in this.selections) {
+			if (this.selections[key] == selection) {
+				return;
+			}
+		}
+		this.selections.push(selection);
+	}
+	
+	/*
+	* Function: removeSelection
+	 */
+	removeSelection(selection) {
+		for(var key in this.selections) {
+			if (this.selections[key] == selection) {
+				this.selections.splice(key, 1);
+				return;
+			}
+		}
+	}
+	
+	/*
+	* Function: getSelections
+	*/
+	getSelections() {
+		return this.selections;
+	}
+
+	/*
+	* Function: adaptToNewWidth
+	* 
+	* Adapts the facet after a resize (width) event
+	* 
+	* Parameters:
+	* 
+	* Returns:
+	* 
+	*/
+	adaptToNewWidth(newWidth) {
+		this.updateMaxRowTitleLength()
+		this.updateRenderData();
+	}
+
+	/*
+	* Function: updateMaxRowTitleLength
+	* 
+	* Figures out the max length of an item in the discrete facet list based on the current width of the facet
+	* 
+	* Parameters:
+	* 
+	* Returns:
+	* 
+	*/
+	updateMaxRowTitleLength() {
+		this.maxRowTitleLength = Math.floor($(this.domObj).innerWidth() / this.textSize);
+	}
+
+	/*
+	* Function: updateRenderData
+	*
+	* FIXME: Dude... This is a mess with this data input variable... I mean, it works, but it's nto pretty. We need to figure this out in a proper way...
+	*
+	*/
+	updateRenderData(data = null) {
+		if(this.minimized) {
+			this.renderData(this.getSelectionsAsDataItems());
+		}
+		else {
+			if(data == null) {
+				data = this.data;
+			}
+			this.renderData(data);
+		}
+	}
+
+	/*
+	* Function: renderData
+	* 
+	* Renders/displays the given dataset in the UI. Implements a sliding window technique for performance reasons to be able to handle very large datasets.
+	* Basically, only the rows in the viewport (the current part of the list the user actually sees) is being rendered, the parts above and below this window is filled with blank space to make the browser show a correct scrollbar.
+	* 
+	* Parameters:
+	* renderData - The data structure to be rendered.
+	* 
+	* Returns:
+	* 
+	*/
+	renderData(renderData = null) {
+		if(renderData == null) {
+			renderData = this.data;
+		}
+		
+		if(renderData.length == 0) {
+			//this.renderNoDataMsg(true);
+			//return;
+		}
+		else {
+			this.renderNoDataMsg(false);
+		}
+
+		var scrollPos = this.getScrollPos();
+		var viewPortHeight = this.viewportItemCapacity*this.rowHeight;
+		var topBlankSpaceHeight = scrollPos;
+		var bottomBlankSpaceHeight = (renderData.length*this.rowHeight) - scrollPos - viewPortHeight;
+		var topBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", topBlankSpaceHeight);
+		var bottomBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", bottomBlankSpaceHeight);
+		var out = "";
+		var dataPos = Math.ceil(scrollPos / this.rowHeight); //Changed this from floor to ceil, which fixes the last item not being rendered
+		
+		for(var i = 0; i < this.viewportItemCapacity; i++) {
+
+			if(dataPos+i < renderData.length) {
+				var dataElement = renderData[dataPos+i];
+				var selectedClass = "";
+				if(this.selections.indexOf(parseInt(dataElement.id)) != -1) {
+					selectedClass = "facet-row-selected";
+				}
+				
+				var displayTitle = dataElement.title;
+				out += "<div class='facet-row "+selectedClass+"' facet-row-id='"+dataElement.id+"'><div class='facet-row-text'>"+displayTitle+"</div><div class='facet-row-count'>"+dataElement.count+"</div></div>";
+			}
+		}
+		
+		$(".list-container", this.getDomRef())
+			.html("")
+			.append(topBlankSpace)
+			.append(out)
+			.append(bottomBlankSpace)
+			.show();
+		
+		
+		$(this.getDomRef()).find(".facet-row").bind("click", (obj) => {
+			var target = obj.target;
+			if($(obj.target).hasClass("facet-row-text")) {
+				target = $(obj.target).parent();
+			}
+			this.toggleRowSelection(target);
+		});
+
+		$(this.getDomRef()).find(".facet-row-shortened-text").bind("hover", (obj) => {
+			var target = obj.target;
+			if($(obj.target).hasClass("facet-row-text")) {
+				target = $(obj.target).parent();
+			}
+			this.toggleRowSelection(target);
+		});
+	}
+
+	renderNoDataMsg(on = true) {
+		super.renderNoDataMsg(on);
+		if(on) {
+			$(this.getDomRef()).find(".list-container").hide();
+		}
+		else {
+			$(this.getDomRef()).find(".list-container").show();
+		}
+	}
+
+
+	/*
+	* Function: renderSelections
+	* 
+	* Highlights the selected rows/values in the UI.
+	* 
+	*/
+	renderSelections() {
+		for(var sk in this.selections) {
+			for(var dk in this.data) {
+				if(this.data[dk].id == this.selections[sk]) {
+					$(this.domObj).find("[facet-row-id="+this.data[dk].id+"]").addClass("facet-row-selected");
+				}
+			}
+		}
+	}
+
+	/*
+	* Function: toggleRowSelection
+	* 
+	*/
+	toggleRowSelection(rowDomObj) {
+		var found = false;
+		var rowId = parseInt($(rowDomObj).attr("facet-row-id"));
+
+		for(var key in this.selections) {
+			if(this.selections[key] == rowId) {
+				found = key;
+			}
+		}
+
+		if(found !== false) {
+			$(rowDomObj).removeClass("facet-row-selected");
+			this.selections.splice(found, 1);
+			this.removeSelection(rowId);
+		}
+		else {
+			$(rowDomObj).addClass("facet-row-selected");
+			//this.selections.push(rowId);
+			this.addSelection(rowId);
+			//this.setSelections([rowId], true);
+		}
+
+		if(this.minimized) {
+			this.renderData(this.getSelectionsAsDataItems()); //Re-render data to remove now unselected rows
+			this.minimize(); //Recalcuate height by running the minimize routine again
+		}
+
+		//Send a ping upwards notifying that a selection was made
+		this.broadcastSelection();
+
+		//Update descending facets
+		//window.sead.facetManager.chainQueueFacetDataFetch(window.sead.facetManager.getSlotIdByFacetId(this.id)+1);
+	}
+
+	/*
+	* Function: getScrollPos
+	* 
+	*/
+	getScrollPos() {
+		return $(this.domObj).find(".facet-body").scrollTop();
+	}
+
+	/*
+	* Function: minimize
+	*/
+	minimize() {
+		this.scrollPosition = this.getScrollPos();
+		super.minimize();
+		$(".facet-text-search-input", this.getDomRef()).hide();
+		$(".facet-text-search-btn", this.getDomRef()).hide();
+		
+		$(this.domObj).find(".facet-body").show(); //Un-do hide of facet-body which is done in the super
+		var headerHeight = $(".facet-header", this.domObj).height();
+		headerHeight += 12;
+
+		var selectionsHeight = this.selections.length * this.rowHeight;
+		var facetHeight = headerHeight + selectionsHeight;
+		if(facetHeight > Config.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
+			facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
+		}
+		$(this.domObj).css("height", facetHeight+"px");
+		$("#facet-"+this.id+" > .facet-body").css("height", selectionsHeight+"px");
+		
+		var slotId = this.hqs.facetManager.getSlotIdByFacetId(this.id);
+		this.hqs.facetManager.updateSlotSize(slotId);
+		this.hqs.facetManager.updateAllFacetPositions();
+		
+		$(".discrete-facet-blank-space", this.getDomRef()).hide();
+		this.updateRenderData();
+	}
+
+
+	/*
+	* Function: maximize
+	*/
+	maximize() {
+		super.maximize();
+		
+		//$(".facet-text-search-input", this.getDomRef()).show();
+		$(".facet-text-search-btn", this.getDomRef()).show();
+		
+		$(".discrete-facet-blank-space", this.getDomRef()).show();
+		$("#facet-"+this.id).css("height", this.defaultHeight);
+		$("#facet-"+this.id).find(".facet-body").css("height", this.bodyHeight);
+		//this.renderData(this.visibleData);
+		this.updateRenderData();
+		
+		$(this.domObj).find(".facet-body").scrollTop(this.scrollPosition);
+
+		var slotId = this.hqs.facetManager.getSlotIdByFacetId(this.id);
+		this.hqs.facetManager.updateSlotSize(slotId);
+		this.hqs.facetManager.updateAllFacetPositions();
+	}
+
+	/*
+	* Function: getSelectionsAsDataItems
+	* 
+	* Gets the current selections in the same format as the rows in the main data array.
+	* 
+	* Parameters:
+	* 
+	* Returns:
+	* The current selections in the same format as the rows in the main data array.
+	* 
+	*/
+	getSelectionsAsDataItems() {
+		var s = [];
+
+		for(var k in this.data) {
+			for(var key in this.selections) {
+				if(this.selections[key] == this.data[k].id) {
+					s.push(this.data[k]);
+				}
+			}
+		}
+		return s;
+	}
+	
+	/*
+	* Function: importData
+	*
+	* Imports the data package fetched from the server by converting it to the internal data structure format and storing it in the instance.
+	*
+	* Parameters:
+	* data - The data package from the server.
+	*/
+	importData(data) {
+		super.importData();
+		this.data = [];
+		var i = 0;
+		for(var key in data.items) {
+			
+			this.data.push({
+				id: data.items[key].category,
+				name: data.items[key].name,
+				title: data.items[key].displayName,
+				count: data.items[key].count,
+				extent: data.items[key].extent
+			});
+		}
+		
+		//check how this new data matches up with the current selections
+		for(var sk in this.selections) {
+			var selectionFound = false;
+			for(var dk in this.data) {
+				if(this.selections[sk] == this.data[dk].id) {
+					selectionFound = true;
+				}
+			}
+			if(!selectionFound) {
+				this.inactiveSelections.push(this.selections[sk]);
+				var pos = this.selections.indexOf(this.selections[sk]);
+				this.selections.splice(pos, 1); //Remove from active selections since current dataset does not contain this item
+
+			}
+		}
+
+		for(var sk in this.inactiveSelections) {
+			var selectionFound = false;
+			for(var dk in this.data) {
+				if(this.inactiveSelections[sk] == this.data[dk].id) {
+					selectionFound = true;
+					this.selections.push(this.inactiveSelections[sk]);
+					var pos = this.inactiveSelections.indexOf(this.inactiveSelections[sk]);
+					this.inactiveSelections.splice(pos, 1); //Remove from inactive selections and put back into active
+				}
+			}
+		}
+		
+		return this.data;
+	}
+
+}
+
+export { DiscreteFacet as default }

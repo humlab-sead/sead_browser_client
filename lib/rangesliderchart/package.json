@@ -1,0 +1,14 @@
+{
+  "name": "rangesliderchart",
+  "version": "1.0.0",
+  "description": "Modified version of original (bugfixes).",
+  "main": "RangeSliderChart.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "nouislider": "^10.1.0"
+  }
+}

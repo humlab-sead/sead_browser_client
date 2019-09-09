@@ -1,0 +1,428 @@
+import * as d3 from 'd3';
+
+/*
+Class: HqsMenu
+Makes menus out of structures, good stuff.
+
+Structure looks like this:
+
+
+var menu = {
+	title: "My Menu", //The name of the menu as it will be displayed in the UI
+	layout: "horizontal", //"horizontal" or "vertical" - the flow director of the menu items
+	collapsed: false, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
+	anchor: "#help-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
+	staticSelection: false, //whether a selected item remains highlighted or not, purely visual
+	visible: true, //show this menu by default
+	items: [ //The menu items contained in this menu
+		{
+			name: "help", //identifier of this item, should be unique within this menu
+			title: "Help : <span class='menu-state-indicator'>OFF</span>", //displayed in the UI
+			tooltip: "",
+			staticSelection: false, //For tabs - highlighting the currently selected
+			callback: () => { //This function gets called when this item is clicked on
+				$.event.trigger("seadHelpStateClicked", {});
+			}
+		},
+		{
+			name: "save",
+			title: "Save viewstate",
+			tooltip: "",
+			callback: (menuItem) => {
+				$.event.trigger("seadSaveStateClicked", {});
+			}
+		},
+		{
+			name: "load",
+			title: "Load viewstate",
+			tooltip: "",
+			callback: (menuItem) => {
+				$.event.trigger("seadLoadStateClicked", {});
+			}
+		},
+		{
+			name: "other",
+			title: "Other options",
+			children: [ //This is a menu item which itself contains a sub-menu. Note that this does not have a callback, it expands the children when activated.
+				{
+					name: "compute",
+					title: "Compute stuff",
+					tooltip: "",
+					callback: (menuItem) => {
+						//Calling the proper function here
+					}
+				},
+				{
+					name: "erase",
+					title: "Erase stuff",
+					tooltip: "",
+					callback: (menuItem) => {
+						//Calling the proper function here
+					}
+				}
+			]
+		}
+	]
+};
+
+*/
+class HqsMenu {
+	/*
+	* Function: constructor
+	*
+	* Parameters:
+	* hqsMenuDef - JSON-structure defining the menu to be generated.
+	*/
+	constructor(hqs, hqsMenuDef) {
+		this.hqs = hqs;
+		hqsMenuDef = this.normalizeMenuDef(hqsMenuDef);
+		this.id = hqsMenuDef.anchor;
+		this.menuDef = hqsMenuDef;
+		this.screenSmallWidthBreakPoint = 1020;
+		this.screenLargeWidthBreakPoint = 2000;
+		this.closeTimerInterval = null;
+		this.menuItemsContainerSelector = this.menuDef.anchor+".hqs-menu-container";
+		
+		this.renderMenuLabel(hqsMenuDef);
+		this.renderMenu(hqsMenuDef);
+		this.bindCallbacks(hqsMenuDef);
+		this.registerTooltipBindings();
+	}
+	
+	
+	/*
+	* Function: renderMenuLabel
+	*/
+	renderMenuLabel(m) {
+		var classes = "hqs-menu-title-container";
+		
+		if(typeof m.customStyleClasses != "undefined") {
+			classes += " "+m.customStyleClasses;
+		}
+		
+		if(m.layout == "horizontal") {
+			classes += " hqs-menu-block-horizontal";
+		}
+		else {
+			classes += " hqs-menu-block-vertical";
+		}
+		if(!m.collapsed) {
+			classes += " hqs-menu-block-expanded";
+		}
+
+		$(this.menuDef.anchor).html("");
+		if(m.showMenuTitle) {
+			if(typeof(m.style.menuTitleClass) != "undefined") {
+				classes += " "+m.style.menuTitleClass;
+			}
+			$(this.menuDef.anchor).append("<div class='"+classes+"'><div class='hqs-menu-title'>"+this.menuDef.title+"</div></div>");
+		}
+		
+		if(typeof m.subText != "undefined") {
+			$(".hqs-menu-title-container", this.menuDef.anchor).append("<div class='hqs-menu-title-subtext'>"+m.subText+"</div>");
+		}
+		
+		if(typeof(m.callback) == "function") {
+			$(".hqs-menu-title-container", this.menuDef.anchor).on("click", m.callback);
+		}
+	}
+	
+	/*
+	* Function: renderMenu
+	*/
+	renderMenu(m) {
+		var hqsMenuContainerDisplay = "inline-block";
+		var menuCategoryLevelClass = "l1-container-level l1-container-level-vertical";
+		if(m.layout == "horizontal") {
+			hqsMenuContainerDisplay = "flex";
+			menuCategoryLevelClass = "l1-container-level l1-container-level-horizontal";
+		}
+		
+		if(!m.visible) {
+			hqsMenuContainerDisplay = "none";
+		}
+		
+		d3.select(m.anchor)
+			.attr("class", "hqs-menu-container")
+			.style("display", hqsMenuContainerDisplay);
+		
+		var menuFirstLevelList = d3.select(this.menuItemsContainerSelector).append("ul")
+			.attr("class", menuCategoryLevelClass);
+		
+		if(!m.collapsed) {
+			var displayMode;
+			if(m.layout == "horizontal") {
+				displayMode = "inline-block";
+			}
+			else {
+				displayMode = "flex";
+			}
+			
+			d3.select(this.menuItemsContainerSelector+" > .l1-container-level")
+				.style("display", displayMode);
+		}
+		
+		var items = m.items;
+		for(var key in items) {
+
+			var l1TitleClasses = "l1-title";
+			if(typeof(m.style.l1TitleClass) != "undefined") {
+				l1TitleClasses += " "+m.style.l1TitleClass;
+			}
+
+			menuFirstLevelList.append("li")
+				.attr("id", "menu-item-"+items[key].name)
+				.attr("name", items[key].name)
+				.attr("class", "l1-container")
+				.append("span")
+				.attr("class", l1TitleClasses)
+				.html((d, i) => {
+					if(items[key].children.length > 0) {
+						return items[key].title;
+						//return "<i class=\"fa fa-chevron-circle-down l1-title-icon\" aria-hidden=\"true\"></i>&nbsp;"+items[key].title;
+					}
+					else {
+						return items[key].title;
+					}
+				});
+				
+			if(items[key].children.length > 0) {
+				
+				var menuSecondLevelList = menuFirstLevelList.select("#menu-item-"+items[key].name).append("ul")
+					.attr("class", "l2-level")
+					.style("border-left-color", "#000");
+				
+				for(var ck in items[key].children) {
+					menuSecondLevelList.append("li")
+						.attr("class", "l2-title menu-btn")
+						.attr("id", "menu-item-"+items[key].children[ck].name)
+						.attr("name", items[key].children[ck].name) //WHAT ABOUT ICONS THOUGH?
+						.html(items[key].children[ck].title);
+				}
+			}
+		}
+		
+		if(m.items.length > 0) {
+			$(m.anchor+" > .hqs-menu-title-container").on("mouseover", () => {
+				this.showMenu(m);
+			});
+
+			if(typeof m.auxTriggers != "undefined") {
+				for(let key in m.auxTriggers) {
+					$(m.auxTriggers[key]).on("mouseover", () => {
+						this.showMenu(m);
+					});
+				}
+			}
+		}
+		
+		
+		$(m.anchor).on("mouseleave", function() {
+			if(m.collapsed) {
+				$(m.anchor+" .l1-container-level").css("display", "none");
+				$(".hqs-menu-title-container", m.anchor).removeClass("hqs-menu-block-active");
+			}
+		});
+		
+		$(m.anchor+" .l1-container").on("click", (event) => { //replace this with mouseover if you like annoying menus
+			//$(m.anchor+" .l2-level", event.currentTarget).show();
+			$(".l2-level").hide();
+			$(".l2-level", event.currentTarget).show();
+		});
+		
+		for(var key in m.items) {
+			if(m.items[key].staticSelection) {
+				this.setSelected(m.items[key].name);
+			}
+		}
+
+		let anchorWidth = $(m.anchor).width();
+		$(m.anchor+" .l1-container-level-vertical").css("min-width", anchorWidth+"px");
+		
+	}
+
+	showMenu(m) {
+		$(".hqs-menu-title-container", m.anchor).addClass("hqs-menu-block-active");
+
+		var displayMode = "flex";
+		if(m.layout == "horizontal") {
+			displayMode = "inline-block";
+		}
+		$(m.anchor+" .l1-container-level").css("display", displayMode);
+
+		$(m.anchor+" .l2-level").show();
+		var menuHeight = $(m.anchor+" .l1-container-level").height();
+		var viewportHeight = $(document).height();
+		
+		if(menuHeight > viewportHeight-100) {
+			$(m.anchor+" .l2-level").hide();
+		}
+		else {
+			$(m.anchor+" .l2-level").show();
+		}
+	}
+	
+	/*
+	* Function: registerTooltipBindings
+	*/
+	registerTooltipBindings() {
+		var ttOptions = {
+			placement: "right"
+		};
+		for(let key in this.menuDef.items) {
+			for (var sk in this.menuDef.items[key].children) {
+				if(this.menuDef.items[key].children[sk].tooltip != "") {
+					this.hqs.tooltipManager.registerTooltip("#menu-item-" + this.menuDef.items[key].children[sk].name, this.menuDef.items[key].children[sk].tooltip, ttOptions);
+				}
+			}
+		}
+	}
+	
+	/*
+	* Function: closeMenu
+	*/
+	closeMenu() {
+		$(this.menuItemsContainerSelector).hide();
+	}
+	
+	/*
+	* Function: setSelected
+	*
+	*/
+	setSelected(menuItemName) {
+		for(var key in this.menuDef.items) {
+			if(this.menuDef.items[key].name == menuItemName) {
+				this.menuDef.items[key].staticSelection = true;
+			}
+			else {
+				this.menuDef.items[key].staticSelection = false;
+			}
+		}
+		
+		this.updateRenderSelected();
+	}
+	
+	/*
+	* Function: updateRenderSelected
+	*/
+	updateRenderSelected() {
+		for(var key in this.menuDef.items) {
+			if(this.menuDef.items[key].staticSelection) {
+				$("[name="+this.menuDef.items[key].name+"]", this.menuDef.anchor).addClass("hqs-menu-static-selection");
+			}
+			else {
+				$("[name="+this.menuDef.items[key].name+"]", this.menuDef.anchor).removeClass("hqs-menu-static-selection");
+			}
+		}
+	}
+	
+	/*
+	* Function: bindCallbacks
+	* You probably don't want to call this directly, it's mostly for internal use.
+	*/
+	bindCallbacks(menuDef) {
+		
+		for(var key in menuDef.items) {
+			var item = menuDef.items[key];
+			
+			$("#menu-item-"+menuDef.items[key].name).on("click", null, menuDef.items[key], (evt) => {
+				if(evt.data.children.length == 0 && evt.data.callback != null) {
+					if(this.menuDef.staticSelection) {
+						this.setSelected($(evt.currentTarget).attr("name"));
+					}
+					evt.data.callback();
+					evt.stopPropagation();
+				}
+			});
+			
+			if(item.children.length > 0) {
+				for(var ck in item.children) {
+					$("#menu-item-"+item.children[ck].name).on("click", null, this.menuDef.items[key].children[ck], (evt) => {
+						if(evt.data.callback != null) {
+							evt.data.callback(evt.data);
+							$(menuDef.anchor+" .l1-container-level-vertical").hide();
+						}
+						else {
+							console.log("WARN: Menu event fired without having an attached callback.")
+						}
+						evt.stopPropagation();
+					});
+				}
+			}
+			
+		}
+		
+	}
+	
+	unrender() {
+		$(this.menuDef.anchor).html("");
+	}
+	
+	/*
+	* Function: normalizeMenuDef
+	*
+	* This just creates some default values for things which might have been omitted in the definition. Just to make the structure more consistent and easier to traverse.
+	*
+	* Parameters:
+	* menuDef - JSON-structure defining the menu to be generated.
+	*/
+	normalizeMenuDef(menuDef) {
+
+		if(typeof(menuDef) == "undefined") {
+			return false;
+		}
+		if(typeof(menuDef.title) == "undefined") {
+			menuDef.title = "";
+		}
+		if(typeof(menuDef.anchor) == "undefined") {
+			menuDef.anchor = "";
+		}
+		if(typeof(menuDef.layout) == "undefined") {
+			menuDef.layout = "vertical";
+		}
+		if(typeof(menuDef.title) == "undefined") {
+			menuDef.collapsed = true;
+		}
+		if(typeof(menuDef.staticSelection) == "undefined") {
+			menuDef.staticSelection = false;
+		}
+		if(typeof(menuDef.visible) == "undefined") {
+			menuDef.visible = true;
+		}
+		if(typeof(menuDef.showMenuTitle) == "undefined") {
+			menuDef.showMenuTitle = true;
+		}
+		if(typeof(menuDef.style) == "undefined") {
+			menuDef.style = {};
+		}
+		if(typeof(menuDef.items) == "undefined") {
+			menuDef.items = [];
+		}
+		
+		for(var key in menuDef.items) {
+			if(typeof(menuDef.items[key].children) == "undefined") {
+				menuDef.items[key].children = [];
+			}
+			else {
+				for(var ck in menuDef.items[key].children) {
+					if(typeof(menuDef.items[key].children[ck].callback) == "undefined") {
+						menuDef.items[key].children[ck].callback = null;
+					}
+					if(typeof(menuDef.items[key].children[ck].staticSelection) == "undefined") {
+						menuDef.items[key].children[ck].staticSelection = false;
+					}
+				}
+			}
+			if(typeof(menuDef.items[key].callback) == "undefined") {
+				menuDef.items[key].callback = null;
+			}
+			if(typeof(menuDef.items[key].staticSelection) == "undefined") {
+				menuDef.items[key].staticSelection = false;
+			}
+		}
+		
+		return menuDef;
+	}
+}
+
+export { HqsMenu as default }
