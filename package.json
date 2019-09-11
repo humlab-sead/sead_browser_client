@@ -32,7 +32,6 @@
   "dependencies": {
     "ajv": "^6.10.2",
     "ajv-keywords": "^3.4.1",
-    "bootstrap": "^3.4.1",
     "chart.js": "^2.8.0",
     "chart.js-rangeslider": "^1.2.5",
     "color-scheme": "^1.0.1",
@@ -80,8 +79,6 @@
     "babel-loader": "^8.0.6",
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.7.0",
-    "bootstrap-loader": "^3.0.4",
-    "bootstrap-sass": "^3.4.1",
     "browser-sync": "^2.26.7",
     "cross-env": "^5.2.1",
     "css-loader": "^3.2.0",

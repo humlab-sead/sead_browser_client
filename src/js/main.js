@@ -2,7 +2,6 @@ import 'babel-polyfill';
 import "../index.html";
 import 'jquery-ui-bundle';
 import 'notifyjs-browser';
-import 'bootstrap';
 import 'zingtouch';
 import 'cookieconsent';
 import '../../node_modules/cookieconsent/build/cookieconsent.min.js';
@@ -16,7 +15,6 @@ import '../../flexnav/css/flexnav.css';
 import '../../flexnav/js/jquery.flexnav.js';
 import '../../node_modules/font-awesome/css/font-awesome.css';
 import '../../node_modules/normalize.css/normalize.css';
-//import '../../node_modules/openlayers/dist/ol.css'; //FIXME: We changed the "openlayers" package to "ol"
 import HumlabQuerySystem from './HumlabQuerySystem.class.js';
 import Config from '../config/config.js';
 import "../assets/icons/favicon.ico";
