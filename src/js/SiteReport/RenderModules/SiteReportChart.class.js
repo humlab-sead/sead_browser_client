@@ -1,6 +1,7 @@
 import shortid from "shortid";
 import Chart from "chart.js";
-import ZingChart from 'zingchart';
+//import ZingChart from 'zingchart';
+import {zingchart, ZC} from 'zingchart/es6';
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {
@@ -275,7 +276,7 @@ class SiteReportChart {
 
         var chartHeight = 100 + (samples.length * 20);
 
-		ZingChart.render({
+		zingchart.render({
 			id: this.chartId,
 			data: config,
 			defaults: this.chartTheme,
@@ -389,7 +390,7 @@ class SiteReportChart {
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
-		ZingChart.render({
+		zingchart.render({
 			id : this.chartId,
 			data : config,
 			defaults: this.chartTheme
@@ -585,7 +586,7 @@ class SiteReportChart {
 		var chartContainer = $("<div id='"+chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 		
-		ZingChart.render({
+		zingchart.render({
 			id : chartId,
 			data : config,
 			defaults: this.chartTheme

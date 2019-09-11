@@ -511,6 +511,7 @@ class SiteReport {
 			this.renderDataVisualization(section, contentItem);
 		}, 200);
 		
+		
 	}
 	
 	getExportButton(exportFormat, exportStruct) {

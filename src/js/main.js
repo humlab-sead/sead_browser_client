@@ -22,6 +22,7 @@ import Config from '../config/config.js';
 import "../assets/icons/favicon.ico";
 import "../assets/icons/site.webmanifest";
 
+
 //Set some globals
 window.$ = $;
 window.jQuery = jQuery;

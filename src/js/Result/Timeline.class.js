@@ -125,7 +125,7 @@ class Timeline {
         //console.log(this.data);
 
         const chartAnchorNode = $(".timeline-chart-container", this.map.renderTimelineIntoNode);
-        const canvasNode = chartAnchorNode.append($("<canvas></canvas>")).find("canvas");
+        const canvasNode = chartAnchorNode.append($("<canvas></canvas>")).find("canvas"); //FIXME: This canvas should probably have a fixed size
 
 		this.chartJSOptions = {
 			responsive: true,
