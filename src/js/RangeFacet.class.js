@@ -76,7 +76,7 @@ class RangeFacet extends Facet {
 	* The imported/converted data structure.
 	*/
 	importData(importData, overwrite = true) {
-
+		console.log(importData);
 		var data = [];
 		super.importData();
 		

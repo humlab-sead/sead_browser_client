@@ -2,7 +2,7 @@ import Config from '../../config/config.js'
 import ResultModule from './ResultModule.class.js'
 import chartjs from 'chart.js';
 import * as d3 from 'd3';
-import ol from 'openlayers';
+import ol from 'ol';
 import ResultMap from "./ResultMap.class";
 
 class ResultMosaic extends ResultModule {
@@ -408,110 +408,6 @@ class ResultMosaic extends ResultModule {
 		}
 	}
 	
-	renderBarChartOld(dataKey) {
-		
-		var chartCanvasId = "result-mosaic-"+dataKey+"-canvas";
-		
-		var c = d3.select("#result-mosaic-container").append("canvas")
-			.attr("width", this.tileSize)
-			.attr("height", this.tileSize)
-			.attr("id", chartCanvasId);
-		
-		var ctx = $("#"+chartCanvasId)[0].getContext("2d");
-		
-		console.log(this.data);
-		
-		var axes = [{
-			x: {
-			
-			},
-			y: {
-			
-			}
-		}];
-		var xLabels = [];
-		for(var key in this.data.columns) {
-			xLabels.push(this.data.columns[key].title);
-		}
-		
-		var xData = [];
-		for(var key in this.data.rows) {
-			xData.push(this.data.rows[key].analysis_entities);
-		}
-		
-		var chartData = {
-			labels: ["January", "February", "March", "April", "May", "June", "July"],
-			datasets: [{
-				label: "X-axis",
-				borderColor: "#000",
-				backgroundColor: "#f00",
-				fill: false,
-				data: [
-					1,
-					10,
-					8,
-					16,
-					5
-				],
-				yAxisID: "y-axis-1",
-			},
-			{
-				label: "My Second dataset",
-				borderColor: "#00f",
-				backgroundColor: "#00f",
-				fill: false,
-				data: [
-					2,
-					6,
-					9,
-					10,
-					3
-				],
-				yAxisID: "y-axis-2"
-			}]
-		};
-		
-		chartData = {
-			labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
-			datasets: [{
-				label: '# of Votes',
-				data: [12, 19, 3, 5, 2, 3],
-				backgroundColor: [
-					'rgba(255, 99, 132, 0.2)',
-					'rgba(54, 162, 235, 0.2)',
-					'rgba(255, 206, 86, 0.2)',
-					'rgba(75, 192, 192, 0.2)',
-					'rgba(153, 102, 255, 0.2)',
-					'rgba(255, 159, 64, 0.2)'
-				],
-				borderColor: [
-					'rgba(255,99,132,1)',
-					'rgba(54, 162, 235, 1)',
-					'rgba(255, 206, 86, 1)',
-					'rgba(75, 192, 192, 1)',
-					'rgba(153, 102, 255, 1)',
-					'rgba(255, 159, 64, 1)'
-				],
-				borderWidth: 1
-			}]
-		};
-		
-		new Chart(ctx, {
-			type: 'bar',
-			data: chartData,
-			options: {
-				responsive: true,
-				legend: {
-					position: 'top',
-				},
-				title: {
-					display: true,
-					text: 'Chart.js Bar Chart'
-				}
-			}
-		});
-		
-	}
 	
 	renderBarChartD3(dataKey) {
 		$('#result-mosaic-container').append("<div id='result-bar-chart-"+dataKey+"-container'></div>");

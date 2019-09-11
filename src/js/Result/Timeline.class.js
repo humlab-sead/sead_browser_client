@@ -7,15 +7,24 @@ class Timeline {
     }
 
     makeAnchorNodes() {
+		console.log(this.map.renderTimelineIntoNode);
         $(this.map.renderTimelineIntoNode).html("");
-        $(this.map.renderTimelineIntoNode).append("<div class='timeline-chart-container' style='height: 80%'></div>");
-        $(this.map.renderTimelineIntoNode).append("<div class='timeline-slider-container' style='height: 20%; width: 95%;'></div>");
-    }
+        $(this.map.renderTimelineIntoNode).append("<div class='timeline-chart-container'></div>");
+		$(this.map.renderTimelineIntoNode).append("<div class='timeline-slider-container'></div>");
+		
+		console.log($(".timeline-chart-container").height());
+		console.log($(".timeline-chart-container").width());
+
+		/*
+		$(".timeline-chart-container").css("height", $(".timeline-chart-container").height()+"px");
+		$(".timeline-chart-container").css("width", $(".timeline-chart-container").width()+"px");
+		*/
+	}
 
     render() {
         this.makeAnchorNodes();
         this.renderChart();
-        this.renderSlider();
+        //this.renderSlider();
     }
 
     renderSlider() {
@@ -113,7 +122,7 @@ class Timeline {
     renderChart() {
 
         this.data = JSON.parse(JSON.stringify(this.makeFakeTimeData(this.map.data)));
-        console.log(this.data);
+        //console.log(this.data);
 
         const chartAnchorNode = $(".timeline-chart-container", this.map.renderTimelineIntoNode);
         const canvasNode = chartAnchorNode.append($("<canvas></canvas>")).find("canvas");
@@ -140,7 +149,7 @@ class Timeline {
 					left: 0,
 					right: 0,
 					top: 0,
-					bottom: 10
+					bottom: 0
 				}
 			},
 			tooltips: {

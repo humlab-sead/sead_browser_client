@@ -10,7 +10,7 @@ var Config = {
     //serverAddress: "http://dev.humlab.umu.se:9080", //VAS
 	//serverAddress: "http://dev.humlab.umu.se:9091" //for json data
 	//serverAddress: "http://dev.humlab.umu.se:8089"
-	defaultResultModule: "mosaic",
+	defaultResultModule: "mosaic", //map, mosaic or table
 	facetSectionDefaultWidth: 30, //percentage of total window width
 	facetBodyHeight: 268, //default facet height in px
 	discreteFacetRowHeight: 20, //used for calculations in the facet sliding window (paging) functionality

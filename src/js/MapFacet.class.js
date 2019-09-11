@@ -1,4 +1,4 @@
-import ol from 'openlayers';
+import ol from 'ol';
 import Config from '../config/config.js'
 import Facet from './Facet.class.js'
 /*

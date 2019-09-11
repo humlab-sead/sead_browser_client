@@ -1101,11 +1101,13 @@ polyline{
 .result-map-render-container {
   width: 100%;
   height: 80%;
+  background-color: pink;
 }
 
 .result-timeline-render-container {
   width: 100%;
   height: 20%;
+  background-color: orange;
 }
 
 
@@ -1115,6 +1117,24 @@ polyline{
 
 .dataTables_filter input[type='search'] {
 
+}
+
+.timeline-chart-container {
+  /*
+  position: relative;
+  top: 0px;
+  left: 0px;
+  */
+  height: 80%;
+  overflow: hidden;
+  background-color: lightsteelblue;
+}
+
+.timeline-slider-container {
+  height: 20%;
+  width: 100%;
+  overflow:hidden;
+  background-color: lightskyblue;
 }
 
 #dev-notice {
@@ -1215,6 +1235,7 @@ polyline{
 
 
 .map-popup-box {
+  display: block;
   position: relative;
   background: rgba(255, 255, 255, 1.0);
   border: 2px solid #000000;

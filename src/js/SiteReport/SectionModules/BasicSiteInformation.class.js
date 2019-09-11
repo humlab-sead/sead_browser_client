@@ -1,5 +1,14 @@
-import ol from "openlayers";
-
+/*OpenLayers imports*/
+import Map from 'ol/Map';
+import View from 'ol/View';
+import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
+import { OSM as OSMSource } from 'ol/source';
+import { Group as GroupLayer } from 'ol/layer';
+import { Vector as VectorSource } from 'ol/source';
+import {fromLonLat, transform} from 'ol/proj.js';
+import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style.js';
+import Feature from 'ol/Feature';
+import Point from 'ol/geom/Point';
 /*
 * Class: BasicSiteInformation
 *
@@ -170,28 +179,28 @@ class BasicSiteInformation {
 		
 		$("#site-report-map-container").html("");
 		
-		this.olMap = new ol.Map({
+		this.olMap = new Map({
 			controls: [],
 			target: 'site-report-map-container',
-			layers: new ol.layer.Group({
+			layers: new GroupLayer({
 				layers: [
-					new ol.layer.Tile({
-						source: new ol.source.OSM(),
+					new TileLayer({
+						source: new OSMSource(),
 						visible: true
 					})
 				]
 			}),
-			view: new ol.View({
-				center: ol.proj.fromLonLat([siteData.geo.longitude, siteData.geo.latitude]),
+			view: new View({
+				center: fromLonLat([siteData.geo.longitude, siteData.geo.latitude]),
 				zoom: 4
 			})
 		});
 		
 		var iconFeatures = [];
 		
-		var coords = ol.proj.transform([siteData.geo.longitude, siteData.geo.latitude], 'EPSG:4326', 'EPSG:3857');
-		var iconFeature = new ol.Feature({
-			geometry: new ol.geom.Point(coords),
+		var coords = transform([siteData.geo.longitude, siteData.geo.latitude], 'EPSG:4326', 'EPSG:3857');
+		var iconFeature = new Feature({
+			geometry: new Point(coords),
 			name: siteData.siteName,
 			population: 4000,
 			rainfall: 500
@@ -199,27 +208,27 @@ class BasicSiteInformation {
 		
 		iconFeatures.push(iconFeature);
 		
-		var vectorSource = new ol.source.Vector({
+		var vectorSource = new VectorSource({
 			features: iconFeatures //add an array of features
 		});
 		
 		
 		var strokeColor = "#000000";
 		var fillColor = "#ff0000";
-		var iconStyle = new ol.style.Style({
-			image: new ol.style.Circle({
+		var iconStyle = new Style({
+			image: new CircleStyle({
 				radius: 5,
-				stroke: new ol.style.Stroke({
+				stroke: new Stroke({
 					color: strokeColor
 				}),
-				fill: new ol.style.Fill({
+				fill: new Fill({
 					color: fillColor
 				})
 			})
 		});
 		
 		
-		var vectorLayer = new ol.layer.Vector({
+		var vectorLayer = new VectorLayer({
 			source: vectorSource,
 			style: iconStyle
 		});
