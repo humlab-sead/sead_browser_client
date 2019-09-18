@@ -405,6 +405,7 @@ class StateManager {
 	* state - A state object.
 	*/
 	loadState(state) {
+		console.log(state);
 		this.lastLoadedState = state;
 		
 		//If you wonder what's going on here, I don't blame you. This is perhaps the laziest function you've ever seen. It does basically nothing.
@@ -423,6 +424,10 @@ class StateManager {
 		$.event.trigger("seadStatePostLoad", {
 			state: state
 		});
+
+		window.history.pushState(state,
+			"SEAD",
+			"/viewstate/"+state.id);
 
 		this.checkLoadStateCompleteInterval = setInterval(() => {
 			if(this.hqs.resultManager.getRenderStatus() == "complete") {
