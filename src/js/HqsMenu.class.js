@@ -163,7 +163,14 @@ class HqsMenu {
 		}
 		
 		var items = m.items;
+		//l1 items
 		for(var key in items) {
+
+			let l1Classes = "l1-container";
+			if(typeof items[key].children != "undefined" && items[key].children.length > 0) {
+				//Disable parent clickity-ness
+				l1Classes += " l1-inactive";
+			}
 
 			var l1TitleClasses = "l1-title";
 			if(typeof(m.style.l1TitleClass) != "undefined") {
@@ -173,7 +180,7 @@ class HqsMenu {
 			menuFirstLevelList.append("li")
 				.attr("id", "menu-item-"+items[key].name)
 				.attr("name", items[key].name)
-				.attr("class", "l1-container")
+				.attr("class", l1Classes)
 				.append("span")
 				.attr("class", l1TitleClasses)
 				.html((d, i) => {

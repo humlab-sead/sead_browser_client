@@ -1,29 +1,10 @@
 
 
 @import url('https://fonts.googleapis.com/css?family=Rajdhani|PT+Serif|Yanone+Kaffeesatz|Didact+Gothic|Rajdhani|Titillium+Web|Open+Sans+Condensed:300|Exo+2');
-/*
-$primary-blue: #34454f;
-$secondary-blue: #5B83AD;
-$primary-grey: #dfdfdf;
-$secondary-grey: #e8e8e8;
-$icecream-green: #cfc;
-$orange: #a20;
-$orange: #214466 + #222; 
-$orange: scale-color($orange, $lightness: +10%);
-$aux-color: #f60;
-$inactive-color: #34454f;
-$inactive-color: #505050;
-$color3: #214466;
 
-$inactive-color: rgba(51, 119, 187, 0.85);
-$error-color: rgba(255, 50, 50, 0.85);
-$warning-color: rgba(220, 180, 0, 0.85);
-$pane-bg-color: rgba(220, 220, 240, 1.0);
-*/
 $white: #ffffff;
-
-
 $inactive-color: #444;
+$inactive-color-light: scale-color($inactive-color, $lightness: +10%);
 $base-color:#2d5e8d;
 $base-color-light: scale-color($base-color, $lightness: +10%);
 $aux-color: #f60;
