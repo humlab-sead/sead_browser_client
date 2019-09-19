@@ -8,7 +8,7 @@
 
 .site-report-level-content > h3 {
   margin-top: 0px;
-  color: $color3;
+  color: $inactive-color;
 }
 
 .site-report-container {
@@ -49,7 +49,7 @@
 
 .site-report-level-title {
   cursor: pointer;
-  background-color: $color3;
+  background-color: $inactive-color;
   background-color: transparent;
   border-radius: 0px;
   color: #000;
@@ -66,9 +66,9 @@
 }
 
 .site-report-level-title:hover {
-  background-color: $color3 + #222;
+  background-color: $inactive-color + #222;
   background-color: #eee;
-  border-left-color: $orange;
+  border-left-color: $aux-color;
   transition: border-left-color 0.2s;
 }
 
@@ -79,13 +79,13 @@
   border-radius: 0px;
   border-bottom: 0px solid #ccc;
   background-color: #a00;
-  background: linear-gradient(to right, #a00, transparent);
+  background: linear-gradient(to right, $aux-color, transparent);
 }
 
 .site-report-level-title-static:hover {
   background-color: #ddd;
   transition: background-color 0.2s, border-left-color 0.2s;
-  border-left-color: $orange;
+  border-left-color: $aux-color;
 }
 
 .site-report-level-content {
@@ -97,7 +97,7 @@
   margin-left: 22px;
   background-color: #fff;
   border-width: 0px 0px 0px 0px;
-  border-color: $color4;
+  border-color: $base-color;
   border-style: solid;
 
   padding-bottom: 10px;
@@ -169,7 +169,7 @@
   margin-right: 5px;
   min-width: 60px;
   text-align:left;
-  background-color: $color1;
+  background-color: $inactive-color;
   color: #fff;
 }
 
@@ -203,7 +203,7 @@
 }
 
 .site-report-chart-tooltip > h4 {
-  color: $orange;
+  color: $aux-color;
   font-size: 0.75rem;
   display: inline-block;
 }
@@ -246,7 +246,7 @@
   margin-bottom: 2px;
   font-family: $header-font;
   font-size: 14px;
-  background-color: $color3;
+  background-color: $inactive-color;
   color: #fff;
 
   padding-left: 10px;
@@ -281,7 +281,7 @@
   bottom: 0px;
   left: 0px;
   right: 0px;
-  border-bottom: 1px solid $color3;
+  border-bottom: 1px solid $inactive-color;
   margin: 0 auto;
 }
 */
@@ -291,8 +291,8 @@
 }
 
 .site-report-aux-header-container-expandable:hover {
-  background-color: $color3 + #222;
-  border-left: 5px solid $orange;
+  background-color: $inactive-color + #222;
+  border-left: 5px solid $aux-color;
   cursor:pointer;
 }
 
@@ -319,7 +319,7 @@
 }
 
 .site-report-table thead {
-  background-color: $color2;
+  background-color: $inactive-color;
   color: #fff;
 
   background-color: #eee;
@@ -327,12 +327,12 @@
 }
 
 .site-report-table tbody td {
-  background-color: $color1;
+  background-color: $inactive-color;
   color: #fff;
 }
 
 table.site-report-table > tbody > tr.site-report-table-row:hover > td {
-  background-color:$color4;
+  background-color:$base-color;
 }
 
 .site-report-table tbody th, table.dataTable tbody td {
@@ -347,7 +347,7 @@ thead > tr > td {
 .site-report-table tbody > tr > td {
   border-width: 0px 0px 1px 0px;
   border-style: solid;
-  border-color: $color1 + #111;
+  border-color: $inactive-color + #111;
 }
 
 tr.site-report-table-row {
@@ -375,7 +375,7 @@ tr.site-report-table-row {
 }
 
 .site-report-table tbody td {
-  background-color: $color1;
+  background-color: $inactive-color;
   color: #fff;
 }
 
@@ -494,7 +494,7 @@ tr.site-report-table-row {
 
 .site-report-display-settings-btn {
   margin-left: 0px;
-  background-color: $color1;
+  background-color: $inactive-color;
   background-color: #fff;
   color: #333;
   padding: 2px;
@@ -507,7 +507,7 @@ tr.site-report-table-row {
 
 .site-report-display-settings-btn:hover {
   cursor: pointer;
-  background-color: $color1 + #888;
+  background-color: $inactive-color + #888;
   transition: background-color 0.2s;
 }
 
@@ -536,7 +536,7 @@ tr.site-report-table-row {
 
 .site-report-export-download-btn:hover {
   cursor:pointer;
-  background-color: $orange;
+  background-color: $aux-color;
   color: #fff;
   transition: background-color 0.1s, color 0.1s;
 }
@@ -553,7 +553,7 @@ tr.site-report-table-row {
 
 .light-theme-button:hover {
   cursor:pointer;
-  background-color: $orange;
+  background-color: $aux-color;
   color: #fff;
   transition: background-color 0.1s, color 0.1s;
 }
@@ -572,14 +572,14 @@ tr.site-report-table-row {
   margin-right:5px;
   padding-right:0px;
   font-size: 20px;
-  border-left: 4px solid $color4;
+  border-left: 4px solid $base-color;
   padding-left: 4px;
 
   border-right: 0px solid #ccc;
   margin-top: 5px;
 
   text-decoration: none;
-  text-decoration-color: $color4;
+  text-decoration-color: $base-color;
 }
 
 .content-item-header-divider {
@@ -602,11 +602,11 @@ tr.site-report-table-row {
 }
 
 .siteReportError {
-  color: $color5;
+  color: $error-color;
 }
 
 .site-report-analysis-unknown-warning {
-  color: $color6;
+  color: $warning-color;
 }
 
 .small-auxiliary-header-text {

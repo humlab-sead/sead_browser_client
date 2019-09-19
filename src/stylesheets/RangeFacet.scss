@@ -30,7 +30,7 @@
 
 .noUi-handle {
 	position:relative;
-	background-color: $color1 !important;
+	background-color: $inactive-color !important;
 	background-color: transparent !important;
 	height: 4px !important;
 	width: 26px !important;
@@ -42,7 +42,7 @@
 	box-shadow: none !important;
 	border-radius: 1px !important;
 	border-width: 0px !important;
-	border-color: $orange !important;
+	border-color: $aux-color !important;
 	border-style: solid;
 	border-top-width: 0px !important;
 	border-bottom-width: 0px !important;
@@ -55,14 +55,14 @@
 .noUi-handle-lower > .range-facet-manual-input-container {
   position: relative !important;
   /*left: -23px !important;*/
-  border-right: 4px solid $orange !important;
+  border-right: 4px solid $aux-color !important;
 }
 
 
 .noUi-handle-upper > .range-facet-manual-input-container {
   position: relative !important;
   left: 10px !important;
-  border-left: 4px solid $orange !important;
+  border-left: 4px solid $aux-color !important;
 }
 
 
@@ -76,13 +76,14 @@
 
 
 div.noUi-connect {
-  background-color: $orange !important;
+  background-color: $aux-color !important;
   height: 5px;
   margin-top:6px;
 }
 
 
 .range-facet-manual-input-container {
+	display: none;
 	position: relative !important;
 	top: 8px;
   	margin-left: -4px;

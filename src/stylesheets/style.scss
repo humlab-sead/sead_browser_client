@@ -1,24 +1,39 @@
 
 
 @import url('https://fonts.googleapis.com/css?family=Rajdhani|PT+Serif|Yanone+Kaffeesatz|Didact+Gothic|Rajdhani|Titillium+Web|Open+Sans+Condensed:300|Exo+2');
+/*
 $primary-blue: #34454f;
 $secondary-blue: #5B83AD;
 $primary-grey: #dfdfdf;
 $secondary-grey: #e8e8e8;
 $icecream-green: #cfc;
 $orange: #a20;
-$orange: #214466 + #222;
-$hilite: #f60;
-/*$color1: #ff7000;*/
-$color1: #34454f;
-$color2: #505050;
+$orange: #214466 + #222; 
+$orange: scale-color($orange, $lightness: +10%);
+$aux-color: #f60;
+$inactive-color: #34454f;
+$inactive-color: #505050;
 $color3: #214466;
-$color4: rgba(51, 119, 187, 0.85); /* Info blue */
-$color5: rgba(255, 50, 50, 0.85); /* Error red */
-$color6: rgba(220, 180, 0, 0.85); /* Warn yellow */
-$color7: rgba(220, 220, 240, 1.0);
-$sead-brown: #7c5f5e;
+
+$inactive-color: rgba(51, 119, 187, 0.85);
+$error-color: rgba(255, 50, 50, 0.85);
+$warning-color: rgba(220, 180, 0, 0.85);
+$pane-bg-color: rgba(220, 220, 240, 1.0);
+*/
 $white: #ffffff;
+
+
+$inactive-color: #444;
+$base-color:#2d5e8d;
+$base-color-light: scale-color($base-color, $lightness: +10%);
+$aux-color: #f60;
+$pane-bg-color: #eee;
+$pane-bg-color-dark: scale-color($pane-bg-color, $lightness: -10%);
+$sead-brown: #875d5d;
+$shadow-color: rgba(0, 0, 0, 0.5);
+$error-color: rgba(255, 50, 50, 0.85);
+$warning-color: rgba(220, 180, 0, 0.85);
+
 
 $header-font: 'Rajdhani';
 //$header-font: 'Century Gothic';
@@ -26,9 +41,11 @@ $normal-font: 'Didact Gothic';
 $special-font: 'Titillium Web';
 $bt-font: 'PT Serif';
 
+/*
 :export {
   color3: $color3;
 }
+*/
 
 
 @import "SiteReport.scss";
@@ -45,7 +62,7 @@ h1 {
 }
 
 h2 {
-	background-color: grey;
+	background-color: $inactive-color;
 	margin-top:0px;
 }
 
@@ -83,7 +100,7 @@ div:focus {
 
 #header-space {
 	width: 100%;
-	background-color: #fffs;
+	background-color: #fff;
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -119,13 +136,6 @@ div:focus {
   font-weight: bold;
 }
 
-.sead-logo-text-underline {
-  display:none;
-  height: 1px;
-  background-color: #aaa;
-  width: 100%;
-}
-
 .sead-logo-compressed {
 	background-image: url('../assets/SEAD-logo-small.png') !important;
 	background-size: 100px !important;
@@ -136,7 +146,6 @@ div:focus {
 	width: 30px;
 }
 
-
 .bold-first-letter-text::first-letter {
 	display:inline-block;
 	font-weight:bold;
@@ -145,14 +154,6 @@ div:focus {
 #sead-logo-small {
 	font-size: 20px;
 	font-weight:bold;
-}
-
-@media only screen and ( max-width: 1030px ) {
-
-	.logo-subtext {
-		display:none;
-	}
-
 }
 
 #main-container {
@@ -195,11 +196,7 @@ h1.main-header {
 	flex-direction: row;
 	flex-wrap: nowrap;
 
-	color: white;
-	background-color: $primary-blue;
-	background-color: rgba(240, 120, 0, 1.0);
-	background-color: #999;
-	background-color: rgba(33, 68, 102, 1.0);
+	color: #fff;
 	background-color: #fff;
 	padding-top: 0px;
 	padding-bottom: 0px;
@@ -208,7 +205,7 @@ h1.main-header {
 
 	border-bottom-style:solid;
 	border-bottom-width: 1px;
-	border-bottom-color: rgba(6, 6, 9, 0.2);
+	border-bottom-color: $pane-bg-color;
 }
 
 .header-compressed {
@@ -221,12 +218,12 @@ h1.main-header {
 }
 
 #section-left {
-	border-top: 0px solid #4b4b4b;
-	background-color: white;
+	border-top: 0px solid $inactive-color;
+	background-color: #fff;
 }
 
 #section-right {
-	background-color: $primary-grey;
+	background-color: $inactive-color;
 }
 
 #facet-section {
@@ -240,7 +237,7 @@ h1.main-header {
 
 .facet-loading-indicator {
 	display:none;
-	background-color:black;
+	background-color:#000;
 	width: 15px;
 	height: 15px;
 	align-self: center;
@@ -257,10 +254,9 @@ h1.main-header {
 }
 
 #result-section {
-	background-color: #ddd;
-	/*overflow: auto;*/
-	padding:20px;
-  max-height: calc(100vh - 129px);
+	background-color: $pane-bg-color-dark;
+  padding:20px;
+  height: calc(100vh - 129px);
 }
 
 #templates {
@@ -277,13 +273,13 @@ h1.main-header {
 }
 
 #facet-show-only-selections-btn {
-  color: #444;
+  color: $inactive-color;
   padding-right: 5px;
   padding-bottom: 5px;
 }
 
 #facet-show-only-selections-btn:hover {
-  background-color: #eee;
+  background-color: $pane-bg-color;
   cursor:pointer;
 }
 
@@ -295,7 +291,7 @@ h1.main-header {
 	position: absolute;
 	height: 300px;
 	width: 100%;
-	background-color: $secondary-grey;
+	background-color: $pane-bg-color;
 	margin: 0px;
 	padding: 0px;
 }
@@ -325,16 +321,15 @@ h1.main-header {
 	margin-bottom:0px;
 	width:97%;
 	height:1px;
-	background-color: #f00;
+	background-color: $aux-color;
 }
 
 .facet-body {
-	/*height: 268px;*/ /* needs to have fixed height because of range/diagram filters, but this is set in js facet init - to let this value be specified in Config*/
-	padding: 5px;
-	overflow: hidden;
-  	padding-top: 0px;
-  	padding-bottom: 0px;
-	/*background-color:rgba(255, 0, 0, 0.5);*/
+  /*height: 268px;*/ /* needs to have fixed height because of range/diagram filters, but this is set in js facet init - to let this value be specified in Config*/
+  padding: 5px;
+  overflow: hidden;
+  padding-top: 0px;
+  padding-bottom: 0px;
 }
 
 .facet-head-btn {
@@ -350,7 +345,7 @@ h1.main-header {
   padding-bottom: 0px;
 
   margin-right: 2px;
-  color: #666;
+  color: $inactive-color;
   z-index: 2;
   width: 12px;
 }
@@ -367,7 +362,7 @@ h1.main-header {
 }
 
 .facet-control-active {
-  color: $hilite;
+  color: $aux-color;
 }
 
 .facet-text-search-input {
@@ -395,17 +390,17 @@ h1.main-header {
 }
 
 .facet-row:hover {
-	background-color: rgba(0, 0, 0, 0.25);
+	background-color: $pane-bg-color-dark;
 	cursor:pointer;
 }
 
 .facet-row-selected {
-	background-color: rgba(33, 68, 102, 1.0);
+	background-color: $inactive-color;
 	color: #fff;
 }
 
 .facet-row-selected:hover {
-	background-color: rgba(0, 0, 0, 0.25);
+	background-color: $pane-bg-color-dark;
 	color: #fff;
 }
 
@@ -430,7 +425,7 @@ h1.main-header {
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
-  color: #ccc;
+  color: $pane-bg-color-dark;
   background-color:transparent;
   height: 300px;
   padding: 0px;
@@ -446,14 +441,14 @@ h1.main-header {
 */
 
 .slot-visible {
-  border: 4px dashed #ccc;
+  border: 4px dashed $pane-bg-color-dark;
 }
 
 .filter-demo-arrow {
   font-size: 7.5rem;
   text-align:center;
   width: 100%;
-  color: #ccc;
+  color: $pane-bg-color-dark;
 }
 
 .result-module-title {
@@ -461,11 +456,11 @@ h1.main-header {
 }
 
 #result-tabs-container > ul > li.result-module-tabs-title {
-  background-color: $color2;
+  background-color: $inactive-color;
 }
 
 #result-tabs-container > ul > li.result-module-tabs-title:hover {
-  background-color: $color2;
+  background-color: $inactive-color;
   cursor: default;
 }
 
@@ -497,13 +492,8 @@ h1.main-header {
   color: #fff;
   margin-left: 0px;
   margin-right: 0px;
-  background-color: $color1;
+  background-color: $inactive-color;
   padding: 12px;
-}
-
-#result-tabs-container > ul > li:hover {
-  cursor:pointer;
-  background-color: $color1 + #222;
 }
 
 #result-container {
@@ -668,13 +658,9 @@ h1.main-header {
 }
 
 .scroll-selection-indicator {
-  background-color: red;
+  background-color: $aux-color;
   height: 100%;
   width: 5px;
-}
-
-.result-subsection:hover {
-	background-color: #8e4421 + #222;
 }
 
 .ui-resizable-handle {
@@ -682,7 +668,7 @@ h1.main-header {
 }
 
 .ui-resizable-handle:hover {
-  background-color: $color3;
+  background-color: $inactive-color;
   cursor: col-resize;
 }
 
@@ -690,7 +676,7 @@ h1.main-header {
 .menu-symbol-facet {
 	position:relative;
 	display:inline-block;
-	background-color:#888;
+	background-color:$pane-bg-color;
 	width: 12px;
 	height: 12px;
 	margin-right:4px;
@@ -706,7 +692,6 @@ h1.main-header {
 .overlay-container {
   display:flex;
   position: absolute;
-  background-color: rgba(255, 0, 0, 0.2);
   width: 100vw;
   height: 100vh;
 }
@@ -722,10 +707,10 @@ h1.main-header {
 
 	width: 80vw;
 	max-height: 80vh;
-	box-shadow: 0px 0px 20px #888888;
+	box-shadow: 0px 0px 20px $pane-bg-color;
 	border-width: 1px;
 	border-style: solid;
-	border-color: #aaa;
+	border-color: $pane-bg-color-dark;
 	padding: 30px;
 	z-index: 10;
 	overflow:auto;
@@ -740,7 +725,7 @@ h1.main-header {
 
 .overlay-dialog-close-btn:hover {
 	cursor:pointer;
-	color: #a00;
+	color: $aux-color;
 }
 
 #logo-section {
@@ -764,22 +749,7 @@ h1.main-header {
 
 .viewstate-input {
 	width: 100%;
-	/*
-	border-width: 1px;
-	border-style: solid;
-	border-color: #aaa;
-	*/
 }
-
-/*
-#viewstate-save-input {
-  display:inline-block;
-}
-
-#viewstate-save-btn {
-  display:inline-block;
-}
-*/
 
 #viewstate-key, #viewstate-url {
 	font-weight:bold;
@@ -811,13 +781,13 @@ h1.main-header {
 }
 
 .viewstate-load-item:hover {
-  background-color: $color7;
+  background-color: $pane-bg-color;
   cursor:pointer;
   font-weight: bold;
 }
 
 .viewstate-delete-btn:hover {
-  color: red;
+  color: $aux-color;
 }
 
 .viewstate-dialog > button {
@@ -906,9 +876,6 @@ h1.main-header {
   border-radius: 50%;
 }
 
-#result-loading-indicator {
-}
-
 #result-table-container {
 	overflow-y:auto;
 }
@@ -934,7 +901,7 @@ h1.main-header {
   	font-weight: normal;
 	border-radius: 0px;
 	color: #000;
-	border-color: $color4;
+	border-color: $inactive-color;
 	border-width: 2px;
 	z-index: 20 !important;
 	padding-top:4px !important;
@@ -943,22 +910,22 @@ h1.main-header {
 .notifyjs-bootstrap-info {
   background-color: #fff;
   background-image: none;
-  border-color: $color1;
+  border-color: $inactive-color;
   padding: 5px;
   padding-top: 2px;
 }
 
 .notifyjs-bootstrap-warn {
-  background-color: $color6;
+  background-color: $warning-color;
   background-image: none;
-  border-color: $color1;
+  border-color: $inactive-color;
   padding: 5px;
 }
 
 .notifyjs-bootstrap-error {
-  background-color: $color5;
+  background-color: $error-color;
   background-image: none;
-  border-color: $color1;
+  border-color: $inactive-color;
   padding: 5px;
 }
 
@@ -983,7 +950,7 @@ h1.main-header {
 .result-info-text {
 	font-size: 50px;
 	font-weight: bold;
-	color: #555;
+	color: $inactive-color;
 	grid-column-start: 2;
 	grid-column-end: 2;
 	grid-row-start: 2;
@@ -1005,7 +972,7 @@ h1.main-header {
 
 .large-info-text {
 	font-size: 60px;
-	color: #555;
+	color: $inactive-color;
   margin-bottom:20px;
 }
 
@@ -1016,7 +983,7 @@ h1.main-header {
 
 .section-title {
 	font-size: 30px;
-	color: #aaa;
+	color: $pane-bg-color-dark;
 	white-space: nowrap;
 }
 
@@ -1040,13 +1007,13 @@ h1.main-header {
 }
 
 #result-datatable thead tr {
-	background-color: $color1;
+	background-color: $inactive-color;
 	color: #fff;
 	font-size: 16px;
 }
 
 #result-datatable tbody tr:hover {
-	background-color: $color7;
+	background-color: $pane-bg-color;
 }
 
 #result-table-container {
@@ -1063,7 +1030,7 @@ path.slice{
 
 polyline{
   opacity: .3;
-  stroke: black;
+  stroke: #000;
   stroke-width: 2px;
   fill: none;
 }
@@ -1088,7 +1055,7 @@ polyline{
 .result-mosaic-tile > h2 {
   position:absolute;
   z-index: 1;
-  background-color: #ccc;
+  background-color: $pane-bg-color-dark;
   padding-left: 2px;
   padding-right: 2px;
 }
@@ -1128,6 +1095,8 @@ polyline{
   height: 80%;
   overflow: hidden;
   background-color: lightsteelblue;
+  padding-left: 5px;
+  padding-right: 5px;
 }
 
 .timeline-slider-container {
@@ -1225,14 +1194,12 @@ polyline{
 }
 
 .help-icon:hover {
-  color: #aaa;
+  color: $inactive-color;
 }
 
 .small-link {
   font-size: 12px;
 }
-
-
 
 .map-popup-box {
   display: block;
@@ -1241,7 +1208,7 @@ polyline{
   border: 2px solid #000000;
   border-radius: 3px;
   padding: 10px;
-  box-shadow: 0px 0px 20px 0px rgba(0, 0, 0, 0.6);
+  box-shadow: 0px 0px 20px 0px $shadow-color;
 }
 .map-popup-box:after, .map-popup-box:before {
 	top: 100%;
@@ -1309,7 +1276,7 @@ polyline{
 }
 
 #facet-menu > .hqs-menu-block-vertical-large {
-  background-color: $hilite !important;
+  background-color: $aux-color !important;
 }
 
 #facet-menu > .menu-category-level {
@@ -1344,7 +1311,7 @@ polyline{
 }
 
 #result-menu > .hqs-menu-title {
-  background-color: $color1;
+  background-color: $inactive-color;
 
 }
 
@@ -1372,10 +1339,10 @@ polyline{
 }
 
 .popper {
-  background-color: #eee;
-  border: 2px solid $color4;
+  background-color: $pane-bg-color;
+  border: 2px solid $inactive-color;
   padding: 10px;
-  box-shadow: 0px 0px 10px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0px 0px 10px 2px $shadow-color;
   max-width: 40%;
 }
 
@@ -1388,7 +1355,7 @@ polyline{
 .tooltip-anchor-highlight {
   animation-duration: 0.5s;
   animation-name: tooltip-anchor-highlight;
-  background-color: $hilite;
+  background-color: $aux-color;
 }
 
 @keyframes tooltip-anchor-highlight {
@@ -1397,7 +1364,7 @@ polyline{
   }
 
   to {
-	background-color: $hilite;
+	background-color: $aux-color;
   }
 }
 
@@ -1448,7 +1415,7 @@ polyline{
 
 .team-member-name::after {
   content: "";
-  border-bottom: 1px solid #aaa;
+  border-bottom: 1px solid $pane-bg-color-dark;
   position:relative;
   display:block;
   top: 0px;
@@ -1463,7 +1430,7 @@ polyline{
   margin: 10px;
   padding: 10px;
   padding-bottom: 20px;
-  background-color: #eee;
+  background-color: $pane-bg-color;
   font-size: 14px;
   width: 200px;
   height: 150px;
@@ -1492,14 +1459,14 @@ polyline{
   grid-column: 2;
   grid-row: 2;
   background-color: #fff;
-  box-shadow: 0px 0px 20px #888888;
+  box-shadow: 0px 0px 20px $pane-bg-color-dark;
   padding: 30px;
   overflow: auto;
   max-height: 90%;
   max-width: 90%;
   border-width: 1px;
   border-style: solid;
-  border-color: #aaa;
+  border-color: $pane-bg-color-dark;
 }
 
 
@@ -1542,7 +1509,7 @@ polyline{
 }
 
 #result-title {
-  color: #999;
+  color:$pane-bg-color-dark;
   background-color: #fff;
   position:relative;
   top: 7px;
