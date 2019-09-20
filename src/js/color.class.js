@@ -1,5 +1,6 @@
 import ColorScheme from 'color-scheme';
 import KolorWheel from 'kolorwheel';
+import Config from '../config/config.js'
 
 class Color {
     constructor() {
@@ -12,18 +13,8 @@ class Color {
 	getColorScheme(numColors, alpha = false) {
 		var iterations = Math.ceil(numColors / 16);
 		var scheme = new ColorScheme;
-		
-		var keyColors = [
-			"5B83AD",
-			"A02000",
-			"ff0000",
-			"00ff00",
-			"0000ff",
-			"ffff00",
-			"ff00ff",
-			"00ffff",
-			"0000ff"
-		];
+
+		let keyColors = JSON.parse(JSON.stringify(Config.keyColors));
 		
 		var colors = [];
 		for(var i = 0; i < iterations && keyColors.length > 0; i++) {

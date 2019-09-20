@@ -18,13 +18,25 @@ var Config = {
 	cookieWarningEnabled: false, //cookie warning popup - disabled, because we're actually not using cookies atm
 	viewstateLoadingScreenEnabled: false,
 	requireLoginForViewstateStorage: true,
+	rangeFilterFuzzyLabels: true, //Rounds labels to avoid very long numbers
+	keyColors: [ //Colors used as source/origin-colors when generating color schemes
+		"5B83AD",
+		"A02000",
+		"ff0000",
+		"00ff00",
+		"0000ff",
+		"ffff00",
+		"ff00ff",
+		"00ffff",
+		"0000ff"
+	],
 	activePortal: "general",
 	portals: [
 		{
 			name: "general",
 			title: "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i> General",
 			//color: "#00d",
-			color: "#444",
+			color: "#2d5e8d",
 			filters: [
 				"sample_groups",
 				"sites",
@@ -47,7 +59,7 @@ var Config = {
 			name: "palaeo",
 			title: "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i> Palaeoentomology",
 			//color: "#d00",
-			color: "#444",
+			color: "#2d5e8d",
 			filters: [
 				"sample_groups",
 				"sites",
@@ -70,7 +82,7 @@ var Config = {
 			name: "dendro",
 			title: "<i class=\"fa fa-tree\" aria-hidden=\"true\"></i> Dendrochronology",
 			//color: "#0d0",
-			color: "#444",
+			color: "#2d5e8d",
 			filters: [
 				"sample_groups",
 				"sites",
@@ -93,7 +105,7 @@ var Config = {
 			name: "archaeobotany",
 			title: "<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i> Archaeobotany",
 			//color: "#d0d",
-			color: "#444",
+			color: "#2d5e8d",
 			filters: [
 				"sample_groups",
 				"sites",
@@ -116,7 +128,7 @@ var Config = {
 			name: "pollen",
 			title: "<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i> Pollen",
 			//color: "#d0d",
-			color: "#444",
+			color: "#2d5e8d",
 			filters: [
 				"sample_groups",
 				"sites",
@@ -139,7 +151,7 @@ var Config = {
 			name: "ceramic",
 			title: "<i class=\"fa fa-beer\" aria-hidden=\"true\"></i> Ceramic",
 			//color: "#d0d",
-			color: "#444",
+			color: "#2d5e8d",
 			filters: [
 				"sample_groups",
 				"sites",
