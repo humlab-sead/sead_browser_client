@@ -1,6 +1,5 @@
 import * as d3 from 'd3';
 import Config from '../../config/config.js'
-import HqsMenu from '../HqsMenu.class.js'
 import ResultModule from './ResultModule.class.js'
 import Timeline from './Timeline.class.js';
 
@@ -9,14 +8,12 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
 import { Stamen, BingMaps, TileArcGISRest } from 'ol/source';
-import Control from 'ol/control/Control';
 import { Group as GroupLayer } from 'ol/layer';
 import Overlay from 'ol/Overlay';
 import GeoJSON from 'ol/format/GeoJSON';
 import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
 import {fromLonLat, toLonLat} from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
-import { click as clickCondition } from 'ol/events/condition';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
 
 
@@ -48,13 +45,13 @@ class ResultMap extends ResultModule {
 		this.style = {
 			default: {
 				//fillColor: [0, 102, 255, 0.6],
-				fillColor: this.resultManager.hqs.color.getColorScheme(4, 0.5)[3],
+				fillColor: this.resultManager.hqs.color.getColorScheme(20, 0.5)[13],
 				strokeColor: "#fff",
 				textColor: "#fff",
 			},
 			selected: {
-				fillColor: this.resultManager.hqs.color.getColorScheme(4, 1.0)[3],
-				strokeColor: "#000",
+				fillColor: this.resultManager.hqs.color.getColorScheme(20, 1.0)[14],
+				strokeColor: "#fff",
 				textColor: "#fff",
 			},
 			highlighted: {
@@ -615,7 +612,7 @@ class ResultMap extends ResultModule {
 		if(options.selected) {
 			fillColor = this.style.selected.fillColor;
 			strokeColor = this.style.selected.strokeColor;
-			textColor = this.style.highlighted.textColor;
+			textColor = this.style.selected.textColor;
 			zIndex = 10;
 		}
 
