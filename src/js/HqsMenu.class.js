@@ -6,7 +6,6 @@ Makes menus out of structures, good stuff.
 
 Structure looks like this:
 
-
 var menu = {
 	title: "My Menu", //The name of the menu as it will be displayed in the UI
 	layout: "horizontal", //"horizontal" or "vertical" - the flow director of the menu items
@@ -224,10 +223,9 @@ class HqsMenu {
 		}
 		
 		
-		$(m.anchor).on("mouseleave", function() {
+		$(m.anchor).on("mouseleave", () => {
 			if(m.collapsed) {
-				$(m.anchor+" .l1-container-level").css("display", "none");
-				$(".hqs-menu-title-container", m.anchor).removeClass("hqs-menu-block-active");
+				this.closeMenu(m);
 			}
 		});
 		
@@ -257,6 +255,13 @@ class HqsMenu {
 		}
 		$(m.anchor+" .l1-container-level").css("display", displayMode);
 
+		//Check if l1-container-level-vertical overflows viewport and if so, set it to: right: 0px; to make it bounce of the right edge
+		let pos = $(m.anchor+" .l1-container-level").position();
+		let width = $(m.anchor+" .l1-container-level").width();
+		if(pos.left + width > $(window).width()) {
+			$(m.anchor+" .l1-container-level").css("right", "0px");
+		}
+		
 		$(m.anchor+" .l2-level").show();
 		var menuHeight = $(m.anchor+" .l1-container-level").height();
 		var viewportHeight = $(document).height();
@@ -288,8 +293,11 @@ class HqsMenu {
 	/*
 	* Function: closeMenu
 	*/
-	closeMenu() {
-		$(this.menuItemsContainerSelector).hide();
+	closeMenu(m) {
+		$(m.anchor+" .l1-container-level").css("display", "none");
+		$(".hqs-menu-title-container", m.anchor).removeClass("hqs-menu-block-active");
+		//$(this.menuItemsContainerSelector).hide();
+		$(m.anchor+" .l1-container-level").css("right", "auto");
 	}
 	
 	/*
