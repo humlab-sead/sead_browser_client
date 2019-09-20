@@ -285,20 +285,11 @@ class ResultMosaic extends ResultModule {
 	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {
+
 		var config = {
 			"type":"pie",
 			"background-color": "transparent",
-			"series":chartSeries,
-			"plot":{
-				"value-box":{
-				  "font-size":12,
-				  "font-family":"Georgia",
-				  "font-weight":"normal",
-				  "decimals": 0,
-				  "placement":"in",
-				  "font-color":"white",
-				}
-			},
+			"series": chartSeries,
 			"tooltip":{
 				"text": "%t (%v)",
 				"html-mode": true,
@@ -312,6 +303,28 @@ class ResultMosaic extends ResultModule {
 			"plot":{
 				"animation":{
 					"effect":"ANIMATION_EXPAND_LEFT"
+				},
+				"value-box":{
+					"text": "%npv%",
+					"font-size":12,
+					"font-family":"Georgia",
+					"font-weight":"normal",
+					"decimals": 2,
+					"placement":"out",
+					"font-color":"#000",
+					"rules": [
+						{
+							rule: "%npv > 10",
+							placement: "in",
+							'offset-r': "25%",
+							'font-color': "white",
+						},
+						{
+							rule: "%npv <= 10",
+							placement: "out",
+							'font-color': "black",
+						}
+					]
 				}
 			}
 		};
@@ -346,7 +359,6 @@ class ResultMosaic extends ResultModule {
 			id : renderIntoNode.substr(1),
 			data : config,
 			height: "100%"
-			
 		});
 	}
 
@@ -395,218 +407,6 @@ class ResultMosaic extends ResultModule {
 		return renderCategories;
 	}
 	
-	makeFakeData() {
-		this.data.rows = [];
-		for(var i = 0; i < 10; i++) {
-			this.data.rows.push({
-				sitename: "whatevs",
-				record_type: "whatevs",
-				analysis_entities: Math.random(0, 100),
-				site_link: Math.random(0, 100),
-				site_link_filtered: Math.random(0, 100)
-			});
-		}
-	}
-	
-	
-	renderBarChartD3(dataKey) {
-		$('#result-mosaic-container').append("<div id='result-bar-chart-"+dataKey+"-container'></div>");
-		$("#result-bar-chart-"+dataKey+"-container").append("<h3>"+dataKey+"</h3>");
-		$("#result-bar-chart-"+dataKey+"-container").append("<svg id='result-bar-chart-"+dataKey+"' class='resultMosaicChart' width='"+this.tileSize+"' height='"+this.tileSize+"'></svg>");
-		
-
-		var svg = d3.select("#result-bar-chart-"+dataKey),
-			width = +svg.attr("width"),
-			height = +svg.attr("height"),
-			radius = Math.min(width, height) / 2,
-			g = svg.append("g")
-				.attr("class", "d3Bars");
-		
-		var color = d3.scaleOrdinal(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
-		
-		var barsSelector = d3.select("#result-bar-chart-"+dataKey+" > .d3Bars")
-			.selectAll("rect")
-			.data(this.data.rows);
-		
-		var highestValue = 0;
-		for(var key in this.data.rows) {
-			highestValue = this.data.rows[key][dataKey] > highestValue ? this.data.rows[key][dataKey] : highestValue;
-		}
-		
-		barsSelector.enter()
-			.append("rect")
-			.attr("class", "bar")
-			.attr("stroke", (d, i) => {
-				return "rgba(115,115,255, 0.75)";
-			})
-			.attr("stroke-weight", "2px")
-			.attr("fill", (d, i) => {
-				return "rgba(115,115,255,0.5)";
-			})
-			.attr("x", (d, i) => {
-				return i*12;
-			})
-			.attr("y", (d, i) => {
-				if(isNaN(d[dataKey])) {
-					return 0;
-				}
-				else {
-					return this.tileSize - (d[dataKey] / highestValue) * 100;
-				}
-			})
-			.attr("width", 10)
-			.attr("height", (d, i) => {
-				if(isNaN(d[dataKey])) {
-					return 0;
-				}
-				else {
-					return (d[dataKey] / highestValue) * 100;
-				}
-			});
-		
-		barsSelector.exit().remove();
-		
-		
-	}
-	
-	renderPieChartD3(dataKey) {
-		
-		$('#result-mosaic-container').append("<div id='result-pie-chart-"+dataKey+"-container'></div>");
-		$("#result-pie-chart-"+dataKey+"-container").append("<h3>"+dataKey+"</h3>");
-		$("#result-pie-chart-"+dataKey+"-container").append("<svg id='result-pie-chart-"+dataKey+"' class='resultMosaicChart' width='"+this.tileSize+"' height='"+this.tileSize+"'></svg>");
-		
-		
-		var svg = d3.select("#result-pie-chart-"+dataKey),
-			width = +svg.attr("width"),
-			height = +svg.attr("height"),
-			radius = Math.min(width, height) / 2,
-			g = svg.append("g")
-				.attr("class", "pieSlices")
-				.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
-		
-		
-		d3.select("#result-pie-chart-"+dataKey)
-			.append("g")
-			.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")")
-			.attr("class", "pieLabels");
-		
-		d3.select("#result-pie-chart-"+dataKey)
-			.append("g")
-			.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")")
-			.attr("class", "pieLabelLines");
-		
-		
-		var color = d3.scaleOrdinal(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
-		
-		//Calculate arc angles
-		var pieGen = d3.pie()
-			.value(function (d) {
-				return d[dataKey];
-			});
-		
-		var arcDesc = pieGen(this.data.rows);
-		
-		
-		var p = d3.select("#result-pie-chart-"+dataKey+" > .pieSlices")
-			.selectAll("path")
-			.data(this.data.rows);
-		
-		var l = d3.select("#result-pie-chart-"+dataKey+" > .pieLabels")
-			.selectAll("text")
-			.data(this.data.rows);
-		
-		p.enter()
-			.append("path")
-			.attr("class", "arc")
-			.attr("fill", (d, i) => {
-				return color(arcDesc[i].data[dataKey]);
-			})
-			.attr("d", (d, i) => {
-				var arcGen = d3.arc()
-					.innerRadius(40)
-					.outerRadius(90)
-					.startAngle(arcDesc[i].startAngle)
-					.endAngle(arcDesc[i].endAngle);
-				return arcGen();
-			});
-		
-		p.exit().remove();
-		
-		l.enter()
-			.append("text")
-			.attr("dy", "0.35em")
-			.style("text-anchor", function(d, i) {
-				var midAngle = arcDesc[i].startAngle + (arcDesc[i].endAngle - arcDesc[i].startAngle)/2;
-				return midAngle < Math.PI ? "end":"start";
-			})
-			.attr("transform", function(d, i) {
-				var midAngle = arcDesc[i].startAngle + (arcDesc[i].endAngle - arcDesc[i].startAngle)/2;
-				
-				var outerArcGen = d3.arc()
-					.innerRadius(radius * 0.8)
-					.outerRadius(radius * 0.8)
-					.startAngle(arcDesc[i].startAngle)
-					.endAngle(arcDesc[i].endAngle);
-				
-				
-				var pos = outerArcGen.centroid();
-				pos[0] = radius * (midAngle < Math.PI ? 1 : -1);
-				return "translate("+ pos +")";
-				
-			})
-			.text((d) => {
-				return d.sitename;
-			});
-		
-		
-		var polyline = d3.select("#result-pie-chart-"+dataKey+" > .pieLabelLines")
-			.selectAll("polyline")
-			.data(this.data.rows);
-		
-		polyline.enter()
-			.append("polyline")
-			.attr("points", (d, i) => {
-				var midAngle = arcDesc[i].startAngle + (arcDesc[i].endAngle - arcDesc[i].startAngle)/2;
-				var arcGen = d3.arc()
-					.innerRadius(40)
-					.outerRadius(90)
-					.startAngle(arcDesc[i].startAngle)
-					.endAngle(arcDesc[i].endAngle);
-				
-				var arcGen2 = d3.arc()
-					.innerRadius(radius * 0.8)
-					.outerRadius(radius * 0.8)
-					.startAngle(arcDesc[i].startAngle)
-					.endAngle(arcDesc[i].endAngle);
-				
-				var outerArcGen = d3.arc()
-					.innerRadius(radius * 0.8)
-					.outerRadius(radius * 0.8)
-					.startAngle(arcDesc[i].startAngle)
-					.endAngle(arcDesc[i].endAngle);
-				
-				var textPos = outerArcGen.centroid();
-				
-				textPos[0] = radius * 0.99 * (midAngle < Math.PI ? 1 : -1);
-				textPos[1] += 8;
-				
-				var sliceCentroid = arcGen.centroid();
-				var outerJoint = arcGen2.centroid();
-				outerJoint[1] += 8;
-				
-				return [sliceCentroid, outerJoint, textPos];
-			});
-		
-		polyline.transition().duration(1000)
-			.attrTween("points", (d) =>  {
-			
-			});
-		
-		polyline.exit()
-			.remove();
-		
-		
-	}
 	
 	unrender() {
 		$("#result-mosaic-container").hide();
