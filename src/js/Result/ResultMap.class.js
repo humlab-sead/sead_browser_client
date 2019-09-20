@@ -120,28 +120,28 @@ class ResultMap extends ResultModule {
 		});
         this.dataLayers.push(dataLayer);
 
-        
-        $(window).on("resize", () => {
-            if(this.olMap != null) {
-                console.log("map resize");
-                this.setContainerFlexibleSize();
-
-                $(this.renderIntoNode).hide();
-                if(typeof(this.resizeTimeout) != "undefined") {
-                    clearTimeout(this.resizeTimeout);
-                }
-                this.resizeTimeout = setTimeout(() => {
-                    $(this.renderIntoNode).show();
-                    $(this.renderMapIntoNode).show();
-                    this.setContainerFixedSize();
-                    this.olMap.updateSize();
-                }, 100);
-            }
-        });
+		
+		this.resultManager.hqs.hqsEventListen("layoutResize", () => this.resizeCallback());
+        $(window).on("resize", () => this.resizeCallback());
         
 
         this.timeline = new Timeline(this);
-    }
+	}
+	
+	resizeCallback() {
+		if(this.olMap != null) {
+			this.unrender();
+
+			if(typeof(this.resizeTimeout) != "undefined") {
+				clearTimeout(this.resizeTimeout);
+			}
+			this.resizeTimeout = setTimeout(() => {
+				this.renderMap(false);
+				this.olMap.updateSize();
+			}, 500);
+		}
+		
+	}
 
     /*
     * Function: render
@@ -281,7 +281,7 @@ class ResultMap extends ResultModule {
     */
     setContainerFlexibleSize() {
         $(this.renderMapIntoNode).css("width", "100%");
-        $(this.renderMapIntoNode).css("height", "80%");
+		$(this.renderMapIntoNode).css("height", "80%");
     }
 
     /*
@@ -289,14 +289,17 @@ class ResultMap extends ResultModule {
 	*/
 	renderMap(removeAllDataLayers = true) {
 		$(this.renderIntoNode).show();
+		$(".map-popup-box").show();
 
 		if(this.olMap == null) {
-            $(".result-map-render-container").css("background-color", "red");
+			$(this.renderMapIntoNode).html("");
+            $(".result-map-render-container").css("background-color", "red"); //FIXME: Remove me
 
-            this.setContainerFixedSize();
+            //this.setContainerFixedSize();
 
 			this.olMap = new Map({
 				target: this.renderMapIntoNode,
+				controls: [], //Override default controls and set NO controls
 				layers: new GroupLayer({
 					layers: this.baseLayers
 				}),
@@ -308,7 +311,8 @@ class ResultMap extends ResultModule {
                 loadTilesWhileAnimating: true
             });
 
-            
+			
+			/*
 			$("#facet-result-panel .section-left").on("resize", () => {
 				clearTimeout(this.resizeTicker);
 				this.resizeTicker = setTimeout(() => {
@@ -316,7 +320,8 @@ class ResultMap extends ResultModule {
 						this.olMap.updateSize();
 					}
 				}, 100);
-            });
+			});
+			*/
             
 
 			//NOTE: This can not be pre-defined in HTML since the DOM object itself is removed along with the overlay it's attached to when the map is destroyed.
@@ -338,8 +343,8 @@ class ResultMap extends ResultModule {
 				if (newZoomLevel != this.currentZoomLevel) {
 					this.currentZoomLevel = newZoomLevel;
 				}
-            });
-
+			});
+			
 		}
 
 		if(removeAllDataLayers) {
@@ -374,6 +379,20 @@ class ResultMap extends ResultModule {
 		});
     }
     
+    /*
+	* Function: setMapBaseLayer
+	*/
+	setMapBaseLayer(baseLayerId) {
+		this.baseLayers.forEach((layer, index, array) => {
+			if(layer.getProperties().layerId == baseLayerId) {
+				layer.setVisible(true);
+			}
+			else {
+				layer.setVisible(false);
+			}
+		});
+	}
+
     /*
 	* Function: setMapDataLayer
 	*/
@@ -514,13 +533,13 @@ class ResultMap extends ResultModule {
 		var text = "";
 		
 		//default values if point is not selected and not highlighted
-		var fillColor = "#214466";
+		var fillColor = "#f60";
 		fillColor = [160, 32, 0, 0.6];
 		var strokeColor = "#fff";
 		
 		//if point is highlighted (its a hit when doing a search)
 		if(options.highlighted) {
-			fillColor = "#ff00ff";
+			fillColor = "#f60";
 			strokeColor = "#00ff00";
 			zIndex = 10;
 		}
@@ -579,14 +598,16 @@ class ResultMap extends ResultModule {
 		var zIndex = 0;
 		
 		//default values if point is not selected and not highlighted
-		var fillColor = "#214466";
+		var fillColor = "#f60";
 		fillColor = [160, 32, 0, 0.6];
+		fillColor = [255, 102, 0, 0.6];
+		fillColor = [0, 102, 255, 0.6];
 		var strokeColor = "#fff";
 		var textColor = "#fff";
 		
 		//if point is highlighted (its a hit when doing a search)
 		if(options.highlighted) {
-			fillColor = "#ffdd00";
+			fillColor = "#f60";
 			textColor = "#000";
 			zIndex = 10;
 		}
@@ -915,7 +936,7 @@ class ResultMap extends ResultModule {
 	*/
 	unrender() {
 		$(this.renderIntoNode).hide();
-		$(".map-popup-box").remove();
+		$(".map-popup-box").hide();
 	}
 
 }
