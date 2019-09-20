@@ -44,6 +44,27 @@ class ResultMap extends ResultModule {
         this.currentZoomLevel = 4;
 		this.selectPopupOverlay = null;
 		
+
+		this.style = {
+			default: {
+				//fillColor: [0, 102, 255, 0.6],
+				fillColor: this.resultManager.hqs.color.getColorScheme(4, 0.5)[3],
+				strokeColor: "#fff",
+				textColor: "#fff",
+			},
+			selected: {
+				fillColor: this.resultManager.hqs.color.getColorScheme(4, 1.0)[3],
+				strokeColor: "#000",
+				textColor: "#fff",
+			},
+			highlighted: {
+				fillColor: "#f60",
+				textColor: "#000",
+				strokeColor: "#fff"
+			}
+		}
+
+
 		let stamenLayer = new TileLayer({
 			source: new Stamen({
 				layer: 'terrain-background'
@@ -128,6 +149,8 @@ class ResultMap extends ResultModule {
         this.timeline = new Timeline(this);
 	}
 	
+	
+
 	resizeCallback() {
 		if(this.olMap != null) {
 			this.unrender();
@@ -293,9 +316,6 @@ class ResultMap extends ResultModule {
 
 		if(this.olMap == null) {
 			$(this.renderMapIntoNode).html("");
-            $(".result-map-render-container").css("background-color", "red"); //FIXME: Remove me
-
-            //this.setContainerFixedSize();
 
 			this.olMap = new Map({
 				target: this.renderMapIntoNode,
@@ -310,20 +330,7 @@ class ResultMap extends ResultModule {
                 loadTilesWhileInteracting: true,
                 loadTilesWhileAnimating: true
             });
-
-			
-			/*
-			$("#facet-result-panel .section-left").on("resize", () => {
-				clearTimeout(this.resizeTicker);
-				this.resizeTicker = setTimeout(() => {
-					if(this.active) {
-						this.olMap.updateSize();
-					}
-				}, 100);
-			});
-			*/
             
-
 			//NOTE: This can not be pre-defined in HTML since the DOM object itself is removed along with the overlay it's attached to when the map is destroyed.
 			d3.select("#result-container")
 				.append("div")
@@ -336,7 +343,6 @@ class ResultMap extends ResultModule {
 			
             let selectInteraction = this.createSelectInteraction();
 			this.olMap.addInteraction(selectInteraction);
-            
             
 			this.olMap.on("moveend", () => {
 				var newZoomLevel = this.olMap.getView().getZoom();
@@ -526,29 +532,26 @@ class ResultMap extends ResultModule {
 	* Function: getPointStyle
 	*/
 	getPointStyle(feature, options = { selected: false, highlighted: false }) {
-        console.log("getPointStyle");
 		
 		var pointSize = 8;
 		var zIndex = 0;
 		var text = "";
 		
 		//default values if point is not selected and not highlighted
-		var fillColor = "#f60";
-		fillColor = [160, 32, 0, 0.6];
-		var strokeColor = "#fff";
+		var fillColor = this.style.default.fillColor;
+		var strokeColor = this.style.default.strokeColor;
 		
 		//if point is highlighted (its a hit when doing a search)
 		if(options.highlighted) {
-			fillColor = "#f60";
-			strokeColor = "#00ff00";
+			fillColor = this.style.highlighted.fillColor;
+			strokeColor = this.style.highlighted.strokeColor;
 			zIndex = 10;
 		}
 		//if point is selected (clicked on)
 		if(options.selected) {
-			fillColor = "#ffffff";
-			strokeColor = "#000000";
+			fillColor = this.style.selected.fillColor;
+			strokeColor = this.style.selected.strokeColor;
 			zIndex = 10;
-			//text = feature.getProperties().name;
 		}
 
 		var styles = [];
@@ -594,31 +597,27 @@ class ResultMap extends ResultModule {
 		}
 		var pointSize = 8+(Math.log10(feature.getProperties().features.length)*15);
 		
-		
 		var zIndex = 0;
 		
 		//default values if point is not selected and not highlighted
-		var fillColor = "#f60";
-		fillColor = [160, 32, 0, 0.6];
-		fillColor = [255, 102, 0, 0.6];
-		fillColor = [0, 102, 255, 0.6];
-		var strokeColor = "#fff";
+		var fillColor = this.style.default.fillColor;
+		var strokeColor = this.style.default.strokeColor;
 		var textColor = "#fff";
 		
 		//if point is highlighted (its a hit when doing a search)
 		if(options.highlighted) {
-			fillColor = "#f60";
-			textColor = "#000";
+			fillColor = this.style.highlighted.fillColor;
+			strokeColor = this.style.highlighted.strokeColor;
+			textColor = this.style.highlighted.textColor;
 			zIndex = 10;
 		}
 		//if point is selected (clicked on)
 		if(options.selected) {
-			fillColor = "#ffffff";
-			//fillColor = [0, 0, 255, 0.5];
-			textColor = "#000";
+			fillColor = this.style.selected.fillColor;
+			strokeColor = this.style.selected.strokeColor;
+			textColor = this.style.highlighted.textColor;
 			zIndex = 10;
 		}
-        
 
 		var styles = [];
 		styles.push(new Style({

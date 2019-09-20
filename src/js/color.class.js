@@ -4,7 +4,8 @@ import KolorWheel from 'kolorwheel';
 class Color {
     constructor() {
         
-    }
+	}
+
     /*
 	Function: getColorScheme
 	 */
