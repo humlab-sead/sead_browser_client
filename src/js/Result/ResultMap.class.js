@@ -40,6 +40,7 @@ class ResultMap extends ResultModule {
 		this.dataLayers = [];
         this.currentZoomLevel = 4;
 		this.selectPopupOverlay = null;
+		this.selectInteraction = null;
 		
 
 		this.style = {
@@ -308,10 +309,11 @@ class ResultMap extends ResultModule {
 	* Function: renderMap
 	*/
 	renderMap(removeAllDataLayers = true) {
+		console.log("render map")
 		$(this.renderIntoNode).show();
-		$(".map-popup-box").show();
 
 		if(this.olMap == null) {
+			console.log("create map")
 			$(this.renderMapIntoNode).html("");
 
 			this.olMap = new Map({
@@ -326,20 +328,9 @@ class ResultMap extends ResultModule {
                 }),
                 loadTilesWhileInteracting: true,
                 loadTilesWhileAnimating: true
-            });
-            
-			//NOTE: This can not be pre-defined in HTML since the DOM object itself is removed along with the overlay it's attached to when the map is destroyed.
-			d3.select("#result-container")
-				.append("div")
-				.classed("map-popup-box", true)
-				.attr("id", "popup-container")
-				.append("table")
-				.attr("id", "map-popup-sites-table")
-				.append("tbody");
-
+			});
 			
-            let selectInteraction = this.createSelectInteraction();
-			this.olMap.addInteraction(selectInteraction);
+            
             
 			this.olMap.on("moveend", () => {
 				var newZoomLevel = this.olMap.getView().getZoom();
@@ -347,8 +338,21 @@ class ResultMap extends ResultModule {
 					this.currentZoomLevel = newZoomLevel;
 				}
 			});
-			
 		}
+
+		//NOTE: This can not be pre-defined in HTML since the DOM object itself is removed along with the overlay it's attached to when the map is destroyed.
+		let popup = $("<div></div>");
+		popup.addClass("map-popup-box");
+		popup.attr("id", "popup-container");
+		let table = $("<table></table>").attr("id", "map-popup-sites-table").append("<tbody></tbody>").appendTo(popup);
+		$("#result-container").append(popup);
+
+		if(this.selectInteraction != null) {
+			this.olMap.removeInteraction(this.selectInteraction);
+		}
+
+		this.selectInteraction = this.createSelectInteraction();
+		this.olMap.addInteraction(this.selectInteraction);
 
 		if(removeAllDataLayers) {
 			this.dataLayers.forEach((layer, index, array) => {
@@ -932,7 +936,7 @@ class ResultMap extends ResultModule {
 	*/
 	unrender() {
 		$(this.renderIntoNode).hide();
-		$(".map-popup-box").hide();
+		$(".map-popup-box").remove();
 	}
 
 }
