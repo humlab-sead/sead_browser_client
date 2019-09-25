@@ -15,30 +15,42 @@ class RangeFacet extends Facet {
 	*/
 	constructor(hqs, id = null, template = {}) {
 		super(hqs, id, template);
+		this.datasets = {
+			unfiltered: [],
+			filtered: []
+		};
 		this.selections = [];
 		this.chart = null;
 		this.sliderElement = null;
 		this.minDataValue = null;
 		this.maxDataValue = null;
-		this.numberOfCategories = 10; //Number of categories (bars) we want to abstract dataset
+		this.numberOfCategories = 12; //Number of categories (bars) we want to abstract dataset
 		$(".facet-text-search-btn", this.getDomRef()).hide(); //range facets do not have text searching...
 	}
 	
 	/*
 	* Function: setSelections
+	* 
+	* Parameters:
+	* selections - An array containing exactly 2 values, min & max, where min has index 0 and max index 1
 	*/
-	setSelections(selections, updateUi = false, loadData = false) {
-		
-		console.log("SetSelections", selections)
-
+	setSelections(selections) {
+		console.log("SetSelections", selections);
+		let selectionsUpdated = false;
 		if(selections.length == 2) {
-			if(selections[0] != null) {
-				selections[0] = parseFloat(selections[0]);
+			if(selections[0] != null && selections[0] != this.selections[0]) {
+				this.selections[0] = parseFloat(selections[0]);
+				selectionsUpdated = true;
 			}
-			if(selections[1] != null) {
-				selections[1] = parseFloat(selections[1]);
+			if(selections[1] != null && selections[1] != this.selections[1]) {
+				this.selections[1] = parseFloat(selections[1]);
+				selectionsUpdated = true;
 			}
-			this.selections = selections;
+		}
+
+		if(selectionsUpdated) {
+			console.log("Fetching new data")
+			this.fetchData();
 		}
 		
 		/*
@@ -76,10 +88,96 @@ class RangeFacet extends Facet {
 	* The imported/converted data structure.
 	*/
 	importData(importData, overwrite = true) {
-		console.log(importData);
-		var data = [];
+		importData.fullextent = [0, 2904]; //FIXME: This is a temporary fix until the server returns this data
 		super.importData();
+
+
+		//Create internal format
+		this.data = [];
+		for(let itemKey in importData.items) {
+			this.data.push({
+				//Value spans:
+				gt: importData.items[itemKey].extent[0], //Greater Than - except for the first item which should be >=
+				lt: importData.items[itemKey].extent[1], //Lesser Than - except for the last item which should be <=
+				value: importData.items[itemKey].count //value/count for this category/span
+			});
+		}
+
 		
+		
+		
+		//Server only sends spans which have data, so we fill out any missing zero-spans ourselves to keep a consistent data structure
+		let lv = this.getLowestDataValue(this.data);
+		if(lv != this.getSelections()[0]) {
+			//FIXME: This block of code is untested
+			console.log("Lowest data value is lower than data from server");
+
+			let lowestDataPoint = this.data[0];
+			let selections = this.getSelections();
+			let spanSize = (this.data[0].gt - this.data[0].lt)*-1;
+
+			//Generate new data points with zero-values
+			let i = 1;
+			let startPoint = lowestDataPoint.gt;
+			while(lowestDataPoint.gt < selections[0]) {
+				let dataPoint = {
+					gt: startPoint - spanSize * i,
+					lt: startPoint - spanSize * (i+1),
+					value: -1
+				}
+				this.data.unshift(dataPoint);
+				lowestDataPoint = dataPoint;
+			}
+
+		}
+
+		let hv = this.getHighestDataValue(this.data);
+		if(hv != this.getSelections()[1]) {
+			console.log("Highest data value is higher than data from server");
+
+			let highestDataPoint = this.data[this.data.length-1];
+			let selections = this.getSelections();
+			let i = 0;
+			let startingPoint = highestDataPoint.lt;
+			let spanSize = (this.data[0].gt - this.data[0].lt)*-1;
+			while(selections[1] > highestDataPoint.lt) {
+				this.data.push({
+					gt: startingPoint + spanSize * i,
+					lt: startingPoint + spanSize * (i+1),
+					value: -1
+				});
+				highestDataPoint = this.data[this.data.length-1];
+				i++;
+			}
+		}
+
+		//Store dataset in respective container depending on if it's filtered or not
+		if($.isEmptyObject(importData.picks)) {
+			this.datasets.unfiltered = JSON.parse(JSON.stringify(this.data));
+		}
+		else {
+			this.datasets.filtered = JSON.parse(JSON.stringify(this.data));
+			
+
+			if(this.datasets.unfiltered.length == 0) {
+				//If we have imported filtered data, but there is not unfiltered version, we need to get it, since we need it for reference when rendering the slider
+				console.log("WARN: No unfiltered data in range facet.");
+			}
+		}
+
+		//console.log(this.data);
+
+
+		//let categories = this.makeCategories(this.data);
+		//return categories;
+
+		
+
+
+		//this.numberOfCategories
+
+
+		/*
 		importData.items.sort( (a, b) => {
 			if ( a.value < b.value ){
 				return -1;
@@ -120,51 +218,59 @@ class RangeFacet extends Facet {
 		this.renderData(this.data);
 
 		//this.makeCategories(this.getSelections());
-
+		
 		return data;
+		*/
 	}
-	
+
+	/*
+	* Function: makeCategories
+	*
+	* Reduce dataset to number of categories/bars we want. Note that this function will create categories which are somewhat "fuzzy" since the dataset from the server will lack som granularity.
+	*/
 	makeCategories(data, selections = []) {
-		//Make categories
-		let categories = [];
 
-		 //Highest/lowest data value in dataset (this.data)
-		 let highestDataValue = this.getHighestDataValue(data, selections);
-		 let lowestDataValue = this.getLowestDataValue(data, selections);
- 
-		 let dataSpan = highestDataValue - lowestDataValue;
+		//console.log("makeCategories", selections);
 
-		 //Category (bar span) size
-		 this.categorySpan = dataSpan / this.numberOfCategories;
+		//Get highest/lowest data values
+		let min = null; //Starting value for the categories
+		let max = null; //Ending value for the categories
+		if(selections.length == 2) {
+			min = selections[0];
+			max = selections[1];
+		}
+		else {
+			min = this.getLowestDataValue(data);
+			max = this.getHighestDataValue(data);
+		}
 
-		 //Make the categories/bars
-		 for(let catKey = 0; catKey < this.numberOfCategories; catKey++) {
- 
-			 //Determine low/high point of category/bar (not height, height is number of samples within this span)
-			 let catLow = lowestDataValue + (catKey * this.categorySpan);
-			 let catHigh = lowestDataValue + ((catKey+1) * this.categorySpan);
-			 
-			 catLow = Math.round(catLow * 10) / 10;
-			 catHigh = Math.round(catHigh * 10) / 10;
+		/*
+		console.log("Making categories from/to:");
+		console.log(min, max);
+		*/
+		let categorySize = ((min - max)*-1) / this.numberOfCategories;
 
-			 categories.push({
-				 lowest: catLow,
-				 highest: catHigh,
-				 dataPoints: []
-			 });
-		 }
- 
-		 //Get number of samples in each category - this will make out the height of the bar
-		 for(let catKey in categories) {
-			 for(let dataKey in this.data) {
-				 let dataValue = this.data[dataKey].value;
-				 if(dataValue <= categories[catKey].highest && dataValue >= categories[catKey].lowest) {
-					 categories[catKey].dataPoints.push(dataValue);
-				 }
-			 }
-		 }
+		//console.log(categorySize);
 
-		return categories;
+		this.categories = [];
+		for(let i = 0; i < this.numberOfCategories; i++) {
+			this.categories.push({
+				gt: min + i * categorySize,
+				lt: min + (i+1) * categorySize,
+				value: 0
+			});
+		}
+
+		//Add values to categories
+		for(let catKey in this.categories) {
+			for(let key in data) {
+				if(data[key].lt <= this.categories[catKey].lt && data[key].gt >= this.categories[catKey].gt) {
+					this.categories[catKey].value += data[key].value;
+				}
+			}
+		}
+		
+		return this.categories;
 	}
 
 	/*
@@ -203,12 +309,31 @@ class RangeFacet extends Facet {
 	* Renders the chart and the slider. Basically all the content in the facet.
 	*/
 	renderData(data, selections = []) {
-		console.log("renderData");
-		
+		//console.log("renderData", this.data, selections);
 		if(selections.length == 0) {
 			selections = this.getSelections();
 		}
 
+		let categories = this.makeCategories(this.data, selections);
+		console.log(categories);
+
+
+		$(".facet-body > .chart-container", this.getDomRef()).show();
+		if(this.chart == null) {
+			this.renderChart(categories, selections);
+		}
+		else {
+			this.updateChart(categories, selections);
+		}
+
+		if(this.sliderElement == null) {
+			this.renderSlider(categories, selections);
+		}
+		else {
+			//this.updateSlider(categories, selections);
+		}
+
+		/*
 		if(typeof(data) == "undefined") {
 			data = this.data;
 		}
@@ -237,6 +362,7 @@ class RangeFacet extends Facet {
 		else {
 			this.updateSlider(categories, selections);
 		}
+		*/
 	}
 
 	/*
@@ -249,6 +375,8 @@ class RangeFacet extends Facet {
 		var chartContainerNode = $(".chart-canvas-container", this.getDomRef());
 		$(".range-chart-canvas", chartContainerNode).remove();
 		chartContainerNode.append($("<canvas></canvas>").attr("id", "facet_"+this.id+"_canvas").addClass("range-chart-canvas"));
+
+		console.log(chartContainerNode);
 
 		//this.chartJSDatasets = this.getChartDataWithinLimits();
 
@@ -288,6 +416,7 @@ class RangeFacet extends Facet {
 		};
 
 		var ctx = $("#facet_"+this.id+"_canvas")[0].getContext("2d");
+		console.log(ctx);
 		this.chart = new Chart(ctx, {
 			type: "bar",
 			data: JSON.parse(JSON.stringify(chartJSDatasets)), //need a copy here - not a reference
@@ -301,14 +430,15 @@ class RangeFacet extends Facet {
 	 * Renders the slider and only the slider-part of the range facet.
 	 */
 	renderSlider(categories, selections) {
-		/*
-		let sliderMin = this.categories[0].lowest;
-		let sliderMax = this.categories[this.categories.length-1].highest;
-		*/
-		let sliderMin = selections[0];
-		let sliderMax = selections[1];
+		
+		let sliderMin = this.categories[0].gt;
+		let sliderMax = this.categories[this.categories.length-1].lt;
+		
+		console.log(this.getSelections());
+		console.log("Render slider with endpoint values: ", sliderMin, sliderMax);
+		
 
-		var rangesliderContainer = $(".rangeslider-container", this.domObj)[0];
+		var rangesliderContainer = $(".rangeslider-container", this.getDomRef())[0];
 		this.sliderElement = noUiSlider.create(rangesliderContainer, {
 			start: [sliderMin, sliderMax],
 			range: {
@@ -319,22 +449,19 @@ class RangeFacet extends Facet {
 			//step: this.categorySpan,
 			connect: true
 		});
-		
 
 		$(".range-facet-manual-input-container", this.getDomRef()).remove();
 		var upperManualInputNode = $("#facet-template .range-facet-manual-input-container[endpoint='upper']")[0].cloneNode(true);
 		var lowerManualInputNode = $("#facet-template .range-facet-manual-input-container[endpoint='lower']")[0].cloneNode(true);
 		
-		$("input", upperManualInputNode).val(this.maxDataValue);
-		$("input", lowerManualInputNode).val(this.minDataValue);
+		$("input", upperManualInputNode).val(sliderMax);
+		$("input", lowerManualInputNode).val(sliderMin);
 
-		
 		$(".noUi-handle-upper", this.getDomRef()).append(upperManualInputNode);
 		$(".noUi-handle-lower", this.getDomRef()).append(lowerManualInputNode);
 		
-		
 		//Lots of adjustments for setting the right size and position of the digit input boxes depending on how big they need to be
-		var digits = this.maxDataValue.toString().length;
+		var digits = sliderMax.toString().length; //FIXME: Also check sliderMin since it might actually contain more digits than max
 		var digitSpace = digits*5;
 		$(".range-facet-manual-input-container", this.domObj).css("width", 20 + digitSpace);
 		$(".range-facet-manual-input", this.domObj).css("width", 18 + digitSpace);
@@ -342,6 +469,9 @@ class RangeFacet extends Facet {
 		$(".rangeslider-container", this.domObj).css("margin-right", 18 + digitSpace);
 		$(".noUi-handle-lower > .range-facet-manual-input-container", this.getDomRef()).css("left", Math.round(0-digitSpace)+"px");
 		
+		$(".range-facet-manual-input-container", this.getDomRef()).show();
+		return;
+
 		$(".range-facet-manual-input-container", this.getDomRef()).on("change", (evt) => {
 			this.manualInputCallback(evt);
 		});
@@ -379,21 +509,10 @@ class RangeFacet extends Facet {
 	}
 	
 	updateChart(categories, selections) {
-
 		let chartJSDatasets = this.makeChartJsDataset(categories);
 		this.chart.data.datasets = chartJSDatasets.datasets;
 		this.chart.data.labels = chartJSDatasets.labels;
 		this.chart.update();
-
-		/*
-		var chartData = this.getChartDataWithinLimits(this.selections);
-		console.log(chartData)
-
-		this.chart.data.datasets = chartData.datasets;
-		this.chart.data.labels = chartData.labels;
-		this.chart.update();
-		return true;
-		*/
 	}
 	
 	updateSlider(categories, selections) {
@@ -733,30 +852,38 @@ class RangeFacet extends Facet {
 		return steps;
 	}
 
-	getHighestDataValue(data, selections) {
+	getHighestDataValue(data, selections = []) {
 		//Assuming the data array is already sorted
 
-		let highestDataValue = this.data[this.data.length-1].value;
+		let highestDataValue = this.data[this.data.length-1].lt;
 
+		/*
 		if(selections.length == 2) {
 			if(highestDataValue > selections[1]) {
 				highestDataValue = selections[1];
 			}
 		}
+		*/
 		
 		return highestDataValue;
 	}
 
-	getLowestDataValue(data, selections) {
+	getLowestDataValue(data, selections = []) {
 		//Assuming the data array is already sorted
 
-		let lowestDataValue = this.data[0].value;
+		let lowestDataValue = this.data[0].gt;
 
+		/*
+		* Problem here is that we only have a granularity of x, and a selection can probably not be mapped correctly due to a lack of resolution in the underlying data
+		* So we always need to do a new fetch whenever a new selection is done, to fetch a new dataset based on the new selection
+		*/
+		/*
 		if(selections.length == 2) {
 			if(lowestDataValue < selections[0]) {
 				lowestDataValue = selections[0];
 			}
 		}
+		*/
 		
 		return lowestDataValue;
 	}
@@ -773,18 +900,24 @@ class RangeFacet extends Facet {
 		let dataSet = []; //chartJS dataset structure
 
 		for(let catKey in categories) {
-			dataset.push(categories[catKey].dataPoints.length);
+			dataset.push(categories[catKey].value);
 		}
 
 		for(let catKey in categories) {
-			labels.push(categories[catKey].lowest+" - "+categories[catKey].highest);
+			let labelLow = categories[catKey].gt;
+			let labelHigh = categories[catKey].lt;
+			if(Config.rangeFilterFuzzyLabels) {
+				labelLow = Math.round(labelLow);
+				labelHigh = Math.round(labelHigh);
+			}
+			labels.push(labelLow+" - "+labelHigh);
 		}
 
 		let chartJsObject = {
 			labels: labels,
 			datasets: [{
 				data: dataset,
-				backgroundColor: styles.color3,
+				backgroundColor: styles.baseColor,
 				borderColor: styles.color3
 			}]
 		};
