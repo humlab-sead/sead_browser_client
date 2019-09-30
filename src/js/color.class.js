@@ -44,6 +44,12 @@ class Color {
 		
 		return colors;
 	}
+
+	hexToRgba(hexColor, alpha = 1.0) {
+		var c = hexColor.substring(1).split('');
+		c = '0x'+c.join('');
+		return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+alpha+')';
+	}
 	
 	getMonoColorScheme(numColors, baseColor = "#5B83AD", targetColor = "#223140") {
 		
