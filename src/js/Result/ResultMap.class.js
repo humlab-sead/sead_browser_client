@@ -139,10 +139,10 @@ class ResultMap extends ResultModule {
 		});
         this.dataLayers.push(dataLayer);
 
-		
+		//Set up resize event handlers
 		this.resultManager.hqs.hqsEventListen("layoutResize", () => this.resizeCallback());
-        $(window).on("resize", () => this.resizeCallback());
-        
+		$(window).on("resize", () => this.resizeCallback());
+		this.resultManager.hqs.hqsEventListen("siteReportClosed", () => this.resizeCallback());
 
         this.timeline = new Timeline(this);
 	}
