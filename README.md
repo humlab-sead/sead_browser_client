@@ -1,5 +1,5 @@
 # supersead
-Online browser for the SEAD database
+This is the webclient of the online browser for the SEAD database
 
 ## Installation instructions
 
