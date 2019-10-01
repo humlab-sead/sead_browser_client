@@ -1066,11 +1066,11 @@ polyline{
 
 .result-map-render-container {
   width: 100%;
-  height: 80%;
-  background-color: pink;
+  height: 100%;
 }
 
 .result-timeline-render-container {
+  display:none;
   width: 100%;
   height: 20%;
   background-color: $white;

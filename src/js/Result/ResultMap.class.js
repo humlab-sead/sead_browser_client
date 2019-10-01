@@ -137,14 +137,14 @@ class ResultMap extends ResultModule {
 			renderCallback: this.renderPointsLayer,
 			visible: false
 		});
-        this.dataLayers.push(dataLayer);
+		this.dataLayers.push(dataLayer);
 
 		//Set up resize event handlers
 		this.resultManager.hqs.hqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
 		this.resultManager.hqs.hqsEventListen("siteReportClosed", () => this.resizeCallback());
 
-        this.timeline = new Timeline(this);
+		//this.timeline = new Timeline(this);
 	}
 	
 	
@@ -272,7 +272,7 @@ class ResultMap extends ResultModule {
         
 		this.renderMap();
         this.renderVisibleDataLayers();
-        this.timeline.render();
+        //this.timeline.render();
 		
         this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
     }

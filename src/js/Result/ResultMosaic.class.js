@@ -314,13 +314,13 @@ class ResultMosaic extends ResultModule {
 					"font-color":"#000",
 					"rules": [
 						{
-							rule: "%npv > 10",
+							rule: "%npv > 5",
 							placement: "in",
 							'offset-r': "25%",
 							'font-color': "white",
 						},
 						{
-							rule: "%npv <= 10",
+							rule: "%npv <= 5",
 							placement: "out",
 							'font-color': "black",
 						}

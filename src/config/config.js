@@ -1,6 +1,7 @@
 var Config = {
 	serverRoot: "http://supersead.humlab.umu.se", //for images and such
 	serverAddress: "http://dev.humlab.umu.se:8089", //for json data
+	//serverAddress: "https://seadserv.humlab.umu.se:8089", //New server which should be used when it's fixed (currently bugged)
 	//serverAddress: "http://localhost:8089", //for json data - test server for testing range filters - makes random data
 	//viewStateServerAddress: "http://localhost:8081",
 	viewStateServerAddress: "http://seadserv.humlab.umu.se:8081",
@@ -10,7 +11,7 @@ var Config = {
     //serverAddress: "http://dev.humlab.umu.se:9080", //VAS
 	//serverAddress: "http://dev.humlab.umu.se:9091" //for json data
 	//serverAddress: "http://dev.humlab.umu.se:8089"
-	defaultResultModule: "mosaic", //map, mosaic or table
+	defaultResultModule: "map", //map, mosaic or table
 	facetSectionDefaultWidth: 30, //percentage of total window width
 	facetBodyHeight: 268, //default facet height in px
 	discreteFacetRowHeight: 20, //used for calculations in the facet sliding window (paging) functionality

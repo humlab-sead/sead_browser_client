@@ -9,6 +9,9 @@ process.traceDeprecation = true;
 
 module.exports = {
 	entry: './src/js/main.js',
+	performance: {
+		hints: false
+	},
 	output: {
 		path: path.resolve(__dirname, './dist'),
 		publicPath: '/',
