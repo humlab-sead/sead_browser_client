@@ -3,12 +3,12 @@
 @import url('https://fonts.googleapis.com/css?family=Rajdhani|PT+Serif|Yanone+Kaffeesatz|Didact+Gothic|Rajdhani|Titillium+Web|Open+Sans+Condensed:300|Exo+2');
 
 $white: #ffffff;
-$inactive-color: #444;
+$inactive-color: #444444;
 $inactive-color-light: scale-color($inactive-color, $lightness: +10%);
 $base-color:#2d5e8d;
 $base-color-light: scale-color($base-color, $lightness: +10%);
-$aux-color: #f60;
-$pane-bg-color: #eee;
+$aux-color: #ff6600;
+$pane-bg-color: #eeeeee;
 $pane-bg-color-dark: scale-color($pane-bg-color, $lightness: -10%);
 $sead-brown: #875d5d;
 $shadow-color: rgba(0, 0, 0, 0.3);
@@ -27,6 +27,24 @@ $bt-font: 'PT Serif';
   color3: $color3;
 }
 */
+
+/*
+Exporting variables for webpack to make them includeable in js
+*/
+:export {
+  white: $white;
+  inactiveColor: $inactive-color;
+  inactiveColorLight: $inactive-color-light;
+  baseColor:$base-color;
+  baseColorLight: $base-color-light;
+  auxColor: $aux-color;
+  paneBgColor: $pane-bg-color;
+  paneBgColor-dark: $pane-bg-color-dark;
+  seadBrown: $sead-brown;
+  shadowColor: $shadow-color;
+  errorColor: $error-color;
+  warningColor: $warning-color;
+}
 
 
 @import "SiteReport.scss";
@@ -1055,7 +1073,7 @@ polyline{
 .result-timeline-render-container {
   width: 100%;
   height: 20%;
-  background-color: orange;
+  background-color: $white;
 }
 
 
@@ -1068,23 +1086,29 @@ polyline{
 }
 
 .timeline-chart-container {
-  /*
-  position: relative;
-  top: 0px;
-  left: 0px;
-  */
   height: 80%;
   overflow: hidden;
-  background-color: lightsteelblue;
-  padding-left: 5px;
-  padding-right: 5px;
+  /*background-color: lightsteelblue;*/
+  display:flex;
+  justify-content: center;
+}
+
+.timeline-chart-container-wrapper {
+  position:relative;
+  /*width: calc(100% - 80px);*/
+  width: 100%;
+}
+
+
+.timeline-slider-container-inner {
+  position:relative;
+  width: calc(100% - 80px);
 }
 
 .timeline-slider-container {
   height: 20%;
-  width: 100%;
-  overflow:hidden;
-  background-color: lightskyblue;
+  display:flex;
+  justify-content: center;
 }
 
 #dev-notice {

@@ -708,9 +708,12 @@ class SiteReport {
 	/*
 	* Function: renderContentDisplayOptionsPanel
 	* 
+	* This render the content options display panel. Which is the thing which lets you select whether to render this content item as a chart or table etc.
+	*
 	 */
 	renderContentDisplayOptionsPanel(section, contentItem) {
 		var selectedRo = this.getSelectedRenderOption(contentItem);
+		console.log(selectedRo, section, contentItem);
 		if(typeof(selectedRo.options) == "undefined") {
 			selectedRo.options = []; //Just normalizing this...
 		}
@@ -721,14 +724,15 @@ class SiteReport {
 		}
 		
 		//Make DOM node
-		var controlsId = "view-selector-"+shortid.generate();
+		//var controlsId = "view-selector-"+shortid.generate(); //FIXME: Replace with another ID
+		let controlsId = "view-selector-"+contentItem.name;
 		var node = $("#site-report-render-options-template")[0].cloneNode(true);
 		$(node).attr("id", controlsId);
 		$(".site-report-render-options-container", node).hide();
 		
 		//Display options button callback
 		$(".site-report-display-settings-btn", node).on("click", (evt) => {
-			var displayOptionsContainerNode = $(evt.currentTarget).parent().parent().find(".site-report-render-options-container"); //all those parents - smooth...
+			let displayOptionsContainerNode = $(".site-report-render-options-container", node);
 			if($(displayOptionsContainerNode).is(":visible")) {
 				$(evt.currentTarget).parent().animate({
 					"border-width": "0"
@@ -741,23 +745,19 @@ class SiteReport {
 			}
 			$(displayOptionsContainerNode).toggle(100);
 		});
+
+		
 		
 		//Add RenderOptions to select
 		for(var key in contentItem.renderOptions) {
-			var selected = "";
-			if(contentItem.renderOptions[key].selected) {
-				selected = true;
-			}
-			else {
-				selected = false;
-			}
-			var optionNode = $("<option></option>");
+			var optionNode = $("<option>"+contentItem.renderOptions[key].name+"</option>");
 			optionNode.attr("value", contentItem.renderOptions[key].type);
-			optionNode.attr("selected", selected);
-			optionNode.text(contentItem.renderOptions[key].name);
+			optionNode.attr("selected", contentItem.renderOptions[key].selected);
 			$(".site-report-render-mode-selector", node).append(optionNode);
 		}
 		
+		/*
+		//This seems to set selected ro's depending on currently selected type, but it makes no sense
 		for(var key in contentItem.renderOptions) {
 			if(contentItem.renderOptions[key].type == selectedRo.type) {
 				contentItem.renderOptions[key].selected = true;
@@ -766,29 +766,33 @@ class SiteReport {
 				contentItem.renderOptions[key].selected = false;
 			}
 		}
-
-		this.renderContentDisplayOptionsPanelExtras(section, contentItem, node);
+		*/
 
 		//RenderOption selected callback
-		$(".site-report-render-options-container .site-report-render-mode-selector", node).bind("change", (evt) => {
+		$(".site-report-render-options-container > .site-report-render-mode-selector", node).bind("change", (evt) => {
+			console.log("site-report-render-mode-selector CHANGED");
 			var selectedRenderOption = $(evt.currentTarget).val();
-
+			
+			//Update structure with new selection
 			for(let key in contentItem.renderOptions) {
-				if(contentItem.renderOptions[key].type == selectedRenderOption) {
-					contentItem.renderOptions[key].selected = true;
-				}
-				else {
-					contentItem.renderOptions[key].selected = false;
-				}
+				contentItem.renderOptions[key].type == selectedRenderOption ? contentItem.renderOptions[key].selected = true : contentItem.renderOptions[key].selected = false;
 			}
 
 			this.renderDataVisualization(section, contentItem);
 			this.renderContentDisplayOptionsPanelExtras(section, contentItem, node);
 		});
+
+		this.renderContentDisplayOptionsPanelExtras(section, contentItem, node);
 		
 		return node;
 	}
 
+	/*
+	* Function: renderContentDisplayOptionsPanelExtras
+	* 
+	* The 'extras' here refers to any extra options the currently selected render option might have - such as what values to show for each axis in a graph.
+	*
+	 */
 	renderContentDisplayOptionsPanelExtras(section, contentItem, node) {
 		let selectedRo = this.getSelectedRenderOption(contentItem);
 		let optionsContainer = $(".site-report-render-options-container-extras", node);
@@ -808,15 +812,18 @@ class SiteReport {
 		}
 
 		optionsContainer.html(html);
-
+		
 		
 		$(".site-report-render-options-container-extras .site-report-view-selector-control", node).on("change", (evt) => {
+			console.log("site-report-render-options-container-extras CHANGED");
+
 			let selected = parseInt($(evt.currentTarget).val());
 			let renderOptionExtraKey = $(evt.currentTarget).attr("renderOptionExtraKey");
-			
 			selectedRo.options[renderOptionExtraKey].selected = selected;
+			
 			this.renderDataVisualization(section, contentItem);
 		});
+		
 		
 	}
 	

@@ -120,7 +120,7 @@ class AbundanceDataset {
 			for(let key in identificationLevels) {
 				let il = identificationLevels[key];
 				for(let dk in dataset) {
-					if(dataset[dk].abundance_id == il.abundance_id && dataset[dk].taxon.taxon_id == il.taxon_id) {
+					if(dataset[dk].abundance_id == il.abundance_id && dataset[dk].taxon.taxon_id == il.taxon_id) { //FIXME: taxon_id can sometimes be undefined here: AbundanceDataset.class.js:123 Uncaught (in promise) TypeError: Cannot read property 'taxon_id' of undefined
 						if(typeof(dataset[dk].taxon.identification_levels) == "undefined") {
 							dataset[dk].taxon.identification_levels = [];
 						}
@@ -289,12 +289,12 @@ class AbundanceDataset {
 				"title": "Analysis entitiy id"
 			},
 			{
-				"dataType": "number",
+				"dataType": "string",
 				"pkey": false,
 				"title": "Sample name"
 			},
 			{
-				"dataType": "number",
+				"dataType": "string",
 				"pkey": false,
 				"title": "Sample group"
 			},
@@ -314,7 +314,7 @@ class AbundanceDataset {
 				"title": "Taxon"
 			},
 			{
-				"dataType": "number",
+				"dataType": "string",
 				"pkey": false,
 				"title": "Sample type"
 			},
@@ -429,17 +429,43 @@ class AbundanceDataset {
 					"type": "multistack",
 					/*
 					"options": {
-						
 						"yAxis": 1,
 						"xAxis": {
 							"key": 3,
 							"value": 4
 						}
-					}
+					},
 					*/
+					
+					"options": [
+						{
+							"title": "X axis",
+							"function": "xAxis",
+							"type": "select",
+							"selected": 3, //Default column (key)
+							"key": 4, //Contains the unique values for the selected columns - not sure we need / should have this
+							"options": [3] //Column keys
+						},
+						{
+							"title": "Y axis",
+							"function": "yAxis",
+							"type": "select",
+							"selected": 1,
+							"options": [1]
+						},
+						{
+							"title": "Sort",
+							"function": "sort", //sorts on either x or y axis - leaves it up to the render module to decide
+							"type": "select",
+							"selected": 4,
+							"options": [4] //Used to be: 1,2,3,5,6,7,8
+						}
+					]
 				}
 			]
 		});
+
+		console.log(this.section);
 		
 		this.buildIsComplete = true;
 		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");

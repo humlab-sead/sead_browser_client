@@ -64,18 +64,8 @@ class SiteReportChart {
 		//this.renderBarChartCJS();
 	}
 	
-	/*
-	* Function: renderMultistack
-	*
-	* WARNING: This function is currently hard-coded to only handle abundances and requires the data in a specific way.
-	* Specified X/Y-axis will be ignored.
-	 */
-	renderMultistack(chartTitle = "Abundances") {
-		var contentItem = this.contentItem;
-		var ro = this.siteReport.getSelectedRenderOption(contentItem);
-		var xAxisKey = ro.options.xAxis;
-		var yAxisKey = ro.options.yAxis;
 
+	getMultiStackConfig(chartTitle) {
 		let tooltipHtml = "<div class='site-report-chart-tooltip'>";
 		tooltipHtml += "<h4>Taxa</h4>";
 		tooltipHtml += "<h5>%t</h5>";
@@ -84,7 +74,7 @@ class SiteReportChart {
 		tooltipHtml += "<h5>%v</h5>";
 		tooltipHtml += "</div>";
 
-        var config = {
+		return {
             "type": "hbar",
             "stacked": true,
             "title":{
@@ -152,19 +142,49 @@ class SiteReportChart {
             },
             "series": []
         };
+	}
 
+	/*
+	* Function: renderMultistack
+	*
+	* WARNING: This function is currently hard-coded to only handle abundances and requires the data in a specific way.
+	* Specified X/Y-axis will be ignored.
+	 */
+	renderMultistack(chartTitle = "Abundances") {
+		var contentItem = this.contentItem;
+		var ro = this.siteReport.getSelectedRenderOption(contentItem);
+		console.log(contentItem);
+		console.log(ro);
+
+		let xAxisKey = null;
+		let yAxisKey = null;
+		let sortKey = null;
+
+		for(let key in ro.options) {
+			if(ro.options[key].function == "xAxis") {
+				xAxisKey = ro.options[key].selected;
+			}
+			if(ro.options[key].function == "yAxis") {
+				yAxisKey = ro.options[key].selected;
+			}
+			if(ro.options[key].function == "sort") {
+				sortKey = ro.options[key].selected;
+			}
+		}
+
+		var config = this.getMultiStackConfig(chartTitle);
 		
 		//Aggregate so that a taxon contains all the sample abundances
-		this.taxa = [];
+		this.taxa = []; //should maybe be called something like stackCategory to make it more generic?
 		var samples = [];
 		let sampleNames = [];
-		
-		
+
 		//This is the list of samples we're going to use and IN THIS ORDER - VERY IMPORTANT
 		for(var key in contentItem.data.rows) {
 			var sampleId = contentItem.data.rows[key][1].value;
-			let sampleName = contentItem.data.rows[key][7].value;
-			
+			let sampleName = contentItem.data.rows[key][yAxisKey].value;
+
+			//Get unique sample Ids
 			var sampleFound = false;
 			for(var sk in samples) {
 				if(samples[sk] == sampleId) {
@@ -175,7 +195,7 @@ class SiteReportChart {
 				samples.push(sampleId);
 			}
 
-
+			//Get unique sample names
 			let sampleNameFound = false;
 			for(var sk in sampleNames) {
 				if(sampleNames[sk] == sampleName) {
@@ -195,14 +215,12 @@ class SiteReportChart {
 			var taxonName = contentItem.data.rows[key][5].value;
 			var abundance = contentItem.data.rows[key][3].value;
 			var sampleId = contentItem.data.rows[key][1].value;
-			var elementType = contentItem.data.rows[key][8].value;
-			var sampleName = contentItem.data.rows[key][7].value;
+			var sampleName = contentItem.data.rows[key][1].value;
 			
 			if(typeof(this.taxa[taxonId]) == "undefined") {
 				this.taxa[taxonId] = {
 					taxonId: taxonId,
 					taxonName: taxonName,
-					elementType: elementType,
 					samples: []
 				};
 				taxonCount++;
@@ -216,16 +234,7 @@ class SiteReportChart {
 		}
 		
 		
-		
 		var colors = [];
-		/* Can't seem to make up my mind regarding these...
-		if(taxonCount < 6) {
-			colors = this.hqs.siteReportManager.siteReport.getMonoColorScheme(taxonCount, "#5b83ad", "#ff00ff");
-		}
-		else {
-			colors = this.hqs.siteReportManager.siteReport.getVariedColorScheme(taxonCount, 0, 100, 75);
-		}
-		*/
 		colors = this.hqs.color.getMonoColorScheme(taxonCount);
 		
 		//Normalize the taxa structure so that each taxon contains all the samples but with zero abundance where non-existant
@@ -244,7 +253,7 @@ class SiteReportChart {
 				
 				values.push(sampleValue);
 			}
-			
+
 			config.series.push({
 				stack: 1,
 				values: values, //This is one taxon, each array item is for one sample - in order
@@ -257,14 +266,7 @@ class SiteReportChart {
 					fontColor: "#000000"
 				}
 			});
-			
 		}
-
-		/*
-		for(var k in samples) {
-			config.scaleX.labels.push("Sample id "+samples[k]);
-		}
-		*/
 
 		for(var k in sampleNames) {
 			config.scaleX.labels.push(sampleNames[k]);
@@ -274,7 +276,10 @@ class SiteReportChart {
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
-        var chartHeight = 100 + (samples.length * 20);
+		var chartHeight = 100 + (samples.length * 20);
+
+
+		console.log(config);
 
 		zingchart.render({
 			id: this.chartId,
@@ -283,6 +288,7 @@ class SiteReportChart {
 			height: chartHeight,
 			events: {
 				click: (evt) => {
+					console.log("zingchart click evt");
 					$("#"+evt.targetid).css("position", "fixed");
 				}
 			}

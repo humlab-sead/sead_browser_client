@@ -52,6 +52,7 @@ class Samples {
 					"name": "Spreadsheet",
 					"options": [
 						{
+							"showControls": false,
 							"name": "columnsVisibility",
 							"hiddenColumns": [
 								3
