@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import Config from '../../config/config.js'
 import ResultModule from './ResultModule.class.js'
 import Timeline from './Timeline.class.js';
+import HqsMenu from '../HqsMenu.class';
 
 /*OpenLayers imports*/
 import Map from 'ol/Map';
@@ -144,30 +145,30 @@ class ResultMap extends ResultModule {
 		$(window).on("resize", () => this.resizeCallback());
 		this.resultManager.hqs.hqsEventListen("siteReportClosed", () => this.resizeCallback());
 
-		//this.timeline = new Timeline(this);
+		this.timeline = new Timeline(this);
 	}
 	
 	
 
 	resizeCallback() {
 		if(this.olMap != null) {
-			this.unrender();
+			//this.unrender();
 
 			if(typeof(this.resizeTimeout) != "undefined") {
 				clearTimeout(this.resizeTimeout);
 			}
 			this.resizeTimeout = setTimeout(() => {
-				this.renderMap(false);
+				//this.renderMap(false);
 				this.olMap.updateSize();
 			}, 500);
 		}
 		
 	}
 
-    /*
-    * Function: render
-    *
-    * Called from outside. Its the command from hqs to render the contents of this module. Will fetch data and then import/render it.
+	/*
+	* Function: render
+	*
+	* Called from outside. Its the command from hqs to render the contents of this module. Will fetch data and then import/render it.
 	*/
 	render() {
 		let xhr = this.fetchData();
@@ -179,9 +180,9 @@ class ResultMap extends ResultModule {
 		function(xhr, textStatus, errorThrown) { //error
 			console.log(errorThrown);
 		});
-    }
-    
-    /*
+	}
+
+	/*
 	* Function: fetchData
 	*/
 	fetchData() {
@@ -200,55 +201,54 @@ class ResultMap extends ResultModule {
 			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
-				if(respData.requestId == this.requestId && this.active) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
+				if(respData.RequestId == this.requestId && this.active) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 					this.importResultData(respData);
-                    this.resultManager.showLoadingIndicator(false);
+					this.resultManager.showLoadingIndicator(false);
 				}
 				else {
-					console.log("WARN: ResultMap discarding old result package data ("+respData.requestId+"/"+this.requestId+").");
+					console.log("WARN: ResultMap discarding old result package data ("+respData.RequestId+"/"+this.requestId+").");
 				}
 
 			},
 			error: (respData, textStatus, jqXHR) => {
-                this.resultManager.showLoadingIndicator(false, true);
+				this.resultManager.showLoadingIndicator(false, true);
 			},
 			complete: (xhr, textStatus) => {
 				
 			}
 		});
-    }
-    
-    /*
-    * Function: importResultData
-    *
-    * Imports result data and then renders it.
+	}
+
+	/*
+	* Function: importResultData
+	*
+	* Imports result data and then renders it.
 	*/
 	importResultData(data) {
 		this.data = [];
-
 		var keyMap = {};
 
-		for(var key in data.meta.columns) {
-            if(data.meta.columns[key].fieldKey == "category_id") {
-                keyMap.id = parseInt(key);
-            }
-			if(data.meta.columns[key].fieldKey == "category_name") {
+		for(var key in data.Meta.Columns) {
+			if(data.Meta.Columns[key].FieldKey == "category_id") {
+				keyMap.id = parseInt(key);
+			}
+			if(data.Meta.Columns[key].FieldKey == "category_name") {
 				keyMap.title = parseInt(key);
 			}
-			if(data.meta.columns[key].fieldKey == "latitude_dd") {
+			if(data.Meta.Columns[key].FieldKey == "latitude_dd") {
 				keyMap.lat = parseInt(key);
 			}
-			if(data.meta.columns[key].fieldKey == "longitude_dd") {
+			if(data.Meta.Columns[key].FieldKey == "longitude_dd") {
 				keyMap.lng = parseInt(key);
 			}
 		}
 		
-		for(var key in data.data.dataCollection) {
+		for(var key in data.Data.DataCollection) {
 			var dataItem = {};
-            dataItem.id = data.data.dataCollection[key][keyMap.id];
-			dataItem.title = data.data.dataCollection[key][keyMap.title];
-			dataItem.lng = data.data.dataCollection[key][keyMap.lng];
-			dataItem.lat = data.data.dataCollection[key][keyMap.lat];
+			dataItem.id = data.Data.DataCollection[key][keyMap.id];
+			dataItem.title = data.Data.DataCollection[key][keyMap.title];
+			dataItem.lng = data.Data.DataCollection[key][keyMap.lng];
+			dataItem.lat = data.Data.DataCollection[key][keyMap.lat];
 			
 			this.data.push(dataItem);
 		}
@@ -265,16 +265,16 @@ class ResultMap extends ResultModule {
 			})
 		}
 
-        this.renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
-        this.renderData = this.resultManager.hqs.hqsOffer("resultMapData", {
-            data: this.renderData
-        }).data;
-        
+		this.renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
+		this.renderData = this.resultManager.hqs.hqsOffer("resultMapData", {
+			data: this.renderData
+		}).data;
+
 		this.renderMap();
-        this.renderVisibleDataLayers();
-        //this.timeline.render();
+		this.renderVisibleDataLayers();
+		this.timeline.render();
 		
-        this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
+		this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
     }
     
     /*
@@ -342,8 +342,7 @@ class ResultMap extends ResultModule {
 
 		//NOTE: This can not be pre-defined in HTML since the DOM object itself is removed along with the overlay it's attached to when the map is destroyed.
 		let popup = $("<div></div>");
-		popup.addClass("map-popup-box");
-		popup.attr("id", "popup-container");
+		popup.attr("id", "map-popup-container");
 		let table = $("<table></table>").attr("id", "map-popup-sites-table").append("<tbody></tbody>").appendTo(popup);
 		$("#result-container").append(popup);
 
@@ -384,7 +383,27 @@ class ResultMap extends ResultModule {
 				this.olMap.removeLayer(element);
 			}
 		});
-    }
+	}
+	
+	/*
+	* Function: renderInterface
+	*/
+	renderInterfaceControls() {
+		console.log("renderInterfaceControls");
+		d3.select(this.renderMapIntoNode)
+			.append("div")
+			.attr("id", "result-map-controls-container");
+
+		d3.select("#result-map-controls-container")
+			.append("div")
+			.attr("id", "result-map-baselayer-controls-menu");
+		new HqsMenu(this.resultManager.hqs, this.resultMapBaseLayersControlsHqsMenu());
+
+		d3.select("#result-map-controls-container")
+			.append("div")
+			.attr("id", "result-map-datalayer-controls-menu");
+		new HqsMenu(this.resultManager.hqs, this.resultMapDataLayersControlsHqsMenu());
+	}
     
     /*
 	* Function: setMapBaseLayer
@@ -670,7 +689,7 @@ class ResultMap extends ResultModule {
     
     createSelectInteraction() {
 		this.selectPopupOverlay = new Overlay({
-			element: document.getElementById('popup-container'),
+			element: document.getElementById('map-popup-container'),
 			positioning: 'bottom-center',
 			offset: [0, -17]
 		});
@@ -936,7 +955,7 @@ class ResultMap extends ResultModule {
 	*/
 	unrender() {
 		$(this.renderIntoNode).hide();
-		$(".map-popup-box").remove();
+		$("#map-popup-container").remove();
 	}
 
 }
