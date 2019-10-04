@@ -51,7 +51,6 @@ class SiteReportManager {
 					let siteId = $(el).attr("row-site-id");
 					$(el).addClass("site-report-link");
 					$(el).attr("site-id", siteId);
-					//$(el).append("<td><i class=\"fa fa-chevron-circle-right\" aria-hidden=\"true\"></i></td>");
 					html += $(el)[0].outerHTML;
 	            });
 				offerData.tableRows = html;
