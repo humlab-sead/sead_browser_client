@@ -98,7 +98,7 @@
     "webpack": "^4.39.3",
     "webpack-archive-plugin": "^3.0.0",
     "webpack-bundle-analyzer": "^3.4.1",
-    "webpack-cli": "^3.3.8",
+    "webpack-cli": "^3.3.9",
     "webpack-dev-server": "^3.8.0"
   }
 }
