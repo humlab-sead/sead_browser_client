@@ -48,8 +48,10 @@ class SiteReportManager {
 	            var r = $(offerData.tableRows);
 	            var html = "";
 	            r.each((index, el) => {
-	                var siteId = $(el).attr("row-site-id");
-	                $(el).append("<td><span class='site-report-link' site-id='"+siteId+"'><i class=\"fa fa-chevron-circle-right\" aria-hidden=\"true\"></i></span></td>");
+					let siteId = $(el).attr("row-site-id");
+					$(el).addClass("site-report-link");
+					$(el).attr("site-id", siteId);
+					$(el).append("<td><i class=\"fa fa-chevron-circle-right\" aria-hidden=\"true\"></i></td>");
 					html += $(el)[0].outerHTML;
 	            });
 				offerData.tableRows = html;
