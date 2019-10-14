@@ -269,57 +269,31 @@ GRANT ALL ON TABLE <schema>.qse_sample_group TO <viewowner>;
 GRANT SELECT ON TABLE <schema>.qse_sample_group TO <grantread>;
 
 
--- View: <schema>.qse_sample_group_biblio
+-- View: postgrest_api.qse_sample_group_biblio
 
--- DROP VIEW <schema>.qse_sample_group_biblio;
-/*
-CREATE OR REPLACE VIEW <schema>.qse_sample_group_biblio
+-- DROP VIEW postgrest_api.qse_sample_group_biblio;
+
+CREATE OR REPLACE VIEW postgrest_api.qse_sample_group_biblio
  AS
- SELECT sample_group_reference.biblio_id,
-    sample_group_reference.sample_group_id,
-    biblio.author AS biblio_author,
-    biblio.biblio_keyword_id,
-    biblio.bugs_author AS biblio_bugs_author,
-    biblio.bugs_biblio_id,
+ SELECT sample_group_references.biblio_id,
+    sample_group_references.sample_group_reference_id,
+    biblio.authors AS biblio_author,
     biblio.bugs_reference AS biblio_bugs_reference,
-    biblio.bugs_title AS biblio_bugs_title,
-    biblio.collection_or_journal_id,
     biblio.doi AS biblio_doi,
-    biblio.edition AS biblio_edition,
     biblio.isbn AS biblio_isbn,
-    biblio.keywords AS biblio_keywords,
     biblio.notes AS biblio_notes,
-    biblio.number AS biblio_number,
-    biblio.pages AS biblio_pages,
-    biblio.pdf_link AS biblio_pdf_link,
-    biblio.publication_type_id,
-    biblio.publisher_id,
     biblio.title AS biblio_title,
-    biblio.volume AS biblio_volume,
     biblio.year AS biblio_year,
-    collections_or_journal.collection_or_journal_abbrev,
-    collections_or_journal.collection_title_or_journal_name,
-    collections_or_journal.issn AS coj_issn,
-    collections_or_journal.number_of_volumes AS coj_number_of_volumes,
-    collections_or_journal.publisher_id AS coj_publisher_id,
-    collections_or_journal.series_editor AS coj_series_editor,
-    collections_or_journal.series_title AS coj_series_title,
-    collections_or_journal.volume_editor AS coj_volume_editor,
-    publication_type.publication_type,
-    publisher.place_of_publishing_house,
-    publisher.publisher_name
-   FROM <schema>.sample_group_reference
-     LEFT JOIN <schema>.biblio ON sample_group_reference.biblio_id = biblio.biblio_id
-     LEFT JOIN <schema>.collections_or_journal ON biblio.collection_or_journal_id = collections_or_journal.collection_or_journal_id
-     LEFT JOIN <schema>.publication_type ON biblio.publication_type_id = publication_type.publication_type_id
-     LEFT JOIN <schema>.publisher ON biblio.publisher_id = publisher.publisher_id;
+    biblio.full_reference as biblio_full_reference,
+    biblio.url as biblio_url
+   FROM postgrest_api.sample_group_references
+     LEFT JOIN postgrest_api.biblio ON sample_group_references.biblio_id = biblio.biblio_id;
 
-ALTER TABLE <schema>.qse_sample_group_biblio
+ALTER TABLE postgrest_api.qse_sample_group_biblio
     OWNER TO <viewowner>;
 
-GRANT ALL ON TABLE <schema>.qse_sample_group_biblio TO <viewowner>;
-GRANT SELECT ON TABLE <schema>.qse_sample_group_biblio TO <grantread>;
-*/
+GRANT ALL ON TABLE postgrest_api.qse_sample_group_biblio TO <viewowner>;
+GRANT SELECT ON TABLE postgrest_api.qse_sample_group_biblio TO <grantread>;
 
 -- View: <schema>.qse_sample_types
 
@@ -394,59 +368,31 @@ GRANT ALL ON TABLE <schema>.qse_site_analyses TO <viewowner>;
 GRANT SELECT ON TABLE <schema>.qse_site_analyses TO <grantread>;
 
 
--- View: <schema>.qse_site_biblio
+-- View: postgrest_api.qse_site_biblio
 
--- DROP VIEW <schema>.qse_site_biblio;
-/*
-CREATE OR REPLACE VIEW <schema>.qse_site_biblio
+-- DROP VIEW postgrest_api.qse_site_biblio;
+
+CREATE OR REPLACE VIEW postgrest_api.qse_site_biblio
  AS
- SELECT site_reference.site_reference_id,
-    site_reference.site_id,
-    site_reference.biblio_id,
-    site_reference.date_updated,
-    biblio.author,
-    biblio.biblio_keyword_id,
-    biblio.bugs_author,
-    biblio.bugs_biblio_id,
-    biblio.bugs_reference,
-    biblio.bugs_title,
-    biblio.collection_or_journal_id,
+ SELECT site_references.site_reference_id,
+    site_references.site_id,
+    site_references.biblio_id,
+    site_references.date_updated,
+    biblio.authors,
     biblio.date_updated AS biblio_date_updated,
     biblio.doi,
-    biblio.edition,
     biblio.isbn,
-    biblio.keywords,
     biblio.notes,
-    biblio.number,
-    biblio.pages,
-    biblio.pdf_link,
-    biblio.publication_type_id,
-    biblio.publisher_id,
     biblio.title,
-    biblio.volume,
-    biblio.year,
-    publisher.publisher_name,
-    publisher.place_of_publishing_house,
-    collections_or_journal.collection_or_journal_abbrev,
-    collections_or_journal.collection_title_or_journal_name,
-    collections_or_journal.issn AS collection_issn,
-    collections_or_journal.number_of_volumes AS collection_number_of_volumes,
-    collections_or_journal.series_editor AS collection_series_editor,
-    collections_or_journal.series_title AS collection_series_title,
-    collections_or_journal.volume_editor AS collection_volume_editor,
-    publication_type.publication_type
-   FROM <schema>.site_reference
-     LEFT JOIN <schema>.biblio ON site_reference.biblio_id = biblio.biblio_id
-     LEFT JOIN <schema>.publication_type ON biblio.publication_type_id = publication_type.publication_type_id
-     LEFT JOIN <schema>.publisher ON biblio.publisher_id = publisher.publisher_id
-     LEFT JOIN <schema>.collections_or_journal ON biblio.collection_or_journal_id = collections_or_journal.collection_or_journal_id;
+    biblio.year
+   FROM postgrest_api.site_references
+     LEFT JOIN postgrest_api.biblio ON site_references.biblio_id = biblio.biblio_id;
 
-ALTER TABLE <schema>.qse_site_biblio
+ALTER TABLE postgrest_api.qse_site_biblio
     OWNER TO <viewowner>;
 
-GRANT ALL ON TABLE <schema>.qse_site_biblio TO <viewowner>;
-GRANT SELECT ON TABLE <schema>.qse_site_biblio TO <grantread>;
-*/
+GRANT ALL ON TABLE postgrest_api.qse_site_biblio TO <viewowner>;
+GRANT SELECT ON TABLE postgrest_api.qse_site_biblio TO <grantread>;
 
 -- View: <schema>.qse_site_locations
 

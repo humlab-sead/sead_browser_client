@@ -1,6 +1,7 @@
 # VISEAD Auxiliary Database Install Script
 
 This script will help generate the SQL required for building the PostgREST API db schema with views, which is primarily used for fetching data to the site reports / landing pages on the VISEAD site.
+It does not actually create the schema, roles or views, it just generates the SQL which will allow you to do so.
 
 ## Prerequisites
 
