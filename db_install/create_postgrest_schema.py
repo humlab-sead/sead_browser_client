@@ -92,7 +92,7 @@ def generateSqlFromQseTemplate():
     return template
 
 
-print(generateSchemaSQL()) #Creates the postgREST schema
-print(generateRoleSQL()) #Create the roles needed for postgREST
-print(generateSqlFromTables()) #This will create a view for each table in the public schema, a 1-to-1 mapping.
-print(generateSqlFromQseTemplate()) #This will create the "qse" views which are not directly mapped to a single table and thus can't be generated automatically, instead they are created using a template
+print(generateSchemaSQL())
+print(generateRoleSQL())
+print(generateSqlFromTables())
+print(generateSqlFromQseTemplate())
