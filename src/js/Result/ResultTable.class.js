@@ -51,7 +51,7 @@ class ResultTable extends ResultModule {
 			success: (respData, textStatus, jqXHR) => {
 				//Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 				//Also drop the data if the result module has switched since it was requested.
-				if(respData.requestId == this.requestId && this.resultManager.getActiveModule().name == this.name) {
+				if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) {
 					this.importResultData(respData);
 					this.resultManager.showLoadingIndicator(false);
 				}
@@ -74,15 +74,15 @@ class ResultTable extends ResultModule {
 		this.data.columns = [];
 		this.data.rows = [];
 
-		for(var key in data.meta.columns) {
-			var c = data.meta.columns[key];
+		for(var key in data.Meta.Columns) {
+			var c = data.Meta.Columns[key];
 			this.data.columns.push({
-				title: c.displayText,
-				field: c.fieldKey
+				title: c.DisplayText,
+				field: c.FieldKey
 			});
 		}
 
-		var rowsCount = data.data.dataCollection.length;
+		var rowsCount = data.Data.DataCollection.length;
 		
 		if(rowsCount > this.maxRenderCount) {
 			this.unrender();
@@ -102,8 +102,8 @@ class ResultTable extends ResultModule {
 			
 		}
 
-		for(var key in data.data.dataCollection) {
-			var d = data.data.dataCollection[key];
+		for(var key in data.Data.DataCollection) {
+			var d = data.Data.DataCollection[key];
 
 			var row = {};
 
@@ -156,13 +156,8 @@ class ResultTable extends ResultModule {
 		this.resultManager.renderMsg(false);
 
 		$('#result-table-container').html("");
-		$('#result-table-container').html("<table id='result-datatable'></table>");
 
 		var renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
-		renderData = this.resultManager.hqs.hqsOffer("resultTableData", {
-			data: renderData
-		}).data;
-
 
 		var columns = [
 			{
@@ -183,33 +178,58 @@ class ResultTable extends ResultModule {
 			}
 		];
 
-		var colHTML = "<thead><tr>";
-		for(var key in columns) {
-			colHTML += "<td>"+columns[key].title+"</td>";
-		}
-		colHTML += "</tr></thead>";
-		$('#result-datatable').append(colHTML);
 
-		var bodyHTML = "<tbody>";
+		let tableHtml = "<table id='result-datatable'>";
+		tableHtml += "<thead><tr>";
+		for(var key in columns) {
+			tableHtml += "<td>"+columns[key].title+"</td>";
+		}
+		tableHtml += "</tr></thead>";
+		//$('#result-datatable').append(colHTML);
+
+		tableHtml += "<tbody>";
 		for(var key in renderData.rows) {
-			var rowHTML = "<tr>";
+			tableHtml += "<tr>";
 
 			for(var ck in columns) {
 				var cellContent = renderData.rows[key][columns[ck].column];
-				rowHTML += "<td>"+cellContent+"</td>";
+				tableHtml += "<td>"+cellContent+"</td>";
 			}
 
-			rowHTML += "</tr>";
-			bodyHTML += rowHTML;
+			tableHtml += "</tr>";
 		}
-		bodyHTML += "</tbody>";
-		$('#result-datatable').append(bodyHTML);
+		
+		tableHtml += "</tbody></table>";
+		let tableNode = $(tableHtml);
+		
+		let reply = this.resultManager.hqs.hqsOffer("resultTableData", {
+			data: renderData,
+			node: tableNode
+		});
+		
+		tableNode = reply.node;
+		
+		
+		$('#result-table-container').append(tableNode);
 		$('#result-table-container').show();
 		$('#result-datatable').DataTable({
 			paging: false,
 			bInfo: false,
 			bFilter: false
 		});
+
+
+		/*
+		$('#result-datatable > tbody > tr').each((index, rowEl) => {
+			//console.log(rowEl);
+			$(rowEl).on("click", (evt) => {
+				//console.log();
+				let siteId =$("td", evt.currentTarget).get(1).innerHTML;
+				//location.href = "/site/"+siteId;
+				
+			});
+		});
+		*/
 
 
 		this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");

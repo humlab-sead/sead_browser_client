@@ -38,11 +38,11 @@ class SiteReportManager {
 	hqsOffer(offerName, offerData) {
 		if(this.siteReportsEnabled) {
 			if(offerName == "resultTableData") {
-	            for(var key in offerData.data.rows) {
-	                var siteLinkId = offerData.data.rows[key].site_link;
-	                //offerData.data.rows[key].site_link = "<span class='site-report-link' site-id='"+siteLinkId+"'>"+siteLinkId+"</span>";
-		            offerData.data.rows[key].site_link = "<span class='site-report-link' site-id='"+siteLinkId+"'><i class=\"fa-chevron-circle-right\" aria-hidden=\"true\"></i></span>";
-	            }
+				$("tbody > tr", offerData.node).each((index, el) => {
+					let siteId = offerData.data.rows[index].site_link;
+					$(el).addClass("site-report-link");
+					$(el).attr("site-id", siteId);
+				});
 			}
 			if(offerName == "resultMapPopupSites") {
 	            var r = $(offerData.tableRows);
@@ -68,7 +68,7 @@ class SiteReportManager {
 		
 		//This XHR is just for checking if the site with this ID actually exist
 		var xhr1 = this.hqs.pushXhr(null, "checkIfSiteExists");
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/site?site_id=eq."+siteId, {
+		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/sites?site_id=eq."+siteId, {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {
