@@ -367,6 +367,11 @@ class HqsMenu {
 			
 		}
 		
+		if(typeof menuDef.viewPortResizeCallback != "undefined") {
+			this.hqs.hqsEventListen("layoutResize", menuDef.viewPortResizeCallback);
+		}
+		
+		
 	}
 	
 	unrender() {

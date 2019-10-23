@@ -1004,6 +1004,11 @@ class FacetManager {
 			anchor: "#facet-menu",
 			auxTriggers: [".slot-visible"],
 			customStyleClasses: "hqs-menu-block-vertical-large",
+			viewPortResizeCallback: () => {
+				let leftWidth = $(".section-left").width();
+				$("#facet-menu > .hqs-menu-block-vertical-large").css("width", leftWidth+"px");
+				$("#facet-menu .l1-container-level").css("width", leftWidth+"px")
+			},
 			items: []
 		};
 		
@@ -1216,25 +1221,25 @@ class FacetManager {
 	}
 	
 	/*
-    * Function: filterFilters
-    * 
-    * It filters the filters.
+	* Function: filterFilters
+	* 
+	* It filters the filters.
 	*/
-    filterFilters(filterList, filterDefinitions) {
-        for(let groupKey in filterDefinitions) {
-            let facetGroupItems = filterDefinitions[groupKey].items;
+	filterFilters(filterList, filterDefinitions) {
+		for(let groupKey in filterDefinitions) {
+			let facetGroupItems = filterDefinitions[groupKey].items;
 
-            for(let k1 in facetGroupItems) {
-                facetGroupItems[k1].enabled = false;
-                for(let k2 in filterList) {
-                    if(facetGroupItems[k1].facetCode == filterList[k2]) {
-                        facetGroupItems[k1].enabled = true;
-                    }
-                }
-            }
-        }
-        return filterDefinitions;
-    }
+			for(let k1 in facetGroupItems) {
+				facetGroupItems[k1].enabled = false;
+				for(let k2 in filterList) {
+					if(facetGroupItems[k1].facetCode == filterList[k2]) {
+						facetGroupItems[k1].enabled = true;
+					}
+				}
+			}
+		}
+		return filterDefinitions;
+	}
 	
 }
 

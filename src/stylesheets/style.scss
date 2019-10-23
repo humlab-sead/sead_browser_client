@@ -39,7 +39,7 @@ Exporting variables for webpack to make them includeable in js
   baseColorLight: $base-color-light;
   auxColor: $aux-color;
   paneBgColor: $pane-bg-color;
-  paneBgColor-dark: $pane-bg-color-dark;
+  paneBgColorDark: $pane-bg-color-dark;
   seadBrown: $sead-brown;
   shadowColor: $shadow-color;
   errorColor: $error-color;
@@ -440,7 +440,12 @@ h1.main-header {
 */
 
 .slot-visible {
-  border: 4px dashed $pane-bg-color-dark;
+  border: 4px dashed $pane-bg-color;
+}
+
+.slot-visible:hover {
+  background-color: $aux-color;
+  border: 4px solid $pane-bg-color;
 }
 
 .filter-demo-arrow {
@@ -1074,6 +1079,7 @@ polyline{
   width: 100%;
   height: 20%;
   background-color: $white;
+  margin-top: 10px;
 }
 
 
@@ -1102,13 +1108,15 @@ polyline{
 
 .timeline-slider-container-inner {
   position:relative;
-  width: calc(100% - 80px);
+  //width: calc(100% - 90px);
 }
 
 .timeline-slider-container {
   height: 20%;
-  display:flex;
-  justify-content: center;
+  display:grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr;
+  justify-items: center;
 }
 
 #dev-notice {
@@ -1207,7 +1215,7 @@ polyline{
 }
 
 #map-popup-container {
-  display: block;
+  display: none;
   position: relative;
   background: rgba(255, 255, 255, 1.0);
   border: 2px solid #000000;
@@ -1561,4 +1569,10 @@ polyline{
 
 #googleLoginTemplate {
   display:none;
+}
+
+.timeline-label {
+  font-family: "Rajdhani";
+  font-weight: bold;
+  font-size: 14;
 }
