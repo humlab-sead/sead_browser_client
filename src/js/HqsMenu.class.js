@@ -72,7 +72,7 @@ class HqsMenu {
 	* Parameters:
 	* hqsMenuDef - JSON-structure defining the menu to be generated.
 	*/
-	constructor(hqs, hqsMenuDef) {
+	constructor(hqs, hqsMenuDef, init = true) {
 		this.hqs = hqs;
 		hqsMenuDef = this.normalizeMenuDef(hqsMenuDef);
 		this.id = hqsMenuDef.anchor;
@@ -82,10 +82,13 @@ class HqsMenu {
 		this.closeTimerInterval = null;
 		this.menuItemsContainerSelector = this.menuDef.anchor+".hqs-menu-container";
 		
-		this.renderMenuLabel(hqsMenuDef);
-		this.renderMenu(hqsMenuDef);
-		this.bindCallbacks(hqsMenuDef);
-		this.registerTooltipBindings();
+		if(init) {
+			this.renderMenuLabel(hqsMenuDef);
+			this.renderMenu(hqsMenuDef);
+			this.bindCallbacks(hqsMenuDef);
+			this.registerTooltipBindings();
+		}
+		
 	}
 	
 	
@@ -208,19 +211,8 @@ class HqsMenu {
 			}
 		}
 		
-		if(m.items.length > 0) {
-			$(m.anchor+" > .hqs-menu-title-container").on("mouseover", () => {
-				this.showMenu(m);
-			});
-
-			if(typeof m.auxTriggers != "undefined") {
-				for(let key in m.auxTriggers) {
-					$(m.auxTriggers[key]).on("mouseover", () => {
-						this.showMenu(m);
-					});
-				}
-			}
-		}
+		this.bindMenuAnchor(m);
+		
 		
 		
 		$(m.anchor).on("mouseleave", () => {
@@ -244,6 +236,22 @@ class HqsMenu {
 		let anchorWidth = $(m.anchor).width();
 		$(m.anchor+" .l1-container-level-vertical").css("min-width", anchorWidth+"px");
 		
+	}
+
+	bindMenuAnchor(m) {
+		if(m.items.length > 0) {
+			$(m.anchor+" > .hqs-menu-title-container").on("mouseover", () => {
+				this.showMenu(m);
+			});
+
+			if(typeof m.auxTriggers != "undefined") {
+				for(let key in m.auxTriggers) {
+					$(m.auxTriggers[key]).on("mouseover", () => {
+						this.showMenu(m);
+					});
+				}
+			}
+		}
 	}
 
 	showMenu(m) {

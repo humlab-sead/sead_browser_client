@@ -149,7 +149,10 @@ class FacetManager {
 		$(this.demoSlot.getDomRef()).text("Filter");
 		$(this.demoSlot.getDomRef()).addClass("slot-visible");
 		
-		$("#facet-section").append("<div class='filter-demo-arrow'>⤷</div>"); //↳ ⮡
+		$("#facet-section").append("<div class='filter-demo-arrow'>⤷</div>");
+
+		//Re-bind menu to this demo slot
+		this.hqs.menuManager.rebind(this.makeHqsMenuFromFacetDef(this.facetDef));
 	}
 	
 	/*
@@ -1046,7 +1049,6 @@ class FacetManager {
 							}
 						}
 						
-						
 						if(facetExists === false) {
 							var t = this.hqs.facetManager.getFacetTemplateByFacetId(menuItem.name);
 							var facet = this.hqs.facetManager.makeNewFacet(t);
@@ -1054,8 +1056,6 @@ class FacetManager {
 						}
 					}
 				});
-			
-				
 			}
 			
 			menu.items.push(facetGroup);
@@ -1070,7 +1070,6 @@ class FacetManager {
 			}
 			facetDef[gk].enabled = enabled;
 		}
-
 		
 		return menu;
 	}
@@ -1217,7 +1216,7 @@ class FacetManager {
         this.filterDefinitions = this.filterFilters(filterList, this.filterDefinitions);
         this.facetDef = this.importFacetDefinitions(this.filterDefinitions);
         var hqsMenuStruct = this.makeHqsMenuFromFacetDef(this.facetDef);
-		this.hqs.menuManager.createMenu(hqsMenuStruct);
+		let menu = this.hqs.menuManager.createMenu(hqsMenuStruct);
 	}
 	
 	/*

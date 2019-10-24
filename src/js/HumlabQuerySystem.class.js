@@ -51,9 +51,10 @@ class HumlabQuerySystem {
 		this.layoutManager = new HqsLayoutManager(this, "#facet-result-panel", this.config.facetSectionDefaultWidth, 100-this.config.facetSectionDefaultWidth);
 		//this.siteReportLayoutManager = new HqsLayoutManager(this, "#site-report-panel", 80, 20);
 
+		this.menuManager = new HqsMenuManager(this);
 		this.facetManager = new FacetManager(this, filterDefinitions);
 		this.mainMenu = new MainMenu();
-		this.menuManager = new HqsMenuManager(this);
+		
 		this.siteReportManager = new SiteReportManager(this);
 		var siteId = this.siteReportManager.getSiteIdFromUrl();
 
@@ -192,7 +193,7 @@ class HumlabQuerySystem {
 		var xhr2 = this.pushXhr(null, "systemReady");
 		
 		
-		xhr1.xhr = $.ajax(this.config.siteReportServerAddress+"/data_type", {
+		xhr1.xhr = $.ajax(this.config.siteReportServerAddress+"/data_types", {
 			method: "get",
 			dataType: "json",
 			beforeSend: () => {
@@ -216,7 +217,7 @@ class HumlabQuerySystem {
 		//xhr1.eventOnComplete = "hqsReady";
 		//this.pushXhr(xhr1);
 		
-		xhr2.xhr = $.ajax(this.config.siteReportServerAddress+"/dataset_master", {
+		xhr2.xhr = $.ajax(this.config.siteReportServerAddress+"/dataset_masters", {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {

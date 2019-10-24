@@ -129,6 +129,17 @@ class HqsMenuManager {
 		
 		return masterMenu;
 	}
+
+
+	/*
+	* Function: rebind
+	* 
+	* Rebinds the triggers to the menu anchors. In case the anchors were previously removed and re-added, this needs to be called.
+	*/
+	rebind(menuDef) {
+		let m = new  HqsMenu(this.hqs, menuDef, false);
+		m.bindMenuAnchor(m.menuDef);
+	}
 }
 
 export { HqsMenuManager as default }
