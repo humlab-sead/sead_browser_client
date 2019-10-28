@@ -16,6 +16,8 @@ import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
 import {fromLonLat, toLonLat} from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
+import * as Extent from 'ol/extent';
+import { transformExtent } from 'ol/proj';
 
 
 /*
@@ -26,7 +28,7 @@ class ResultMap extends ResultModule {
 	* Function: constructor
 	*/
 	constructor(resultManager, renderIntoNode = "#result-map-container") {
-        super(resultManager);
+		super(resultManager);
 		this.renderIntoNode = renderIntoNode;
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
 		$(this.renderIntoNode).append("<div class='result-timeline-render-container'></div>");
@@ -125,7 +127,9 @@ class ResultMap extends ResultModule {
 			layerId: "clusterPoints",
 			title: "Clustered",
 			type: "dataLayer",
-			renderCallback: this.renderClusteredPointsLayer,
+			renderCallback: () => {
+				this.renderClusteredPointsLayer();
+			},
 			visible: true
 		});
 		this.dataLayers.push(dataLayer);
@@ -135,7 +139,9 @@ class ResultMap extends ResultModule {
 			layerId: "points",
 			title: "Individual",
 			type: "dataLayer",
-			renderCallback: this.renderPointsLayer,
+			renderCallback: () => {
+				this.renderPointsLayer();
+			},
 			visible: false
 		});
 		this.dataLayers.push(dataLayer);
@@ -147,8 +153,7 @@ class ResultMap extends ResultModule {
 
 		this.timeline = new Timeline(this);
 	}
-	
-	
+
 
 	resizeCallback() {
 		if(this.olMap != null) {
@@ -253,6 +258,7 @@ class ResultMap extends ResultModule {
 			this.data.push(dataItem);
 		}
 		
+		/*
 		//If we have over 2000 data points, switch default rendering mode to clustering
 		if(this.data.length > 2000) {
 			this.dataLayers.forEach((element, index, array) => {
@@ -264,56 +270,79 @@ class ResultMap extends ResultModule {
 				}
 			})
 		}
+		*/
 
 		this.renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
 		this.renderData = this.resultManager.hqs.hqsOffer("resultMapData", {
 			data: this.renderData
 		}).data;
 
+
+		this.data = this.timeline.makeFakeTimeData(this.data); //FIXME: REMOVE THIS WHEN THERE IS DATA AVAILABLE
+
 		this.renderMap();
 		this.renderVisibleDataLayers();
-		this.timeline.render();
+		//this.timeline.render(); //FIXME: DISABLED UNTIL WE HAVE DATA FOR IT
 		
 		this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
-    }
-    
-    /*
-    * Function: setContainerFixedSize
-    *
-    * Sets fixed size of the openlayers container. This is needed in order for the map to render properly, but it's bad for a responsive design so we switch between fixed/flexible as the viewport is resized.
-    *
-    * See also:
-    *  - setContainerFlexibleSize
-    */
-    setContainerFixedSize() {
-        let containerWidth = $(this.renderMapIntoNode).width();
-        let containerHeight = $(this.renderMapIntoNode).height();
-        $(this.renderMapIntoNode).css("width", containerWidth+"px");
-        $(this.renderMapIntoNode).css("height", containerHeight+"px");
-    }
+	}
 
-    /*
-    * Function: setContainerFlexibleSize
-    *
-    * Sets flexible size of the openlayers container.
-    * 
-    * See also:
-    *  - setContainerFixedSize
-    */
-    setContainerFlexibleSize() {
-        $(this.renderMapIntoNode).css("width", "100%");
+	/*
+	* Function: setContainerFixedSize
+	*
+	* Sets fixed size of the openlayers container. This is needed in order for the map to render properly, but it's bad for a responsive design so we switch between fixed/flexible as the viewport is resized.
+	*
+	* See also:
+	*  - setContainerFlexibleSize
+	*/
+	setContainerFixedSize() {
+		let containerWidth = $(this.renderMapIntoNode).width();
+		let containerHeight = $(this.renderMapIntoNode).height();
+		$(this.renderMapIntoNode).css("width", containerWidth+"px");
+		$(this.renderMapIntoNode).css("height", containerHeight+"px");
+	}
+
+	/*
+	* Function: setContainerFlexibleSize
+	*
+	* Sets flexible size of the openlayers container.
+	* 
+	* See also:
+	*  - setContainerFixedSize
+	*/
+	setContainerFlexibleSize() {
+		$(this.renderMapIntoNode).css("width", "100%");
 		$(this.renderMapIntoNode).css("height", "80%");
-    }
+	}
 
-    /*
+	
+
+	/*
 	* Function: renderMap
 	*/
 	renderMap(removeAllDataLayers = true) {
-		console.log("render map")
-		$(this.renderIntoNode).show();
 
+		let filteredData = []; //Filter out points which contrain zero/null coordinates
+		for(let key in this.data) {
+			if(this.data[key].lat != 0 && this.data[key].lng != 0) {
+				filteredData.push(this.data[key]);
+			}
+		}
+		
+		let latHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "high").lat;
+		let latLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "low").lat;
+		let lngHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "high").lng;
+		let lngLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "low").lng;
+		
+		let extentNW = fromLonLat([lngLow, latLow]);
+		let extentSE = fromLonLat([lngHigh, latHigh]);
+
+		let extent = extentNW.concat(extentSE);
+		
+
+		$(this.renderIntoNode).show();
+		
 		if(this.olMap == null) {
-			console.log("create map")
 			$(this.renderMapIntoNode).html("");
 
 			this.olMap = new Map({
@@ -322,16 +351,15 @@ class ResultMap extends ResultModule {
 				layers: new GroupLayer({
 					layers: this.baseLayers
 				}),
+				
 				view: new View({
 					center: fromLonLat([12.41, 48.82]),
 					zoom: this.currentZoomLevel
-                }),
-                loadTilesWhileInteracting: true,
-                loadTilesWhileAnimating: true
+				}),
+				loadTilesWhileInteracting: true,
+				loadTilesWhileAnimating: true
 			});
 			
-            
-            
 			this.olMap.on("moveend", () => {
 				var newZoomLevel = this.olMap.getView().getZoom();
 				if (newZoomLevel != this.currentZoomLevel) {
@@ -339,6 +367,11 @@ class ResultMap extends ResultModule {
 				}
 			});
 		}
+		else {
+			this.olMap.updateSize();
+		}
+
+		this.olMap.getView().fit(extent);
 
 		//NOTE: This can not be pre-defined in HTML since the DOM object itself is removed along with the overlay it's attached to when the map is destroyed.
 		let popup = $("<div></div>");
@@ -361,10 +394,10 @@ class ResultMap extends ResultModule {
 			});
 		}
 
-        this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
-    }
-    
-    /*
+		this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
+	}
+
+	/*
 	* Function: renderVisibleDataLayers
 	*/
 	renderVisibleDataLayers() {
@@ -375,9 +408,9 @@ class ResultMap extends ResultModule {
 				this.setMapDataLayer(layerProperties.layerId);
 			}
 		}
-    }
-    
-    removeLayer(layerId) {
+	}
+
+	removeLayer(layerId) {
 		this.olMap.getLayers().forEach((element, index, array)=> {
 			if(typeof(element) != "undefined" && element.getProperties().layerId == layerId) {
 				this.olMap.removeLayer(element);
@@ -389,7 +422,7 @@ class ResultMap extends ResultModule {
 	* Function: renderInterface
 	*/
 	renderInterfaceControls() {
-		console.log("renderInterfaceControls");
+		//console.log("renderInterfaceControls");
 		d3.select(this.renderMapIntoNode)
 			.append("div")
 			.attr("id", "result-map-controls-container");
@@ -404,8 +437,8 @@ class ResultMap extends ResultModule {
 			.attr("id", "result-map-datalayer-controls-menu");
 		new HqsMenu(this.resultManager.hqs, this.resultMapDataLayersControlsHqsMenu());
 	}
-    
-    /*
+
+	/*
 	* Function: setMapBaseLayer
 	*/
 	setMapBaseLayer(baseLayerId) {
@@ -419,7 +452,7 @@ class ResultMap extends ResultModule {
 		});
 	}
 
-    /*
+	/*
 	* Function: setMapDataLayer
 	*/
 	setMapDataLayer(dataLayerId) {
@@ -436,7 +469,18 @@ class ResultMap extends ResultModule {
 		});
 	}
 
-    /*
+	renderDataLayer(dataLayerId) {
+		this.clearSelections();
+		this.dataLayers.forEach((layer, index, array) => {
+			if(layer.getProperties().layerId == dataLayerId) {
+				this.removeLayer(layer.getProperties().layerId);
+				layer.setVisible(true);
+				layer.getProperties().renderCallback(this);
+			}
+		});
+	}
+
+	/*
 	* Function: clearSelections
 	*/
 	clearSelections() {
@@ -450,12 +494,30 @@ class ResultMap extends ResultModule {
 		});
 	}
 
-    /*
+	applyTimeFilterOnData(data) {
+		let timeSelection = this.timeline.getSelection();
+
+		if(timeSelection.length == 0) {
+			return data;
+		}
+
+		let filtered = [];
+		for(let key in data) {
+			if(data[key].time.min >= timeSelection[0] && data[key].time.max <= timeSelection[1]) {
+				filtered.push(data[key]);
+			}
+		}
+
+		return filtered;
+	}
+
+	/*
 	* Function: renderClusteredPointsLayer
 	*/
-	renderClusteredPointsLayer(resultMapModule) {
+	renderClusteredPointsLayer() {
+		let timeFilteredData = this.applyTimeFilterOnData(this.data);
+		var geojson = this.getDataAsGeoJSON(timeFilteredData);
 
-		var geojson = resultMapModule.getDataAsGeoJSON();
 		var gf = new GeoJSON({
 			featureProjection: "EPSG:3857"
 		});
@@ -472,7 +534,7 @@ class ResultMap extends ResultModule {
 		var clusterLayer = new VectorLayer({
 			source: clusterSource,
 			style: (feature, resolution) => {
-				var style = resultMapModule.getClusterPointStyle(feature);
+				var style = this.getClusterPointStyle(feature);
 				return style;
 			},
 			zIndex: 1
@@ -483,28 +545,29 @@ class ResultMap extends ResultModule {
 			"type": "dataLayer"
 		});
 		
-		resultMapModule.olMap.addLayer(clusterLayer);
+		this.olMap.addLayer(clusterLayer);
 	}
 
-    /*
+	/*
 	* Function: renderPointsLayer
 	*/
-	renderPointsLayer(resultMapModule) {
-        var geojson = resultMapModule.getDataAsGeoJSON();
+	renderPointsLayer() {
+		let timeFilteredData = this.applyTimeFilterOnData(this.data);
+		var geojson = this.getDataAsGeoJSON(timeFilteredData);
 
 		var gf = new GeoJSON({
 			featureProjection: "EPSG:3857"
 		});
-        var featurePoints = gf.readFeatures(geojson);
+		var featurePoints = gf.readFeatures(geojson);
 		
 		var pointsSource = new VectorSource({
 			features: featurePoints
-        });
+		});
 		
 		var layer = new VectorLayer({
 			source: pointsSource,
 			style: (feature, resolution) => {
-				var style = resultMapModule.getPointStyle(feature);
+				var style = this.getPointStyle(feature);
 				return style;
 			},
 			zIndex: 1
@@ -513,42 +576,42 @@ class ResultMap extends ResultModule {
 		layer.setProperties({
 			"layerId": "points",
 			"type": "dataLayer"
-        });
+		});
 
-        resultMapModule.olMap.addLayer(layer);
-    }
-    
-    /*
-    * Function: getDataAsGeoJSON
-    *
-    * Returns the internally stored data as GeoJSON, does not fetch anything from server.
-    * 
+		this.olMap.addLayer(layer);
+	}
+
+	/*
+	* Function: getDataAsGeoJSON
+	*
+	* Returns the internally stored data as GeoJSON, does not fetch anything from server.
+	* 
 	*/
-	getDataAsGeoJSON() {
+	getDataAsGeoJSON(data) {
 		var geojson = {
 			"type": "FeatureCollection",
 			"features": [
 			]
 		};
 
-		for(var key in this.renderData) {
+		for(var key in data) {
 			var feature = {
 				"type": "Feature",
 				"geometry": {
 					"type": "Point",
-					"coordinates": [this.renderData[key].lng, this.renderData[key].lat]
+					"coordinates": [data[key].lng, data[key].lat]
 				},
 				"properties": {
-					id: this.renderData[key].id,
-					name: this.renderData[key].title
+					id: data[key].id,
+					name: data[key].title
 				}
 			};
 			geojson.features.push(feature);
 		}
 		return geojson;
-    }
-    
-    /*
+	}
+
+	/*
 	* Function: getPointStyle
 	*/
 	getPointStyle(feature, options = { selected: false, highlighted: false }) {
@@ -604,9 +667,9 @@ class ResultMap extends ResultModule {
 		}));
 		
 		return styles;
-    }
-    
-    /*
+	}
+
+	/*
 	* Function: getClusterPointStyle
 	*/
 	getClusterPointStyle(feature, options = { selected: false, highlighted: false }) {
@@ -685,9 +748,9 @@ class ResultMap extends ResultModule {
 		}
 		
 		return styles;
-    }
-    
-    createSelectInteraction() {
+	}
+
+	createSelectInteraction() {
 		this.selectPopupOverlay = new Overlay({
 			element: document.getElementById('map-popup-container'),
 			positioning: 'bottom-center',
@@ -711,8 +774,8 @@ class ResultMap extends ResultModule {
 					});
 				}
 			}
-        });
-        
+		});
+
 		selectInteraction.setProperties({
 			selectInteraction: true
 		});
@@ -734,22 +797,13 @@ class ResultMap extends ResultModule {
 				this.selectPopupOverlay.setPosition(coords);
 			}
 			else if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == true) {
+				$("#map-popup-container").show();
+
 				var feature = evt.selected[0];
 				var coords = feature.getGeometry().getCoordinates();
 				var prop = evt.selected[0].getProperties();
 
 				$("#map-popup-title").html("");
-				
-				
-				//if(prop.features.length > 20) {
-				//	$("#map-popup-show-all-sites-btn").show();
-				//    $("#map-popup-sites-table").hide();
-				//}
-				//else {
-				//    $("#map-popup-show-all-sites-btn").hide();
-				//    $("#map-popup-sites-table").show();
-				//}
-				
 				
 				var tableRows = "";
 				for(var fk in prop.features) {
@@ -772,18 +826,19 @@ class ResultMap extends ResultModule {
 				this.selectPopupOverlay.setPosition(coords);
 			}
 			else {
+				$("#map-popup-container").hide();
 				this.selectPopupOverlay.setPosition();
 			}
 			hqs.hqsEventDispatch("resultMapPopupRender");
-        });
-        
-        return selectInteraction;
-    }
-    
-    /*
+		});
+		
+		return selectInteraction;
+	}
+
+	/*
 	* Function: getVisibleDataLayer
 	*/
-    getVisibleDataLayer() {
+	getVisibleDataLayer() {
 		for(var key in this.dataLayers) {
 			if(this.dataLayers[key].getProperties().visible) {
 				return this.dataLayers[key];
@@ -816,9 +871,9 @@ class ResultMap extends ResultModule {
 			}
 		}
 		return visibleLayers;
-    }
-    
-    /*
+	}
+
+	/*
 	* Function: exportSettings
 	*/
 	exportSettings() {
@@ -948,14 +1003,28 @@ class ResultMap extends ResultModule {
 					break;
 			}
 		}
-    }
-    
-    /*
+	}
+
+	/*
 	* Function: unrender
 	*/
 	unrender() {
 		$(this.renderIntoNode).hide();
 		$("#map-popup-container").remove();
+	}
+
+	getLayerById(layerId) {
+		for(let k in this.dataLayers) {
+			if(this.dataLayers[k].getProperties().layerId == layerId) {
+				return this.dataLayers[k];
+			}
+		}
+		for(let k in this.baseLayers) {
+			if(this.baseLayers[k].getProperties().layerId == layerId) {
+				return this.baseLayers[k];
+			}
+		}
+		return false;
 	}
 
 }
