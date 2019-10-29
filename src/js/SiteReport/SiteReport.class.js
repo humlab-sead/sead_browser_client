@@ -88,21 +88,6 @@ class SiteReport {
 			"module": analysis
 		});
 
-		/*
-		this.modules.push({
-			"name": "basicSiteInformation",
-			"module": new BasicSiteInformation(this.hqs, this.siteId)
-		});
-		this.modules.push({
-			"name": "samples",
-			"module": new Samples(this.hqs, this.siteId, "#samples-content-container")
-		});
-		this.modules.push({
-			"name": "analysis",
-			"module": new Analysis(this.hqs, this.siteId, "#analysis-content-container")
-		});
-		*/
-
 	}
 
 	checkModulesLoadComplete() {
@@ -224,7 +209,6 @@ class SiteReport {
 		});
 		
 		hqs.hqsEventDispatch("siteReportClosed");
-		//window.history.go(-1);
         this.siteReportManager.hqs.setActiveView("explorer"); //Fun fact: this doesn't actually do anything, I think
 	}
 	
@@ -263,21 +247,6 @@ class SiteReport {
 			}
 		}
 		
-		/*
-			var exportStruct = {
-				info: {
-					description: "Data export from the SEAD project. Visit https://www.sead.se for more information.",
-					url: Config.serverRoot+"/site/"+this.siteId
-				},
-				site: this.siteId,
-				section: section.title,
-				content: contentItem.title,
-				datatable: contentItem.data
-			};
-			 */
-		
-		console.log(this.data);
-		
 		return Buffer.from(JSON.stringify(data, null, 2)).toString("base64");
 	}
 	
@@ -305,36 +274,6 @@ class SiteReport {
 			}
 		}
 	}
-	
-	
-	/*
-	* Function: treeRenderAllSections
-	*
-	* Recursively traverses the site report structure and renders each section as defined in the JSON.
-	*
-	* Parameters:
-	* data - Site report structure
-	* parent - Don't define this, it's used for the internal recursion.
-	* level - Don't worry about this either.
-	*
-	*/
-	/*
-	treeRenderAllSections(data, parent = null, level = 0) {
-		console.log(data.sections);
-		for(var key in data.sections) {
-			var section = data.sections[key];
-			
-			this.renderSection(section, data, level);
-			
-			//Render sub-sections (if any)
-			if(this.sectionHasSubSections(section)) {
-				//Calling myself
-				// - Hello, how are you? I'm good, you? We're the same you know... therefore I am good as well, or is it because I am good that you are also good? Nay, we may be identical but surely the cyclic nature of our relationship implies a certain hierarchy
-				this.treeRenderAllSections(section, data, ++level);
-			}
-		}
-	}
-	*/
 	
 	sectionHasContentItems(section) {
 		return typeof(section.contentItems) == "object" && section.contentItems.length > 0;
@@ -402,7 +341,6 @@ class SiteReport {
 			$("#site-report-content").append(sectionNode);
 		}
 		else {
-			//console.log("#site-report-section-"+parent.name+" > .site-report-level-content");
 			$("#site-report-section-"+parent.name+" > .site-report-level-content").append(sectionNode);
 		}
 		
@@ -445,7 +383,6 @@ class SiteReport {
 		var expandButtonNode = sectionNode.children(".site-report-level-title").find("i.site-report-sections-expand-button");
 		if(collapsed) {
 			expandButtonNode.removeClass("fa-minus-circle").addClass("fa-plus-circle");
-			//this.rotateSectionArrow(expandButtonNode, 0);
 			sectionNode.children(".site-report-level-content").attr("collapsed", "true").slideUp({
 				duration: 100,
 				easing: this.animationEasing
@@ -453,7 +390,6 @@ class SiteReport {
 		}
 		else {
 			expandButtonNode.removeClass("fa-plus-circle").addClass("fa-minus-circle");
-			//this.rotateSectionArrow(expandButtonNode, 90);
 			sectionNode.children(".site-report-level-content").attr("collapsed", "false").slideDown({
 				duration: 100,
 				easing: this.animationEasing
@@ -463,16 +399,6 @@ class SiteReport {
 			this.renderContentItems(section);
 		}
 	}
-	
-	rotateSectionArrow(node, degrees) {
-		$(node).animate({ rotate: degrees }, {
-			step: function(now, fx) {
-				$(this).css('transform','rotate('+now+'deg)');
-			},
-			duration: 100
-		}, this.animationEasing);
-	}
-	
 	/*
 	Function: renderContentItems
 	 */
@@ -682,8 +608,6 @@ class SiteReport {
 	 */
 	renderDataVisualization(section, contentItem) {
 		this.sortContentItemData(contentItem);
-
-		this.updateContentDisplayOptionsPanel(section, contentItem);
 		
 		var anchorSelector = "#site-report-section-"+section.name+" > .site-report-level-content > #contentItem-"+contentItem.name;
 		$(anchorSelector).html("");
@@ -744,7 +668,6 @@ class SiteReport {
 		}
 		
 		//Make DOM node
-		//var controlsId = "view-selector-"+shortid.generate(); //FIXME: Replace with another ID
 		let controlsId = "view-selector-"+contentItem.name;
 		var node = $("#site-report-render-options-template")[0].cloneNode(true);
 		$(node).attr("id", controlsId);
@@ -775,18 +698,6 @@ class SiteReport {
 			optionNode.attr("selected", contentItem.renderOptions[key].selected);
 			$(".site-report-render-mode-selector", node).append(optionNode);
 		}
-		
-		/*
-		//This seems to set selected ro's depending on currently selected type, but it makes no sense
-		for(var key in contentItem.renderOptions) {
-			if(contentItem.renderOptions[key].type == selectedRo.type) {
-				contentItem.renderOptions[key].selected = true;
-			}
-			else {
-				contentItem.renderOptions[key].selected = false;
-			}
-		}
-		*/
 
 		//RenderOption selected callback
 		$(".site-report-render-options-container > .site-report-render-mode-selector", node).bind("change", (evt) => {
@@ -835,7 +746,6 @@ class SiteReport {
 		
 		
 		$(".site-report-render-options-container-extras .site-report-view-selector-control", node).on("change", (evt) => {
-			console.log("site-report-render-options-container-extras CHANGED");
 
 			let selected = parseInt($(evt.currentTarget).val());
 			let renderOptionExtraKey = $(evt.currentTarget).attr("renderOptionExtraKey");
@@ -845,28 +755,6 @@ class SiteReport {
 		});
 		
 		
-	}
-	
-	/*
-	Function: updateContentDisplayOptionsPanel
-	 */
-	updateContentDisplayOptionsPanel(section, contentItem) {
-		/*
-		var sectionNode = $("#site-report-section-"+section.name);
-		var displayOptionsNode = $(".site-report-display-options-main", sectionNode);
-		
-		var selectedRenderOption = this.getSelectedRenderOption(contentItem);
-		switch(selectedRenderOption.type) {
-			case "table":
-				$(".site-report-axis-control", displayOptionsNode).hide();
-				break;
-			case "bar":
-				$(".site-report-axis-control", displayOptionsNode).show();
-				$(".site-report-x-axis", displayOptionsNode).val(selectedRenderOption.options.xAxis);
-				$(".site-report-y-axis", displayOptionsNode).val(selectedRenderOption.options.yAxis);
-				break;
-		}
-		*/
 	}
 	
 	/*
@@ -953,45 +841,6 @@ class SiteReport {
 				return 0;
 			});
 		}
-	}
-	
-	siteReportTabsMenu() {
-		return {
-			title: "VIEW :",
-			layout: "horizontal",
-			collapsed: false,
-			anchor: "#site-report-tabs",
-			staticSelection: true,
-			showMenuTitle: false,
-			items: [
-				{
-					name: "samples",
-					title: "Samples",
-					icon: "",
-					/*staticSelection: this.getActiveModule().name == "map" ? true : false,*/
-					callback: () => {
-						/*
-						$.event.trigger("seadResultMenuSelection", {
-							selection: "map"
-						});
-						*/
-					}
-				},
-				{
-					name: "analysis",
-					title: "Analysis",
-					icon: "",
-					/*staticSelection: this.getActiveModule().name == "table" ? true : false,*/
-					callback: () => {
-						/*
-						$.event.trigger("seadResultMenuSelection", {
-							selection: "table"
-						});
-						*/
-					}
-				}
-			]
-		};
 	}
 	
 }
