@@ -70,8 +70,7 @@ class SiteReport {
 		let samples = new Samples(this.hqs, this.siteId, "#samples-content-container");
 		let analysis = new Analysis(this.hqs, this.siteId, "#analysis-content-container");
 
-		Promise.all([bsi.fetch(), samples.fetch(), analysis.fetch()]).then(() => { //, samples.fetch(), analysis.fetch()
-			console.log("All modules loaded");
+		Promise.all([bsi.fetch(), samples.fetch(), analysis.fetch()]).then(() => {
 			this.hideLoadingIndicator();
 		});
 

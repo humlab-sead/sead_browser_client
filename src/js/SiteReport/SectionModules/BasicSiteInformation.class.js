@@ -109,6 +109,7 @@ class BasicSiteInformation {
 		});
 		
 		await Promise.all([p1, p2, p3]);
+		this.render();
 	}
 	
 	/*
