@@ -235,7 +235,7 @@ class Facet {
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
 				
-				if(this.deleted == false && respData.facetsConfig.requestId == this.requestId) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
+				if(this.deleted == false && respData.FacetsConfig.RequestId == this.requestId) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 					this.importData(respData);
 					if(render && this.minimized == false) {
 						this.renderData();
@@ -243,7 +243,7 @@ class Facet {
 					this.showLoadingIndicator(false);
 				}
 				else {
-					console.log("WARN: Not importing facet data since this facet is either deleted or "+respData.facetsConfig.requestId+" != "+this.requestId);
+					console.log("WARN: Not importing facet data since this facet is either deleted or "+respData.FacetsConfig.RequestId+" != "+this.requestId);
 				}
 
 				for(var key in this.hqs.facetManager.pendingDataFetchQueue) {

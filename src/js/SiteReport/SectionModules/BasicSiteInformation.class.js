@@ -45,7 +45,7 @@ class BasicSiteInformation {
 		var xhr2 = this.hqs.pushXhr(null, "fetchBasicSiteInformation");
 		var xhr3 = this.hqs.pushXhr(null, "fetchBasicSiteInformation");
 		
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/site?site_id=eq."+this.siteId, {
+		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/sites?site_id=eq."+this.siteId, {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {

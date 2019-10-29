@@ -64,7 +64,7 @@ class ResultMosaic extends ResultModule {
 			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
-				if(respData.requestId == this.requestId && this.resultManager.getActiveModule().name == this.name) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
+				if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 					this.importResultData(respData);
 					this.resultManager.showLoadingIndicator(false);
 				}
@@ -84,16 +84,16 @@ class ResultMosaic extends ResultModule {
 		this.data.columns = [];
 		this.data.rows = [];
 		
-		for(var key in data.meta.columns) {
-			var c = data.meta.columns[key];
+		for(var key in data.Meta.Columns) {
+			var c = data.Meta.Columns[key];
 			this.data.columns.push({
-				title: c.displayText,
-				field: c.fieldKey
+				title: c.DisplayText,
+				field: c.FieldKey
 			});
 		}
 		
-		for(var key in data.data.dataCollection) {
-			var d = data.data.dataCollection[key];
+		for(var key in data.Data.DataCollection) {
+			var d = data.Data.DataCollection[key];
 			
 			var row = {};
 			

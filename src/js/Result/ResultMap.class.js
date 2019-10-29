@@ -315,13 +315,10 @@ class ResultMap extends ResultModule {
 		$(this.renderMapIntoNode).css("height", "80%");
 	}
 
-	
-
 	/*
 	* Function: renderMap
 	*/
 	renderMap(removeAllDataLayers = true) {
-
 		let filteredData = []; //Filter out points which contrain zero/null coordinates
 		for(let key in this.data) {
 			if(this.data[key].lat != 0 && this.data[key].lng != 0) {

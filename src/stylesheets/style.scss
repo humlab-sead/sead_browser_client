@@ -113,7 +113,6 @@ div:focus {
 }
 
 #sead-logo {
-  background-image: url('../assets/SEAD-logo-with-subtext.png');
   background-position: center center;
   background-size: auto 87px;
   width: 100%;
@@ -122,11 +121,22 @@ div:focus {
   background-repeat: no-repeat;
 }
 
+.sead-logo-large {
+  background-image: url('../assets/SEAD-logo-with-subtext.png');
+}
+
+.sead-logo-small {
+  background-image: url('../assets/SEAD-logo-small.png');
+}
+
+
+/*
 @media only screen and ( max-width: 700px ) {
 	#sead-logo {
 	  background-image: url('../assets/SEAD-logo-small.png');
 	}
 }
+*/
 
 .sead-logo-text {
   font-size: 2em;
@@ -140,20 +150,11 @@ div:focus {
 	background-size: 100px !important;
 }
 
-#sead-logo-small {
-	display:none;
-	width: 30px;
-}
-
 .bold-first-letter-text::first-letter {
 	display:inline-block;
 	font-weight:bold;
 }
 
-#sead-logo-small {
-	font-size: 20px;
-	font-weight:bold;
-}
 
 #main-container {
 	position:fixed;

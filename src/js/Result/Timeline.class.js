@@ -2,6 +2,7 @@ import noUiSlider from "nouislider";
 import "nouislider/distribute/nouislider.min.css";
 import Color from "../color.class";
 import css from '../../stylesheets/style.scss';
+import { maxHeaderSize } from "http";
 
 class Timeline {
 	constructor(mapObject) {
@@ -9,10 +10,13 @@ class Timeline {
 		this.chart = null;
 		this.sliderElement = null;
 		this.sliderAnchorNode = null;
-
+		this.categoryCount = 100;
+		this.selection = [];
 		//Set up resize event handlers
+		/*
 		this.map.resultManager.hqs.hqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
+		*/
 	}
 
 	resizeCallback() {
@@ -22,26 +26,78 @@ class Timeline {
 	}
 
 	makeAnchorNodes() {
-		console.log(this.map.renderTimelineIntoNode);
 		$(this.map.renderTimelineIntoNode).html("");
 		$(this.map.renderTimelineIntoNode).append("<div class='timeline-chart-container'></div>");
 		$(this.map.renderTimelineIntoNode).append("<div class='timeline-slider-container'></div>");
+		//$(this.map.renderTimelineIntoNode).append("<div class='timeline-slider-container'></div>");
 	}
 
 	render() {
-		this.makeAnchorNodes();
-		this.renderChart();
-		this.renderSlider();
+		//Loading the temperature data, which is actually not temperature but instead it's isotope data acting as a proxy for temperature
+		$.ajax("http://seadserv.humlab.umu.se:8080/temperatures?order=years_bp.desc", {
+			method: "get",
+			success: (data) => {
+				this.temperatureData = [];
+				for(let k in data) {
+					this.temperatureData.push({
+						year: data[k].years_bp * -1,
+						temp: data[k].d180_gisp2
+					});
+				}
+				this.renderData();
+			}
+		});
 	}
 
-	renderSlider() {
+	copyData(data) {
+		return JSON.parse(JSON.stringify(data));
+	}
+
+	renderData() {
+		let data = this.map.data;
+		this.setSelection(this.getEarliestDataPoint(data).time.min, this.getLatestDataPoint(data).time.max);
+		this.makeAnchorNodes();
+		this.renderChart(data);
+		this.renderSlider(data);
+	}
+
+	getEarliestDataPoint(data) {
+		let selected = null;
+		for(let key in data) {
+			if(selected == null || data[key].time.min < selected.time.min) {
+				selected = data[key];
+			}
+		}
+		return selected;
+	}
+	getLatestDataPoint(data) {
+		let selected = null;
+		for(let key in data) {
+			if(selected == null || data[key].time.max > selected.time.max) {
+				selected = data[key];
+			}
+		}
+		return selected;
+	}
+
+	/*
+	* Function: renderSLider
+	* 
+	* 
+	*
+	*/
+	renderSlider(data) {
+		let earliest = this.getEarliestDataPoint(data);
+		let latest = this.getLatestDataPoint(data);
 		//$(".timeline-slider-container", this.map.renderTimelineIntoNode).css("background-color", "blue");
 		let sliderAnchorNodeContainer = $(".timeline-slider-container", this.map.renderTimelineIntoNode);
 		sliderAnchorNodeContainer.append("<div class='timeline-slider-container-inner'></div>");
 		this.sliderAnchorNode = $(".timeline-slider-container-inner", this.map.renderTimelineIntoNode)[0];
 
-		let sliderMin = 0;
-		let sliderMax = 100;
+		$(sliderAnchorNodeContainer).append("<div class='timeline-label'>Time</div>");
+
+		let sliderMin = earliest.time.min;
+		let sliderMax = latest.time.max;
 		this.sliderElement = noUiSlider.create(this.sliderAnchorNode, {
 			start: [sliderMin, sliderMax],
 			range: {
@@ -55,8 +111,8 @@ class Timeline {
 
 
 		//From this point onwards there's a lot of code overlap with the rangefacets, this should probably be made to follow DRY better
-		var upperManualInputNode = $("#facet-template .range-facet-manual-input-container[endpoint='upper']")[0].cloneNode(true);
-		var lowerManualInputNode = $("#facet-template .range-facet-manual-input-container[endpoint='lower']")[0].cloneNode(true);
+		var upperManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='upper']")[0].cloneNode(true);
+		var lowerManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='lower']")[0].cloneNode(true);
 
 		$("input", upperManualInputNode).val(sliderMax);
 		$("input", lowerManualInputNode).val(sliderMin);
@@ -64,26 +120,115 @@ class Timeline {
 		$(".noUi-handle-upper", this.sliderAnchorNode).append(upperManualInputNode);
 		$(".noUi-handle-lower", this.sliderAnchorNode).append(lowerManualInputNode);
 
-		//Lots of adjustments for setting the right size and position of the digit input boxes depending on how big they need to be
-		var digits = sliderMax.toString().length; //FIXME: Also check sliderMin since it might actually contain more digits than max
-		var digitSpace = digits*5;
-		$(".range-facet-manual-input-container", this.sliderAnchorNode).css("width", 22 + digitSpace);
+
+		let digitSpace = this.getTimelineMarginSize(data);
+		$(this.sliderAnchorNode).css("width", "calc(100% - "+((digitSpace*3) + 30)+"px)");
+		$(".slider-manual-input-container", this.sliderAnchorNode).css("width", 22 + digitSpace);
 		$(".range-facet-manual-input", this.sliderAnchorNode).css("width", 18 + digitSpace);
 		$(".rangeslider-container", this.sliderAnchorNode).css("margin-left", 18 + digitSpace);
 		$(".rangeslider-container", this.sliderAnchorNode).css("margin-right", 18 + digitSpace);
-		$(".noUi-handle-lower > .range-facet-manual-input-container", this.sliderAnchorNode).css("left", Math.round(0-digitSpace)+"px");
+		$(".noUi-handle-lower > .slider-manual-input-container", this.sliderAnchorNode).css("left", Math.round(digitSpace*-1-5)+"px");
+		$(".slider-manual-input-container", this.sliderAnchorNode).show();
 		
-		$(".range-facet-manual-input-container", this.sliderAnchorNode).show();
+		this.sliderElement.on("update", (values, slider) => {
+			values[0] = Math.round(parseInt(values[0]));
+			values[1] = Math.round(parseInt(values[1]));
+			this.setSelection(values[0], values[1]);
+			this.setManualInputBoxesValues(values);
+			this.updateChart(data);
+		});
+
+		this.sliderElement.on("change", (values, slider) => {
+			//When slider drag stops, redraw map with selection
+			let layers = this.map.getVisibleDataLayers();
+			layers.map((layer) => {
+				this.map.renderDataLayer(layer.getProperties().layerId);
+			});
+		});
 	}
 
-	makeFakeTimeData(dataset) {
-		let minTime = -200000;
-		let maxTime = 0;
+	setSelection(min, max) {
+		this.selection = [min, max];
+	}
+
+	getSelection() {
+		return this.selection;
+	}
+
+	updateChart(data) {
+		//console.log("Update chart");
+		
+		let chartJSDatasets = this.getChartDataSets(data, this.getSelection());
+		this.chart.data = chartJSDatasets;
+
+		this.chart.update();
+	}
+
+	getTimelineMarginSize(data) {
+		let earliest = this.getEarliestDataPoint(data);
+		let latest = this.getLatestDataPoint(data);
+		let sliderMin = earliest.time.min;
+		let sliderMax = latest.time.max;
+		
+		let digits = sliderMax.toString().length > sliderMin.toString().length ? sliderMax.toString().length : sliderMin.toString().length;
+		let digitSpace = digits*5;
+		return digitSpace;
+	}
+
+	setManualInputBoxesValues(values) {
+		$(".timeline-slider-container .slider-manual-input-container[endpoint=lower] > input").val(values[0]);
+		$(".timeline-slider-container .slider-manual-input-container[endpoint=upper] > input").val(values[1]);
+	}
+
+	/*
+	* Function: makeFakeTimeData
+	* 
+	* Makes fake/example time data for the timeline.
+	* Data should be structured like:
+	* [site]->{
+		lat, lng, title, id, time: {min: 0, max: 0}
+	}
+	* 
+	*/
+	makeFakeTimeData(dataset, minTime = -100000, maxTime = -5000) {
+		let wave = 0.0;
 		dataset.map((point) => {
-			point.minTime = (maxTime + minTime) * Math.random() | 0;
-			point.maxTime = point.minTime + (5000 * Math.random() | 0);
+			let signal = Math.sin(wave);
+			wave += 0.1;
+			if(signal < 0) {
+				signal *= -1;
+			}
+			point.time = {};
+			point.time.min = (((minTime - maxTime) * (signal)) + maxTime);
+			point.time.max = point.time.min + (5000 * (0.5));
+
+			point.time.min = Math.round(point.time.min);
+			point.time.max = Math.round(point.time.max);
 		});
+		
 		return dataset;
+	}
+
+	/*
+	* Function: getExtremeProperty
+	*
+	* Great for getting the high/low endpoints of a list of objects, targeting a specific property in these.
+	*/
+	getExtremeProperty(data, property, highOrLow = "high") {
+		let extremeKey = null;
+		for(let key in data) {
+			if(highOrLow == "high") {
+				if(extremeKey == null || data[key][property] > data[extremeKey][property]) {
+					extremeKey = key;
+				}
+			}
+			if(highOrLow == "low") {
+				if(extremeKey == null || data[key][property] < data[extremeKey][property]) {
+					extremeKey = key;
+				}
+			}
+		}
+		return data[extremeKey];
 	}
 
 	getHighestDataValue(data, selections) {
@@ -151,13 +296,20 @@ class Timeline {
 		return categories;
 	}
 
-	renderChart() {
-		this.data = JSON.parse(JSON.stringify(this.makeFakeTimeData(this.map.data)));
+	renderChart(data) {
+
+		//this.data = JSON.parse(JSON.stringify(this.makeFakeTimeData(this.map.data)));
 		const chartAnchorNode = $(".timeline-chart-container", this.map.renderTimelineIntoNode);
 		chartAnchorNode.append("<div class='timeline-chart-container-wrapper'></div>");
 		const canvasNode = $(".timeline-chart-container-wrapper", chartAnchorNode).append($("<canvas class='timeline-chart-container-canvas'></canvas>")).find("canvas");
 		//const canvasNode = chartAnchorNode.append($("<canvas class='timeline-chart-container-canvas'></canvas>")).find("canvas");
 		
+		let marginSize = this.getTimelineMarginSize(data);
+
+		$(".timeline-chart-container-wrapper", this.map.renderTimelineIntoNode).css("width", "calc(100% - "+(marginSize*2-28)+"px)");
+
+		//chartAnchorNode.css("width", "calc(100% - "+(marginSize*2)+"px)");
+
 		this.chartJSOptions = {
 			responsive: true,
 			maintainAspectRatio: false,
@@ -166,26 +318,48 @@ class Timeline {
 			},
 			scales: {
 				xAxes: [{
+					id: 'time-x-axis',
 					display: false,
-					barPercentage: 0.70
+					ticks: {
+						min: 0,
+						max: 200000
+					}
 				}],
 				yAxes: [{
-					id: 'right-y-axis',
+					id: 'sites-y-axis',
 					type: 'linear',
-					position: "right",
+					position: "left",
 					ticks: {
-						beginAtZero: false
+						fontColor: css.auxColor
+						//beginAtZero: true,
+						//max: 100,
+						//min: 0
+					},
+					scaleLabel: {
+						display: true,
+						labelString: "Sites",
+						fontFamily: "Rajdhani",
+						fontStyle: "bold",
+						fontSize: 14
 					}
 				},
 				{
-					id: 'left-y-axis',
+					id: 'temperature-y-axis',
 					type: 'linear',
-					position: "left",
+					position: "right",
 					gridLines: {
 						display: false
 					},
 					ticks: {
-						beginAtZero: false
+						beginAtZero: false,
+						fontColor: css.baseColor
+					},
+					scaleLabel: {
+						display: true,
+						labelString: "δ18O GISP2",
+						fontFamily: "Rajdhani",
+						fontStyle: "bold",
+						fontSize: 14
 					}
 				}]
 			},
@@ -205,93 +379,7 @@ class Timeline {
 			}
 		};
 
-		//1. Find total timespan
-		let maxTime = null;
-		let minTime = null;
-		this.data.map(point => {
-			if (point.maxTime > maxTime) {
-				maxTime = point.maxTime;
-			}
-			if (point.minTime < minTime) {
-				minTime = point.minTime;
-			}
-		});
-
-
-		//2. Divide this into a suitable number of categories
-		let categoryCount = 100;
-		let categorySize = (minTime - maxTime) / categoryCount;
-		let categories = [];
-		for (let i = 1; i <= categoryCount; i++) {
-			categories.push({
-				label: categorySize * i + " - " + categorySize * (i + 1),
-				min: categorySize * i,
-				max: categorySize * (i + 1),
-				points: 0
-			});
-		}
-
-		//3. Count number of points in each category
-		categories.map(cat => {
-			this.data.map(point => {
-				if (point.minTime <= cat.max || point.maxTime >= cat.min) {
-					cat.points++;
-				}
-			});
-		});
-
-		//4. Categories == number of labels
-		let labels = [];
-		categories.map(cat => {
-			labels.push(cat.label);
-		});
-
-		//5. Count in each category == data (bar height)
-		let pointDataSeries = [];
-		categories.map(cat => {
-			pointDataSeries.push(cat.points);
-		});
-
-		let temperatureDataSeries = [];
-		for (let i = 0; i < 100; i++) {
-			temperatureDataSeries.push(Math.random() * 1500);
-		}
-
-        /*
-        const labels = [1, 2, 3, 4, 5];
-        let chartJSDatasets = {
-			labels: labels,
-			datasets: [{
-				data: [12, 34, 78, 45, 96],
-				backgroundColor: "#00f",
-				borderColor: "#00f"
-			}]
-        };
-        */
-
-		pointDataSeries = [];
-		for(let i = 0; i < 100; i++) {
-			pointDataSeries.push(Math.random() * 1000);
-		}
-
-		const color = new Color();
-
-		let chartJSDatasets = {
-			labels: labels,
-			datasets: [
-				{
-					data: pointDataSeries,
-					backgroundColor: color.hexToRgba(css.baseColor, 1.0),
-					borderColor: color.hexToRgba(css.baseColor, 1.0)
-				},
-				{
-					data: temperatureDataSeries,
-					backgroundColor: color.hexToRgba(css.paneBgColor, 0.25),
-					borderColor: color.hexToRgba(css.paneBgColor, 0.5),
-					type: "line"
-				}
-			]
-		};
+		let chartJSDatasets = this.getChartDataSets(data, this.getSelection());
 
 		var ctx = canvasNode[0].getContext("2d");
 		this.chart = new Chart(ctx, {
@@ -299,6 +387,253 @@ class Timeline {
 			data: chartJSDatasets,
 			options: this.chartJSOptions
 		});
+	}
+
+
+	/*
+	* Function: getDataSpanAtResolution
+	* 
+	* Parameters:
+	* data - A list containing objects where each object contain "max" and "min" properties or "value".
+	* resolution - Number of categories/spans to reduce this data into.
+	*/
+	getDataSpanAtResolution(data, resolution = 100) {
+		let categories = [];
+		let point = data[0];
+		let max = null;
+		let min = null;
+
+		let pointValueIsSpan = false;
+		//If we are dealing with data where each datapoint contains a span...
+		if(typeof point.max != "undefined" && typeof point.min != "undefined") {
+			pointValueIsSpan = true;
+			data.map(point => {
+				if (point.max > max || max == null) {
+					max = point.max;
+				}
+				if (point.min < min || min == null) {
+					min = point.min;
+				}
+			});
+		}
+		//If we are dealing with distinct values for each point...
+		else {
+			data.map(point => {
+				if(point.value > max || max == null) {
+					max = point.value;
+				}
+				if(point.value < min || min == null) {
+					min = point.value;
+				}
+			});
+		}
+		
+		let fullSpan = max - min;
+		let categorySize = fullSpan / resolution;
+
+
+		let catMin = min;
+		let catMax = catMin + categorySize;
+
+		for(let i = 0; i < resolution; i++) {
+			catMin = Math.round(catMin);
+			catMax = Math.round(catMax);
+
+			categories.push({
+				min: catMin,
+				max: catMax,
+				points: [],
+				pointsNum: 0
+			});
+
+			catMin += categorySize;
+			catMax += categorySize;
+		}
+
+		for(let ck in categories) {
+			let cat = categories[ck];
+			for(let pk in data) {
+				let point = data[pk];
+
+				if(pointValueIsSpan) {
+					//If point falls completely within category...
+					if(point.min >= cat.max || point.max <= cat.min) {
+						//Exclude point
+					}
+					else {
+						cat.pointsNum++;
+						cat.points.push(point);
+					}
+				}
+				else {
+					if(point.value >= cat.min && point.value <= cat.max) {
+						cat.pointsNum++;
+						cat.points.push(point);
+					}
+				}
+			}
+		}
+		return categories;
+	}
+
+	getChartDataSets(data, selection = []) {
+		let dataPreparedForCategorization = [];
+		data.map((point) => {
+			dataPreparedForCategorization.push({
+				max: point.time.max,
+				min: point.time.min,
+				id: point.id
+			});
+		});
+
+		let categories = this.getDataSpanAtResolution(dataPreparedForCategorization, this.categoryCount);
+		
+
+		// Create breakpoints at the selections, so we will divide this into 2 different dataseries with different colors
+
+		let dataSeries = [];
+		let dataSeriesColors = [];
+		for(let k in categories) {
+			let cat = categories[k];
+			dataSeries.push(cat.points.length);
+			if(cat.min >= selection[0] && cat.max <= selection[1]) {
+				//This belongs in the selected data series
+				dataSeriesColors.push(css.auxColor);
+			}
+			else {
+				//This is outside the selected data series
+				dataSeriesColors.push(css.inactiveColor);
+			}
+		}
+
+
+		// Categories == number of labels
+		let labels = [];
+		categories.map(cat => {
+			let label = cat.points.length+" sites";
+			labels.push(label);
+		});
+
+		
+		let temperatureDataSeries = [];
+
+		//console.log(this.temperatureData);
+
+		//let earliestTemp = this.getEarliestTemperature(this.temperatureData);
+		//let latestTemp = this.getLatestTemperature(this.temperatureData);
+
+		let earliestTemp = this.getExtremeProperty(this.temperatureData, "year", "low");
+		let latestTemp = this.getExtremeProperty(this.temperatureData, "year", "high");
+
+		//console.log(data);
+		//let latestSite = this.getExtremeProperty(data, ["time", "max"], "high");
+		//let earliestSite = this.getExtremeProperty(data, ["time", "min"], "low");
+
+		let earliestSite = this.getEarliestDataPoint(data);
+		let latestSite = this.getLatestDataPoint(data);
+		
+		/*
+		console.log(earliestSite, latestSite);
+		console.log(earliestTemp, latestTemp);
+		*/
+		//console.log(this.temperatureData);
+		
+		//If earliest temperature data is later than the earliest site data point
+		if(earliestTemp.year > earliestSite.time.min) {
+			//We need to fill out our temperature span (bottom-part) with null-years so that we start at the same point as the site data
+			let stepSize = this.temperatureData[1].year - this.temperatureData[0].year;
+			let stepsToCreate = ((earliestTemp.year - earliestSite.time.min) / stepSize);
+			let currentYear = earliestTemp.year;
+
+			console.log(earliestTemp.year, earliestSite.time.min);
+			console.log(stepSize, stepsToCreate, currentYear);
+
+			
+			while(stepsToCreate > 0) {
+				currentYear -= stepSize;
+				let temperaturePoint = {
+					year: currentYear,
+					temp: NaN
+				};
+				this.temperatureData.push(temperaturePoint);
+				stepsToCreate--;
+			}
+			
+			//Sort
+			/*
+			this.temperatureData.sort((a, b) => {
+				if(a.year > b.year) {
+					return 1;
+				}
+				if(a.year < b.year) {
+					return -1;
+				}
+				return 0;
+			});
+			*/
+
+			//console.log(this.temperatureData);
+			
+		}
+		//If latest temperature data is earlier than the latest site data point (not likely, but still...)
+		if(latestTemp.year < latestSite.time.max) {
+			//We need to fill out our temperature span (top-part) with null-years so that we end at the same point as the site data
+		}
+		
+		
+
+
+		for(let k in this.temperatureData) {
+			this.temperatureData[k].value = this.temperatureData[k].year;
+		}
+
+		let temperatureCategories = this.getDataSpanAtResolution(this.temperatureData, this.categoryCount);
+		//console.log(temperatureCategories);
+		//temperatureCategories.reverse();
+		
+		//console.log(temperatureCategories);
+		for(let k in temperatureCategories) {
+			//get avg temperature among these points
+			let total = 0;
+			for(let pk in temperatureCategories[k].points) {
+				let point = temperatureCategories[k].points[pk];
+				total += point.temp;
+			}
+			let avgTemp = total / temperatureCategories[k].points.length;
+
+			temperatureDataSeries.push(avgTemp);
+		}
+
+		//console.log(temperatureDataSeries);
+		const color = new Color();
+
+		let chartJSDatasets = {
+			labels: labels,
+			datasets: [
+				{
+					xAxisID: "time-x-axis",
+					yAxisID: "sites-y-axis",
+					data: dataSeries,
+					backgroundColor: dataSeriesColors,
+					//borderColor: color.hexToRgba(css.auxColor, 1.0)
+				},
+				{
+					xAxisID: "time-x-axis",
+					yAxisID: "temperature-y-axis",
+					data: temperatureDataSeries,
+					backgroundColor: color.hexToRgba(css.baseColor, 0.75),
+					borderColor: color.hexToRgba(css.paneBgColor, 0.5),
+					type: "line",
+					pointRadius: 2,
+					fill: false
+				}
+			]
+		};
+
+		//console.log(temperatureDataSeries.length, dataSeriesSelected.length, dataSeriesUnselected.length);
+		//console.log(labels);
+
+		return chartJSDatasets;
 	}
 
 

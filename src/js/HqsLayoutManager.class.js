@@ -73,6 +73,18 @@ class HqsLayoutManager {
 			this.setSectionSizes(data.state.layout.left, 100-data.state.layout.left, false);
 		});
 		*/
+
+		//React to resize event to collapse header when necessary
+		this.hqs.hqsEventListen("layoutResize", () => {
+			let headerWidth = $("#header-space").width();
+			if(headerWidth < 350) {
+				//Switch to smaller logo
+				$("#sead-logo").removeClass("sead-logo-large").addClass("sead-logo-small");
+			}
+			else {
+				$("#sead-logo").removeClass("sead-logo-small").addClass("sead-logo-large");
+			}
+		});
 	}
 
 

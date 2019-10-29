@@ -52,14 +52,14 @@
 
 
 
-.noUi-handle-lower > .range-facet-manual-input-container {
+.noUi-handle-lower > .slider-manual-input-container {
   position: relative !important;
   /*left: -23px !important;*/
   border-right: 4px solid $aux-color !important;
 }
 
 
-.noUi-handle-upper > .range-facet-manual-input-container {
+.noUi-handle-upper > .slider-manual-input-container {
   position: relative !important;
   left: 10px !important;
   border-left: 4px solid $aux-color !important;
@@ -82,7 +82,7 @@ div.noUi-connect {
 }
 
 
-.range-facet-manual-input-container {
+.slider-manual-input-container {
 	display: none;
 	position: relative !important;
 	top: 8px;

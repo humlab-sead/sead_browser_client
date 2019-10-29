@@ -6,6 +6,27 @@ import styles from '../stylesheets/style.scss'
 import Config from "../config/config";
 
 /*
+Works like this:
+
+When a new selection is made, new data is fetched from the server with the "picks" specified.
+This new dataset contains the proper resolution, which we might degrade further client-side.
+Max number of categories determines this.
+Categories are always kept separate from the source/server data in the internal structures.
+Categories should be seen purely as a render thing, not as a dataset you use to work with internally, it's just for display.
+
+Old request data should be discarded (if a new selection was made while data was being fetched)
+
+Data is loaded into "unfiltered" if it was requested without picks - which will give us the entire dataspan, but at low resolution, most importantly it tells us the endpoints
+Data is loaded into "filtered" if it was requested with picks. This gives up the higher resolution data we need for a more zoomed in / narrow view of the data
+
+
+	FIXME: MS filter - Select 1979 - 3000, There's data at 2877-2898, now select 2027-3000, data is gone
+	FIXME: Also, slider doesn't move to proper position when manual input is used
+*/
+
+
+
+/*
 * Class: RangeFacet
 * Subclass of Facet. Renders data as a graph with a max/min slider.
 */
@@ -24,7 +45,7 @@ class RangeFacet extends Facet {
 		this.sliderElement = null;
 		this.minDataValue = null;
 		this.maxDataValue = null;
-		this.numberOfCategories = 12; //Number of categories (bars) we want to abstract dataset
+		this.numberOfCategories = 50; //Number of categories (bars) we want to abstract dataset
 		$(".facet-text-search-btn", this.getDomRef()).hide(); //range facets do not have text searching...
 	}
 	
@@ -48,10 +69,15 @@ class RangeFacet extends Facet {
 			}
 		}
 
+		$(".slider-manual-input-container[endpoint='upper'] > input", this.getDomRef()).val(this.selections[1]);
+		$(".slider-manual-input-container[endpoint='lower'] > input", this.getDomRef()).val(this.selections[0]);
+
+		
 		if(selectionsUpdated) {
 			console.log("Fetching new data")
 			this.fetchData();
 		}
+		
 		
 		/*
 		if(loadData) {
@@ -88,25 +114,41 @@ class RangeFacet extends Facet {
 	* The imported/converted data structure.
 	*/
 	importData(importData, overwrite = true) {
-		importData.fullextent = [0, 2904]; //FIXME: This is a temporary fix until the server returns this data
 		super.importData();
+
+		let filteredData = false;
+		for(let k in importData.Picks) {
+			if(importData.Picks[k].FacetCode == this.name) {
+				//This is a dataset narrowed by a selection, so import it into the filtered section of the dataset
+				filteredData = true;
+			}
+		}
+
+		let targetSection = null;
+		if(filteredData) {
+			this.datasets.filtered = [];
+			targetSection = this.datasets.filtered;
+		}
+		else {
+			this.datasets.unfiltered = [];
+			targetSection = this.datasets.unfiltered;
+		}
 
 
 		//Create internal format
-		this.data = [];
-		for(let itemKey in importData.items) {
-			this.data.push({
+		for(let itemKey in importData.Items) {
+			targetSection.push({
 				//Value spans:
-				gt: importData.items[itemKey].extent[0], //Greater Than - except for the first item which should be >=
-				lt: importData.items[itemKey].extent[1], //Lesser Than - except for the last item which should be <=
-				value: importData.items[itemKey].count //value/count for this category/span
+				gt: importData.Items[itemKey].Extent[0], //Greater Than - except for the first item which should be >=
+				lt: importData.Items[itemKey].Extent[1], //Lesser Than - except for the last item which should be <=
+				value: importData.Items[itemKey].Count //value/count for this category/span
 			});
 		}
 
 		
-		
-		
 		//Server only sends spans which have data, so we fill out any missing zero-spans ourselves to keep a consistent data structure
+		//UPDATE: Not sure this is true anymore...
+		/*
 		let lv = this.getLowestDataValue(this.data);
 		if(lv != this.getSelections()[0]) {
 			//FIXME: This block of code is untested
@@ -128,7 +170,6 @@ class RangeFacet extends Facet {
 				this.data.unshift(dataPoint);
 				lowestDataPoint = dataPoint;
 			}
-
 		}
 
 		let hv = this.getHighestDataValue(this.data);
@@ -150,20 +191,22 @@ class RangeFacet extends Facet {
 				i++;
 			}
 		}
+		*/
 
 		//Store dataset in respective container depending on if it's filtered or not
+		/*
 		if($.isEmptyObject(importData.picks)) {
 			this.datasets.unfiltered = JSON.parse(JSON.stringify(this.data));
 		}
 		else {
 			this.datasets.filtered = JSON.parse(JSON.stringify(this.data));
 			
-
 			if(this.datasets.unfiltered.length == 0) {
 				//If we have imported filtered data, but there is not unfiltered version, we need to get it, since we need it for reference when rendering the slider
 				console.log("WARN: No unfiltered data in range facet.");
 			}
 		}
+		*/
 
 		//console.log(this.data);
 
@@ -240,8 +283,11 @@ class RangeFacet extends Facet {
 			max = selections[1];
 		}
 		else {
-			min = this.getLowestDataValue(data);
-			max = this.getHighestDataValue(data);
+			let endpoints = this.getDataEndpoints(data);
+			min = endpoints.min;
+			max = endpoints.max;
+			//min = this.getLowestDataValue(data);
+			//max = this.getHighestDataValue(data);
 		}
 
 		/*
@@ -270,6 +316,7 @@ class RangeFacet extends Facet {
 			}
 		}
 		
+		//console.log(this.categories);
 		return this.categories;
 	}
 
@@ -308,14 +355,25 @@ class RangeFacet extends Facet {
 	*
 	* Renders the chart and the slider. Basically all the content in the facet.
 	*/
-	renderData(data, selections = []) {
+	renderData(selections = []) {
 		//console.log("renderData", this.data, selections);
 		if(selections.length == 0) {
 			selections = this.getSelections();
 		}
 
+		if(this.hasSelection()) {
+			this.data = this.hqs.copyObject(this.datasets.filtered);
+		}
+		else {
+			this.data = this.hqs.copyObject(this.datasets.unfiltered);
+		}
+		
+
+
+		console.log(this.datasets);
+
+
 		let categories = this.makeCategories(this.data, selections);
-		console.log(categories);
 
 
 		$(".facet-body > .chart-container", this.getDomRef()).show();
@@ -376,8 +434,6 @@ class RangeFacet extends Facet {
 		$(".range-chart-canvas", chartContainerNode).remove();
 		chartContainerNode.append($("<canvas></canvas>").attr("id", "facet_"+this.id+"_canvas").addClass("range-chart-canvas"));
 
-		console.log(chartContainerNode);
-
 		//this.chartJSDatasets = this.getChartDataWithinLimits();
 
 		let chartJSDatasets = this.makeChartJsDataset(categories);
@@ -416,7 +472,6 @@ class RangeFacet extends Facet {
 		};
 
 		var ctx = $("#facet_"+this.id+"_canvas")[0].getContext("2d");
-		console.log(ctx);
 		this.chart = new Chart(ctx, {
 			type: "bar",
 			data: JSON.parse(JSON.stringify(chartJSDatasets)), //need a copy here - not a reference
@@ -434,8 +489,8 @@ class RangeFacet extends Facet {
 		let sliderMin = this.categories[0].gt;
 		let sliderMax = this.categories[this.categories.length-1].lt;
 		
-		console.log(this.getSelections());
-		console.log("Render slider with endpoint values: ", sliderMin, sliderMax);
+		//console.log(this.getSelections());
+		//console.log("Render slider with endpoint values: ", sliderMin, sliderMax);
 		
 
 		var rangesliderContainer = $(".rangeslider-container", this.getDomRef())[0];
@@ -447,12 +502,13 @@ class RangeFacet extends Facet {
 			},
 			//margin: this.categorySpan,
 			//step: this.categorySpan,
+			step: 1,
 			connect: true
 		});
 
-		$(".range-facet-manual-input-container", this.getDomRef()).remove();
-		var upperManualInputNode = $("#facet-template .range-facet-manual-input-container[endpoint='upper']")[0].cloneNode(true);
-		var lowerManualInputNode = $("#facet-template .range-facet-manual-input-container[endpoint='lower']")[0].cloneNode(true);
+		$(".slider-manual-input-container", this.getDomRef()).remove();
+		var upperManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='upper']")[0].cloneNode(true);
+		var lowerManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='lower']")[0].cloneNode(true);
 		
 		$("input", upperManualInputNode).val(sliderMax);
 		$("input", lowerManualInputNode).val(sliderMin);
@@ -461,50 +517,37 @@ class RangeFacet extends Facet {
 		$(".noUi-handle-lower", this.getDomRef()).append(lowerManualInputNode);
 		
 		//Lots of adjustments for setting the right size and position of the digit input boxes depending on how big they need to be
-		var digits = sliderMax.toString().length; //FIXME: Also check sliderMin since it might actually contain more digits than max
+		let digits = sliderMax.toString().length > sliderMin.toString().length ? sliderMax.toString().length : sliderMin.toString().length;
 		var digitSpace = digits*5;
-		$(".range-facet-manual-input-container", this.domObj).css("width", 20 + digitSpace);
+		$(".slider-manual-input-container", this.domObj).css("width", 20 + digitSpace);
 		$(".range-facet-manual-input", this.domObj).css("width", 18 + digitSpace);
 		$(".rangeslider-container", this.domObj).css("margin-left", 18 + digitSpace);
 		$(".rangeslider-container", this.domObj).css("margin-right", 18 + digitSpace);
-		$(".noUi-handle-lower > .range-facet-manual-input-container", this.getDomRef()).css("left", Math.round(0-digitSpace)+"px");
+		$(".noUi-handle-lower > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(0-digitSpace)+"px");
 		
-		$(".range-facet-manual-input-container", this.getDomRef()).show();
-		return;
+		$(".slider-manual-input-container", this.getDomRef()).show();
+		
 
-		$(".range-facet-manual-input-container", this.getDomRef()).on("change", (evt) => {
+		$(".slider-manual-input-container", this.getDomRef()).on("change", (evt) => {
 			this.manualInputCallback(evt);
 		});
 		/*
-		$(".range-facet-manual-input-container", this.getDomRef()).on("focusout", (evt) => {
+		$(".slider-manual-input-container", this.getDomRef()).on("focusout", (evt) => {
 			console.log("focusout", evt);
 		});
 		*/
 		
 		this.sliderElement.off("update");
 		this.sliderElement.on("update", (values, slider) => {
-			//console.log("EVT: sliderElement update");
-			this.sliderMovedCallback(values, slider);
-			/*
-			var lowSliderStep = parseInt(values[0]);
-			var highSliderStep = parseInt(values[1]);
-			var selection = this.translateSliderStepsToDataSelection(lowSliderStep, highSliderStep);
-			if(selection[0] != this.selections[0] || selection[1] != this.selections[1]) {
-				this.updateLimits(selection);
-			}
-			*/
+			
+			let highValue = parseFloat(values[0]);
+			let lowValue = parseFloat(values[1]);
+
+			$(".noUi-handle-lower .range-facet-manual-input", this.getDomRef()).val(highValue);
+			$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(lowValue);
 		});
 		this.sliderElement.on("change", (values, slider) => {
-			console.log("EVT: sliderElement change");
 			this.sliderMovedCallback(values, slider);
-			/*
-			var lowSliderStep = parseInt(values[0]);
-			var highSliderStep = parseInt(values[1]);
-			var selection = this.translateSliderStepsToDataSelection(lowSliderStep, highSliderStep);
-			if(selection[0] != this.selections[0] || selection[1] != this.selections[1]) {
-				this.updateLimits(selection);
-			}
-			*/
 		});
 	}
 	
@@ -558,6 +601,24 @@ class RangeFacet extends Facet {
 		);
 		*/
 	}
+
+	getDataEndpoints(data) {
+		let min = null;
+		let max = null;
+		for(let k in data) {
+			if(max == null || data[k].lt > max) {
+				max = data[k].lt;
+			}
+			if(min == null || data[k].gt < min) {
+				min = data[k].gt;
+			}
+		}
+
+		return {
+			max: max,
+			min: min
+		};
+	}
 	
 	manualInputCallback(evt) {
 		console.log("manualInputCallback");
@@ -572,18 +633,32 @@ class RangeFacet extends Facet {
 		if($(evt.currentTarget).attr("endpoint") == "upper") {
 			endpointMoved = "upper";
 			newValues.upper = $("input", evt.currentTarget).val();
-			newValues.lower = $(".range-facet-manual-input-container[endpoint='lower'] > input", this.getDomRef()).val();
+			newValues.lower = $(".slider-manual-input-container[endpoint='lower'] > input", this.getDomRef()).val();
 			newValues.upper = parseFloat(newValues.upper);
 			newValues.lower = parseFloat(newValues.lower);
 		}
 		if($(evt.currentTarget).attr("endpoint") == "lower") {
 			endpointMoved = "lower";
 			newValues.lower = $("input", evt.currentTarget).val();
-			newValues.upper = $(".range-facet-manual-input-container[endpoint='upper'] > input", this.getDomRef()).val();
+			newValues.upper = $(".slider-manual-input-container[endpoint='upper'] > input", this.getDomRef()).val();
 			newValues.upper = parseFloat(newValues.upper);
 			newValues.lower = parseFloat(newValues.lower);
 		}
 		
+		let dataEndPoints = this.getDataEndpoints(this.datasets.unfiltered);
+		console.log(this.datasets, dataEndPoints);
+
+		if(newValues.upper > dataEndPoints.max) {
+			console.log("Forcing upper selection to "+dataEndPoints.max+" since that is the data endpoint");
+			newValues.upper = dataEndPoints.max;
+		}
+		if(newValues.lower < dataEndPoints.min) {
+			console.log("Forcing lower selection to "+dataEndPoints.min+" since that is the data endpoint");
+			newValues.lower = dataEndPoints.min;
+		}
+
+		console.log(newValues);
+
 		this.setSelections([newValues.lower, newValues.upper]);
 		let categories = this.makeCategories(this.data, this.getSelections());
 		this.updateChart(categories, this.getSelections());
@@ -648,6 +723,7 @@ class RangeFacet extends Facet {
 		$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(this.getSelections()[1]);
 
 		
+		//this.data = this.hqs.copyObject(this.datasets.unfiltered);
 		let categories = this.makeCategories(this.data, this.getSelections());
 		this.updateChart(categories, this.getSelections());
 
@@ -683,12 +759,12 @@ class RangeFacet extends Facet {
 		var upperPos = $(".noUi-handle-upper", this.getDomRef())[0].getBoundingClientRect();
 
 		if(upperPos.left > 23 && lowerPos.right > upperPos.left) { //if upperPos.left is 23 the handles have not been properly initialized yet, so ignore calculations
-			$(".noUi-handle-upper .range-facet-manual-input-container", this.getDomRef()).css("left", (-7+((lowerPos.right-upperPos.left)*0.5)));
-			$(".noUi-handle-lower .range-facet-manual-input-container", this.getDomRef()).css("left", (-7-((lowerPos.right-upperPos.left)*0.5)));
+			$(".noUi-handle-upper .slider-manual-input-container", this.getDomRef()).css("left", (-7+((lowerPos.right-upperPos.left)*0.5)));
+			$(".noUi-handle-lower .slider-manual-input-container", this.getDomRef()).css("left", (-7-((lowerPos.right-upperPos.left)*0.5)));
 		}
 		else {
-			$(".noUi-handle-upper .range-facet-manual-input-container", this.getDomRef()).css("left", -7);
-			$(".noUi-handle-lower .range-facet-manual-input-container", this.getDomRef()).css("left", -7);
+			$(".noUi-handle-upper .slider-manual-input-container", this.getDomRef()).css("left", -7);
+			$(".noUi-handle-lower .slider-manual-input-container", this.getDomRef()).css("left", -7);
 		}
 		*/
 		
@@ -953,6 +1029,18 @@ class RangeFacet extends Facet {
 		var slotId = this.hqs.facetManager.getSlotIdByFacetId(this.id);
 		this.hqs.facetManager.updateSlotSize(slotId);
 		this.hqs.facetManager.updateAllFacetPositions();
+	}
+
+	showLoadingIndicator(on = true, error = false) {
+		super.showLoadingIndicator(on, error);
+		if(on) {
+			$(".chart-container", this.domObj).css("opacity", 0.5);
+			//$(".chart-canvas-container", this.domObj).css("filter", "blur(2px)");
+		}
+		else {
+			$(".chart-container", this.domObj).css("opacity", 1.0);
+			//$(".chart-canvas-container", this.domObj).css("filter", "none");
+		}
 	}
 }
 

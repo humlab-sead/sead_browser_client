@@ -208,7 +208,7 @@ class Analysis {
 		
 		if(methodFound == false) {
 			var xhr1 = this.hqs.pushXhr(null, "fetchSiteAnalyses");
-			xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/method?method_id=eq."+methodId, {
+			xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {

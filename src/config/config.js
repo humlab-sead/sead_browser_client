@@ -1,16 +1,11 @@
 var Config = {
 	serverRoot: "http://supersead.humlab.umu.se", //for images and such
-	serverAddress: "http://dev.humlab.umu.se:8089", //for json data
-	//serverAddress: "https://seadserv.humlab.umu.se:8089", //New server which should be used when it's fixed (currently bugged)
+	//serverAddress: "http://dev.humlab.umu.se:8089", //for json data (old)
+	serverAddress: "https://seadserv.humlab.umu.se:8089", //New server
 	//serverAddress: "http://localhost:8089", //for json data - test server for testing range filters - makes random data
-	//viewStateServerAddress: "http://localhost:8081",
 	viewStateServerAddress: "http://seadserv.humlab.umu.se:8081",
-	//siteReportServerAddress: "http://dataserver.humlab.umu.se:3000", //for site reports, which uses a PostgREST interface - production db (3000)
-	siteReportServerAddress: "http://seadserv.humlab.umu.se:3000",
-	//siteReportServerAddress: "http://dataserver.humlab.umu.se:3001", //for site reports, which uses a PostgREST interface - development db (3001)
-    //serverAddress: "http://dev.humlab.umu.se:9080", //VAS
-	//serverAddress: "http://dev.humlab.umu.se:9091" //for json data
-	//serverAddress: "http://dev.humlab.umu.se:8089"
+	//siteReportServerAddress: "http://seadserv.humlab.umu.se:3000", //for site reports, which uses a PostgREST interface - production db (3000)
+	siteReportServerAddress: "http://seadserv.humlab.umu.se:8080", //for site reports, which uses a PostgREST interface - development db
 	defaultResultModule: "map", //map, mosaic or table
 	facetSectionDefaultWidth: 30, //percentage of total window width
 	facetBodyHeight: 268, //default facet height in px

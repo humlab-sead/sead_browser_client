@@ -66,7 +66,6 @@
 }
 
 .site-report-level-title:hover {
-  background-color: $inactive-color + #222;
   background-color: #eee;
   border-left-color: $aux-color;
   transition: border-left-color 0.2s;
@@ -291,7 +290,7 @@
 }
 
 .site-report-aux-header-container-expandable:hover {
-  background-color: $inactive-color + #222;
+  background-color: $inactive-color;
   border-left: 5px solid $aux-color;
   cursor:pointer;
 }
@@ -347,7 +346,7 @@ thead > tr > td {
 .site-report-table tbody > tr > td {
   border-width: 0px 0px 1px 0px;
   border-style: solid;
-  border-color: $inactive-color + #111;
+  border-color: $inactive-color;
 }
 
 tr.site-report-table-row {
@@ -507,7 +506,7 @@ tr.site-report-table-row {
 
 .site-report-display-settings-btn:hover {
   cursor: pointer;
-  background-color: $inactive-color + #888;
+  background-color: $pane-bg-color;
   transition: background-color 0.2s;
 }
 

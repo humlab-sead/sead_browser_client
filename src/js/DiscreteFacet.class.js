@@ -415,14 +415,13 @@ class DiscreteFacet extends Facet {
 		super.importData();
 		this.data = [];
 		var i = 0;
-		for(var key in data.items) {
-			
+		for(var key in data.Items) {
 			this.data.push({
-				id: data.items[key].category,
-				name: data.items[key].name,
-				title: data.items[key].displayName,
-				count: data.items[key].count,
-				extent: data.items[key].extent
+				id: data.Items[key].Category,
+				name: data.Items[key].Name,
+				title: data.Items[key].DisplayName,
+				count: data.Items[key].Count,
+				extent: data.Items[key].Extent
 			});
 		}
 		
@@ -438,7 +437,6 @@ class DiscreteFacet extends Facet {
 				this.inactiveSelections.push(this.selections[sk]);
 				var pos = this.selections.indexOf(this.selections[sk]);
 				this.selections.splice(pos, 1); //Remove from active selections since current dataset does not contain this item
-
 			}
 		}
 

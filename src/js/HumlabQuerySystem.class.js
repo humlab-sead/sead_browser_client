@@ -551,6 +551,27 @@ class HumlabQuerySystem {
 
 		return tf;
 	}
+
+	copyObject(obj) {
+		return JSON.parse(JSON.stringify(obj));
+	}
+
+	getExtremePropertyInList(data, property, highOrLow = "high") {
+		let extremeKey = null;
+		for(let key in data) {
+			if(highOrLow == "high") {
+				if(extremeKey == null || data[key][property] > data[extremeKey][property]) {
+					extremeKey = key;
+				}
+			}
+			if(highOrLow == "low") {
+				if(extremeKey == null || data[key][property] < data[extremeKey][property]) {
+					extremeKey = key;
+				}
+			}
+		}
+		return data[extremeKey];
+	}
 	
 }
 
