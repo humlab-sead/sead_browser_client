@@ -681,7 +681,6 @@ class SiteReport {
 	Function: renderDataVisualization
 	 */
 	renderDataVisualization(section, contentItem) {
-		console.log("renderDataVisualization");
 		this.sortContentItemData(contentItem);
 
 		this.updateContentDisplayOptionsPanel(section, contentItem);
@@ -735,7 +734,6 @@ class SiteReport {
 	 */
 	renderContentDisplayOptionsPanel(section, contentItem) {
 		var selectedRo = this.getSelectedRenderOption(contentItem);
-		console.log(selectedRo, section, contentItem);
 		if(typeof(selectedRo.options) == "undefined") {
 			selectedRo.options = []; //Just normalizing this...
 		}

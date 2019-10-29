@@ -469,8 +469,6 @@ class AbundanceDataset {
 				}
 			]
 		});
-
-		console.log(this.section);
 		
 		this.buildIsComplete = true;
 		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");

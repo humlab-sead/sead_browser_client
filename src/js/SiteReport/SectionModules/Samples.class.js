@@ -248,7 +248,6 @@ class Samples {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {
-				console.log(data);
 				var sampleGroup = this.getSampleGroupById(sampleGroupId);
 				sampleGroup.biblio = data;
 				this.hqs.popXhr(xhr1);
