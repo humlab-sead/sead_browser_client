@@ -153,8 +153,6 @@ class SiteReportChart {
 	renderMultistack(chartTitle = "Abundances") {
 		var contentItem = this.contentItem;
 		var ro = this.siteReport.getSelectedRenderOption(contentItem);
-		console.log(contentItem);
-		console.log(ro);
 
 		let xAxisKey = null;
 		let yAxisKey = null;
@@ -277,9 +275,6 @@ class SiteReportChart {
 		$(this.anchorNodeSelector).append(chartContainer);
 
 		var chartHeight = 100 + (samples.length * 20);
-
-
-		console.log(config);
 
 		zingchart.render({
 			id: this.chartId,
