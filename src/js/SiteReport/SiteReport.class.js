@@ -56,7 +56,6 @@ class SiteReport {
         }, this);
 
 
-
         this.hqs.hqsEventListen("siteReportRenderComplete", () => {
             clearTimeout(this.loadIndicatorTimeout);
             this.hideLoadingIndicator();
@@ -67,19 +66,42 @@ class SiteReport {
 			.append("<div id='samples-content-container'></div>")
             .append("<div id='analysis-content-container'></div>");
 
+		let bsi = new BasicSiteInformation(this.hqs, this.siteId);
+		let samples = new Samples(this.hqs, this.siteId, "#samples-content-container");
+		let analysis = new Analysis(this.hqs, this.siteId, "#analysis-content-container");
 
+		Promise.all([bsi.fetch(), samples.fetch(), analysis.fetch()]).then(() => { //, samples.fetch(), analysis.fetch()
+			console.log("All modules loaded");
+			this.hideLoadingIndicator();
+		});
+
+		this.modules.push({
+			"name": "basicSiteInformation",
+			"module": bsi
+		});
+		this.modules.push({
+			"name": "samples",
+			"module": samples
+		});
+		this.modules.push({
+			"name": "analysis",
+			"module": analysis
+		});
+
+		/*
 		this.modules.push({
 			"name": "basicSiteInformation",
 			"module": new BasicSiteInformation(this.hqs, this.siteId)
 		});
-        this.modules.push({
-            "name": "samples",
-            "module": new Samples(this.hqs, this.siteId, "#samples-content-container")
-        });
-        this.modules.push({
-            "name": "analysis",
-            "module": new Analysis(this.hqs, this.siteId, "#analysis-content-container")
-        });
+		this.modules.push({
+			"name": "samples",
+			"module": new Samples(this.hqs, this.siteId, "#samples-content-container")
+		});
+		this.modules.push({
+			"name": "analysis",
+			"module": new Analysis(this.hqs, this.siteId, "#analysis-content-container")
+		});
+		*/
 
 	}
 

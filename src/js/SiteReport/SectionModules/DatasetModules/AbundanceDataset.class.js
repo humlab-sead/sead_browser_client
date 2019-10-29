@@ -207,7 +207,12 @@ class AbundanceDataset {
 
 		let queryString = "(";
 		for(let key in abundanceIds) {
-			queryString += "abundance_id.eq."+abundanceIds[key]+",";
+			if(abundanceIds[key] != null) {
+				queryString += "abundance_id.eq."+abundanceIds[key]+",";
+			}
+			else {
+				console.log("WARN: Encountered NULL value in abundance ID.");
+			}
 			if(queryString.length > 1024 && itemsLeft > 1) { //HTTP specs says max 2048
 				queryString = queryString.substr(0, queryString.length-1);
 				queryString += ")";

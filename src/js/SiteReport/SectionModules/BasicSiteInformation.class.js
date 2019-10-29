@@ -25,10 +25,8 @@ class BasicSiteInformation {
 			this.render();
 			this.hqs.hqsEventDispatch("siteReportSiteInformationBuildComplete");
 		}, this);
-		
-		this.fetch();
 	}
-	
+
 	/*
 	* Function: fetchBasicSiteInformation
 	*
@@ -37,73 +35,80 @@ class BasicSiteInformation {
 	* See also:
 	* fetch
 	 */
-	fetch() {
+	async fetch() {
+		
+		let p1 = new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/sites?site_id=eq."+this.siteId, {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					if(data.length == 0) {
+						//Result set was empty - which means this site doesn't exist
+						this.hqs.hqsEventDispatch("siteReportSiteNotFound");
+						console.log("WARN: Site "+this.siteId+" does not exist.");
+					}
+					else {
+						data = data[0];
+						this.data.siteId = data.site_id;
+						this.data.nationalSiteIdentifier = data.national_site_identifier;
+						this.data.siteDescription = data.site_description;
+						this.data.siteName = data.site_name;
+						this.data.geo = {
+							"altitude": data.altitude,
+							"latitude": data.latitude_dd,
+							"longitude": data.longitude_dd
+						};
+					}
+					resolve(data);
+				},
+				error: () => {
+					reject();
+				}
+			});
+		});
+		
+		
+		let p2 = new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_site_locations?site_id=eq."+this.siteId, {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					//Locations for a site is normally a hierarchy of locations rather than separate locations, so we might get 3 results which
+					//are city, municipality and country.
+					this.data.locations = [];
+					for(var key in data) {
+						this.data.locations.push({
+							"siteLocationId": data[key].site_location_id,
+							"locationId": data[key].location_id,
+							"locationName": data[key].location_name,
+							"locationTypeId": data[key].location_type_id,
+							"locationTypeName": data[key].location_type,
+							"locationTypeDescription": data[key].description
+						});
+					}
+					resolve(data);
+				},
+				error: () => {
+					reject();
+				}
+			});
+		});
 
-		console.log("basic site information fetch");
-
-		var xhr1 = this.hqs.pushXhr(null, "fetchBasicSiteInformation");
-		var xhr2 = this.hqs.pushXhr(null, "fetchBasicSiteInformation");
-		var xhr3 = this.hqs.pushXhr(null, "fetchBasicSiteInformation");
-		
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/sites?site_id=eq."+this.siteId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				if(data.length == 0) {
-					//Result set was empty - which means this site doesn't exist
-					this.hqs.hqsEventDispatch("siteReportSiteNotFound");
-					console.log("WARN: Site "+this.siteId+" does not exist.");
+		let p3 = new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_site_biblio?site_id=eq."+this.siteId, {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					this.data.bibliographicReferences = data;
+					resolve(data);
+				},
+				error: () => {
+					reject();
 				}
-				else {
-					data = data[0];
-					this.data.siteId = data.site_id;
-					this.data.nationalSiteIdentifier = data.national_site_identifier;
-					this.data.siteDescription = data.site_description;
-					this.data.siteName = data.site_name;
-					this.data.geo = {
-						"altitude": data.altitude,
-						"latitude": data.latitude_dd,
-						"longitude": data.longitude_dd
-					};
-				}
-				
-				this.hqs.popXhr(xhr1);
-			}
+			});
 		});
 		
-		
-		xhr2.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/qse_site_locations?site_id=eq."+this.siteId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				//Locations for a site is normally a hierarchy of locations rather than separate locations, so we might get 3 results which
-				//are city, municipality and country.
-				this.data.locations = [];
-				for(var key in data) {
-					this.data.locations.push({
-						"siteLocationId": data[key].site_location_id,
-						"locationId": data[key].location_id,
-						"locationName": data[key].location_name,
-						"locationTypeId": data[key].location_type_id,
-						"locationTypeName": data[key].location_type,
-						"locationTypeDescription": data[key].description
-					});
-				}
-				
-				this.hqs.popXhr(xhr2);
-			}
-		});
-		
-		
-		xhr3.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/qse_site_biblio?site_id=eq."+this.siteId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				this.data.bibliographicReferences = data;
-				this.hqs.popXhr(xhr3);
-			}
-		});
-		
+		await Promise.all([p1, p2, p3]);
 	}
 	
 	/*

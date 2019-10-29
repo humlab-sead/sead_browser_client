@@ -18,8 +18,6 @@ class Samples {
 			this.buildComplete = true;
 			this.hqs.hqsEventDispatch("siteReportSamplesBuildComplete");
 		}, this);
-		
-		this.fetch();
 	}
 	
 	
@@ -197,48 +195,50 @@ class Samples {
 		
 		this.hqs.siteReportManager.siteReport.renderSection(section);
 	}
-	
+
 	/*
 	* Function: fetch
 	*
 	* Will fetch the sample groups.
 	*
 	 */
-	fetch() {
-		
-		var xhr1 = this.hqs.pushXhr(null, "fetchSampleGroups");
-		
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_group?site_id=eq."+this.siteId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				for(var key in data) {
-					var sampleGroup = data[key];
-					var sampleGroupKey = this.hqs.findObjectPropInArray(this.data.sampleGroups, "sampleGroupId", sampleGroup.sample_group_id);
-					
-					if(sampleGroupKey === false) {
-						this.data.sampleGroups.push({
-							"sampleGroupId": sampleGroup.sample_group_id,
-							"methodId": sampleGroup.method_id,
-							"methodAbbreviation": sampleGroup.method_abbrev_or_alt_name,
-							"methodDescription": sampleGroup.method_description,
-							"methodName": sampleGroup.method_name,
-							"sampleGroupDescription": sampleGroup.sample_group_description,
-							"sampleGroupDescriptionTypeDescription": sampleGroup.sample_group_description_type_description,
-							"sampleGroupDescriptionTypeName": sampleGroup.sample_group_description_type_name,
-							"sampleGroupName": sampleGroup.sample_group_name,
-							"samplingContextId": sampleGroup.sampling_context_id,
-							"samples": []
-						});
+	async fetch() {
+		await new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_group?site_id=eq."+this.siteId, {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					for(var key in data) {
+						var sampleGroup = data[key];
+						var sampleGroupKey = this.hqs.findObjectPropInArray(this.data.sampleGroups, "sampleGroupId", sampleGroup.sample_group_id);
 						
-						this.fetchSampleGroupBiblio(sampleGroup.sample_group_id);
+						if(sampleGroupKey === false) {
+							this.data.sampleGroups.push({
+								"sampleGroupId": sampleGroup.sample_group_id,
+								"methodId": sampleGroup.method_id,
+								"methodAbbreviation": sampleGroup.method_abbrev_or_alt_name,
+								"methodDescription": sampleGroup.method_description,
+								"methodName": sampleGroup.method_name,
+								"sampleGroupDescription": sampleGroup.sample_group_description,
+								"sampleGroupDescriptionTypeDescription": sampleGroup.sample_group_description_type_description,
+								"sampleGroupDescriptionTypeName": sampleGroup.sample_group_description_type_name,
+								"sampleGroupName": sampleGroup.sample_group_name,
+								"samplingContextId": sampleGroup.sampling_context_id,
+								"samples": []
+							});
+							
+							this.fetchSampleGroupBiblio(sampleGroup.sample_group_id);
+							
+							this.fetchSamples(sampleGroup.sample_group_id);
+						}
 						
-						this.fetchSamples(sampleGroup.sample_group_id);
 					}
-					
+					resolve(data);
+				},
+				error: () => {
+					reject();
 				}
-				this.hqs.popXhr(xhr1);
-			}
+			});
 		});
 	}
 	
