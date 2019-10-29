@@ -326,17 +326,6 @@ class ResultMap extends ResultModule {
 			}
 		}
 		
-		let latHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "high").lat;
-		let latLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "low").lat;
-		let lngHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "high").lng;
-		let lngLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "low").lng;
-		
-		let extentNW = fromLonLat([lngLow, latLow]);
-		let extentSE = fromLonLat([lngHigh, latHigh]);
-
-		let extent = extentNW.concat(extentSE);
-		
-
 		$(this.renderIntoNode).show();
 		
 		if(this.olMap == null) {
@@ -368,8 +357,18 @@ class ResultMap extends ResultModule {
 			this.olMap.updateSize();
 		}
 
-		this.olMap.getView().fit(extent);
+		let latHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "high").lat;
+		let latLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "low").lat;
+		let lngHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "high").lng;
+		let lngLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "low").lng;
+		
+		let extentNW = fromLonLat([lngLow, latLow]);
+		let extentSE = fromLonLat([lngHigh, latHigh]);
 
+		let extent = extentNW.concat(extentSE);
+
+		this.olMap.getView().fit(extent);
+		
 		//NOTE: This can not be pre-defined in HTML since the DOM object itself is removed along with the overlay it's attached to when the map is destroyed.
 		let popup = $("<div></div>");
 		popup.attr("id", "map-popup-container");

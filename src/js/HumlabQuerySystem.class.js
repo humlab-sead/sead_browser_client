@@ -76,7 +76,10 @@ class HumlabQuerySystem {
         ]);
 
 		var renderDefaultResult = viewstate === false;
-        this.resultManager.setActiveModule(this.config.defaultResultModule, renderDefaultResult);
+		if(siteId == false) { //Don't bother firing up the result section if a direct request has been made towards a site report
+			this.resultManager.setActiveModule(this.config.defaultResultModule, renderDefaultResult);
+		}
+        
 
 	    if(viewstate != false) {
 	    	this.facetManager.setFacetDataFetchingSuspended(true);

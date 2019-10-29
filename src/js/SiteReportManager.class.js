@@ -31,7 +31,8 @@ class SiteReportManager {
 	        this.siteReportLayoutManager.destroy();
 	        this.siteReport.destroy();
 	        this.siteReport = null;
-	        history.pushState({}, "", "/");
+			history.pushState({}, "", "/");
+			this.hqs.resultManager.setActiveModule(this.hqs.config.defaultResultModule);
         });
 	}
 	
