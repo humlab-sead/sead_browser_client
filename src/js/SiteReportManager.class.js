@@ -10,30 +10,30 @@ class SiteReportManager {
 		this.siteReport = null;
 		this.siteReportsEnabled = true;
 
-        this.hqs.hqsEventListen("resultModuleRenderComplete", () => {
-            if(this.hqs.resultManager.getActiveModule().name == "table" || this.hqs.resultManager.getActiveModule().name == "map") {
-                $(".site-report-link").off("click").on("click", (event) => {
-                    var siteId = parseInt($(event.currentTarget).attr("site-id"));
-                    this.renderSiteReport(siteId);
-                });
-            }
-        });
-
-        this.hqs.hqsEventListen("resultMapPopupRender", (data) => {
-            $(".site-report-link").off("click").on("click", (event) => {
-                var siteId = parseInt($(event.currentTarget).attr("site-id"));
-                this.renderSiteReport(siteId);
-            });
+		this.hqs.hqsEventListen("resultModuleRenderComplete", () => {
+			if(this.hqs.resultManager.getActiveModule().name == "table" || this.hqs.resultManager.getActiveModule().name == "map") {
+				$(".site-report-link").off("click").on("click", (event) => {
+					var siteId = parseInt($(event.currentTarget).attr("site-id"));
+					this.renderSiteReport(siteId);
+				});
+			}
 		});
-        
-        this.hqs.hqsEventListen("siteReportClosed", () => {
-	        this.hqs.setActiveView("filters");
-	        this.siteReportLayoutManager.destroy();
-	        this.siteReport.destroy();
-	        this.siteReport = null;
+
+		this.hqs.hqsEventListen("resultMapPopupRender", (data) => {
+			$(".site-report-link").off("click").on("click", (event) => {
+				var siteId = parseInt($(event.currentTarget).attr("site-id"));
+				this.renderSiteReport(siteId);
+			});
+		});
+		
+		this.hqs.hqsEventListen("siteReportClosed", () => {
+			this.hqs.setActiveView("filters");
+			this.siteReportLayoutManager.destroy();
+			this.siteReport.destroy();
+			this.siteReport = null;
 			history.pushState({}, "", "/");
 			this.hqs.resultManager.setActiveModule(this.hqs.config.defaultResultModule);
-        });
+		});
 	}
 	
 	hqsOffer(offerName, offerData) {
@@ -46,14 +46,14 @@ class SiteReportManager {
 				});
 			}
 			if(offerName == "resultMapPopupSites") {
-	            var r = $(offerData.tableRows);
-	            var html = "";
-	            r.each((index, el) => {
+				var r = $(offerData.tableRows);
+				var html = "";
+				r.each((index, el) => {
 					let siteId = $(el).attr("row-site-id");
 					$(el).addClass("site-report-link");
 					$(el).attr("site-id", siteId);
 					html += $(el)[0].outerHTML;
-	            });
+				});
 				offerData.tableRows = html;
 			}
 		}
