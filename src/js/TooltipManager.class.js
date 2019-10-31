@@ -39,7 +39,7 @@ class TooltipManager {
 					enabled: true
 				},
 				preventOverflow: {
-					enabled: false
+					enabled: true
 				},
 				hide: {
 					enabled: false
