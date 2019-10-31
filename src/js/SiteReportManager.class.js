@@ -32,7 +32,7 @@ class SiteReportManager {
 			this.siteReport.destroy();
 			this.siteReport = null;
 			history.pushState({}, "", "/");
-			this.hqs.resultManager.setActiveModule(this.hqs.config.defaultResultModule);
+			this.hqs.resultManager.setActiveModule(this.hqs.resultManager.activeModuleId);
 		});
 	}
 	
