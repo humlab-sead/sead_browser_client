@@ -2,7 +2,7 @@ import noUiSlider from "nouislider";
 import "nouislider/distribute/nouislider.min.css";
 import Color from "../color.class";
 import css from '../../stylesheets/style.scss';
-import { maxHeaderSize } from "http";
+import Config from "../../config/config.js";
 
 class Timeline {
 	constructor(mapObject) {
@@ -13,28 +13,27 @@ class Timeline {
 		this.categoryCount = 100;
 		this.selection = [];
 		//Set up resize event handlers
-		/*
+		
 		this.map.resultManager.hqs.hqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
-		*/
+		
 	}
 
 	resizeCallback() {
 		//Re-render everything on resize evt - which may not be very efficient, but it ensures proper adjusting to new size
 		this.unrender();
-		this.render();
+		this.render(); //This re-fetches the temperature data as well, which is silly, but it ensures that we have an initial batch of temperature data before rendering begins
 	}
 
 	makeAnchorNodes() {
 		$(this.map.renderTimelineIntoNode).html("");
 		$(this.map.renderTimelineIntoNode).append("<div class='timeline-chart-container'></div>");
 		$(this.map.renderTimelineIntoNode).append("<div class='timeline-slider-container'></div>");
-		//$(this.map.renderTimelineIntoNode).append("<div class='timeline-slider-container'></div>");
 	}
 
 	render() {
 		//Loading the temperature data, which is actually not temperature but instead it's isotope data acting as a proxy for temperature
-		$.ajax("http://seadserv.humlab.umu.se:8080/temperatures?order=years_bp.desc", {
+		$.ajax(Config.siteReportServerAddress+"/temperatures?order=years_bp.desc", {
 			method: "get",
 			success: (data) => {
 				this.temperatureData = [];
@@ -49,19 +48,15 @@ class Timeline {
 		});
 	}
 
-	copyData(data) {
-		return JSON.parse(JSON.stringify(data));
-	}
-
 	renderData() {
 		let data = this.map.data;
-		this.setSelection(this.getEarliestDataPoint(data).time.min, this.getLatestDataPoint(data).time.max);
+		this.setSelection(this.getEarliestSite(data).time.min, this.getLatestSite(data).time.max);
 		this.makeAnchorNodes();
 		this.renderChart(data);
 		this.renderSlider(data);
 	}
 
-	getEarliestDataPoint(data) {
+	getEarliestSite(data) {
 		let selected = null;
 		for(let key in data) {
 			if(selected == null || data[key].time.min < selected.time.min) {
@@ -70,7 +65,7 @@ class Timeline {
 		}
 		return selected;
 	}
-	getLatestDataPoint(data) {
+	getLatestSite(data) {
 		let selected = null;
 		for(let key in data) {
 			if(selected == null || data[key].time.max > selected.time.max) {
@@ -82,13 +77,10 @@ class Timeline {
 
 	/*
 	* Function: renderSLider
-	* 
-	* 
-	*
 	*/
 	renderSlider(data) {
-		let earliest = this.getEarliestDataPoint(data);
-		let latest = this.getLatestDataPoint(data);
+		let earliest = this.getEarliestSite(data);
+		let latest = this.getLatestSite(data);
 		//$(".timeline-slider-container", this.map.renderTimelineIntoNode).css("background-color", "blue");
 		let sliderAnchorNodeContainer = $(".timeline-slider-container", this.map.renderTimelineIntoNode);
 		sliderAnchorNodeContainer.append("<div class='timeline-slider-container-inner'></div>");
@@ -109,7 +101,6 @@ class Timeline {
 			connect: true
 		});
 
-
 		//From this point onwards there's a lot of code overlap with the rangefacets, this should probably be made to follow DRY better
 		var upperManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='upper']")[0].cloneNode(true);
 		var lowerManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='lower']")[0].cloneNode(true);
@@ -122,7 +113,7 @@ class Timeline {
 
 
 		let digitSpace = this.getTimelineMarginSize(data);
-		$(this.sliderAnchorNode).css("width", "calc(100% - "+((digitSpace*3) + 30)+"px)");
+		$(this.sliderAnchorNode).css("width", "calc(100% - "+((digitSpace) + 0)+"px)");
 		$(".slider-manual-input-container", this.sliderAnchorNode).css("width", 22 + digitSpace);
 		$(".range-facet-manual-input", this.sliderAnchorNode).css("width", 18 + digitSpace);
 		$(".rangeslider-container", this.sliderAnchorNode).css("margin-left", 18 + digitSpace);
@@ -130,7 +121,18 @@ class Timeline {
 		$(".noUi-handle-lower > .slider-manual-input-container", this.sliderAnchorNode).css("left", Math.round(digitSpace*-1-5)+"px");
 		$(".slider-manual-input-container", this.sliderAnchorNode).show();
 		
+		//Adjust slider left and/or right margins to account for length of digits in each left/right legend, which affects where the slider endpoint needs to positioned
+		let rightMargin = this.chart.chart.legend.margins.right;
+		let leftMargin = this.chart.chart.legend.margins.left;
+		$(".timeline-slider-container").css("margin-right", rightMargin+"px");
+		$(".timeline-slider-container").css("margin-left", leftMargin+"px");
+
+
 		this.sliderElement.on("update", (values, slider) => {
+			if(this.equalToSelection(values)) { //Skip updating if slider setting is equal to existing selection. This is just to avoid the 2 unnecessary updates that are triggered when the slider is first rendered and the endpoints are moving to their initial positions (I'm guessing that's what's happening).
+				return;
+			}
+			
 			values[0] = Math.round(parseInt(values[0]));
 			values[1] = Math.round(parseInt(values[1]));
 			this.setSelection(values[0], values[1]);
@@ -155,18 +157,20 @@ class Timeline {
 		return this.selection;
 	}
 
+	equalToSelection(values) {
+		return parseFloat(values[0]) == this.getSelection()[0] && parseFloat(values[1]) == this.getSelection()[1];
+	}
+
 	updateChart(data) {
 		//console.log("Update chart");
-		
 		let chartJSDatasets = this.getChartDataSets(data, this.getSelection());
 		this.chart.data = chartJSDatasets;
-
 		this.chart.update();
 	}
 
 	getTimelineMarginSize(data) {
-		let earliest = this.getEarliestDataPoint(data);
-		let latest = this.getLatestDataPoint(data);
+		let earliest = this.getEarliestSite(data);
+		let latest = this.getLatestSite(data);
 		let sliderMin = earliest.time.min;
 		let sliderMax = latest.time.max;
 		
@@ -209,100 +213,10 @@ class Timeline {
 		return dataset;
 	}
 
-	/*
-	* Function: getExtremeProperty
-	*
-	* Great for getting the high/low endpoints of a list of objects, targeting a specific property in these.
-	*/
-	getExtremeProperty(data, property, highOrLow = "high") {
-		let extremeKey = null;
-		for(let key in data) {
-			if(highOrLow == "high") {
-				if(extremeKey == null || data[key][property] > data[extremeKey][property]) {
-					extremeKey = key;
-				}
-			}
-			if(highOrLow == "low") {
-				if(extremeKey == null || data[key][property] < data[extremeKey][property]) {
-					extremeKey = key;
-				}
-			}
-		}
-		return data[extremeKey];
-	}
-
-	getHighestDataValue(data, selections) {
-		//Assuming the data array is already sorted
-		let highestDataValue = this.data[this.data.length - 1].value;
-		if (selections.length == 2) {
-			if (highestDataValue > selections[1]) {
-				highestDataValue = selections[1];
-			}
-		}
-		return highestDataValue;
-	}
-
-	getLowestDataValue(data, selections) {
-		//Assuming the data array is already sorted
-		let lowestDataValue = this.data[0].value;
-		if (selections.length == 2) {
-			if (lowestDataValue < selections[0]) {
-				lowestDataValue = selections[0];
-			}
-		}
-		return lowestDataValue;
-	}
-
-	makeCategories(data, selections = []) {
-		//Make categories
-		let categories = [];
-
-		//Highest/lowest data value in dataset (this.data)
-		let highestDataValue = this.getHighestDataValue(data, selections);
-		let lowestDataValue = this.getLowestDataValue(data, selections);
-
-		let dataSpan = highestDataValue - lowestDataValue;
-
-		//Category (bar span) size
-		this.categorySpan = dataSpan / this.numberOfCategories;
-
-		//Make the categories/bars
-		for (let catKey = 0; catKey < this.numberOfCategories; catKey++) {
-
-			//Determine low/high point of category/bar (not height, height is number of samples within this span)
-			let catLow = lowestDataValue + (catKey * this.categorySpan);
-			let catHigh = lowestDataValue + ((catKey + 1) * this.categorySpan);
-
-			catLow = Math.round(catLow * 10) / 10;
-			catHigh = Math.round(catHigh * 10) / 10;
-
-			categories.push({
-				lowest: catLow,
-				highest: catHigh,
-				dataPoints: []
-			});
-		}
-
-		//Get number of samples in each category - this will make out the height of the bar
-		for (let catKey in categories) {
-			for (let dataKey in this.data) {
-				let dataValue = this.data[dataKey].value;
-				if (dataValue <= categories[catKey].highest && dataValue >= categories[catKey].lowest) {
-					categories[catKey].dataPoints.push(dataValue);
-				}
-			}
-		}
-
-		return categories;
-	}
-
 	renderChart(data) {
-
-		//this.data = JSON.parse(JSON.stringify(this.makeFakeTimeData(this.map.data)));
 		const chartAnchorNode = $(".timeline-chart-container", this.map.renderTimelineIntoNode);
 		chartAnchorNode.append("<div class='timeline-chart-container-wrapper'></div>");
 		const canvasNode = $(".timeline-chart-container-wrapper", chartAnchorNode).append($("<canvas class='timeline-chart-container-canvas'></canvas>")).find("canvas");
-		//const canvasNode = chartAnchorNode.append($("<canvas class='timeline-chart-container-canvas'></canvas>")).find("canvas");
 		
 		let marginSize = this.getTimelineMarginSize(data);
 
@@ -372,7 +286,20 @@ class Timeline {
 				}
 			},
 			tooltips: {
-				displayColors: false
+				displayColors: false,
+				callbacks: {
+					label: function(tooltipItem) {
+						let tt = tooltipItem;
+						let output = "";
+						if(tt.datasetIndex == 0) { //Sites dataset
+							output = tt.value+" sites";
+						}
+						else { //temperature dataset
+							output = tt.value;
+						}
+						return output;
+					}
+				 }
 			},
 			animation: {
 				duration: 0
@@ -391,8 +318,83 @@ class Timeline {
 
 
 	/*
+	* Function: binSitesByTimeSpan
+	*
+	* Takes an array of sites and bins/categorizes them according to timespan, according to given number of bins/resolution.
+	* Function uses inclusive overlap for binning - so a site is likely to end up in several bins.
+	*
+	* Parameters:
+	* sites - Array of sites
+	* resolution - Number of bins to create
+	*
+	* Returns:
+	* Array of bins
+	*/
+	binSitesByTimeSpan(sites, resolution = 100) {
+		let bins = [];
+		let totalMax = null;
+		let totalMin = null;
+	
+		//Figure out extreme max/min of the total value range
+		sites.map(site => {
+			if (site.max > totalMax || totalMax == null) {
+				totalMax = site.max;
+			}
+			if (site.min < totalMin || totalMin == null) {
+				totalMin = site.min;
+			}
+		});
+
+		//Make bins
+		let fullSpan = totalMax - totalMin;
+		let binSize = fullSpan / resolution;
+
+		let binMin = totalMin; //First bin
+		let binMax = binMin + binSize; //First bin
+
+		for(let i = 0; i < resolution; i++) {
+			bins.push({
+				min: binMin,
+				max: binMax,
+				sites: []
+			});
+
+			binMin += binSize;
+			binMax += binSize;
+		}
+
+		//We don't like to have floats as bin limits
+		bins.map((bin) => {
+			bin.max = Math.round(bin.max);
+			bin.min = Math.round(bin.min);
+		});
+
+		//Do the actual binning of sites
+		for(let bk in bins) {
+			let bin = bins[bk];
+			for(let sk in sites) {
+				let site = sites[sk];
+
+				//If site overlaps bin endpoints (at all), include it in this bin
+				let binEclipse = site.min > bin.min && site.max < bin.max; //Overlap through being eclipsed by bin
+				let overlapLow = site.min < bin.min && site.max > bin.min; //Overlap over low point of bin
+				let overlapHigh = site.max > bin.max && site.min < bin.max; //Overlap over high point of bin
+				let siteEclipse = site.min < bin.min && site.max > bin.max; //Overlap through site eclipsing bin
+				if(binEclipse || overlapLow || overlapHigh || siteEclipse) {
+					bin.sites.push(site);
+				}
+			}
+		}
+
+		this.siteBins = bins;
+		return bins;
+	}
+
+	/*
 	* Function: getDataSpanAtResolution
 	* 
+	* Generic function for downgrading the resolution of a dataset, not used anymore.
+	*
 	* Parameters:
 	* data - A list containing objects where each object contain "max" and "min" properties or "value".
 	* resolution - Number of categories/spans to reduce this data into.
@@ -476,6 +478,58 @@ class Timeline {
 		return categories;
 	}
 
+
+
+	getTemperatureDataSeriesForSiteBins(temperatureData, siteBins) {
+		let temperatureBins = [];
+		for(let sk in siteBins) {
+			let siteBin = siteBins[sk];
+
+			let tBin = {
+				min: siteBin.min, //bin start (same as site bin since we are doing a 1-1 mapping)
+				max: siteBin.max, //bin end (same as site bin since we are doing a 1-1 mapping)
+				value: null, //avg value
+				samples: [] //samples/values being averaged
+			};
+
+			temperatureData.map((t) => {
+				if(t.year >= siteBin.min && t.year <= siteBin.max) {
+					if(!isNaN(t.temp)) {
+						tBin.samples.push(t);
+					}
+				}
+			});
+
+			//Calculate average based on what is in tBin.samples
+			let total = 0;
+			for(let k in tBin.samples) {
+				total += tBin.samples[k].temp;
+			}
+			tBin.value = total / tBin.samples.length;
+
+			temperatureBins.push(tBin);
+		}
+
+		//Make the chartjs dataseries
+		let temperatureDataSeries = [];
+		temperatureBins.map((tb) => {
+			let value = Math.round(tb.value*10)/10; //Round to 1 decimal
+			temperatureDataSeries.push(value);
+		});
+		
+		this.temperatureBins = temperatureBins;
+		return temperatureDataSeries;
+	}
+
+	/*
+	* Function: getChartDataSets
+	*
+	* Creates and returns the chart data sets in the format the Chart.js library wants to have them.
+	*
+	* Parameters:
+	* data
+	* selection
+	*/
 	getChartDataSets(data, selection = []) {
 		let dataPreparedForCategorization = [];
 		data.map((point) => {
@@ -486,17 +540,15 @@ class Timeline {
 			});
 		});
 
-		let categories = this.getDataSpanAtResolution(dataPreparedForCategorization, this.categoryCount);
+		let bins = this.binSitesByTimeSpan(dataPreparedForCategorization, this.categoryCount);
 		
-
 		// Create breakpoints at the selections, so we will divide this into 2 different dataseries with different colors
-
 		let dataSeries = [];
 		let dataSeriesColors = [];
-		for(let k in categories) {
-			let cat = categories[k];
-			dataSeries.push(cat.points.length);
-			if(cat.min >= selection[0] && cat.max <= selection[1]) {
+		for(let k in bins) {
+			let bin = bins[k];
+			dataSeries.push(bin.sites.length);
+			if(bin.min >= selection[0] && bin.max <= selection[1]) {
 				//This belongs in the selected data series
 				dataSeriesColors.push(css.auxColor);
 			}
@@ -506,105 +558,16 @@ class Timeline {
 			}
 		}
 
-
 		// Categories == number of labels
 		let labels = [];
-		categories.map(cat => {
-			let label = cat.points.length+" sites";
-			labels.push(label);
+		bins.map(cat => {
+			//let label = "Sites: "+cat.sites.length+"\r\nTimespan: "+this.parseHumanReadableDate(cat.min)+" to "+this.parseHumanReadableDate(cat.max);
+			let label = "";
+			labels.push(label); //This seems to be literally just the label - as in, it shouldn't contain any values
 		});
-
 		
-		let temperatureDataSeries = [];
-
-		//console.log(this.temperatureData);
-
-		//let earliestTemp = this.getEarliestTemperature(this.temperatureData);
-		//let latestTemp = this.getLatestTemperature(this.temperatureData);
-
-		let earliestTemp = this.getExtremeProperty(this.temperatureData, "year", "low");
-		let latestTemp = this.getExtremeProperty(this.temperatureData, "year", "high");
-
-		//console.log(data);
-		//let latestSite = this.getExtremeProperty(data, ["time", "max"], "high");
-		//let earliestSite = this.getExtremeProperty(data, ["time", "min"], "low");
-
-		let earliestSite = this.getEarliestDataPoint(data);
-		let latestSite = this.getLatestDataPoint(data);
+		let temperatureDataSeries = this.getTemperatureDataSeriesForSiteBins(this.temperatureData, bins);
 		
-		/*
-		console.log(earliestSite, latestSite);
-		console.log(earliestTemp, latestTemp);
-		*/
-		//console.log(this.temperatureData);
-		
-		//If earliest temperature data is later than the earliest site data point
-		if(earliestTemp.year > earliestSite.time.min) {
-			//We need to fill out our temperature span (bottom-part) with null-years so that we start at the same point as the site data
-			let stepSize = this.temperatureData[1].year - this.temperatureData[0].year;
-			let stepsToCreate = ((earliestTemp.year - earliestSite.time.min) / stepSize);
-			let currentYear = earliestTemp.year;
-
-			console.log(earliestTemp.year, earliestSite.time.min);
-			console.log(stepSize, stepsToCreate, currentYear);
-
-			
-			while(stepsToCreate > 0) {
-				currentYear -= stepSize;
-				let temperaturePoint = {
-					year: currentYear,
-					temp: NaN
-				};
-				this.temperatureData.push(temperaturePoint);
-				stepsToCreate--;
-			}
-			
-			//Sort
-			/*
-			this.temperatureData.sort((a, b) => {
-				if(a.year > b.year) {
-					return 1;
-				}
-				if(a.year < b.year) {
-					return -1;
-				}
-				return 0;
-			});
-			*/
-
-			//console.log(this.temperatureData);
-			
-		}
-		//If latest temperature data is earlier than the latest site data point (not likely, but still...)
-		if(latestTemp.year < latestSite.time.max) {
-			//We need to fill out our temperature span (top-part) with null-years so that we end at the same point as the site data
-		}
-		
-		
-
-
-		for(let k in this.temperatureData) {
-			this.temperatureData[k].value = this.temperatureData[k].year;
-		}
-
-		let temperatureCategories = this.getDataSpanAtResolution(this.temperatureData, this.categoryCount);
-		//console.log(temperatureCategories);
-		//temperatureCategories.reverse();
-		
-		//console.log(temperatureCategories);
-		for(let k in temperatureCategories) {
-			//get avg temperature among these points
-			let total = 0;
-			for(let pk in temperatureCategories[k].points) {
-				let point = temperatureCategories[k].points[pk];
-				total += point.temp;
-			}
-			let avgTemp = total / temperatureCategories[k].points.length;
-
-			temperatureDataSeries.push(avgTemp);
-		}
-
-		//console.log(temperatureDataSeries);
 		const color = new Color();
 
 		let chartJSDatasets = {
@@ -615,7 +578,7 @@ class Timeline {
 					yAxisID: "sites-y-axis",
 					data: dataSeries,
 					backgroundColor: dataSeriesColors,
-					//borderColor: color.hexToRgba(css.auxColor, 1.0)
+					hoverBackgroundColor: color.hexToRgba(css.baseColor, 1.0)
 				},
 				{
 					xAxisID: "time-x-axis",
@@ -630,10 +593,14 @@ class Timeline {
 			]
 		};
 
-		//console.log(temperatureDataSeries.length, dataSeriesSelected.length, dataSeriesUnselected.length);
-		//console.log(labels);
-
 		return chartJSDatasets;
+	}
+
+	parseHumanReadableDate(time) {
+		if(time < 0) {
+			return (time*-1)+"BCE";
+		}
+		return time+"CE";
 	}
 
 

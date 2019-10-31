@@ -282,7 +282,7 @@ class ResultMap extends ResultModule {
 
 		this.renderMap();
 		this.renderVisibleDataLayers();
-		//this.timeline.render(); //FIXME: DISABLED UNTIL WE HAVE DATA FOR IT
+		this.timeline.render();
 		
 		this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
 	}
