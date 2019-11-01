@@ -92,15 +92,6 @@ class ResultTable extends ResultModule {
 			});
 			return;
 		}
-		else {
-			/*
-			$("#result-container").notify("Loaded "+rowsCount+" rows of data.", {
-				elementPosition: "top left",
-				className: "info"
-			});
-			*/
-			
-		}
 
 		for(var key in data.Data.DataCollection) {
 			var d = data.Data.DataCollection[key];
@@ -116,7 +107,11 @@ class ResultTable extends ResultModule {
 			this.data.rows.push(row);
 		}
 
-		this.renderData();
+		//If this module has gone inactive (normally by being replaced) since this request was sent, ignore the response
+		if(this.active) {
+			this.renderData();
+		}
+		
 	}
 	
 	/*
@@ -125,10 +120,6 @@ class ResultTable extends ResultModule {
 	render() {
 		var xhr = this.fetchData();
 		xhr.then((data, textStatus, xhr) => { //success
-			//If this module has gone inactive (normally by being replaced) since this request was sent, ignore the response
-			if(this.active) {
-				this.renderData();
-			}
 		},
 		function(xhr, textStatus, errorThrown) { //error
 			console.log(errorThrown);
@@ -139,13 +130,8 @@ class ResultTable extends ResultModule {
 	* Function: renderData
 	*/
 	renderData() {
-		if(true) {
-			this.renderDataTable();
-			return true;
-		}
-		else {
-			return false;
-		}
+		this.renderDataTable();
+		return true;
 	}
 
 	/*
@@ -160,10 +146,6 @@ class ResultTable extends ResultModule {
 		var renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
 
 		var columns = [
-			{
-				"title": "Site Report",
-				"column": "site_link"
-			},
 			{
 				"title": "Site ID",
 				"column": "site_link_filtered"
@@ -215,22 +197,9 @@ class ResultTable extends ResultModule {
 		$('#result-datatable').DataTable({
 			paging: false,
 			bInfo: false,
-			bFilter: false
+			bFilter: false,
+			order: [[ 1, "asc" ]]
 		});
-
-
-		/*
-		$('#result-datatable > tbody > tr').each((index, rowEl) => {
-			//console.log(rowEl);
-			$(rowEl).on("click", (evt) => {
-				//console.log();
-				let siteId =$("td", evt.currentTarget).get(1).innerHTML;
-				//location.href = "/site/"+siteId;
-				
-			});
-		});
-		*/
-
 
 		this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
 
