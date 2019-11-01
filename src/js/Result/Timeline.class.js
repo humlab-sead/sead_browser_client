@@ -12,6 +12,7 @@ class Timeline {
 		this.sliderAnchorNode = null;
 		this.categoryCount = 100;
 		this.selection = [];
+		this.rendered = false;
 		//Set up resize event handlers
 		
 		this.map.resultManager.hqs.hqsEventListen("layoutResize", () => this.resizeCallback());
@@ -21,8 +22,10 @@ class Timeline {
 
 	resizeCallback() {
 		//Re-render everything on resize evt - which may not be very efficient, but it ensures proper adjusting to new size
-		this.unrender();
-		this.render(); //This re-fetches the temperature data as well, which is silly, but it ensures that we have an initial batch of temperature data before rendering begins
+		if(this.rendered) {
+			this.unrender();
+			this.render(); //This re-fetches the temperature data as well, which is silly, but it ensures that we have an initial batch of temperature data before rendering begins
+		}
 	}
 
 	makeAnchorNodes() {
@@ -32,6 +35,7 @@ class Timeline {
 	}
 
 	render() {
+		this.rendered = true;
 		//Loading the temperature data, which is actually not temperature but instead it's isotope data acting as a proxy for temperature
 		$.ajax(Config.siteReportServerAddress+"/temperatures?order=years_bp.desc", {
 			method: "get",
@@ -610,8 +614,8 @@ class Timeline {
 		}
 		$(this.sliderAnchorNode).remove();
 		this.sliderElement = null;
+		this.rendered = false;
 	}
-
 
 }
 

@@ -1,4 +1,5 @@
 import SiteReport from './SiteReport/SiteReport.class';
+import Config from "../config/config.js";
 
 /*
 * Class: SiteReportManager
@@ -32,6 +33,9 @@ class SiteReportManager {
 			this.siteReport.destroy();
 			this.siteReport = null;
 			history.pushState({}, "", "/");
+			if(this.hqs.resultManager.activeModuleId == "none") {
+				this.hqs.resultManager.activeModuleId = Config.defaultResultModule;
+			}
 			this.hqs.resultManager.setActiveModule(this.hqs.resultManager.activeModuleId);
 		});
 	}

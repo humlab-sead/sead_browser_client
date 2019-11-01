@@ -494,12 +494,46 @@ class SiteReport {
 				XLSX.writeFile(wb, filename);
 			});
 		}
+		if(exportFormat == "png") {
+			node = $("<a id='site-report-png-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download PNG</a>");
+
+			$(node).on("click", (evt) => {
+				for(let k in this.modules) {
+					if(this.modules[k].name == "analysis") {
+						for(let sk in this.modules[k].module.section.sections) {
+							for(let cik in this.modules[k].module.section.sections[sk].contentItems) {
+								let ci = this.modules[k].module.section.sections[sk].contentItems[cik];
+								if(ci.name == exportStruct.dataset) {
+									zingchart.exec(ci.renderInstance.chartId, 'getimagedata', {
+										filetype: 'png',
+										callback : (imagedata) => {
+											console.log(ci);
+											this.pushDownload("SEAD-"+ci.title+"-chart.png", imagedata);
+										}
+									});
+								}
+							}
+						}
+					}
+				}
+			});
+		}
 		
 		return node;
 	}
+
+	pushDownload(filename, text) {
+		var element = document.createElement('a');
+		element.setAttribute('href', text);
+		element.setAttribute('download', filename);
+		element.style.display = 'none';
+		document.body.appendChild(element);
+		element.click();
+		document.body.removeChild(element);
+	}
 	
-	renderExportDialog(formats = ["json", "xlsx"], section = "all", contentItem = "all") {
-		
+	renderExportDialog(formats = ["json", "xlsx", "png"], section = "all", contentItem = "all") {
+
 		var exportStruct = {
 			info: {
 				description: "Data export from the SEAD project. Visit https://www.sead.se for more information.",
@@ -510,7 +544,7 @@ class SiteReport {
 			content: "All",
 			data: this.data
 		};
-		
+
 		if(section != "all" && contentItem != "all") {
 			exportStruct = {
 				info: {
@@ -519,6 +553,7 @@ class SiteReport {
 				},
 				site: this.siteId,
 				section: section.title,
+				dataset: contentItem.datasetId,
 				content: contentItem.title,
 				datatable: contentItem.data
 			};
@@ -530,11 +565,15 @@ class SiteReport {
 		
 		if(formats.indexOf("json") != -1) {
 			var jsonBtn = this.getExportButton("json", exportStruct);
-			$("#node-"+dialogNodeId).append(jsonBtn)
+			$("#node-"+dialogNodeId).append(jsonBtn);
 		}
 		if(formats.indexOf("xlsx") != -1) {
 			var xlsxBtn = this.getExportButton("xlsx", exportStruct);
-			$("#node-"+dialogNodeId).append(xlsxBtn)
+			$("#node-"+dialogNodeId).append(xlsxBtn);
+		}
+		if(formats.indexOf("png") != -1) {
+			var pngBtn = this.getExportButton("png", exportStruct);
+			$("#node-"+dialogNodeId).append(pngBtn);
 		}
 	}
 	
@@ -547,7 +586,7 @@ class SiteReport {
 			evt.preventDefault();
 			evt.stopPropagation();
 			
-			this.renderExportDialog(["json", "xlsx"], section, contentItem);
+			this.renderExportDialog(["json", "xlsx", "png"], section, contentItem);
 		});
 		
 		return node;

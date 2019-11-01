@@ -252,7 +252,6 @@ class StateManager {
 			},
 			success: (data, textStatus, jqXHR) => {
 				var state = data[0];
-				console.log(state);
 				
 				if(state === null) {
 					console.log("Failed to load viewstate "+stateId);
@@ -405,7 +404,6 @@ class StateManager {
 	* state - A state object.
 	*/
 	loadState(state) {
-		console.log(state);
 		this.lastLoadedState = state;
 		
 		//If you wonder what's going on here, I don't blame you. This is perhaps the laziest function you've ever seen. It does basically nothing.
