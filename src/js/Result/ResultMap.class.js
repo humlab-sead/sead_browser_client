@@ -154,6 +154,14 @@ class ResultMap extends ResultModule {
 		this.timeline = new Timeline(this);
 	}
 
+	
+	hqsOffer(offerName, offerData) {
+		if(offerName == "resultMapData") {
+			return this.timeline.hqsOffer(offerName, offerData);
+		}
+		return offerData;
+	}
+	
 
 	resizeCallback() {
 		if(this.olMap != null) {
@@ -357,6 +365,15 @@ class ResultMap extends ResultModule {
 			this.olMap.updateSize();
 		}
 
+		if(removeAllDataLayers) {
+			this.dataLayers.forEach((layer, index, array) => {
+				if(layer.getVisible()) {
+					this.removeLayer(layer.getProperties().layerId)
+				}
+			});
+		}
+
+		//FIXME: How do we know that the data in filteredData is actually the data that is to be displayed on the map? Huh??? Riddle me that
 		let latHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "high").lat;
 		let latLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "low").lat;
 		let lngHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "high").lng;
@@ -367,8 +384,12 @@ class ResultMap extends ResultModule {
 
 		let extent = extentNW.concat(extentSE);
 
-		this.olMap.getView().fit(extent);
-		
+		this.olMap.getView().fit(extent, {
+			padding: [20, 20, 20, 20],
+			maxZoom: 10,
+			duration: 500
+		});
+
 		//NOTE: This can not be pre-defined in HTML since the DOM object itself is removed along with the overlay it's attached to when the map is destroyed.
 		let popup = $("<div></div>");
 		popup.attr("id", "map-popup-container");
@@ -382,15 +403,9 @@ class ResultMap extends ResultModule {
 		this.selectInteraction = this.createSelectInteraction();
 		this.olMap.addInteraction(this.selectInteraction);
 
-		if(removeAllDataLayers) {
-			this.dataLayers.forEach((layer, index, array) => {
-				if(layer.getVisible()) {
-					this.removeLayer(layer.getProperties().layerId)
-				}
-			});
-		}
+		
 
-		this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
+		//this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
 	}
 
 	/*
@@ -400,7 +415,7 @@ class ResultMap extends ResultModule {
 		for(var k in this.dataLayers) {
 			var layerProperties = this.dataLayers[k].getProperties();
 			if(layerProperties.visible) {
-				this.dataLayers[k].setVisible(false);
+				this.dataLayers[k].setVisible(false); //Set to invisible while rendering and then when the function below will call the render function it will be set to visible again
 				this.setMapDataLayer(layerProperties.layerId);
 			}
 		}
@@ -418,7 +433,6 @@ class ResultMap extends ResultModule {
 	* Function: renderInterface
 	*/
 	renderInterfaceControls() {
-		//console.log("renderInterfaceControls");
 		d3.select(this.renderMapIntoNode)
 			.append("div")
 			.attr("id", "result-map-controls-container");
@@ -490,28 +504,11 @@ class ResultMap extends ResultModule {
 		});
 	}
 
-	applyTimeFilterOnData(data) {
-		let timeSelection = this.timeline.getSelection();
-
-		if(timeSelection.length == 0) {
-			return data;
-		}
-
-		let filtered = [];
-		for(let key in data) {
-			if(data[key].time.min >= timeSelection[0] && data[key].time.max <= timeSelection[1]) {
-				filtered.push(data[key]);
-			}
-		}
-
-		return filtered;
-	}
-
 	/*
 	* Function: renderClusteredPointsLayer
 	*/
 	renderClusteredPointsLayer() {
-		let timeFilteredData = this.applyTimeFilterOnData(this.data);
+		let timeFilteredData = this.timeline.getSelectedSites();
 		var geojson = this.getDataAsGeoJSON(timeFilteredData);
 
 		var gf = new GeoJSON({
@@ -548,7 +545,7 @@ class ResultMap extends ResultModule {
 	* Function: renderPointsLayer
 	*/
 	renderPointsLayer() {
-		let timeFilteredData = this.applyTimeFilterOnData(this.data);
+		let timeFilteredData = this.timeline.getSelectedSites();
 		var geojson = this.getDataAsGeoJSON(timeFilteredData);
 
 		var gf = new GeoJSON({

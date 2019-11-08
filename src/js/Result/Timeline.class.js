@@ -13,11 +13,21 @@ class Timeline {
 		this.categoryCount = 100;
 		this.selection = [];
 		this.rendered = false;
+		this.siteBins = [];
 		//Set up resize event handlers
 		
 		this.map.resultManager.hqs.hqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
 		
+	}
+
+	hqsOffer(offerName, offerData) {
+		if(offerName == "resultMapData") {
+			//Here we are receiving an offering to modify newly incoming result map data before it's to be rendered.
+			//We don't actually want to modify it, but we do want to take this opportunity to figure out the max time span and set the selection accordingly
+			//Or do we?
+		}
+		return offerData;
 	}
 
 	resizeCallback() {
@@ -54,7 +64,7 @@ class Timeline {
 
 	renderData() {
 		let data = this.map.data;
-		this.setSelection(this.getEarliestSite(data).time.min, this.getLatestSite(data).time.max);
+		//this.setSelection(this.getEarliestSite(data).time.min, this.getLatestSite(data).time.max);
 		this.makeAnchorNodes();
 		this.renderChart(data);
 		this.renderSlider(data);
@@ -132,18 +142,28 @@ class Timeline {
 		$(".timeline-slider-container").css("margin-left", leftMargin+"px");
 
 
+		//This event fires when slider is being dragged
 		this.sliderElement.on("update", (values, slider) => {
-			if(this.equalToSelection(values)) { //Skip updating if slider setting is equal to existing selection. This is just to avoid the 2 unnecessary updates that are triggered when the slider is first rendered and the endpoints are moving to their initial positions (I'm guessing that's what's happening).
+			values[0] = Math.round(values[0]);
+			values[1] = Math.round(values[1]);
+
+			if(this.equalToSelection(values) || this.equalToMaxSpan(values)) { //Skip updating if slider setting is equal to existing selection. This is just to avoid the 2 unnecessary updates that are triggered when the slider is first rendered and the endpoints are moving to their initial positions (I'm guessing that's what's happening).
+				this.setSelection();
+				this.setManualInputBoxesValues(values);
+				this.updateChart(data);
 				return;
 			}
+
+			//If we have got this, the slider is being manipulated by an actual human being, which means we should honor the selections being set
 			
 			values[0] = Math.round(parseInt(values[0]));
 			values[1] = Math.round(parseInt(values[1]));
-			this.setSelection(values[0], values[1]);
+			this.setSelection(values[0], values[1]); //Disabled because this slider will move programatically when new data is loaded, narrowing the scope artificially when new (wider) data is loaded later
 			this.setManualInputBoxesValues(values);
 			this.updateChart(data);
 		});
 
+		//When slider tops moving (after being dragged)
 		this.sliderElement.on("change", (values, slider) => {
 			//When slider drag stops, redraw map with selection
 			let layers = this.map.getVisibleDataLayers();
@@ -151,14 +171,120 @@ class Timeline {
 				this.map.renderDataLayer(layer.getProperties().layerId);
 			});
 		});
+
+		//Typed input events
+		$(lowerManualInputNode).on("change", (evt) => {
+			let newValue = $("input", evt.currentTarget).val();
+			let v = this.constrainInputValueToSensibleRange(newValue, "low");
+			if(v != newValue) {
+				$("input", evt.currentTarget).effect("shake");
+				$("input", evt.currentTarget).val(v);
+			}
+			this.setSelection(v, false);
+			this.updateSlider(this.getSelection());
+			this.updateChart(data);
+
+			let layers = this.map.getVisibleDataLayers();
+			layers.map((layer) => {
+				this.map.renderDataLayer(layer.getProperties().layerId);
+			});
+		});
+		$(upperManualInputNode).on("change", (evt) => {
+			let newValue = $("input", evt.currentTarget).val();
+			let v = this.constrainInputValueToSensibleRange(newValue, "high");
+			if(v != newValue) {
+				$("input", evt.currentTarget).effect("shake");
+				$("input", evt.currentTarget).val(v);
+			}
+			this.setSelection(false, v);
+			this.updateSlider(this.getSelection());
+			this.updateChart(data);
+
+			let layers = this.map.getVisibleDataLayers();
+			layers.map((layer) => {
+				this.map.renderDataLayer(layer.getProperties().layerId);
+			});
+		});
 	}
 
-	setSelection(min, max) {
-		this.selection = [min, max];
+	constrainInputValueToSensibleRange(value, constrainTo = "high") {
+		if(constrainTo == "low") {
+			let totalMaxValue = this.getLatestSite(this.map.data).time.max;
+			let totalMinValue = this.getEarliestSite(this.map.data).time.min;
+
+			let selection = this.getSelection();
+			
+			let selectedMaxValue = totalMaxValue;
+			if(selection.length > 0) {
+				selectedMaxValue = selection[1];
+			}
+			
+			if(value < totalMinValue) {
+				value = totalMinValue;
+			}
+			if(value > selectedMaxValue) {
+				value = selectedMaxValue;
+			}
+			if(value > totalMaxValue) {
+				value = totalMaxValue;
+			}
+		}
+		if(constrainTo == "high") {
+			let totalMaxValue = this.getLatestSite(this.map.data).time.max;
+			let totalMinValue = this.getEarliestSite(this.map.data).time.min;
+
+			let selection = this.getSelection();
+			
+			let selectedMinValue = totalMinValue;
+			if(selection.length > 0) {
+				selectedMinValue = selection[0];
+			}
+			
+			if(value > totalMaxValue) {
+				value = totalMaxValue;
+			}
+			if(value < selectedMinValue) {
+				value = selectedMinValue;
+			}
+			if(value < totalMinValue) {
+				value = totalMinValue;
+			}
+		}
+		return value;
+	}
+
+	setSelection(min = false, max = false) {
+		if(min == false && max == false) {
+			this.selection = [];
+		}
+		else if(min == false && max !== false) {
+			if(typeof this.selection[0] == "undefined") {
+				this.selection[0] = this.getEarliestSite(this.map.data).time.min;
+			}
+			this.selection[1] = max;
+		}
+		else if(min !== false && max == false) {
+			this.selection[0] = min;
+			if(typeof this.selection[1] == "undefined") {
+				this.selection[1] = this.getLastSite(this.map.data).time.max;
+			}
+		}
+		else {
+			this.selection = [min, max];
+		}
 	}
 
 	getSelection() {
 		return this.selection;
+	}
+
+	equalToMaxSpan(values) {
+		let eSite = this.getEarliestSite(this.map.data);
+		let lSite = this.getLatestSite(this.map.data);
+		if(values[0] == eSite.time.min && values[1] == lSite.time.max) {
+			return true;
+		}
+		return false;
 	}
 
 	equalToSelection(values) {
@@ -166,10 +292,13 @@ class Timeline {
 	}
 
 	updateChart(data) {
-		//console.log("Update chart");
 		let chartJSDatasets = this.getChartDataSets(data, this.getSelection());
 		this.chart.data = chartJSDatasets;
 		this.chart.update();
+	}
+
+	updateSlider(values) {
+		this.sliderElement.set(values);
 	}
 
 	getTimelineMarginSize(data) {
@@ -292,11 +421,13 @@ class Timeline {
 			tooltips: {
 				displayColors: false,
 				callbacks: {
-					label: function(tooltipItem) {
+					label: (tooltipItem) => {
 						let tt = tooltipItem;
 						let output = "";
+						let bin = this.siteBins[tt.index];
 						if(tt.datasetIndex == 0) { //Sites dataset
-							output = tt.value+" sites";
+							output = tt.value+" sites, ";
+							output += "from "+this.parseHumanReadableDate(bin.min)+" to "+this.parseHumanReadableDate(bin.max);
 						}
 						else { //temperature dataset
 							output = tt.value;
@@ -334,7 +465,22 @@ class Timeline {
 	* Returns:
 	* Array of bins
 	*/
-	binSitesByTimeSpan(sites, resolution = 100) {
+	binSitesByTimeSpan(data, resolution = 100) {
+
+		let dataPreparedForCategorization = [];
+		data.map((point) => {
+			dataPreparedForCategorization.push({
+				max: point.time.max,
+				min: point.time.min,
+				id: point.id,
+				lat: point.lat,
+				lng: point.lng,
+				title: point.title
+			});
+		});
+
+		let sites = dataPreparedForCategorization;
+
 		let bins = [];
 		let totalMax = null;
 		let totalMin = null;
@@ -378,13 +524,7 @@ class Timeline {
 			let bin = bins[bk];
 			for(let sk in sites) {
 				let site = sites[sk];
-
-				//If site overlaps bin endpoints (at all), include it in this bin
-				let binEclipse = site.min > bin.min && site.max < bin.max; //Overlap through being eclipsed by bin
-				let overlapLow = site.min < bin.min && site.max > bin.min; //Overlap over low point of bin
-				let overlapHigh = site.max > bin.max && site.min < bin.max; //Overlap over high point of bin
-				let siteEclipse = site.min < bin.min && site.max > bin.max; //Overlap through site eclipsing bin
-				if(binEclipse || overlapLow || overlapHigh || siteEclipse) {
+				if(this.timespanOverlap(site, bin)) {
 					bin.sites.push(site);
 				}
 			}
@@ -392,6 +532,53 @@ class Timeline {
 
 		this.siteBins = bins;
 		return bins;
+	}
+
+	getSelectedSites() {
+		this.binSitesByTimeSpan(this.map.data);
+		let timeSelection = this.getSelection();
+
+		if(timeSelection.length == 0) {
+			timeSelection = [
+				this.getEarliestSite(this.map.data).time.min,
+				this.getLatestSite(this.map.data).time.max,
+			];
+		}
+
+		let sites = [];
+		this.siteBins.map((bin) => {
+			let refBin = {
+				min: timeSelection[0],
+				max: timeSelection[1]
+			};
+			if(this.timespanOverlap(bin, refBin)) {
+				for(let key in bin.sites) {
+					let found = false;
+					sites.map((site) => {
+						if(site.id == bin.sites[key].id) {
+							found = true;
+						}
+					});
+					if(!found) {
+						sites.push(bin.sites[key]);
+					}
+				}
+			}
+		});
+
+		return sites;
+	}
+
+	timespanOverlap(timespan, reference) {
+		//If site overlaps bin endpoints (at all), include it in this bin
+		let binEclipse = timespan.min >= reference.min && timespan.max <= reference.max; //Overlap through being eclipsed by bin
+		let overlapLow = timespan.min <= reference.min && timespan.max >= reference.min; //Overlap over low point of bin
+		let overlapHigh = timespan.max >= reference.max && timespan.min <= reference.max; //Overlap over high point of bin
+		let siteEclipse = timespan.min <= reference.min && timespan.max >= reference.max; //Overlap through site eclipsing bin
+		if(binEclipse || overlapLow || overlapHigh || siteEclipse) {
+			return true;
+		}
+		return false;
 	}
 
 	/*
@@ -535,16 +722,12 @@ class Timeline {
 	* selection
 	*/
 	getChartDataSets(data, selection = []) {
-		let dataPreparedForCategorization = [];
-		data.map((point) => {
-			dataPreparedForCategorization.push({
-				max: point.time.max,
-				min: point.time.min,
-				id: point.id
-			});
-		});
+		if(selection.length == 0) {
+			selection[0] = this.getEarliestSite(data).time.min;
+			selection[1] = this.getLatestSite(data).time.max;
+		}
 
-		let bins = this.binSitesByTimeSpan(dataPreparedForCategorization, this.categoryCount);
+		let bins = this.binSitesByTimeSpan(data, this.categoryCount);
 		
 		// Create breakpoints at the selections, so we will divide this into 2 different dataseries with different colors
 		let dataSeries = [];
@@ -552,8 +735,7 @@ class Timeline {
 		for(let k in bins) {
 			let bin = bins[k];
 			dataSeries.push(bin.sites.length);
-			if(bin.min >= selection[0] && bin.max <= selection[1]) {
-				//This belongs in the selected data series
+			if(this.timespanOverlap(bin, {min: selection[0], max: selection[1]})) {
 				dataSeriesColors.push(css.auxColor);
 			}
 			else {
@@ -602,11 +784,39 @@ class Timeline {
 
 	parseHumanReadableDate(time) {
 		if(time < 0) {
-			return (time*-1)+"BCE";
+			return (time*-1)+" BCE";
 		}
-		return time+"CE";
+		return time+" CE";
 	}
 
+	getDataIntersectingSelection(data, selection) {
+		let selectedData = [];
+		data.map((site) => {
+			let keep = false;
+			//Total eclipse
+			if(site.time.min <= selection[0] && site.time.max >= selection[1]) {
+				keep = true;
+			}
+			//Left overlap
+			if(site.time.min <= selection[0] && site.time.max >= selection[0]) {
+				keep = true;
+			}
+			//Right overlap
+			if(site.time.min >= selection[0] && site.time.max >= selection[1]) {
+				keep = true;
+			}
+			//Contained within
+			if(site.time.min >= selection[0] && site.time.max <= selection[1]) {
+				keep = true;
+			}
+
+			if(keep) {
+				selectedData.push(site);
+			}
+		});
+
+		return selectedData;
+	}
 
 	unrender() {
 		if(this.chart != null) {
