@@ -3,6 +3,7 @@ import noUiSlider from "nouislider";
 import "nouislider/distribute/nouislider.min.css";
 import styles from '../stylesheets/style.scss'
 import Config from "../config/config";
+import { runInThisContext } from 'vm';
 
 /*
 Works like this:
@@ -140,7 +141,7 @@ class RangeFacet extends Facet {
 			max = selections[1];
 		}
 		else {
-			let endpoints = this.getDataEndpoints(data);
+			let endpoints = this.getDataEndpoints();
 			min = endpoints.min;
 			max = endpoints.max;
 		}
@@ -373,22 +374,11 @@ class RangeFacet extends Facet {
 		);
 	}
 
-	getDataEndpoints(data) {
-		let min = null;
-		let max = null;
-		for(let k in data) {
-			if(max == null || data[k].lt > max) {
-				max = data[k].lt;
-			}
-			if(min == null || data[k].gt < min) {
-				min = data[k].gt;
-			}
-		}
-
+	getDataEndpoints() {
 		return {
-			max: max,
-			min: min
-		};
+			max: this.totalUpper,
+			min: this.totalLower
+		}
 	}
 	
 	manualInputCallback(evt) {
@@ -415,8 +405,7 @@ class RangeFacet extends Facet {
 			newValues.lower = parseFloat(newValues.lower);
 		}
 		
-		let dataEndPoints = this.getDataEndpoints(this.datasets.unfiltered);
-		console.log(this.datasets, dataEndPoints);
+		let dataEndPoints = this.getDataEndpoints();
 
 		if(newValues.upper > dataEndPoints.max) {
 			console.log("Forcing upper selection to "+dataEndPoints.max+" since that is the data endpoint");
