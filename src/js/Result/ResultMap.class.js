@@ -16,8 +16,6 @@ import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
 import {fromLonLat, toLonLat} from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
-import * as Extent from 'ol/extent';
-import { transformExtent } from 'ol/proj';
 
 
 /*
@@ -374,13 +372,21 @@ class ResultMap extends ResultModule {
 		}
 
 		//FIXME: How do we know that the data in filteredData is actually the data that is to be displayed on the map? Huh??? Riddle me that
-		let latHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "high").lat;
-		let latLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "low").lat;
-		let lngHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "high").lng;
-		let lngLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "low").lng;
-		
-		let extentNW = fromLonLat([lngLow, latLow]);
-		let extentSE = fromLonLat([lngHigh, latHigh]);
+		let latHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "high");
+		let latLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "low");
+		let lngHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "high");
+		let lngLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "low");
+
+		let extentNW = null;
+		let extentSE = null;
+		if(latHigh === false || latLow === false || lngHigh === false || lngLow === false) {
+			extentNW = fromLonLat([18, 43]);
+			extentSE = fromLonLat([19, 44]);
+		}
+		else {
+			extentNW = fromLonLat([lngLow.lng, latLow.lat]);
+			extentSE = fromLonLat([lngHigh.lng, latHigh.lat]);
+		}
 
 		let extent = extentNW.concat(extentSE);
 
