@@ -121,6 +121,8 @@ class ResultMosaic extends ResultModule {
 	}
 	
 	renderData() {
+		this.unrender();
+
 		this.resultManager.renderMsg(false);
 		$('#result-mosaic-container').html("");
 		$('#result-mosaic-container').css("display", "grid");
@@ -137,12 +139,6 @@ class ResultMosaic extends ResultModule {
 			$('#result-mosaic-container').append("<div class='result-mosaic-tile'><h2>"+this.modules[key].title+"</h2><div id='"+this.modules[key].name+"' class='result-mosaic-graph-container'></div></div>");
 			this.modules[key].callback("#"+this.modules[key].name, this);
 		}
-		/*
-		* Ratio of abundance/measured value analysis
-		* Ratio of different analysis types
-		* Average samples per site per location?
-		* Map
-		*/
 		
 		this.hqs.hqsEventDispatch("resultModuleRenderComplete");
 	}
@@ -277,11 +273,22 @@ class ResultMosaic extends ResultModule {
 			"toggle-action":"remove"
 		};
 
-		zingchart.render({ 
-			id : renderIntoNode.substr(1), 
-			data : config,
-			height: "100%"
-		});
+		
+		let renderTryInterval = setInterval(() => {
+			if($(renderIntoNode).length == 0) {
+				console.log("WARN(1): Tried to render mosaic chart before target element was available.");
+			}
+			else {
+				clearInterval(renderTryInterval);
+				zingchart.render({
+					id : renderIntoNode.substr(1),
+					data : config,
+					height: "100%"
+				});
+			}
+		}, 100);
+
+		
 	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {
@@ -355,11 +362,22 @@ class ResultMosaic extends ResultModule {
 			"toggle-action":"remove"
 		};
 		
-		zingchart.render({
-			id : renderIntoNode.substr(1),
-			data : config,
-			height: "100%"
-		});
+
+		let renderTryInterval = setInterval(() => {
+			if($(renderIntoNode).length == 0) {
+				console.log("WARN(2): Tried to render mosaic chart before target element was available.");
+			}
+			else {
+				clearInterval(renderTryInterval);
+				zingchart.render({
+					id : renderIntoNode.substr(1),
+					data : config,
+					height: "100%"
+				});
+			}
+		}, 100);
+
+		
 	}
 
 	async fetchSiteData(siteIds, dbView, requestId) {
@@ -409,6 +427,13 @@ class ResultMosaic extends ResultModule {
 	
 	
 	unrender() {
+		/*
+		this.modules.map((module) => {
+			zingchart.unbind(module.name);
+			$("#"+module.name).remove();
+		});
+		*/
+
 		$("#result-mosaic-container").hide();
 		if(typeof(this.resultMap) != "undefined") {
 			this.resultMap.unrender();

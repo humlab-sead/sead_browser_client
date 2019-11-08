@@ -47,7 +47,7 @@ class HumlabQuerySystem {
 		
 		this.color = new Color();
 		this.stateManager = new StateManager(this);
-	  	var viewstate = this.stateManager.getViewstateIdFromUrl();
+		var viewstate = this.stateManager.getViewstateIdFromUrl();
 		this.layoutManager = new HqsLayoutManager(this, "#facet-result-panel", this.config.facetSectionDefaultWidth, 100-this.config.facetSectionDefaultWidth);
 		//this.siteReportLayoutManager = new HqsLayoutManager(this, "#site-report-panel", 80, 20);
 
@@ -58,37 +58,35 @@ class HumlabQuerySystem {
 		this.siteReportManager = new SiteReportManager(this);
 		var siteId = this.siteReportManager.getSiteIdFromUrl();
 
-        this.resultManager = new ResultManager(this);
-        this.resultManager.addModule([
-            {
-                name: "map",
-                module: new ResultMap(this.resultManager)
-            },
-            {
-                name: "table",
-                module: new ResultTable(this.resultManager)
-            },
-		    {
-		    	name: "mosaic",
-			    module: new ResultMosaic(this.resultManager)
-		    }
-		    
-        ]);
+		this.resultManager = new ResultManager(this);
+		this.resultManager.addModule([
+			{
+				name: "map",
+				module: new ResultMap(this.resultManager)
+			},
+			{
+				name: "table",
+				module: new ResultTable(this.resultManager)
+			},
+			{
+				name: "mosaic",
+				module: new ResultMosaic(this.resultManager)
+			}
+		]);
 
 		var renderDefaultResult = viewstate === false;
 		if(siteId == false) { //Don't bother firing up the result section if a direct request has been made towards a site report
 			this.resultManager.setActiveModule(this.config.defaultResultModule, renderDefaultResult);
 		}
-        
 
-	    if(viewstate != false) {
-	    	this.facetManager.setFacetDataFetchingSuspended(true);
-	    	this.resultManager.setResultDataFetchingSuspended(true);
-	    }
-	    
-	    if(siteId != false) {
-	    	this.siteReportManager.renderSiteReport(siteId);
-	    }
+		if(viewstate != false) {
+			this.facetManager.setFacetDataFetchingSuspended(true);
+			this.resultManager.setResultDataFetchingSuspended(true);
+		}
+		
+		if(siteId != false) {
+			this.siteReportManager.renderSiteReport(siteId);
+		}
 
 		//this.resultManager.setActiveModule(this.config.defaultResultModule, false);
         /*

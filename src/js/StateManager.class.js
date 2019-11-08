@@ -162,8 +162,6 @@ class StateManager {
 			$.ajax(this.hqs.config.viewStateServerAddress+"/viewstates/"+this.hqs.userManager.user.id_token, {
 				method: "get",
 				success: (viewstates) => {
-					console.log(viewstates);
-
 					if(!Config.requireLoginForViewstateStorage) {
 						viewstates = viewstates.concat(serverViewstates);
 						viewstates = this.makeListUniqueByProperty(viewstates, "id");
@@ -187,7 +185,6 @@ class StateManager {
 	}
 
 	renderViewStates(viewstates) {
-		console.log("renderViewStates");
 		$("#viewstate-load-list").html("");
 		let header = "<div class='viewstate-load-item-header'><div>ID</div><div>Name</div><div>Time</div><div>Del</div></div>";
 		$("#viewstate-load-list").append(header);
@@ -210,7 +207,6 @@ class StateManager {
 		});
 
 		$(".viewstate-load-item").on("click", evt => {
-			console.log(evt.currentTarget);
 			const vsId = $(".vs-id", evt.currentTarget).text();
 			var state = this.getStateById(vsId);
 			if(state === false) {
@@ -287,7 +283,7 @@ class StateManager {
 			"user_id_token": this.hqs.userManager.user.id_token,
 			"data": JSON.stringify(state)
 		};
-		console.log(upload);
+
 		upload = JSON.stringify(upload);
 		//var address = Config.serverAddress;
 		var address = Config.viewStateServerAddress;
@@ -307,8 +303,6 @@ class StateManager {
 				console.log(jqXHR, textStatus, errorThrown);
 			},
 			success: (data, textStatus, jqXHR) => {
-				console.log("Viewstate uploaded");
-				console.log(data, textStatus);
 				/*
 				this.hqs.dialogManager.hidePopOver();
 				var content = $("#viewstate-post-save-dialog .overlay-dialog-content");
@@ -375,7 +369,6 @@ class StateManager {
 			"/viewstate/"+stateId);
 
 		this.updateLoadStateDialog();
-		console.log(state);
 		return state;
 	}
 
