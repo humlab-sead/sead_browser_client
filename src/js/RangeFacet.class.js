@@ -34,6 +34,8 @@ class RangeFacet extends Facet {
 	*/
 	constructor(hqs, id = null, template = {}) {
 		super(hqs, id, template);
+		this.totalUpper = null; //Lowest possible value of this filter, without filters applied
+		this.totalLower = null; //Highest possible value of this fulter, without filters applied
 		this.datasets = {
 			unfiltered: [],
 			filtered: []
@@ -65,16 +67,15 @@ class RangeFacet extends Facet {
 				selectionsUpdated = true;
 			}
 		}
-
+		
 		$(".slider-manual-input-container[endpoint='upper'] > input", this.getDomRef()).val(this.selections[1]);
 		$(".slider-manual-input-container[endpoint='lower'] > input", this.getDomRef()).val(this.selections[0]);
-
 		
 		if(selectionsUpdated) {
-			console.log("Fetching new data")
-			this.fetchData();
+			this.hqs.facetManager.queueFacetDataFetch(this);
+			this.broadcastSelection();
 		}
-		this.broadcastSelection();
+		
 	}
 
 
@@ -91,6 +92,9 @@ class RangeFacet extends Facet {
 	*/
 	importData(importData, overwrite = true) {
 		super.importData();
+
+		this.totalLower = importData.IntervalInfo.FullExtent.Lower;
+		this.totalUpper = importData.IntervalInfo.FullExtent.Upper;
 
 		let filteredData = false;
 		for(let k in importData.Picks) {
@@ -295,13 +299,17 @@ class RangeFacet extends Facet {
 	 * Renders the slider and only the slider-part of the range facet.
 	 */
 	renderSlider(categories, selections) {
-		
-		let sliderMin = this.categories[0].gt;
-		let sliderMax = this.categories[this.categories.length-1].lt;
+		let sliderMin = this.totalLower;
+		let sliderMax = this.totalUpper;
+
+		let startDefault = this.getSelections();
+		if(startDefault.length < 2) {
+			startDefault = [sliderMin, sliderMax];
+		}
 		
 		var rangesliderContainer = $(".rangeslider-container", this.getDomRef())[0];
 		this.sliderElement = noUiSlider.create(rangesliderContainer, {
-			start: [sliderMin, sliderMax],
+			start: startDefault,
 			range: {
 				'min': sliderMin,
 				'max': sliderMax

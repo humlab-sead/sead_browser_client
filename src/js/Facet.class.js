@@ -226,7 +226,7 @@ class Facet {
 			triggerCode: triggerCode,
 			facetConfigs: fc
 		};
-		
+
 		return $.ajax(config.serverAddress+"/api/facets/load", {
 			data: JSON.stringify(reqData),
 			dataType: "json",

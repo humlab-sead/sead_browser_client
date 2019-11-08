@@ -571,6 +571,9 @@ class HumlabQuerySystem {
 				}
 			}
 		}
+		if(extremeKey == null) {
+			return false;
+		}
 		return data[extremeKey];
 	}
 	
