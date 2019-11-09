@@ -4,6 +4,13 @@ import Color from "../color.class";
 import css from '../../stylesheets/style.scss';
 import Config from "../../config/config.js";
 
+
+/*
+Class: Timeline
+
+This is dependant on (and attached to) an instance of ResultMap.
+*/
+
 class Timeline {
 	constructor(mapObject) {
 		this.map = mapObject;
@@ -11,23 +18,15 @@ class Timeline {
 		this.sliderElement = null;
 		this.sliderAnchorNode = null;
 		this.categoryCount = 100;
+		this.totalMin = -100000;
+		this.totalMax = -2500;
 		this.selection = [];
 		this.rendered = false;
 		this.siteBins = [];
+
 		//Set up resize event handlers
-		
 		this.map.resultManager.hqs.hqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
-		
-	}
-
-	hqsOffer(offerName, offerData) {
-		if(offerName == "resultMapData") {
-			//Here we are receiving an offering to modify newly incoming result map data before it's to be rendered.
-			//We don't actually want to modify it, but we do want to take this opportunity to figure out the max time span and set the selection accordingly
-			//Or do we?
-		}
-		return offerData;
 	}
 
 	resizeCallback() {
@@ -93,17 +92,14 @@ class Timeline {
 	* Function: renderSLider
 	*/
 	renderSlider(data) {
-		let earliest = this.getEarliestSite(data);
-		let latest = this.getLatestSite(data);
-		//$(".timeline-slider-container", this.map.renderTimelineIntoNode).css("background-color", "blue");
 		let sliderAnchorNodeContainer = $(".timeline-slider-container", this.map.renderTimelineIntoNode);
 		sliderAnchorNodeContainer.append("<div class='timeline-slider-container-inner'></div>");
 		this.sliderAnchorNode = $(".timeline-slider-container-inner", this.map.renderTimelineIntoNode)[0];
 
 		$(sliderAnchorNodeContainer).append("<div class='timeline-label'>Time</div>");
 
-		let sliderMin = earliest.time.min;
-		let sliderMax = latest.time.max;
+		let sliderMin = this.totalMin;
+		let sliderMax = this.totalMax;
 		this.sliderElement = noUiSlider.create(this.sliderAnchorNode, {
 			start: [sliderMin, sliderMax],
 			range: {
@@ -259,14 +255,14 @@ class Timeline {
 		}
 		else if(min == false && max !== false) {
 			if(typeof this.selection[0] == "undefined") {
-				this.selection[0] = this.getEarliestSite(this.map.data).time.min;
+				this.selection[0] = this.totalMin;
 			}
 			this.selection[1] = max;
 		}
 		else if(min !== false && max == false) {
 			this.selection[0] = min;
 			if(typeof this.selection[1] == "undefined") {
-				this.selection[1] = this.getLastSite(this.map.data).time.max;
+				this.selection[1] = this.totalMax;
 			}
 		}
 		else {
@@ -534,6 +530,12 @@ class Timeline {
 		return bins;
 	}
 
+	/*
+	* Function: getSelectedSites
+	* 
+	* Returns:
+	* sites - All the sites in a list which in some way touches the current selection.
+	*/
 	getSelectedSites() {
 		this.binSitesByTimeSpan(this.map.data);
 		let timeSelection = this.getSelection();
@@ -723,8 +725,10 @@ class Timeline {
 	*/
 	getChartDataSets(data, selection = []) {
 		if(selection.length == 0) {
-			selection[0] = this.getEarliestSite(data).time.min;
-			selection[1] = this.getLatestSite(data).time.max;
+			selection[0] = this.totalMin;
+			selection[1] = this.totalMax;
+			//selection[0] = this.getEarliestSite(data).time.min;
+			//selection[1] = this.getLatestSite(data).time.max;
 		}
 
 		let bins = this.binSitesByTimeSpan(data, this.categoryCount);

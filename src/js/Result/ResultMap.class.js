@@ -20,6 +20,14 @@ import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
 
 /*
 * Class: ResultMap
+* 
+* Map is rendered one of 3 cases:
+* 1. Through renderVisibleDataLayers when importResultData is called (which in turn is called upon xhr success of fetchData)
+*	Chain looks like this: render() => fetchData() => importResultData() => renderMap()
+*																		 => renderVisibleDataLayers()
+* 2. importSettings() => setMapDataLayer() => renderCallback()
+* 3. resultMapBaseLayersControlsHqsMenu() => makeMapControlMenuCallback() => setMapDataLayer()
+* 
 */
 class ResultMap extends ResultModule {
 	/*
@@ -42,11 +50,12 @@ class ResultMap extends ResultModule {
         this.currentZoomLevel = 4;
 		this.selectPopupOverlay = null;
 		this.selectInteraction = null;
+		this.timeline = null;
 		
 
+		//These attributes are used to set the style of map points
 		this.style = {
 			default: {
-				//fillColor: [0, 102, 255, 0.6],
 				fillColor: this.resultManager.hqs.color.getColorScheme(20, 0.5)[13],
 				strokeColor: "#fff",
 				textColor: "#fff",
@@ -63,7 +72,7 @@ class ResultMap extends ResultModule {
 			}
 		}
 
-
+		//Define base layers
 		let stamenLayer = new TileLayer({
 			source: new Stamen({
 				layer: 'terrain-background'
@@ -120,6 +129,7 @@ class ResultMap extends ResultModule {
 		this.baseLayers.push(bingAerialLabelsLayer);
 		this.baseLayers.push(arcticDemLayer);
 		
+		//Define data layers
 		let dataLayer = new VectorLayer();
 		dataLayer.setProperties({
 			layerId: "clusterPoints",
@@ -144,42 +154,19 @@ class ResultMap extends ResultModule {
 		});
 		this.dataLayers.push(dataLayer);
 
-		//Set up resize event handlers
+		//Set up viewport resize event handlers
 		this.resultManager.hqs.hqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
 		this.resultManager.hqs.hqsEventListen("siteReportClosed", () => this.resizeCallback());
 
+		//Create attached timeline object
 		this.timeline = new Timeline(this);
-	}
-
-	
-	hqsOffer(offerName, offerData) {
-		if(offerName == "resultMapData") {
-			return this.timeline.hqsOffer(offerName, offerData);
-		}
-		return offerData;
-	}
-	
-
-	resizeCallback() {
-		if(this.olMap != null) {
-			//this.unrender();
-
-			if(typeof(this.resizeTimeout) != "undefined") {
-				clearTimeout(this.resizeTimeout);
-			}
-			this.resizeTimeout = setTimeout(() => {
-				//this.renderMap(false);
-				this.olMap.updateSize();
-			}, 500);
-		}
-		
 	}
 
 	/*
 	* Function: render
 	*
-	* Called from outside. Its the command from hqs to render the contents of this module. Will fetch data and then import/render it.
+	* Called from outside. Its the command from hqs to render the contents of this module. Will fetch data and then import & render it.
 	*/
 	render() {
 		let xhr = this.fetchData();
@@ -263,28 +250,15 @@ class ResultMap extends ResultModule {
 			
 			this.data.push(dataItem);
 		}
-		
-		/*
-		//If we have over 2000 data points, switch default rendering mode to clustering
-		if(this.data.length > 2000) {
-			this.dataLayers.forEach((element, index, array) => {
-				if(element.getProperties().layerId == "clusterPoints") {
-					element.setVisible(true);
-				}
-				else if(element.getProperties().layerId == "points") {
-					element.setVisible(false);
-				}
-			})
-		}
-		*/
 
 		this.renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
 		this.renderData = this.resultManager.hqs.hqsOffer("resultMapData", {
 			data: this.renderData
 		}).data;
 
-
-		this.data = this.timeline.makeFakeTimeData(this.data); //FIXME: REMOVE THIS WHEN THERE IS DATA AVAILABLE
+		if(this.timeline != null) {
+			this.data = this.timeline.makeFakeTimeData(this.data); //FIXME: REMOVE THIS WHEN THERE IS DATA AVAILABLE
+		}
 
 		this.renderMap();
 		this.renderVisibleDataLayers();
@@ -323,6 +297,9 @@ class ResultMap extends ResultModule {
 
 	/*
 	* Function: renderMap
+	*
+	* Parameters:
+	* removeAllDataLayers
 	*/
 	renderMap(removeAllDataLayers = true) {
 		let filteredData = []; //Filter out points which contrain zero/null coordinates
@@ -371,7 +348,6 @@ class ResultMap extends ResultModule {
 			});
 		}
 
-		//FIXME: How do we know that the data in filteredData is actually the data that is to be displayed on the map? Huh??? Riddle me that
 		let latHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "high");
 		let latLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "low");
 		let lngHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "high");
@@ -408,10 +384,19 @@ class ResultMap extends ResultModule {
 
 		this.selectInteraction = this.createSelectInteraction();
 		this.olMap.addInteraction(this.selectInteraction);
+	}
 
-		
-
-		//this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
+	/*
+	* Function: renderVisibleDataLayers
+	*/
+	renderVisibleBaseLayers() {
+		for(var k in this.baseLayers) {
+			var layerProperties = this.baseLayers[k].getProperties();
+			if(layerProperties.visible) {
+				this.baseLayers[k].setVisible(false); //Set to invisible while rendering and then when the function below will call the render function it will be set to visible again
+				this.setMapBaseLayer(layerProperties.layerId);
+			}
+		}
 	}
 
 	/*
@@ -485,6 +470,7 @@ class ResultMap extends ResultModule {
 		});
 	}
 
+	/* THIS SEEMS TO BE OBSOLETE
 	renderDataLayer(dataLayerId) {
 		this.clearSelections();
 		this.dataLayers.forEach((layer, index, array) => {
@@ -495,6 +481,7 @@ class ResultMap extends ResultModule {
 			}
 		});
 	}
+	*/
 
 	/*
 	* Function: clearSelections
@@ -911,15 +898,15 @@ class ResultMap extends ResultModule {
 					this.olMap.getView().setCenter(settings.center);
 					this.olMap.getView().setZoom(settings.zoom);
 					clearInterval(this.settingsImportInterval);
-
-					if(settings.baseLayers.length > 0) {
-						this.setMapBaseLayer(settings.baseLayers[0]);
+					
+					for(let lk in settings.baseLayers) {
+						this.setMapBaseLayer(settings.baseLayers[lk]);
 					}
-					if(settings.dataLayers.length > 0) {
-						this.setMapDataLayer(settings.dataLayers[0]);
+					for(let lk in settings.dataLayers) {
+						this.setMapDataLayer(settings.dataLayers[lk]);
 					}
 				}
-			}, 500);
+			}, 250);
 		}
 	}
 
@@ -1024,6 +1011,19 @@ class ResultMap extends ResultModule {
 			}
 		}
 		return false;
+	}
+
+	resizeCallback() {
+		if(this.olMap != null) {
+			//this.unrender();
+			if(typeof(this.resizeTimeout) != "undefined") {
+				clearTimeout(this.resizeTimeout);
+			}
+			this.resizeTimeout = setTimeout(() => {
+				//this.renderMap(false);
+				this.olMap.updateSize();
+			}, 500);
+		}
 	}
 
 }
