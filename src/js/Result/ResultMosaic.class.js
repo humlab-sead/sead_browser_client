@@ -35,11 +35,13 @@ class ResultMosaic extends ResultModule {
 				name: "mosaic-analysis-methods",
 				callback: this.renderAnalysisMethods
 			},
+			
 			{
 				title: "Feature types",
 				name: "mosaic-feature-types",
 				callback: this.renderFeatureTypes
 			}
+			
 		];
 	}
 	
@@ -64,13 +66,7 @@ class ResultMosaic extends ResultModule {
 			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
-				if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
-					this.importResultData(respData);
-					this.resultManager.showLoadingIndicator(false);
-				}
-				else {
-					console.log("WARN: ResultMosaic discarding old result package data ("+respData.requestId+"/"+this.requestId+").");
-				}
+				return respData;
 			},
 			error: (respData, textStatus, jqXHR) => {
 				sead.resultManager.showLoadingIndicator(false, true);
@@ -109,11 +105,15 @@ class ResultMosaic extends ResultModule {
 	
 	render() {
 		var xhr = this.fetchData();
-		xhr.then((data, textStatus, xhr) => { //success
-				//If this module has gone inactive (normally by being replaced) since this request was sent, ignore the response
-				if(this.active) {
-					this.renderData();
-				}
+		xhr.then((respData, textStatus, xhr) => { //success
+			if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
+				this.importResultData(respData);
+				this.renderData();
+				this.resultManager.showLoadingIndicator(false);
+			}
+			else {
+				console.log("WARN: ResultMosaic discarding old result package data ("+respData.requestId+"/"+this.requestId+").");
+			}
 			},
 			function(xhr, textStatus, errorThrown) { //error
 				console.log(errorThrown);
@@ -201,6 +201,7 @@ class ResultMosaic extends ResultModule {
 
 	renderSampleMethods(renderIntoNode, resultMosaic) {
 		$(renderIntoNode).html("");
+		//WARN: This load is sometimes being done befor there are any sites...
 		let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_methods", resultMosaic.requestBatchId);
 		promise.then((promiseData) => {
 			if(promiseData.requestId < resultMosaic.requestBatchId) {
@@ -363,12 +364,12 @@ class ResultMosaic extends ResultModule {
 		};
 		
 
-		let renderTryInterval = setInterval(() => {
+		this.renderTryInterval = setInterval(() => {
 			if($(renderIntoNode).length == 0) {
 				console.log("WARN(2): Tried to render mosaic chart before target element was available.");
 			}
 			else {
-				clearInterval(renderTryInterval);
+				clearInterval(this.renderTryInterval);
 				zingchart.render({
 					id : renderIntoNode.substr(1),
 					data : config,
@@ -381,6 +382,12 @@ class ResultMosaic extends ResultModule {
 	}
 
 	async fetchSiteData(siteIds, dbView, requestId) {
+
+		if(siteIds.length == 0) {
+			//FIXME: This case needs to be handled
+			console.log("ERR: Unhandled case; no sites");
+		}
+
 		let queries = [];
 		let itemsLeft = siteIds.length;
 
@@ -427,12 +434,11 @@ class ResultMosaic extends ResultModule {
 	
 	
 	unrender() {
-		/*
-		this.modules.map((module) => {
-			zingchart.unbind(module.name);
-			$("#"+module.name).remove();
-		});
-		*/
+
+		if(this.renderTryInterval != null) {
+			console.log("WARN: Unrendering when renderTryInterval is active.");
+			clearInterval(this.renderTryInterval);
+		}
 
 		$("#result-mosaic-container").hide();
 		if(typeof(this.resultMap) != "undefined") {

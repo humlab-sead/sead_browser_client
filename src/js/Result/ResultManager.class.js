@@ -49,11 +49,7 @@ class ResultManager {
 				var state = data.state;
 				this.setActiveModule(state.result.module, true);
 				this.importSettings(state.result.settings);
-				var triggeringFacet = false;
-				if(data.state.facets.length > 0) {
-					triggeringFacet = data.state.facets[0];
-				}
-				else {
+				if(data.state.facets.length == 0) {
 					this.setResultDataFetchingSuspended(false);
 				}
 			});
