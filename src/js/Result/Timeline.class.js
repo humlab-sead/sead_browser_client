@@ -162,10 +162,8 @@ class Timeline {
 		//When slider tops moving (after being dragged)
 		this.sliderElement.on("change", (values, slider) => {
 			//When slider drag stops, redraw map with selection
-			let layers = this.map.getVisibleDataLayers();
-			layers.map((layer) => {
-				this.map.renderDataLayer(layer.getProperties().layerId);
-			});
+			this.map.removeAllDataLayers();
+			this.map.renderVisibleDataLayers();
 		});
 
 		//Typed input events
@@ -180,10 +178,8 @@ class Timeline {
 			this.updateSlider(this.getSelection());
 			this.updateChart(data);
 
-			let layers = this.map.getVisibleDataLayers();
-			layers.map((layer) => {
-				this.map.renderDataLayer(layer.getProperties().layerId);
-			});
+			this.map.removeAllDataLayers();
+			this.map.renderVisibleDataLayers();
 		});
 		$(upperManualInputNode).on("change", (evt) => {
 			let newValue = $("input", evt.currentTarget).val();
@@ -196,10 +192,8 @@ class Timeline {
 			this.updateSlider(this.getSelection());
 			this.updateChart(data);
 
-			let layers = this.map.getVisibleDataLayers();
-			layers.map((layer) => {
-				this.map.renderDataLayer(layer.getProperties().layerId);
-			});
+			this.map.removeAllDataLayers();
+			this.map.renderVisibleDataLayers();
 		});
 	}
 

@@ -342,11 +342,7 @@ class ResultMap extends ResultModule {
 		}
 
 		if(removeAllDataLayers) {
-			this.dataLayers.forEach((layer, index, array) => {
-				if(layer.getVisible()) {
-					this.removeLayer(layer.getProperties().layerId)
-				}
-			});
+			this.removeAllDataLayers();
 		}
 
 		let latHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "high");
@@ -387,6 +383,15 @@ class ResultMap extends ResultModule {
 		this.selectInteraction = this.createSelectInteraction();
 		this.olMap.addInteraction(this.selectInteraction);
 	}
+
+	removeAllDataLayers() {
+		this.dataLayers.forEach((layer, index, array) => {
+			if(layer.getVisible()) {
+				this.removeLayer(layer.getProperties().layerId)
+			}
+		});
+	}
+	
 
 	/*
 	* Function: renderVisibleDataLayers
