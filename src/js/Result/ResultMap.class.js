@@ -51,6 +51,7 @@ class ResultMap extends ResultModule {
 		this.selectPopupOverlay = null;
 		this.selectInteraction = null;
 		this.timeline = null;
+		this.defaultExtent = [-9240982.715065815, -753638.6533165146, 11461833.521917604, 19264301.810231723];
 		
 
 		//These attributes are used to set the style of map points
@@ -355,16 +356,17 @@ class ResultMap extends ResultModule {
 
 		let extentNW = null;
 		let extentSE = null;
+		let extent = null;
 		if(latHigh === false || latLow === false || lngHigh === false || lngLow === false) {
-			extentNW = fromLonLat([18, 43]);
-			extentSE = fromLonLat([19, 44]);
+			extent = this.defaultExtent;
 		}
 		else {
 			extentNW = fromLonLat([lngLow.lng, latLow.lat]);
 			extentSE = fromLonLat([lngHigh.lng, latHigh.lat]);
+			extent = extentNW.concat(extentSE);
 		}
 
-		let extent = extentNW.concat(extentSE);
+		//let extent = extentNW.concat(extentSE);
 
 		this.olMap.getView().fit(extent, {
 			padding: [20, 20, 20, 20],

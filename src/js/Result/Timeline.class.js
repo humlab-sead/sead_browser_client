@@ -298,10 +298,8 @@ class Timeline {
 	}
 
 	getTimelineMarginSize(data) {
-		let earliest = this.getEarliestSite(data);
-		let latest = this.getLatestSite(data);
-		let sliderMin = earliest.time.min;
-		let sliderMax = latest.time.max;
+		let sliderMin = this.totalMin;
+		let sliderMax = this.totalMax;
 		
 		let digits = sliderMax.toString().length > sliderMin.toString().length ? sliderMax.toString().length : sliderMin.toString().length;
 		let digitSpace = digits*5;
