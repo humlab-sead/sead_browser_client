@@ -119,11 +119,88 @@ class RangeFacet extends Facet {
 		for(let itemKey in importData.Items) {
 			targetSection.push({
 				//Value spans:
-				gt: importData.Items[itemKey].Extent[0], //Greater Than - except for the first item which should be >=
-				lt: importData.Items[itemKey].Extent[1], //Lesser Than - except for the last item which should be <=
+				min: importData.Items[itemKey].Extent[0], //Greater Than - except for the first item which should be >=
+				max: importData.Items[itemKey].Extent[1], //Lesser Than - except for the last item which should be <=
 				value: importData.Items[itemKey].Count //value/count for this category/span
 			});
 		}
+
+	}
+
+
+	reduceResolutionOfDataset(dataset, selections = [], resolution = 100) {
+		if(dataset.length <= this.numberOfCategories) { //Nothing to do, we can't upscale data resolution, only downscale
+			return dataset;
+		}
+
+		//Get highest/lowest data values
+		let totalMin = null; //Starting value for the categories
+		let totalMax = null; //Ending value for the categories
+		if(selections.length == 2) {
+			totalMin = selections[0];
+			totalMax = selections[1];
+		}
+		else {
+			let endpoints = this.getDataEndpoints();
+			totalMin = endpoints.min;
+			totalMax = endpoints.max;
+		}
+
+		//Make bins
+		let fullSpan = totalMax - totalMin;
+		let binSize = fullSpan / resolution;
+
+		let binMin = totalMin; //First bin
+		let binMax = binMin + binSize; //First bin
+
+		let bins = [];
+		for(let i = 0; i < resolution; i++) {
+			bins.push({
+				min: binMin,
+				max: binMax,
+				sites: []
+			});
+
+			binMin += binSize;
+			binMax += binSize;
+		}
+
+		
+		//We don't like to have floats as bin limits
+		bins.map((bin) => {
+			bin.max = Math.round(bin.max);
+			bin.min = Math.round(bin.min);
+		});
+
+		//Do the actual binning of sites
+		for(let bk in bins) {
+			let bin = bins[bk];
+			for(let dk in dataset) {
+				let point = dataset[dk];
+				if(this.rangeSpanOverlap(point, bin)) {
+					bin.sites.push(point);
+				}
+			}
+		}
+
+		//Calculate avg value in each bin
+		for(let bk in bins) {
+			let binTotal = 0;
+			bins[bk].sites.map((site) => {
+				binTotal += site.value;
+			});
+			bins[bk].value = Math.round((binTotal / bins[bk].sites.length) * 10) / 10;
+		}
+
+		return bins;
+	}
+
+	rangeSpanOverlap(point, reference) {
+		let binEclipse = point.min >= reference.min && point.max <= reference.max; //Overlap through being eclipsed by bin
+		if(binEclipse) {
+			return true;
+		}
+		return false;
 	}
 
 	/*
@@ -216,12 +293,8 @@ class RangeFacet extends Facet {
 			this.data = this.hqs.copyObject(this.datasets.unfiltered);
 		}
 		
-		let categories = this.data;
-		if(this.data.length > this.numberOfCategories) { //We can't upscale data resolution, only downscale
-			categories = this.makeCategories(this.data, selections);
-		}
+		let categories = this.reduceResolutionOfDataset(this.data, selections, this.numberOfCategories);
 		
-
 		$(".facet-body > .chart-container", this.getDomRef()).show();
 		if(this.chart == null) {
 			this.renderChart(categories, selections);
@@ -436,7 +509,7 @@ class RangeFacet extends Facet {
 		$(".noUi-handle-lower .range-facet-manual-input", this.getDomRef()).val(this.getSelections()[0]);
 		$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(this.getSelections()[1]);
 
-		let categories = this.makeCategories(this.data, this.getSelections());
+		let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());
 		this.updateChart(categories, this.getSelections());
 	}
 
@@ -469,8 +542,8 @@ class RangeFacet extends Facet {
 		}
 
 		for(let catKey in categories) {
-			let labelLow = categories[catKey].gt;
-			let labelHigh = categories[catKey].lt;
+			let labelLow = categories[catKey].min;
+			let labelHigh = categories[catKey].max;
 			if(Config.rangeFilterFuzzyLabels) {
 				labelLow = Math.round(labelLow);
 				labelHigh = Math.round(labelHigh);
@@ -527,10 +600,7 @@ class RangeFacet extends Facet {
 			this.data = this.hqs.copyObject(this.datasets.unfiltered);
 		}
 		
-		let categories = this.data;
-		if(this.data.length > this.numberOfCategories) { //We can't upscale data resolution, only downscale
-			categories = this.makeCategories(this.data, this.getSelections());
-		}
+		let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());
 
 		this.renderChart(categories, this.getSelections());
 	}
