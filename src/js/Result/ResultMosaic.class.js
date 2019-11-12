@@ -15,6 +15,7 @@ class ResultMosaic extends ResultModule {
 		this.tileSize = 400; //px (both height & width) of a mosaic tile
 		this.currentZoomLevel = 4;
 		this.requestBatchId = 0;
+		this.graphs = [];
 
 		this.modules = [
 			{
@@ -26,7 +27,9 @@ class ResultMosaic extends ResultModule {
 				title: "Site distribution",
 				name: "mosaic-map",
 				callback: () => {
-					this.resultMap = new ResultMap(this.resultManager, "#mosaic-map");
+					if(typeof this.resultMap == "undefined") {
+						this.resultMap = new ResultMap(this.resultManager, "#mosaic-map");
+					}
 					this.resultMap.fetchData();
 				}
 			},
@@ -112,7 +115,7 @@ class ResultMosaic extends ResultModule {
 				this.resultManager.showLoadingIndicator(false);
 			}
 			else {
-				console.log("WARN: ResultMosaic discarding old result package data ("+respData.requestId+"/"+this.requestId+").");
+				console.log("WARN: ResultMosaic discarding old result package data ("+respData.RequestId+"/"+this.requestId+").");
 			}
 			},
 			function(xhr, textStatus, errorThrown) { //error
@@ -122,9 +125,7 @@ class ResultMosaic extends ResultModule {
 	
 	renderData() {
 		this.unrender();
-
-		this.resultManager.renderMsg(false);
-		$('#result-mosaic-container').html("");
+		
 		$('#result-mosaic-container').css("display", "grid");
 
 		this.sites = [];
@@ -136,7 +137,9 @@ class ResultMosaic extends ResultModule {
 
 		this.requestBatchId++;
 		for(let key in this.modules) {
-			$('#result-mosaic-container').append("<div class='result-mosaic-tile'><h2>"+this.modules[key].title+"</h2><div id='"+this.modules[key].name+"' class='result-mosaic-graph-container'></div></div>");
+			if($("#result-mosaic-container #"+this.modules[key].name).length == 0) {
+				$('#result-mosaic-container').append("<div class='result-mosaic-tile'><h2>"+this.modules[key].title+"</h2><div id='"+this.modules[key].name+"' class='result-mosaic-graph-container'></div></div>");
+			}
 			this.modules[key].callback("#"+this.modules[key].name, this);
 		}
 		
@@ -186,7 +189,6 @@ class ResultMosaic extends ResultModule {
 	}
 
 	renderAnalysisMethods(renderIntoNode, resultMosaic) {
-		$(renderIntoNode).html("");
 		let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_analysis_methods", resultMosaic.requestBatchId);
 		promise.then((promiseData) => {
 			if(promiseData.requestId < resultMosaic.requestBatchId) {
@@ -200,7 +202,6 @@ class ResultMosaic extends ResultModule {
 	}
 
 	renderSampleMethods(renderIntoNode, resultMosaic) {
-		$(renderIntoNode).html("");
 		//WARN: This load is sometimes being done befor there are any sites...
 		let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_methods", resultMosaic.requestBatchId);
 		promise.then((promiseData) => {
@@ -274,22 +275,20 @@ class ResultMosaic extends ResultModule {
 			"toggle-action":"remove"
 		};
 
-		
-		let renderTryInterval = setInterval(() => {
-			if($(renderIntoNode).length == 0) {
-				console.log("WARN(1): Tried to render mosaic chart before target element was available.");
-			}
-			else {
-				clearInterval(renderTryInterval);
-				zingchart.render({
-					id : renderIntoNode.substr(1),
-					data : config,
-					height: "100%"
-				});
-			}
-		}, 100);
-
-		
+		let zc = this.getFromGraphRegistry(renderIntoNode);
+		if(zc !== false) { //Update existing chart
+			zingchart.exec(renderIntoNode.substr(1), 'setdata', {
+				"data": config
+			});
+		}
+		else { //Create new chart
+			let zc = zingchart.render({
+				id : renderIntoNode.substr(1),
+				data : config,
+				height: "100%"
+			});
+			this.pushIntoGraphRegistry(zc, renderIntoNode);
+		}
 	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {
@@ -362,23 +361,37 @@ class ResultMosaic extends ResultModule {
 			"layout":rows+"x1", //row x column
 			"toggle-action":"remove"
 		};
-		
 
-		this.renderTryInterval = setInterval(() => {
-			if($(renderIntoNode).length == 0) {
-				console.log("WARN(2): Tried to render mosaic chart before target element was available.");
-			}
-			else {
-				clearInterval(this.renderTryInterval);
-				zingchart.render({
-					id : renderIntoNode.substr(1),
-					data : config,
-					height: "100%"
-				});
-			}
-		}, 100);
+		let zc = this.getFromGraphRegistry(renderIntoNode);
+		if(zc !== false) { //Update existing chart
+			zingchart.exec(renderIntoNode.substr(1), 'setdata', {
+				"data": config
+			});
+		}
+		else { //Create new chart
+			let zc = zingchart.render({
+				id : renderIntoNode.substr(1),
+				data : config,
+				height: "100%"
+			});
+			this.pushIntoGraphRegistry(zc, renderIntoNode);
+		}
+	}
 
-		
+	getFromGraphRegistry(anchorNodeName) {
+		for(let k in this.graphs) {
+			if(this.graphs[k].anchor == anchorNodeName) {
+				return this.graphs[k].graph;
+			}
+		}
+		return false;
+	}
+
+	pushIntoGraphRegistry(graphObject, anchorNodeName) {
+		this.graphs.push({
+			graph: graphObject,
+			anchor: anchorNodeName
+		});
 	}
 
 	async fetchSiteData(siteIds, dbView, requestId) {
@@ -434,7 +447,6 @@ class ResultMosaic extends ResultModule {
 	
 	
 	unrender() {
-
 		if(this.renderTryInterval != null) {
 			console.log("WARN: Unrendering when renderTryInterval is active.");
 			clearInterval(this.renderTryInterval);
@@ -444,6 +456,8 @@ class ResultMosaic extends ResultModule {
 		if(typeof(this.resultMap) != "undefined") {
 			this.resultMap.unrender();
 		}
+
+		//$('#result-mosaic-container').html("");
 	}
 	
 	exportSettings() {
