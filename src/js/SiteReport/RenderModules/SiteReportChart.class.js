@@ -311,11 +311,6 @@ class SiteReportChart {
 		if(contentItem.data.columns[yAxisKey].hasOwnProperty("unit")) {
 			yUnitSymbol = contentItem.data.columns[yAxisKey].unit;
 		}
-	
-		/*
-		var taxonId = contentItem.data.columns[xAxisKey].title;
-		contentItem.data.columns[xAxisKey].moreInfoCallback(taxonId);
-		*/
 		
 		var config = {
 			"type": "bar",
@@ -328,22 +323,8 @@ class SiteReportChart {
 				"hover-state": {
 					"background-color": "#f60"
 				},
-				"max-trackers": 1000
+				"max-trackers": 10000
 			},
-			//"height": 200,
-			/*
-			"legend": {
-				"toggle-action": "hide",
-				"header": {
-					"text": "Legend Header"
-				},
-				"item": {
-					"cursor": "pointer"
-				},
-				"draggable": true,
-				"drag-handler": "icon"
-			},
-			*/
 			"scale-x": {
 				"format":"%v"+xUnitSymbol,
 				"label": {
@@ -364,15 +345,8 @@ class SiteReportChart {
 			}]
 		};
 		
-		
 		let yValues = [];
 		for(var key in contentItem.data.rows) {
-			/*
-			chartjsData.labels.push(contentItem.data.rows[key][xAxisKey]);
-			chartjsData.datasets[0].data.push(contentItem.data.rows[key][yAxisKey]);
-			chartjsData.datasets[0].backgroundColor = bgColor;
-			*/
-			
 			yValues.push(contentItem.data.rows[key][yAxisKey].value);
 			
 			config["scale-x"].values.push(contentItem.data.rows[key][xAxisKey].value);
