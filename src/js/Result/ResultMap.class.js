@@ -775,6 +775,7 @@ class ResultMap extends ResultModule {
 		
 		selectInteraction.on("select", (evt) => {
 			if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == false) {
+				$("#map-popup-container").show();
 				var feature = evt.selected[0];
 				var coords = feature.getGeometry().getCoordinates();
 				var prop = feature.getProperties();
