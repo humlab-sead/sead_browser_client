@@ -586,7 +586,18 @@ class SiteReport {
 			evt.preventDefault();
 			evt.stopPropagation();
 			
-			this.renderExportDialog(["json", "xlsx", "png"], section, contentItem);
+			let selectedRoType = "";
+			contentItem.renderOptions.map((ro) => {
+				if(ro.selected) {
+					selectedRoType = ro.type;
+				}
+			});
+			
+			let exportFormats = ["json", "xlsx"];
+			if(selectedRoType != "table") {
+				exportFormats.push("png");
+			}
+			this.renderExportDialog(exportFormats, section, contentItem);
 		});
 		
 		return node;
