@@ -477,3 +477,29 @@ ALTER TABLE <schema>.qse_taxon
 
 GRANT ALL ON TABLE <schema>.qse_taxon TO <viewowner>;
 GRANT SELECT ON TABLE <schema>.qse_taxon TO <grantread>;
+
+
+
+-- View: <schema>.qse_sample_group_analyses
+
+-- DROP VIEW <schema>.qse_sample_group_analyses;
+
+CREATE OR REPLACE VIEW <schema>.qse_sample_group_analyses
+ AS
+ SELECT DISTINCT qse_analysis_methods.method_id,
+    sample_groups.sample_group_id,
+    sample_groups.site_id,
+    qse_analysis_methods.method_name,
+    qse_analysis_methods.method_abbrev_or_alt_name
+   FROM <schema>.sample_groups
+     LEFT JOIN <schema>.methods ON sample_groups.method_id = methods.method_id
+     LEFT JOIN <schema>.sample_group_description_type_sampling_contexts ON sample_groups.sampling_context_id = sample_group_description_type_sampling_contexts.sampling_context_id
+     LEFT JOIN <schema>.sample_group_description_types ON sample_group_description_type_sampling_contexts.sample_group_description_type_id = sample_group_description_types.sample_group_description_type_id
+     LEFT JOIN <schema>.qse_analysis_methods ON sample_groups.sample_group_id = qse_analysis_methods.sample_group_id
+  WHERE qse_analysis_methods.method_id IS NOT NULL;
+
+ALTER TABLE <schema>.qse_sample_group_analyses
+    OWNER TO <viewowner>;
+
+GRANT ALL ON TABLE <schema>.qse_sample_group_analyses TO <viewowner>;
+GRANT SELECT ON TABLE <schema>.qse_sample_group_analyses TO <grantread>;

@@ -1,3 +1,4 @@
+import css from '../../../stylesheets/style.scss';
 
 /*
 * Class: Samples
@@ -12,12 +13,6 @@ class Samples {
 		this.data = {
 			"sampleGroups": []
 		};
-		
-		this.hqs.hqsEventListen("fetchSampleGroups", () => {
-			this.render();
-			this.buildComplete = true;
-			this.hqs.hqsEventDispatch("siteReportSamplesBuildComplete");
-		}, this);
 	}
 	
 	
@@ -29,9 +24,6 @@ class Samples {
 	*
 	 */
 	render() {
-	
-		//console.log(this.data);
-		//$(this.anchor).html("Samples here");
 		
 		var section = {
 			"name": "samples",
@@ -80,6 +72,11 @@ class Samples {
 				"dataType": "string",
 				"pkey": false,
 				"title": "Method"
+			},
+			{
+				"dataType": "string",
+				"pkey": false,
+				"title": "Analyses"
 			},
 			{
 				"dataType": "string",
@@ -160,7 +157,39 @@ class Samples {
 				biblioParsed = "No reference found.";
 				authors = "None";
 			}
-			
+
+			let analysesButtons = [];
+			for(let ak in sampleGroup.analyses) { //Define in-cell buttons to be rendered in the table cell
+				let methodId = sampleGroup.analyses[ak].method_id;
+				let sampleGroupId = sampleGroup.analyses[ak].sample_group_id;
+				let datasetId = sampleGroup.analyses[ak].dataset_id;
+				//sga = sample group analysis, just a unique identifier for this
+				analysesButtons.push({
+					nodeId: "sga-"+methodId+"-"+sampleGroupId+"-"+datasetId,
+					title: sampleGroup.analyses[ak].method_abbrev_or_alt_name,
+					callback: (evt) => { //What happens when this button is clicked
+						let buttonId = $(evt.currentTarget).attr("id");
+						let components = buttonId.split("-");
+						let methodId = components[1];
+						let sampleGroupId = components[2];
+						let datasetId = components[3];
+
+						//site-report-level-content
+						if($("[site-report-section-name="+methodId+"] > .site-report-level-content").attr("collapsed") == "true") {
+							$("[site-report-section-name="+methodId+"] > .site-report-level-title").click();
+						}
+						$(".section-left").animate({
+							scrollTop: $("#contentItem-"+datasetId).offset().top
+						}, 1000, "swing", () => {
+							$("#contentItem-"+datasetId).prev().effect("highlight", {
+								color: css.auxColor
+							});
+						});
+						
+					}
+				});
+			}
+
 			section.contentItems[0].data.rows.push([
 				{
 					"type": "subtable",
@@ -180,6 +209,12 @@ class Samples {
 					"type": "cell",
 					"value": sampleGroup.methodName,
 					"tooltip": sampleGroup.methodDescription == null ? "" : sampleGroup.methodDescription
+				},
+				{
+					"type": "cell",
+					"value": "",
+					"buttons": analysesButtons,
+					"tooltip": "Analyses performed on this sample group"
 				},
 				{
 					"type": "cell",
@@ -208,6 +243,7 @@ class Samples {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
+					let auxiliaryFetchPromises = [];
 					for(var key in data) {
 						var sampleGroup = data[key];
 						var sampleGroupKey = this.hqs.findObjectPropInArray(this.data.sampleGroups, "sampleGroupId", sampleGroup.sample_group_id);
@@ -227,12 +263,19 @@ class Samples {
 								"samples": []
 							});
 							
-							this.fetchSampleGroupBiblio(sampleGroup.sample_group_id);
-							
-							this.fetchSamples(sampleGroup.sample_group_id);
+
+							auxiliaryFetchPromises.push(this.fetchSampleGroupBiblio(sampleGroup.sample_group_id));
+							auxiliaryFetchPromises.push(this.fetchSamples(sampleGroup.sample_group_id));
+							auxiliaryFetchPromises.push(this.fetchSampleGroupAnalyses(sampleGroup.sample_group_id));
 						}
 						
 					}
+
+					Promise.all(auxiliaryFetchPromises).then((data) => {
+						this.render();
+						this.buildComplete = true;
+					});
+
 					resolve(data);
 				},
 				error: () => {
@@ -242,48 +285,77 @@ class Samples {
 		});
 	}
 	
-	fetchSampleGroupBiblio(sampleGroupId) {
-		var xhr1 = this.hqs.pushXhr(null, "fetchSampleGroups");
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_group_biblio?sample_group_id=eq."+sampleGroupId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				var sampleGroup = this.getSampleGroupById(sampleGroupId);
-				sampleGroup.biblio = data;
-				this.hqs.popXhr(xhr1);
-			}
+	async fetchSampleGroupAnalyses(sampleGroupId) {
+		return await new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_group_analyses?sample_group_id=eq."+sampleGroupId, {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					for(let key in this.data.sampleGroups) {
+						if(typeof this.data.sampleGroups[key].analyses == "undefined") {
+							this.data.sampleGroups[key].analyses = [];
+						}
+						for(let ak in data) {
+							let analysis = data[ak];
+							if(this.data.sampleGroups[key].sampleGroupId == analysis.sample_group_id) {
+								this.data.sampleGroups[key].analyses.push(analysis);
+							}
+						}
+					}
+					resolve(data);
+				},
+				error: () => {
+					reject();
+				}
+			});
 		});
-		
+	}
+
+	async fetchSampleGroupBiblio(sampleGroupId) {
+		return await new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_group_biblio?sample_group_id=eq."+sampleGroupId, {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					var sampleGroup = this.getSampleGroupById(sampleGroupId);
+					sampleGroup.biblio = data;
+					resolve(data);
+				},
+				error: () => {
+					reject();
+				}
+			});
+		});
 	}
 	
-	fetchSamples(sampleGroupId) {
-		
-		var xhr1 = this.hqs.pushXhr(null, "fetchSampleGroups");
-		
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample?sample_group_id=eq."+sampleGroupId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				for(var key in data) {
-					var sampleGroupKey = this.hqs.findObjectPropInArray(this.data.sampleGroups, "sampleGroupId", data[key].sample_group_id);
-					var sample = {
-						"sampleId": data[key].physical_sample_id,
-						"sampleTypeId": data[key].sample_type_id,
-						"sampleTypeName": data[key].sample_type_name,
-						"sampleName": data[key].sample_name,
-						"sampleTypeDescription": data[key].sample_type_description
-					};
-					this.data.sampleGroups[sampleGroupKey].samples.push(sample);
+	async fetchSamples(sampleGroupId) {
+		return await new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample?sample_group_id=eq."+sampleGroupId, {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					for(var key in data) {
+						var sampleGroupKey = this.hqs.findObjectPropInArray(this.data.sampleGroups, "sampleGroupId", data[key].sample_group_id);
+						var sample = {
+							"sampleId": data[key].physical_sample_id,
+							"sampleTypeId": data[key].sample_type_id,
+							"sampleTypeName": data[key].sample_type_name,
+							"sampleName": data[key].sample_name,
+							"sampleTypeDescription": data[key].sample_type_description
+						};
+						this.data.sampleGroups[sampleGroupKey].samples.push(sample);
+						//this.fetchSampleModifiers(data[key].physical_sample_id, sample);
+						//this.fetchSampleDimensions(data[key].physical_sample_id, sample); //FIXME: Yeah... this is a performance-hog and it turns out empty at least some of the time anyway... so... that's gonna be a no from me dog
+						
+					}
 					
-					//this.fetchSampleModifiers(data[key].physical_sample_id, sample);
-					//this.fetchSampleDimensions(data[key].physical_sample_id, sample); //FIXME: Yeah... this is a performance-hog and it turns out empty at least some of the time anyway... so... that's gonna be a no from me dog
-					
+					resolve(data);
+				},
+				error: () => {
+					reject();
 				}
-				
-				this.hqs.popXhr(xhr1);
-			}
+			});
 		});
-		
 	}
 	
 	fetchSampleModifiers(sampleId, targetCell) {
@@ -331,7 +403,6 @@ class Samples {
 	}
 	
 	destroy() {
-		this.hqs.hqsEventUnlisten("fetchSampleGroups", this);
 	}
 }
 

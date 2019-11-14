@@ -59,6 +59,24 @@ class SiteReportTable {
 		//Attach table to DOM
 		$(anchorNodeSelector).append(this.tableNode);
 		
+		//Bind callbacks to any cell-buttons that might have been rendered - I apologize to future me for this nesting, it's not as bad as it looks
+		for(let rk in this.rows) {
+			let row = this.rows[rk];
+			for(let ck in row) {
+				let cell = row[ck];
+				if(typeof cell.buttons != "undefined") {
+					for(let bk in cell.buttons) {
+						let button = cell.buttons[bk];
+						$("#"+button.nodeId).on("click", (evt) => {
+							evt.preventDefault();
+							evt.stopPropagation();
+							button.callback(evt);
+						});
+					}
+				}
+			}
+		}
+
 		//Make into DataTable
 		this.dt = $(this.tableNode).DataTable({
 			"responsive": true,
@@ -250,6 +268,8 @@ class SiteReportTable {
 				var value = row[colKey].value;
 				var tooltip = row[colKey].tooltip;
 				
+				
+				
 				if(row[colKey].hasOwnProperty("callback") && typeof(row[colKey].callback) == "function") {
 					row[colKey].callback(row, cellNodeId);
 				}
@@ -278,21 +298,18 @@ class SiteReportTable {
 						this.siteReport.hqs.tooltipManager.registerTooltip("#"+cellNodeId, tooltipMsg, options);
 					}
 					
+					//buttons
+					if(typeof row[colKey].buttons != "undefined") {
+						let buttons = row[colKey].buttons;
+						for(let bk in buttons) {
+							value += "<div id='"+buttons[bk].nodeId+"' class='sample-group-analysis-infobox'>"+buttons[bk].title+"</div>";
+						}
+					}
+
 					var cellNode = $("<td id='"+cellNodeId+"'>"+value+"</td>");
 					rowNode.append(cellNode);
 				}
 			}
-			else {
-			
-			}
-			/*
-			if(this.hasSubTable() && colKey == this.getSubTableKey()) {
-				//weird? yes...
-			}
-			else {
-			
-			}
-			*/
 		}
 
 		$(rowNode).on("click", (evt) => {

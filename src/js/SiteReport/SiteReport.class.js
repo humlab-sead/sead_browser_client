@@ -432,7 +432,6 @@ class SiteReport {
 			datasetId = "<span class='dataset-id'>("+contentItem.name+")</span>";
 		}
 		
-		
 		var headerNode = $("<div class='content-item-header-container'><h4><span class='contentitem-title'>"+contentItem.title+"</span>"+datasetId+"</h4></div>");
 		$("#site-report-section-"+section.name+" > .site-report-level-content").append(headerNode);
 		this.hqs.tooltipManager.registerTooltip($(".dataset-id", headerNode), "Unique dataset identifier", { drawSymbol: true });

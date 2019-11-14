@@ -674,3 +674,19 @@ tr.site-report-table-row {
   align-items: center;
   margin: 5px;
 }
+
+.sample-group-analysis-infobox {
+  display: inline-block;
+  background-color: $pane-bg-color;
+  border-radius: 3px;
+  margin-left: 2px;
+  margin-right: 2px;
+  color: #000;
+  padding: 3px;
+  font-size: 0.8em;
+}
+
+.sample-group-analysis-infobox:hover {
+  background-color: $aux-color;
+  cursor:pointer;
+}
