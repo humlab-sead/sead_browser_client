@@ -254,6 +254,12 @@ class ResultManager {
 		}
 		this.getResultModuleByName(resultModuleId).setActive(true);
 		this.activeModuleId = resultModuleId;
+
+		//Update result menu to set which button is highlighted, this needs to be done manually here if a result module is activated programmatically
+		let menu = this.hqs.menuManager.getMenuByAnchor("#result-menu");
+		if(menu !== false) {
+			menu.setSelected(resultModuleId);
+		}
 	}
 
 	/*
