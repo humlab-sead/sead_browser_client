@@ -525,22 +525,24 @@ class HumlabQuerySystem {
 						modified = true;
 					}
 				}
-				
 			}
-			
 		}
 		
+		let isPlant = false; //We don't have data on plant or not plant atm, so just assume it's always not, for now
+
 		let tf = "";
-		tf += familyName+", ";
-		if(html) { tf += "<span style='font-style:italic;'>"; }
+		if(!isPlant) { //Don't print out the family name if this is a plant
+			tf += familyName+", ";
+		}
+		if(html) { tf += "<span style='font-style:italic;color:blue;'>"; }
 		tf += genusName;
 		if(html) { tf += "</span>"; }
 		tf += " ";
-		if(html) { tf += "<span style='font-style:italic;'>"; }
+		if(html) { tf += "<span style='font-style:italic;color:red;'>"; }
 		tf += species;
 		if(html) { tf += "</span>"; }
 		
-		if(typeof(taxon.author_name) != "undefined") {
+		if(typeof(taxon.author_name) != "undefined" && taxon.author_name != null) {
 			tf += " ";
 			tf += taxon.author_name;
 		}

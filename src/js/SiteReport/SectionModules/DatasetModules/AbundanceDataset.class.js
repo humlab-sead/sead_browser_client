@@ -89,8 +89,8 @@ class AbundanceDataset {
 				taxonIds.push(taxonId);
 			}
 		}
+
 		var taxonPromise = this.hqs.siteReportManager.siteReport.getTaxa(taxonIds);
-		
 		taxonPromise.then((taxa) => {
 			for(var key in taxa) {
 				this.applyTaxon(taxa[key]);
