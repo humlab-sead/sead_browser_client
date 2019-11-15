@@ -534,11 +534,11 @@ class HumlabQuerySystem {
 		if(!isPlant) { //Don't print out the family name if this is a plant
 			tf += familyName+", ";
 		}
-		if(html) { tf += "<span style='font-style:italic;color:blue;'>"; }
+		if(html) { tf += "<span style='font-style:italic;'>"; }
 		tf += genusName;
 		if(html) { tf += "</span>"; }
 		tf += " ";
-		if(html) { tf += "<span style='font-style:italic;color:red;'>"; }
+		if(html) { tf += "<span style='font-style:italic;'>"; }
 		tf += species;
 		if(html) { tf += "</span>"; }
 		
