@@ -1,0 +1,387 @@
+### Get range filter with picks
+
+POST https://seadserv.humlab.umu.se:8089/api/facets/load
+content-type: application/json
+mode: cors
+accept: application/json
+
+{
+    "requestId":1,
+    "requestType":"populate",
+    "targetCode":"tbl_denormalized_measured_values_32",
+    "facetConfigs":[
+        {
+            "facetCode":"tbl_denormalized_measured_values_32",
+            "position":1,
+            "picks":[],
+            "textFilter":""
+            }
+        ]
+}
+
+### Issue 29
+POST https://seadserv.humlab.umu.se:8089/api/facets/load
+content-type: application/json
+mode: cors
+accept: application/json
+
+{
+    "requestId":1,
+    "requestType":"populate",
+    "targetCode":"tbl_denormalized_measured_values_33_0",
+    "facetConfigs":[ {
+        "facetCode":"tbl_denormalized_measured_values_33_0",
+        "position":1,
+        "picks":[],
+        "textFilter":""
+    }]
+}
+
+
+
+###
+OPTIONS https://seadserv.humlab.umu.se:8089/api/result/load
+mode: cors
+
+
+### Issue with Country filter
+
+POST https://seadserv.humlab.umu.se:8089/api/result/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, */*; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{"facetsConfig":{"requestId":2,"requestType":"populate","targetCode":"country","triggerCode":"country","facetConfigs":[{"facetCode":"country","position":1,"picks":[{"pickType":1,"pickValue":64,"text":64}],"textFilter":""}]},"resultConfig":{"requestId":2,"sessionId":"1","viewTypeId":"map","aggregateKeys":["site_level"]}}
+
+
+
+### Issue with Sample group filter
+
+POST https://seadserv.humlab.umu.se:8089/api/result/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, */*; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{"facetsConfig":{"requestId":4,"requestType":"populate","targetCode":"sample_groups","triggerCode":"sample_groups","facetConfigs":[{"facetCode":"sample_groups","position":1,"picks":[{"pickType":1,"pickValue":510,"text":510}],"textFilter":""}]},"resultConfig":{"requestId":4,"sessionId":"1","viewTypeId":"map","aggregateKeys":["site_level"]}}
+
+
+### Testing MS filter
+
+POST https://seadserv.humlab.umu.se:8089/api/facets/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, */*; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{
+  "requestId": 1,
+  "requestType": "populate",
+  "targetCode": "tbl_denormalized_measured_values_33_0",
+  "facetConfigs": [
+    {
+      "facetCode": "tbl_denormalized_measured_values_33_0",
+      "position": 1,
+      "picks": [
+      ],
+      "textFilter": ""
+    }
+  ]
+}
+
+
+
+### Testing range filters
+
+
+POST https://seadserv.humlab.umu.se:8089/api/facets/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, */*; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{
+    "requestId":1,
+    "requestType":"populate",
+    "targetCode":"tbl_denormalized_measured_values_32",
+    "triggerCode":"tbl_denormalized_measured_values_32",
+    "facetConfigs":[ {
+        "facetCode":"tbl_denormalized_measured_values_32",
+        "position":1,
+        "picks":[
+            { "pickType": 2, "pickValue": "10", "text": "10"},
+            { "pickType": 3, "pickValue": "12", "text": "12"}
+        ],
+        "textFilter":""
+    }
+    ]
+}
+
+
+### Testing: MS with picks + Site
+
+POST https://seadserv.humlab.umu.se:8089/api/facets/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, */*; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{
+  "requestId": 1,
+  "requestType": "populate",
+  "targetCode": "sites",
+  "facetConfigs": [
+    {
+      "facetCode": "tbl_denormalized_measured_values_33_0",
+      "position": 1,
+      "picks": [
+        {
+          "pickType": 2,
+          "pickValue": 100,
+          "text": 100
+        },
+        {
+          "pickType": 3,
+          "pickValue": 200,
+          "text": 200
+        }
+      ],
+      "textFilter": ""
+    },
+    {
+      "facetCode": "sites",
+      "position": 2,
+      "picks": [],
+      "textFilter": ""
+    }
+  ]
+}
+
+
+### Gives count 5 for span 1034 => 1036
+POST https://seadserv.humlab.umu.se:8089/api/facets/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, */*; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{
+  "requestId": 1,
+  "requestType": "populate",
+  "targetCode": "tbl_denormalized_measured_values_33_0",
+  "facetConfigs": [
+    {
+      "facetCode": "tbl_denormalized_measured_values_33_0",
+      "position": 1,
+      "picks": [
+        {
+          "pickType": 2,
+          "pickValue": 900,
+          "text": 900
+        },
+        {
+          "pickType": 3,
+          "pickValue": 1200,
+          "text": 1200
+        }
+      ],
+      "textFilter": ""
+    }
+  ]
+}
+
+### Gives count 5 for spans 1034 => 1035 and 1035 => 1036 (total count: 10)
+POST https://seadserv.humlab.umu.se:8089/api/facets/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, */*; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{
+  "requestId": 1,
+  "requestType": "populate",
+  "targetCode": "tbl_denormalized_measured_values_33_0",
+  "facetConfigs": [
+    {
+      "facetCode": "tbl_denormalized_measured_values_33_0",
+      "position": 1,
+      "picks": [
+        {
+          "pickType": 2,
+          "pickValue": 1030,
+          "text": 1030
+        },
+        {
+          "pickType": 3,
+          "pickValue": 1037,
+          "text": 1037
+        }
+      ],
+      "textFilter": ""
+    }
+  ]
+}
+
+
+
+### Failing fetch: Site-filter with a pick + MS-filter
+POST https://seadserv.humlab.umu.se:8089/api/result/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, */*; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{ 
+   "facetsConfig":{ 
+      "requestId":2,
+      "requestType":"populate",
+      "targetCode":"tbl_denormalized_measured_values_33_0",
+      "triggerCode":"tbl_denormalized_measured_values_33_0",
+      "facetConfigs":[ 
+         { 
+            "facetCode":"sites",
+            "position":1,
+            "picks":[ 
+               { 
+                  "pickType":1,
+                  "pickValue":261,
+                  "text":261
+               }
+            ],
+            "textFilter":""
+         },
+         { 
+            "facetCode":"tbl_denormalized_measured_values_33_0",
+            "position":2,
+            "picks":[ 
+
+            ],
+            "textFilter":""
+         }
+      ]
+   },
+   "resultConfig":{
+      "requestId":2,
+      "sessionId":"1",
+      "viewTypeId":"map",
+      "aggregateKeys":[ 
+         "site_level"
+      ]
+   }
+}
+
+###
+
+GET http://seadserv.humlab.umu.se:8080/qse_abundance_modification?or=(abundance_id.eq.5433,abundance_id.eq.5610,abundance_id.eq.5710,abundance_id.eq.5846,abundance_id.eq.5888,abundance_id.eq.5959,abundance_id.eq.6134,abundance_id.eq.6143,abundance_id.eq.6144,abundance_id.eq.6267,abundance_id.eq.6316,abundance_id.eq.6334,abundance_id.eq.6393,abundance_id.eq.6405,abundance_id.eq.6444,abundance_id.eq.6460,abundance_id.eq.6475,abundance_id.eq.6527,abundance_id.eq.6596,abundance_id.eq.6691,abundance_id.eq.6762,abundance_id.eq.6826,abundance_id.eq.6852,abundance_id.eq.6943,abundance_id.eq.7044,abundance_id.eq.7183,abundance_id.eq.7193,abundance_id.eq.7403,abundance_id.eq.7424,abundance_id.eq.7603,abundance_id.eq.7653,abundance_id.eq.7733,abundance_id.eq.7763,abundance_id.eq.7849,abundance_id.eq.7920,abundance_id.eq.7931,abundance_id.eq.8221,abundance_id.eq.8256,abundance_id.eq.8276,abundance_id.eq.8377,abundance_id.eq.8455,abundance_id.eq.8491,abundance_id.eq.8517,abundance_id.eq.8554,abundance_id.eq.8594)
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, */*; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+null
+
+
+
+
+
+### Gives count 5 for span 1034 => 1036
+POST https://seadserv.humlab.umu.se:8089/api/facets/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, /; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{
+"requestId": 1,
+"requestType": "populate",
+"targetCode": "tbl_denormalized_measured_values_33_0",
+"facetConfigs": [
+{
+"facetCode": "tbl_denormalized_measured_values_33_0",
+"position": 1,
+"picks": [
+{
+"pickType": 2,
+"pickValue": 900,
+"text": 900
+},
+{
+"pickType": 3,
+"pickValue": 1200,
+"text": 1200
+}
+],
+"textFilter": ""
+}
+]
+}
+
+
+### Gives count 5 for spans 1034 => 1035 and 1035 => 1036 (total count: 10)
+POST https://seadserv.humlab.umu.se:8089/api/facets/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, /; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{
+"requestId": 1,
+"requestType": "populate",
+"targetCode": "tbl_denormalized_measured_values_33_0",
+"facetConfigs": [
+{
+"facetCode": "tbl_denormalized_measured_values_33_0",
+"position": 1,
+"picks": [
+{
+"pickType": 2,
+"pickValue": 1030,
+"text": 1030
+},
+{
+"pickType": 3,
+"pickValue": 1037,
+"text": 1037
+}
+],
+"textFilter": ""
+}
+]
+}
+
+
+
+### MS 0-100 request
+
+POST https://seadserv.humlab.umu.se:8089/api/facets/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, /; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{"requestId":17,"requestType":"populate","targetCode":"tbl_denormalized_measured_values_33_0","facetConfigs":[{"facetCode":"tbl_denormalized_measured_values_33_0","position":1,"picks":[{"pickType":2,"pickValue":0,"text":0},{"pickType":3,"pickValue":100,"text":100}],"textFilter":""}]}
+
+
+### MS 0-10 request
+
+POST https://seadserv.humlab.umu.se:8089/api/facets/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, /; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{"requestId":17,"requestType":"populate","targetCode":"tbl_denormalized_measured_values_33_0","facetConfigs":[{"facetCode":"tbl_denormalized_measured_values_33_0","position":1,"picks":[{"pickType":2,"pickValue":0,"text":0},{"pickType":3,"pickValue":10,"text":10}],"textFilter":""}]}
+
+
+
+### Server failure on result load
+POST https://seadserv.humlab.umu.se:8089/api/result/load
+Sec-Fetch-Mode: cors
+mode: cors
+Accept: application/json, text/javascript, /; q=0.01
+Content-Type: application/json; charset=UTF-8
+
+{"facetsConfig":{"requestId":3,"requestType":"populate","targetCode":"tbl_denormalized_measured_values_32","triggerCode":"tbl_denormalized_measured_values_32","facetConfigs":[{"facetCode":"country","position":1,"picks":[{"pickType":1,"pickValue":162,"text":162},{"pickType":1,"pickValue":205,"text":205}],"textFilter":""},{"facetCode":"tbl_denormalized_measured_values_32","position":2,"picks":[{"pickType":2,"pickValue":0.2,"text":0.2},{"pickType":3,"pickValue":8.2,"text":8.2}],"textFilter":""}]},"resultConfig":{"requestId":3,"sessionId":"1","viewTypeId":"tabular","aggregateKeys":["site_level"]}}
+
+

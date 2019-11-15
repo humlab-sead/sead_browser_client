@@ -20,7 +20,7 @@ class Samples {
 	* Function: render
 	*
 	* Renders samples table. Although it uses the renderSection function in the SiteReport class,
-	* so it really just compiles the data in an appropriate format and hands it over. Might change this later on...
+	* so it really just compiles the data in an appropriate format and hands it over.
 	*
 	 */
 	render() {
