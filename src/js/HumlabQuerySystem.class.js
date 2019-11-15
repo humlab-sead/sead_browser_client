@@ -15,6 +15,7 @@ import HelpAgent from './HelpAgent.class.js';
 import UserManager from './UserManager.class.js';
 import PortalManager from './PortalManager.class.js';
 import filterDefinitions from '../filters.json';
+import css from '../stylesheets/style.scss';
 import Config from '../config/config.js';
 
 /* 
@@ -161,18 +162,18 @@ class HumlabQuerySystem {
 			window.cookieconsent.initialise({
 				container: document.getElementById("cookie-consent-content"),
 				palette:{
-					popup: {background: "#eee"},
-					button: {background: "#a20"},
+					popup: {background: css.paneBgColor},
+					button: {background: css.auxColor},
 				},
 				revokable:true,
 				onStatusChange: function(status) {
 					console.log(this.hasConsented() ?
 						'enable cookies' : 'disable cookies');
 				},
-				position: 'bottom-left',
+				position: 'bottom-right',
 				content: {
 					header: 'Cookies used on the website!',
-					message: 'This website uses cookies to enhance functionality. By continuing to use to site you are agreeing to the use of cookies.',
+					message: 'The SEAD system is using cookies to enhance functionality. By continuing to use to site you are agreeing to the use of cookies.',
 					dismiss: 'OK'
 				}
 			});

@@ -11,7 +11,7 @@ var Config = {
 	facetBodyHeight: 268, //default facet height in px
 	discreteFacetRowHeight: 20, //used for calculations in the facet sliding window (paging) functionality
 	discreteFacetTextSize: 10, //used for calculations in the facet sliding window  (paging) functionality
-	cookieWarningEnabled: false, //cookie warning popup - disabled, because we're actually not using cookies atm
+	cookieWarningEnabled: true, //cookie warning popup - disabled, because we're actually not using cookies atm
 	viewstateLoadingScreenEnabled: false,
 	requireLoginForViewstateStorage: true,
 	rangeFilterFuzzyLabels: true, //Rounds labels to avoid very long numbers
