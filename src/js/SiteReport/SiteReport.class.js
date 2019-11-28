@@ -440,7 +440,6 @@ class SiteReport {
 		
 		var headerNode = $("<div class='content-item-header-container'><h4><span class='contentitem-title'>"+contentItem.title+"</span>"+datasetId+"</h4></div>");
 		
-		console.log(contentItem);
 		let cicId = "cic-"+contentItem.name; //content-item-container id
 		//$("#site-report-section-"+section.name+" > .site-report-level-content").append(headerNode);
 		$("#site-report-section-"+section.name+" > .site-report-level-content").append("<div id='"+cicId+"' class='content-item-container'></div>");
