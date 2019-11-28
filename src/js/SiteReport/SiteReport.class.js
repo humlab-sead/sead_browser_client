@@ -177,7 +177,13 @@ class SiteReport {
 		});
 		
 		this.siteReportManager.hqs.setActiveView("siteReport");
+
 		this.siteReportManager.siteReportLayoutManager = new HqsLayoutManager(this.siteReportManager.hqs, "#site-report-panel", 80, 20);
+		/*
+		this.siteReportManager.siteReportLayoutManager = new HqsLayoutManager(this.siteReportManager.hqs, "#site-report-panel", 100, 0, {
+			layoutDirection: "vertical"
+		});
+		*/
 	}
 	
 	/*
@@ -433,7 +439,13 @@ class SiteReport {
 		}
 		
 		var headerNode = $("<div class='content-item-header-container'><h4><span class='contentitem-title'>"+contentItem.title+"</span>"+datasetId+"</h4></div>");
-		$("#site-report-section-"+section.name+" > .site-report-level-content").append(headerNode);
+		
+		console.log(contentItem);
+		let cicId = "cic-"+contentItem.name; //content-item-container id
+		//$("#site-report-section-"+section.name+" > .site-report-level-content").append(headerNode);
+		$("#site-report-section-"+section.name+" > .site-report-level-content").append("<div id='"+cicId+"' class='content-item-container'></div>");
+		$("#site-report-section-"+section.name+" > .site-report-level-content > #cic-"+contentItem.name).append(headerNode);
+
 		this.hqs.tooltipManager.registerTooltip($(".dataset-id", headerNode), "Unique dataset identifier", { drawSymbol: true });
 		this.hqs.tooltipManager.registerTooltip($(".contentitem-title", headerNode), "Name of the dataset as given by the content provider", { drawSymbol: true });
 		
@@ -451,13 +463,11 @@ class SiteReport {
 		
 		
 		var dataVisContainerNode = $("<div id='contentItem-"+contentItem.name+"' class='data-vis-container'><span class='siteReportContentItemLoadingMsg'>Rendering...</span></div>");
-		$("#site-report-section-"+section.name+" > .site-report-level-content").append(dataVisContainerNode);
+		$("#site-report-section-"+section.name+" > .site-report-level-content > #"+cicId).append(dataVisContainerNode);
 		
 		setTimeout(() => { //This might seem strange, but it's really just because we need a delay here so that the "Rendering..." message can be pushed out to the DOM before the whole browser locks up while rendering the content-items(s), yeah it's a non-ideal "solution"...
 			this.renderDataVisualization(section, contentItem);
 		}, 200);
-		
-		
 	}
 	
 	getExportButton(exportFormat, exportStruct) {
@@ -657,7 +667,7 @@ class SiteReport {
 	renderDataVisualization(section, contentItem) {
 		this.sortContentItemData(contentItem);
 		
-		var anchorSelector = "#site-report-section-"+section.name+" > .site-report-level-content > #contentItem-"+contentItem.name;
+		var anchorSelector = "#site-report-section-"+section.name+" > .site-report-level-content > #cic-"+contentItem.name+" > #contentItem-"+contentItem.name;
 		$(anchorSelector).html("");
 		
 		if(contentItem.hasOwnProperty("renderOptions") == false || contentItem.renderOptions.length == 0) {

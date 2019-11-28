@@ -1023,6 +1023,7 @@ class ResultMap extends ResultModule {
 
 	resizeCallback() {
 		if(this.olMap != null) {
+			console.log("resize");
 			//this.unrender();
 			if(typeof(this.resizeTimeout) != "undefined") {
 				clearTimeout(this.resizeTimeout);

@@ -13,12 +13,12 @@
 
 .site-report-container {
   /*display:none; grid*/
-  position:absolute;
+  position:relative;
   top: 0px;
 
   left: 100vw;
-
-  width: calc(100% - 40px);
+  width: 100%;
+  /*width: calc(100% - 40px);*/
 
   /*height:calc(100vh - 88px);*/
 

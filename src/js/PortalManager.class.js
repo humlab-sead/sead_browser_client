@@ -6,6 +6,17 @@ class PortalManager {
         this.hqs = hqs;
         this.config = Config;
         this.activePortal = this.getPortal(Config.activePortal);
+
+        //FIXME: This event doesn't get caught because the layout manager inits before the portal manager and sends out the event before this has started listening
+        this.hqs.hqsEventListen("layoutChange", (evt, mode) => {
+            if(mode == "mobileMode") {
+                $("#portal-menu").hide();
+            }
+            if(mode == "desktopMode") {
+                $("#portal-menu").show();
+            }
+        });
+
     }
 
     getPortal(portalName) {

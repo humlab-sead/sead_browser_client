@@ -178,14 +178,19 @@ class Samples {
 						if($("[site-report-section-name="+methodId+"] > .site-report-level-content").attr("collapsed") == "true") {
 							$("[site-report-section-name="+methodId+"] > .site-report-level-title").click();
 						}
-						$(".section-left").animate({
-							scrollTop: $("#contentItem-"+datasetId).offset().top
-						}, 1000, "swing", () => {
-							$("#contentItem-"+datasetId).prev().effect("highlight", {
-								color: css.auxColor
-							});
-						});
 						
+						//Scroll into view of data when it's done rendering
+						let scrollInterval = setInterval(() => {
+							//Is data is still rendering?
+							if($(".data-vis-container > .siteReportContentItemLoadingMsg", "#cic-"+datasetId).length == 0) {
+								clearInterval(scrollInterval);
+								$("#cic-"+datasetId)[0].scrollIntoView();
+								$("#cic-"+datasetId).effect("highlight", {
+									color: css.auxColor,
+									duration: 3000
+								});
+							}
+						}, 100);
 					}
 				});
 			}

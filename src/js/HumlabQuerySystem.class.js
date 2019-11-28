@@ -178,6 +178,8 @@ class HumlabQuerySystem {
 				}
 			});
 		}
+
+		this.hqsEventDispatch("hqsInitComplete");
 	}
 	
 	/*

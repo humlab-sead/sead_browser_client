@@ -25,8 +25,7 @@ class HqsLayoutManager {
 		
 		$(this.anchor).css("display", "flex");
 		
-		this.setupResizableSections();
-		this.setSectionSizes(leftSize, rightSize, false);
+		
 
 		//Transition to small-screen mode at this width (in pixels)
 		this.screenMobileWidthBreakPoint = 720;
@@ -35,27 +34,47 @@ class HqsLayoutManager {
 		this.mobileBreakpointMediaQuery = "screen and (max-width:"+this.screenMobileWidthBreakPoint+"px)";
 		//this.screenBreakpointMediaQuery = "screen and (min-width:"+this.screenLargeWidthBreakPoint+"px)";
 		
-		enquire.register(this.mobileBreakpointMediaQuery, {
-			match : () => {
-				console.log("Mobile mode enabled");
-				this.switchSection("left");
-				this.toggleToggleButton(true);
-				//$("#facetMenu").hide();
-				//$(".facetMenuItemsContainer").css("position", "relative").css("box-shadow", "none");
-				//$("#facet-menu-mobile-container").show();
-			},
-			unmatch : () => {
-				console.log("Desktop mode enabled");
-				$(this.anchor+" > .section-left").removeClass("full-section");
-				$(this.anchor+" > .section-right").removeClass("full-section");
-				$(this.anchor+" > .section-left").removeClass("hidden-section");
-				$(this.anchor+" > .section-right").removeClass("hidden-section");
-				this.toggleToggleButton(false);
-				$(".ui-resizable-handle").show();
-				this.setSectionSizes(this.leftInitSize, this.rightInitSize, false);
-			}
-		});
+		this.hqs.hqsEventListen("hqsInitComplete", () => {
+			this.setupResizableSections();
+			this.setSectionSizes(leftSize, rightSize, false);
 
+			enquire.register(this.mobileBreakpointMediaQuery, {
+				match : () => {
+					console.log("Mobile mode enabled");
+					
+					this.switchSection("left");
+					this.toggleToggleButton(true);
+					//$("#sead-logo").removeClass("sead-logo-large").addClass("sead-logo-small");
+					$("#sead-logo").hide();
+					$("#aux-menu").hide();
+					this.hqs.hqsEventDispatch("layoutChange", "mobileMode");
+	
+					
+					//$("#facetMenu").hide();
+					//$(".facetMenuItemsContainer").css("position", "relative").css("box-shadow", "none");
+					//$("#facet-menu-mobile-container").show();
+					this.hqs.hqsEventDispatch("layoutResize");
+				},
+				unmatch : () => {
+					console.log("Desktop mode enabled");
+					
+					$(this.anchor+" > .section-left").removeClass("full-section");
+					$(this.anchor+" > .section-right").removeClass("full-section");
+					$(this.anchor+" > .section-left").removeClass("hidden-section");
+					$(this.anchor+" > .section-right").removeClass("hidden-section");
+					this.toggleToggleButton(false);
+					$(".ui-resizable-handle").show();
+					console.log(this.leftInitSize, this.rightInitSize);
+					this.setSectionSizes(this.leftInitSize, this.rightInitSize, false);
+					//$("#sead-logo").removeClass("sead-logo-small").addClass("sead-logo-large");
+					$("#sead-logo").show();
+					$("#aux-menu").show();
+					this.hqs.hqsEventDispatch("layoutChange", "desktopMode");
+					this.hqs.hqsEventDispatch("layoutResize");
+				}
+			});
+
+		});
 		
 		//Bind actions for clicking on the panel toggle button
 		$("#section-toggle-button", this.anchor).bind("click", () => {
@@ -76,7 +95,9 @@ class HqsLayoutManager {
 
 		//React to resize event to collapse header when necessary
 		this.hqs.hqsEventListen("layoutResize", () => {
+			/*
 			let headerWidth = $("#header-space").width();
+			console.log(headerWidth);
 			if(headerWidth < 350) {
 				//Switch to smaller logo
 				$("#sead-logo").removeClass("sead-logo-large").addClass("sead-logo-small");
@@ -84,15 +105,18 @@ class HqsLayoutManager {
 			else {
 				$("#sead-logo").removeClass("sead-logo-small").addClass("sead-logo-large");
 			}
+			*/
 		});
 	}
 
-
+	/*
 	compressHeader() {
 		$("#header-container").animate({
-			height: "50px"
+			height: "40px"
 		}, 500);
 	}
+	*/
+
 
 	/**
 	* Function: toggleToggleButton
@@ -112,8 +136,9 @@ class HqsLayoutManager {
 	* Takes care of everything needing to be done when switching between left/right sections in small-screen mode
 	**/
 	switchSection(section) {
-
 		console.log("switchSection");
+
+		this.hqs.hqsEventDispatch("layoutResize");
 		
 		$(".ui-resizable-handle").hide();
 
@@ -128,10 +153,14 @@ class HqsLayoutManager {
 		if(section == "left") {
 			showSection = $(this.anchor+" > .section-left");
 			hideSection = $(this.anchor+" > .section-right");
+			$("#facet-menu").show();
+			$("#sead-logo").hide();
 		}
 		else {
 			hideSection = $(this.anchor+" > .section-left");
 			showSection = $(this.anchor+" > .section-right");
+			$("#facet-menu").hide();
+			$("#sead-logo").show();
 		}
 
 		showSection.addClass("full-section");

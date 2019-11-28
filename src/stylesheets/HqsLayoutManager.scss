@@ -1,3 +1,5 @@
+@import "style.scss";
+
 .responsive-layout-container {
 	display: none;
 	position: relative;
@@ -37,7 +39,7 @@
 #section-toggle-button {
 	display:none;
 	position:fixed;
-	background-color: brown;
+	background-color: $aux-color;
 	transform: rotate(90deg);
 	text-align:center;
 	right: 0px;
@@ -62,5 +64,5 @@
 
 .hidden-section {
 	display:none !important;
-	min-width: 0vw !important;
+	min-width: 0vw !important; /*FIXME: I think this should be max-width*/
 }
