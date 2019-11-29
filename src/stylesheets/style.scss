@@ -1095,26 +1095,24 @@ polyline{
 
 .timeline-chart-container {
   height: 80%;
+  height: calc(100% - 40px);
   overflow: hidden;
-  /*background-color: lightsteelblue;*/
   display:flex;
   justify-content: center;
 }
 
 .timeline-chart-container-wrapper {
   position:relative;
-  /*width: calc(100% - 80px);*/
   width: 100%;
 }
 
 
 .timeline-slider-container-inner {
   position:relative;
-  //width: calc(100% - 90px);
 }
 
 .timeline-slider-container {
-  height: 20%;
+  height: 40px;
   display:grid;
   grid-template-columns: 1fr;
   grid-template-rows: 1fr 1fr;
@@ -1287,7 +1285,7 @@ polyline{
 }
 
 .result-map-control-icon {
-  font-size: 12px !important;
+  font-size: 16px !important;
   padding-top: 2px;
 }
 
@@ -1586,4 +1584,12 @@ polyline{
 .important-text {
   color: red;
   font-size: 1.0em;
+}
+
+.result-tab-title {
+  padding-left: 7px;
+}
+
+.result-map-tab-title {
+  padding-left: 7px;
 }

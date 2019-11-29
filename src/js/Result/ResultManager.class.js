@@ -83,6 +83,15 @@ class ResultManager {
 					$("#result-title").show();
 				}
 			});
+			
+			this.hqs.hqsEventListen("layoutChange", (evt, data) => {
+				if(data == "mobileMode") {
+					$("#result-menu .result-tab-title").hide();
+				}
+				if(data == "desktopMode") {
+					$("#result-menu .result-tab-title").show();
+				}
+			});
 		}
 		
 	}
@@ -403,7 +412,7 @@ class ResultManager {
 			items: [
 				{
 					name: "map",
-					title: "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i> Geographic",
+					title: "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i><span class='result-tab-title'>Geographic</span>",
 					icon: "",
 					staticSelection: this.getActiveModule().name == "map" ? true : false,
 					callback: () => {
@@ -414,7 +423,7 @@ class ResultManager {
 				},
 				{
 					name: "table",
-					title: "<i class=\"fa fa-table\" aria-hidden=\"true\"></i> Spreadsheet",
+					title: "<i class=\"fa fa-table\" aria-hidden=\"true\"></i><span class='result-tab-title'>Spreadsheet</span>",
 					icon: "",
 					staticSelection: this.getActiveModule().name == "table" ? true : false,
 					callback: () => {
@@ -425,7 +434,7 @@ class ResultManager {
 				},
 				{
 					name: "mosaic",
-					title: "<i class=\"fa fa-bar-chart\" aria-hidden=\"true\"></i> Overview",
+					title: "<i class=\"fa fa-bar-chart\" aria-hidden=\"true\"></i><span class='result-tab-title'>Overview</span>",
 					icon: "",
 					staticSelection: this.getActiveModule().name == "mosaic" ? true : false,
 					callback: () => {

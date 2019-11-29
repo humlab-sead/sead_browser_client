@@ -923,7 +923,7 @@ class ResultMap extends ResultModule {
 	*/
 	resultMapBaseLayersControlsHqsMenu() {
 		var menu = {
-			title: "<i class=\"fa fa-globe result-map-control-icon\" aria-hidden=\"true\"></i>&nbsp;Baselayer", //The name of the menu as it will be displayed in the UI
+			title: "<i class=\"fa fa-globe result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Baselayer</span>", //The name of the menu as it will be displayed in the UI
 			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
 			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
 			anchor: "#result-map-baselayer-controls-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
@@ -955,7 +955,7 @@ class ResultMap extends ResultModule {
 	*/
 	resultMapDataLayersControlsHqsMenu() {
 		var menu = {
-			title: "<i class=\"fa fa-map-marker result-map-control-icon\" aria-hidden=\"true\"></i>&nbsp;Datalayer", //The name of the menu as it will be displayed in the UI
+			title: "<i class=\"fa fa-map-marker result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Datalayer</span>", //The name of the menu as it will be displayed in the UI
 			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
 			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
 			anchor: "#result-map-datalayer-controls-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.

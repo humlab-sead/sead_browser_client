@@ -22,6 +22,7 @@ class HqsLayoutManager {
 		this.leftLastSize = leftSize;
 		this.righLastSize = rightSize;
 		this.options = options;
+		this.mode = "desktopMode";
 		
 		$(this.anchor).css("display", "flex");
 		
@@ -40,6 +41,7 @@ class HqsLayoutManager {
 
 			enquire.register(this.mobileBreakpointMediaQuery, {
 				match : () => {
+					this.mode = "mobileMode";
 					console.log("Mobile mode enabled");
 					
 					this.switchSection("left");
@@ -47,7 +49,7 @@ class HqsLayoutManager {
 					//$("#sead-logo").removeClass("sead-logo-large").addClass("sead-logo-small");
 					$("#sead-logo").hide();
 					$("#aux-menu").hide();
-					this.hqs.hqsEventDispatch("layoutChange", "mobileMode");
+					this.hqs.hqsEventDispatch("layoutChange", this.mode);
 	
 					
 					//$("#facetMenu").hide();
@@ -56,6 +58,7 @@ class HqsLayoutManager {
 					this.hqs.hqsEventDispatch("layoutResize");
 				},
 				unmatch : () => {
+					this.mode = "desktopMode";
 					console.log("Desktop mode enabled");
 					
 					$(this.anchor+" > .section-left").removeClass("full-section");
@@ -69,7 +72,7 @@ class HqsLayoutManager {
 					//$("#sead-logo").removeClass("sead-logo-small").addClass("sead-logo-large");
 					$("#sead-logo").show();
 					$("#aux-menu").show();
-					this.hqs.hqsEventDispatch("layoutChange", "desktopMode");
+					this.hqs.hqsEventDispatch("layoutChange", this.mode);
 					this.hqs.hqsEventDispatch("layoutResize");
 				}
 			});
@@ -116,6 +119,10 @@ class HqsLayoutManager {
 		}, 500);
 	}
 	*/
+
+	getMode() {
+		return this.mode;
+	}
 
 
 	/**
