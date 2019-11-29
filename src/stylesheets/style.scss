@@ -114,7 +114,7 @@ div:focus {
 
 #sead-logo {
   background-position: center center;
-  background-size: auto 87px;
+  background-size: contain;
   width: 100%;
   height: 100%;
   background-color:#fff;
@@ -130,14 +130,6 @@ div:focus {
   background-image: url('../assets/SEAD-logo-small.png');
 }
 
-
-/*
-@media only screen and ( max-width: 700px ) {
-	#sead-logo {
-	  background-image: url('../assets/SEAD-logo-small.png');
-	}
-}
-*/
 
 .sead-logo-text {
   font-size: 2em;
@@ -531,52 +523,8 @@ h1.main-header {
 	width: 100%;
 	text-align: center;
 	font-weight: bold;
-}
+}´
 
-/*
-#result-map-baselayer-control {
-
-  position: absolute;
-  top: 4.0em;
-  left: 0.5em;
-  margin-left: 0px;
-  font-size: 1.14em;
-  color: #fff;
-
-}
-
-#result-map-baselayer-picker {
-  display:none;
-  position:absolute;
-  top: 4.0em;
-  margin-left: 0px;
-  left: 2.25em;
-  padding: 3px;
-  color: #fff;
-  font-size: 1.14em;
-}
-
-#result-map-baselayer-picker > ul {
-  list-style-type: none;
-  margin: 0px;
-  padding: 0px;
-}
-
-#result-map-baselayer-picker > ul > li {
-  background-color: rgba(0, 60, 136, 0.5);
-  padding: 5px;
-  margin-bottom: 0px;
-}
-
-#result-map-baselayer-picker > ul > li:hover {
-	background-color: rgba(0, 60, 136, 0.75);
-}
-
-#baselayer-picker-button {
-  width: 22px;
-  height: 22px;
-}
-*/
 .result-map-control-container {
   position: absolute;
   top: 0px;
@@ -616,23 +564,6 @@ h1.main-header {
 .result-map-control-picker > ul > li:hover {
   background-color: rgba(0, 60, 136, 0.75);
 }
-
-/*
-#result-map {
-  height: 100%;
-  width: 100%;
-}
-*/
-/*
-.ol-overlaycontainer-stopevent {
-  position:relative;
-  top: -100px;
-}
-
-.ol-attribution > ul {
-  display:none;
-}
-*/
 
 .ol-overlaycontainer-stopevent button[type=button] {
 	font-size: 16px;
@@ -1307,12 +1238,6 @@ polyline{
 	font-size: 40px;
 }
 
-/*
-#result-menu > .menu-category-level {
-	right: 0px;
-}
-*/
-
 #viewstate-menu > .menu-category-level {
   right: 14px;
 }
@@ -1385,10 +1310,6 @@ polyline{
   to {
 	background-color: $aux-color;
   }
-}
-
-
-.legend-row {
 }
 
 #about-section {
