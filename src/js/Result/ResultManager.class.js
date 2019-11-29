@@ -76,7 +76,7 @@ class ResultManager {
 			*/
 			
 			this.hqs.hqsEventListen("layoutResize", (evt) => {
-				if($(".section-right").width() < 605) {
+				if($(".section-right").width() < 655) {
 					$("#result-title").hide();
 				}
 				else {

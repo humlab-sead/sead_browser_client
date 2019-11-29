@@ -67,11 +67,11 @@ class HqsLayoutManager {
 					$(this.anchor+" > .section-right").removeClass("hidden-section");
 					this.toggleToggleButton(false);
 					$(".ui-resizable-handle").show();
-					console.log(this.leftInitSize, this.rightInitSize);
 					this.setSectionSizes(this.leftInitSize, this.rightInitSize, false);
 					//$("#sead-logo").removeClass("sead-logo-small").addClass("sead-logo-large");
 					$("#sead-logo").show();
 					$("#aux-menu").show();
+					$("#facet-menu").show();
 					this.hqs.hqsEventDispatch("layoutChange", this.mode);
 					this.hqs.hqsEventDispatch("layoutResize");
 				}
