@@ -13,50 +13,39 @@ class MeasuredValueDataset {
 	
 	offerAnalysis(analysisJSON) {
 		this.analysisData = JSON.parse(analysisJSON);
-		var claimed = false;
-		
 		if (this.analysisData.methodGroupId == 2) { //All in MethodGroupId id 2 = Measured value
-			//console.log("MeasuredValueDataset Claimed ", this.analysisData)
-			claimed = true;
-			this.fetchDataset();
+			//console.log("MeasuredValueDataset module accepted dataset", this.analysisData.datasetId);
+			return true;
 		}
-		
-		return claimed;
+		return false;
 	}
 	
 	destroy() {
 	}
 	
-	fetchDataset() {
-		
-		var xhr1 = this.hqs.pushXhr(null, "fetchSiteAnalyses");
-		
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+this.analysisData.datasetId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				//These are datapoints in the dataset
-				var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
-				this.analysis.data.analyses[analysisKey].dataset = data;
-				
-				this.requestMetaDataForDataset(data);
-
-				this.hqs.popXhr(xhr1);
-				//this.buildSection();
-			}
+	async fetchDataset() {
+		await new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+this.analysisData.datasetId, {
+				method: "get",
+				dataType: "json",
+				success: async (data, textStatus, xhr) => {
+					//These are datapoints in the dataset
+					var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
+					this.analysis.data.analyses[analysisKey].dataset = data;
+					
+					await this.requestMetaDataForDataset(data);
+					resolve();
+				}
+			});
 		});
-		
-		return xhr1;
 	}
 
 
-	requestMetaDataForDataset(dataset) {
-
-		let promises = [];
-		promises = promises.concat(this.analysis.fetchSampleType(dataset));
-		
-		Promise.all(promises).then((values) => {
+	async requestMetaDataForDataset(dataset) {
+		let promises = this.analysis.fetchSampleType(dataset); //This is not wrong - this function returns multiple promises
+		await Promise.all(promises).then((values) => {
 			this.buildSection();
+			return this;
 		});
 	}
 

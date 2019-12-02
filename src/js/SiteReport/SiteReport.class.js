@@ -40,31 +40,10 @@ class SiteReport {
 			$(".site-report-title-site-name").html("<span class='siteReportError'>Site not found</span>");
 		});
 
-
-		//Just for hiding loading indicator...
-        this.hqs.hqsEventListen("siteReportSiteInformationBuildComplete", () => {
-			//console.log("information load complete");
-			this.checkModulesLoadComplete();
-        }, this);
-		this.hqs.hqsEventListen("siteReportSamplesBuildComplete", () => {
-			//console.log("samples load complete");
-            this.checkModulesLoadComplete();
-        }, this);
-        this.hqs.hqsEventListen("siteReportAnalysesBuildComplete", () => {
-			//console.log("analysis load complete");
-            this.checkModulesLoadComplete();
-        }, this);
-
-
-        this.hqs.hqsEventListen("siteReportRenderComplete", () => {
-            clearTimeout(this.loadIndicatorTimeout);
-            this.hideLoadingIndicator();
-        });
-
-
-		$("#site-report-content")
-			.append("<div id='samples-content-container'></div>")
-            .append("<div id='analysis-content-container'></div>");
+		this.hqs.hqsEventListen("siteReportRenderComplete", () => {
+			clearTimeout(this.loadIndicatorTimeout);
+			this.hideLoadingIndicator();
+		});
 
 		let bsi = new BasicSiteInformation(this.hqs, this.siteId);
 		let samples = new Samples(this.hqs, this.siteId, "#samples-content-container");
@@ -89,21 +68,9 @@ class SiteReport {
 
 	}
 
-	checkModulesLoadComplete() {
-        let allComplete = true;
-        for(let key in this.modules) {
-            if(this.modules[key].module.buildComplete === false) {
-                allComplete = false;
-            }
-        }
-        if(allComplete) {
-            this.hideLoadingIndicator();
-        }
-	}
-
 	/*
 	Function: destroy
-	 */
+	*/
 	destroy() {
 		this.data = null;
 		for(let key in this.modules) {
@@ -113,13 +80,13 @@ class SiteReport {
 		}
 
 		this.hqs.hqsEventUnlisten("siteReportSiteInformationBuildComplete", this);
-        this.hqs.hqsEventUnlisten("siteReportSamplesBuildComplete", this);
-        this.hqs.hqsEventUnlisten("siteReportAnalysesBuildComplete", this);
+		this.hqs.hqsEventUnlisten("siteReportSamplesBuildComplete", this);
+		this.hqs.hqsEventUnlisten("siteReportAnalysesBuildComplete", this);
 	}
 	
 	/*
 	Function: showLoadingIndicator
-	 */
+	*/
 	showLoadingIndicator() {
 		let loadingIndicator = $("#result-loading-indicator")[0].cloneNode(true);
 		$(loadingIndicator).attr("id", "site-report-loading-indicator").css("margin-top", "50%");
@@ -129,7 +96,7 @@ class SiteReport {
 	
 	/*
 	Function: hideLoadingIndicator
-	 */
+	*/
 	hideLoadingIndicator() {
 		$("#site-report-loading-indicator").fadeOut(100, () => {
 			$("#site-report-loading-indicator").remove();
@@ -146,11 +113,6 @@ class SiteReport {
 		//Empty everything
 		$("#site-report-content").html("");
 		$(".site-report-aux-info-container").html("");
-		
-		//Enable top bar back-button to go back to the filtering section
-		$(".site-report-close-btn").on("click", () => {
-			this.hide();
-		});
 		
 		$("#facet-result-panel").animate({
 			left: "-100vw"
@@ -176,6 +138,10 @@ class SiteReport {
 			}, 250);
 		});
 		
+		$("#site-report-content")
+			.append("<div id='samples-content-container'></div>")
+            .append("<div id='analysis-content-container'></div>");
+
 		this.siteReportManager.hqs.setActiveView("siteReport");
 
 		this.siteReportManager.siteReportLayoutManager = new HqsLayoutManager(this.siteReportManager.hqs, "#site-report-panel", 80, 20);
@@ -184,37 +150,6 @@ class SiteReport {
 			layoutDirection: "vertical"
 		});
 		*/
-	}
-	
-	/*
-	* Function: hide
-	*
-	* Flips back to the filter/result page in the UI.
-	*/
-	hide() {
-		
-		$("#facet-result-panel").css("display", "flex");
-		$("#facet-result-panel").animate({
-			left: "0vw"
-		}, this.animationTime, this.animationEasing);
-		
-		$(".site-report-container").animate({
-			left: "100vw"
-		}, this.animationTime, this.animationEasing, () => {
-			$(".site-report-container").hide();
-		});
-		
-		$("#site-report-exit-menu").animate({
-			left: "-100px"
-		}, 250, () => {
-			this.siteReportManager.hqs.menuManager.removeMenu(this.backMenu);
-			$("#facet-menu, #aux-menu, #portal-menu").show().animate({
-				top: "0px"
-			}, 250);
-		});
-		
-		hqs.hqsEventDispatch("siteReportClosed");
-        this.siteReportManager.hqs.setActiveView("explorer"); //Fun fact: this doesn't actually do anything, I think
 	}
 	
 	

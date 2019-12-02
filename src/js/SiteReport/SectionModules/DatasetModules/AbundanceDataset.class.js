@@ -15,16 +15,14 @@ class AbundanceDataset {
 	
 	offerAnalysis(analysisJSON) {
 		this.analysisData = JSON.parse(analysisJSON);
-		var claimed = false;
-		
 		if(this.analysisData.methodGroupId == 1) { //All in MethodGroupId id 1 = Abundance
-			//console.log("AbundanceDataset Claimed ", this.analysisData)
-			claimed = true;
-			this.fetchDataset();
+			//console.log("AbundanceDataset module accepted dataset", this.analysisData.datasetId);
+			return true;
 		}
 		
-		return claimed;
+		return false;
 	}
+
 	
 	destroy() {
 		this.hqs.hqsEventUnlisten("taxaFetchingComplete-"+this.analysisData.datasetId, this);
@@ -40,25 +38,24 @@ class AbundanceDataset {
 	* Parameters:
 	* datasetId
 	 */
-	fetchDataset() {
+	async fetchDataset() {
 		
-		var xhr1 = this.hqs.pushXhr(null, "fetchSiteAnalyses");
-		
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+this.analysisData.datasetId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				//These are datapoints in the dataset
-				var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
-				this.analysis.data.analyses[analysisKey].dataset = data;
-				
-				this.requestMetaDataForDataset(data);
-
-				this.hqs.popXhr(xhr1);
-			}
+		await new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+this.analysisData.datasetId, {
+				method: "get",
+				dataType: "json",
+				success: async (data, textStatus, xhr) => {
+					//These are datapoints in the dataset
+					var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
+					this.analysis.data.analyses[analysisKey].dataset = data;
+					
+					await this.requestMetaDataForDataset(data);
+					resolve();
+				}
+			});
 		});
 		
-		return xhr1;
+		
 	}
 	
 	getDataset() {
@@ -66,18 +63,16 @@ class AbundanceDataset {
 		return this.analysis.data.analyses[analysisKey].dataset;
 	}
 	
-	requestMetaDataForDataset(dataset) {
-
+	async requestMetaDataForDataset(dataset) {
 		let promises = [];
 		promises = promises.concat(this.fetchTaxa(dataset));
 		promises = promises.concat(this.fetchAbundanceIdentificationLevel(dataset));
 		promises = promises.concat(this.fetchAbundanceModifications(dataset));
 		promises = promises.concat(this.analysis.fetchSampleType(dataset));
 
-
-		
-		Promise.all(promises).then((values) => {
+		await Promise.all(promises).then((values) => {
 			this.buildSection();
+			return this;
 		});
 	}
 

@@ -49,26 +49,11 @@ class Analysis {
 		this.analysisModules.push({
 			"className": GenericDataset
 		});
-		
-		this.hqs.hqsEventListen("siteReportAnalysesBuildComplete", () => {
-			//console.log("siteReportAnalysesBuildComplete");
-			this.hqs.siteReportManager.siteReport.renderSection(this.section);
-			this.destroyAllAnalysisModules();
-		}, this);
-		
-		
-		this.hqs.hqsEventListen("siteAnalysisBuildComplete", () => {
-			var buildComplete = true;
-			for(var key in this.activeAnalysisModules) {
-				if(this.activeAnalysisModules[key].isBuildComplete() !== true) {
-					buildComplete = false;
-				}
-			}
-			if(buildComplete) {
-                this.buildComplete = true;
-				this.hqs.hqsEventDispatch("siteReportAnalysesBuildComplete");
-			}
-		}, this);
+	}
+
+	render() {
+		this.hqs.siteReportManager.siteReport.renderSection(this.section);
+		this.destroyAllAnalysisModules();
 	}
 	
 	destroyAllAnalysisModules() {
@@ -81,13 +66,15 @@ class Analysis {
 	async fetch() {
 		//Fetching all analyses for this site
 		await new Promise((resolve, reject) => {
+
 			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_site_analyses?site_id=eq."+this.siteId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
 					
 					//this.section.title += " <span class='small-auxiliary-header-text'>("+data.length+" datasets)</span>";
-					
+					let methodPromises = [];
+					let analysisPromises = [];
 					for(var key in data) { //For each analysis...
 						//Each analysis (data[key]) here contains:
 						//method_id - Defines what type of analysis this is
@@ -108,7 +95,8 @@ class Analysis {
 									"samples": []
 								}]
 							});
-							this.fetchMethodMetaData(data[key].method_id);
+							//this.fetchMethodMetaData(data[key].method_id);
+							methodPromises.push(this.fetchMethodMetaData(data[key].method_id));
 						}
 						else {
 							this.data.analyses[analysisKey].sampleGroups.push({
@@ -117,19 +105,22 @@ class Analysis {
 							});
 						}
 					}
+
+					
 					
 					//Now that we have stored the analyses properly, fetch more data about each one.
 					//(analysis and dataset is pretty much synonymous since the dataset is a result of an analysis)
 					for(var key in this.data.analyses) {
-						this.fetchAnalysis(this.data.analyses[key].datasetId);
+						analysisPromises.push(this.fetchAnalysis(this.data.analyses[key].datasetId));
 					}
-	
-					//If there are no analyses, just dispatch the complete event
-					if(this.data.analyses.length == 0) {
-						this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
-					}
-					
-					resolve(data);
+
+					let promises = methodPromises.concat(analysisPromises);
+
+					Promise.all(promises).then((values) => {
+						//console.log("All analyses fetched and built - Running Analysis Render", values);
+						this.render();
+						resolve(data);
+					});
 				},
 				error: () => {
 					reject();
@@ -147,45 +138,60 @@ class Analysis {
 	* Parameters:
 	* datasetId
 	 */
-	fetchAnalysis(datasetId) {
+	async fetchAnalysis(datasetId) {
 		
-		var xhr1 = this.hqs.pushXhr(null, "fetchSiteAnalyses");
-		
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/qse_analysis?dataset_id=eq."+datasetId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				//Find the relevant analysis in the master data structure
-				var analysisKey = this.hqs.findObjectPropInArray(this.data.analyses, "datasetId", datasetId);
-				this.data.analyses[analysisKey].dataTypeId = data[0].data_type_id;
-				this.data.analyses[analysisKey].masterSetId = data[0].master_set_id; //1 or 2 which is Bugs or MAL, also often empty
-				this.data.analyses[analysisKey].dataTypeName = data[0].data_type_name;
-				this.data.analyses[analysisKey].dataTypeDefinition = data[0].definition;
-				this.data.analyses[analysisKey].methodId = data[0].method_id;
-				this.data.analyses[analysisKey].methodName = data[0].method_name;
-				this.data.analyses[analysisKey].datasetName = data[0].dataset_name;
-				
-				let foundModuleForDataset = this.fetchAnalysisDataset(this.hqs.copyObject(this.data.analyses[analysisKey]));
-				if(foundModuleForDataset === false) {
-                    console.log("Couldn't find a module for analysis ", analysis);
-				}
+		let dataset = null;
+		await new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_analysis?dataset_id=eq."+datasetId, {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					//Find the relevant analysis in the master data structure
+					var analysisKey = this.hqs.findObjectPropInArray(this.data.analyses, "datasetId", datasetId);
+					this.data.analyses[analysisKey].dataTypeId = data[0].data_type_id;
+					this.data.analyses[analysisKey].masterSetId = data[0].master_set_id; //1 or 2 which is Bugs or MAL, also often empty
+					this.data.analyses[analysisKey].dataTypeName = data[0].data_type_name;
+					this.data.analyses[analysisKey].dataTypeDefinition = data[0].definition;
+					this.data.analyses[analysisKey].methodId = data[0].method_id;
+					this.data.analyses[analysisKey].methodName = data[0].method_name;
+					this.data.analyses[analysisKey].datasetName = data[0].dataset_name;
 
-				//this.fetchDataset(datasetId);
-				this.hqs.popXhr(xhr1);
-			}
+					dataset = this.data.analyses[analysisKey];
+
+					resolve(dataset);
+				}
+			});
 		});
+
+		
+		let foundModuleForDataset = await this.fetchAnalysisDataset(this.hqs.copyObject(dataset));
+		if(foundModuleForDataset === false) {
+			console.log("WARN: Couldn't find a module for analysis ", analysis);
+		}
+		
 	}
 	
-	fetchAnalysisDataset(analysis) {
+	async fetchAnalysisDataset(analysis) {
 		//See if there's any registered analysis modules willing to take responsibility for this analysis
+		let acceptedModule = null;
 		for(var key in this.analysisModules) {
-			var am = new this.analysisModules[key]["className"](this);
-			if(am.offerAnalysis(JSON.stringify(analysis))) {
-				this.activeAnalysisModules.push(am);
-				return true;
+			if(acceptedModule == null) {
+				var am = new this.analysisModules[key]["className"](this);
+				let analysisAccepted = am.offerAnalysis(JSON.stringify(analysis));
+
+				if(analysisAccepted) {
+					acceptedModule = am;
+				}
 			}
 		}
-		return false;
+
+		if(acceptedModule == null) {
+			console.error("WARN: No analysis module claimed this dataset!");
+			return false;
+		}
+		else {
+			return await acceptedModule.fetchDataset();
+		}
 	}
 	
 	
@@ -197,7 +203,7 @@ class Analysis {
 	* Parameters:
 	* methodId - The id of the method to fetch.
 	 */
-	fetchMethodMetaData(methodId) {
+	fetchMethodMetaDataOld(methodId) {
 		
 		var methodFound = false;
 		for(var key in this.meta.methods) {
@@ -218,16 +224,53 @@ class Analysis {
 			});
 		}
 	}
+
+	/*
+	* Function: fetchMethodMetaData
+	*
+	* Fetches all information about a particular method. Such as name & description.
+	*
+	* Parameters:
+	* methodId - The id of the method to fetch.
+	 */
+	async fetchMethodMetaData(methodId) {
+		new Promise((resolve, reject) => {
+			let methodObj = null;
+			var methodFound = false;
+			for(var key in this.meta.methods) {
+				if(this.meta.methods[key].method_id == methodId) {
+					methodFound = true;
+					methodObj = this.meta.methods[key];
+				}
+			}
+			
+			if(methodFound == false) {
+				$.ajax(this.hqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
+					method: "get",
+					dataType: "json",
+					success: (data, textStatus, xhr) => {
+						let method = data[0];
+						this.meta.methods.push(method);
+						resolve(method);
+					},
+					error: () => {
+						console.error("WARN: Failed to fetch method meta data");
+						reject();
+					}
+				});
+			}
+			else {
+				resolve(methodObj);
+			}
+		});
+	}
 	
 	
 	destroy() {
-		this.hqs.hqsEventUnlisten("fetchSiteAnalyses", this);
-		this.hqs.hqsEventUnlisten("analysesBuildComplete", this);
-		this.hqs.hqsEventUnlisten("siteAnalysisBuildComplete", this);
-		this.hqs.hqsEventUnlisten("siteReportAnalysesBuildComplete", this);
 	}
 
-	async fetchSampleType(dataset) {
+
+	fetchSampleType(dataset) {
 
 		let fetchIds = [];
 		for(let key in dataset) {
@@ -255,24 +298,33 @@ class Analysis {
 		queryString += ")";
 		queries.push(queryString);
 
+		let promises = [];
+
 		for(let key in queries) {
 			let requestString = this.hqs.config.siteReportServerAddress+"/qse_sample_types?or="+queries[key];
 			
-			await $.ajax(requestString, {
-				method: "get",
-				dataType: "json",
-				success: (sampleTypeData) => {
-
-					for(let key in dataset) {
-						for(let sampleTypeKey in sampleTypeData) {
-							if(dataset[key].sample_type_id == sampleTypeData[sampleTypeKey].sample_type_id) {
-								dataset[key].sample_type = sampleTypeData[sampleTypeKey];
+			let p = new Promise((resolve, reject) => {
+				$.ajax(requestString, {
+					method: "get",
+					dataType: "json",
+					success: (sampleTypeData) => {
+	
+						for(let key in dataset) {
+							for(let sampleTypeKey in sampleTypeData) {
+								if(dataset[key].sample_type_id == sampleTypeData[sampleTypeKey].sample_type_id) {
+									dataset[key].sample_type = sampleTypeData[sampleTypeKey];
+								}
 							}
 						}
+						resolve(sampleTypeData);
 					}
-				}
+				});
 			});
+
+			promises.push(p);
 		}
+
+		return promises;
 	}
 }
 

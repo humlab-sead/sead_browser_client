@@ -117,7 +117,6 @@ class BasicSiteInformation {
 	*
 	*/
 	render() {
-		console.log("render basic site information")
 		var data = this.data;
 		var node = $(".site-report-title-site-name").html(this.data.siteName);
 		this.hqs.tooltipManager.registerTooltip(node, "Name of the site as given by the data provider", {drawSymbol: true, placement: "top"});
