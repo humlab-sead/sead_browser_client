@@ -408,12 +408,22 @@ class SiteReport {
 		var node = null;
 		if(exportFormat == "json") {
 			node = $("<a id='site-report-json-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download JSON</a>");
-			var exportData = Buffer.from(JSON.stringify(exportStruct, null, 2)).toString("base64");
+			
+			let json = JSON.stringify(exportStruct, (key, value) => {
+				if(key == "renderInstance") {
+					value = null;
+				}
+				return value;
+			}, 2);
+			
+			//var exportData = Buffer.from(JSON.stringify(exportStruct, null, 2)).toString("base64");
+			var exportData = Buffer.from(json).toString("base64");
 			$(node).attr("href", "data:application/octet-stream;charset=utf-8;base64,"+exportData);
 			$(node).attr("download", "sead-export.json");
 			$(node).on("click", (evt) => {
 				$(evt.currentTarget).effect("pulsate", 2);
 			});
+			
 		}
 		if(exportFormat == "xlsx") {
 			node = $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
@@ -450,7 +460,6 @@ class SiteReport {
 									zingchart.exec(ci.renderInstance.chartId, 'getimagedata', {
 										filetype: 'png',
 										callback : (imagedata) => {
-											console.log(ci);
 											this.pushDownload("SEAD-"+ci.title+"-chart.png", imagedata);
 										}
 									});
@@ -476,7 +485,6 @@ class SiteReport {
 	}
 	
 	renderExportDialog(formats = ["json", "xlsx", "png"], section = "all", contentItem = "all") {
-
 		var exportStruct = {
 			info: {
 				description: "Data export from the SEAD project. Visit https://www.sead.se for more information.",
