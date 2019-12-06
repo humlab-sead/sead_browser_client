@@ -14,6 +14,7 @@ import SiteReportManager from './SiteReportManager.class';
 import HelpAgent from './HelpAgent.class.js';
 import UserManager from './UserManager.class.js';
 import PortalManager from './PortalManager.class.js';
+import Router from './Router.class.js';
 import filterDefinitions from '../filters.json';
 import css from '../stylesheets/style.scss';
 import Config from '../config/config.js';
@@ -38,7 +39,7 @@ class HumlabQuerySystem {
 			this.systemReady = true;
 		});
 
-		this.setActiveView("filters");
+		//this.setActiveView("filters");
 
 		//hide ugly loading mis-rendering...
 		//$("body").fadeIn(500);
@@ -49,7 +50,52 @@ class HumlabQuerySystem {
 		this.color = new Color();
 		this.stateManager = new StateManager(this);
 		var viewstate = this.stateManager.getViewstateIdFromUrl();
-		this.layoutManager = new HqsLayoutManager(this, "#facet-result-panel", this.config.facetSectionDefaultWidth, 100-this.config.facetSectionDefaultWidth);
+		this.layoutManager = new HqsLayoutManager(this);
+		this.layoutManager.createView("#facet-result-panel", "filters", this.config.facetSectionDefaultWidth, 100-this.config.facetSectionDefaultWidth, {
+			rules: [
+				{
+					type: "show",
+					selector: "#portal-menu, #aux-menu",
+					evaluator: () => {
+						return this.layoutManager.getMode() == "desktopMode";
+					}
+				},
+				{
+					type: "show",
+					selector: "#facet-menu",
+					evaluator: () => {
+						let visibleSection = this.layoutManager.getActiveView().getVisibleSection();
+						console.log(this.layoutManager.getMode(), visibleSection); 
+						//This rule actually works just fine - should instead look into who else is controlling this button, someone is playing a slide-in animation on it... 
+						return this.layoutManager.getMode() == "desktopMode" || visibleSection == "left";
+					}
+				},
+				{
+					type: "show",
+					selector: "#sead-logo",
+					evaluator: () => {
+						let visibleSection = this.layoutManager.getActiveView().getVisibleSection();
+						return this.layoutManager.getMode() == "desktopMode" || visibleSection == "right";
+					}
+				}
+			]
+		});
+		this.layoutManager.createView("#site-report-panel", "siteReport", 80, 20, {
+			collapseIntoVertial: true,
+			rules: [
+				{
+					selector: "#site-report-panel, #site-report-exit-menu"
+				},
+				{
+					type: "show",
+					selector: "#portal-menu, #aux-menu, #facet-menu",
+					evaluator: false
+				}
+			]
+		});
+
+		//this.layoutManager.setActiveView("filters");
+
 		//this.siteReportLayoutManager = new HqsLayoutManager(this, "#site-report-panel", 80, 20);
 
 		this.menuManager = new HqsMenuManager(this);
@@ -85,9 +131,11 @@ class HumlabQuerySystem {
 			this.resultManager.setResultDataFetchingSuspended(true);
 		}
 		
+		/*
 		if(siteId != false) {
 			this.siteReportManager.renderSiteReport(siteId);
 		}
+		*/
 
 		//this.resultManager.setActiveModule(this.config.defaultResultModule, false);
         /*
@@ -143,8 +191,9 @@ class HumlabQuerySystem {
 		  		this.stateManager.loadStateById(viewstate);
 		  	}
 	  	});
-	  	*/
-
+		*/
+		
+		this.router = new Router(this);
 
 	  	this.modules.push(this.stateManager);
 		this.modules.push(this.layoutManager);
@@ -153,11 +202,12 @@ class HumlabQuerySystem {
 		this.modules.push(this.menuManager);
 		this.modules.push(this.dialogManager);
 		this.modules.push(this.siteReportManager);
+		this.modules.push(this.router);
 		this.modules.push(this.help);
 		for(var key in this.resultManager.modules) {
 			this.modules.push(this.resultManager.modules[key].module);
 		}
-		
+
 		if(this.config.cookieWarningEnabled) {
 			window.cookieconsent.initialise({
 				container: document.getElementById("cookie-consent-content"),
@@ -174,14 +224,27 @@ class HumlabQuerySystem {
 				content: {
 					header: 'Cookies used on the website!',
 					message: 'The SEAD system is using cookies to enhance functionality. By continuing to use to site you are agreeing to the use of cookies.',
-					dismiss: 'OK'
+					dismiss: 'I agree'
 				}
 			});
 		}
 
 		this.hqsEventDispatch("hqsInitComplete");
+		this.router.route();
 	}
+
+	/*
+	renderUI() {
+		let renderMode = this.layoutManager.getMode(); //"mobileMode" or "desktopMode"
+		let view = this.getActiveView(); //"filters" or "siteReport"
+
+		if(view == "filters") {
+
+		}
+	}
+	*/
 	
+
 	/*
 	* Function: fetchMetaData
 	*
@@ -356,7 +419,24 @@ class HumlabQuerySystem {
 	}
 	
 	setActiveView(viewName) {
+		console.log("setActiveView", viewName);
 		this.activeView = viewName;
+		if(this.layoutManager instanceof HqsLayoutManager) {
+			this.layoutManager.setActiveView(viewName);
+		}
+		
+		/*
+		if(this.layoutManager instanceof HqsLayoutManager) {
+			this.layoutManager.setup();
+		}
+		if(this.facetManager instanceof FacetManager && this.facetManager.siteReportLayoutManager instanceof HqsLayoutManager) {
+			this.facetManager.siteReportLayoutManager.setup();
+		}
+		*/
+	}
+
+	getActiveView() {
+		return this.activeView;
 	}
 	
 	runSiteReportTesting(siteReportId = null, once = false) {

@@ -1008,7 +1008,7 @@ class FacetManager {
 			auxTriggers: [".slot-visible"],
 			customStyleClasses: "hqs-menu-block-vertical-large",
 			viewPortResizeCallback: () => {
-				let leftWidth = $(".section-left").width();
+				let leftWidth = $("#facet-result-panel .section-left").width();
 				$("#facet-menu > .hqs-menu-block-vertical-large").css("width", leftWidth+"px");
 				$("#facet-menu .l1-container-level").css("width", leftWidth+"px")
 			},

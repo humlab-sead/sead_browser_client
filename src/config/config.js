@@ -14,7 +14,8 @@ var Config = {
 	cookieWarningEnabled: true, //cookie warning popup - disabled, because we're actually not using cookies atm
 	viewstateLoadingScreenEnabled: false,
 	requireLoginForViewstateStorage: true,
-	rangeFilterFuzzyLabels: true, //Rounds labels to avoid very long numbers
+	rangeFilterFuzzyLabels: true, //Rounds labels to avoid very long numbersm
+	screenMobileWidthBreakPoint: 720, //If the screen width is smaller than this, the layout of the site goes into mobile mode
 	keyColors: [ //Colors used as source/origin-colors when generating color schemes
 		"5B83AD",
 		"A02000",

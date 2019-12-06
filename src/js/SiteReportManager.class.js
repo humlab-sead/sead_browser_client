@@ -28,7 +28,15 @@ class SiteReportManager {
 		});
 		
 		this.hqs.hqsEventListen("siteReportClosed", () => {
+			console.log("siteReportClosed");
 			this.hqs.setActiveView("filters");
+
+			let layoutMode = this.hqs.layoutManager.getMode();
+			if(layoutMode == "mobileMode") {
+				this.hqs.layoutManager.switchSection("right");
+			}
+
+			this.siteReport.hide();
 			this.siteReportLayoutManager.destroy();
 			this.siteReport.destroy();
 			this.siteReport = null;
@@ -37,6 +45,7 @@ class SiteReportManager {
 				this.hqs.resultManager.activeModuleId = Config.defaultResultModule;
 			}
 			this.hqs.resultManager.setActiveModule(this.hqs.resultManager.activeModuleId);
+			
 		});
 	}
 	
@@ -83,6 +92,7 @@ class SiteReportManager {
 				else {
 					//Yay - it exists, so go ahead and render, if system is ready...
 					if(this.hqs.systemReady) {
+						this.hqs.setActiveView("siteReport");
 						this.siteReport = new SiteReport(this, siteId);
 					}
 					else {
@@ -95,6 +105,49 @@ class SiteReportManager {
 				this.hqs.popXhr(xhr1);
 			}
 		});
+	}
+
+	unrenderSiteReport() {
+		$("#site-report-panel").hide();
+
+		$("#facet-result-panel").css("display", "flex");
+		$("#facet-result-panel").animate({
+			left: "0vw"
+		}, this.animationTime, this.animationEasing);
+		
+
+		$(".site-report-container").animate({
+			left: "100vw"
+		}, this.animationTime, this.animationEasing, () => {
+			$(".site-report-container").hide();
+		});
+		
+		$("#site-report-exit-menu").animate({
+			left: "-100px"
+		}, 250, () => {
+			this.hqs.menuManager.removeMenu(this.siteReport.backMenu);
+
+			/*
+			if(this.hqs.layoutManager.getMode() != "mobileMode") {
+				$("#aux-menu, #portal-menu").show().animate({
+					top: "0px"
+				}, 250);
+			}
+			$("#facet-menu").show().animate({
+				top: "0px"
+			}, 250);
+			*/
+			
+		});
+		
+
+		//If the site report was the entry point, no result module will be selected or rendered, so we need to fix that here...
+		if(this.hqs.resultManager.getActiveModule() === false) {
+			this.hqs.resultManager.setActiveModule("map", true);
+		}
+
+		//this.hqs.hqsEventDispatch("siteReportClosed"); //Also fun fact: This is called from a function which calls this function - recursion...
+		this.hqs.setActiveView("filters");
 	}
 	
 	/*
@@ -129,8 +182,9 @@ class SiteReportManager {
 			title: "<i class=\"fa fa-arrow-circle-o-left\" style='font-size: 1.5em' aria-hidden=\"true\"></i>",
 			anchor: "#site-report-exit-menu",
 			visible: false,
+			customStyleClasses: "site-report-exit-menu",
 			callback: () => {
-				this.siteReport.hide();
+				this.unrenderSiteReport();
 			}
 		};
 	}

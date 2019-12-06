@@ -1,0 +1,30 @@
+$white: #ffffff;
+$inactive-color: #444444;
+$inactive-color-light: scale-color($inactive-color, $lightness: +10%);
+$base-color:#2d5e8d;
+$base-color-light: scale-color($base-color, $lightness: +10%);
+$aux-color: #ff6600;
+$pane-bg-color: #eeeeee;
+$pane-bg-color-dark: scale-color($pane-bg-color, $lightness: -10%);
+$sead-brown: #875d5d;
+$shadow-color: rgba(0, 0, 0, 0.3);
+$error-color: rgba(255, 50, 50, 0.85);
+$warning-color: rgba(220, 180, 0, 0.85);
+
+/*
+Exporting variables for webpack to make them includeable in js
+*/
+:export {
+    white: $white;
+    inactiveColor: $inactive-color;
+    inactiveColorLight: $inactive-color-light;
+    baseColor:$base-color;
+    baseColorLight: $base-color-light;
+    auxColor: $aux-color;
+    paneBgColor: $pane-bg-color;
+    paneBgColorDark: $pane-bg-color-dark;
+    seadBrown: $sead-brown;
+    shadowColor: $shadow-color;
+    errorColor: $error-color;
+    warningColor: $warning-color;
+  }

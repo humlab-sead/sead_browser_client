@@ -35,7 +35,7 @@ $(document).ready(() => {
     window.hqs.init();
     //window.hqs.resultManager.setActiveModule(Config.defaultResultModule, false);
     //debugScript();
-	debugSize();
+	//debugSize();
 });
 
 function debugScript() {

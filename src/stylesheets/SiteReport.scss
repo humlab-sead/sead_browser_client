@@ -1,9 +1,14 @@
 
+
 #site-report-panel {
 }
 
 #site-report-exit-menu {
   display:none;
+}
+
+.site-report-exit-menu {
+  /*Why is there a class version of this? I don't remember...*/
 }
 
 .site-report-level-content > h3 {
@@ -12,36 +17,11 @@
 }
 
 .site-report-container {
-  /*display:none; grid*/
   position:relative;
   top: 0px;
-
-  left: 100vw;
-  width: 100%;
-  /*width: calc(100% - 40px);*/
-
-  /*height:calc(100vh - 88px);*/
-
-  /*
-  margin-left: 2.5vw;
-  margin-top: 2.5vh;
-  width: calc(95vw - 40px);
-  height: calc(95vh - 40px);
-  */
   padding: 20px;
   margin: 0px;
   background-color: #fff;
-
-  /*width:100%;*/
-
-  /*
-  border-style: solid;
-  border-color: #ff0;
-  border-width: 1px;
-  box-shadow: 0px 0px 20px #888888;
-  overflow: auto;
-  z-index: 10;
-  */
 }
 
 .site-report-level-container {

@@ -7,6 +7,7 @@ class PortalManager {
         this.config = Config;
         this.activePortal = this.getPortal(Config.activePortal);
 
+        /* PROBLEM: If this auto-shows when exiting desktop mode, it will also try to render itself in the site reports, which we dont want
         //FIXME: This event doesn't get caught because the layout manager inits before the portal manager and sends out the event before this has started listening
         this.hqs.hqsEventListen("layoutChange", (evt, mode) => {
             if(mode == "mobileMode") {
@@ -16,6 +17,7 @@ class PortalManager {
                 $("#portal-menu").show();
             }
         });
+        */
 
     }
 

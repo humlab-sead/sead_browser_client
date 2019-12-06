@@ -409,6 +409,20 @@ class ResultManager {
 			anchor: "#result-menu",
 			staticSelection: true,
 			showMenuTitle: false,
+			viewPortResizeCallback: () => {
+				if(this.hqs.layoutManager.getMode() == "mobileMode") {
+					$("#result-menu #menu-item-map .result-tab-title").hide();
+					$("#result-menu #menu-item-table .result-tab-title").hide();
+					$("#result-menu #menu-item-mosaic .result-tab-title").hide();
+					$(".result-map-tab-title").hide();
+				}
+				else {
+					$("#result-menu #menu-item-map .result-tab-title").show();
+					$("#result-menu #menu-item-table .result-tab-title").show();
+					$("#result-menu #menu-item-mosaic .result-tab-title").show();
+					$(".result-map-tab-title").show();
+				}
+			},
 			items: [
 				{
 					name: "map",

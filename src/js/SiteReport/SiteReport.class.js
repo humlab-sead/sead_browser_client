@@ -66,6 +66,11 @@ class SiteReport {
 			"module": analysis
 		});
 
+		this.backMenu = this.siteReportManager.hqs.menuManager.createMenu(this.siteReportManager.hqs.siteReportManager.hqsMenu());
+		$("#site-report-exit-menu").css("position", "relative").css("left", "-100px").show();
+		$("#site-report-exit-menu").animate({
+			left: "0px"
+		}, 250);
 	}
 
 	/*
@@ -127,6 +132,7 @@ class SiteReport {
 		}, this.animationTime, this.animationEasing);
 		
 		
+		/*
 		$("#facet-menu, #aux-menu, #portal-menu").animate({
 			top: "-100px"
 		}, 250, () => {
@@ -137,19 +143,19 @@ class SiteReport {
 				left: "0px"
 			}, 250);
 		});
+		*/
 		
 		$("#site-report-content")
 			.append("<div id='samples-content-container'></div>")
-            .append("<div id='analysis-content-container'></div>");
+			.append("<div id='analysis-content-container'></div>");
 
-		this.siteReportManager.hqs.setActiveView("siteReport");
-
-		this.siteReportManager.siteReportLayoutManager = new HqsLayoutManager(this.siteReportManager.hqs, "#site-report-panel", 80, 20);
 		/*
-		this.siteReportManager.siteReportLayoutManager = new HqsLayoutManager(this.siteReportManager.hqs, "#site-report-panel", 100, 0, {
-			layoutDirection: "vertical"
+		this.siteReportManager.hqs.setActiveView("siteReport");
+		this.siteReportManager.siteReportLayoutManager = new HqsLayoutManager(this.siteReportManager.hqs, "#site-report-panel", 80, 20, {
+			collapseIntoVertial: true
 		});
 		*/
+
 	}
 	
 	

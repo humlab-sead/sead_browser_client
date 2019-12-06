@@ -3,270 +3,104 @@
 * This class is responsible for adapting the user interface to various devices and their capabilities, primarily in terms of screen space.
 * It relies on the Enquire js lib which in turn relies on CSS3 media queries.
 *
+* Important: This class has some severe limitations:
+* 1. It only handles a 2-pane left/right layout
+* 2. It only handles a single page/view - meaning the Filter/result view and the site repots each have their own separate LayoutManagers
+*
 * Assumed entities:
 * .section-toggle-button
 * .section-right
 * .section-left
 * ...and more?
 */
-
+import Config from "../config/config";
+import View from "./HqsView.class";
 import enquire from 'enquire.js'
 
 class HqsLayoutManager {
 
-	constructor(hqs, anchor, leftSize = 70, rightSize = 30, options = {}) {
+	constructor(hqs) {
 		this.hqs = hqs;
-		this.anchor = anchor;
-		this.leftInitSize = leftSize;
-		this.rightInitSize = rightSize;
-		this.leftLastSize = leftSize;
-		this.righLastSize = rightSize;
-		this.options = options;
-		this.mode = "desktopMode";
-		
-		$(this.anchor).css("display", "flex");
-		
-		
 
-		//Transition to small-screen mode at this width (in pixels)
-		this.screenMobileWidthBreakPoint = 720;
-		this.screenLargeWidthBreakPoint = 2000;
+		//Set default mode based on current viewport width
+		if($(window).width() < Config.screenMobileWidthBreakPoint) {
+			this.mode = "mobileMode";
+		}
+		else {
+			this.mode = "desktopMode";
+		}
 
-		this.mobileBreakpointMediaQuery = "screen and (max-width:"+this.screenMobileWidthBreakPoint+"px)";
-		//this.screenBreakpointMediaQuery = "screen and (min-width:"+this.screenLargeWidthBreakPoint+"px)";
-		
-		this.hqs.hqsEventListen("hqsInitComplete", () => {
-			this.setupResizableSections();
-			this.setSectionSizes(leftSize, rightSize, false);
+		this.views = [];
 
-			enquire.register(this.mobileBreakpointMediaQuery, {
-				match : () => {
-					this.mode = "mobileMode";
-					console.log("Mobile mode enabled");
-					
-					this.switchSection("left");
-					this.toggleToggleButton(true);
-					//$("#sead-logo").removeClass("sead-logo-large").addClass("sead-logo-small");
-					$("#sead-logo").hide();
-					$("#aux-menu").hide();
-					this.hqs.hqsEventDispatch("layoutChange", this.mode);
-	
-					
-					//$("#facetMenu").hide();
-					//$(".facetMenuItemsContainer").css("position", "relative").css("box-shadow", "none");
-					//$("#facet-menu-mobile-container").show();
-					this.hqs.hqsEventDispatch("layoutResize");
-				},
-				unmatch : () => {
-					this.mode = "desktopMode";
-					console.log("Desktop mode enabled");
-					
-					$(this.anchor+" > .section-left").removeClass("full-section");
-					$(this.anchor+" > .section-right").removeClass("full-section");
-					$(this.anchor+" > .section-left").removeClass("hidden-section");
-					$(this.anchor+" > .section-right").removeClass("hidden-section");
-					this.toggleToggleButton(false);
-					$(".ui-resizable-handle").show();
-					this.setSectionSizes(this.leftInitSize, this.rightInitSize, false);
-					//$("#sead-logo").removeClass("sead-logo-small").addClass("sead-logo-large");
-					$("#sead-logo").show();
-					$("#aux-menu").show();
-					$("#facet-menu").show();
-					this.hqs.hqsEventDispatch("layoutChange", this.mode);
-					this.hqs.hqsEventDispatch("layoutResize");
+		this.mobileBreakpointMediaQuery = "screen and (max-width:"+Config.screenMobileWidthBreakPoint+"px)";
+		enquire.register(this.mobileBreakpointMediaQuery, {
+			match : () => {
+				this.setMode("mobileMode");
+				let activeView = this.getActiveView();
+				if(activeView !== false) {
+					activeView.apply();
 				}
-			});
-
-		});
-		
-		//Bind actions for clicking on the panel toggle button
-		$("#section-toggle-button", this.anchor).bind("click", () => {
-			//Just toggles which section is shown based on which one is currently shown/hidden
-			if($(this.anchor+" > .section-right").css("display") == "none") {
-				this.switchSection("right");
-			}
-			else {
-				this.switchSection("left");
+			},
+			unmatch : () => {
+				this.setMode("desktopMode");
+				let activeView = this.getActiveView();
+				if(activeView !== false) {
+					activeView.apply();
+				}
 			}
 		});
 
-		/*
-		$(window).on("seadStateLoad", (event, data) =>  {
-			this.setSectionSizes(data.state.layout.left, 100-data.state.layout.left, false);
-		});
-		*/
-
-		//React to resize event to collapse header when necessary
-		this.hqs.hqsEventListen("layoutResize", () => {
-			/*
-			let headerWidth = $("#header-space").width();
-			console.log(headerWidth);
-			if(headerWidth < 350) {
-				//Switch to smaller logo
-				$("#sead-logo").removeClass("sead-logo-large").addClass("sead-logo-small");
-			}
-			else {
-				$("#sead-logo").removeClass("sead-logo-small").addClass("sead-logo-large");
-			}
-			*/
-		});
+		//TODO: Check if we need to re-implement these events:
+		//this.hqs.hqsEventDispatch("layoutChange", this.mode);
+		//this.hqs.hqsEventDispatch("layoutResize");
 	}
 
-	/*
-	compressHeader() {
-		$("#header-container").animate({
-			height: "40px"
-		}, 500);
+	createView(anchor, name, leftSize = 70, rightSize = 30, options = {}) {
+		let v = new View(this, anchor, name, leftSize, rightSize, options);
+		this.views.push(v);
 	}
-	*/
+
+	setActiveView(viewName) {
+		let oldView = this.getActiveView();
+		if(oldView !== false) {
+			oldView.cleanup();
+			oldView.setActive(false);
+		}
+
+		let newView = this.getViewByName(viewName);
+		if(newView !== false) {
+			newView.setActive(true);
+			newView.apply();
+		}
+	}
+
+	getActiveView() {
+		for(let key in this.views) {
+			if(this.views[key].active) {
+				return this.views[key];
+			}
+		}
+		return false;
+	}
+
+	getViewByName(viewName) {
+		for(let key in this.views) {
+			if(this.views[key].name == viewName) {
+				return this.views[key];
+			}
+		}
+		return false;
+	}
 
 	getMode() {
 		return this.mode;
 	}
 
-
-	/**
-	* Function: toggleToggleButton
-	* Toggles the showing/hiding of the toggle-section button (in small screen mode)
-	*/
-	toggleToggleButton(show) {
-		if(show) {
-			$("#section-toggle-button").show();
-		}
-		else {
-			$("#section-toggle-button").hide();
-		}
+	setMode(mode) {
+		this.hqs.hqsEventDispatch("layoutSwitchMode", { mode: this.mode });
+		this.mode = mode;
 	}
 
-	/**
-	* Function: switchSection
-	* Takes care of everything needing to be done when switching between left/right sections in small-screen mode
-	**/
-	switchSection(section) {
-		console.log("switchSection");
-
-		this.hqs.hqsEventDispatch("layoutResize");
-		
-		$(".ui-resizable-handle").hide();
-
-		$(this.anchor+" > .section-left").removeClass("full-section");
-		$(this.anchor+" > .section-right").removeClass("full-section");
-		$(this.anchor+" > .section-left").removeClass("hidden-section");
-		$(this.anchor+" > .section-right").removeClass("hidden-section");
-		
-		var hideSection = null;
-		var showSection = null;
-		
-		if(section == "left") {
-			showSection = $(this.anchor+" > .section-left");
-			hideSection = $(this.anchor+" > .section-right");
-			$("#facet-menu").show();
-			$("#sead-logo").hide();
-		}
-		else {
-			hideSection = $(this.anchor+" > .section-left");
-			showSection = $(this.anchor+" > .section-right");
-			$("#facet-menu").hide();
-			$("#sead-logo").show();
-		}
-
-		showSection.addClass("full-section");
-		//showSection.css("width", "100vw");
-		hideSection.addClass("hidden-section");
-	}
-
-	setSectionSizes(leftSize, rightSize, animate = true) {
-
-		this.leftLastSize = leftSize;
-		this.righLastSize = rightSize;
-
-		if(animate) {
-			$(this.anchor+" > .section-left").animate(
-				{
-					width: leftSize+"vw"
-				},
-				250,
-				"easeOutCubic"
-			);
-
-			$(this.anchor+" > .section-right").animate(
-				{
-					width: rightSize+"vw"
-				},
-				250,
-				"easeOutCubic"
-			);
-		}
-		else {
-			$(this.anchor+" > .section-left").css("width", leftSize+"vw");
-			$(this.anchor+" > .section-right").css("width", rightSize+"vw");
-		}
-		
-		if(rightSize == 0) {
-			$(this.anchor+" > .section-right").css("display", "none");
-			$(".ui-resizable-handle").hide();
-		}
-		else {
-			$(this.anchor+" > .section-right").css("display", "block");
-			$(".ui-resizable-handle").show();
-		}
-	}
-
-	calculateWidthsAsPercentage() {
-		var totalWidth = $(document).width();
-		var leftWidth = $(this.anchor+" .section-left").width();
-		var rightSectionWidth = totalWidth - leftWidth;
-		var rightWidthPercent = (rightSectionWidth / totalWidth) * 100;
-		var leftWidthPercent = 100 - rightWidthPercent;
-
-		return {
-			left: leftWidthPercent,
-			right: rightWidthPercent
-		};
-	}
-
-	/**
-	* Function: setupResizableSections
-	* Does what it says on the tin.
-	**/
-	setupResizableSections() {
-		$(this.anchor+" > .section-left").resizable({
-			handles: "e",
-			resize: (event, ui) => {
-				//Slave right section to being the inverse size of the left section
-				/*
-				var totalWidth = $(document).width();
-				var rightSectionWidth = totalWidth - ui.size.width;
-				var rightWidthPercent = (rightSectionWidth / totalWidth) * 100;
-				var leftWidthPercent = 100 - rightWidthPercent;
-				*/
-				var wp = this.calculateWidthsAsPercentage();
-				$(this.anchor+" > .section-left").css("width", wp.left+"vw");
-				$(this.anchor+" > .section-right").css("width", wp.right+"vw");
-			}
-		}).on("resize", (e) => {
-			this.hqs.hqsEventDispatch("layoutResize", e);
-			//This was to prevent an issue with section-resize events being propagated as window-resize events
-			e.stopPropagation();
-
-			var wp = this.calculateWidthsAsPercentage();
-			this.leftLastSize = wp.left;
-			this.rightLastSize = wp.right;
-		});
-		
-		$(window).on("resize", (evt) => {
-			this.hqs.hqsEventDispatch("layoutResize", evt);
-		});
-	}
-
-	static removeResizable() {
-		$("#section-left").resizable("destroy");
-	}
-	
-	destroy() {
-		//enquire.unregister(this.mobileBreakpointMediaQuery);
-		//enquire.unregister(this.screenBreakpointMediaQuery);
-	}
 
 }
 
