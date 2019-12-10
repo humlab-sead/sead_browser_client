@@ -503,3 +503,4 @@ ALTER TABLE <schema>.qse_sample_group_analyses
 
 GRANT ALL ON TABLE <schema>.qse_sample_group_analyses TO <viewowner>;
 GRANT SELECT ON TABLE <schema>.qse_sample_group_analyses TO <grantread>;
+

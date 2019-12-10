@@ -91,8 +91,20 @@ def generateSqlFromQseTemplate():
 
     return template
 
+def getTemperatureProxyTable():
+    with open ("tbl_temperatures.sql", "r") as file:
+        data = file.readlines()
 
-print(generateSchemaSQL())
-print(generateRoleSQL())
-print(generateSqlFromTables())
-print(generateSqlFromQseTemplate())
+    sql = ""
+    for i in range(len(data)):
+        sql += data[i]
+        
+    return sql
+
+
+
+#print(generateSchemaSQL())
+#print(generateRoleSQL())
+#print(generateSqlFromTables())
+#print(generateSqlFromQseTemplate())
+print(getTemperatureProxyTable())
