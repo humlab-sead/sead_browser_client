@@ -27,8 +27,9 @@ class SiteReportManager {
 			});
 		});
 		
+		/*
 		this.hqs.hqsEventListen("siteReportClosed", () => {
-			console.log("siteReportClosed");
+			console.log("siteReportClosed button clicked");
 			this.hqs.setActiveView("filters");
 
 			let layoutMode = this.hqs.layoutManager.getMode();
@@ -40,13 +41,14 @@ class SiteReportManager {
 			this.siteReportLayoutManager.destroy();
 			this.siteReport.destroy();
 			this.siteReport = null;
+			console.log("site report close - push")
 			history.pushState({}, "", "/");
 			if(this.hqs.resultManager.activeModuleId == "none") {
 				this.hqs.resultManager.activeModuleId = Config.defaultResultModule;
 			}
 			this.hqs.resultManager.setActiveModule(this.hqs.resultManager.activeModuleId);
-			
 		});
+		*/
 	}
 	
 	hqsOffer(offerName, offerData) {
@@ -108,6 +110,8 @@ class SiteReportManager {
 	}
 
 	unrenderSiteReport() {
+		history.pushState({}, "", "/");
+		
 		$("#site-report-panel").hide();
 
 		$("#facet-result-panel").css("display", "flex");
