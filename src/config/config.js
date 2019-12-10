@@ -4,8 +4,8 @@ var Config = {
 	serverAddress: "https://seadserv.humlab.umu.se:8089", //New server
 	//serverAddress: "http://localhost:8089", //for json data - test server for testing range filters - makes random data
 	viewStateServerAddress: "http://seadserv.humlab.umu.se:8081",
-	//siteReportServerAddress: "http://seadserv.humlab.umu.se:3000", //for site reports, which uses a PostgREST interface - production db (3000)
-	siteReportServerAddress: "http://seadserv.humlab.umu.se:8080", //for site reports, which uses a PostgREST interface - development db
+	siteReportServerAddress: "http://seadserv.humlab.umu.se:3000", //for site reports, which uses a PostgREST interface - production db (3000)
+	//siteReportServerAddress: "http://seadserv.humlab.umu.se:8080", //for site reports, which uses a PostgREST interface - development db
 	defaultResultModule: "map", //map, mosaic or table
 	facetSectionDefaultWidth: 30, //percentage of total window width
 	facetBodyHeight: 268, //default facet height in px
