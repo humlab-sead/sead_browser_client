@@ -183,7 +183,7 @@
             "aggregateType":"count",
             "aggregateTitle":"Number of samples",
             "dependencies": [],
-            "description": "Authroity of the taxonomic name (not used for all species)",
+            "description": "Authority of the taxonomic name (not used for all species)",
             "enabled": true
          }
       ]

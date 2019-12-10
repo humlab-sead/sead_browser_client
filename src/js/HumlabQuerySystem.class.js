@@ -15,7 +15,7 @@ import HelpAgent from './HelpAgent.class.js';
 import UserManager from './UserManager.class.js';
 import PortalManager from './PortalManager.class.js';
 import Router from './Router.class.js';
-import filterDefinitions from '../filters.json';
+//import filterDefinitions from '../filters.json';
 import css from '../stylesheets/style.scss';
 import Config from '../config/config.js';
 
@@ -27,16 +27,16 @@ class HumlabQuerySystem {
 	constructor(settings) {
 		this.settings = settings;
 		this.requestId = 0;
-		this.systemReady = false;
 		this.modules = [];
 		this.config = Config;
 		this.xhrList = [];
 		this.xhrCallbackRegistry = [];
 		this.hqsEventRegistry = [];
 		this.eventGroups = [];
-		
-		this.hqsEventListen("systemReady", () => {
-			this.systemReady = true;
+		this.filterDefinitions = [];
+
+		this.preload().then(() => {
+			this.buildSystem();
 		});
 
 		//this.setActiveView("filters");
@@ -45,8 +45,9 @@ class HumlabQuerySystem {
 		//$("body").fadeIn(500);
 		$("body").show();
 		
-		this.fetchMetaData();
-		
+	}
+
+	buildSystem() {
 		this.color = new Color();
 		this.stateManager = new StateManager(this);
 		var viewstate = this.stateManager.getViewstateIdFromUrl();
@@ -99,7 +100,7 @@ class HumlabQuerySystem {
 		//this.siteReportLayoutManager = new HqsLayoutManager(this, "#site-report-panel", 80, 20);
 
 		this.menuManager = new HqsMenuManager(this);
-		this.facetManager = new FacetManager(this, filterDefinitions);
+		this.facetManager = new FacetManager(this, this.filterDefinitions);
 		this.mainMenu = new MainMenu();
 		
 		this.siteReportManager = new SiteReportManager(this);
@@ -149,7 +150,7 @@ class HumlabQuerySystem {
 	  	this.help = new HelpAgent();
 	  	this.help.setState(true);
 		this.userManager = new UserManager(this);
-		this.portalManager = new PortalManager(this, filterDefinitions);
+		this.portalManager = new PortalManager(this, this.filterDefinitions);
 
 		this.menuManager.createMenu(this.resultManager.hqsMenu());
 
@@ -246,65 +247,117 @@ class HumlabQuerySystem {
 	
 
 	/*
-	* Function: fetchMetaData
+	* Function: preload
 	*
 	* This function is meant to augment the Config object by fetch certain data about the SEAD system which is stored in the db.
 	* An example of this is the definitions of the various data types which may be associated with an analysis performed on a sample.
 	* It would be inefficient to fetch this data every time we spawn a site report and it would be bad practice to have it
 	* in static code, so here we are.
 	 */
-	fetchMetaData() {
-		
-		
-		var xhr1 = this.pushXhr(null, "systemReady");
-		var xhr2 = this.pushXhr(null, "systemReady");
-		
-		
-		xhr1.xhr = $.ajax(this.config.siteReportServerAddress+"/data_types", {
-			method: "get",
-			dataType: "json",
-			beforeSend: () => {
-			
-			},
-			success: (data, textStatus, xhr) => {
-				this.config.dataTypes = [];
-				for(var key in data) {
-					this.config.dataTypes.push({
-						"groupId": data[key].data_type_group_id,
-						"dataTypeId": data[key].data_type_id,
-						"dataTypeName": data[key].data_type_name,
-						"definition": data[key].definition
-					});
+	async preload() {
+
+		let fetchFacetDefinitionsPromise = new Promise((resolve, reject) => {
+			$.ajax(this.config.serverAddress+"/api/facets", {
+				method: "get",
+				dataType: "json",
+				success: (data) => {
+					this.importFilters(data);
+					resolve(data);
+				},
+				error: (e) => {
+					reject(e);
 				}
-				
-				this.popXhr(xhr1);
-			}
+			});
 		});
 		
-		//xhr1.eventOnComplete = "hqsReady";
-		//this.pushXhr(xhr1);
-		
-		xhr2.xhr = $.ajax(this.config.siteReportServerAddress+"/dataset_masters", {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				this.config.dataSetMasters = [];
-				for(var key in data) {
-					this.config.dataSetMasters.push({
-						"masterSetId": data[key].master_set_id,
-						"masterName": data[key].masterName,
-						"masterNotes": data[key].master_notes,
-						"url": data[key].url
-					});
-				}
+
+		let fetchDataTypesPromise = new Promise((resolve, reject) => {
+			$.ajax(this.config.siteReportServerAddress+"/data_types", {
+				method: "get",
+				dataType: "json",
+				beforeSend: () => {
 				
-				this.popXhr(xhr2);
-			}
+				},
+				success: (data, textStatus, xhr) => {
+					this.config.dataTypes = [];
+					for(var key in data) {
+						this.config.dataTypes.push({
+							"groupId": data[key].data_type_group_id,
+							"dataTypeId": data[key].data_type_id,
+							"dataTypeName": data[key].data_type_name,
+							"definition": data[key].definition
+						});
+					}
+					resolve(data);
+				},
+				error: (e) => {
+					reject(e);
+				}
+			});
 		});
 		
-		//xhr2.eventOnComplete = "hqsReady";
-		//this.pushXhr(xhr2);
-		
+		let fetchDatasetMasters = new Promise((resolve, reject) => {
+			$.ajax(this.config.siteReportServerAddress+"/dataset_masters", {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					this.config.dataSetMasters = [];
+					for(var key in data) {
+						this.config.dataSetMasters.push({
+							"masterSetId": data[key].master_set_id,
+							"masterName": data[key].masterName,
+							"masterNotes": data[key].master_notes,
+							"url": data[key].url
+						});
+					}
+					resolve(data);
+				},
+				error: (e) => {
+					reject(e);
+				}
+			});
+		});
+
+		return await Promise.all([fetchFacetDefinitionsPromise, fetchDataTypesPromise, fetchDatasetMasters]);
+	}
+
+	importFilters(data) {
+		for(let key in data) {
+			let filter = data[key];
+
+			let filterGroup = this.getFilterGroupById(filter.FacetGroupKey);
+			if(filterGroup === false) {
+				filterGroup = {
+					"facetGroupKey":filter.FacetGroupKey,
+					"displayTitle":filter.FacetGroupKey, //FIXME: This should be a display title when available
+					"items":[]
+				};
+				this.filterDefinitions.push(filterGroup);
+			}
+
+			if(filter.IsApplicable) {
+				filterGroup.items.push({
+					"facetCode": filter.FacetCode,
+					"displayTitle": filter.DisplayTitle,
+					"facetTypeKey": filter.FacetTypeKey, //"discrete" or "range"
+					"aggregateType": filter.AggregateType,
+					"aggregateTitle": filter.AggregateTitle,
+					"dependencies": [],
+					"description": "", //FIXME: Add this when the datbase/API provides it. See: https://github.com/humlab-sead/sead_query_api/issues/54
+					"enabled": true
+				});
+			}
+		}
+	}
+
+	getFilterGroupById(groupId) {
+		for(let key in this.filterDefinitions) {
+			let group = this.filterDefinitions[key];
+			if(group.facetGroupKey == groupId) {
+				return group;
+			}
+		}
+		return false;
 	}
 
 	init() {
