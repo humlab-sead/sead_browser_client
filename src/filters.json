@@ -173,5 +173,20 @@
             "description": "Authroity of the taxonomic name (not used for all species)"
          }
       ]
+   },
+   {
+      "facetGroupKey":"testing",
+      "displayTitle":"Testing",
+      "items":[
+         {
+            "facetCode":"dataset_master",
+            "displayTitle":"Master datasets",
+            "facetTypeKey":"discrete",
+            "aggregateType":"count",
+            "aggregateTitle":"Number of samples",
+            "dependencies": [],
+            "description": "Master datasets"
+         }
+      ]
    }
 ]
