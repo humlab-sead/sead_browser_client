@@ -285,7 +285,8 @@ CREATE OR REPLACE VIEW postgrest_api.qse_sample_group_biblio
     biblio.title AS biblio_title,
     biblio.year AS biblio_year,
     biblio.full_reference as biblio_full_reference,
-    biblio.url as biblio_url
+    biblio.url as biblio_url,
+    sample_group_references.sample_group_id
    FROM postgrest_api.sample_group_references
      LEFT JOIN postgrest_api.biblio ON sample_group_references.biblio_id = biblio.biblio_id;
 
