@@ -184,11 +184,14 @@ class Samples {
 							//Is data is still rendering?
 							if($(".data-vis-container > .siteReportContentItemLoadingMsg", "#cic-"+datasetId).length == 0) {
 								clearInterval(scrollInterval);
-								$("#cic-"+datasetId)[0].scrollIntoView();
-								$("#cic-"+datasetId).effect("highlight", {
-									color: css.auxColor,
-									duration: 3000
-								});
+								if(datasetId != "undefined") {
+									$("#cic-"+datasetId)[0].scrollIntoView();
+									$("#cic-"+datasetId).effect("highlight", {
+										color: css.auxColor,
+										duration: 3000
+									});
+								}
+								
 							}
 						}, 100);
 					}
