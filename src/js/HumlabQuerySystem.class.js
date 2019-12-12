@@ -34,6 +34,7 @@ class HumlabQuerySystem {
 		this.hqsEventRegistry = [];
 		this.eventGroups = [];
 		this.filterDefinitions = [];
+		this.systemReady = false;
 
 		this.preload().then(() => {
 			this.buildSystem();
@@ -230,6 +231,7 @@ class HumlabQuerySystem {
 			});
 		}
 
+		this.systemReady = true;
 		this.hqsEventDispatch("hqsInitComplete");
 		this.router.route();
 	}
