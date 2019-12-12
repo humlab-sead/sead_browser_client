@@ -16,8 +16,8 @@ class GenericDataset {
 		this.buildIsComplete = false;
 	}
 	
-	offerAnalysis(analysisDataString) {
-		this.analysisData = JSON.parse(analysisDataString);
+	offerAnalysis(analysisJSON) {
+		this.analysisData = JSON.parse(analysisJSON);
 		var claimed = false;
 		
 		if(this.analysisData.dataTypeId == 5) { //Abundance
@@ -47,15 +47,18 @@ class GenericDataset {
 		if(this.analysisData.dataTypeId == 15) { //Counted dates
 			claimed = true;
 		}
-		
+
+		claimed = true; //This module will always happily accept all datasets
+
 		if(claimed) {
 			//console.log("GenericDataset claiming", this.analysisData);
 			return this.fetchDataset();
 		}
 		
-		
 		return false;
 	}
+
+
 	
 	destroy() {
 	
@@ -65,6 +68,7 @@ class GenericDataset {
 		return this.buildIsComplete;
 	}
 	
+
 	/*
 	* Function: fetchDataset
 	*
@@ -75,75 +79,18 @@ class GenericDataset {
 	* datasetId
 	 */
 	async fetchDataset() {
-		//var xhr1 = this.hqs.pushXhr(null, "fetchSiteAnalyses");
-		$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+this.analysisData.datasetId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				//These are datapoints in the dataset
-				var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
-				this.analysis.data.analyses[analysisKey].dataset = data;
-				
-				this.buildSection();
-				
-				/*
-				for(var key in data) {
-					
-					
-					
-					//Get which sample group this datapoint belongs to
-					var sampleGroupKey = this.hqs.findObjectPropInArray(this.data.analyses[analysisKey].sampleGroups, "sampleGroupId", data[key].sample_group_id);
-					
-					var sample = {
-						"sampleId": data[key].physical_sample_id,
-						"sampleName": data[key].sample_name,
-						"sampleTypeId": data[key].sample_type_id
-					};
-					
-					
-					//this.hqs.config.dataTypes; //This is a thing - which we're currently not using...
-					
-					switch(this.data.analyses[analysisKey].dataTypeId) {
-						case 5: //Data type: Abundance
-							sample.abundance = data[key].abundance;
-							sample.taxonId = data[key].taxon_id;
-							//sample.commonName = data[key].common_name;
-							//sample.species = data[key].species;
-							break;
-						case 6: //Data type: Presence
-							sample.abundance = data[key].abundance > 0 ? "True" : "False";
-							sample.taxonId = data[key].taxon_id;
-							//sample.commonName = data[key].common_name;
-							//sample.species = data[key].species;
-							break;
-						case 7: //Data type: Spot test interpretation
-							break;
-						case 8: //Data type: Continuous
-							break;
-						case 9: //Data type: MNI
-							break;
-						case 10: //Data type: Partial abundance
-							break;
-						case 13: //Data type: Undefined other
-							break;
-						case 14: //Data type: Uncalibrated dates
-							break;
-						case 15: //Data type: Counted dates
-							break;
-						default:
-							sample.measuredValue = data[key].measured_value;
-					}
-					if(sampleGroupKey === false) {
-						console.log("WARN: This site has a dataset ("+data[key].dataset_id+") which refers to a non-existing sample group ("+data[key].sample_group_id+").");
-					}
-					else {
-						this.data.analyses[analysisKey].sampleGroups[sampleGroupKey].samples.push(sample);
-					}
-					
+		await new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+this.analysisData.datasetId, {
+				method: "get",
+				dataType: "json",
+				success: async (data, textStatus, xhr) => {
+					//These are datapoints in the dataset
+					var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
+					this.analysis.data.analyses[analysisKey].dataset = data;
+					this.buildSection();
+					resolve();
 				}
-				*/
-				
-			}
+			});
 		});
 	}
 	
