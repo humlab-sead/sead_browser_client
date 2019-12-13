@@ -1,6 +1,7 @@
 import GenericDataset from './DatasetModules/GenericDataset.class';
 import AbundanceDataset from './DatasetModules/AbundanceDataset.class';
 import MeasuredValueDataset from './DatasetModules/MeasuredValueDataset.class';
+import DendrochronologyDataset from "./DatasetModules/DendrochronologyDataset.class";
 /*
 * Class: Analysis
 *
@@ -45,6 +46,9 @@ class Analysis {
 		});
 		this.analysisModules.push({
 			"className": MeasuredValueDataset
+		});
+		this.analysisModules.push({
+			"className": DendrochronologyDataset
 		});
 		this.analysisModules.push({
 			"className": GenericDataset

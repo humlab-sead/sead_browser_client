@@ -17,6 +17,11 @@ class MeasuredValueDataset {
 			//console.log("MeasuredValueDataset module accepted dataset", this.analysisData.datasetId);
 			return true;
 		}
+		/*
+		if(this.analysisData.methodId == 10) { //Dendrochronology
+			return true;
+		}
+		*/
 		return false;
 	}
 	

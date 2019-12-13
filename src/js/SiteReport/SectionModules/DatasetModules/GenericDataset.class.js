@@ -48,10 +48,13 @@ class GenericDataset {
 			claimed = true;
 		}
 
+		
+
+
 		claimed = true; //This module will always happily accept all datasets
 
 		if(claimed) {
-			//console.log("GenericDataset claiming", this.analysisData);
+			console.log("GenericDataset claiming", this.analysisData.methodName, this.analysisData);
 			return this.fetchDataset();
 		}
 		
@@ -115,7 +118,7 @@ class GenericDataset {
 			sectionKey = sectionsLength - 1;
 		}
 		
-		this.hqs.tooltipManager.registerTooltip("#"+warningTooltipId, "This is an unknown type of analysis. The data is presented in a raw format.");
+		this.hqs.tooltipManager.registerTooltip("#"+warningTooltipId, "This is an unknown type of analysis. The data is presented in a raw format and might be incomplete.");
 		
 		
 		var colNames = Object.keys(analysis.dataset[0]); //Hmm... 0? Are we having this conversation again...?

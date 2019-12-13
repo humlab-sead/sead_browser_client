@@ -9,6 +9,8 @@ import {fromLonLat, transform} from 'ol/proj.js';
 import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style.js';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
+import css from '../../../stylesheets/style.scss';
+
 /*
 * Class: BasicSiteInformation
 *
@@ -219,7 +221,7 @@ class BasicSiteInformation {
 		
 		
 		var strokeColor = "#000000";
-		var fillColor = "#ff0000";
+		var fillColor = css.auxColor;
 		var iconStyle = new Style({
 			image: new CircleStyle({
 				radius: 5,
