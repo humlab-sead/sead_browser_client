@@ -210,6 +210,7 @@ class HumlabQuerySystem {
 			this.modules.push(this.resultManager.modules[key].module);
 		}
 
+
 		if(this.config.cookieWarningEnabled) {
 			window.cookieconsent.initialise({
 				container: document.getElementById("cookie-consent-content"),
@@ -230,6 +231,8 @@ class HumlabQuerySystem {
 				}
 			});
 		}
+
+		this.renderTimelineDummyWarning();
 
 		this.systemReady = true;
 		this.hqsEventDispatch("hqsInitComplete");
@@ -715,6 +718,18 @@ class HumlabQuerySystem {
 			return false;
 		}
 		return data[extremeKey];
+	}
+
+	renderTimelineDummyWarning() {
+		setTimeout(() => {
+			let pos = $(".timeline-chart-container").offset();
+			let top = pos.top - 100;
+			let left = pos.left - 20;
+			let dummyWarningNode = $("<div id='timeline-dummy-warning' style='left:"+left+"px; top:"+top+"px;'>DUMMY</div>");
+			$(".timeline-chart-container").append(dummyWarningNode);
+
+		}, 1000);
+		
 	}
 	
 }

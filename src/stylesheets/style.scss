@@ -990,6 +990,16 @@ polyline{
   margin-top: 10px;
 }
 
+#timeline-dummy-warning {
+  position: absolute;
+  background-color: rgba(160, 0, 0, 0.8);
+  color: #fff;
+  z-index: 10;
+  border-color: black;
+  padding: 10px;
+  border-radius: 10px;
+  transform: rotate(-30deg);
+}
 
 .resultMosaicChart {
   background-color: #eef;
