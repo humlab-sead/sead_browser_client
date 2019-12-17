@@ -387,7 +387,7 @@ class SiteReport {
 		$("#site-report-section-"+section.name+" > .site-report-level-content > #cic-"+contentItem.name).append(headerNode);
 
 		this.hqs.tooltipManager.registerTooltip($(".dataset-id", headerNode), "Unique dataset identifier", { drawSymbol: true });
-		this.hqs.tooltipManager.registerTooltip($(".contentitem-title", headerNode), "Name of the dataset as given by the content provider", { drawSymbol: true });
+		this.hqs.tooltipManager.registerTooltip($(".contentitem-title", headerNode), "Name of the dataset", { drawSymbol: true });
 		
 		$(headerNode).append("<div class='content-item-header-divider'></div>");
 		

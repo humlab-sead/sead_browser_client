@@ -722,12 +722,13 @@ class HumlabQuerySystem {
 
 	renderTimelineDummyWarning() {
 		setTimeout(() => {
-			let pos = $(".timeline-chart-container").offset();
-			let top = pos.top - 100;
-			let left = pos.left - 20;
-			let dummyWarningNode = $("<div id='timeline-dummy-warning' style='left:"+left+"px; top:"+top+"px;'>DUMMY</div>");
-			$(".timeline-chart-container").append(dummyWarningNode);
-
+			if($(".timeline-chart-container").length) {
+				let pos = $(".timeline-chart-container").offset();
+				let top = pos.top - 100;
+				let left = pos.left - 20;
+				let dummyWarningNode = $("<div id='timeline-dummy-warning' style='left:"+left+"px; top:"+top+"px;'>DUMMY</div>");
+				$(".timeline-chart-container").append(dummyWarningNode);
+			}
 		}, 1000);
 		
 	}

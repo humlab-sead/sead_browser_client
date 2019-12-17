@@ -3,6 +3,9 @@
 * Class: GenericDataset
 *
 * DatasetModule
+* 
+* This is a fall-back module that will capture all types of analyses/datasets which no other module claims and try to present some sort of basic rendering of some of the data.
+*
  */
 
 import shortid from "shortid";
@@ -13,58 +16,39 @@ class GenericDataset {
 		this.analysis = analysis;
 		this.section = analysis.section;
 		this.data = analysis.data;
+		this.analyses = [];
+		this.datasetFetchPromises = [];
+		this.datasets = [];
 		this.buildIsComplete = false;
 	}
-	
-	offerAnalysis(analysisJSON) {
-		this.analysisData = JSON.parse(analysisJSON);
-		var claimed = false;
-		
-		if(this.analysisData.dataTypeId == 5) { //Abundance
-			claimed = true;
-		}
-		if(this.analysisData.dataTypeId == 6) { //Presence
-			claimed = true;
-		}
-		if(this.analysisData.dataTypeId == 7) { //Spot test interpretation (1, 2 or 3 where 3 is highest)
-			claimed = true;
-		}
-		if(this.analysisData.dataTypeId == 8) { //Continuous
-			claimed = true;
-		}
-		if(this.analysisData.dataTypeId == 9) { //Minimum number of individual organisms (MNI)
-			claimed = true;
-		}
-		if(this.analysisData.dataTypeId == 10) { //Partial abundance
-			claimed = true;
-		}
-		if(this.analysisData.dataTypeId == 13) { //Undefined other
-			claimed = true;
-		}
-		if(this.analysisData.dataTypeId == 14) { //Uncalibrated dates
-			claimed = true;
-		}
-		if(this.analysisData.dataTypeId == 15) { //Counted dates
-			claimed = true;
+
+	offerAnalyses(datasets) {
+		for(let key = datasets.length - 1; key >= 0; key--) {
+			if(true) { //This module will always happily accept all datasets
+				console.log("Generic claiming ", datasets[key].datasetId);
+				let dataset = datasets.splice(key, 1)[0];
+				this.datasets.push(dataset);
+			}
 		}
 
-		
-
-
-		claimed = true; //This module will always happily accept all datasets
-
-		if(claimed) {
-			console.log("GenericDataset claiming", this.analysisData.methodName, this.analysisData);
-			return this.fetchDataset();
-		}
-		
-		return false;
+		return new Promise((resolve, reject) => {
+			for(let key in this.datasets) {
+				let p = this.analysis.fetchAnalysis(this.datasets[key]);
+				this.datasetFetchPromises.push(p);
+				p = this.fetchDataset(this.datasets[key]);
+				this.datasetFetchPromises.push(p);
+			}
+			
+			Promise.all(this.datasetFetchPromises).then(() => {
+				if(this.datasets.length > 0) {
+					this.buildSection(this.datasets);
+				}
+				resolve();
+			});
+		});
 	}
-
-
 	
 	destroy() {
-	
 	}
 	
 	isBuildComplete() {
@@ -81,16 +65,14 @@ class GenericDataset {
 	* Parameters:
 	* datasetId
 	 */
-	async fetchDataset() {
+	async fetchDataset(dataset) {
 		await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+this.analysisData.datasetId, {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
 					//These are datapoints in the dataset
-					var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
-					this.analysis.data.analyses[analysisKey].dataset = data;
-					this.buildSection();
+					dataset.dataPoints = data;
 					resolve();
 				}
 			});
@@ -98,11 +80,18 @@ class GenericDataset {
 	}
 	
 	
-	buildSection() {
-		var analysisKey = this.hqs.findObjectPropInArray(this.data.analyses, "datasetId", this.analysisData.datasetId)
+	
+	buildSection(datasets) {
+		for(let key in datasets) {
+			this.appendDatasetToSection(datasets[key]);
+		}
 		
-		//This is the analysis in raw-data-structure form that we want to parse into formalized form
-		var analysis = this.data.analyses[analysisKey];
+		this.buildIsComplete = true;
+		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
+	}
+
+	appendDatasetToSection(dataset) {
+		var analysis = dataset;
 		
 		//This is the section we're parsing into (or creating)
 		var sectionKey = this.hqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
@@ -118,10 +107,9 @@ class GenericDataset {
 			sectionKey = sectionsLength - 1;
 		}
 		
-		this.hqs.tooltipManager.registerTooltip("#"+warningTooltipId, "This is an unknown type of analysis. The data is presented in a raw format and might be incomplete.");
+		this.hqs.tooltipManager.registerTooltip("#"+warningTooltipId, "This is an unknown type of analysis. The data is presented in a raw format and may be incomplete.");
 		
-		
-		var colNames = Object.keys(analysis.dataset[0]); //Hmm... 0? Are we having this conversation again...?
+		var colNames = Object.keys(analysis.dataPoints[0]);
 		
 		var length = this.section.sections[sectionKey].contentItems.push({
 			"name": analysis.datasetId,
@@ -147,22 +135,19 @@ class GenericDataset {
 		}
 		
 		
-		for(var k in analysis.dataset) {
+		for(var k in analysis.dataPoints) {
 			
 			var row = [];
 			for(var colKey in colNames) {
 				row.push({
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataset[k][colNames[colKey]]
+					"value": analysis.dataPoints[k][colNames[colKey]]
 				});
 			}
 			
 			this.section.sections[sectionKey].contentItems[ciKey].data.rows.push(row);
 		}
-		
-		this.buildIsComplete = true;
-		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
 	}
 	
 }

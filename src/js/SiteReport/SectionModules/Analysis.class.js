@@ -12,7 +12,7 @@ class Analysis {
 		this.hqs = hqs;
 		this.siteId = siteId;
 		this.anchor = anchor;
-        this.buildComplete = false;
+		this.buildComplete = false;
 		//The section structure this will result in after everything is fetched and parsed.
 		this.section = {
 			"name": "analyses",
@@ -53,6 +53,11 @@ class Analysis {
 		this.analysisModules.push({
 			"className": GenericDataset
 		});
+
+		for(let key in this.analysisModules) {
+			this.analysisModules[key]["instance"] = new this.analysisModules[key]["className"](this);
+		}
+		
 	}
 
 	render() {
@@ -109,14 +114,21 @@ class Analysis {
 							});
 						}
 					}
+					
+					let analysesPromises = this.delegateAnalyses(this.data.analyses);
 
-					
-					
+					Promise.all(analysesPromises).then(() => {
+						this.render();
+						resolve();
+					});
+
 					//Now that we have stored the analyses properly, fetch more data about each one.
 					//(analysis and dataset is pretty much synonymous since the dataset is a result of an analysis)
+					/*
 					for(var key in this.data.analyses) {
 						analysisPromises.push(this.fetchAnalysis(this.data.analyses[key].datasetId));
 					}
+					
 
 					let promises = methodPromises.concat(analysisPromises);
 
@@ -125,12 +137,31 @@ class Analysis {
 						this.render();
 						resolve(data);
 					});
+					*/
 				},
 				error: () => {
 					reject();
 				}
 			});
 		});
+	}
+
+	/** 
+	* Function: delegateAnalyses
+	*
+	* 
+	*
+	*/
+	delegateAnalyses(analyses) {
+		let analysesPromises = [];
+		for(var key in this.analysisModules) {
+			let promise = this.analysisModules[key]["instance"].offerAnalyses(analyses);
+			analysesPromises.push(promise);
+		}
+
+		
+
+		return analysesPromises;
 	}
 	
 	/*
@@ -142,37 +173,24 @@ class Analysis {
 	* Parameters:
 	* datasetId
 	 */
-	async fetchAnalysis(datasetId) {
-		
-		let dataset = null;
+	async fetchAnalysis(dataset) {
 		await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_analysis?dataset_id=eq."+datasetId, {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_analysis?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
 					//Find the relevant analysis in the master data structure
-					var analysisKey = this.hqs.findObjectPropInArray(this.data.analyses, "datasetId", datasetId);
-					this.data.analyses[analysisKey].dataTypeId = data[0].data_type_id;
-					this.data.analyses[analysisKey].masterSetId = data[0].master_set_id; //1 or 2 which is Bugs or MAL, also often empty
-					this.data.analyses[analysisKey].dataTypeName = data[0].data_type_name;
-					this.data.analyses[analysisKey].dataTypeDefinition = data[0].definition;
-					this.data.analyses[analysisKey].methodId = data[0].method_id;
-					this.data.analyses[analysisKey].methodName = data[0].method_name;
-					this.data.analyses[analysisKey].datasetName = data[0].dataset_name;
-
-					dataset = this.data.analyses[analysisKey];
-
+					dataset.dataTypeId = data[0].data_type_id;
+					dataset.masterSetId = data[0].master_set_id; //1 or 2 which is Bugs or MAL, also often empty
+					dataset.dataTypeName = data[0].data_type_name;
+					dataset.dataTypeDefinition = data[0].definition;
+					dataset.methodId = data[0].method_id;
+					dataset.methodName = data[0].method_name;
+					dataset.datasetName = data[0].dataset_name;
 					resolve(dataset);
 				}
 			});
 		});
-
-		
-		let foundModuleForDataset = await this.fetchAnalysisDataset(this.hqs.copyObject(dataset));
-		if(foundModuleForDataset === false) {
-			console.log("WARN: Couldn't find a module for analysis ", analysis);
-		}
-		
 	}
 	
 	async fetchAnalysisDataset(analysis) {
@@ -274,11 +292,10 @@ class Analysis {
 	}
 
 
-	fetchSampleType(dataset) {
-
+	async fetchSampleType(dataset) {
 		let fetchIds = [];
-		for(let key in dataset) {
-			let sampleTypeId = dataset[key].sample_type_id;
+		for(let key in dataset.dataPoints) {
+			let sampleTypeId = dataset.dataPoints[key].sample_type_id;
 			if (sampleTypeId != null) {
 				fetchIds.push(sampleTypeId);
 			}
@@ -307,16 +324,16 @@ class Analysis {
 		for(let key in queries) {
 			let requestString = this.hqs.config.siteReportServerAddress+"/qse_sample_types?or="+queries[key];
 			
-			let p = new Promise((resolve, reject) => {
+			let p = await new Promise((resolve, reject) => {
 				$.ajax(requestString, {
 					method: "get",
 					dataType: "json",
 					success: (sampleTypeData) => {
 	
-						for(let key in dataset) {
+						for(let key in dataset.dataPoints) {
 							for(let sampleTypeKey in sampleTypeData) {
-								if(dataset[key].sample_type_id == sampleTypeData[sampleTypeKey].sample_type_id) {
-									dataset[key].sample_type = sampleTypeData[sampleTypeKey];
+								if(dataset.dataPoints[key].sample_type_id == sampleTypeData[sampleTypeKey].sample_type_id) {
+									dataset.dataPoints[key].sample_type = sampleTypeData[sampleTypeKey];
 								}
 							}
 						}

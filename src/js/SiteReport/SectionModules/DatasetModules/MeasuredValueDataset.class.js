@@ -8,37 +8,49 @@ class MeasuredValueDataset {
 		this.analysis = analysis;
 		this.section = analysis.section;
 		this.data = analysis.data;
+		this.analyses = [];
+		this.datasetFetchPromises = [];
+		this.datasets = [];
 		this.buildIsComplete = false;
 	}
-	
-	offerAnalysis(analysisJSON) {
-		this.analysisData = JSON.parse(analysisJSON);
-		if (this.analysisData.methodGroupId == 2) { //All in MethodGroupId id 2 = Measured value
-			//console.log("MeasuredValueDataset module accepted dataset", this.analysisData.datasetId);
-			return true;
+
+	offerAnalyses(datasets) {
+		for(let key = datasets.length - 1; key >= 0; key--) {
+			if(datasets[key].methodGroupId == 2) {
+				//console.log("MeasuredValueDataset claiming ", datasets[key].datasetId);
+				let dataset = datasets.splice(key, 1)[0];
+				this.datasets.push(dataset);
+			}
 		}
-		/*
-		if(this.analysisData.methodId == 10) { //Dendrochronology
-			return true;
-		}
-		*/
-		return false;
+
+		return new Promise((resolve, reject) => {
+			for(let key in this.datasets) {
+				let p = this.analysis.fetchAnalysis(this.datasets[key]);
+				this.datasetFetchPromises.push(p);
+				p = this.fetchDataset(this.datasets[key]);
+				this.datasetFetchPromises.push(p);
+			}
+			
+			Promise.all(this.datasetFetchPromises).then(() => {
+				if(this.datasets.length > 0) {
+					this.buildSection(this.datasets);
+				}
+				resolve();
+			});
+		});
 	}
 	
 	destroy() {
 	}
 	
-	async fetchDataset() {
+	async fetchDataset(dataset) {
 		await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+this.analysisData.datasetId, {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
-					//These are datapoints in the dataset
-					var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
-					this.analysis.data.analyses[analysisKey].dataset = data;
-					
-					await this.requestMetaDataForDataset(data);
+					dataset.dataPoints = data;
+					await this.requestMetaDataForDataset(dataset);
 					resolve();
 				}
 			});
@@ -47,19 +59,21 @@ class MeasuredValueDataset {
 
 
 	async requestMetaDataForDataset(dataset) {
-		let promises = this.analysis.fetchSampleType(dataset); //This is not wrong - this function returns multiple promises
-		await Promise.all(promises).then((values) => {
-			this.buildSection();
-			return this;
-		});
+		await this.analysis.fetchSampleType(dataset);
 	}
 
 	
-	buildSection() {
-		var analysisKey = this.hqs.findObjectPropInArray(this.data.analyses, "datasetId", this.analysisData.datasetId)
+	buildSection(datasets) {
+		for(let key in datasets) {
+			this.appendDatasetToSection(datasets[key]);
+		}
 		
-		//This is the analysis in raw-data-structure form that we want to parse into formalized form
-		var analysis = this.data.analyses[analysisKey];
+		this.buildIsComplete = true;
+		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
+	}
+
+	appendDatasetToSection(dataset) {
+		var analysis = dataset;
 		
 		//This is the section we're parsing into (or creating)
 		var sectionKey = this.hqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
@@ -81,7 +95,6 @@ class MeasuredValueDataset {
 			});
 			sectionKey = sectionsLength - 1;
 		}
-		
 		
 		//Defining columns
 		var columns = [
@@ -114,33 +127,33 @@ class MeasuredValueDataset {
 		
 		//Filling up the rows
 		var rows = [];
-		for(var k in analysis.dataset) {
+		for(var k in analysis.dataPoints) {
 			
 			var row = [
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataset[k].analysis_entity_id
+					"value": analysis.dataPoints[k].analysis_entity_id
 				},
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataset[k].sample_name
+					"value": analysis.dataPoints[k].sample_name
 				},
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataset[k].sample_group_id
+					"value": analysis.dataPoints[k].sample_group_id
 				},
 				{
 					"type": "cell",
-					"tooltip": analysis.dataset[k].sample_type.description,
-					"value": analysis.dataset[k].sample_type.type_name
+					"tooltip": analysis.dataPoints[k].sample_type.description,
+					"value": analysis.dataPoints[k].sample_type.type_name
 				},
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataset[k].measured_value
+					"value": analysis.dataPoints[k].measured_value
 				}
 			];
 			rows.push(row);
@@ -194,7 +207,6 @@ class MeasuredValueDataset {
 			]
 		};
 		this.section.sections[sectionKey].contentItems.push(contentItem);
-
 		this.buildIsComplete = true;
 		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
 	}

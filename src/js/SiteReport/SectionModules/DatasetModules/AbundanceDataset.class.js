@@ -10,19 +10,37 @@ class AbundanceDataset {
 		this.section = analysis.section;
 		this.data = analysis.data;
 		this.taxonPromises = [];
+		this.analyses = [];
+		this.datasetFetchPromises = [];
+		this.datasets = [];
 		this.buildIsComplete = false;
 	}
 	
-	offerAnalysis(analysisJSON) {
-		this.analysisData = JSON.parse(analysisJSON);
-		if(this.analysisData.methodGroupId == 1) { //All in MethodGroupId id 1 = Abundance
-			//console.log("AbundanceDataset module accepted dataset", this.analysisData.datasetId);
-			return true;
+	offerAnalyses(datasets) {
+		for(let key = datasets.length - 1; key >= 0; key--) {
+			if(datasets[key].methodGroupId == 1) {
+				//console.log("Abundance claiming ", datasets[key].datasetId);
+				let dataset = datasets.splice(key, 1)[0];
+				this.datasets.push(dataset);
+			}
 		}
-		
-		return false;
-	}
 
+		return new Promise((resolve, reject) => {
+			for(let key in this.datasets) {
+				let p = this.analysis.fetchAnalysis(this.datasets[key]);
+				this.datasetFetchPromises.push(p);
+				p = this.fetchDataset(this.datasets[key]);
+				this.datasetFetchPromises.push(p);
+			}
+			
+			Promise.all(this.datasetFetchPromises).then(() => {
+				if(this.datasets.length > 0) {
+					this.buildSection(this.datasets);
+				}
+				resolve();
+			});
+		});
+	}
 	
 	destroy() {
 		this.hqs.hqsEventUnlisten("taxaFetchingComplete-"+this.analysisData.datasetId, this);
@@ -36,26 +54,20 @@ class AbundanceDataset {
 	* Also need to fetch taxon-info for this since it's an abundance counting type of method, yes sir it is sir indeed sir.
 	*
 	* Parameters:
-	* datasetId
+	* dataset
 	 */
-	async fetchDataset() {
-		
-		await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+this.analysisData.datasetId, {
+	async fetchDataset(dataset) {
+		return await new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
-					//These are datapoints in the dataset
-					var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
-					this.analysis.data.analyses[analysisKey].dataset = data;
-					
-					await this.requestMetaDataForDataset(data);
+					dataset.dataPoints = data;
+					await this.requestMetaDataForDataset(dataset);
 					resolve();
 				}
 			});
 		});
-		
-		
 	}
 	
 	getDataset() {
@@ -63,23 +75,22 @@ class AbundanceDataset {
 		return this.analysis.data.analyses[analysisKey].dataset;
 	}
 	
+	/*
+	*/
 	async requestMetaDataForDataset(dataset) {
 		let promises = [];
-		promises = promises.concat(this.fetchTaxa(dataset));
-		promises = promises.concat(this.fetchAbundanceIdentificationLevel(dataset));
-		promises = promises.concat(this.fetchAbundanceModifications(dataset));
-		promises = promises.concat(this.analysis.fetchSampleType(dataset));
-
-		await Promise.all(promises).then((values) => {
-			this.buildSection();
-			return this;
-		});
+		promises = promises.concat(await this.fetchTaxa(dataset));
+		promises = promises.concat(await this.fetchAbundanceIdentificationLevel(dataset));
+		promises = promises.concat(await this.fetchAbundanceModifications(dataset));
+		promises = promises.concat(await this.analysis.fetchSampleType(dataset));
+		return promises;
 	}
 
 	async fetchTaxa(dataset) {
+		let dataPoints = dataset.dataPoints;
 		var taxonIds = [];
-		for(var key in dataset) {
-			var taxonId = dataset[key].abundance_taxon_id;
+		for(var key in dataPoints) {
+			var taxonId = dataPoints[key].abundance_taxon_id;
 			if (taxonId != null) {
 				taxonIds.push(taxonId);
 			}
@@ -88,7 +99,7 @@ class AbundanceDataset {
 		var taxonPromise = this.hqs.siteReportManager.siteReport.getTaxa(taxonIds);
 		taxonPromise.then((taxa) => {
 			for(var key in taxa) {
-				this.applyTaxon(taxa[key]);
+				this.applyTaxon(dataset, taxa[key]);
 			}
 		});
 
@@ -97,10 +108,11 @@ class AbundanceDataset {
 
 
 	async fetchAbundanceIdentificationLevel(dataset) {
+		let dataPoints = dataset.dataPoints;
 		let taxonAbundanceIds = [];
-		for(let key in dataset) {
-			var taxonId = dataset[key].abundance_taxon_id;
-			let abundanceId = dataset[key].abundance_id;
+		for(let key in dataPoints) {
+			var taxonId = dataPoints[key].abundance_taxon_id;
+			let abundanceId = dataPoints[key].abundance_id;
 			if (taxonId != null) {
 				taxonAbundanceIds.push({
 					"taxonId": taxonId,
@@ -109,25 +121,19 @@ class AbundanceDataset {
 			}
 		}
 
-		let promise = this.requestAbundanceIdentificationLevel(taxonAbundanceIds);
-		promise.then((identificationLevels) => {
-			
-			for(let key in identificationLevels) {
-				let il = identificationLevels[key];
-				for(let dk in dataset) {
-					if(dataset[dk].abundance_id == il.abundance_id && dataset[dk].taxon.taxon_id == il.taxon_id) { //FIXME: taxon_id can sometimes be undefined here: AbundanceDataset.class.js:123 Uncaught (in promise) TypeError: Cannot read property 'taxon_id' of undefined
-						if(typeof(dataset[dk].taxon.identification_levels) == "undefined") {
-							dataset[dk].taxon.identification_levels = [];
-						}
-						dataset[dk].taxon.identification_levels.push(il);
+		let identificationLevels = await this.requestAbundanceIdentificationLevel(taxonAbundanceIds);
+		
+		for(let key in identificationLevels) {
+			let il = identificationLevels[key];
+			for(let dk in dataPoints) {
+				if(dataPoints[dk].abundance_id == il.abundance_id && dataPoints[dk].taxon.taxon_id == il.taxon_id) { //FIXME: taxon_id can sometimes be undefined here: AbundanceDataset.class.js:123 Uncaught (in promise) TypeError: Cannot read property 'taxon_id' of undefined
+					if(typeof(dataPoints[dk].taxon.identification_levels) == "undefined") {
+						dataPoints[dk].taxon.identification_levels = [];
 					}
+					dataPoints[dk].taxon.identification_levels.push(il);
 				}
 			}
-
-			//this.hqs.hqsEventDispatch("abundanceIdentificationLevelFetchingComplete-"+this.analysisData.datasetId);
-		});
-
-		return promise;
+		}
 	}
 
 	async requestAbundanceIdentificationLevel(taxonAbundanceIds) {
@@ -171,29 +177,26 @@ class AbundanceDataset {
 	}
 
 	async fetchAbundanceModifications(dataset) {
+		let dataPoints = dataset.dataPoints;
 		let abundanceIds = [];
-		for(let key in dataset) {
-			abundanceIds.push(dataset[key].abundance_id);
+		for(let key in dataPoints) {
+			abundanceIds.push(dataPoints[key].abundance_id);
 		}
 
-		let promise = this.requestAbundanceModifications(abundanceIds);
-		promise.then((modifications) => {
-			for(let dk in dataset) {
-				for(let mk in modifications) {
-					if(dataset[dk].abundance_id == modifications[mk].abundance_id) {
-						dataset[dk].modifications = [];
-						dataset[dk].modifications.push({
-							modification_type_id: modifications[mk].modification_type_id,
-							modification_type_name: modifications[mk].modification_type_name,
-							modification_type_description: modifications[mk].modification_type_description
-						});
-					}
+		let modifications = await this.requestAbundanceModifications(abundanceIds);
+		
+		for(let dk in dataPoints) {
+			for(let mk in modifications) {
+				if(dataPoints[dk].abundance_id == modifications[mk].abundance_id) {
+					dataPoints[dk].modifications = [];
+					dataPoints[dk].modifications.push({
+						modification_type_id: modifications[mk].modification_type_id,
+						modification_type_name: modifications[mk].modification_type_name,
+						modification_type_description: modifications[mk].modification_type_description
+					});
 				}
 			}
-			//this.hqs.hqsEventDispatch("modificationsFetchingComplete-"+this.analysisData.datasetId);
-		});
-
-		return promise;
+		}
 	}
 
 	async requestAbundanceModifications(abundanceIds) {
@@ -238,15 +241,20 @@ class AbundanceDataset {
 		return queryData;
 	}
 	
-	applyTaxon(taxon) {
+	/*
+	* Function: applyTaxon
+	* 
+	* 
+	*/
+	applyTaxon(dataset, taxon) {
 		this.taxaComplete = true; //Optimistic presumption
-		var ds = this.getDataset();
-		for(var key in ds) {
-			if(ds[key].abundance_taxon_id == taxon.taxon_id) {
-				ds[key].taxon = taxon;
+
+		for(var key in dataset.dataPoints) {
+			if(dataset.dataPoints[key].abundance_taxon_id == taxon.taxon_id) {
+				dataset.dataPoints[key].taxon = taxon;
 			}
 			
-			if(typeof(ds[key].taxon) == "undefined") {
+			if(typeof(dataset.dataPoints[key].taxon) == "undefined") {
 				this.taxaComplete = false;
 			}
 		}
@@ -254,18 +262,22 @@ class AbundanceDataset {
 	}
 	
 	
-	buildSection() {
-		var analysisKey = this.hqs.findObjectPropInArray(this.data.analyses, "datasetId", this.analysisData.datasetId)
+	buildSection(datasets) {
+		for(let key in datasets) {
+			this.appendDatasetToSection(datasets[key]);
+		}
 		
-		//This is the analysis in raw-data-structure form that we want to parse into formalized form
-		var analysis = this.data.analyses[analysisKey];
-		//This is the section we're parsing into (or creating)
+		this.buildIsComplete = true;
+		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
+	}
+
+	appendDatasetToSection(dataset) {
+		let analysis = dataset;
 		var sectionKey = this.hqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
-		
 		var method = null;
-		for(var key in this.analysis.meta.methods) {
-			if(this.analysis.meta.methods[key].method_id == analysis.methodId) {
-				method = this.analysis.meta.methods[key];
+		for(var k in this.analysis.meta.methods) {
+			if(this.analysis.meta.methods[k].method_id == analysis.methodId) {
+				method = this.analysis.meta.methods[k];
 			}
 		}
 		
@@ -318,33 +330,33 @@ class AbundanceDataset {
 				"pkey": false,
 				"title": "Sample type"
 			},
-            {
-                "dataType": "string",
-                "pkey": false,
-                "title": "Element type"
+			{
+				"dataType": "string",
+				"pkey": false,
+				"title": "Element type"
 			},
 			{
 				"dataType": "string",
-                "pkey": false,
-                "title": "Modification"
+				"pkey": false,
+				"title": "Modification"
 			}
 		];
 		
 		//Filling up the rows
 		var rows = [];
-		for(var k in analysis.dataset) {
+		for(var k in analysis.dataPoints) {
 			
 			var taxonFormatted = "notaxa";
-			if(typeof(analysis.dataset[k].taxon) != "undefined") {
-				taxonFormatted = this.hqs.formatTaxon(analysis.dataset[k].taxon, true, analysis.dataset[k].abundance_id);
+			if(typeof(analysis.dataPoints[k].taxon) != "undefined") {
+				taxonFormatted = this.hqs.formatTaxon(analysis.dataPoints[k].taxon, true, analysis.dataPoints[k].abundance_id);
 			}
 			
 			let modValue = "";
 			let modDesc = "";
-			for(let mk in analysis.dataset[k].modifications) {
-				let mod = analysis.dataset[k].modifications[mk];
-				modValue += analysis.dataset[k].modifications[mk].modification_type_name+", ";
-				modDesc += analysis.dataset[k].modifications[mk].modification_type_name+": "+analysis.dataset[k].modifications[mk].modification_type_description+" ";
+			for(let mk in analysis.dataPoints[k].modifications) {
+				let mod = analysis.dataPoints[k].modifications[mk];
+				modValue += analysis.dataPoints[k].modifications[mk].modification_type_name+", ";
+				modDesc += analysis.dataPoints[k].modifications[mk].modification_type_name+": "+analysis.dataPoints[k].modifications[mk].modification_type_description+" ";
 			}
 			modValue = modValue.substr(0, modValue.length-2);
 			
@@ -353,27 +365,27 @@ class AbundanceDataset {
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataset[k].analysis_entity_id
+					"value": analysis.dataPoints[k].analysis_entity_id
 				},
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataset[k].sample_name
+					"value": analysis.dataPoints[k].sample_name
 				},
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataset[k].sample_group_id
+					"value": analysis.dataPoints[k].sample_group_id
 				},
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataset[k].abundance
+					"value": analysis.dataPoints[k].abundance
 				},
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataset[k].abundance_taxon_id
+					"value": analysis.dataPoints[k].abundance_taxon_id
 				},
 				{
 					"type": "cell",
@@ -382,19 +394,19 @@ class AbundanceDataset {
 				},
 				{
 					"type": "cell",
-					"tooltip": analysis.dataset[k].sample_type.description,
-					"value": analysis.dataset[k].sample_type.type_name
-				},
-                {
-                    "type": "cell",
-                    "tooltip": analysis.dataset[k].element_description,
-                    "value": analysis.dataset[k].element_name
+					"tooltip": analysis.dataPoints[k].sample_type.description,
+					"value": analysis.dataPoints[k].sample_type.type_name
 				},
 				{
-                    "type": "cell",
-                    "tooltip": modDesc == "" ? "" : modDesc,
-                    "value": modValue == "" ? "None" : modValue
-                }
+					"type": "cell",
+					"tooltip": analysis.dataPoints[k].element_description,
+					"value": analysis.dataPoints[k].element_name
+				},
+				{
+					"type": "cell",
+					"tooltip": modDesc == "" ? "" : modDesc,
+					"value": modValue == "" ? "None" : modValue
+				}
 			];
 			rows.push(row);
 		}
@@ -464,9 +476,6 @@ class AbundanceDataset {
 				}
 			]
 		});
-		
-		this.buildIsComplete = true;
-		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
 	}
 	
 	isBuildComplete() {

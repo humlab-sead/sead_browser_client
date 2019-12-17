@@ -237,11 +237,21 @@ class SiteReportTable {
 	}
 
 	renderTableHeader() {
+
+		//FIXME: Take into account hidden columns
+
 		for(var key in this.columns) {
 			if(this.columns[key].dataType != "subtable") {
 				//var colTitleNode = $("<td>"+this.columns[key].title+"&nbsp;<i column='"+key+"' class=\"fa fa-eye-slash table-hide-column-btn\" aria-hidden=\"true\"></i></td>"); //with hide-column-button
-				var colTitleNode = $("<td>"+this.columns[key].title+"</td>");
+				
+				let columnClasses = "";
+				if(typeof this.columns[key].hidden != "undefined" && this.columns[key].hidden) {
+					columnClasses += "hidden-column";
+				}
+				
+				var colTitleNode = $("<td class='"+columnClasses+"'>"+this.columns[key].title+"</td>");
 				colTitleNode.attr("colKey", key);
+				/*
 				$(".table-hide-column-btn", colTitleNode).on("click", (evt) => {
 					evt.stopPropagation();
 					var columnId = parseInt($(evt.currentTarget).attr("column"));
@@ -250,25 +260,31 @@ class SiteReportTable {
 					}
 					this.setColumnVisbility(columnId, false);
 				});
+				*/
 				$("thead > tr", this.tableNode).append(colTitleNode);
 			}
 		}
 	}
 
 	renderTableRow(row) {
+		
 		var rowPrimaryKeyValue = row[this.rowPkey].value;
 		var rowNode = $("<tr row-id='"+rowPrimaryKeyValue+"' class='site-report-table-row subtable-collapsed'></tr>");
-		
+
 		for(var colKey in row) {
 			var currentColumn = this.columns[colKey];
-			
+
 			var cellNodeId = "cell-"+shortid.generate();
 			
+			let colClasses = "";
+			if(typeof currentColumn.hidden != "undefined" && currentColumn.hidden === true) {
+				colClasses += "hidden-column";
+			}
+			
+
 			if(row[colKey].type == "cell") {
 				var value = row[colKey].value;
 				var tooltip = row[colKey].tooltip;
-				
-				
 				
 				if(row[colKey].hasOwnProperty("callback") && typeof(row[colKey].callback) == "function") {
 					row[colKey].callback(row, cellNodeId);
@@ -306,7 +322,7 @@ class SiteReportTable {
 						}
 					}
 
-					var cellNode = $("<td id='"+cellNodeId+"'>"+value+"</td>");
+					var cellNode = $("<td id='"+cellNodeId+"' class='"+colClasses+"'>"+value+"</td>");
 					rowNode.append(cellNode);
 				}
 			}

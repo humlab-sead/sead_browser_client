@@ -12,17 +12,36 @@ class DendrochronologyDataset {
 		this.section = analysis.section;
 		this.data = analysis.data;
 		this.taxonPromises = [];
+		this.datasetFetchPromises = [];
+		this.datasets = [];
 		this.buildIsComplete = false;
 	}
 	
-	offerAnalysis(analysisJSON) {
-		this.analysisData = JSON.parse(analysisJSON);
-		let claimed = false;
-		if(this.analysisData.methodId == 10) { //Dendrochronology
-			claimed = true;
+	offerAnalyses(datasets) {
+		for(let key = datasets.length - 1; key >= 0; key--) {
+			if(datasets[key].methodId == 10) {
+				//console.log("Dendrochronology claiming ", datasets[key].datasetId);
+				let dataset = datasets.splice(key, 1)[0];
+				this.datasets.push(dataset);
+			}
 		}
-		
-		return claimed;
+
+		return new Promise((resolve, reject) => {
+			for(let key in this.datasets) {
+				let p = this.analysis.fetchAnalysis(this.datasets[key]);
+				this.datasetFetchPromises.push(p);
+				p = this.fetchDataset(this.datasets[key]);
+				this.datasetFetchPromises.push(p);
+			}
+
+			Promise.all(this.datasetFetchPromises).then(() => {
+				if(this.datasets.length > 0) {
+					console.log(this.datasets);
+					this.buildSection(this.datasets);
+				}
+				resolve();
+			});
+		});
 	}
 
 	/*
@@ -31,73 +50,92 @@ class DendrochronologyDataset {
 	* Parameters:
 	* datasetId
 	 */
-	async fetchDataset() {
-		let promises = [];
-
-		promises.push(new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/dendro_lookup", {
-				method: "get",
-				dataType: "json",
-				success: async (dendroDataTypes, textStatus, xhr) => {
-					var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
-					this.analysis.data.analyses[analysisKey].dendroDataTypes = dendroDataTypes;
-					resolve();
-				}
-			});
-		}));
+	async fetchDataset(dataset) {
+		let p = await new Promise((resolve, reject) => {
+			let promises = [];
 
 
-		promises.push(new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/analysis_entities?dataset_id=eq."+this.analysisData.datasetId, {
-				method: "get",
-				dataType: "json",
-				success: async (analysisEntities, textStatus, xhr) => {
-					var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
-					this.analysis.data.analyses[analysisKey].analysisEntities = analysisEntities;
-					for(let key in analysisEntities) {
-						await this.fetchDendroData(analysisEntities[key].analysis_entity_id);
+			if(typeof this.analysis.dendroDataTypes == "undefined") {
+				promises.push(new Promise((resolve, reject) => {
+					$.ajax(this.hqs.config.siteReportServerAddress+"/dendro_lookup", {
+						method: "get",
+						dataType: "json",
+						success: async (dendroDataTypes, textStatus, xhr) => {
+							this.analysis.dendroDataTypes = dendroDataTypes;
+							//dataset.dendroDataTypes = dendroDataTypes; //Maybe this shouldn't be dataset-specific
+							resolve();
+						}
+					});
+				}));
+			}
+			
+			promises.push(new Promise((resolve, reject) => {
+				$.ajax(this.hqs.config.siteReportServerAddress+"/analysis_entities?dataset_id=eq."+dataset.datasetId, {
+					method: "get",
+					dataType: "json",
+					success: async (analysisEntities, textStatus, xhr) => {
+						dataset.analysisEntities = analysisEntities;
+						for(let key in analysisEntities) {
+							await this.fetchDendroData(dataset, analysisEntities[key].analysis_entity_id);
+						}
+						resolve();
 					}
-					resolve();
-				}
+				});
+			}));
+
+			Promise.all(promises).then(() => {
+				resolve();
 			});
-		}));
-
-
-		await Promise.all(promises).then(() => {
-			this.buildSection();
 		});
+
+		return p;
 	}
 
 
-	async fetchDendroData(analysisEntityId) {
+	async fetchDendroData(dataset, analysisEntityId) {
 		await $.ajax(this.hqs.config.siteReportServerAddress+"/dendro?analysis_entity_id=eq."+analysisEntityId, {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {
-				var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
-				this.analysis.data.analyses[analysisKey].dendro = data;
+				dataset.dendro = data;
 				return data;
 			}
 		});
 	}
 
+
+	/*
+	* Function: getDendroValueType
+	*
+	* Resolves the dendro mapping from "dendro_lookup_id" to value/variable type. Think of the "lookup_id" as the "variable type id" and it will make more sense.
+	* 
+	*/
 	getDendroValueType(lookupId) {
-		var analysisKey = this.hqs.findObjectPropInArray(this.data.analyses, "datasetId", this.analysisData.datasetId)
+		if(typeof this.analysis.dendroDataTypes == "undefined") {
+			console.error("Tried to access dendro data types but it was undefined");
+			return false;
+		}
+		for(let key in this.analysis.dendroDataTypes) {
+			if(this.analysis.dendroDataTypes[key].dendro_lookup_id == lookupId) {
+				return this.analysis.dendroDataTypes[key];
+			}
+		}
+		return false;
+
+		/*
+		var analysisKey = this.hqs.findObjectPropInArray(this.data.analyses, "datasetId", this.analysisData.datasetId);
 		let dataTypes = this.analysis.data.analyses[analysisKey].dendroDataTypes;
 		for(let key in dataTypes) {
 			if(dataTypes[key].dendro_lookup_id == lookupId) {
 				return dataTypes[key];
 			}
 		}
-		return false;
+		return false
+		*/
 	}
 
-	buildSection() {
-		var analysisKey = this.hqs.findObjectPropInArray(this.data.analyses, "datasetId", this.analysisData.datasetId)
-		
-		//This is the analysis in raw-data-structure form that we want to parse into formalized form
-		var analysis = this.data.analyses[analysisKey];
-		//This is the section we're parsing into (or creating)
+	buildSection(datasets) {
+		let analysis = datasets[0];
 		var sectionKey = this.hqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
 		
 		var method = null;
@@ -123,7 +161,18 @@ class DendrochronologyDataset {
 			{
 				"dataType": "number",
 				"pkey": true,
-				"title": "Analysis entitiy id"
+				"title": "Analysis entitiy id",
+				"hidden": true
+			},
+			{
+				"dataType": "string",
+				"pkey": false,
+				"title": "Data type name"
+			},
+			{
+				"dataType": "string",
+				"pkey": false,
+				"title": "Dataset name"
 			},
 			{
 				"dataType": "string",
@@ -137,47 +186,61 @@ class DendrochronologyDataset {
 			}
 		];
 
-		//Filling up the rows
+		//Filling up the rows - all dataset's data goes in the same table for dendro
 		var rows = [];
-		for(let key in analysis.dendro) {
-			let valueType = this.getDendroValueType(analysis.dendro[key].dendro_lookup_id);
+		for(let dk in datasets) {
 			
-			let valueTypeName = analysis.dendro[key].dendro_lookup_id;
-			let valueTypeDescription = "Unknown dendrochronological data type";
-			
-			if(valueType !== false) {
-				valueTypeName = valueType.name;
-				valueTypeDescription = valueType.description;
-			}
-			let valueMeasurement = analysis.dendro[key].measurement_value;
-			
-			var row = [
-				{
-					"type": "cell",
-					"tooltip": "",
-					"value": analysis.dendro[key].analysis_entity_id
-				},
-				{
-					"type": "cell",
-					"tooltip": valueTypeDescription,
-					"value": valueTypeName
-				},
-				{
-					"type": "cell",
-					"tooltip": "",
-					"value": valueMeasurement
+			for(let key in datasets[dk].dendro) {
+				let valueType = this.getDendroValueType(datasets[dk].dendro[key].dendro_lookup_id);
+				
+				let valueTypeName = datasets[dk].dendro[key].dendro_lookup_id;
+				let valueTypeDescription = "Unknown dendrochronological data type";
+				
+				if(valueType !== false) {
+					valueTypeName = valueType.name;
+					valueTypeDescription = valueType.description;
 				}
-			];
+				let valueMeasurement = datasets[dk].dendro[key].measurement_value;
+				
+				console.log(datasets[dk])
 
-			rows.push(row);
-		
+				var row = [
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": datasets[dk].dendro[key].analysis_entity_id
+					},
+					{
+						"type": "cell",
+						"tooltip":datasets[dk].dataTypeDefinition,
+						"value": datasets[dk].dataTypeName
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": datasets[dk].datasetName
+					},
+					{
+						"type": "cell",
+						"tooltip": valueTypeDescription,
+						"value": valueTypeName
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": valueMeasurement
+					}
+				];
+
+				rows.push(row);
+			}
 		}
-		
+
 		//Defining the contentItem
 		this.section.sections[sectionKey].contentItems.push({
-			"name": analysis.datasetId,
-			"title": analysis.datasetName,
-			"datasetId": analysis.datasetId,
+			"name": "Mixed", //Normally: analysis.datasetId
+			"title": "Mixed dendrochronological", //Normally this would be: analysis.datasetName
+			"datasetId": "Mixed", //Normally: analysis.datasetId
 			"data": {
 				"columns": columns,
 				"rows": rows
@@ -201,9 +264,14 @@ class DendrochronologyDataset {
 		});
 		
 		this.buildIsComplete = true;
+		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this event is relevant anymore...
 	}
 	
 	destroy() {
+	}
+
+	isBuildComplete() {
+		return this.buildIsComplete;
 	}
 }
 
