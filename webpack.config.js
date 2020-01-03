@@ -15,7 +15,13 @@ module.exports = {
 	output: {
 		path: path.resolve(__dirname, './dist'),
 		publicPath: '/',
-		filename: 'dist.js'
+		filename: 'dist.js',
+		chunkFilename: '[name].bundle.js'
+	},
+	optimization: {
+		splitChunks: {
+			chunks: 'all'
+		}
 	},
 	module: {
 		rules: [
@@ -157,7 +163,7 @@ if (process.env.NODE_ENV === 'production') {
       'process.env': {
         NODE_ENV: '"production"'
       }
-    })/*,
-	new BundleAnalyzerPlugin()*/
+    }),
+	new BundleAnalyzerPlugin()
   ])
 }
