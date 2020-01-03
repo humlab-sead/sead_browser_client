@@ -334,7 +334,7 @@ class HumlabQuerySystem {
 			if(filterGroup === false) {
 				filterGroup = {
 					"facetGroupKey":filter.FacetGroupKey,
-					"displayTitle":filter.FacetGroupKey, //FIXME: This should be a display title when available
+					"displayTitle":filter.FacetGroup.DisplayTitle,
 					"items":[]
 				};
 				this.filterDefinitions.push(filterGroup);
@@ -348,7 +348,7 @@ class HumlabQuerySystem {
 					"aggregateType": filter.AggregateType,
 					"aggregateTitle": filter.AggregateTitle,
 					"dependencies": [],
-					"description": "", //FIXME: Add this when the datbase/API provides it. See: https://github.com/humlab-sead/sead_query_api/issues/54
+					"description": filter.Description,
 					"enabled": true
 				});
 			}
