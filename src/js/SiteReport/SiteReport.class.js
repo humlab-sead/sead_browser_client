@@ -46,8 +46,8 @@ class SiteReport {
 		});
 
 		let bsi = new BasicSiteInformation(this.hqs, this.siteId);
-		let samples = new Samples(this.hqs, this.siteId, "#samples-content-container");
-		let analysis = new Analysis(this.hqs, this.siteId, "#analysis-content-container");
+		let samples = new Samples(this.hqs, this.siteId);
+		let analysis = new Analysis(this.hqs, this.siteId);
 
 		Promise.all([bsi.fetch(), samples.fetch(), analysis.fetch()]).then(() => {
 			this.hideLoadingIndicator();
@@ -59,11 +59,13 @@ class SiteReport {
 		});
 		this.modules.push({
 			"name": "samples",
-			"module": samples
+			"module": samples,
+			"weight": -1
 		});
 		this.modules.push({
 			"name": "analysis",
-			"module": analysis
+			"module": analysis,
+			"weight": 1
 		});
 
 		this.backMenu = this.siteReportManager.hqs.menuManager.createMenu(this.siteReportManager.hqs.siteReportManager.hqsMenu());
@@ -144,10 +146,6 @@ class SiteReport {
 			}, 250);
 		});
 		*/
-		
-		$("#site-report-content")
-			.append("<div id='samples-content-container'></div>")
-			.append("<div id='analysis-content-container'></div>");
 
 		/*
 		this.siteReportManager.hqs.setActiveView("siteReport");
@@ -240,6 +238,13 @@ class SiteReport {
 	* level - The level in the tree of this section, 0 if top level.
 	*/
 	renderSection(section, parent = null, level = 0) {
+		let weight = 0;
+		this.modules.map((m) => {
+			if(m.name == section.name) {
+				weight = m.weight;
+			}
+		});
+
 		if(parent == null) {
 			this.data.sections.push(section);
 		}
@@ -256,7 +261,8 @@ class SiteReport {
 		$(sectionNode).removeClass("site-report-level-container-template")
 			.addClass("site-report-level-container")
 			.attr("id", "site-report-section-"+section.name)
-			.attr("site-report-section-name", section.name);
+			.attr("site-report-section-name", section.name)
+			.attr("render-weight", weight);
 		
 		//Make header
 		var sectionTitle = section.title;
@@ -284,7 +290,8 @@ class SiteReport {
 		}
 		
 		if(level == 0) {
-			$("#site-report-content").append(sectionNode);
+			//$("#site-report-content").append(sectionNode);
+			this.appendNodeToDomByWeight("#site-report-content", sectionNode);
 		}
 		else {
 			$("#site-report-section-"+parent.name+" > .site-report-level-content").append(sectionNode);
@@ -311,6 +318,30 @@ class SiteReport {
 			for(var key in section.sections) {
 				this.renderSection(section.sections[key], section, level+1);
 			}
+		}
+	}
+
+	/*
+	* Function: appendNodeToDomByWeight
+	*
+	* This function ensures that site report sections are inserted in the right order (according to their weight).
+	* This is needed because each section is loaded asynchronously and thus it's a race of whichever gets loaded first gets rendered first and would have ended up on top - if it weren't for this function.
+	* Letting it be a race would be bad from a UX perspective since it's confusing for the user if sections are rendered in a different order each time.
+	*/
+	appendNodeToDomByWeight(parentSelector, node) {
+		$(parentSelector+" > .site-report-level-container").each((index, section) => {
+			let sectionWeight = $(section).attr("render-weight");
+			$(node).attr("render-weight");
+			if(parseInt($(node).attr("render-weight")) < parseInt(sectionWeight)) {
+				$(node).insertBefore(section);
+			}
+			else {
+				$(node).insertAfter(section);
+			}
+		});
+
+		if($(parentSelector+" > .site-report-level-container").length == 0) {
+			$(parentSelector).append(node);
 		}
 	}
 	

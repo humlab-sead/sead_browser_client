@@ -2,16 +2,16 @@ import GenericDataset from './DatasetModules/GenericDataset.class';
 import AbundanceDataset from './DatasetModules/AbundanceDataset.class';
 import MeasuredValueDataset from './DatasetModules/MeasuredValueDataset.class';
 import DendrochronologyDataset from "./DatasetModules/DendrochronologyDataset.class";
+import CeramicDataset from "./DatasetModules/CeramicDataset.class";
 /*
 * Class: Analysis
 *
  */
 
 class Analysis {
-	constructor(hqs, siteId, anchor) {
+	constructor(hqs, siteId) {
 		this.hqs = hqs;
 		this.siteId = siteId;
-		this.anchor = anchor;
 		this.buildComplete = false;
 		//The section structure this will result in after everything is fetched and parsed.
 		this.section = {
@@ -49,6 +49,9 @@ class Analysis {
 		});
 		this.analysisModules.push({
 			"className": DendrochronologyDataset
+		});
+		this.analysisModules.push({
+			"className": CeramicDataset
 		});
 		this.analysisModules.push({
 			"className": GenericDataset

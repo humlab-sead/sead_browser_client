@@ -4,11 +4,10 @@ import css from '../../../stylesheets/style.scss';
 * Class: Samples
  */
 class Samples {
-	constructor(hqs, siteId, renderAnchor) {
+	constructor(hqs, siteId) {
 		this.hqs = hqs;
 		//this.siteReport = this.hqs.siteReportManager.siteReport;
 		this.siteId = siteId;
-		this.anchor = renderAnchor;
         this.buildComplete = false;
 		this.data = {
 			"sampleGroups": []
@@ -27,11 +26,11 @@ class Samples {
 		
 		var section = {
 			"name": "samples",
-			"title": "Sample groups",
+			"title": "Overview",
 			"collapsed": false,
 			"contentItems": [{
 				"name": "sampleGroups",
-				"title": "Table",
+				"title": "Samples taken (groupings)",
 				"data": {
 					"columns": [],
 					"rows": []
@@ -121,7 +120,7 @@ class Samples {
 					{
 						"type": "cell",
 						"tooltip": "",
-						"callback": (row, targetCell) => { //FIXME: What if all of these turn up empty though? What then bro? WHAT THEN???
+						"callback": (row, targetCell) => { //FIXME: What if all of these turn up empty though?
 							//FIXME: Yeah... We're gonna have to the loading of this data before the table is rendered, sorry bro, but that's just the way it's gotta be.
 							var sampleId = row[0].value;
 							this.fetchSampleDimensions(sampleId, targetCell);
