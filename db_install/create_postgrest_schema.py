@@ -67,7 +67,7 @@ def generateSqlFromTables():
         #remove last 2 chars
         createViewSQL = createViewSQL[:-2]
         
-        createViewSQL += " FROM "+tableName+";\n"
+        createViewSQL += " FROM "+sourceSchema+"."+tableName+";\n"
         createViewSQL += "ALTER TABLE "+targetSchema+"."+viewName+" OWNER TO "+priv["viewowner"]+";\n"
         createViewSQL += "GRANT SELECT ON TABLE "+targetSchema+"."+viewName+" TO "+priv["grantread"]+";\n"
         viewsSQL.append(createViewSQL)
@@ -101,10 +101,10 @@ def getTemperatureProxyTable():
         
     return sql
 
-
-
-#print(generateSchemaSQL())
-#print(generateRoleSQL())
-#print(generateSqlFromTables())
-#print(generateSqlFromQseTemplate())
+print("BEGIN;") #Start transaction
+print(generateRoleSQL())
+print(generateSchemaSQL())
 print(getTemperatureProxyTable())
+print(generateSqlFromTables())
+print(generateSqlFromQseTemplate())
+print("COMMIT;") #End transaction

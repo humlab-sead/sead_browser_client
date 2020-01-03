@@ -19,3 +19,5 @@ Steps for running:
 2. `psql <specify connection details here> < schema.sql`
 
 
+## Problems
+* Temperature table is not created yet when the script scans for which tables to include in the postgrest schema, thus it's not included and has to be inserted manually afterwards.

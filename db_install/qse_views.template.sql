@@ -1,3 +1,5 @@
+SET search_path TO public;
+
 -- View: <schema>.qse_abundance_identification_levels
 
 -- DROP VIEW <schema>.qse_abundance_identification_levels;
