@@ -820,44 +820,6 @@ class SiteReport {
 		
 		}
 	}
-	
-	
-	async getTaxa(taxonList) {
-		let queries = [];
-		let itemsLeft = taxonList.length;
-		if(taxonList.length > 0) {
-			let taxonQueryString = "(";
-			for(let key in taxonList) {
-				taxonQueryString += "taxon_id.eq."+taxonList[key]+",";
-				if(taxonQueryString.length > 1024 && itemsLeft > 1) { //HTTP specs says max 2048
-					taxonQueryString = taxonQueryString.substr(0, taxonQueryString.length-1);
-					taxonQueryString += ")";
-					queries.push(taxonQueryString);
-					taxonQueryString = "(";
-				}
-				itemsLeft--;
-			}
-			taxonQueryString = taxonQueryString.substr(0, taxonQueryString.length-1);
-			taxonQueryString += ")";
-			queries.push(taxonQueryString);
-		}
-
-		let queryData = [];
-		for(let key in queries) {
-			let requestString = this.hqs.config.siteReportServerAddress+"/qse_taxon?or="+queries[key];
-			
-			let result = await $.ajax(requestString, {
-				method: "get",
-				dataType: "json",
-				success: (data) => {
-				}
-			});
-			for(let i in result) {
-				queryData.push(result[i]);
-			}
-		}
-		return queryData;
-	}
 
 	sortContentItemData(contentItem) {
 		let columnKey = null;

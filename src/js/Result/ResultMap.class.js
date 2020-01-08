@@ -520,7 +520,7 @@ class ResultMap extends ResultModule {
 		});
 		
 		var clusterSource = new ClusterSource({
-			distance: 25,
+			distance: 35,
 			source: pointsSource
 		});
 		
@@ -541,10 +541,48 @@ class ResultMap extends ResultModule {
 		this.olMap.addLayer(clusterLayer);
 	}
 
+
 	/*
 	* Function: renderPointsLayer
 	*/
 	renderPointsLayer() {
+		let timeFilteredData = this.timeline.getSelectedSites();
+		var geojson = this.getDataAsGeoJSON(timeFilteredData);
+
+		var gf = new GeoJSON({
+			featureProjection: "EPSG:3857"
+		});
+		var featurePoints = gf.readFeatures(geojson);
+		var pointsSource = new VectorSource({
+			features: featurePoints
+		});
+		
+		var clusterSource = new ClusterSource({
+			distance: 0,
+			source: pointsSource
+		});
+		
+		var clusterLayer = new VectorLayer({
+			source: clusterSource,
+			style: (feature, resolution) => {
+				var style = this.getSingularPointStyle(feature);
+				return style;
+			},
+			zIndex: 1
+		});
+		
+		clusterLayer.setProperties({
+			"layerId": "clusterPoints",
+			"type": "dataLayer"
+		});
+		
+		this.olMap.addLayer(clusterLayer);
+	}
+
+	/*
+	* Function: renderPointsLayer
+	*/
+	renderPointsLayerOLD() {
 		let timeFilteredData = this.timeline.getSelectedSites();
 		var geojson = this.getDataAsGeoJSON(timeFilteredData);
 
@@ -743,6 +781,66 @@ class ResultMap extends ResultModule {
 		return styles;
 	}
 
+	/*
+	* Function: getSingularPointStyle
+	*/
+	getSingularPointStyle(feature, options = { selected: false, highlighted: false }) {
+		var pointsNum = feature.get('features').length;
+		var clusterSizeText = pointsNum.toString();
+		if(pointsNum > 999) {
+			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
+		}
+		let pointSize = 8;
+
+		var zIndex = 0;
+		
+		//default values if point is not selected and not highlighted
+		var fillColor = this.style.default.fillColor;
+		var strokeColor = this.style.default.strokeColor;
+		var textColor = "#fff";
+		
+		//if point is highlighted (its a hit when doing a search)
+		if(options.highlighted) {
+			fillColor = this.style.highlighted.fillColor;
+			strokeColor = this.style.highlighted.strokeColor;
+			textColor = this.style.highlighted.textColor;
+			zIndex = 10;
+		}
+		//if point is selected (clicked on)
+		if(options.selected) {
+			fillColor = this.style.selected.fillColor;
+			strokeColor = this.style.selected.strokeColor;
+			textColor = this.style.selected.textColor;
+			zIndex = 10;
+		}
+
+		var styles = [];
+		styles.push(new Style({
+			image: new CircleStyle({
+				radius: pointSize,
+				stroke: new Stroke({
+					color: strokeColor
+				}),
+				fill: new Fill({
+					color: fillColor
+				})
+			}),
+			zIndex: zIndex,
+			text: new Text({
+				text: clusterSizeText == 1 ? "" : clusterSizeText,
+				offsetY: 1,
+				fill: new Fill({
+					color: textColor
+				})
+			})
+		}));
+		
+		return styles;
+	}
+
+	/*
+	* Function: createSelectInteraction
+	*/
 	createSelectInteraction() {
 		this.selectPopupOverlay = new Overlay({
 			element: document.getElementById('map-popup-container'),
@@ -1007,6 +1105,9 @@ class ResultMap extends ResultModule {
 		$("#map-popup-container").remove();
 	}
 
+	/*
+	* Function: getLayerById
+	*/
 	getLayerById(layerId) {
 		for(let k in this.dataLayers) {
 			if(this.dataLayers[k].getProperties().layerId == layerId) {
@@ -1021,6 +1122,9 @@ class ResultMap extends ResultModule {
 		return false;
 	}
 
+	/*
+	* Function: resizeCallback
+	*/
 	resizeCallback() {
 		if(this.olMap != null) {
 			console.log("resize");

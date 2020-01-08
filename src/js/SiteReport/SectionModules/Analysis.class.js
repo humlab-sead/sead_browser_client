@@ -9,6 +9,9 @@ import CeramicDataset from "./DatasetModules/CeramicDataset.class";
  */
 
 class Analysis {
+	/*
+	* Function: constructor
+	*/
 	constructor(hqs, siteId) {
 		this.hqs = hqs;
 		this.siteId = siteId;
@@ -63,11 +66,17 @@ class Analysis {
 		
 	}
 
+	/*
+	* Function: render
+	*/
 	render() {
 		this.hqs.siteReportManager.siteReport.renderSection(this.section);
 		this.destroyAllAnalysisModules();
 	}
 	
+	/*
+	* Function: destroyAllAnalysisModules
+	*/
 	destroyAllAnalysisModules() {
 		for(var key in this.activeAnalysisModules) {
 			this.activeAnalysisModules[key].destroy();
@@ -75,6 +84,9 @@ class Analysis {
 		}
 	}
 
+	/*
+	* Function: fetch
+	*/
 	async fetch() {
 		//Fetching all analyses for this site
 		await new Promise((resolve, reject) => {
@@ -83,10 +95,6 @@ class Analysis {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
-					
-					//this.section.title += " <span class='small-auxiliary-header-text'>("+data.length+" datasets)</span>";
-					let methodPromises = [];
-					let analysisPromises = [];
 					for(var key in data) { //For each analysis...
 						//Each analysis (data[key]) here contains:
 						//method_id - Defines what type of analysis this is
@@ -107,8 +115,6 @@ class Analysis {
 									"samples": []
 								}]
 							});
-							//this.fetchMethodMetaData(data[key].method_id);
-							methodPromises.push(this.fetchMethodMetaData(data[key].method_id));
 						}
 						else {
 							this.data.analyses[analysisKey].sampleGroups.push({
@@ -161,9 +167,6 @@ class Analysis {
 			let promise = this.analysisModules[key]["instance"].offerAnalyses(analyses);
 			analysesPromises.push(promise);
 		}
-
-		
-
 		return analysesPromises;
 	}
 	
@@ -195,30 +198,26 @@ class Analysis {
 			});
 		});
 	}
-	
-	async fetchAnalysisDataset(analysis) {
-		//See if there's any registered analysis modules willing to take responsibility for this analysis
-		let acceptedModule = null;
-		for(var key in this.analysisModules) {
-			if(acceptedModule == null) {
-				var am = new this.analysisModules[key]["className"](this);
-				let analysisAccepted = am.offerAnalysis(JSON.stringify(analysis));
 
-				if(analysisAccepted) {
-					acceptedModule = am;
+	async fetchDataset(datasetId) {
+		await new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/datasets?dataset_id=eq."+dataset.datasetId, {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					//Find the relevant analysis in the master data structure
+					dataset.dataTypeId = data[0].data_type_id;
+					dataset.masterSetId = data[0].master_set_id; //1 or 2 which is Bugs or MAL, also often empty
+					dataset.dataTypeName = data[0].data_type_name;
+					dataset.dataTypeDefinition = data[0].definition;
+					dataset.methodId = data[0].method_id;
+					dataset.methodName = data[0].method_name;
+					dataset.datasetName = data[0].dataset_name;
+					resolve(dataset);
 				}
-			}
-		}
-
-		if(acceptedModule == null) {
-			console.error("WARN: No analysis module claimed this dataset!");
-			return false;
-		}
-		else {
-			return await acceptedModule.fetchDataset();
-		}
+			});
+		});
 	}
-	
 	
 	/*
 	* Function: fetchMethodMetaData
@@ -290,65 +289,34 @@ class Analysis {
 		});
 	}
 	
-	
+	/*
+	* Function: destroy
+	*/
 	destroy() {
 	}
 
-
+	/*
+	* Function: fetchSampleType
+	*/
 	async fetchSampleType(dataset) {
-		let fetchIds = [];
+		let uniqueFetchIds = new Set();
 		for(let key in dataset.dataPoints) {
-			let sampleTypeId = dataset.dataPoints[key].sample_type_id;
+			let sampleTypeId = dataset.dataPoints[key].sampleTypeId;
 			if (sampleTypeId != null) {
-				fetchIds.push(sampleTypeId);
+				uniqueFetchIds.add(sampleTypeId);
 			}
 		}
-		
-		let queries = [];
-		let itemsLeft = fetchIds.length;
+		let fetchIds = Array.from(uniqueFetchIds);
 
-		let queryString = "(";
-		for(let key in fetchIds) {
-			queryString += "sample_type_id.eq."+fetchIds[key]+",";
-			if(queryString.length > 1024 && itemsLeft > 1) { //HTTP specs says max 2048
-				queryString = queryString.substr(0, queryString.length-1);
-				queryString += ")";
-				queries.push(queryString);
-				queryString = "(";
-			}
-			itemsLeft--;
-		}
-		queryString = queryString.substr(0, queryString.length-1);
-		queryString += ")";
-		queries.push(queryString);
+		let sampleTypes = await this.hqs.fetchFromTable("qse_sample_types", "sample_type_id", fetchIds);
 
-		let promises = [];
-
-		for(let key in queries) {
-			let requestString = this.hqs.config.siteReportServerAddress+"/qse_sample_types?or="+queries[key];
-			
-			let p = await new Promise((resolve, reject) => {
-				$.ajax(requestString, {
-					method: "get",
-					dataType: "json",
-					success: (sampleTypeData) => {
-	
-						for(let key in dataset.dataPoints) {
-							for(let sampleTypeKey in sampleTypeData) {
-								if(dataset.dataPoints[key].sample_type_id == sampleTypeData[sampleTypeKey].sample_type_id) {
-									dataset.dataPoints[key].sample_type = sampleTypeData[sampleTypeKey];
-								}
-							}
-						}
-						resolve(sampleTypeData);
-					}
-				});
+		dataset.dataPoints.map((dp) => {
+			sampleTypes.map((st) => {
+				if(dp.sampleTypeId == st.sample_type_id) {
+					dp.sampleType = st;
+				}
 			});
-
-			promises.push(p);
-		}
-
-		return promises;
+		});
 	}
 }
 

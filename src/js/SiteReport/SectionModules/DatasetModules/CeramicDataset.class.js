@@ -1,11 +1,9 @@
 /*
-* Class: DendrochronologyDataset
+* Class: CeramicDataset
 *
-* Dendrochronological datasets are a bit special in the way that each dataset has their own method, these can be seen as sub-methods to the 'real' methods in the db method table.
-* 
 */
 
-class DendrochronologyDataset {
+class CeramicDataset {
 	constructor(analysis) {
 		this.hqs = analysis.hqs;
 		this.analysis = analysis;
@@ -19,24 +17,21 @@ class DendrochronologyDataset {
 	
 	offerAnalyses(datasets) {
 		for(let key = datasets.length - 1; key >= 0; key--) {
-			if(datasets[key].methodId == 10) {
-				//console.log("Dendrochronology claiming ", datasets[key].datasetId);
+			//console.log("dataset", datasets[key]);
+			if(datasets[key].methodId == 171+100) { //Petrographic microscopy
+				//console.log("CeramicDataset claiming ", datasets[key].datasetId);
 				let dataset = datasets.splice(key, 1)[0];
 				this.datasets.push(dataset);
 			}
 		}
 
 		return new Promise((resolve, reject) => {
-
 			//First order of business: Get the physical_sample_id's based on the pile of dataset id's we've got
 			
-
 			//Then: Group the datasets so that for each sample we have a number of datasets (and one dataset can't belong to several samples - I guess?)
 
 			//Then render it so that each sample has it's own "contentItem" containing all of its datasets
 			//No wait - belay that - render the samples one on each row in the same table and then have a subtable for each bunch of datasets
-
-			//console.log(this.datasets);
 			
 			for(let key in this.datasets) {
 				this.datasetFetchPromises.push(this.analysis.fetchAnalysis(this.datasets[key]));
@@ -349,7 +344,8 @@ class DendrochronologyDataset {
 				rows.push(row);
 			}
 		}
-		
+
+		console.log(datasetGroup)
 		datasetGroup.sample.sample_name
 		let ci = {
 			"name": datasetGroup.physical_sample_id, //Normally: analysis.datasetId
@@ -388,4 +384,4 @@ class DendrochronologyDataset {
 	}
 }
 
-export { DendrochronologyDataset as default }
+export { CeramicDataset as default }
