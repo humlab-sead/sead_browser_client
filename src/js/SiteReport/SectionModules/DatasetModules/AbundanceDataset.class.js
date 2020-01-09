@@ -11,7 +11,6 @@ class AbundanceDataset {
 	constructor(analysis) {
 		this.hqs = analysis.hqs;
 		this.analysis = analysis;
-		this.section = analysis.section;
 		this.data = analysis.data;
 		this.taxonPromises = [];
 		this.analyses = [];
@@ -21,70 +20,16 @@ class AbundanceDataset {
 
 		this.methodGroupId = 1;
 		this.methodIds = [3, 6, 8, 14, 15, 40, 111]; //These are the analysis method IDs that this module will take responsibility for. So all analyses performed using any of these methods will be fetched and rendered by this module. The rest can go to hell (as far as this module is concerned).
-		this.methods = [];
 		this.methodMetaDataFetchingComplete = false;
 
 		this.metaDataFetchingPromises = [];
-		this.metaDataFetchingPromises.push(this.fetchMethodGroupMetaData(this.methodGroupId));
+		this.metaDataFetchingPromises.push(this.analysis.fetchMethodGroupMetaData(this.methodGroupId));
 		this.methodIds.map((methodId) => {
-			this.metaDataFetchingPromises.push(this.fetchMethodMetaData(methodId));
+			this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(methodId));
 		});
 
 		Promise.all(this.metaDataFetchingPromises).then(() => {
 			this.methodMetaDataFetchingComplete = true;
-		});
-	}
-
-	/*
-	* Function: fetchMethodMetaData
-	*
-	* Fetch information about a particular method, such as name and description.
-	*
-	* Parameters:
-	* methodId - The ID of the method.
-	*/
-	async fetchMethodMetaData(methodId) {
-		return new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
-				method: "get",
-				dataType: "json",
-				success: async (data, textStatus, xhr) => {
-					this.methods.push({
-						methodId: data[0].method_id,
-						description: data[0].description,
-						abbrev: data[0].method_abbrev_or_alt_name,
-						name: data[0].method_name,
-						recordTypeId: data[0].record_type_id,
-						unitId: data[0].unit_id
-					});
-					resolve();
-				}
-			});
-		});
-	}
-
-	/*
-	* Function: fetchMethodGroupMetaData
-	*
-	* Fetch information about a particular method group, such as name and description.
-	*
-	* Parameters:
-	* methodGroupId - The ID of the method group.
-	*/
-	async fetchMethodGroupMetaData(methodGroupId) {
-		return new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/method_groups?method_group_id=eq."+methodGroupId, {
-				method: "get",
-				dataType: "json",
-				success: async (data, textStatus, xhr) => {
-					this.methodGroup = {
-						methodGroupId: data[0].method_group_id,
-						description: data[0].description,
-						name: data[0].group_name
-					};
-					resolve();
-				}
-			});
 		});
 	}
 	
@@ -108,7 +53,8 @@ class AbundanceDataset {
 	* Returns:
 	* A promise which should resolve when the data structure for this analysis/dataset is completely built and filled out.
 	*/ 
-	offerAnalyses(datasets) {
+	offerAnalyses(datasets, sectionsList) {
+		this.sectionsList = sectionsList;
 		for(let key = datasets.length - 1; key >= 0; key--) {
 			if(this.methodIds.includes(datasets[key].methodId)) {
 				//console.log("Abundance claiming ", datasets[key].datasetId);
@@ -384,39 +330,23 @@ class AbundanceDataset {
 	}
 	
 	/*
-	* Function: getMethodMetaById
-	*/
-	getMethodMetaById(methodId) {
-		this.methods.map((method) => {
-			if(method.methodId == methodId) {
-				return method;
-			}
-		});
-		return false;
-	}
-
-	/*
-	* Function: getSectionByMethodId
-	*/
-	getSectionByMethodId(methodId) {
-		for(let key in this.section.sections) {
-			if(this.section.sections[key].name == methodId) {
-				return this.section.sections[key]
-			}
-		}
-		return false;
-	}
-	
-	/*
 	* Function: buildSection
 	*/
 	buildSection(datasets) {
-		console.log("buildSection")
 		//Create sections
 		//We want to create as many sections as there are different types of methods in our datasets (usually just one though)
 		datasets.map((dataset) => {
-			let section = this.getSectionByMethodId(dataset.methodId);
+			let section = this.analysis.getSectionByMethodId(dataset.methodId);
 			if(section === false) {
+				var sectionsLength = this.sectionsList.push({
+					"name": dataset.methodId,
+					"title": dataset.methodName,
+					"methodDescription": "",
+					"collapsed": true,
+					"contentItems": []
+				});
+				section = this.sectionsList[sectionsLength-1];
+				/*
 				var sectionsLength = this.section.sections.push({
 					"name": dataset.methodId,
 					"title": dataset.methodName,
@@ -424,7 +354,9 @@ class AbundanceDataset {
 					"collapsed": true,
 					"contentItems": []
 				});
+				
 				section = this.section.sections[sectionsLength-1];
+				*/
 			}
 			this.appendDatasetToSection(section, dataset);
 		});

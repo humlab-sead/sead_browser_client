@@ -5,8 +5,26 @@ import DendrochronologyDataset from "./DatasetModules/DendrochronologyDataset.cl
 import CeramicDataset from "./DatasetModules/CeramicDataset.class";
 /*
 * Class: Analysis
-*
+* 
  */
+
+/* About: Analysis modules
+* To prevent the Analysis class from growing to be huge, the handling of different types of analyses are broken out into modules. One module might handle several types of analyses
+* if they are similar enoug for it to make sense.
+* Each analysis module (which is a class) needs to implement the offerAnalyses(datasets, sections) method. All the datasets (synonymous with analyses) are passed in through this method. 
+* The module needs to make a decision on whether to "claim" the dataset or not, it does this by splicing it out of the datasets array. Because of this, the order in which the modules
+* are placed in the this.analysisModules array can be important if multiple modules will claim the same types of datasets. Which should be the case in the way that the "Generic" module
+* should always claim all datasets and provide a basic representation. Therefore it is important that the Generic module is last in the list of modules.
+*
+* The second parameters passed in is sections, which is an array of section objects. The analysis module should insert as many of its own sections here as it deems appropriate, which
+* is usually just one but can be more if the module handle several different types of analyses. The section object follows the Site Report data structure specification.
+* 
+* The offerAnalyses() method should return a promise which should be resolved when the modules job is complete. The modules job is complete when the appropriate data structure
+* representing the data and how it should be rendered has been built.
+*
+* What happens between offerAnalyses() and the building of the section (and then resolution of the promise when this is complete), is entirely up to the module, but will normally
+* entail some fetching and formatting of data to build the data structure.
+*/
 
 class Analysis {
 	/*
@@ -23,6 +41,8 @@ class Analysis {
 			"contentItems": [],
 			"sections": [] //Each type of analysis/method will get its own section here
 		};
+
+		this.methods = []; //Will contain method meta data
 		
 		this.data = {
 			"analyses": []
@@ -164,7 +184,7 @@ class Analysis {
 	delegateAnalyses(analyses) {
 		let analysesPromises = [];
 		for(var key in this.analysisModules) {
-			let promise = this.analysisModules[key]["instance"].offerAnalyses(analyses);
+			let promise = this.analysisModules[key]["instance"].offerAnalyses(analyses, this.section.sections);
 			analysesPromises.push(promise);
 		}
 		return analysesPromises;
@@ -317,6 +337,106 @@ class Analysis {
 				}
 			});
 		});
+	}
+
+	/*
+	* Function: fetchMethodMetaData
+	*
+	* Fetch information about a particular method, such as name and description.
+	*
+	* Parameters:
+	* methodId - The ID of the method.
+	*/
+	async fetchMethodMetaData(methodId) {
+		return new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
+				method: "get",
+				dataType: "json",
+				success: async (data, textStatus, xhr) => {
+					this.methods.push({
+						methodId: data[0].method_id,
+						description: data[0].description,
+						abbrev: data[0].method_abbrev_or_alt_name,
+						name: data[0].method_name,
+						recordTypeId: data[0].record_type_id,
+						unitId: data[0].unit_id
+					});
+					resolve();
+				}
+			});
+		});
+	}
+
+	async fetchMethodsInGroup(methodGroupId) {
+		return new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/methods?method_group_id=eq."+methodGroupId, {
+				method: "get",
+				dataType: "json",
+				success: async (data, textStatus, xhr) => {
+					data.map((method) => {
+						this.methods.push({
+							methodId: method.method_id,
+							description: method.description,
+							abbrev: method.method_abbrev_or_alt_name,
+							name: method.method_name,
+							recordTypeId: method.record_type_id,
+							unitId: method.unit_id
+						});
+					});
+					
+					resolve();
+				}
+			});
+		});
+	}
+
+	/*
+	* Function: fetchMethodGroupMetaData
+	*
+	* Fetch information about a particular method group, such as name and description.
+	*
+	* Parameters:
+	* methodGroupId - The ID of the method group.
+	*/
+	async fetchMethodGroupMetaData(methodGroupId) {
+		return new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/method_groups?method_group_id=eq."+methodGroupId, {
+				method: "get",
+				dataType: "json",
+				success: async (data, textStatus, xhr) => {
+					this.methodGroup = {
+						methodGroupId: data[0].method_group_id,
+						description: data[0].description,
+						name: data[0].group_name
+					};
+					resolve();
+				}
+			});
+		});
+	}
+
+	/*
+	* Function: getMethodMetaById
+	*/
+	getMethodMetaById(methodId) {
+		this.methods.map((method) => {
+			if(method.methodId == methodId) {
+				return method;
+			}
+		});
+		return false;
+	}
+
+	/*
+	* Function: getSectionByMethodId
+	*/
+	getSectionByMethodId(methodId) {
+		for(let key in this.section.sections) {
+			if(this.section.sections[key].name == methodId) {
+				return this.section.sections[key];
+			}
+		}
+		return false;
 	}
 }
 
