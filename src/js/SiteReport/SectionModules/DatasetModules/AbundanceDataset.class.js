@@ -338,10 +338,11 @@ class AbundanceDataset {
 		datasets.map((dataset) => {
 			let section = this.analysis.getSectionByMethodId(dataset.methodId);
 			if(section === false) {
+				let method = this.analysis.getMethodMetaById(dataset.methodId);
 				var sectionsLength = this.sectionsList.push({
 					"name": dataset.methodId,
 					"title": dataset.methodName,
-					"methodDescription": "",
+					"methodDescription": method.description,
 					"collapsed": true,
 					"contentItems": []
 				});

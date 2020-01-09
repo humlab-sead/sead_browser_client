@@ -238,36 +238,6 @@ class Analysis {
 			});
 		});
 	}
-	
-	/*
-	* Function: fetchMethodMetaData
-	*
-	* Fetches all information about a particular method. Such as name & description.
-	*
-	* Parameters:
-	* methodId - The id of the method to fetch.
-	 */
-	fetchMethodMetaDataOld(methodId) {
-		
-		var methodFound = false;
-		for(var key in this.meta.methods) {
-			if(this.meta.methods[key].method_id == methodId) {
-				methodFound = true;
-			}
-		}
-		
-		if(methodFound == false) {
-			var xhr1 = this.hqs.pushXhr(null, "fetchSiteAnalyses");
-			xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
-				method: "get",
-				dataType: "json",
-				success: (data, textStatus, xhr) => {
-					this.meta.methods.push(data[0]);
-					this.hqs.popXhr(xhr1);
-				}
-			});
-		}
-	}
 
 	/*
 	* Function: fetchMethodMetaData
@@ -419,11 +389,11 @@ class Analysis {
 	* Function: getMethodMetaById
 	*/
 	getMethodMetaById(methodId) {
-		this.methods.map((method) => {
-			if(method.methodId == methodId) {
-				return method;
+		for(let key in this.methods) {
+			if(this.methods[key].methodId == methodId) {
+				return this.methods[key];
 			}
-		});
+		}
 		return false;
 	}
 

@@ -20,14 +20,21 @@ class GenericDataset {
 		this.datasetFetchPromises = [];
 		this.datasets = [];
 		this.buildIsComplete = false;
+
 	}
 
-	offerAnalyses(datasets) {
+	offerAnalyses(datasets, sectionsList) {
+		this.sectionsList = sectionsList;
 		for(let key = datasets.length - 1; key >= 0; key--) {
 			if(true) { //This module will always happily accept all datasets
 				console.log("Generic claiming ", datasets[key].datasetId);
 				let dataset = datasets.splice(key, 1)[0];
 				this.datasets.push(dataset);
+
+				if(this.analysis.getMethodMetaById(dataset.methodId) === false) {
+					this.datasetFetchPromises.push(this.analysis.fetchMethodMetaData(dataset.methodId));
+				}
+
 			}
 		}
 
@@ -67,7 +74,7 @@ class GenericDataset {
 	 */
 	async fetchDataset(dataset) {
 		await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset2?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
@@ -82,36 +89,36 @@ class GenericDataset {
 	
 	
 	buildSection(datasets) {
-		for(let key in datasets) {
-			this.appendDatasetToSection(datasets[key]);
-		}
+		//Create sections
+		//We want to create as many sections as there are different types of methods in our datasets (usually just one though)
+		datasets.map((dataset) => {
+			let section = this.analysis.getSectionByMethodId(dataset.methodId);
+			if(section === false) {
+				let warningTooltipId = "sr-warning-tt-"+shortid.generate();
+				let method = this.analysis.getMethodMetaById(dataset.methodId);
+				var sectionsLength = this.sectionsList.push({
+					"name": dataset.methodId,
+					"title": dataset.methodName+"&nbsp;&nbsp;<i id='"+warningTooltipId+"' class=\"fa fa-exclamation-triangle site-report-analysis-unknown-warning\" aria-hidden=\"true\"></i>",
+					"methodDescription": method.description,
+					"collapsed": true,
+					"contentItems": []
+				});
+				this.hqs.tooltipManager.registerTooltip("#"+warningTooltipId, "The SEAD system currently lacks support for handling this type of analysis. The data will be presented in a raw and incomplete format.");
+				section = this.sectionsList[sectionsLength-1];
+			}
+			this.appendDatasetToSection(section, dataset);
+		});
 		
 		this.buildIsComplete = true;
 		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
 	}
 
-	appendDatasetToSection(dataset) {
+	appendDatasetToSection(section, dataset) {
 		var analysis = dataset;
-		
-		//This is the section we're parsing into (or creating)
-		var sectionKey = this.hqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
-		
-		var warningTooltipId = "sr-warning-tt-"+shortid.generate();
-		if(sectionKey === false) {
-			var sectionsLength = this.section.sections.push({
-				"name": analysis.methodId,
-				"title": analysis.methodName+"&nbsp;&nbsp;<i id='"+warningTooltipId+"' class=\"fa fa-exclamation-triangle site-report-analysis-unknown-warning\" aria-hidden=\"true\"></i>",
-				"collapsed": true,
-				"contentItems": []
-			});
-			sectionKey = sectionsLength - 1;
-		}
-		
-		this.hqs.tooltipManager.registerTooltip("#"+warningTooltipId, "This is an unknown type of analysis. The data is presented in a raw format and may be incomplete.");
 		
 		var colNames = Object.keys(analysis.dataPoints[0]);
 		
-		var length = this.section.sections[sectionKey].contentItems.push({
+		var length = section.contentItems.push({
 			"name": analysis.datasetId,
 			"title": analysis.datasetName,
 			"data": {
@@ -127,16 +134,14 @@ class GenericDataset {
 		var ciKey = length-1;
 		
 		for(var colKey in colNames) {
-			this.section.sections[sectionKey].contentItems[ciKey].data.columns.push({
+			section.contentItems[ciKey].data.columns.push({
 				"dataType": "string",
 				"pkey": colNames[colKey] == "analysis_entity_id" ? true : false,
 				"title": colNames[colKey]
 			});
 		}
 		
-		
 		for(var k in analysis.dataPoints) {
-			
 			var row = [];
 			for(var colKey in colNames) {
 				row.push({
@@ -146,7 +151,7 @@ class GenericDataset {
 				});
 			}
 			
-			this.section.sections[sectionKey].contentItems[ciKey].data.rows.push(row);
+			section.contentItems[ciKey].data.rows.push(row);
 		}
 	}
 	
