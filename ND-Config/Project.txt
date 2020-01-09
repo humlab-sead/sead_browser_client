@@ -1,4 +1,4 @@
-﻿Format: 2.0.1
+﻿Format: 2.0.2
 
 # This is the file you use to provide information about your project.  It can
 # also be used to specify input and output settings so you don't have to
@@ -8,11 +8,10 @@
 # Project Information
 # ------------------------------------------------------------------------
 
+Title: SuperSEAD
+
+
 # This is where you specify general information about your project.
-#
-# Title: [text]
-#    The name of your project.  (R) and (TM) will be converted to their
-#    respective symbols.
 #
 # Subtitle: [text]
 #    A subtitle for your project.
@@ -43,6 +42,10 @@
 
 # Source Code
 # ------------------------------------------------------------------------
+
+Source Folder: ..\src
+
+
 
 # This is where you specify what files and folders Natural Docs should be
 # scanning.  If you use any of these options on the command line, this entire
@@ -83,6 +86,9 @@
 
 # Generated Documentation
 # ------------------------------------------------------------------------
+
+HTML Output Folder: ..\docs
+
 
 # This is where you specify what kind of documentation you want Natural Docs
 # to build and where it should be put.  If you use any of these options on the
