@@ -34,6 +34,7 @@ class HumlabQuerySystem {
 		this.hqsEventRegistry = [];
 		this.eventGroups = [];
 		this.filterDefinitions = [];
+		this.taxa = []; //Local taxonomy db
 		this.systemReady = false;
 
 		this.preload().then(() => {
@@ -641,8 +642,9 @@ class HumlabQuerySystem {
 	* taxon
 	* html
 	* abundanceId - Optional. Specifies the abundance counting context (if any).
+	* taxon_identification_levels - Optional. Specifies identifications levels.
 	*/
-	formatTaxon(taxon, html = true, abundanceId = null) {
+	formatTaxon(taxon, html = true, abundanceId = null, taxon_identification_levels = null) {
 		
 		let familyName = taxon.family_name;
 		let genusName = taxon.genus_name;
@@ -650,18 +652,18 @@ class HumlabQuerySystem {
 
 		let modified = false;
 
-		if(typeof(taxon.identification_levels) != "undefined" && abundanceId != null) {
-			for(let key in taxon.identification_levels) {
-				if(taxon.identification_levels[key].abundance_id == abundanceId) {
-					if(taxon.identification_levels[key].identification_level_name == "c.f. Family" || taxon.identification_levels[key].identification_level_name == "Family") {
+		if(taxon_identification_levels != null && abundanceId != null) {
+			for(let key in taxon_identification_levels) {
+				if(taxon_identification_levels[key].abundance_id == abundanceId) {
+					if(taxon_identification_levels[key].identification_level_name == "c.f. Family" || taxon_identification_levels[key].identification_level_name == "Family") {
 						familyName = "c.f. "+familyName;
 						modified = true;
 					}
-					if(taxon.identification_levels[key].identification_level_name == "c.f. Genus" || taxon.identification_levels[key].identification_level_name == "Genus") {
+					if(taxon_identification_levels[key].identification_level_name == "c.f. Genus" || taxon_identification_levels[key].identification_level_name == "Genus") {
 						genusName = "c.f. "+genusName;
 						modified = true;
 					}
-					if(taxon.identification_levels[key].identification_level_name == "c.f. Species" || taxon.identification_levels[key].identification_level_name == "Species") {
+					if(taxon_identification_levels[key].identification_level_name == "c.f. Species" || taxon_identification_levels[key].identification_level_name == "Species") {
 						species = "c.f. "+species;
 						modified = true;
 					}
@@ -731,6 +733,203 @@ class HumlabQuerySystem {
 			}
 		}, 1000);
 		
+	}
+	
+	/*
+	* Function: getTaxa
+	* 
+	* 
+	*/
+	async fetchTaxa(taxonList) {
+		let queries = [];
+		let itemsLeft = taxonList.length;
+		if(taxonList.length > 0) {
+			let taxonQueryString = "(";
+			for(let key in taxonList) {
+				taxonQueryString += "taxon_id.eq."+taxonList[key]+",";
+				if(taxonQueryString.length > 1024 && itemsLeft > 1) { //HTTP specs says max 2048
+					taxonQueryString = taxonQueryString.substr(0, taxonQueryString.length-1);
+					taxonQueryString += ")";
+					queries.push(taxonQueryString);
+					taxonQueryString = "(";
+				}
+				itemsLeft--;
+			}
+			taxonQueryString = taxonQueryString.substr(0, taxonQueryString.length-1);
+			taxonQueryString += ")";
+			queries.push(taxonQueryString);
+		}
+
+		let queryData = [];
+		for(let key in queries) {
+			let requestString = this.config.siteReportServerAddress+"/qse_taxon?or="+queries[key];
+			
+			let result = await $.ajax(requestString, {
+				method: "get",
+				dataType: "json",
+				success: (data) => {
+					data.map((t) => {
+						this.taxa.push(t);
+					});
+				}
+			});
+			for(let i in result) {
+				queryData.push(result[i]);
+			}
+		}
+		return queryData;
+	}
+
+	getTaxaById(taxonId) {
+		let taxonObj = false;
+		this.taxa.map((t) => {
+			if(t.taxon_id == taxonId) {
+				taxonObj = t;
+			}
+		});
+		return taxonObj;
+	}
+
+	/*
+	* Function: fetchFromTablePairs
+	*
+	* Similar to fetchFromTable but for when you need to use multiple columns in combination as a primary key.
+	*
+	* Parameters:
+	* tableName
+	* fetchParams
+	* 
+	* Returns:
+	* A promise.
+	*
+	* See also:
+	* fetchFromTable
+	*/
+	async fetchFromTablePairs(tableName, fetchParams) {
+		let queries = [];
+		let itemsLeft = fetchParams.length;
+
+		let queryString = "(";
+		for(let key in fetchParams) {
+			let columns = Object.keys(fetchParams[key]);
+
+			let searchAtom = "";
+			for(let ck in columns) {
+				searchAtom += columns[ck]+".eq."+fetchParams[key][columns[ck]]+",";
+			}
+
+			searchAtom = searchAtom.substr(0, searchAtom.length-1);
+			searchAtom = "and("+searchAtom+"),";
+
+			queryString += searchAtom;
+			if(queryString.length > 1024 && itemsLeft > 1) { //HTTP specs says max 2048
+				queryString = queryString.substr(0, queryString.length-1);
+				queryString += ")";
+				queries.push(queryString);
+				queryString = "(";
+			}
+			itemsLeft--;
+		}
+		queryString = queryString.substr(0, queryString.length-1);
+		queryString += ")";
+		queries.push(queryString);
+
+		let queryData = [];
+		let promises = [];
+		for(let key in queries) {
+			let requestString = this.config.siteReportServerAddress+"/"+tableName+"?or="+queries[key];
+			
+			let p = new Promise((resolve, reject) => {
+				$.ajax(requestString, {
+					method: "get",
+					dataType: "json",
+					success: (data) => {
+						resolve(data);
+					},
+					error: () => {
+						reject();
+					}
+				});
+			});
+
+			promises.push(p);
+		}
+
+		let rData = [];
+		return await new Promise((resolve, reject) => {
+			Promise.all(promises).then((data) => {
+				for(let key in data) {
+					rData = rData.concat(data[key]);
+				}
+				resolve(rData);
+			});
+		});
+	}
+
+	/*
+	* Function: fetchFromTable
+	*
+	* A lot of times you need to fetch a bunch of rows from the database via the PostgREST interface, defined by a list of IDs.
+	* This is a function which will do that for you, given then table name, column name and list of IDs it will construct and execute an efficient HTTP query by chaining the IDs in the request.
+	*
+	* Parameters:
+	* tableName - Database name of the table (actually view) in the postgrest_api schema.
+	* columnName - The column name you wish to search for the IDs in.
+	* fetchIds - The IDs to search for.
+	*
+	* Returns:
+	* A promise.
+	*/
+	async fetchFromTable(tableName, columnName, fetchIds) {
+
+		let queries = [];
+		let itemsLeft = fetchIds.length;
+
+		let queryString = "(";
+		for(let key in fetchIds) {
+			queryString += columnName+".eq."+fetchIds[key]+",";
+			if(queryString.length > 1024 && itemsLeft > 1) { //HTTP specs says max 2048
+				queryString = queryString.substr(0, queryString.length-1);
+				queryString += ")";
+				queries.push(queryString);
+				queryString = "(";
+			}
+			itemsLeft--;
+		}
+		queryString = queryString.substr(0, queryString.length-1);
+		queryString += ")";
+		queries.push(queryString);
+
+		let queryData = [];
+		let promises = [];
+		for(let key in queries) {
+			let requestString = this.config.siteReportServerAddress+"/"+tableName+"?or="+queries[key];
+			
+			let p = new Promise((resolve, reject) => {
+				$.ajax(requestString, {
+					method: "get",
+					dataType: "json",
+					success: (data) => {
+						resolve(data);
+					},
+					error: () => {
+						reject();
+					}
+				});
+			});
+
+			promises.push(p);
+		}
+
+		let rData = [];
+		return await new Promise((resolve, reject) => {
+			Promise.all(promises).then((data) => {
+				for(let key in data) {
+					rData = rData.concat(data[key]);
+				}
+				resolve(rData);
+			});
+		});
 	}
 	
 }

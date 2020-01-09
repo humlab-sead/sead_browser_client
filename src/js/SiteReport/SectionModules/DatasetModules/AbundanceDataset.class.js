@@ -1,39 +1,79 @@
 
 /*
 * Class: AbundanceDataset
+*
+* Terminology:
+* A "dataset" is synonymous with an "analysis". These are used interchangeably here and there, which is unfortunate, but right now it is what it is.
+* A datset (or analysis) is a single graph or table in the site report section. So if e.g. Plant macrofossil contains 2 graphs, that's 2 datasets/analyses of that type
  */
 
 class AbundanceDataset {
 	constructor(analysis) {
 		this.hqs = analysis.hqs;
 		this.analysis = analysis;
-		this.section = analysis.section;
 		this.data = analysis.data;
 		this.taxonPromises = [];
 		this.analyses = [];
 		this.datasetFetchPromises = [];
 		this.datasets = [];
 		this.buildIsComplete = false;
+
+		this.methodGroupId = 1;
+		this.methodIds = [3, 6, 8, 14, 15, 40, 111]; //These are the analysis method IDs that this module will take responsibility for. So all analyses performed using any of these methods will be fetched and rendered by this module. The rest can go to hell (as far as this module is concerned).
+		this.methodMetaDataFetchingComplete = false;
+
+		this.metaDataFetchingPromises = [];
+		this.metaDataFetchingPromises.push(this.analysis.fetchMethodGroupMetaData(this.methodGroupId));
+		this.methodIds.map((methodId) => {
+			this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(methodId));
+		});
+
+		Promise.all(this.metaDataFetchingPromises).then(() => {
+			this.methodMetaDataFetchingComplete = true;
+		});
 	}
 	
-	offerAnalyses(datasets) {
+	/*
+	* Function: offerAnalyses
+	*
+	* Ok, so, this is a little strange perhaps and deserves some explanation. What's going on here is that the instance of Analysis will fetch just the most basic information regarding which analysis are attached to a certain site.
+	* That object will then delegate the responsibility of fetching the rest of the information and structuring it properly, since how this should be done varies between different types, and this is delegated by "offering"
+	* the analysis to all the available analysis modules, and whichever module claims it will have it. This (offerAnalyses) is the function which will be passed the analyses and will have to make a decision on wether to claim them or not
+	* based on the information available in each analysis object.
+	*
+	* This function is never called from within this module itself, only from the outside from the higher level Analysis module.
+	* 
+	* If this function decides to claim one (or more) datasets from the passed in array, it needs to splice these out of the array - that's how the actual claiming is done.
+	*
+	* The module should structure the fetched information according to the general site report format for sections, content-items and tables structures. You can find the definition of this format inside Johan's head (this needs to be fixed - not the head, the writing down of the format (Tag: FIXME))
+	*
+	* Parameters:
+	* 	datasets - An array of dataset/analysis objects to make decision on.
+	*
+	* Returns:
+	* A promise which should resolve when the data structure for this analysis/dataset is completely built and filled out.
+	*/ 
+	offerAnalyses(datasets, sectionsList) {
+		this.sectionsList = sectionsList;
 		for(let key = datasets.length - 1; key >= 0; key--) {
-			if(datasets[key].methodGroupId == 1) {
+			if(this.methodIds.includes(datasets[key].methodId)) {
 				//console.log("Abundance claiming ", datasets[key].datasetId);
 				let dataset = datasets.splice(key, 1)[0];
 				this.datasets.push(dataset);
 			}
 		}
 
+		//Now fetch & build all datasets
 		return new Promise((resolve, reject) => {
 			for(let key in this.datasets) {
 				let p = this.analysis.fetchAnalysis(this.datasets[key]);
 				this.datasetFetchPromises.push(p);
-				p = this.fetchDataset(this.datasets[key]);
+				p = this.fetchDatasetAnalysisEntities(this.datasets[key]);
 				this.datasetFetchPromises.push(p);
 			}
-			
-			Promise.all(this.datasetFetchPromises).then(() => {
+
+			let promises = this.datasetFetchPromises.concat(this.metaDataFetchingPromises); //To make sure meta data fetching is also complete...
+			Promise.all(promises).then(() => {
 				if(this.datasets.length > 0) {
 					this.buildSection(this.datasets);
 				}
@@ -42,9 +82,64 @@ class AbundanceDataset {
 		});
 	}
 	
-	destroy() {
-		this.hqs.hqsEventUnlisten("taxaFetchingComplete-"+this.analysisData.datasetId, this);
+	/*
+	* Function: fetchDatasetAnalysisEntities
+	*/
+	async fetchDatasetAnalysisEntities(dataset) {
+		return await new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset2?dataset_id=eq."+dataset.datasetId, {
+				method: "get",
+				dataType: "json",
+				success: async (data, textStatus, xhr) => {
+					dataset.dataPoints = [];
+					data.map((dataPoint) => {
+						dataset.dataPoints.push({
+							datasetId: dataPoint.dataset_id,
+							analysisEntityId: dataPoint.analysis_entity_id,
+							physicalSampleId: dataPoint.physical_sample_id,
+							sampleGroupId: dataPoint.sample_group_id,
+							sampleTypeId: dataPoint.sample_type_id,
+							sampleName: dataPoint.sample_name
+						});
+					});
+					//dataset.dataPoints = data;
+					await this.fetchAbundanceData(dataset.dataPoints);
+					await this.requestMetaDataForDataset(dataset);
+					resolve();
+				}
+			});
+		});
 	}
+
+	/*
+	* Function: fetchAbundanceData
+	*/
+	async fetchAbundanceData(dataPoints) {
+		//dataPoints is an array of analysisEntities ID's (among other things)
+		//For each AE we need to fetch the abundance data coupled to this ID
+
+		let analysisEntityIds = [];
+		dataPoints.map((dp) => {
+			analysisEntityIds.push(dp.analysisEntityId);
+		});
+		let abundanceData = await this.hqs.fetchFromTable("abundances", "analysis_entity_id", analysisEntityIds);
+
+		dataPoints.map((dp) => {
+			dp.abundances = [];
+			abundanceData.map((ad) => {
+				if(dp.analysisEntityId == ad.analysis_entity_id) {
+					dp.abundances.push({
+						abundanceId: ad.abundance_id,
+						taxonId: ad.taxon_id,
+						elementId: ad.abundance_element_id,
+						abundance: ad.abundance,
+						dateUpdated: ad.date_updated
+					});
+				}
+			})
+		});
+	}
+
 	
 	
 	/*
@@ -62,7 +157,7 @@ class AbundanceDataset {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
-					dataset.dataPoints = data;
+					//dataset.dataPoints = data;
 					await this.requestMetaDataForDataset(dataset);
 					resolve();
 				}
@@ -70,12 +165,16 @@ class AbundanceDataset {
 		});
 	}
 	
+	/*
+	* Function: getDataset
+	*/
 	getDataset() {
 		var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
 		return this.analysis.data.analyses[analysisKey].dataset;
 	}
 	
 	/*
+	* Function: requestMetaDataForDataset
 	*/
 	async requestMetaDataForDataset(dataset) {
 		let promises = [];
@@ -83,162 +182,131 @@ class AbundanceDataset {
 		promises = promises.concat(await this.fetchAbundanceIdentificationLevel(dataset));
 		promises = promises.concat(await this.fetchAbundanceModifications(dataset));
 		promises = promises.concat(await this.analysis.fetchSampleType(dataset));
+		promises = promises.concat(await this.fetchAbundanceElements(dataset));
 		return promises;
 	}
 
-	async fetchTaxa(dataset) {
-		let dataPoints = dataset.dataPoints;
-		var taxonIds = [];
-		for(var key in dataPoints) {
-			var taxonId = dataPoints[key].abundance_taxon_id;
-			if (taxonId != null) {
-				taxonIds.push(taxonId);
-			}
-		}
-
-		var taxonPromise = this.hqs.siteReportManager.siteReport.getTaxa(taxonIds);
-		taxonPromise.then((taxa) => {
-			for(var key in taxa) {
-				this.applyTaxon(dataset, taxa[key]);
-			}
+	/*
+	* Function: fetchAbundanceElements
+	*
+	*/
+	async fetchAbundanceElements(dataset) {
+		let uniqueElementIds = new Set();
+		dataset.dataPoints.map((dp) => {
+			dp.abundances.map((ab) => {
+				if(ab.elementId != null) {
+					uniqueElementIds.add(ab.elementId);
+				}
+			});
 		});
 
+		let elementIds = Array.from(uniqueElementIds);
+		let elements = await this.hqs.fetchFromTable("abundance_elements", "abundance_element_id", elementIds);
+
+		elements.map((e) => {
+			dataset.dataPoints.map((dp) => {
+				dp.abundances.map((ab) => {
+					if(ab.elementId == e.abundance_element_id) {
+						ab.element = e;
+					}
+				});
+			});
+		});
+	}
+
+	/*
+	* Function: fetchTaxa
+	*
+	*/
+	async fetchTaxa(dataset) {
+		let taxonIds = new Set();
+		let dataPoints = dataset.dataPoints;
+
+		dataPoints.map((dp) => {
+			dp.abundances.map((ab) => {
+				taxonIds.add(ab.taxonId);
+			});
+		});
+
+		taxonIds = Array.from(taxonIds);
+		var taxonPromise = this.hqs.fetchTaxa(taxonIds);
+		taxonPromise.then((taxa) => {
+			dataset.dataPoints.map((dp) => {
+				dp.abundances.map((ab) => {
+					ab.taxon = this.hqs.getTaxaById(ab.taxonId);
+				});
+			});
+		});
+		
 		return taxonPromise;
 	}
 
-
+	/*
+	* Function: fetchAbundanceIdentificationLevel
+	*/
 	async fetchAbundanceIdentificationLevel(dataset) {
 		let dataPoints = dataset.dataPoints;
 		let taxonAbundanceIds = [];
 		for(let key in dataPoints) {
-			var taxonId = dataPoints[key].abundance_taxon_id;
-			let abundanceId = dataPoints[key].abundance_id;
-			if (taxonId != null) {
-				taxonAbundanceIds.push({
-					"taxonId": taxonId,
-					"abundanceId": abundanceId
-				});
-			}
-		}
+			for(let k2 in dataPoints[key].abundances) {
+				let taxonId = dataPoints[key].abundances[k2].taxonId;
+				let abundanceId = dataPoints[key].abundances[k2].abundanceId;
 
-		let identificationLevels = await this.requestAbundanceIdentificationLevel(taxonAbundanceIds);
-		
-		for(let key in identificationLevels) {
-			let il = identificationLevels[key];
-			for(let dk in dataPoints) {
-				if(dataPoints[dk].abundance_id == il.abundance_id && dataPoints[dk].taxon.taxon_id == il.taxon_id) { //FIXME: taxon_id can sometimes be undefined here: AbundanceDataset.class.js:123 Uncaught (in promise) TypeError: Cannot read property 'taxon_id' of undefined
-					if(typeof(dataPoints[dk].taxon.identification_levels) == "undefined") {
-						dataPoints[dk].taxon.identification_levels = [];
-					}
-					dataPoints[dk].taxon.identification_levels.push(il);
-				}
-			}
-		}
-	}
-
-	async requestAbundanceIdentificationLevel(taxonAbundanceIds) {
-		let queries = [];
-		let itemsLeft = taxonAbundanceIds.length;
-
-		let abundanceId = 0; //FIXME
-
-		let queryString = "(";
-		for(let key in taxonAbundanceIds) {
-			// (and(taxon_id.eq.18016,abundance_id.eq.55),and(taxon_id.eq.18020,abundance_id.eq.72))
-			queryString += "and(abundance_id.eq."+taxonAbundanceIds[key].abundanceId+",taxon_id.eq."+taxonAbundanceIds[key].taxonId+"),";
-			if(queryString.length > 1024 && itemsLeft > 1) { //HTTP specs says max 2048
-				queryString = queryString.substr(0, queryString.length-1);
-				queryString += ")";
-				queries.push(queryString);
-				queryString = "(";
-			}
-			itemsLeft--;
-		}
-		queryString = queryString.substr(0, queryString.length-1);
-		queryString += ")";
-		queries.push(queryString);
-
-		let queryData = [];
-		for(let key in queries) {
-			let requestString = this.hqs.config.siteReportServerAddress+"/qse_abundance_identification_levels?or="+queries[key];
-			
-			let result = await $.ajax(requestString, {
-				method: "get",
-				dataType: "json",
-				success: (data) => {
-				}
-			});
-			for(let i in result) {
-				queryData.push(result[i]);
-			}
-		}
-
-		return queryData;
-	}
-
-	async fetchAbundanceModifications(dataset) {
-		let dataPoints = dataset.dataPoints;
-		let abundanceIds = [];
-		for(let key in dataPoints) {
-			abundanceIds.push(dataPoints[key].abundance_id);
-		}
-
-		let modifications = await this.requestAbundanceModifications(abundanceIds);
-		
-		for(let dk in dataPoints) {
-			for(let mk in modifications) {
-				if(dataPoints[dk].abundance_id == modifications[mk].abundance_id) {
-					dataPoints[dk].modifications = [];
-					dataPoints[dk].modifications.push({
-						modification_type_id: modifications[mk].modification_type_id,
-						modification_type_name: modifications[mk].modification_type_name,
-						modification_type_description: modifications[mk].modification_type_description
+				if (taxonId != null) {
+					taxonAbundanceIds.push({
+						"taxon_id": taxonId,
+						"abundance_id": abundanceId
 					});
 				}
 			}
 		}
+
+		let identificationLevels = await this.hqs.fetchFromTablePairs("qse_abundance_identification_levels", taxonAbundanceIds);
+		
+		for(let key in identificationLevels) {
+			let il = identificationLevels[key];
+			for(let dk in dataPoints) {
+				for(let ak in dataPoints[dk].abundances) {
+					if(dataPoints[dk].abundances[ak].abundanceId == il.abundance_id && dataPoints[dk].abundances[ak].taxonId == il.taxon_id) {
+						if(typeof(dataPoints[dk].abundances[ak].taxon_identification_levels) == "undefined") {
+							dataPoints[dk].abundances[ak].taxon_identification_levels = [];
+						}
+						dataPoints[dk].abundances[ak].taxon_identification_levels.push(il);
+					}
+				}
+			}
+		}
 	}
 
-	async requestAbundanceModifications(abundanceIds) {
-		let queries = [];
-		let itemsLeft = abundanceIds.length;
-
-		let queryString = "(";
-		for(let key in abundanceIds) {
-			if(abundanceIds[key] != null) {
-				queryString += "abundance_id.eq."+abundanceIds[key]+",";
+	/*
+	* Function: fetchAbundanceModifications
+	*/
+	async fetchAbundanceModifications(dataset) {
+		let dataPoints = dataset.dataPoints;
+		let abundanceIds = [];
+		for(let key in dataPoints) {
+			for(let k2 in dataPoints[key].abundances) {
+				let abundanceId = dataPoints[key].abundances[k2].abundanceId;
+				abundanceIds.push(abundanceId);
 			}
-			else {
-				console.log("WARN: Encountered NULL value in abundance ID.");
-			}
-			if(queryString.length > 1024 && itemsLeft > 1) { //HTTP specs says max 2048
-				queryString = queryString.substr(0, queryString.length-1);
-				queryString += ")";
-				queries.push(queryString);
-				queryString = "(";
-			}
-			itemsLeft--;
 		}
-		queryString = queryString.substr(0, queryString.length-1);
-		queryString += ")";
-		queries.push(queryString);
-
-		let queryData = [];
-		for(let key in queries) {
-			let requestString = this.hqs.config.siteReportServerAddress+"/qse_abundance_modification?or="+queries[key];
-			
-			let result = await $.ajax(requestString, {
-				method: "get",
-				dataType: "json",
-				success: (data) => {
+		
+		let modifications = await this.hqs.fetchFromTable("qse_abundance_modification", "abundance_id", abundanceIds);
+		for(let dk in dataPoints) {
+			for(let ak in dataPoints[dk].abundances) {
+				for(let mk in modifications) {
+					if(dataPoints[dk].abundances[ak].abundanceId == modifications[mk].abundance_id) {
+						//This is correct - modifications are per abundance, not per sample as you might think
+						dataPoints[dk].abundances[ak].modifications = [];
+						dataPoints[dk].abundances[ak].modifications.push({
+							modification_type_id: modifications[mk].modification_type_id,
+							modification_type_name: modifications[mk].modification_type_name,
+							modification_type_description: modifications[mk].modification_type_description
+						});
+					}
 				}
-			});
-			for(let i in result) {
-				queryData.push(result[i]);
 			}
 		}
-
-		return queryData;
 	}
 	
 	/*
@@ -261,44 +329,55 @@ class AbundanceDataset {
 		return this.taxaComplete;
 	}
 	
-	
+	/*
+	* Function: buildSection
+	*/
 	buildSection(datasets) {
-		for(let key in datasets) {
-			this.appendDatasetToSection(datasets[key]);
-		}
+		//Create sections
+		//We want to create as many sections as there are different types of methods in our datasets (usually just one though)
+		datasets.map((dataset) => {
+			let section = this.analysis.getSectionByMethodId(dataset.methodId);
+			if(section === false) {
+				let method = this.analysis.getMethodMetaById(dataset.methodId);
+				var sectionsLength = this.sectionsList.push({
+					"name": dataset.methodId,
+					"title": dataset.methodName,
+					"methodDescription": method.description,
+					"collapsed": true,
+					"contentItems": []
+				});
+				section = this.sectionsList[sectionsLength-1];
+				/*
+				var sectionsLength = this.section.sections.push({
+					"name": dataset.methodId,
+					"title": dataset.methodName,
+					"methodDescription": "",
+					"collapsed": true,
+					"contentItems": []
+				});
+				
+				section = this.section.sections[sectionsLength-1];
+				*/
+			}
+			this.appendDatasetToSection(section, dataset);
+		});
 		
 		this.buildIsComplete = true;
 		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
 	}
 
-	appendDatasetToSection(dataset) {
+	/*
+	* Function: appendDatasetToSection
+	*/
+	appendDatasetToSection(section, dataset) {
 		let analysis = dataset;
-		var sectionKey = this.hqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
-		var method = null;
-		for(var k in this.analysis.meta.methods) {
-			if(this.analysis.meta.methods[k].method_id == analysis.methodId) {
-				method = this.analysis.meta.methods[k];
-			}
-		}
-		
-		if(sectionKey === false) {
-			var sectionsLength = this.section.sections.push({
-				"name": analysis.methodId,
-				"title": analysis.methodName,
-				"methodDescription": method == null ? "" : method.description,
-				"collapsed": true,
-				"contentItems": []
-			});
-			sectionKey = sectionsLength - 1;
-		}
-		
 		
 		//Defining columns
 		var columns = [
 			{
 				"dataType": "number",
 				"pkey": true,
-				"title": "Analysis entitiy id"
+				"title": "Analysis entity id"
 			},
 			{
 				"dataType": "string",
@@ -341,78 +420,112 @@ class AbundanceDataset {
 				"title": "Modification"
 			}
 		];
-		
+
 		//Filling up the rows
 		var rows = [];
-		for(var k in analysis.dataPoints) {
-			
-			var taxonFormatted = "notaxa";
-			if(typeof(analysis.dataPoints[k].taxon) != "undefined") {
-				taxonFormatted = this.hqs.formatTaxon(analysis.dataPoints[k].taxon, true, analysis.dataPoints[k].abundance_id);
-			}
-			
-			let modValue = "";
-			let modDesc = "";
-			for(let mk in analysis.dataPoints[k].modifications) {
-				let mod = analysis.dataPoints[k].modifications[mk];
-				modValue += analysis.dataPoints[k].modifications[mk].modification_type_name+", ";
-				modDesc += analysis.dataPoints[k].modifications[mk].modification_type_name+": "+analysis.dataPoints[k].modifications[mk].modification_type_description+" ";
-			}
-			modValue = modValue.substr(0, modValue.length-2);
-			
 
-			var row = [
-				{
-					"type": "cell",
-					"tooltip": "",
-					"value": analysis.dataPoints[k].analysis_entity_id
-				},
-				{
-					"type": "cell",
-					"tooltip": "",
-					"value": analysis.dataPoints[k].sample_name
-				},
-				{
-					"type": "cell",
-					"tooltip": "",
-					"value": analysis.dataPoints[k].sample_group_id
-				},
-				{
-					"type": "cell",
-					"tooltip": "",
-					"value": analysis.dataPoints[k].abundance
-				},
-				{
-					"type": "cell",
-					"tooltip": "",
-					"value": analysis.dataPoints[k].abundance_taxon_id
-				},
-				{
-					"type": "cell",
-					"tooltip": "",
-					"value": taxonFormatted
-				},
-				{
-					"type": "cell",
-					"tooltip": analysis.dataPoints[k].sample_type.description,
-					"value": analysis.dataPoints[k].sample_type.type_name
-				},
-				{
-					"type": "cell",
-					"tooltip": analysis.dataPoints[k].element_description,
-					"value": analysis.dataPoints[k].element_name
-				},
-				{
-					"type": "cell",
-					"tooltip": modDesc == "" ? "" : modDesc,
-					"value": modValue == "" ? "None" : modValue
+		//Merge all abundance data, each dataPoint is an analysisEntity
+		let abundances = [];
+		analysis.dataPoints.map((dp) => {
+			abundances = abundances.concat(dp.abundances);
+		});
+
+		//Merge abundance records which are of the same taxon, maybe? I think yes
+		let mergedAbundances = [];
+		abundances.map((ab) => {
+			let found = false;
+			mergedAbundances.map((m) => {
+				if(ab.taxonId == m.taxonId) {
+					found = true;
+					m.abundance += ab.abundance;
 				}
-			];
-			rows.push(row);
+			});
+
+			if(!found) {
+				mergedAbundances.push({
+					taxonId: ab.taxonId,
+					abundance: ab.abundance
+				});
+			}
+		});
+
+		for(var k in analysis.dataPoints) {
+
+			analysis.dataPoints[k].abundances.map((ab) => {
+				let modValue = "";
+				let modDesc = "";
+				for(let mk in ab.modifications) {
+					modValue += ab.modifications[mk].modification_type_name+", ";
+					modDesc += ab.modifications[mk].modification_type_name+": "+ab.modifications[mk].modification_type_description+" ";
+				}
+				modValue = modValue.substr(0, modValue.length-2);
+
+				let taxa = this.hqs.getTaxaById(ab.taxonId);
+				
+				let taxonFormatted = "notaxa";
+				if(typeof(taxa != false)) {
+					taxonFormatted = this.hqs.formatTaxon(taxa, true, ab.abundanceId, ab.taxon_identification_levels);
+				}
+
+				let elementDescription = typeof ab.element == "undefined" ? "" : ab.element.element_description;
+				let elementName = typeof ab.element == "undefined" ? "" : ab.element.element_name;
+				
+				var row = [
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": analysis.dataPoints[k].analysisEntityId
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": analysis.dataPoints[k].sampleName
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": analysis.dataPoints[k].sampleGroupId
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": ab.abundance
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": ab.taxonId
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": taxonFormatted
+					},
+					{
+						"type": "cell",
+						"tooltip": analysis.dataPoints[k].sampleType.description,
+						"value": analysis.dataPoints[k].sampleType.type_name
+					},
+					{
+						"type": "cell",
+						"tooltip": elementDescription,
+						"value": elementName
+					},
+					{
+						"type": "cell",
+						"tooltip": modDesc == "" ? "" : modDesc,
+						"value": modValue == "" ? "None" : modValue
+					}
+				];
+				rows.push(row);
+			});
+
+			
+			
 		}
 		
 		//Defining the contentItem
-		this.section.sections[sectionKey].contentItems.push({
+		section.contentItems.push({
 			"name": analysis.datasetId,
 			"title": analysis.datasetName,
 			"datasetId": analysis.datasetId,
@@ -478,8 +591,18 @@ class AbundanceDataset {
 		});
 	}
 	
+	/*
+	* Function: isBuildComplete
+	*/
 	isBuildComplete() {
 		return this.buildIsComplete;
+	}
+
+	/*
+	* Function: destroy
+	*/
+	destroy() {
+		this.hqs.hqsEventUnlisten("taxaFetchingComplete-"+this.analysisData.datasetId, this);
 	}
 }
 

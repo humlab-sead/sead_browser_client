@@ -27,7 +27,7 @@
     "dev": "cross-env NODE_ENV=development webpack-dev-server --mode=development --hot --allowed-hosts localhost",
     "build:dev": "cross-env NODE_ENV=development-release webpack --mode=production --progress",
     "build:prod": "cross-env NODE_ENV=production webpack --mode=production --progress",
-    "build:docs": "naturaldocs ND-Config"
+    "build:docs": "C:/Program Files (x86)/Natural Docs/NaturalDocs.exe ND-Config"
   },
   "dependencies": {
     "ajv": "^6.10.2",

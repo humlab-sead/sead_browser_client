@@ -12,11 +12,17 @@ class MeasuredValueDataset {
 		this.datasetFetchPromises = [];
 		this.datasets = [];
 		this.buildIsComplete = false;
+		this.methodGroupId = 2;
+
+		this.metaDataFetchingPromises = [];
+		this.metaDataFetchingPromises.push(this.analysis.fetchMethodGroupMetaData(this.methodGroupId));
+		this.metaDataFetchingPromises.push(this.analysis.fetchMethodsInGroup(this.methodGroupId));
 	}
 
-	offerAnalyses(datasets) {
+	offerAnalyses(datasets, sectionsList) {
+		this.sectionsList = sectionsList;
 		for(let key = datasets.length - 1; key >= 0; key--) {
-			if(datasets[key].methodGroupId == 2) {
+			if(datasets[key].methodGroupId == this.methodGroupId) { //Claim all in method group 2
 				//console.log("MeasuredValueDataset claiming ", datasets[key].datasetId);
 				let dataset = datasets.splice(key, 1)[0];
 				this.datasets.push(dataset);
@@ -45,18 +51,45 @@ class MeasuredValueDataset {
 	
 	async fetchDataset(dataset) {
 		await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset2?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
-					dataset.dataPoints = data;
+					dataset.dataPoints = [];
+					data.map((dataPoint) => {
+						dataset.dataPoints.push({
+							datasetId: dataPoint.dataset_id,
+							analysisEntityId: dataPoint.analysis_entity_id,
+							physicalSampleId: dataPoint.physical_sample_id,
+							sampleGroupId: dataPoint.sample_group_id,
+							sampleTypeId: dataPoint.sample_type_id,
+							sampleName: dataPoint.sample_name
+						});
+					});
+
 					await this.requestMetaDataForDataset(dataset);
+					await this.fetchMeasuredValues(dataset);
 					resolve();
 				}
 			});
 		});
 	}
 
+	async fetchMeasuredValues(dataset) {
+		let analysisEntityIds = new Set();
+		dataset.dataPoints.map((dp) => {
+			analysisEntityIds.add(dp.analysisEntityId);
+		});
+		let measuredValues = await this.hqs.fetchFromTable("measured_values", "analysis_entity_id", Array.from(analysisEntityIds));
+
+		dataset.dataPoints.map((dp) => {
+			measuredValues.map((mv) => {
+				if(dp.analysisEntityId == mv.analysis_entity_id) {
+					dp.measuredValue = mv.measured_value;
+				}
+			});
+		});
+	}
 
 	async requestMetaDataForDataset(dataset) {
 		await this.analysis.fetchSampleType(dataset);
@@ -64,44 +97,37 @@ class MeasuredValueDataset {
 
 	
 	buildSection(datasets) {
-		for(let key in datasets) {
-			this.appendDatasetToSection(datasets[key]);
-		}
+		//Create sections
+		//We want to create as many sections as there are different types of methods in our datasets (usually just one though)
+		datasets.map((dataset) => {
+			let section = this.analysis.getSectionByMethodId(dataset.methodId);
+			if(section === false) {
+				let method = this.analysis.getMethodMetaById(dataset.methodId);
+				var sectionsLength = this.sectionsList.push({
+					"name": dataset.methodId,
+					"title": dataset.methodName,
+					"methodDescription": method.description,
+					"collapsed": true,
+					"contentItems": []
+				});
+				section = this.sectionsList[sectionsLength-1];
+			}
+			this.appendDatasetToSection(section, dataset);
+		});
 		
 		this.buildIsComplete = true;
 		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
 	}
 
-	appendDatasetToSection(dataset) {
+	appendDatasetToSection(section, dataset) {
 		var analysis = dataset;
-		
-		//This is the section we're parsing into (or creating)
-		var sectionKey = this.hqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
-		
-		var method = null;
-		for(var key in this.analysis.meta.methods) {
-			if(this.analysis.meta.methods[key].method_id == analysis.methodId) {
-				method = this.analysis.meta.methods[key];
-			}
-		}
-		
-		if(sectionKey === false) {
-			var sectionsLength = this.section.sections.push({
-				"name": analysis.methodId,
-				"title": analysis.methodName,
-				"methodDescription": method == null ? "" : method.description,
-				"collapsed": true,
-				"contentItems": []
-			});
-			sectionKey = sectionsLength - 1;
-		}
 		
 		//Defining columns
 		var columns = [
 			{
 				"dataType": "number",
 				"pkey": true,
-				"title": "Analysis entitiy id"
+				"title": "Analysis entity id"
 			},
 			{
 				"dataType": "number",
@@ -133,27 +159,27 @@ class MeasuredValueDataset {
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataPoints[k].analysis_entity_id
+					"value": analysis.dataPoints[k].analysisEntityId
 				},
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataPoints[k].sample_name
+					"value": analysis.dataPoints[k].sampleName
 				},
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataPoints[k].sample_group_id
+					"value": analysis.dataPoints[k].sampleGroupId
 				},
 				{
 					"type": "cell",
-					"tooltip": analysis.dataPoints[k].sample_type.description,
-					"value": analysis.dataPoints[k].sample_type.type_name
+					"tooltip": analysis.dataPoints[k].sampleType.description,
+					"value": analysis.dataPoints[k].sampleType.type_name
 				},
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": analysis.dataPoints[k].measured_value
+					"value": analysis.dataPoints[k].measuredValue
 				}
 			];
 			rows.push(row);
@@ -206,9 +232,7 @@ class MeasuredValueDataset {
 				}
 			]
 		};
-		this.section.sections[sectionKey].contentItems.push(contentItem);
-		this.buildIsComplete = true;
-		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
+		section.contentItems.push(contentItem);
 	}
 	
 	isBuildComplete() {
