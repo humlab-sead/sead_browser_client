@@ -13,12 +13,18 @@ class CeramicDataset {
 		this.datasetFetchPromises = [];
 		this.datasets = [];
 		this.buildIsComplete = false;
+		this.methodIds = [171, 172];
+
+		this.metaDataFetchingPromises = [];
+		this.methodIds.map((methodId) => {
+			this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(methodId));
+		});
 	}
 	
 	offerAnalyses(datasets) {
 		for(let key = datasets.length - 1; key >= 0; key--) {
 			//console.log("dataset", datasets[key]);
-			if(datasets[key].methodId == 171+100) { //Petrographic microscopy
+			if(this.methodIds.includes(datasets[key].methodId)) {
 				//console.log("CeramicDataset claiming ", datasets[key].datasetId);
 				let dataset = datasets.splice(key, 1)[0];
 				this.datasets.push(dataset);
@@ -38,7 +44,8 @@ class CeramicDataset {
 				this.datasetFetchPromises.push(this.fetchDataset(this.datasets[key]));
 			}
 			
-			Promise.all(this.datasetFetchPromises).then(() => {
+			let promises = this.datasetFetchPromises.concat(this.metaDataFetchingPromises);
+			Promise.all(promises).then(() => {
 
 				this.dsGroups = this.groupDatasetsBySample(this.datasets);
 
@@ -229,6 +236,7 @@ class CeramicDataset {
 	}
 
 	buildSection(dsGroups) {
+		console.log(dsGroups);
 
 		//let dsGroups = this.groupDatasetsBySample(datasets);
 		
@@ -236,14 +244,8 @@ class CeramicDataset {
 		let analysis = dsGroups[0].datasets[0];
 		var sectionKey = this.hqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
 		
-		var method = null;
-		for(var key in this.analysis.meta.methods) {
-			if(this.analysis.meta.methods[key].method_id == analysis.methodId) {
-				method = this.analysis.meta.methods[key];
-			}
-		}
-		
 		if(sectionKey === false) {
+			let method = this.analysis.getMethodMetaById(analysis.methodId);
 			var sectionsLength = this.section.sections.push({
 				"name": analysis.methodId,
 				"title": analysis.methodName,

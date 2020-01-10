@@ -57,6 +57,7 @@
     "leaflet": "^1.5.1",
     "less": "^3.10.3",
     "lodash": "^4.17.15",
+    "moment": "^2.24.0",
     "normalize.css": "^7.0.0",
     "notifyjs-browser": "^0.4.2",
     "nouislider": "^11.1.0",

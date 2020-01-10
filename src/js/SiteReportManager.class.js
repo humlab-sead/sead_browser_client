@@ -77,7 +77,7 @@ class SiteReportManager {
 	}
 	
 	renderSiteReport(siteId, updateHistory = true) {
-		if(updateHistory) {
+		if(updateHistory && false) { //FIXMME - remove false
 			var stateObj = {};
 			history.pushState(stateObj, "", "/site/"+siteId);
 		}

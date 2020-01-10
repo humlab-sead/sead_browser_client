@@ -1,3 +1,5 @@
+import moment from "moment";
+
 /*
 * Class: DendrochronologyDataset
 *
@@ -6,6 +8,8 @@
 */
 
 class DendrochronologyDataset {
+	/* Function: constructor
+	*/
 	constructor(analysis) {
 		this.hqs = analysis.hqs;
 		this.analysis = analysis;
@@ -15,11 +19,26 @@ class DendrochronologyDataset {
 		this.datasetFetchPromises = [];
 		this.datasets = [];
 		this.buildIsComplete = false;
+
+		if(window.location.href.split("/")[5] == "new") {
+			this.useNewBuild = true;
+		}
+		else {
+			this.useNewBuild = false;
+		}
+
+
+		this.methodId = 10;
+		this.metaDataFetchingPromises = [];
+		this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(this.methodId));
 	}
 	
-	offerAnalyses(datasets) {
+	/* Function: offerAnalyses
+	*/
+	offerAnalyses(datasets, sectionsList) {
+		this.sectionsList = sectionsList;
 		for(let key = datasets.length - 1; key >= 0; key--) {
-			if(datasets[key].methodId == 10) {
+			if(this.methodId == datasets[key].methodId) {
 				//console.log("Dendrochronology claiming ", datasets[key].datasetId);
 				let dataset = datasets.splice(key, 1)[0];
 				this.datasets.push(dataset);
@@ -27,10 +46,7 @@ class DendrochronologyDataset {
 		}
 
 		return new Promise((resolve, reject) => {
-
 			//First order of business: Get the physical_sample_id's based on the pile of dataset id's we've got
-			
-
 			//Then: Group the datasets so that for each sample we have a number of datasets (and one dataset can't belong to several samples - I guess?)
 
 			//Then render it so that each sample has it's own "contentItem" containing all of its datasets
@@ -54,7 +70,13 @@ class DendrochronologyDataset {
 
 				Promise.all(fetchSampleDataPromises).then(() => {
 					if(this.datasets.length > 0) {
-						this.buildSection(this.dsGroups);
+						if(this.useNewBuild) {
+							this.buildSection(this.dsGroups);
+						}
+						else {
+							this.buildSectionOLD(this.dsGroups);
+						}
+						
 					}
 					resolve();
 				});
@@ -64,17 +86,28 @@ class DendrochronologyDataset {
 		});
 	}
 
+	/* Function: fetchSampleData
+	*/
 	async fetchSampleData(datasetGroup) {
 		await $.ajax(this.hqs.config.siteReportServerAddress+"/physical_samples?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
 			method: "get",
 			dataType: "json",
 			success: async (sampleData, textStatus, xhr) => {
 				datasetGroup.sample = sampleData[0];
-				//resolve();
 			}
 		});
 	}
 
+	/* Function: groupDatasetsBySample
+	*
+	* Putting all datasets belonging to the same sample in the same group to make it easier to handle.
+	* 
+	* Parameters:
+	* datasets
+	*
+	* Returns:
+	* datasetGroups
+	*/
 	groupDatasetsBySample(datasets) {
 		
 		let datasetGroups = [];
@@ -190,7 +223,8 @@ class DendrochronologyDataset {
 		return p;
 	}
 
-
+	/* Function: fetchDendroData
+	*/
 	async fetchDendroData(dataset, analysisEntityId) {
 		await $.ajax(this.hqs.config.siteReportServerAddress+"/dendro?analysis_entity_id=eq."+analysisEntityId, {
 			method: "get",
@@ -235,18 +269,153 @@ class DendrochronologyDataset {
 
 	buildSection(dsGroups) {
 
+		let section = this.analysis.getSectionByMethodId(this.methodId);
+		if(section === false) {
+			let method = this.analysis.getMethodMetaById(this.methodId);
+			var sectionsLength = this.sectionsList.push({
+				"name": method.methodId,
+				"title": method.name,
+				"methodDescription": method.description,
+				"collapsed": true,
+				"contentItems": []
+			});
+			section = this.sectionsList[sectionsLength-1];
+		}
+
+		section.contentItems.push(this.buildContentItem(dsGroups));
+
+		this.buildIsComplete = true;
+		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
+	}
+
+	buildContentItem(dsGroups) {
+		console.log(dsGroups);
+		//Defining columns
+		var columns = [
+			{
+				"dataType": "subtable",
+				"pkey": false
+			},
+			{
+				"dataType": "number",
+				"pkey": true,
+				"title": "Physical sample id",
+				"hidden": true
+			},
+			{
+				"dataType": "string",
+				"pkey": false,
+				"title": "Sample name"
+			},
+			{
+				"dataType": "string",
+				"pkey": false,
+				"title": "Sample taken"
+			}
+		];
+
+		let rows = [];
+		dsGroups.map((dsg) => {
+
+			let subTableColumns = [
+				{
+					"title": "Measurement type"
+				},
+				{
+					"title": "Measurement value"
+				}
+			];
+
+			let subTableRows = [];
+			//console.log(dsg);
+			dsg.datasets.map((ds) => {
+				//console.log(ds.dendro);
+				ds.dendro.map((dendro) => {
+					let measurementType = this.getDendroValueType(dendro.dendro_lookup_id).name;
+					let measurementValue = dendro.measurement_value;
+
+					subTableRows.push([
+						{
+							"type": "cell",
+							"tooltip": "",
+							"value": measurementType
+						},
+						{
+							"type": "cell",
+							"tooltip": "",
+							"value": measurementValue
+						}
+					]);
+
+
+				});
+
+				
+			});
+
+			let subTable = {
+				"columns": subTableColumns,
+				"rows": subTableRows
+			};
+
+			let row = [
+				{
+					"type": "subtable",
+					"value": subTable
+				},
+				{
+					"type": "cell",
+					"tooltip": "",
+					"value": dsg.physical_sample_id
+				},
+				{
+					"type": "cell",
+					"tooltip": "",
+					"value": dsg.sample.sample_name
+				},
+				{
+					"type": "cell",
+					"tooltip": "",
+					"value": moment(dsg.sample.date_sampled).format('MMMM YYYY')
+				}
+			];
+			rows.push(row);
+		});
+
+
+		let contentItem = {
+			"name": 111, //Normally: analysis.datasetId
+			"title": "Sample analyses", //Normally this would be: analysis.datasetName
+			//"datasetId": 1112, //Normally: analysis.datasetId
+			"data": {
+				"columns": columns,
+				"rows": rows
+			},
+			"renderOptions": [
+				{
+					"name": "Spreadsheet",
+					"selected": true,
+					"type": "table",
+					"options": []
+				}
+			]
+		};
+		
+		return contentItem;
+	}
+
+	/* Function: buildSection
+	*/
+	buildSectionOLD(dsGroups) {
+		console.log(dsGroups);
+
 		//let dsGroups = this.groupDatasetsBySample(datasets);
 		
 		//let analysis = datasets[0];
 		let analysis = dsGroups[0].datasets[0];
 		var sectionKey = this.hqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
 		
-		var method = null;
-		for(var key in this.analysis.meta.methods) {
-			if(this.analysis.meta.methods[key].method_id == analysis.methodId) {
-				method = this.analysis.meta.methods[key];
-			}
-		}
+		let method = this.analysis.getMethodMetaById(analysis.methodId);
 		
 		if(sectionKey === false) {
 			var sectionsLength = this.section.sections.push({
@@ -260,8 +429,7 @@ class DendrochronologyDataset {
 		}
 
 		dsGroups.map((dsg) => {
-			let ci = this.buildContentItem(dsg);
-			console.log(ci);
+			let ci = this.buildContentItemOLD(dsg);
 			this.section.sections[sectionKey].contentItems.push(ci);
 		});
 		
@@ -269,7 +437,9 @@ class DendrochronologyDataset {
 		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this event is relevant anymore...
 	}
 
-	buildContentItem(datasetGroup) {
+	/* Function: buildContentItem
+	*/
+	buildContentItemOLD(datasetGroup) {
 		//Defining columns
 		var columns = [
 			{
@@ -350,7 +520,7 @@ class DendrochronologyDataset {
 			}
 		}
 		
-		datasetGroup.sample.sample_name
+		//datasetGroup.sample.sample_name
 		let ci = {
 			"name": datasetGroup.physical_sample_id, //Normally: analysis.datasetId
 			"title": "Sample "+datasetGroup.sample.sample_name, //Normally this would be: analysis.datasetName
@@ -380,9 +550,13 @@ class DendrochronologyDataset {
 		return ci;
 	}
 	
+	/* Function: destroy
+	*/
 	destroy() {
 	}
 
+	/* Function: isBuildComplete
+	*/
 	isBuildComplete() {
 		return this.buildIsComplete;
 	}
