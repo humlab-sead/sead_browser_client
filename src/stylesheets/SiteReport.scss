@@ -511,11 +511,10 @@ tr.site-report-table-row {
 
 .site-report-export-btn {
   display:inline-block;
-
+  /*cursor: wait;*/
 }
 
 .site-report-export-download-btn:hover {
-  cursor:pointer;
   background-color: $aux-color;
   color: #fff;
   transition: background-color 0.1s, color 0.1s;
@@ -675,3 +674,6 @@ tr.site-report-table-row {
 .hidden-column {
   display:none;
 }
+
+
+@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }

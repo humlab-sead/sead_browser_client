@@ -22,11 +22,14 @@ class BasicSiteInformation {
 		this.siteId = siteId;
 		this.data = {};
 		this.buildComplete = false;
+
+		/*
 		this.hqs.hqsEventListen("fetchBasicSiteInformation", () => {
             this.buildComplete = true;
 			this.render();
 			this.hqs.hqsEventDispatch("siteReportSiteInformationBuildComplete");
 		}, this);
+		*/
 	}
 
 	/*
@@ -169,7 +172,22 @@ class BasicSiteInformation {
 		$(".site-report-export-btn", node).on("click", (evt) => {
 			evt.preventDefault();
 			evt.stopPropagation();
-			this.hqs.siteReportManager.siteReport.renderExportDialog(["json"]);
+
+			//Check here if the loading of the SR data is complete before doing anything else
+			if(hqs.siteReportManager.siteReport.fetchComplete) {
+				this.hqs.siteReportManager.siteReport.renderExportDialog(["json"]);
+			}
+			else {
+				let node = $(".site-report-export-btn > li").append("<i class=\"fa fa-spinner\" aria-hidden=\"true\"></i>&nbsp;");
+				$(".fa-spinner", node).css("animation", "spin 0.2s linear infinite");
+				let exportTryInterval = setInterval(() => {
+					if(hqs.siteReportManager.siteReport.fetchComplete) {
+						clearInterval(exportTryInterval);
+						$(".site-report-export-btn .fa-spinner").remove();
+						this.hqs.siteReportManager.siteReport.renderExportDialog(["json"]);
+					}
+				}, 200);
+			}
 		});
 		
 		this.renderMiniMap(data);

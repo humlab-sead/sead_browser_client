@@ -6,8 +6,6 @@ import Samples from './SectionModules/Samples.class';
 import Analysis from './SectionModules/Analysis.class';
 import SiteReportTable from './RenderModules/SiteReportTable.class';
 import SiteReportChart from './RenderModules/SiteReportChart.class';
-import HqsLayoutManager from "../HqsLayoutManager.class";
-
 
 /*
 * Class: SiteReport
@@ -31,6 +29,7 @@ class SiteReport {
 		this.renderModules = [];
 		this.taxa = [];
 		this.renderInstanceRepository = [];
+		this.fetchComplete = false;
 		this.show();
 
         this.showLoadingIndicator();
@@ -51,7 +50,9 @@ class SiteReport {
 		let analysis = new Analysis(this.hqs, this.siteId);
 
 		Promise.all([bsi.fetch(), samples.fetch(), analysis.fetch()]).then(() => {
+			this.fetchComplete = true;
 			this.hideLoadingIndicator();
+			this.enableExportButton();
 		});
 
 		this.modules.push({
@@ -76,20 +77,9 @@ class SiteReport {
 		}, 250);
 	}
 
-	/*
-	Function: destroy
-	*/
-	destroy() {
-		this.data = null;
-		for(let key in this.modules) {
-			if(typeof(this.modules[key].module.destroy) == "function") {
-				this.modules[key].module.destroy();
-			}
-		}
-
-		this.hqs.hqsEventUnlisten("siteReportSiteInformationBuildComplete", this);
-		this.hqs.hqsEventUnlisten("siteReportSamplesBuildComplete", this);
-		this.hqs.hqsEventUnlisten("siteReportAnalysesBuildComplete", this);
+	enableExportButton() {
+		console.log("enableExportButton");
+		//$(".site-report-export-btn").css("cursor", "pointer");
 	}
 	
 	/*
@@ -938,6 +928,22 @@ class SiteReport {
 				return 0;
 			});
 		}
+	}
+
+	/*
+	Function: destroy
+	*/
+	destroy() {
+		this.data = null;
+		for(let key in this.modules) {
+			if(typeof(this.modules[key].module.destroy) == "function") {
+				this.modules[key].module.destroy();
+			}
+		}
+
+		this.hqs.hqsEventUnlisten("siteReportSiteInformationBuildComplete", this);
+		this.hqs.hqsEventUnlisten("siteReportSamplesBuildComplete", this);
+		this.hqs.hqsEventUnlisten("siteReportAnalysesBuildComplete", this);
 	}
 	
 }
