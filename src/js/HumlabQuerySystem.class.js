@@ -631,10 +631,6 @@ class HumlabQuerySystem {
 		}
 		return false;
 	}
-	
-	copyObject(o) {
-		return JSON.parse(JSON.stringify(o));
-	}
 
 	/*
 	* Function: formatTaxon

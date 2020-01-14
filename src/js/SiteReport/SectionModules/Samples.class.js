@@ -220,7 +220,8 @@ class Samples {
 					"type": "cell",
 					"value": "",
 					"buttons": analysesButtons,
-					"tooltip": "Analyses performed on this sample group"
+					"tooltip": "Analyses performed on this sample group",
+					"excludeInExport": true
 				},
 				{
 					"type": "cell",

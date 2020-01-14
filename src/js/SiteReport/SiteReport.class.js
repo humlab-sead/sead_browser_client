@@ -30,6 +30,7 @@ class SiteReport {
 		this.modules = [];
 		this.renderModules = [];
 		this.taxa = [];
+		this.renderInstanceRepository = [];
 		this.show();
 
         this.showLoadingIndicator();
@@ -162,6 +163,7 @@ class SiteReport {
 	* DEFUNCT
 	 */
 	getExportData() {
+		console.log(this.data);
 		var data = JSON.parse(JSON.stringify(this.data));
 		var sections = data.sections;
 		
@@ -522,6 +524,12 @@ class SiteReport {
 	}
 	
 	renderExportDialog(formats = ["json", "xlsx", "png"], section = "all", contentItem = "all") {
+
+		let exportData = this.hqs.copyObject(this.data);
+		console.log(this.data);
+		this.prepareExportStructure(exportData.sections);
+		console.log(exportData);
+
 		var exportStruct = {
 			info: {
 				description: "Data export from the SEAD project. Visit https://www.sead.se for more information.",
@@ -530,7 +538,7 @@ class SiteReport {
 			site: this.siteId,
 			section: "All",
 			content: "All",
-			data: this.data
+			data: exportData
 		};
 
 		if(section != "all" && contentItem != "all") {
@@ -563,6 +571,48 @@ class SiteReport {
 			var pngBtn = this.getExportButton("png", exportStruct);
 			$("#node-"+dialogNodeId).append(pngBtn);
 		}
+	}
+
+	/* Function: prepareExportStructure
+	* 
+	* Re-formats the site report data structure to a format more suitable for export, e.g. by removing data/directives related to rendering.
+	*/
+	prepareExportStructure(data) {
+		//These are property keys which somehow refer to the rendering of the data, which we want to strip out when exporting the data since they are not interesting for a third party
+		let filterList = [
+			"rendered",
+			"collapsed",
+			"renderOptions",
+			"hidden"
+		];
+
+		data.map((item) => {
+			if(Array.isArray(item)) {
+				this.prepareExportStructure(item);
+			}
+			if(typeof item == "object") {
+				let keys = Object.keys(item);
+				for(let k in keys) {
+					let oKey = keys[k];
+					let value = item[oKey];
+
+					if(oKey == "excludeInExport") {
+						console.log(item);
+					}
+
+					if(Array.isArray(value)) {
+						this.prepareExportStructure(value);
+					}
+					if(filterList.includes(oKey)) {
+						delete item[oKey];
+					}
+				}
+			}
+			if(typeof item == "string" || typeof item == "number") {
+
+			}
+		});
+		
 	}
 	
 	getContentItemExportControl(section, contentItem) {
@@ -639,7 +689,50 @@ class SiteReport {
 		
 		return data;
 	}
+
+	/* Function: addRenderInstance
+	*
+	*
+	* Parameters:
+	* contentItemName
+	* renderInstance
+	*/
+	addRenderInstance(contentItemName, renderInstance) {
+		this.renderInstanceRepository.push({
+			contentItemName: contentItemName,
+			renderInstance: renderInstance
+		});
+	}
 	
+	/* Function: getRenderInstance
+	*
+	*
+	* Parameters:
+	* contentItemName
+	*/
+	getRenderInstance(contentItemName) {
+		for(let key in this.renderInstanceRepository) {
+			if(this.renderInstanceRepository[key].contentItemName == contentItemName) {
+				return this.renderInstanceRepository[key].renderInstance;
+			}
+		}
+		return false;
+	}
+
+	/* Function: removeRenderInstance
+	*
+	*
+	* Parameters:
+	* contentItemName
+	*/
+	removeRenderInstance(contentItemName) {
+		for(let key in this.renderInstanceRepository) {
+			if(this.renderInstanceRepository[key].contentItemName == contentItemName) {
+				this.renderInstanceRepository.splice(key, 1);
+			}
+		}
+	}
+
 	/*
 	Function: renderDataVisualization
 	 */
@@ -652,9 +745,12 @@ class SiteReport {
 		if(contentItem.hasOwnProperty("renderOptions") == false || contentItem.renderOptions.length == 0) {
 			$(anchorSelector).html("<h5>No support for rendering this type of content.</h5>");
 		}
-		
-		if(typeof(contentItem.renderInstance) != "undefined") {
-			contentItem.renderInstance.unrender();
+
+		let renderInstance = this.getRenderInstance(contentItem.name);
+
+		if(renderInstance !== false) {
+			renderInstance.unrender();
+			this.removeRenderInstance(contentItem.name);
 		}
 
 		for(var key in contentItem.renderOptions) {
@@ -664,13 +760,15 @@ class SiteReport {
 					case "scatter":
 					case "pie":
 					case "multistack":
-						contentItem.renderInstance = new SiteReportChart(this, contentItem);
-						contentItem.renderInstance.render(anchorSelector);
+						renderInstance = new SiteReportChart(this, contentItem);
+						renderInstance.render(anchorSelector);
+						this.addRenderInstance(contentItem.name, renderInstance);
 						break;
 					case "table":
-						contentItem.renderInstance = new SiteReportTable(this, contentItem);
-						contentItem.renderInstance.render(anchorSelector);
-						contentItem.renderInstance.renderContentDisplayOptionsPanel(section, contentItem);
+						renderInstance = new SiteReportTable(this, contentItem);
+						renderInstance.render(anchorSelector);
+						renderInstance.renderContentDisplayOptionsPanel(section, contentItem);
+						this.addRenderInstance(contentItem.name, renderInstance);
 						break;
 					default:
 						break;
