@@ -324,7 +324,8 @@ class ResultMap extends ResultModule {
 				
 				view: new View({
 					center: fromLonLat([12.41, 48.82]),
-					zoom: this.currentZoomLevel
+					zoom: this.currentZoomLevel,
+					minZoom: 2
 				}),
 				loadTilesWhileInteracting: true,
 				loadTilesWhileAnimating: true
@@ -359,8 +360,10 @@ class ResultMap extends ResultModule {
 		else {
 			extentNW = fromLonLat([lngLow.lng, latLow.lat]);
 			extentSE = fromLonLat([lngHigh.lng, latHigh.lat]);
+
 			extent = extentNW.concat(extentSE);
 		}
+
 
 		//let extent = extentNW.concat(extentSE);
 
