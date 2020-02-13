@@ -49,6 +49,11 @@ class SiteReportManager {
 			this.hqs.resultManager.setActiveModule(this.hqs.resultManager.activeModuleId);
 		});
 		*/
+
+		this.hqs.hqsEventListen("siteReportClosed", () => {
+			console.log("siteReportClosed");
+			//history.pushState({}, "", "/");
+		});
 	}
 	
 	hqsOffer(offerName, offerData) {
@@ -77,7 +82,7 @@ class SiteReportManager {
 	}
 	
 	renderSiteReport(siteId, updateHistory = true) {
-		if(updateHistory && false) { //FIXMME - remove false
+		if(updateHistory) {
 			var stateObj = {};
 			history.pushState(stateObj, "", "/site/"+siteId);
 		}
@@ -150,7 +155,7 @@ class SiteReportManager {
 			this.hqs.resultManager.setActiveModule("map", true);
 		}
 
-		//this.hqs.hqsEventDispatch("siteReportClosed"); //Also fun fact: This is called from a function which calls this function - recursion...
+		this.hqs.hqsEventDispatch("siteReportClosed"); //Also fun fact: This is called from a function which calls this function - recursion...
 		this.hqs.setActiveView("filters");
 	}
 	
