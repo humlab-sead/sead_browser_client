@@ -486,12 +486,14 @@ class SiteReport {
 							for(let cik in this.modules[k].module.section.sections[sk].contentItems) {
 								let ci = this.modules[k].module.section.sections[sk].contentItems[cik];
 								if(ci.name == exportStruct.dataset) {
-									zingchart.exec(ci.renderInstance.chartId, 'getimagedata', {
+									let chartId = $("#contentItem-"+ci.datasetId+" .site-report-chart-container").attr("id");
+									zingchart.exec(chartId, 'getimagedata', {
 										filetype: 'png',
 										callback : (imagedata) => {
 											this.pushDownload("SEAD-"+ci.title+"-chart.png", imagedata);
 										}
 									});
+
 								}
 							}
 						}
