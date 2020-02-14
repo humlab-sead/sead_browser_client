@@ -13,17 +13,9 @@ class Samples {
 			"sampleGroups": []
 		};
 	}
-	
-	
-	/*
-	* Function: render
-	*
-	* Renders samples table. Although it uses the renderSection function in the SiteReport class,
-	* so it really just compiles the data in an appropriate format and hands it over.
-	*
-	 */
-	render() {
-		
+
+
+	compileSectionStruct() {
 		var section = {
 			"name": "samples",
 			"title": "Overview",
@@ -95,6 +87,9 @@ class Samples {
 				},
 				{
 					"title": "Sample type"
+				},
+				{
+					"title": "Sample dimensions"
 				}
 			];
 			
@@ -105,7 +100,7 @@ class Samples {
 			
 			for(var k in sampleGroup.samples) {
 				var sample = sampleGroup.samples[k];
-				
+
 				this.hqs.hqsEventListen("fetchSampleDimensions", () => {
 					console.log("All sample dimensions fetched");
 				});
@@ -131,6 +126,11 @@ class Samples {
 						"type": "cell",
 						"value": sample.sampleTypeName,
 						"tooltip": sample.sampleTypeDescription == null ? "" : sample.sampleTypeDescription
+					},
+					{
+						"type": "cell",
+						"value": typeof sample.sampleDimensions == "undefined" ? "Not loaded" : sample.sampleDimensions,
+						"tooltip": ""
 					}
 				]);
 				
@@ -234,8 +234,28 @@ class Samples {
 			]);
 			
 		}
-		
+
+		return section;
+	}
+	
+	
+	/*
+	* Function: render
+	*
+	* Renders samples table. Although it uses the renderSection function in the SiteReport class,
+	* so it really just compiles the data in an appropriate format and hands it over.
+	*
+	 */
+	render() {
+		let section = this.compileSectionStruct();
 		this.hqs.siteReportManager.siteReport.renderSection(section);
+		
+		/* THIS IS WISHFUL THINKING:
+		let renderPromise = this.hqs.siteReportManager.siteReport.renderSection(section);
+		renderPromise.then(() => {
+			this.fetchAuxiliaryData(); //Lazy-loading this, which is why it's here and not up amoing the other fetch-calls
+		});
+		*/
 	}
 
 	/*
@@ -379,24 +399,47 @@ class Samples {
 		});
 	}
 
-	fetchSampleDimensions(sampleId, targetCell) {
-		var xhr1 = this.hqs.pushXhr(null, "fetchSampleDimensions");
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_dimensions?physical_sample_id=eq."+sampleId, {
+	async fetchSampleDimensions(sampleId, sampleStruct) {
+		let data = await $.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_dimensions?physical_sample_id=eq."+sampleId, {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {
-				
 				var d = "";
 				for(var key in data) {
-					d += data[key].dimension_value+" "+data[key].unit_abbrev;
+
+					let unit = data[key].unit_abbrev;
+					if(unit == "") {
+						unit = "ukn unit";
+					}
+
+					d += data[key].dimension_value+" "+unit;
 					if(key != data.length-1) {
 						d += ", ";
 					}
 				}
-				
-				$("#"+targetCell).html(d);
-				this.hqs.popXhr(xhr1);
+				sampleStruct.sampleDimensions = d;
 			}
+		});
+
+		return data;
+	}
+
+	/*
+	* Function: fetchAuxiliaryData
+	*
+	* Fetches extra data (normally triggered for exports) that is normally not fetched (or presented) in the site reports because of the cost of fetching it.
+	*/
+	async fetchAuxiliaryData() {
+		let fetchPromises = [];
+		this.data.sampleGroups.forEach((sampleGroup) => {
+			sampleGroup.samples.forEach(async (sample) => {
+				fetchPromises.push(this.fetchSampleDimensions(sample.sampleId, sample));
+			});
+		});
+
+		Promise.all(fetchPromises).then(() => {
+			let section = this.compileSectionStruct();
+			this.hqs.siteReportManager.siteReport.updateSection(section);
 		});
 	}
 	

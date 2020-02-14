@@ -15,7 +15,8 @@ var Config = {
 	viewstateLoadingScreenEnabled: false,
 	requireLoginForViewstateStorage: true,
 	rangeFilterFuzzyLabels: true, //Rounds labels to avoid very long numbersm
-	screenMobileWidthBreakPoint: 720, //If the screen width is smaller than this, the layout of the site goes into mobile mode
+	screenMobileWidthBreakPoint: 720, //If the screen wisiteReportServerAddressdth is smaller than this, the layout of the site goes into mobile mode
+	siteReportExportAttributionString: "Buckland P.I., Sjölander M., Eriksson E.J. (2018) Strategic Environmental Archaeology Database (SEAD). In: Smith C. (eds) Encyclopedia of Global Archaeology. Springer, Cham. DOI:10.1007/978-3-319-51726-1_833-2",
 	keyColors: [ //Colors used as source/origin-colors when generating color schemes
 		"5B83AD",
 		"A02000",

@@ -114,11 +114,47 @@ class SiteReportTable {
 			
 			this.makeSubTableAggregationBarBindings();
 		}
+		
 		return this;
+	}
+
+	updateData(contentItem) {
+		let expandedRows = this.getRenderedSubTableRows();
+		this.unrender();
+
+		this.contentItem = contentItem;
+		this.columns = this.contentItem.data.columns;
+		this.rows = this.contentItem.data.rows;
+		this.rowsTooltips = this.contentItem.data.rowsTooltips;
+
+		this.render(this.anchorNodeSelector);
+
+		if(expandedRows !== false) {
+			this.expandSubTablesForRows(expandedRows);
+		}
 	}
 	
 	unrender() {
-		
+		$("#"+this.tableNodeId).remove();
+	}
+
+	expandSubTablesForRows(rows) {
+		rows.forEach((row) => {
+			this.triggerSubTable(row[this.rowPkey].value);
+		});
+	}
+
+	getRenderedSubTableRows() {
+		if(!this.hasSubTable()) {
+			return false;
+		}
+		let expandedRows = [];
+		this.rows.forEach((row) => {
+			if(row[this.getSubTableKey()].value.expanded) {
+				expandedRows.push(row);
+			}
+		});
+		return expandedRows;
 	}
 
 	hasSubTable() {
@@ -329,32 +365,35 @@ class SiteReportTable {
 		}
 
 		$(rowNode).on("click", (evt) => {
-			if(this.getSubTableKey() === false) {
-				return;
-			}
-
 			var rowNode = $(evt.currentTarget);
 			var rowId = rowNode.attr("row-id");
-			
-			var r = this.getTableRowByPkey(rowId);
-			
-			var subTable = r[this.getSubTableKey()].value;
-
-			if(!subTable.hasOwnProperty("expanded")) {
-				subTable.expanded = false;
-			}
-			
-			if(subTable.expanded === false) {
-				this.renderSubTable(rowId, subTable);
-				subTable.expanded = true;
-			}
-			else {
-				this.unrenderSubTable(rowId);
-				subTable.expanded = false;
-			}
+			this.triggerSubTable(rowId);
 		});
 
 		return rowNode;
+	}
+
+	triggerSubTable(rowId) {
+		if(this.getSubTableKey() === false) {
+			return;
+		}
+
+		var r = this.getTableRowByPkey(rowId);
+		
+		var subTable = r[this.getSubTableKey()].value;
+
+		if(!subTable.hasOwnProperty("expanded")) {
+			subTable.expanded = false;
+		}
+		
+		if(subTable.expanded === false) {
+			this.renderSubTable(rowId, subTable);
+			subTable.expanded = true;
+		}
+		else {
+			this.unrenderSubTable(rowId);
+			subTable.expanded = false;
+		}
 	}
 
 	getTableRowByPkey(rowId) {

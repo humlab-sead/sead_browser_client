@@ -248,6 +248,8 @@ class SiteReport {
 			return;
 		}
 		
+		$("#site-report-section-"+section.name).remove(); //Just in case this is a re-render
+
 		//Grab a copy of the container sectionNode and initialize it
 		var sectionNode = $(".site-report-level-container-template")[0].cloneNode(true);
 		$(sectionNode).removeClass("site-report-level-container-template")
@@ -311,6 +313,13 @@ class SiteReport {
 				this.renderSection(section.sections[key], section, level+1);
 			}
 		}
+	}
+
+	updateSection(section) {
+		section.contentItems.forEach((contentItem) => {
+			let renderInstance = this.getRenderInstance(contentItem.name);
+			renderInstance.updateData(contentItem);
+		});
 	}
 
 	/*
@@ -465,8 +474,10 @@ class SiteReport {
 				data.unshift([""]);
 				data.unshift(["Content: "+exportStruct.content]);
 				data.unshift(["Section: "+exportStruct.section]);
+				data.unshift(["Reference: "+exportStruct.info.attribution]);
 				data.unshift([exportStruct.info.url]);
 				data.unshift([exportStruct.info.description]);
+				
 				
 				var ws_name = "SEAD Data";
 				var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(data);
@@ -515,12 +526,10 @@ class SiteReport {
 		document.body.removeChild(element);
 	}
 	
-	renderExportDialog(formats = ["json", "xlsx", "png"], section = "all", contentItem = "all") {
-
+	async renderExportDialog(formats = ["json", "xlsx", "png"], section = "all", contentItem = "all") {
+		
 		let exportData = this.hqs.copyObject(this.data);
-		console.log(this.data);
 		this.prepareExportStructure(exportData.sections);
-		console.log(exportData);
 
 		var exportStruct = {
 			info: {
@@ -546,11 +555,29 @@ class SiteReport {
 				datatable: contentItem.data
 			};
 		}
+
+		exportStruct.info.attribution = Config.siteReportExportAttributionString;
 		
 		var dialogNodeId = shortid.generate();
 		var dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");
 		this.siteReportManager.hqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
 		
+
+		if(section == "all" || section.name == "samples") {
+			//FIXME: Needs to load MOOAAR data here - specifically the sample dimensions (if available) and perhaps other things in the future
+			this.showLoadingIndicator();
+			let samplesModule = null;
+			this.modules.forEach((m) => {
+				if(m.name == "samples") {
+					samplesModule = m;
+				}
+			});
+			let p = samplesModule.module.fetchAuxiliaryData();
+			p.then(() => {
+				this.hideLoadingIndicator();
+			});
+		}
+
 		if(formats.indexOf("json") != -1) {
 			var jsonBtn = this.getExportButton("json", exportStruct);
 			$("#node-"+dialogNodeId).append(jsonBtn);
