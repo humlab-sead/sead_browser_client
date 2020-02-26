@@ -34,6 +34,8 @@ class Analysis {
 		this.hqs = hqs;
 		this.siteId = siteId;
 		this.buildComplete = false;
+		this.auxiliaryDataFetched = true; //There is currently no auxiliary data to fetch for any analysis module, so... 
+
 		//The section structure this will result in after everything is fetched and parsed.
 		this.section = {
 			"name": "analyses",

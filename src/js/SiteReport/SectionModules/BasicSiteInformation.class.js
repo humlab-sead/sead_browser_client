@@ -23,6 +23,7 @@ class BasicSiteInformation {
 		this.data = {};
 		this.buildComplete = false;
 		this.exportTryInterval = null;
+		this.auxiliaryDataFetched = true; //There is currently no auxiliary data to fetch
 
 		/*
 		this.hqs.hqsEventListen("fetchBasicSiteInformation", () => {

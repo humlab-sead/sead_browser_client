@@ -8,7 +8,8 @@ class Samples {
 		this.hqs = hqs;
 		//this.siteReport = this.hqs.siteReportManager.siteReport;
 		this.siteId = siteId;
-        this.buildComplete = false;
+		this.buildComplete = false;
+		this.auxiliaryDataFetched = false;
 		this.data = {
 			"sampleGroups": []
 		};
@@ -248,14 +249,11 @@ class Samples {
 	 */
 	render() {
 		let section = this.compileSectionStruct();
-		this.hqs.siteReportManager.siteReport.renderSection(section);
-		
-		/* THIS IS WISHFUL THINKING:
 		let renderPromise = this.hqs.siteReportManager.siteReport.renderSection(section);
+		
 		renderPromise.then(() => {
 			this.fetchAuxiliaryData(); //Lazy-loading this, which is why it's here and not up amoing the other fetch-calls
-		});
-		*/
+		})
 	}
 
 	/*
@@ -440,6 +438,7 @@ class Samples {
 		Promise.all(fetchPromises).then(() => {
 			let section = this.compileSectionStruct();
 			this.hqs.siteReportManager.siteReport.updateSection(section);
+			this.auxiliaryDataFetched = true;
 		});
 	}
 	

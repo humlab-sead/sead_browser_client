@@ -218,7 +218,7 @@ class SiteReport {
 	sectionHasSubSections(section) {
 		return typeof(section.sections) == "object" && section.sections.length > 0;
 	}
-	
+
 	/*
 	* Function: renderSection
 	*
@@ -229,7 +229,7 @@ class SiteReport {
 	* parent - Don't specify, internal use.
 	* level - The level in the tree of this section, 0 if top level.
 	*/
-	renderSection(section, parent = null, level = 0) {
+	async renderSection(section, parent = null, level = 0) {
 		let weight = 0;
 		this.modules.map((m) => {
 			if(m.name == section.name) {
@@ -310,7 +310,7 @@ class SiteReport {
 		
 		if(typeof(section.sections) != "undefined") {
 			for(var key in section.sections) {
-				this.renderSection(section.sections[key], section, level+1);
+				await this.renderSection(section.sections[key], section, level+1);
 			}
 		}
 	}
@@ -380,7 +380,7 @@ class SiteReport {
 	/*
 	Function: renderContentItems
 	 */
-	renderContentItems(section, forceReRender = false) {
+	async renderContentItems(section, forceReRender = false) {
 		
 		//If aleady rendered - skip this and go buy some ice-cream instead, sit on a bench in the sunshine and relax. But if force-re-render is enabled then that ice-cream will have to wait.
 		if(section.rendered && forceReRender == false) {
@@ -395,8 +395,8 @@ class SiteReport {
 			return;
 		}
 		
-		section.contentItems.forEach((contentItem, i) => {
-			this.renderContentItem(section, contentItem);
+		section.contentItems.forEach(async (contentItem, i) => {
+			await this.renderContentItem(section, contentItem);
 		});
 		
 		section.rendered = true;
@@ -405,7 +405,7 @@ class SiteReport {
 	/*
 	Function: renderContentItem
 	 */
-	renderContentItem(section, contentItem, forceReRender = false) {
+	async renderContentItem(section, contentItem, forceReRender = false) {
 		var datasetId = "";
 		if(contentItem.hasOwnProperty("datasetId")) {
 			datasetId = "<span class='dataset-id'>("+contentItem.name+")</span>";
@@ -436,10 +436,16 @@ class SiteReport {
 		
 		var dataVisContainerNode = $("<div id='contentItem-"+contentItem.name+"' class='data-vis-container'><span class='siteReportContentItemLoadingMsg'>Rendering...</span></div>");
 		$("#site-report-section-"+section.name+" > .site-report-level-content > #"+cicId).append(dataVisContainerNode);
-		
-		setTimeout(() => { //This might seem strange, but it's really just because we need a delay here so that the "Rendering..." message can be pushed out to the DOM before the whole browser locks up while rendering the content-items(s), yeah it's a non-ideal "solution"...
-			this.renderDataVisualization(section, contentItem);
-		}, 200);
+
+		/* DISABLED THIS BECAUSE IT MESSES WITH ADDING AUXILIARY DATA AFTER RENDER IS COMPLETE
+		await new Promise((resolve, reject) => {
+			setTimeout(() => { //This might seem strange, but it's really just because we need a delay here so that the "Rendering..." message can be pushed out to the DOM before the whole browser locks up while rendering the content-items(s), yeah it's a non-ideal "solution"...
+				this.renderDataVisualization(section, contentItem);
+				resolve();
+			}, 200);
+		});
+		*/
+		this.renderDataVisualization(section, contentItem);
 	}
 	
 	getExportButton(exportFormat, exportStruct) {
@@ -564,18 +570,25 @@ class SiteReport {
 		
 
 		if(section == "all" || section.name == "samples") {
-			//FIXME: Needs to load MOOAAR data here - specifically the sample dimensions (if available) and perhaps other things in the future
+			// Need to check here that all the data loading is complete, including the auxiliary data in the samples module
 			this.showLoadingIndicator();
-			let samplesModule = null;
-			this.modules.forEach((m) => {
-				if(m.name == "samples") {
-					samplesModule = m;
-				}
+
+			await new Promise((resolve, reject) => {
+				let interval = setInterval(() => {
+					let allFetched = true;
+					this.modules.forEach((m) => {
+						if(!m.module.auxiliaryDataFetched) {
+							allFetched = false;
+						}
+					});
+					if(allFetched) {
+						clearInterval(interval);
+						resolve();
+					}
+				});
 			});
-			let p = samplesModule.module.fetchAuxiliaryData();
-			p.then(() => {
-				this.hideLoadingIndicator();
-			});
+
+			this.hideLoadingIndicator();
 		}
 
 		if(formats.indexOf("json") != -1) {
