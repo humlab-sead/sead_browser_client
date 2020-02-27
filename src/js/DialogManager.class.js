@@ -223,6 +223,8 @@ class DialogManager {
 					callback: () => {
 						//window.sead.dialogManager.renderDialog("#about-section");
 						var content = $("#about-section > .overlay-dialog-content").html();
+						content = $(content);
+						$("#data-license-section", content).text(Config.dataLicense.name).attr("href", Config.dataLicense.url);
 						window.hqs.dialogManager.showPopOver("About", content);
 					}
 				},

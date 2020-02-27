@@ -1,3 +1,5 @@
+import Config from "../config/config.js";
+
 /*
 * Class: MainMenu
 */
@@ -8,7 +10,7 @@ class MainMenu {
 	constructor() {
 		this.bindSettingsButton();
 		this.bindStateButton();
-		this.bindAboutButton();
+		//this.bindAboutButton();
 	}
 	
 	/*
@@ -34,19 +36,18 @@ class MainMenu {
 	* Function: bindAboutButton
 	*/
 	bindAboutButton() {
+		/*
 		$("#about-btn").bind("click", () => {
 			event.stopPropagation(); //To prevent immediate closing of the dialog
+			console.log("about", Config);
+			$("#data-license-section").html(Config.dataLicense.name);
 			window.sead.dialogManager.renderDialog("#about-section");
 		});
 
-		/*
-		
-		*/
-		
 		$(".overlay-dialog").bind("click", () => {
 			event.stopPropagation(); //To prevent closing of the dialog when clicked inside it
 		});
-		
+		*/
 	}
 	
 	/*

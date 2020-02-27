@@ -1,4 +1,9 @@
 var Config = {
+	dataLicense: {
+		name: "Creative Commons Attribution 4.0 International",
+		shortName: "CC-BY-4.0",
+		url: "https://creativecommons.org/licenses/by/4.0/"
+	},
 	serverRoot: "http://supersead.humlab.umu.se", //for images and such
 	//serverAddress: "http://dev.humlab.umu.se:8089", //for json data (old)
 	serverAddress: "https://seadserv.humlab.umu.se:8089", //New server

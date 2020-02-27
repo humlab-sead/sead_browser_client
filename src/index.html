@@ -18,7 +18,15 @@
     <meta name="theme-color" content="#ffffff">
 
     <meta name="google-signin-client_id" content="989880823583-jmp43kmh4puojj41t6klg867uk486sfr.apps.googleusercontent.com">
-    <script src="https://apis.google.com/js/platform.js?onload=renderLoginButton" async defer></script>
+    <script>function googleInit() {
+      console.log(hqs);
+      let interval = setInterval(() => {
+        if(typeof hqs != "undefined" && typeof hqs.userManager != "undefined") {
+          clearInterval(interval);
+        }
+      }, 100);
+    }</script>
+    <script src="https://apis.google.com/js/platform.js?onload=googleInit" async defer></script>
 
   </head>
   <body style="display:none;">
@@ -315,11 +323,18 @@
         SEAD is always interested in hearing from anyone, including students and interns, wishing to undertake projects involving the database. See <a class="about-link" target="_blank" href="http://www.sead.se/people/index.html">people</a> for more information. Please contact the team should you wish to make your data available through the system, or work with us in any other capacity.
         </p>
 
+        <p>
+          All the data in the SEAD database is licensed under the <a id="data-license-section" target="_blank"></a> license.
+        </p>
+        
+
 
         <div id="logo-section">
+          <a href="https://www.su.se/" target="_blank"><img class="about-section-logo" src="assets/su_logo.jpg" /></a><br />
+          <a href="https://www.riksbank.se/" target="_blank"><img class="about-section-logo" src="assets/riksbanken-logo.png" /></a><br />
           <!--<a href="https://www.sead.se/" target="_blank"><img class="about-section-logo" src="assets/SEAD-logo-small.png" /></a>-->
           <a href="http://www.humlab.umu.se/" target="_blank"><img class="about-section-logo" src="assets/umu-logo-en.png" /></a><br />
-          <a href="https://www.vr.se/inenglish.html" target="_blank"><img class="about-section-logo" src="assets/vr-logo.png" /></a><br />
+          <!--<a href="https://www.vr.se/inenglish.html" target="_blank"><img class="about-section-logo" src="assets/vr-logo.png" /></a><br />-->
           <a href="http://www.idesam.umu.se/english/mal/?languageId=1" target="_blank"><img class="about-section-logo" src="assets/mal-logo.png" /></a><br />
           <a href="http://www.lu.se/" target="_blank"><img class="about-section-logo" src="assets/lu-logo.png" /></a>
         </div>

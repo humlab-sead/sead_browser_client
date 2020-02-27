@@ -20,14 +20,6 @@ class DendrochronologyDataset {
 		this.datasets = [];
 		this.buildIsComplete = false;
 
-		if(window.location.href.split("/")[5] == "new") {
-			this.useNewBuild = true;
-		}
-		else {
-			this.useNewBuild = false;
-		}
-
-
 		this.methodId = 10;
 		this.metaDataFetchingPromises = [];
 		this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(this.methodId));
@@ -70,13 +62,7 @@ class DendrochronologyDataset {
 
 				Promise.all(fetchSampleDataPromises).then(() => {
 					if(this.datasets.length > 0) {
-						if(this.useNewBuild) {
-							this.buildSection(this.dsGroups);
-						}
-						else {
-							this.buildSectionOLD(this.dsGroups);
-						}
-						
+						this.buildSection(this.dsGroups);
 					}
 					resolve();
 				});
@@ -94,6 +80,14 @@ class DendrochronologyDataset {
 			dataType: "json",
 			success: async (sampleData, textStatus, xhr) => {
 				datasetGroup.sample = sampleData[0];
+			}
+		});
+
+		await $.ajax(this.hqs.config.siteReportServerAddress+"/qse_dendro_dating?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
+			method: "get",
+			dataType: "json",
+			success: async (data, textStatus, xhr) => {
+				console.log(data);
 			}
 		});
 	}
@@ -267,27 +261,6 @@ class DendrochronologyDataset {
 		*/
 	}
 
-	buildSection(dsGroups) {
-
-		let section = this.analysis.getSectionByMethodId(this.methodId);
-		if(section === false) {
-			let method = this.analysis.getMethodMetaById(this.methodId);
-			var sectionsLength = this.sectionsList.push({
-				"name": method.methodId,
-				"title": method.name,
-				"methodDescription": method.description,
-				"collapsed": true,
-				"contentItems": []
-			});
-			section = this.sectionsList[sectionsLength-1];
-		}
-
-		section.contentItems.push(this.buildContentItem(dsGroups));
-
-		this.buildIsComplete = true;
-		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
-	}
-
 	buildContentItem(dsGroups) {
 		console.log(dsGroups);
 		//Defining columns
@@ -406,7 +379,7 @@ class DendrochronologyDataset {
 
 	/* Function: buildSection
 	*/
-	buildSectionOLD(dsGroups) {
+	buildSection(dsGroups) {
 		console.log(dsGroups);
 
 		//let dsGroups = this.groupDatasetsBySample(datasets);
