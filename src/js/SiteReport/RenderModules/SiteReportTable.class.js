@@ -280,7 +280,7 @@ class SiteReportTable {
 			if(this.columns[key].dataType != "subtable") {
 				//var colTitleNode = $("<td>"+this.columns[key].title+"&nbsp;<i column='"+key+"' class=\"fa fa-eye-slash table-hide-column-btn\" aria-hidden=\"true\"></i></td>"); //with hide-column-button
 				
-				let columnClasses = "";
+				let columnClasses = "all ";
 				if(typeof this.columns[key].hidden != "undefined" && this.columns[key].hidden) {
 					columnClasses += "hidden-column";
 				}
@@ -730,7 +730,7 @@ class SiteReportTable {
 	* visible - True/false
 	*/
 	setColumnVisbility(columnKey, visible = true) {
-		//console.log("setColumnVisbility", columnKey, visible);
+		console.log("setColumnVisbility", columnKey, visible);
 		columnKey--;
 		this.dt.column(columnKey).visible(visible);
 		let nodes = $(this.anchorNodeSelector).parent().find(".site-report-table-column-visibility-option");
