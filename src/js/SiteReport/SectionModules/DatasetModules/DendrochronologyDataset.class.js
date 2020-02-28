@@ -55,12 +55,13 @@ class DendrochronologyDataset {
 
 				this.dsGroups = this.groupDatasetsBySample(this.datasets);
 
-				let fetchSampleDataPromises = [];
-				this.dsGroups.map((dsg) => {
-					fetchSampleDataPromises.push(this.fetchSampleData(dsg));
+				let fetchPromises = [];
+				this.dsGroups.forEach((dsg) => {
+					fetchPromises.push(this.fetchSampleData(dsg));
+					fetchPromises.push(this.fetchDendroDating(dsg));
 				});
 
-				Promise.all(fetchSampleDataPromises).then(() => {
+				Promise.all(fetchPromises).then(() => {
 					if(this.datasets.length > 0) {
 						this.buildSection(this.dsGroups);
 					}
@@ -72,6 +73,16 @@ class DendrochronologyDataset {
 		});
 	}
 
+	async fetchDendroDating(datasetGroup) {
+		await $.ajax(this.hqs.config.siteReportServerAddress+"/qse_dendro_dating?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
+			method: "get",
+			dataType: "json",
+			success: async (data, textStatus, xhr) => {
+				datasetGroup.dating = data;
+			}
+		});
+	}
+
 	/* Function: fetchSampleData
 	*/
 	async fetchSampleData(datasetGroup) {
@@ -80,14 +91,6 @@ class DendrochronologyDataset {
 			dataType: "json",
 			success: async (sampleData, textStatus, xhr) => {
 				datasetGroup.sample = sampleData[0];
-			}
-		});
-
-		await $.ajax(this.hqs.config.siteReportServerAddress+"/qse_dendro_dating?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
-			method: "get",
-			dataType: "json",
-			success: async (data, textStatus, xhr) => {
-				console.log(data);
 			}
 		});
 	}
@@ -466,17 +469,7 @@ class DendrochronologyDataset {
 						"type": "cell",
 						"tooltip": "",
 						"value": dataset.dendro[key].analysis_entity_id
-					},/*
-					{
-						"type": "cell",
-						"tooltip":dataset.dataTypeDefinition,
-						"value": dataset.dataTypeName
 					},
-					{
-						"type": "cell",
-						"tooltip": "",
-						"value": dataset.datasetName
-					},*/
 					{
 						"type": "cell",
 						"tooltip": valueTypeDescription,
@@ -491,6 +484,55 @@ class DendrochronologyDataset {
 
 				rows.push(row);
 			}
+		}
+
+		for(let dk in datasetGroup.dating) {
+
+			let value = "";
+			let dateUncertainty = "";
+			if(datasetGroup.dating[dk].plus != null || datasetGroup.dating[dk].minus != null) {
+
+				let dateUncertaintyType = "";
+				if(datasetGroup.dating[dk].error_uncertainty != null) {
+					dateUncertaintyType = datasetGroup.dating[dk].error_uncertainty;
+				}
+
+				if(datasetGroup.dating[dk].plus == datasetGroup.dating[dk].minus) {
+					dateUncertainty = dateUncertaintyType+" +/- "+datasetGroup.dating[dk].plus+" years";
+				}
+				else {
+					dateUncertainty = dateUncertaintyType+" +"+datasetGroup.dating[dk].plus+" / -"+datasetGroup.dating[dk].minus+" years";
+				}
+				
+			}
+			if(datasetGroup.dating[dk].older != null) {
+				value = datasetGroup.dating[dk].younger + "–" + datasetGroup.dating[dk].older + " " + datasetGroup.dating[dk].age_type;
+			}
+			else {
+				value = datasetGroup.dating[dk].younger+" "+datasetGroup.dating[dk].age_type;
+			}
+
+			let season = datasetGroup.dating[dk].season == null ? "" : datasetGroup.dating[dk].season+" ";
+
+			var row = [
+				{
+					"type": "cell",
+					"tooltip": "",
+					"value": datasetGroup.dating[dk].analysis_entity_id
+				},
+				{
+					"type": "cell",
+					"tooltip": "",
+					"value": datasetGroup.dating[dk].date_type
+				},
+				{
+					"type": "cell",
+					"tooltip": "",
+					"value": season + value+" "+dateUncertainty
+				}
+			];
+
+			rows.push(row);
 		}
 		
 		//datasetGroup.sample.sample_name
@@ -514,6 +556,10 @@ class DendrochronologyDataset {
 								3
 							],
 							"showControls": false
+						},
+						{
+							"name": "showNumRows",
+							"value": 15
 						}
 					]
 				}

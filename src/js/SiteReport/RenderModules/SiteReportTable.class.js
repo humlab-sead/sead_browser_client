@@ -32,6 +32,12 @@ class SiteReportTable {
 		this.columns = this.contentItem.data.columns;
 		this.rows = this.contentItem.data.rows;
 		this.rowsTooltips = this.contentItem.data.rowsTooltips;
+		
+		this.contentItem.renderOptions.forEach((ro) => {
+			if(ro.name == "Spreadsheet") {
+				this.renderOptions = ro;
+			}
+		});
 	}
 
 	/*
@@ -76,6 +82,13 @@ class SiteReportTable {
 				}
 			}
 		}
+
+		this.renderOptions.options.forEach((option) => {
+			if(option.name == "showNumRows") {
+				this.pagingRows = option.value;
+			}
+		});
+		
 
 		//Make into DataTable
 		this.dt = $(this.tableNode).DataTable({
