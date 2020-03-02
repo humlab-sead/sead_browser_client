@@ -933,7 +933,11 @@ class HumlabQuerySystem {
 	}
 
 	loadUserSettings(mainConfig) {
-		let userSettings = JSON.parse(window.localStorage.getItem("hqsUserSettings"));
+		let userSettingsJson = window.localStorage.getItem("hqsUserSettings");
+		if(!userSettingsJson) {
+			return mainConfig;
+		}
+		let userSettings = JSON.parse(userSettingsJson);
 		Object.keys(userSettings).forEach((key) => {
 			mainConfig[key] = userSettings[key]
 		});
