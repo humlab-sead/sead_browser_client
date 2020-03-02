@@ -325,6 +325,8 @@ class ResultMosaic extends ResultModule {
 							placement: "in",
 							'offset-r': "25%",
 							'font-color': "white",
+							'background-color': "#333",
+							'border-width': 0
 						},
 						{
 							rule: "%npv <= 5",
