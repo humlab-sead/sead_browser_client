@@ -925,7 +925,15 @@ class HumlabQuerySystem {
 	}
 
 	storeUserSettings(settings) {
-		let userSettings = JSON.parse(window.localStorage.getItem("hqsUserSettings"));
+		let userSettingsJson = window.localStorage.getItem("hqsUserSettings");
+		let userSettings;
+		if(!userSettingsJson) {
+			userSettings = {};
+		}
+		else {
+			userSettings = JSON.parse(userSettingsJson);
+		}
+		
 		Object.keys(settings).forEach((key) => {
 			userSettings[key] = settings[key]
 		});
