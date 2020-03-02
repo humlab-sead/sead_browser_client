@@ -137,11 +137,11 @@ var Config = {
 			]
 		},
 		{
-			name: "pollen",
-			title: "<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i> Pollen",
+			name: "isotopes",
+			title: "<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i> Isotopes",
 			color: "#990",
 			//color: "#2d5e8d",
-			datasetId: 11, //Not sure about this one
+			datasetId: 11,
 			filters: [
 				"sample_groups",
 				"sites",
