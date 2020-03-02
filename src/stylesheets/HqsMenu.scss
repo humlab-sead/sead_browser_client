@@ -48,6 +48,7 @@
   align-self: start;
   font-size: 14px;
   font-weight:bold;
+  color: #fff;
   padding: 1px;
   padding-left: 6px;
   padding-right: 6px;
@@ -210,6 +211,15 @@
   box-shadow: 12px 0 15px -4px rgba(0, 0, 0, 0.5), -12px 0 8px -4px rgba(0, 0, 0, 0.5);
   */
   box-shadow: 2px 12px 10px 5px $shadow-color;
+}
+/*
+.l1-container-level-vertical {
+  border-left: 2px solid #fff;
+}
+*/
+
+#facet-menu .l2-title {
+  border-left: 2px solid #fff;
 }
 
 .l1-container-level-vertical .l1-title {

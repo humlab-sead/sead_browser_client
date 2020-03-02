@@ -90,7 +90,6 @@ class DiscreteFacet extends Facet {
 	* append
 	*/
 	setSelections(selections, append = true) {
-
 		if(!_.isEqual(this.selections, selections)) {
 			if(append) {
 				this.selections = this.selections.concat(selections);
@@ -117,7 +116,7 @@ class DiscreteFacet extends Facet {
 	
 	/*
 	* Function: removeSelection
-	 */
+	*/
 	removeSelection(selection) {
 		for(var key in this.selections) {
 			if (this.selections[key] == selection) {
@@ -125,6 +124,13 @@ class DiscreteFacet extends Facet {
 				return;
 			}
 		}
+	}
+
+	/*
+	* Function: clearSelections
+	*/
+	clearSelections() {
+		this.selections = [];
 	}
 	
 	/*
@@ -272,6 +278,8 @@ class DiscreteFacet extends Facet {
 	* 
 	*/
 	renderSelections() {
+		$(".facet-row", this.domObj).removeClass("facet-row-selected");
+
 		for(var sk in this.selections) {
 			for(var dk in this.data) {
 				if(this.data[dk].id == this.selections[sk]) {

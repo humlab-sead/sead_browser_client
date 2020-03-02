@@ -36,10 +36,20 @@ class ResultMap extends ResultModule {
 	constructor(resultManager, renderIntoNode = "#result-map-container") {
 		super(resultManager);
 		this.renderIntoNode = renderIntoNode;
+		
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
-		$(this.renderIntoNode).append("<div class='result-timeline-render-container'></div>");
+		if(Config.timelineEnabled) {
+			$(this.renderIntoNode).append("<div class='result-timeline-render-container'></div>");
+		}
+		else {
+			$(".result-map-render-container", this.renderIntoNode).css("height", "100%");
+		}
+
 		this.renderMapIntoNode = $(".result-map-render-container", renderIntoNode)[0];
-		this.renderTimelineIntoNode = $(".result-timeline-render-container", renderIntoNode)[0];
+		if(Config.timelineEnabled) {
+			this.renderTimelineIntoNode = $(".result-timeline-render-container", renderIntoNode)[0];
+		}
+		
 		
 		this.olMap = null;
 		this.name = "map";
@@ -162,6 +172,7 @@ class ResultMap extends ResultModule {
 
 		//Create attached timeline object
 		this.timeline = new Timeline(this);
+		
 	}
 
 	/*
@@ -263,7 +274,10 @@ class ResultMap extends ResultModule {
 
 		this.renderMap();
 		this.renderVisibleDataLayers();
-		this.timeline.render();
+		if(Config.timelineEnabled) {
+			this.timeline.render();
+		}
+		
 		
 		this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
 	}

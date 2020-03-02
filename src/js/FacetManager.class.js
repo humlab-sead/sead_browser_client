@@ -243,7 +243,7 @@ class FacetManager {
 
 	/*
 	* Function: getFacetByName
-	* What's in a name? Frankly not sure right now how this differs from an ID, perhaps it doesn't *WIP*.
+	* What's in a name?
 	*/
 	getFacetByName(facetName) {
 		for(var key in this.facets) {

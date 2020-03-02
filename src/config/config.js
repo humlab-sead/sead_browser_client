@@ -22,6 +22,7 @@ var Config = {
 	rangeFilterFuzzyLabels: true, //Rounds labels to avoid very long numbersm
 	screenMobileWidthBreakPoint: 720, //If the screen wisiteReportServerAddressdth is smaller than this, the layout of the site goes into mobile mode
 	siteReportExportAttributionString: "Buckland P.I., Sjölander M., Eriksson E.J. (2018) Strategic Environmental Archaeology Database (SEAD). In: Smith C. (eds) Encyclopedia of Global Archaeology. Springer, Cham. DOI:10.1007/978-3-319-51726-1_833-2",
+	timelineEnabled: false, //Result map timeline
 	keyColors: [ //Colors used as source/origin-colors when generating color schemes
 		"5B83AD",
 		"A02000",
@@ -38,8 +39,9 @@ var Config = {
 		{
 			name: "general",
 			title: "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i> General",
-			//color: "#00d",
-			color: "#2d5e8d",
+			color: "#888",
+			//color: "#2d5e8d",
+			datasetId: false, //All the datasets
 			filters: [
 				"sample_groups",
 				"sites",
@@ -62,8 +64,9 @@ var Config = {
 		{
 			name: "palaeo",
 			title: "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i> Palaeoentomology",
-			//color: "#d00",
-			color: "#2d5e8d",
+			color: "#d00",
+			//color: "#2d5e8d",
+			datasetId: 1,
 			filters: [
 				"sample_groups",
 				"sites",
@@ -79,14 +82,16 @@ var Config = {
 				"family",
 				"genus",
 				"species",
-				"species_author"
+				"species_author",
+				"dataset_master"
 			]
 		},
 		{
 			name: "dendro",
 			title: "<i class=\"fa fa-tree\" aria-hidden=\"true\"></i> Dendrochronology",
-			//color: "#0d0",
-			color: "#2d5e8d",
+			color: "#0a0",
+			//color: "#2d5e8d",
+			datasetId: 10,
 			filters: [
 				"sample_groups",
 				"sites",
@@ -102,14 +107,16 @@ var Config = {
 				"family",
 				"genus",
 				"species",
-				"species_author"
+				"species_author",
+				"dataset_master"
 			]
 		},
 		{
 			name: "archaeobotany",
 			title: "<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i> Archaeobotany",
-			//color: "#d0d",
-			color: "#2d5e8d",
+			color: "#a0a",
+			//color: "#2d5e8d",
+			datasetId: 2, //Not sure about this one
 			filters: [
 				"sample_groups",
 				"sites",
@@ -125,14 +132,16 @@ var Config = {
 				"family",
 				"genus",
 				"species",
-				"species_author"
+				"species_author",
+				"dataset_master"
 			]
 		},
 		{
 			name: "pollen",
 			title: "<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i> Pollen",
-			//color: "#d0d",
-			color: "#2d5e8d",
+			color: "#990",
+			//color: "#2d5e8d",
+			datasetId: 11, //Not sure about this one
 			filters: [
 				"sample_groups",
 				"sites",
@@ -148,14 +157,16 @@ var Config = {
 				"family",
 				"genus",
 				"species",
-				"species_author"
+				"species_author",
+				"dataset_master"
 			]
 		},
 		{
 			name: "ceramic",
 			title: "<i class=\"fa fa-beer\" aria-hidden=\"true\"></i> Ceramic",
-			//color: "#d0d",
-			color: "#2d5e8d",
+			color: "#099",
+			//color: "#2d5e8d",
+			datasetId: 3,
 			filters: [
 				"sample_groups",
 				"sites",
@@ -171,7 +182,8 @@ var Config = {
 				"family",
 				"genus",
 				"species",
-				"species_author"
+				"species_author",
+				"dataset_master"
 			]
 		}
 	]
