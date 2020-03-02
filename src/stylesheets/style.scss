@@ -1434,7 +1434,7 @@ polyline{
 }
 
 #result-title {
-  color:$pane-bg-color-dark;
+  color:$sead-brown;
   background-color: #fff;
   position:relative;
   top: 7px;
@@ -1485,6 +1485,10 @@ polyline{
 
 .cc-window {
   box-shadow: 00px 0px 20px 10px rgba(0, 0, 0, 0.5);
+}
+
+.cc-btn {
+  color: #fff !important;
 }
 
 .important-text {

@@ -11,7 +11,7 @@ var Config = {
 	viewStateServerAddress: "http://seadserv.humlab.umu.se:8081",
 	siteReportServerAddress: "http://seadserv.humlab.umu.se:3000", //for site reports, which uses a PostgREST interface - production db (3000)
 	//siteReportServerAddress: "http://seadserv.humlab.umu.se:8080", //for site reports, which uses a PostgREST interface - development db
-	defaultResultModule: "map", //map, mosaic or table
+	defaultResultModule: "mosaic", //map, mosaic or table
 	facetSectionDefaultWidth: 30, //percentage of total window width
 	facetBodyHeight: 268, //default facet height in px
 	discreteFacetRowHeight: 20, //used for calculations in the facet sliding window (paging) functionality

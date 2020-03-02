@@ -490,6 +490,7 @@ class DendrochronologyDataset {
 
 			let value = "";
 			let dateUncertainty = "";
+			let dateUncertaintyTooltip = "";
 			if(datasetGroup.dating[dk].plus != null || datasetGroup.dating[dk].minus != null) {
 
 				let dateUncertaintyType = "";
@@ -501,7 +502,17 @@ class DendrochronologyDataset {
 					dateUncertainty = dateUncertaintyType+" +/- "+datasetGroup.dating[dk].plus+" years";
 				}
 				else {
-					dateUncertainty = dateUncertaintyType+" +"+datasetGroup.dating[dk].plus+" / -"+datasetGroup.dating[dk].minus+" years";
+					if(datasetGroup.dating[dk].plus != null && datasetGroup.dating[dk].minus != null) {
+						dateUncertainty = dateUncertaintyType+" +"+datasetGroup.dating[dk].plus+" / -"+datasetGroup.dating[dk].minus+" years";
+					}
+					else if(datasetGroup.dating[dk].plus != null && datasetGroup.dating[dk].minus == null) {
+						dateUncertainty = dateUncertaintyType+" +"+datasetGroup.dating[dk].plus+" years";
+						dateUncertaintyTooltip = "No lower error margin for date specified.";
+					}
+					else if(datasetGroup.dating[dk].plus == null && datasetGroup.dating[dk].minus != null) {
+						dateUncertainty = dateUncertaintyType+" +"-datasetGroup.dating[dk].minus+" years";
+						dateUncertaintyTooltip = "No upper error margin for date specified.";
+					}
 				}
 				
 			}
@@ -527,7 +538,7 @@ class DendrochronologyDataset {
 				},
 				{
 					"type": "cell",
-					"tooltip": "",
+					"tooltip": dateUncertaintyTooltip,
 					"value": season + value+" "+dateUncertainty
 				}
 			];
@@ -581,4 +592,7 @@ class DendrochronologyDataset {
 	}
 }
 
-export { DendrochronologyDataset as default }
+//module.exports = DendrochronologyDataset;
+
+//export { DendrochronologyDataset as default }
+export default DendrochronologyDataset;

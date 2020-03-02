@@ -23,6 +23,9 @@ class ResultManager {
 		//Event hook-ins below
 		if(this.resultSectionDisabled == false) {
 			$(window).on("seadResultMenuSelection", (event, data) => {
+				this.hqs.storeUserSettings({
+					defaultResultModule: data.selection
+				});
 				this.hqs.resultManager.setActiveModule(data.selection);
 			});
 			

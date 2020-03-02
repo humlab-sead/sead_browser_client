@@ -20,6 +20,7 @@ import Config from '../config/config.js';
 import "../assets/icons/favicon.ico";
 import "../assets/icons/site.webmanifest";
 
+"use strict";
 
 //Set some globals
 window.$ = $;

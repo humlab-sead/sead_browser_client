@@ -37,16 +37,13 @@ class HumlabQuerySystem {
 		this.taxa = []; //Local taxonomy db
 		this.systemReady = false;
 
+		this.config = this.loadUserSettings(this.config);
+
 		this.preload().then(() => {
 			this.buildSystem();
 		});
 
-		//this.setActiveView("filters");
-
-		//hide ugly loading mis-rendering...
-		//$("body").fadeIn(500);
 		$("body").show();
-		
 	}
 
 	buildSystem() {
@@ -221,8 +218,7 @@ class HumlabQuerySystem {
 				},
 				revokable:true,
 				onStatusChange: function(status) {
-					console.log(this.hasConsented() ?
-						'enable cookies' : 'disable cookies');
+					console.log(this.hasConsented() ? 'enable cookies' : 'disable cookies');
 				},
 				position: 'bottom-right',
 				content: {
@@ -926,6 +922,22 @@ class HumlabQuerySystem {
 				resolve(rData);
 			});
 		});
+	}
+
+	storeUserSettings(settings) {
+		let userSettings = JSON.parse(window.localStorage.getItem("hqsUserSettings"));
+		Object.keys(settings).forEach((key) => {
+			userSettings[key] = settings[key]
+		});
+		window.localStorage.setItem("hqsUserSettings", JSON.stringify(userSettings));
+	}
+
+	loadUserSettings(mainConfig) {
+		let userSettings = JSON.parse(window.localStorage.getItem("hqsUserSettings"));
+		Object.keys(userSettings).forEach((key) => {
+			mainConfig[key] = userSettings[key]
+		});
+		return mainConfig;
 	}
 	
 }
