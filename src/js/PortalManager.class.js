@@ -56,6 +56,16 @@ class PortalManager {
             }
         });
 
+        /**If the master_dataset facet is deleted, this is equivalent to reverting to the general portal (mostly)
+        - not totally because the filter list will still be filtered according to the portal, but that will leave the user in a weird mix of things, so let's not have that
+        instead we just revert the user to the general portal**/
+        this.hqs.hqsEventListen("seadFacetDeletion", (evt, arg) => {
+            let facet = arg.facet;
+            if(facet.name == "dataset_master") {
+                this.setActivePortal("general");
+            }
+        })
+
     }
 
     getPortal(portalName) {
