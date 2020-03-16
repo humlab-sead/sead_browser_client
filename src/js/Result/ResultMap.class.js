@@ -437,9 +437,9 @@ class ResultMap extends ResultModule {
 	}
 
 	removeLayer(layerId) {
-		this.olMap.getLayers().forEach((element, index, array)=> {
-			if(typeof(element) != "undefined" && element.getProperties().layerId == layerId) {
-				this.olMap.removeLayer(element);
+		this.olMap.getLayers().forEach((layer, index, array)=> {
+			if(typeof(layer) != "undefined" && layer.getProperties().layerId == layerId) {
+				this.olMap.removeLayer(layer);
 			}
 		});
 	}
@@ -589,7 +589,7 @@ class ResultMap extends ResultModule {
 		});
 		
 		clusterLayer.setProperties({
-			"layerId": "clusterPoints",
+			"layerId": "points",
 			"type": "dataLayer"
 		});
 		
