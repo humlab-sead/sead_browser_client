@@ -135,6 +135,61 @@
 
     <div id="templates">
 
+      
+
+
+
+      <div id="viewstate-load-dialog" class="viewstate-dialog overlay-dialog">
+        <div class="overlay-dialog-close-btn fa fa-times"></div>
+        <h1>Load viewstate</h1>
+        <div class="overlay-dialog-content">
+          <!--
+          <select id="viewstate-load-list">
+          </select>
+          -->
+          
+          <div id="viewstate-load-list">
+          </div>
+  
+  
+          <!--<button id="viewstate-load-btn">Load</button>-->
+          
+          <div id="viewStateLoadGoogleLogin"></div>
+        </div>
+      </div>
+  
+      <div id="viewstate-save-dialog" class="viewstate-dialog">
+
+          <div style="grid-column: left;">
+            <p>A viewstate functions as a bookmark, it saves your currently selected filters and other user interface settings as they currently are. Viewstates are public and can be viewed by anyone with the correct link.</p>
+            <div>
+              <input id="viewstate-save-input" class="viewstate-input" type="text" placeholder="Viewstate name (optional)" />
+              <button id="viewstate-save-btn">Save</button>
+            </div>
+          </div>
+          
+          <div id="viewStateSaveGoogleLogin"></div>
+  
+      </div>
+
+      <div id="viewstate-post-save-dialog" class="viewstate-dialog overlay-dialog">
+        <div class="overlay-dialog-close-btn fa fa-times"></div>
+        <h1>Viewstate saved</h1>
+  
+        <div class="overlay-dialog-content">
+          Your viewstate is now saved with the key:<br />
+          <span id="viewstate-key"></span>
+  
+          <br /><br />
+  
+          Use this URL to access it:<br />
+          <span id="viewstate-url"></span>
+        </div>
+      </div>
+
+
+
+
 	    <div class="site-report-level-container-template">
 
 		    <h3 class="site-report-level-title"></h3>
@@ -229,60 +284,73 @@
     </div><!-- end templates -->
 
 
-    <div id="viewstate-load-dialog" class="viewstate-dialog overlay-dialog">
+    
+
+    
+
+    <div id="gdpr-infobox" class="overlay-dialog">
       <div class="overlay-dialog-close-btn fa fa-times"></div>
-      <h1>Load viewstate</h1>
+      <h1>GDPR compliance notice</h1>
+
 	    <div class="overlay-dialog-content">
-        <!--
-        <select id="viewstate-load-list">
-        </select>
-        -->
+
+        The SEAD project will store some of your personal information, specifically the email adress associated with your Google account when you use the viewstate functionality.
+        This is done for the purpose of being able to identify which viewstates belong to your account.
+
+        The following points governs this agreement:
+        <ul>
+          <li>The SEAD project will never share this information with any other party.</li>
+          <li>The information is kept within the borders of Sweden.</li>
+          <li>The data is retained indefinitely.</li>
+          <li>The user has the right to withdraw consent to the storage of his/her personal information at any time. This is done by using the SEAD functionality for deleting each of your saved viewstates.</li>
+          
+        </ul>
+
+        The identity and contact details of the organization, its representative, and its Data Protection Officer
         
-        <div id="viewstate-load-list">
-        </div>
-
-
-        <!--<button id="viewstate-load-btn">Load</button>-->
+        The purpose for the organization to process an individual’s personal data and its legal basis
         
-        <div id="viewStateLoadGoogleLogin"></div>
+        The legitimate interests of the organization (or third party, where applicable)
+        
+        Any recipient or categories of recipients of an individual’s data
+        
+        The details regarding any transfer of personal data to a third country and the safeguards taken
+        
+        The retention period or criteria used to determine the retention period of the data
+        
+        The existence of each data subject’s rights
+        
+        The right to withdraw consent at any time (where relevant)
+        
+        The right to lodge a complaint with a supervisory authority
+        
+        Whether the provision of personal data is part of a statutory or contractual requirement or obligation and the possible consequences of failing to provide the personal data
+        
+        The existence of an automated decision-making system, including profiling, and information about how this system has been set up, the significance, and the consequences
 	    </div>
-    </div>
-
-    <div id="viewstate-save-dialog" class="viewstate-dialog overlay-dialog">
-      <div class="overlay-dialog-close-btn fa fa-times"></div>
-      <h1>Save viewstate</h1>
-	    <div class="overlay-dialog-content">
-	        <div style="display:flex;">
-		      <input id="viewstate-save-input" class="viewstate-input" type="text" placeholder="Optional: Viewstate name" />
-		      <button id="viewstate-save-btn">Save</button>
-		    </div>
-
-        <p>A viewstate functions as a bookmark, it saves your currently selected filters and other user interface settings as they currently are.</p>
-        <div id="viewStateSaveGoogleLogin"></div>
-	    </div>
-    </div>
-
-    <div id="viewstate-post-save-dialog" class="viewstate-dialog overlay-dialog">
-      <div class="overlay-dialog-close-btn fa fa-times"></div>
-      <h1>Viewstate saved</h1>
-
-	    <div class="overlay-dialog-content">
-	      Your viewstate is now saved with the key:<br />
-	      <span id="viewstate-key"></span>
-
-	      <br /><br />
-
-	      Use this URL to access it:<br />
-	      <span id="viewstate-url"></span>
-	    </div>
-
     </div>
 
     <div id="googleLoginTemplate">
+      <!--
       <p id="googleLoginRecommendationLoad">You need to signin to see viewstates saved on your account. Without signing in you will only see the viewstates stored locally in your browser.</p>
       <p id="googleLoginRecommendationSave">It is recommended that you signin before saving a viewstate so that it may be stored on our server. If you choose to not signin the viewstate will only be saved locally in your browser.</p><p class='important-text'>When you choose to login via Google, the SEAD application will save your email address along with your viewstate data in order to associate the viewstate with your personal account. By signing in through Google on this site you consent to us handling your personal data in this way.</p>
-        <div id="googleLoginInformation">
-          You are logged in as <span id="googleName"></span>. <span id="google-signout">Sign out</span>.
+      -->
+      <div id="googleLoginInformation">
+        
+        <div class="logged-in-text">You are signed in with Google</div>
+        <div class="logged-in-text-line"></div>
+
+        <div class="google-user-display">
+          <img class="google-user-profile-image" />
+          <div class="google-user-profile-information">
+            <div>
+              <div class="google-user-profile-name"></div>
+              <div class="google-user-profile-email"></div>
+              <div class="google-user-sign-out"><a href="#">Sign out</a></div>
+            </div>
+          </div>
+        </div>
+          <!--You are signed in as <span id="googleName"></span>. <span id="google-signout">Sign out</span>.-->
         </div>
         <div id="google-signin"></div>
     </div>

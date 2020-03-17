@@ -20,6 +20,14 @@ class UserManager {
 	}
 
 	googleLogin() {
+
+		/*
+		gapi.auth2.init({
+			client_id: 
+		});
+		*/
+
+		
 		gapi.signin2.render('google-signin', {
 			'scope': 'profile email',
 			'width': 240,
@@ -29,6 +37,7 @@ class UserManager {
 			'onsuccess': this.googleLoginSuccess,
 			'onfailure': this.googleLoginFail
 		});
+		
 	}
 
 	renderGoogleLogin() {
@@ -68,12 +77,16 @@ class UserManager {
 
 	renderUserLoggedIn() {
 		console.log("renderUserLoggedIn", this.user);
+		$("#viewstate-load-list").show();
+		$("#viewstate-save-input").show();
+		$("#viewstate-save-btn").show();
 		$("#googleLoginContainer #google-signin").hide();
-		$("#googleLoginContainer #googleLoginRecommendationSave").hide();
-		$("#googleLoginContainer #googleLoginRecommendationLoad").hide();
-		$("#googleLoginContainer #googleLoginInformation").show();
-		$("#googleLoginContainer #googleLoginInformation #googleName").html(this.user.name);
-		$("#google-signout").on("click", this.googleLogout);
+		$("#googleLoginInformation").show();
+		$("#googleLoginInformation .google-user-profile-image").attr("src", this.user.image);
+		$("#googleLoginInformation .google-user-profile-name").html(this.user.name);
+		$("#googleLoginInformation .google-user-profile-email").html(this.user.email);
+
+		$(".google-user-sign-out > a").on("click", this.googleLogout);
 	}
 
 	renderUserLoggedOut(dialog) {
@@ -89,6 +102,7 @@ class UserManager {
 	}
 
 	activateGoogleLoginButton() {
+		console.log("activateGoogleLoginButton");
 		let googleLoginNode = $("#googleLoginTemplate")[0].cloneNode(true);
 		$(googleLoginNode).attr("id", "googleLogin");
 		$("#viewStateSaveGoogleLogin").html(googleLoginNode);
@@ -112,6 +126,7 @@ class UserManager {
 			"id": profile.getId(),
 			"name": profile.getName(),
 			"email": profile.getEmail(),
+			"image": profile.getImageUrl(),
 			"id_token":  googleUser.getAuthResponse().id_token
 		};
 
@@ -124,9 +139,9 @@ class UserManager {
 	}
 
 	googleLogout() {
-		var auth2 = gapi.auth2.getAuthInstance();
+		let auth2 = gapi.auth2.getAuthInstance();
 		auth2.signOut().then(() => {
-			this.user = null;
+			//"this" is NOT the UserManager here
 			window.hqs.userManager.user = null;
 			let dialog = window.hqs.stateManager.getViewStateDialog();
 			if(dialog == "save") {
@@ -138,11 +153,14 @@ class UserManager {
 				$("#googleLoginContainer #googleLoginRecommendationSave").hide();
 			}
 			
-			$("#googleLoginContainer #googleLoginInformation").hide();
+			$("#googleLoginInformation").hide();
+			$("#viewstate-load-list").hide();
 			$("#googleLoginContainer #google-signin").show();
 		});
 
-		this.hqs.hqsEventDispatch("userLoggedOut");
+		//auth2.disconnect(); //Revokes all of the scopes that the user granted.
+
+		window.hqs.hqsEventDispatch("userLoggedOut");
 	}
 
 	hqsMenu() {

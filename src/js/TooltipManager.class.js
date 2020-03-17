@@ -69,14 +69,42 @@ class TooltipManager {
 	 */
 	registerTooltip(anchor, msg, options = {}) {
 		var tooltipId = "tooltip-"+shortid.generate();
-		this.tooltips.push({
+
+		let found = false;
+		let foundKey;
+		this.tooltips.forEach((tt, key) => {
+			if(tt.anchor == anchor) {
+				found = true;
+				foundKey = key;
+			}
+		});
+
+		let ttObject = {
 			"id": tooltipId,
 			"anchor": anchor,
 			"msg": msg,
 			"options": Object.assign(JSON.parse(JSON.stringify(this.defaultOptions)), options),
 			"attached": false
-		});
+		};
+
+		if(found) {
+			//console.log("Re-defining tooltip for anchor", anchor);
+			this.tooltips[foundKey] = ttObject;
+		}
+		else {
+			this.tooltips.push(ttObject);
+			
+		}
 		return tooltipId;
+	}
+
+	unRegisterTooltip(anchor) {
+		for(let key in this.tooltips) {
+			if(this.tooltips[key].anchor == anchor) {
+				this.tooltips.splice(key, 1);
+				return;
+			}
+		}
 	}
 	
 	/*

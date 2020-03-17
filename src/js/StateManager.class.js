@@ -35,8 +35,16 @@ class StateManager {
 	}
 
 	renderSaveViewstateDialog() {
+		//let content = $("#templates > #viewstate-save-dialog").html();
+		let content = $("#templates > #viewstate-save-dialog")[0].cloneNode(true);
+		this.hqs.dialogManager.showPopOver("Save viewstate", content.outerHTML);
+
+
+
+		/*
 		var content = $("#viewstate-save-dialog > .overlay-dialog-content").html();
 		this.hqs.dialogManager.showPopOver("Save viewstate", content);
+		*/
 		$("#viewstate-save-btn").on("click", () => {
 			let state = this.saveState();
 			this.sendState(state).then(() => {
@@ -47,6 +55,7 @@ class StateManager {
 				this.hqs.dialogManager.showPopOver("Viewstate saved", content.html());
 			});
 		});
+		
 	}
 
 	renderLoadViewstateDialog() {
@@ -169,6 +178,10 @@ class StateManager {
 
 					this.sortViewstates(viewstates);
 					this.renderViewStates(viewstates);
+				},
+				error: () => {
+					console.error("ERROR: Could not load list of viewstates");
+					$("#viewstate-load-list").html("ERROR: Could not load list of viewstates");
 				}
 			});
 		}
@@ -186,7 +199,7 @@ class StateManager {
 
 	renderViewStates(viewstates) {
 		$("#viewstate-load-list").html("");
-		let header = "<div class='viewstate-load-item-header'><div>ID</div><div>Name</div><div>Time</div><div>Del</div></div>";
+		let header = "<div class='viewstate-load-item-header'><div>ID</div><div>Name</div><div>Time</div><div id='vs-del-header'>Del</div></div>";
 		$("#viewstate-load-list").append(header);
 
 		viewstates.map((state) => {
@@ -196,6 +209,8 @@ class StateManager {
 			$("#viewstate-load-list").append(vsRow);
 			//$("#viewstate-load-list").append("<option value='"+state.id+"''>"+dateString+" "+state.name+" (id:"+state.id+") "+state.origin+"</option>");
 		});
+
+		this.hqs.tooltipManager.registerTooltip("#vs-del-header", "Deleting a viewstate will only remove it from your personal list. The viewstate will always be accessible via the correct link.", {drawSymbol: true});
 
 		$(".viewstate-delete-btn").on("click", (evt) => {
 			evt.stopPropagation();

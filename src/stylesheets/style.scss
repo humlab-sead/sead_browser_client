@@ -702,6 +702,13 @@ h1.main-header {
   color: $aux-color;
 }
 
+.viewstate-dialog {
+  display:grid;
+  grid-template-columns: [left] 1fr [right] 0.2fr;
+  grid-template-rows: 1fr;
+  grid-column-gap: 20px;
+}
+
 .viewstate-dialog > button {
 	margin-top: 20px;
 	max-width: 10%;
@@ -713,6 +720,22 @@ h1.main-header {
 
 .viewstate-dialog > h1 {
 	margin-top:0px;
+}
+
+#viewstate-save-btn {
+  display:none; //Hidden by default, shown when logged in
+  width: 120px;
+  height: 35px;
+  background: $aux-color;
+  border: 1px solid #ccc;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top:10px;
+}
+
+#viewstate-save-input {
+  display:none; //Hidden by default, shown when logged in
 }
 
 #settings-menu-label {
@@ -1378,13 +1401,14 @@ polyline{
   top: 0px;
   left: 0px;
   z-index: 10;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 #popover-dialog-frame {
   grid-column: 2;
   grid-row: 2;
   background-color: #fff;
-  box-shadow: 0px 0px 20px $pane-bg-color-dark;
+  box-shadow: 0px 0px 20px #666;
   padding: 30px;
   overflow: auto;
   max-height: 90%;
@@ -1449,6 +1473,8 @@ polyline{
 
 #googleLoginContainer {
   max-width: 480px;
+  width: 100%;
+  align-self: center;
 }
 
 #googleUser {
@@ -1502,4 +1528,43 @@ polyline{
 
 .result-map-tab-title {
   padding-left: 7px;
+}
+
+.google-user-display {
+  display: grid;
+  grid-template-columns: [image] 50px [info] 1fr;
+  grid-template-rows: 1;
+}
+
+.google-user-profile-image {
+  grid-column: image;
+  width: 50px;
+  height: 50px;
+}
+
+.google-user-profile-email {
+  font-weight: normal;
+}
+
+.logged-in-text {
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+.logged-in-text-line {
+  width: 200px;
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 5px;
+}
+
+.google-user-profile-information {
+  grid-column: info;
+  padding-left: 10px;
+  display:flex;
+  align-items: center;
+}
+
+#viewStateSaveGoogleLogin {
+  grid-column: right;
+  align-items: center;
 }
