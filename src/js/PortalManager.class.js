@@ -80,20 +80,21 @@ class PortalManager {
         return this.activePortal;
     }
 
-    setActivePortal(portalName) {
+    setActivePortal(portalName, updateUrl = true) {
         this.activePortal = this.getPortal(portalName);
         this.hqs.menuManager.createMenu(this.hqsMenu());
         $("#portal-menu .hqs-menu-title-subtext").css("background-color", this.activePortal.color);
         
-        let portalPath = "";
-        if(portalName != "general") {
-            portalPath = portalName;
-        }
-        
-        window.history.pushState({ portal: portalName },
-            "SEAD",
-            "/"+portalPath);
+        if(updateUrl) {
+            let portalPath = "";
+            if(portalName != "general") {
+                portalPath = portalName;
+            }
             
+            window.history.pushState({ portal: portalName },
+                "SEAD",
+                "/"+portalPath);
+        }
         this.hqs.hqsEventDispatch("portalChanged", portalName);
     }
 

@@ -167,7 +167,7 @@ class HumlabQuerySystem {
 
 		this.menuManager.createMenu(auxMenu);
 
-		this.portalManager.setActivePortal("general");
+		this.portalManager.setActivePortal("general", false);
 		//this.menuManager.createMenu(this.portalManager.hqsMenu());
 		
 
