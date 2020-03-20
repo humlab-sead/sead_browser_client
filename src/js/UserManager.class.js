@@ -41,7 +41,6 @@ class UserManager {
 	}
 
 	renderGoogleLogin() {
-		console.log("renderGoogleLogin");
 
 		let dialog = this.hqs.stateManager.getViewStateDialog();
 		let dialogNodeId = "";
@@ -76,7 +75,6 @@ class UserManager {
 	}
 
 	renderUserLoggedIn() {
-		console.log("renderUserLoggedIn", this.user);
 		$("#viewstate-load-list").show();
 		$("#viewstate-save-input").show();
 		$("#viewstate-save-btn").show();
@@ -90,6 +88,11 @@ class UserManager {
 	}
 
 	renderUserLoggedOut(dialog) {
+		$("#viewstate-load-list").hide();
+		$("#viewstate-save-input").hide();
+		$("#viewstate-save-btn").hide();
+		$("#googleLoginInformation").hide();
+
 		$("#googleLoginContainer #google-signin").show();
 		if(dialog == "save") {
 			$("#googleLoginRecommendationLoad").hide();
@@ -156,6 +159,9 @@ class UserManager {
 			$("#googleLoginInformation").hide();
 			$("#viewstate-load-list").hide();
 			$("#googleLoginContainer #google-signin").show();
+			$("#viewstate-load-list").hide();
+			$("#viewstate-save-input").hide();
+			$("#viewstate-save-btn").hide();
 		});
 
 		//auth2.disconnect(); //Revokes all of the scopes that the user granted.
