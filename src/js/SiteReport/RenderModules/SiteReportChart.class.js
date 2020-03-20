@@ -1,7 +1,6 @@
 import shortid from "shortid";
 import Chart from "chart.js";
-//import ZingChart from 'zingchart';
-import {zingchart, ZC} from 'zingchart/es6';
+import 'zingchart/es6';
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {

@@ -1,8 +1,5 @@
 import Config from '../../config/config.js'
 import ResultModule from './ResultModule.class.js'
-import chartjs from 'chart.js';
-import * as d3 from 'd3';
-import ol from 'ol';
 import ResultMap from "./ResultMap.class";
 
 class ResultMosaic extends ResultModule {

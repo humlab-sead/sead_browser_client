@@ -37,6 +37,9 @@ class SiteReportTable {
 			if(ro.name == "Spreadsheet") {
 				this.renderOptions = ro;
 			}
+			if(!this.renderOptions.hasOwnProperty("options")) {
+				this.renderOptions.options = [];
+			}
 		});
 	}
 

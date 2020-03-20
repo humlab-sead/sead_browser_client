@@ -1,5 +1,3 @@
-import * as d3 from 'd3';
-
 /*
 Class: HqsMenu
 Makes menus out of structures, good stuff.
@@ -129,8 +127,9 @@ class HqsMenu {
 		}
 	}
 	
-	/*
+	/**
 	* Function: renderMenu
+	*
 	*/
 	renderMenu(m) {
 		var hqsMenuContainerDisplay = "inline-block";
@@ -143,31 +142,14 @@ class HqsMenu {
 		if(!m.visible) {
 			hqsMenuContainerDisplay = "none";
 		}
-		
-		d3.select(m.anchor)
-			.attr("class", "hqs-menu-container")
-			.style("display", hqsMenuContainerDisplay);
-		
-		var menuFirstLevelList = d3.select(this.menuItemsContainerSelector).append("ul")
-			.attr("class", menuCategoryLevelClass);
-		
-		if(!m.collapsed) {
-			var displayMode;
-			if(m.layout == "horizontal") {
-				displayMode = "inline-block";
-			}
-			else {
-				displayMode = "flex";
-			}
-			
-			d3.select(this.menuItemsContainerSelector+" > .l1-container-level")
-				.style("display", displayMode);
-		}
-		
-		var items = m.items;
-		//l1 items
-		for(var key in items) {
 
+		$(m.anchor).addClass("hqs-menu-container").css("display", hqsMenuContainerDisplay);
+
+		let menuFirstLevelList = $("<ul></ul>").addClass(menuCategoryLevelClass);
+		$(this.menuItemsContainerSelector).append(menuFirstLevelList);
+
+		var items = m.items;
+		for(var key in items) {
 			let l1Classes = "l1-container";
 			if(typeof items[key].children != "undefined" && items[key].children.length > 0) {
 				//Disable parent clickity-ness
@@ -179,42 +161,44 @@ class HqsMenu {
 				l1TitleClasses += " "+m.style.l1TitleClass;
 			}
 
-			menuFirstLevelList.append("li")
-				.attr("id", "menu-item-"+items[key].name)
-				.attr("name", items[key].name)
-				.attr("class", l1Classes)
-				.append("span")
-				.attr("class", l1TitleClasses)
-				.html((d, i) => {
-					if(items[key].children.length > 0) {
-						return items[key].title;
-						//return "<i class=\"fa fa-chevron-circle-down l1-title-icon\" aria-hidden=\"true\"></i>&nbsp;"+items[key].title;
-					}
-					else {
-						return items[key].title;
-					}
-				});
-				
+			let firstLevelListItem = $("<li></li>");
+			firstLevelListItem.attr("id", "menu-item-"+items[key].name);
+			firstLevelListItem.attr("name", items[key].name);
+			firstLevelListItem.addClass(l1Classes);
+			let span = $("<span></span>");
+			span.addClass(l1TitleClasses);
+			span.html(items[key].title);
+			firstLevelListItem.append(span);
+			menuFirstLevelList.append(firstLevelListItem);
+
+
 			if(items[key].children.length > 0) {
-				
-				var menuSecondLevelList = menuFirstLevelList.select("#menu-item-"+items[key].name).append("ul")
-					.attr("class", "l2-level")
-					.style("border-left-color", "#000");
-				
+				let menuSecondLevelList = $("<ul></ul>").attr("id", "menu-item-"+items[key].name).addClass("l2-level").css("border-left-color", "#000");
+
 				for(var ck in items[key].children) {
-					menuSecondLevelList.append("li")
-						.attr("class", "l2-title menu-btn")
-						.attr("id", "menu-item-"+items[key].children[ck].name)
-						.attr("name", items[key].children[ck].name) //WHAT ABOUT ICONS THOUGH?
-						.html(items[key].children[ck].title);
+					let secondLevelListItem = $("<li></li>").addClass("l2-title menu-btn").attr("id", "menu-item-"+items[key].children[ck].name).attr("name", items[key].children[ck].name).html(items[key].children[ck].title);
+					menuSecondLevelList.append(secondLevelListItem);
 				}
+				
+				firstLevelListItem.append(menuSecondLevelList);
 			}
 		}
-		
+
+		if(!m.collapsed) {
+			var displayMode;
+			if(m.layout == "horizontal") {
+				displayMode = "inline-block";
+			}
+			else {
+				displayMode = "flex";
+			}
+			
+			$(this.menuItemsContainerSelector+" > .l1-container-level").css("display", displayMode);
+		}
+
+
 		this.bindMenuAnchor(m);
-		
-		
-		
+
 		$(m.anchor).on("mouseleave", () => {
 			if(m.collapsed) {
 				this.closeMenu(m);
@@ -235,8 +219,8 @@ class HqsMenu {
 
 		let anchorWidth = $(m.anchor).width();
 		$(m.anchor+" .l1-container-level-vertical").css("min-width", anchorWidth+"px");
-		
 	}
+
 
 	bindMenuAnchor(m) {
 		if(m.items.length > 0) {

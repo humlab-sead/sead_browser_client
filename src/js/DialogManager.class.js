@@ -1,5 +1,5 @@
 
-import * as d3 from "d3";
+//import * as d3 from "d3";
 import Popper from "popper.js";
 import Tooltip from "tooltip.js";
 import tippy from 'tippy.js';
@@ -131,7 +131,7 @@ class DialogManager {
 		}
 		
 		$("#cover-tiles").show();
-		
+		/* FIXME: Convert this block of code to use jquery instead - no longer importing d3
 		d3.select("#cover-tiles").selectAll(".cover-tile").data(this.coverTiles)
 			.enter()
 			.append("div")
@@ -161,6 +161,7 @@ class DialogManager {
 				.attr("id", "cover-tiles-text")
 				.text(text);
 		}
+		*/
 		
 		this.coverActive = true;
 	}

@@ -6,7 +6,7 @@ import 'zingtouch';
 import 'cookieconsent';
 import '../../node_modules/cookieconsent/build/cookieconsent.min.js';
 import '../../node_modules/cookieconsent/build/cookieconsent.min.css';
-import '../../node_modules/jquery.tabulator/dist/css/tabulator.min.css';
+//import '../../node_modules/jquery.tabulator/dist/css/tabulator.min.css'; //new name: tabulator-tables
 import 'jquery-ui/themes/base/base.css';
 import '../stylesheets/HqsLayoutManager.scss';
 import '../stylesheets/HqsMenu.scss';

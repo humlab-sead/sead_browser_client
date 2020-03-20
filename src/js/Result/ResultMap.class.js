@@ -1,4 +1,4 @@
-import * as d3 from 'd3';
+//import * as d3 from 'd3';
 import Config from '../../config/config.js'
 import ResultModule from './ResultModule.class.js'
 import Timeline from './Timeline.class.js';
@@ -448,6 +448,7 @@ class ResultMap extends ResultModule {
 	* Function: renderInterface
 	*/
 	renderInterfaceControls() {
+		/*
 		d3.select(this.renderMapIntoNode)
 			.append("div")
 			.attr("id", "result-map-controls-container");
@@ -460,6 +461,13 @@ class ResultMap extends ResultModule {
 		d3.select("#result-map-controls-container")
 			.append("div")
 			.attr("id", "result-map-datalayer-controls-menu");
+		new HqsMenu(this.resultManager.hqs, this.resultMapDataLayersControlsHqsMenu());
+		*/
+
+		$(this.renderMapIntoNode).append($("<div></div>").attr("id", "result-map-controls-container"));
+		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-baselayer-controls-menu"));
+		new HqsMenu(this.resultManager.hqs, this.resultMapBaseLayersControlsHqsMenu());
+		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-datalayer-controls-menu"));
 		new HqsMenu(this.resultManager.hqs, this.resultMapDataLayersControlsHqsMenu());
 	}
 
