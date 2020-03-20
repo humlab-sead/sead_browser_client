@@ -21,11 +21,18 @@ class Router {
                 }
                 else {
                     console.error("Invalid site requested!");
+                    this.hqs.layoutManager.setActiveView("filters");
+                    this.hqs.dialogManager.showPopOver("404 - Page not found!", "/"+pathComponents[1]);
                 }
             break;
             case "viewstate":
                 this.hqs.layoutManager.setActiveView("filters");
             break;
+            default:
+                console.log("404 - Page not found!");
+                this.hqs.layoutManager.setActiveView("filters");
+                this.hqs.dialogManager.showPopOver("404 - Page not found!", "/"+pathComponents[1]);
+                break;
         }
     }
 }
