@@ -29,11 +29,26 @@ class Router {
                 this.hqs.layoutManager.setActiveView("filters");
             break;
             default:
-                console.log("404 - Page not found!");
-                this.hqs.layoutManager.setActiveView("filters");
-                this.hqs.dialogManager.showPopOver("404 - Page not found!", "/"+pathComponents[1]);
+                if(this.portalExists(pathComponents[1])) {
+                    this.hqs.layoutManager.setActiveView("filters");
+                    this.hqs.portalManager.setActivePortal(pathComponents[1]);
+                }
+                else {
+                    console.log("404 - Page not found!");
+                    this.hqs.layoutManager.setActiveView("filters");
+                    this.hqs.dialogManager.showPopOver("404 - Page not found!", "/"+pathComponents[1]);
+                }
                 break;
         }
+    }
+
+    portalExists(portalName) {
+        for(let key in this.hqs.config.portals) {
+            if(this.hqs.config.portals[key].name == portalName) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
