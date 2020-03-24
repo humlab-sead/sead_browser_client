@@ -873,6 +873,9 @@ class HumlabQuerySystem {
 	* A promise.
 	*/
 	async fetchFromTable(tableName, columnName, fetchIds) {
+		if(fetchIds.length == 0) {
+			return [];
+		}
 
 		let queries = [];
 		let itemsLeft = fetchIds.length;
