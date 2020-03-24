@@ -136,7 +136,7 @@ class BasicSiteInformation {
 		
 		var siteDecription = data.siteDescription;
 		if(siteDecription == null) {
-			siteDecription = "&lt;No data&gt;";
+			siteDecription = "No data";
 		}
 
 		let referenceHtml = "";
@@ -147,6 +147,10 @@ class BasicSiteInformation {
 			referenceHtml += "<span class='sr-ref-year'>"+ref.year+"</span>";
 			referenceHtml += "</div>";
 		});
+
+		if(data.bibliographicReferences.length == 0) {
+			referenceHtml = "No data";
+		}
 
 		var node = $(".site-report-aux-info-container");
 		node
