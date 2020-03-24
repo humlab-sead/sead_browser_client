@@ -675,5 +675,23 @@ tr.site-report-table-row {
   display:none;
 }
 
+.sr-ref-item {
+  display:block;
+  margin-bottom: 10px;
+  background-color: $pane-bg-color;
+  padding: 10px;
+}
+
+.sr-ref-author {
+  display:inline-block;
+}
+
+.sr-ref-title {
+  margin-bottom: 10px;
+}
+
+.sr-ref-year {
+  display:inline-block;
+}
 
 @keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }

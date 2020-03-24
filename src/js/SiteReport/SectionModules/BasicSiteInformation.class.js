@@ -138,7 +138,16 @@ class BasicSiteInformation {
 		if(siteDecription == null) {
 			siteDecription = "&lt;No data&gt;";
 		}
-		
+
+		let referenceHtml = "";
+		data.bibliographicReferences.forEach((ref) => {
+			referenceHtml += "<div class='sr-ref-item'>";
+			referenceHtml += "<div class='sr-ref-title'>"+ref.title+"</div>";
+			referenceHtml += "<span class='sr-ref-author'>"+ref.authors+"</span>, ";
+			referenceHtml += "<span class='sr-ref-year'>"+ref.year+"</span>";
+			referenceHtml += "</div>";
+		});
+
 		var node = $(".site-report-aux-info-container");
 		node
 			.append("<div class='site-report-aux-header-container'><h4>Site identifier</h4></div>")
@@ -155,8 +164,10 @@ class BasicSiteInformation {
 			.append("<div class='site-report-aux-info-text-container'>"+exportLinksHtml+"</div>")
 			.append("<div class='site-report-aux-header-container'><h4>Description</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>"+siteDecription+"</div>");
-		
+			.append("<div class='site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>"+siteDecription+"</div>")
+			.append("<div class='site-report-aux-header-container'><h4>References</h4></div>")
+			.append("<div class='site-report-aux-header-underline'></div>")
+			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+referenceHtml+"</div>");
 		
 		$("#site-report-locations-container").append("<div id='site-report-map-container'></div>");
 		

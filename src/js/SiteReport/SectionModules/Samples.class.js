@@ -153,7 +153,7 @@ class Samples {
 				authors += b.biblio_author;
 			}
 			
-			if(biblioParsed.length == 0) {
+			if(biblioParsed.length == 0 || authors == "null") {
 				biblioParsed = "No reference found.";
 				authors = "None";
 			}
