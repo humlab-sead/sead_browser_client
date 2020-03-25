@@ -1,16 +1,14 @@
 @import "colors.scss";
+@import "fonts.scss";
 
-@import url('https://fonts.googleapis.com/css?family=Rajdhani|PT+Serif|Yanone+Kaffeesatz|Didact+Gothic|Rajdhani|Titillium+Web|Open+Sans+Condensed:300|Exo+2');
-
-
-
-
+/*
+@import url('https://fonts.googleapis.com/css?family=Rajdhani|Didact+Gothic');
+*/
 
 $header-font: 'Rajdhani';
-//$header-font: 'Century Gothic';
 $normal-font: 'Didact Gothic';
-$special-font: 'Titillium Web';
-$bt-font: 'PT Serif';
+$special-font: 'Rajdhani';
+$sead-font: 'Exo 2';
 
 /*
 :export {
@@ -1467,7 +1465,7 @@ polyline{
   padding-top:5px;
   padding-left: 15px;
   padding-right: 15px;
-  font-family: "Exo 2";
+  font-family: $sead-font;
   height:36px;
 }
 

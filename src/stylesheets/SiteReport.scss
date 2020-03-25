@@ -321,7 +321,8 @@ table.site-report-table > tbody > tr.site-report-table-row:hover > td {
 
 thead > tr > td {
   padding-left: 4px !important;
-  font-family: 'Yanone Kaffeesatz';
+  font-family: $header-font;
+  font-weight: bold;
 }
 
 .site-report-table tbody > tr > td {
