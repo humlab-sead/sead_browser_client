@@ -1,4 +1,4 @@
-
+import DatasetModule from "./DatasetModule.class";
 /*
 * Class: GenericDataset
 *
@@ -10,8 +10,9 @@
 
 import shortid from "shortid";
 
-class GenericDataset {
+class GenericDataset extends DatasetModule {
 	constructor(analysis) {
+		super();
 		this.hqs = analysis.hqs;
 		this.analysis = analysis;
 		this.section = analysis.section;
@@ -20,7 +21,6 @@ class GenericDataset {
 		this.datasetFetchPromises = [];
 		this.datasets = [];
 		this.buildIsComplete = false;
-
 	}
 
 	offerAnalyses(datasets, sectionsList) {

@@ -1,4 +1,6 @@
+import DatasetModule from "./DatasetModule.class";
 import moment from "moment";
+
 
 /*
 * Class: DendrochronologyDataset
@@ -7,10 +9,11 @@ import moment from "moment";
 * 
 */
 
-class DendrochronologyDataset {
+class DendrochronologyDataset extends DatasetModule {
 	/* Function: constructor
 	*/
 	constructor(analysis) {
+		super();
 		this.hqs = analysis.hqs;
 		this.analysis = analysis;
 		this.section = analysis.section;

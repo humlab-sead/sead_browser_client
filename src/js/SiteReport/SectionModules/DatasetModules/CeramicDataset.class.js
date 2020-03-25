@@ -1,10 +1,12 @@
+import DatasetModule from "./DatasetModule.class";
 /*
 * Class: CeramicDataset
 *
 */
 
-class CeramicDataset {
+class CeramicDataset extends DatasetModule {
 	constructor(analysis) {
+		super();
 		this.hqs = analysis.hqs;
 		this.analysis = analysis;
 		this.section = analysis.section;

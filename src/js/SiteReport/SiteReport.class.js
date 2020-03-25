@@ -77,6 +77,15 @@ class SiteReport {
 		}, 250);
 	}
 
+	getModuleByName(moduleName) {
+		for(let key in this.modules) {
+			if(this.modules[key].name == moduleName) {
+				return this.modules[key];
+			}
+		}
+		return false;
+	}
+
 	enableExportButton() {
 		console.log("enableExportButton");
 		//$(".site-report-export-btn").css("cursor", "pointer");

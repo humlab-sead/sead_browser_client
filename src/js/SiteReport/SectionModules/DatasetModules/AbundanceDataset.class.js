@@ -1,4 +1,4 @@
-
+import DatasetModule from "./DatasetModule.class";
 /*
 * Class: AbundanceDataset
 *
@@ -7,8 +7,9 @@
 * A datset (or analysis) is a single graph or table in the site report section. So if e.g. Plant macrofossil contains 2 graphs, that's 2 datasets/analyses of that type
  */
 
-class AbundanceDataset {
+class AbundanceDataset extends DatasetModule {
 	constructor(analysis) {
+		super();
 		this.hqs = analysis.hqs;
 		this.analysis = analysis;
 		this.data = analysis.data;

@@ -1,9 +1,11 @@
+import DatasetModule from "./DatasetModule.class";
 /*
 * Class: MeasuredValueDataset
  */
 
-class MeasuredValueDataset {
+class MeasuredValueDataset extends DatasetModule {
 	constructor(analysis) {
+		super();
 		this.hqs = analysis.hqs;
 		this.analysis = analysis;
 		this.section = analysis.section;

@@ -64,28 +64,35 @@ class Analysis {
 		* NOTE: Order is important here, more specific modules should be first and more generic last, since whichever module claims an analysis first
 		* is the one to get it.
 		 */
-		this.analysisModules = [];
-		this.activeAnalysisModules = [];
-		this.analysisModules.push({
+		this.datasetModules = [];
+		this.activeDatasetModules = [];
+		this.datasetModules.push({
 			"className": AbundanceDataset
 		});
-		this.analysisModules.push({
+		this.datasetModules.push({
 			"className": MeasuredValueDataset
 		});
-		this.analysisModules.push({
+		this.datasetModules.push({
 			"className": DendrochronologyDataset
 		});
-		this.analysisModules.push({
+		this.datasetModules.push({
 			"className": CeramicDataset
 		});
-		this.analysisModules.push({
+		this.datasetModules.push({
 			"className": GenericDataset
 		});
 
-		for(let key in this.analysisModules) {
-			this.analysisModules[key]["instance"] = new this.analysisModules[key]["className"](this);
+		for(let key in this.datasetModules) {
+			this.datasetModules[key]["instance"] = new this.datasetModules[key]["className"](this);
 		}
-		
+	}
+
+	getDatasetModuleByName(name) {
+		for(let key in this.datasetModules) {
+			if(this.datasetModules[key]["instance"].name == name) {
+				return this.datasetModules[key]["instance"];
+			}
+		}
 	}
 
 	/*
@@ -93,16 +100,16 @@ class Analysis {
 	*/
 	render() {
 		this.hqs.siteReportManager.siteReport.renderSection(this.section);
-		this.destroyAllAnalysisModules();
+		this.destroyAllDatasetModules();
 	}
 	
 	/*
-	* Function: destroyAllAnalysisModules
+	* Function: destroyAllDatasetModules
 	*/
-	destroyAllAnalysisModules() {
-		for(var key in this.activeAnalysisModules) {
-			this.activeAnalysisModules[key].destroy();
-			this.activeAnalysisModules.splice(key, 1);
+	destroyAllDatasetModules() {
+		for(var key in this.activeDatasetModules) {
+			this.activeDatasetModules[key].destroy();
+			this.activeDatasetModules.splice(key, 1);
 		}
 	}
 
@@ -185,8 +192,8 @@ class Analysis {
 	*/
 	delegateAnalyses(analyses) {
 		let analysesPromises = [];
-		for(var key in this.analysisModules) {
-			let promise = this.analysisModules[key]["instance"].offerAnalyses(analyses, this.section.sections);
+		for(var key in this.datasetModules) {
+			let promise = this.datasetModules[key]["instance"].offerAnalyses(analyses, this.section.sections);
 			analysesPromises.push(promise);
 		}
 		return analysesPromises;

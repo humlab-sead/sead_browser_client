@@ -63,7 +63,7 @@ class Samples {
 			{
 				"dataType": "string",
 				"pkey": false,
-				"title": "Method"
+				"title": "Sampling method"
 			},
 			{
 				"dataType": "string",
@@ -152,7 +152,7 @@ class Samples {
 				}
 				authors += b.biblio_author;
 			}
-			
+
 			if(biblioParsed.length == 0 || authors == "null") {
 				biblioParsed = "No reference found.";
 				authors = "None";
@@ -160,6 +160,7 @@ class Samples {
 
 			let analysesButtons = [];
 			for(let ak in sampleGroup.analyses) { //Define in-cell buttons to be rendered in the table cell
+
 				let methodId = sampleGroup.analyses[ak].method_id;
 				let sampleGroupId = sampleGroup.analyses[ak].sample_group_id;
 				let datasetId = sampleGroup.analyses[ak].dataset_id;
