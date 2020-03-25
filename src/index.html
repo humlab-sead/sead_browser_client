@@ -19,7 +19,6 @@
 
     <meta name="google-signin-client_id" content="989880823583-jmp43kmh4puojj41t6klg867uk486sfr.apps.googleusercontent.com">
     <script>function googleInit() {
-      console.log(hqs);
       let interval = setInterval(() => {
         if(typeof hqs != "undefined" && typeof hqs.userManager != "undefined") {
           clearInterval(interval);
@@ -288,46 +287,29 @@
 
     
 
-    <div id="gdpr-infobox" class="overlay-dialog">
-      <div class="overlay-dialog-close-btn fa fa-times"></div>
-      <h1>GDPR compliance notice</h1>
+  <div id="gdpr-infobox" class="overlay-dialog">
+    <div class="overlay-dialog-content">
+      <h3>Use of cookies</h3>
+      The SEAD system uses cookies to track the usage of the site via Google Analytics. This information is used to improve our services.
 
-	    <div class="overlay-dialog-content">
+      <h3>GDPR compliance information</h3>
+      
 
-        The SEAD project will store some of your personal information, specifically the email adress associated with your Google account when you use the viewstate functionality.
-        This is done for the purpose of being able to identify which viewstates belong to your account.
+        Should you choose to use the viewstate functionality in SEAD, the SEAD system needs to store a unique identifier to create the association between your account and the viewstates.
+        For this purpose the SEAD system will stored a pseudonymized (hashed) version of your email address associated with the account you used for logging in.<br /><br />
 
-        The following points governs this agreement:
+        By using the viewstate functionality you are agreeing to SEAD storing some of your personal information. The following points governs this agreement:
         <ul>
-          <li>The SEAD project will never share this information with any other party.</li>
+          <li>The SEAD project collects this information solely for internal use and will never share this information with any other party.</li>
           <li>The information is kept within the borders of Sweden.</li>
           <li>The data is retained indefinitely.</li>
-          <li>The user has the right to withdraw consent to the storage of his/her personal information at any time. This is done by using the SEAD functionality for deleting each of your saved viewstates.</li>
-          
+          <li>Should the user manually delete their viewstate links, their pseudonymized data will be purged from the live databases as well as subsequent backups. Previously taken backups will retain the data indefinitely.</li>
+          <li>The user has the right to withdraw consent to the storage of his/her personal information at any time. This is done by using the SEAD functionality for deleting each of your saved viewstate links. Note that this will not delete the viewstate itself, but it will delete your pseudonymized information associated with that viewstate.</li>
+          <li>The purpose of the data collection is to link the user's account to a viewstate, to enable the convenient loading of viewstates in the future. Viewstates may also be loaded simply by entering the correct URL in your browser.</li>
+          <li>Questions regarding this policy should be directed to Dr. Philip Buckland, please se <a href="https://www.sead.se/contact/">https://www.sead.se/contact/</a> for contact information.</li>
         </ul>
 
-        The identity and contact details of the organization, its representative, and its Data Protection Officer
-        
-        The purpose for the organization to process an individual’s personal data and its legal basis
-        
-        The legitimate interests of the organization (or third party, where applicable)
-        
-        Any recipient or categories of recipients of an individual’s data
-        
-        The details regarding any transfer of personal data to a third country and the safeguards taken
-        
-        The retention period or criteria used to determine the retention period of the data
-        
-        The existence of each data subject’s rights
-        
-        The right to withdraw consent at any time (where relevant)
-        
-        The right to lodge a complaint with a supervisory authority
-        
-        Whether the provision of personal data is part of a statutory or contractual requirement or obligation and the possible consequences of failing to provide the personal data
-        
-        The existence of an automated decision-making system, including profiling, and information about how this system has been set up, the significance, and the consequences
-	    </div>
+      </div>
     </div>
 
     <div id="googleLoginTemplate">

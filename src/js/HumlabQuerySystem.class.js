@@ -208,7 +208,6 @@ class HumlabQuerySystem {
 			this.modules.push(this.resultManager.modules[key].module);
 		}
 
-
 		if(this.config.cookieWarningEnabled) {
 			window.cookieconsent.initialise({
 				container: document.getElementById("cookie-consent-content"),
@@ -223,10 +222,25 @@ class HumlabQuerySystem {
 				position: 'bottom-right',
 				content: {
 					header: 'Cookies used on the website!',
-					message: 'The SEAD system is using cookies to enhance functionality. By continuing to use to site you are agreeing to the use of cookies.',
+					message: Config.legalNoticeMsg,
 					dismiss: 'I agree'
+				},
+				showLink: false,
+				law: {
+					regionalLaw: false,
+				},
+				location: true,
+				expiryDays: -1,
+				onPopupOpen: () => {
+					$("#privacy-policy-link").on("click", (evt) => {
+						evt.stopPropagation();
+						var content = $("#gdpr-infobox").html();
+						window.hqs.dialogManager.showPopOver("Legal policy", content);
+					});
 				}
 			});
+
+			
 		}
 
 		this.renderTimelineDummyWarning();

@@ -31,6 +31,7 @@ class DialogManager {
 		});
 		*/
 		$("body").on("click", (evt) => {
+			console.log(evt);
 			this.closeDialog();
 			this.hidePopOver();
 		});
@@ -59,7 +60,6 @@ class DialogManager {
 		
 	}
 	
-
 	showPopOver(title, content) {
 		$("#popover-dialog-frame > h1").text(title);
 		$("#popover-dialog-frame > .popover-content").html(content);
