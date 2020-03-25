@@ -408,7 +408,8 @@ class AbundanceDataset extends DatasetModule {
 			{
 				"dataType": "string",
 				"pkey": false,
-				"title": "Sample type"
+				"title": "Sample type",
+				"exclude_from_export": true
 			},
 			{
 				"dataType": "string",

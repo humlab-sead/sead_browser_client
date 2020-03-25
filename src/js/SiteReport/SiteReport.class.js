@@ -469,7 +469,6 @@ class SiteReport {
 				return value;
 			}, 2);
 			
-			//var exportData = Buffer.from(JSON.stringify(exportStruct, null, 2)).toString("base64");
 			var exportData = Buffer.from(json).toString("base64");
 			$(node).attr("href", "data:application/octet-stream;charset=utf-8;base64,"+exportData);
 			$(node).attr("download", "sead-export.json");
@@ -483,8 +482,28 @@ class SiteReport {
 			$(node).on("click", (evt) => {
 				$(evt.currentTarget).effect("pulsate", 2);
 				var filename = "sead-export.xlsx";
+
+				//Remove columns from table which are flagged for exclusion
+				for(let key in exportStruct.datatable.columns) {
+					console.log(exportStruct.datatable.columns[key]);
+					if(exportStruct.datatable.columns[key].exclude_from_export) {
+						exportStruct.datatable.columns.splice(key, 1);
+						exportStruct.datatable.rows.forEach((row) => {
+							row.splice(key, 1);
+						});
+					}
+				}
+
+				//Strip html from values
+				exportStruct.datatable.rows.forEach((row) => {
+					row.forEach((column) => {
+						if(typeof column.value == "string") {
+							column.value = column.value.replace(/<[^>]*>?/gm, '');
+						}
+					});
+				});
+
 				var data = this.getDataForXlsx(exportStruct.datatable);
-				//var data = this.getDataForXlsx(contentItem.data);
 				
 				data.unshift([""]);
 				data.unshift(["Content: "+exportStruct.content]);
@@ -492,7 +511,6 @@ class SiteReport {
 				data.unshift(["Reference: "+exportStruct.info.attribution]);
 				data.unshift([exportStruct.info.url]);
 				data.unshift([exportStruct.info.description]);
-				
 				
 				var ws_name = "SEAD Data";
 				var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(data);
