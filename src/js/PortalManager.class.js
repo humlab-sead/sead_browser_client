@@ -64,8 +64,14 @@ class PortalManager {
             if(facet.name == "dataset_master") {
                 this.setActivePortal("general");
             }
-        })
-
+        });
+        
+        $(window).on("seadStateLoad", (event, data) => {
+            let state = data.state;
+            if(state.portal) {
+                this.setActivePortal(state.portal);
+            }
+        });
     }
 
     getPortal(portalName) {

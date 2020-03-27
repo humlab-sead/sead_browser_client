@@ -47,6 +47,11 @@ class HumlabQuerySystem {
 	}
 
 	buildSystem() {
+
+		$("#sead-logo").on("click", () => {
+			window.location = "/";
+		});
+
 		this.color = new Color();
 		this.stateManager = new StateManager(this);
 		var viewstate = this.stateManager.getViewstateIdFromUrl();

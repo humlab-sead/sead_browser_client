@@ -223,17 +223,8 @@ class StateManager {
 
 		$(".viewstate-load-item").on("click", evt => {
 			const vsId = $(".vs-id", evt.currentTarget).text();
-			var state = this.getStateById(vsId);
-			if(state === false) {
-				$("#viewstate-load-input").notify("Invalid viewstate ID", "error");
-				return;
-			}
-			this.hqs.userManager.googleLogin();
-
-			this.loadState(state);
+			this.fetchState(vsId);
 			this.hqs.dialogManager.hidePopOver();
-
-			$("#viewstate-menu-label").notify("Loaded viewstate "+state.id, "info");
 		});
 	}
 
@@ -358,7 +349,8 @@ class StateManager {
 			},
 			facets: this.hqs.facetManager.getFacetState(),
 			result: this.hqs.resultManager.getResultState(),
-			siteReport: this.hqs.siteReportManager.getReportState()
+			siteReport: this.hqs.siteReportManager.getReportState(),
+			portal: this.hqs.portalManager.getActivePortal().name
 		};
 
 		if(state.facets === false) {
