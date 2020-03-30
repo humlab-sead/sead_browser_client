@@ -15,14 +15,32 @@ class ResultMosaic extends ResultModule {
 		this.graphs = [];
 
 		this.modules = [
+			/*
+			{
+				title: "Isotopes in samples",
+				name: "mosaic-isotopes-in-samples",
+				portals: ["isotopes"],
+				callback: this.renderIsotopesInSamples
+			},
+			*/
 			{
 				title: "Sampling methods",
 				name: "mosaic-sample-methods",
+				portals: ["*", "general"],
 				callback: this.renderSampleMethods
 			},
+			/*
+			{
+				title: "Tree species",
+				name: "mosaic-tree-species", //FIXME: This doesn't exist - but maybe it doesn't need to?
+				portals: ["dendro"],
+				callback: this.renderDendroTreeSpecies
+			},
+			*/
 			{
 				title: "Site distribution",
 				name: "mosaic-map",
+				portals: ["*", "general", "isotopes"],
 				callback: () => {
 					if(typeof this.resultMap == "undefined") {
 						this.resultMap = new ResultMap(this.resultManager, "#mosaic-map");
@@ -33,15 +51,15 @@ class ResultMosaic extends ResultModule {
 			{
 				title: "Analytical methods",
 				name: "mosaic-analysis-methods",
+				portals: ["*", "general"],
 				callback: this.renderAnalysisMethods
 			},
-			
 			{
 				title: "Feature types",
 				name: "mosaic-feature-types",
+				portals: ["*", "general"],
 				callback: this.renderFeatureTypes
 			}
-			
 		];
 	}
 	
@@ -56,7 +74,8 @@ class ResultMosaic extends ResultModule {
 			return false;
 		}
 		
-		var reqData = this.resultManager.getRequestData(++this.requestId, "tabular");
+		//var reqData = this.resultManager.getRequestData(++this.requestId, "tabular");
+		var reqData = this.resultManager.getRequestData(++this.requestId, "map");
 		
 		this.resultManager.showLoadingIndicator(true);
 		return $.ajax(Config.serverAddress+"/api/result/load", {
@@ -106,6 +125,7 @@ class ResultMosaic extends ResultModule {
 	render() {
 		var xhr = this.fetchData();
 		xhr.then((respData, textStatus, xhr) => { //success
+
 			if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 				this.importResultData(respData);
 				this.renderData();
@@ -114,10 +134,10 @@ class ResultMosaic extends ResultModule {
 			else {
 				console.log("WARN: ResultMosaic discarding old result package data ("+respData.RequestId+"/"+this.requestId+").");
 			}
-			},
-			function(xhr, textStatus, errorThrown) { //error
-				console.log(errorThrown);
-			});
+		},
+		function(xhr, textStatus, errorThrown) { //error
+			console.log(errorThrown);
+		});
 	}
 	
 	renderData() {
@@ -127,17 +147,21 @@ class ResultMosaic extends ResultModule {
 
 		this.sites = [];
 		for(let key in this.data.rows) {
-			if(Number.isInteger(this.data.rows[key].site_link)) {
-				this.sites.push(this.data.rows[key].site_link);
+			if(Number.isInteger(this.data.rows[key].category_id)) {
+				this.sites.push(this.data.rows[key].category_id);
 			}
 		}
 
+		let portal = this.hqs.portalManager.getActivePortal();
+		console.log(portal)
 		this.requestBatchId++;
 		for(let key in this.modules) {
-			if($("#result-mosaic-container #"+this.modules[key].name).length == 0) {
-				$('#result-mosaic-container').append("<div class='result-mosaic-tile'><h2>"+this.modules[key].title+"</h2><div id='"+this.modules[key].name+"' class='result-mosaic-graph-container'></div></div>");
+			if(this.modules[key].portals.includes(portal.name) || this.modules[key].portals.includes("*")) {
+				if($("#result-mosaic-container #"+this.modules[key].name).length == 0) {
+					$('#result-mosaic-container').append("<div class='result-mosaic-tile'><h2>"+this.modules[key].title+"</h2><div id='"+this.modules[key].name+"' class='result-mosaic-graph-container'></div></div>");
+				}
+				this.modules[key].callback("#"+this.modules[key].name, this);
 			}
-			this.modules[key].callback("#"+this.modules[key].name, this);
 		}
 		
 		this.hqs.hqsEventDispatch("resultModuleRenderComplete");
@@ -171,6 +195,20 @@ class ResultMosaic extends ResultModule {
 		return chartSeries;
 	}
 
+
+	renderDendroTreeSpecies(renderIntoNode, resultMosaic) {
+		//http://seadserv.humlab.umu.se:3000/qse_dendro_tree_species?site_id=eq.1996
+		let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_dendro_tree_species", resultMosaic.requestBatchId);
+		promise.then((promiseData) => {
+			if(promiseData.requestId < resultMosaic.requestBatchId) {
+				return false;
+			}
+
+			let chartSeries = resultMosaic.prepareChartData("method_id", "method_name", promiseData.data);
+			resultMosaic.renderPieChart(renderIntoNode, chartSeries, "Sampling methods");
+		});
+	}
+
 	renderFeatureTypes(renderIntoNode, resultMosaic) {
 		let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_feature_types", resultMosaic.requestBatchId);
 
@@ -198,6 +236,38 @@ class ResultMosaic extends ResultModule {
 		});
 	}
 
+	renderIsotopesInSamples(renderIntoNode, resultMosaic) {
+		/*
+		SELECT count(isotope_types.designation) FROM postgrest_api.isotope_types 
+		INNER JOIN postgrest_api.isotope_measurements ON isotope_types.isotope_type_id = isotope_measurements.isotope_type_id
+		WHERE designation = 'Aquatic signal';
+		
+		SELECT isotope_types.designation, COUNT(isotope_types.designation)
+		FROM postgrest_api.isotope_types
+		INNER JOIN postgrest_api.isotope_measurements ON isotope_types.isotope_type_id = isotope_measurements.isotope_type_id
+		GROUP BY isotope_types.designation;
+
+
+
+		SELECT DISTINCT(methods.method_name)
+		FROM postgrest_api.methods
+		INNER JOIN postgrest_api.isotope_measurements ON methods.method_id = isotope_measurements.method_id;
+
+
+
+		SELECT *
+		FROM postgrest_api.sample_locations
+		WHERE sample_locations.sample_location_type_id = 2;
+
+
+
+		SELECT relative_age_name, COUNT(relative_age_name)
+		FROM postgrest_api.relative_ages
+		INNER JOIN postgrest_api.relative_dates ON relative_ages.relative_age_id = relative_dates.relative_age_id
+		GROUP BY relative_age_name;
+		*/
+	}
+
 	renderSampleMethods(renderIntoNode, resultMosaic) {
 		//WARN: This load is sometimes being done befor there are any sites...
 		let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_methods", resultMosaic.requestBatchId);
@@ -205,7 +275,7 @@ class ResultMosaic extends ResultModule {
 			if(promiseData.requestId < resultMosaic.requestBatchId) {
 				return false;
 			}
-
+			//console.log(promiseData.data);
 			let chartSeries = resultMosaic.prepareChartData("method_id", "method_name", promiseData.data);
 
 			resultMosaic.renderPieChart(renderIntoNode, chartSeries, "Sampling methods");
