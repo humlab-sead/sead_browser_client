@@ -124,6 +124,8 @@ class GenericDataset extends DatasetModule {
 			}
 			this.appendDatasetToSection(section, dataset);
 		});
+
+		//console.log(JSON.stringify(this.sectionsList, null, 2));
 		
 		this.buildIsComplete = true;
 		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this is relevant anymore... I used events for determining if all DatasetModules had finished building before I switched to promises
