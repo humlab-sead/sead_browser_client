@@ -6,8 +6,8 @@ var Config = {
 	},
 	serverRoot: "https://browser.sead.se", //for images and such
 	serverAddress: "https://browser.sead.se:8089", //New server
-	viewStateServerAddress: "http://browser.sead.se:8081",
-	siteReportServerAddress: "http://browser.sead.se:3000", //for site reports, which uses a PostgREST interface - production db (3000)
+	viewStateServerAddress: "https://browser.sead.se:8081",
+	siteReportServerAddress: "https://browser.sead.se:3000", //for site reports, which uses a PostgREST interface - production db (3000)
 	defaultResultModule: "mosaic", //map, mosaic or table
 	facetSectionDefaultWidth: 30, //percentage of total window width
 	facetBodyHeight: 268, //default facet height in px
