@@ -1,3 +1,4 @@
+$main-background-color: #ffffff;
 $white: #ffffff;
 $inactive-color: #444444;
 $inactive-color-light: scale-color($inactive-color, $lightness: +10%);
@@ -10,6 +11,24 @@ $sead-brown: #875d5d;
 $shadow-color: rgba(0, 0, 0, 0.3);
 $error-color: rgba(255, 50, 50, 0.85);
 $warning-color: rgba(220, 180, 0, 0.85);
+
+
+//DARK MODE
+/*
+$main-background-color: #333;
+$white: #ffffff;
+$inactive-color: #444444;
+$inactive-color-light: scale-color($inactive-color, $lightness: +10%);
+$base-color:#2d5e8d;
+$base-color-light: scale-color($base-color, $lightness: +10%);
+$aux-color: #ff6600;
+$pane-bg-color: #666;
+$pane-bg-color-dark: scale-color($pane-bg-color, $lightness: -10%);
+$sead-brown: #875d5d;
+$shadow-color: rgba(0, 0, 0, 0.3);
+$error-color: rgba(255, 50, 50, 0.85);
+$warning-color: rgba(220, 180, 0, 0.85);
+*/
 
 /*
 Exporting variables for webpack to make them includeable in js
