@@ -101,12 +101,13 @@ class BasicSiteInformation {
 			});
 		});
 
+		//Fetch references on the site-level
 		let p3 = new Promise((resolve, reject) => {
 			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_site_biblio?site_id=eq."+this.siteId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
-					this.data.bibliographicReferences = data;
+					this.data.bibliographicSiteReferences = data;
 					resolve(data);
 				},
 				error: () => {
@@ -114,11 +115,64 @@ class BasicSiteInformation {
 				}
 			});
 		});
-		
-		await Promise.all([p1, p2, p3]);
+
+		let p4 = new Promise((resolve, reject) => {
+			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset_biblio?site_id=eq."+this.siteId, {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					let refs = [];
+					let uniqueRefs = new Set();
+					data.forEach((ref) => {
+						let refExists = false;
+						refs.forEach((r) => {
+							if(r.biblio_id == ref.biblio_id) {
+								refExists = true;
+							}
+						});
+						if(!refExists) {
+							refs.push(ref);
+						}
+					});
+					
+					this.data.bibliographicDatasetReferences = refs;
+					resolve(data);
+				},
+				error: () => {
+					reject();
+				}
+			});
+		});
+
+		await Promise.all([p1, p2, p3, p4]);
 		this.render();
 	}
 	
+	renderReferences(references) {
+		console.log(references);
+		let referenceHtml = "";
+		references.forEach((ref) => {
+			referenceHtml += "<div class='sr-ref-item'>";
+			referenceHtml += "<div class='sr-ref-title'>"+ref.title+"</div>";
+			if(ref.authors != null) {
+				referenceHtml += "<span class='sr-ref-author'>"+ref.authors+"</span>";
+			}
+			if(ref.authors != null && ref.year != null) {
+				referenceHtml += ", ";
+			}
+			if(ref.year != null) {
+				referenceHtml += "<span class='sr-ref-year'>"+ref.year+"</span>";
+			}
+			referenceHtml += "</div>";
+		});
+
+		if(references.length == 0) {
+			referenceHtml = "No data";
+		}
+
+		return referenceHtml;
+	}
+
 	/*
 	* Function: render
 	*
@@ -139,25 +193,8 @@ class BasicSiteInformation {
 			siteDecription = "No data";
 		}
 
-		let referenceHtml = "";
-		data.bibliographicReferences.forEach((ref) => {
-			referenceHtml += "<div class='sr-ref-item'>";
-			referenceHtml += "<div class='sr-ref-title'>"+ref.title+"</div>";
-			if(ref.authors != null) {
-				referenceHtml += "<span class='sr-ref-author'>"+ref.authors+"</span>";
-			}
-			if(ref.authors != null && ref.year != null) {
-				referenceHtml += ", ";
-			}
-			if(ref.year != null) {
-				referenceHtml += "<span class='sr-ref-year'>"+ref.year+"</span>";
-			}
-			referenceHtml += "</div>";
-		});
-
-		if(data.bibliographicReferences.length == 0) {
-			referenceHtml = "No data";
-		}
+		let siteReferencesHtml = this.renderReferences(data.bibliographicSiteReferences);
+		let datasetReferencesHtml = this.renderReferences(data.bibliographicDatasetReferences);
 
 		var node = $(".site-report-aux-info-container");
 		node
@@ -176,9 +213,12 @@ class BasicSiteInformation {
 			.append("<div class='site-report-aux-header-container'><h4>Description</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>"+siteDecription+"</div>")
-			.append("<div class='site-report-aux-header-container'><h4>References</h4></div>")
+			.append("<div class='site-report-aux-header-container'><h4>Dataset references</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+referenceHtml+"</div>");
+			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+datasetReferencesHtml+"</div>")
+			.append("<div class='site-report-aux-header-container'><h4>Site references</h4></div>")
+			.append("<div class='site-report-aux-header-underline'></div>")
+			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+siteReferencesHtml+"</div>");
 		
 		$("#site-report-locations-container").append("<div id='site-report-map-container'></div>");
 		
