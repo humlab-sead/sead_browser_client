@@ -34,10 +34,10 @@ class SiteReportTable {
 		this.rowsTooltips = this.contentItem.data.rowsTooltips;
 		
 		this.contentItem.renderOptions.forEach((ro) => {
-			if(ro.name == "Spreadsheet") {
+			if(ro.type == "table") {
 				this.renderOptions = ro;
 			}
-			if(!this.renderOptions.hasOwnProperty("options")) {
+			if(this.renderOptions && !this.renderOptions.hasOwnProperty("options")) {
 				this.renderOptions.options = [];
 			}
 		});
