@@ -150,12 +150,12 @@ class Samples {
 				if(authors.length > 0) {
 					authors += ", ";
 				}
-				authors += b.biblio_author;
+
+				authors += b.biblio_author != null ? b.biblio_author : "&lt;Author&gt;";
 			}
 
 			if(biblioParsed.length == 0 || authors == "null") {
 				biblioParsed = "No reference found.";
-				authors = "None";
 			}
 
 			let analysesButtons = [];
