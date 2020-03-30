@@ -127,7 +127,8 @@ div:focus {
 	position:fixed;
 	width:100%;
 	padding:0px;
-	margin:0px;
+  margin:0px;
+  background-color: $main-background-color;
 }
 
 
@@ -177,11 +178,6 @@ h1.main-header {
 
 .header-compressed {
 	height: 25px;
-}
-
-#main-container {
-	margin: 0px;
-	padding: 0px;
 }
 
 #section-left {
@@ -990,6 +986,7 @@ polyline{
   position:absolute;
   z-index: 1;
   background-color: $pane-bg-color-dark;
+  /*color: #fff;*/
   padding-left: 2px;
   padding-right: 2px;
 }
@@ -997,6 +994,7 @@ polyline{
 .result-mosaic-graph-container {
   width: 100%;
   height: 100%;
+  background-color: $pane-bg-color;
 }
 
 .result-map-render-container {
