@@ -31,7 +31,6 @@ class DialogManager {
 		});
 		*/
 		$("body").on("click", (evt) => {
-			console.log(evt);
 			this.closeDialog();
 			this.hidePopOver();
 		});
@@ -208,6 +207,12 @@ class DialogManager {
 		
 		this.coverActive = false;
 	}
+
+
+	/**
+	 * var content = $("#gdpr-infobox").html();
+		window.hqs.dialogManager.showPopOver("Legal policy", content);
+	 */
 	
 	hqsMenu() {
 
@@ -222,7 +227,6 @@ class DialogManager {
 					name: "about",
 					title: "<i class=\"fa fa-info-circle\" aria-hidden=\"true\"></i> About",
 					callback: () => {
-						//window.sead.dialogManager.renderDialog("#about-section");
 						var content = $("#about-section > .overlay-dialog-content").html();
 						content = $(content);
 						$("#data-license-section", content).text(Config.dataLicense.name).attr("href", Config.dataLicense.url);
@@ -233,9 +237,16 @@ class DialogManager {
 					name: "team",
 					title: "<i class=\"fa fa-user-circle\" aria-hidden=\"true\"></i> Team",
 					callback: () => {
-						//window.sead.dialogManager.renderDialog("#team-section");
 						var content = $("#team-section > .overlay-dialog-content").html();
 						window.hqs.dialogManager.showPopOver("Team", content);
+					}
+				},
+				{
+					name: "legal",
+					title: "<i class=\"fa fa-user-circle\" aria-hidden=\"true\"></i> Legal",
+					callback: () => {
+						var content = $("#gdpr-infobox").html();
+						window.hqs.dialogManager.showPopOver("Legal policy", content);
 					}
 				}
 			]
