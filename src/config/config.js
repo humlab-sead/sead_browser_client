@@ -6,7 +6,8 @@ var Config = {
 	},
 	serverRoot: "https://browser.sead.se", //for images and such
 	serverAddress: "https://browser.sead.se:8089", //New server
-	viewStateServerAddress: "https://browser.sead.se:8081",
+	//viewStateServerAddress: "http://browser.sead.se:8081", //HTTP
+	viewStateServerAddress: "https://browser.sead.se:8443", //HTTPS
 	siteReportServerAddress: "https://browser.sead.se:3000", //for site reports, which uses a PostgREST interface - production db (3000)
 	defaultResultModule: "mosaic", //map, mosaic or table
 	facetSectionDefaultWidth: 30, //percentage of total window width
@@ -14,7 +15,7 @@ var Config = {
 	discreteFacetRowHeight: 20, //used for calculations in the facet sliding window (paging) functionality
 	discreteFacetTextSize: 10, //used for calculations in the facet sliding window  (paging) functionality
 	cookieWarningEnabled: true, //cookie warning popup - disabled, because we're actually not using cookies atm
-	viewstateLoadingScreenEnabled: false,
+	viewstateLoadingScreenEnabled: true,
 	requireLoginForViewstateStorage: true,
 	rangeFilterFuzzyLabels: true, //Rounds labels to avoid very long numbersm
 	screenMobileWidthBreakPoint: 720, //If the screen wisiteReportServerAddressdth is smaller than this, the layout of the site goes into mobile mode
