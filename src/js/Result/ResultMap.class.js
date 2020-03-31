@@ -1152,15 +1152,14 @@ class ResultMap extends ResultModule {
 	*/
 	resizeCallback() {
 		if(this.olMap != null) {
-			console.log("resize");
-			//this.unrender();
+			$(this.renderIntoNode).hide();
 			if(typeof(this.resizeTimeout) != "undefined") {
 				clearTimeout(this.resizeTimeout);
 			}
 			this.resizeTimeout = setTimeout(() => {
-				//this.renderMap(false);
+				$(this.renderIntoNode).show();
 				this.olMap.updateSize();
-			}, 500);
+			}, 100);
 		}
 	}
 
