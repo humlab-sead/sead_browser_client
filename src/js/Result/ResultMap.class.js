@@ -1159,7 +1159,7 @@ class ResultMap extends ResultModule {
 			this.resizeTimeout = setTimeout(() => {
 				$(this.renderIntoNode).show();
 				this.olMap.updateSize();
-			}, 100);
+			}, 500);
 		}
 	}
 
