@@ -391,7 +391,7 @@ class StateManager {
 	*/
 	loadStateById(stateId) {
 		if(Config.viewstateLoadingScreenEnabled) {
-			this.hqs.dialogManager.setCover();
+			this.hqs.dialogManager.setCover("Loading");
 		}
 		this.fetchState(stateId);
 	}

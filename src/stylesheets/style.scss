@@ -969,6 +969,11 @@ polyline{
   display: none; /*should be 'grid' when active*/
   grid-template-columns: repeat(2, 1fr [mosaic-column]);
   grid-template-rows: repeat(2, 1fr [mosaic-row]);
+
+  /*
+  grid-template-columns: repeat(auto-fit, minmax(40%, 1fr));
+  */
+
   grid-gap: 10px;
   justify-items: center;
   align-items: center;
@@ -1114,7 +1119,7 @@ polyline{
 
 #cover-tiles-text {
   position:absolute;
-  top: 50vh;
+  top: 53vh;
   left: calc(50vw - 20vw);
   text-align:center;
   width: 40vw;
@@ -1122,6 +1127,7 @@ polyline{
   color: #999;
   text-shadow: 0px 0px 2px #333;
   z-index: 12;
+  font-family: $sead-font;
 }
 
 .cover-tile {

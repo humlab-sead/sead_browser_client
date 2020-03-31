@@ -1,9 +1,3 @@
-
-//import * as d3 from "d3";
-import Popper from "popper.js";
-import Tooltip from "tooltip.js";
-import tippy from 'tippy.js';
-import shortid from 'shortid';
 import Config from '../config/config.js';
 
 /*
@@ -130,37 +124,33 @@ class DialogManager {
 		}
 		
 		$("#cover-tiles").show();
-		/* FIXME: Convert this block of code to use jquery instead - no longer importing d3
-		d3.select("#cover-tiles").selectAll(".cover-tile").data(this.coverTiles)
-			.enter()
-			.append("div")
-			.attr("id", (d, i) => {
-				return "cover-tile-"+d.id;
-			})
-			.classed("cover-tile", true)
-			.style("left", (d, i) => {
-				return d.col * tileWidth+"vw";
-			})
-			.style("top", (d, i) => {
-				return d.row * tileHeight+"vh";
-			})
-			.style("background-color", (d, i) => {
+
+
+		for(let key in this.coverTiles) {
+			let tile = this.coverTiles[key];
+			let tileNode = $("<div></div>");
+			tileNode.addClass("cover-tile");
+			tileNode.attr("id", "cover-tile-"+tile.id);
+			tileNode.css("background-color", () => {
 				var c = 230 + (Math.random()*10);
 				c = Math.round(c);
 				return "rgb("+c+", "+c+", "+c+")";
 			})
-			.style("width", (tileWidth+0.01)+"vw")
-			.style("height", (tileHeight+0.01)+"vh");
-		
-		d3.select("#cover-tiles").append("div")
-			.attr("id", "cover-tiles-logo");
-		
-		if(text != "") {
-			d3.select("#cover-tiles").append("div")
-				.attr("id", "cover-tiles-text")
-				.text(text);
+			tileNode.css("top", tile.row * tileHeight+"vh");
+			tileNode.css("left", tile.col * tileWidth+"vw");
+			tileNode.css("width", (tileWidth+0.01)+"vw");
+			tileNode.css("height", (tileHeight+0.01)+"vh");
+			$("#cover-tiles").append(tileNode);
 		}
-		*/
+
+		let logoNode = $("<div></div>");
+		logoNode.attr("id", "cover-tiles-logo");
+		$("#cover-tiles").append(logoNode);
+
+		if(text != "") {
+			let textNode = $("<div></div>").attr("id", "cover-tiles-text").text(text);
+			$("#cover-tiles").append(textNode);
+		}
 		
 		this.coverActive = true;
 	}
