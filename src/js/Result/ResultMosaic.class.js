@@ -1,6 +1,16 @@
 import Config from '../../config/config.js'
 import ResultModule from './ResultModule.class.js'
-import ResultMap from "./ResultMap.class";
+//import ResultMap from "./ResultMap.class";
+
+import MosaicMapModule from "./MosaicTileModules/MosaicMapModule.class";
+import MosaicSampleMethodsModule from "./MosaicTileModules/MosaicSampleMethodsModule.class";
+import MosaicAnalysisMethodsModule from "./MosaicTileModules/MosaicAnalysisMethodsModule.class";
+import MosaicFeatureTypesModule from "./MosaicTileModules/MosaicFeatureTypesModule.class";
+import MosaicCeramicsCultureModule from "./MosaicTileModules/MosaicCeramicsCultureModule.class";
+import MosaicCeramicsRelativeAgesModule from "./MosaicTileModules/MosaicCeramicsRelativeAgesModule.class";
+import MosaicCeramicsTypeCountModule from "./MosaicTileModules/MosaicCeramicsTypeCountModule.class";
+import MosaicDendroBuildingTypesModule from "./MosaicTileModules/MosaicDendroBuildingTypesModule.class";
+import MosaicDendroTreeSpeciesModule from "./MosaicTileModules/MosaicDendroTreeSpeciesModule.class";
 
 class ResultMosaic extends ResultModule {
 	constructor(resultManager) {
@@ -9,60 +19,126 @@ class ResultMosaic extends ResultModule {
 		this.name = "mosaic";
 		this.prettyName = "Overview";
 		this.icon = "<i class=\"fa fa-pie-chart\" aria-hidden=\"true\"></i>";
-		this.tileSize = 400; //px (both height & width) of a mosaic tile
 		this.currentZoomLevel = 4;
 		this.requestBatchId = 0;
 		this.graphs = [];
+		this.renderPromises = [];
+		this.modules = [];
 
-		this.modules = [
-			/*
-			{
-				title: "Isotopes in samples",
-				name: "mosaic-isotopes-in-samples",
-				portals: ["isotopes"],
-				callback: this.renderIsotopesInSamples
-			},
-			*/
-			{
-				title: "Sampling methods",
-				name: "mosaic-sample-methods",
-				portals: ["*", "general"],
-				callback: this.renderSampleMethods
-			},
-			/*
-			{
-				title: "Tree species",
-				name: "mosaic-tree-species", //FIXME: This doesn't exist - but maybe it doesn't need to?
-				portals: ["dendro"],
-				callback: this.renderDendroTreeSpecies
-			},
-			*/
-			{
-				title: "Site distribution",
-				name: "mosaic-map",
-				portals: ["*", "general", "isotopes"],
-				callback: () => {
-					if(typeof this.resultMap == "undefined") {
-						this.resultMap = new ResultMap(this.resultManager, "#mosaic-map");
-					}
-					this.resultMap.fetchData();
+
+		this.modules.push(new MosaicMapModule(this.hqs));
+		this.modules.push(new MosaicSampleMethodsModule(this.hqs));
+		this.modules.push(new MosaicAnalysisMethodsModule(this.hqs));
+		this.modules.push(new MosaicFeatureTypesModule(this.hqs));
+		this.modules.push(new MosaicCeramicsCultureModule(this.hqs));
+		this.modules.push(new MosaicCeramicsRelativeAgesModule(this.hqs));
+		this.modules.push(new MosaicCeramicsTypeCountModule(this.hqs));
+		this.modules.push(new MosaicDendroBuildingTypesModule(this.hqs));
+		this.modules.push(new MosaicDendroTreeSpeciesModule(this.hqs));
+
+		/*
+		//General
+		this.modules.push({
+			title: "Sampling methods",
+			name: "mosaic-sample-methods",
+			portals: ["general"],
+			callback: this.renderSampleMethods
+		});
+		this.modules.push({
+			title: "Site distribution",
+			name: "mosaic-map",
+			portals: ["*"],
+			callback: async (renderIntoNode, resultMosaic) => {
+				console.log(renderIntoNode);
+				this.setLoadingIndicator(renderIntoNode, true);
+				
+				if(typeof this.resultMap == "undefined") {
+					this.resultMap = new ResultMap(this.resultManager, "#mosaic-map");
 				}
-			},
-			{
-				title: "Analytical methods",
-				name: "mosaic-analysis-methods",
-				portals: ["*", "general"],
-				callback: this.renderAnalysisMethods
-			},
-			{
-				title: "Feature types",
-				name: "mosaic-feature-types",
-				portals: ["*", "general"],
-				callback: this.renderFeatureTypes
+				await this.resultMap.fetchData();
+
+				//this.setLoadingIndicator(renderIntoNode, false);
 			}
-		];
+		});
+		this.modules.push({
+			title: "Analytical methods",
+			name: "mosaic-analysis-methods",
+			portals: ["general"],
+			callback: this.renderAnalysisMethods
+		});
+		this.modules.push({
+			title: "Feature types",
+			name: "mosaic-feature-types",
+			portals: ["general"],
+			callback: this.renderFeatureTypes
+		});
+
+		//Ceramics
+		this.modules.push({
+			title: "Ceramics culture",
+			name: "mosaic-ceramics-culture",
+			portals: ["ceramic"],
+			callback: async (renderIntoNode, resultMosaic) => {
+				this.setLoadingIndicator(renderIntoNode, true);
+				await this.renderCeramicsCulture(renderIntoNode);
+				this.setLoadingIndicator(renderIntoNode, false);
+			}
+		});
+		this.modules.push({
+			title: "Ceramics relative ages",
+			name: "mosaic-ceramics-relative-ages",
+			portals: ["ceramic"],
+			callback: async (renderIntoNode, resultMosaic) => {
+				this.setLoadingIndicator(renderIntoNode, true);
+				await this.renderCeramicsRelativeAges(renderIntoNode);
+				this.setLoadingIndicator(renderIntoNode, false);
+			}
+		});
+		this.modules.push({
+			title: "Ceramics type count",
+			name: "mosaic-ceramics-type-count",
+			portals: ["ceramic"],
+			callback: async (renderIntoNode, resultMosaic) => {
+				this.setLoadingIndicator(renderIntoNode, true);
+				await this.renderCeramicsTypeCount(renderIntoNode);
+				this.setLoadingIndicator(renderIntoNode, false);
+			}
+		});
+
+		//Dendro
+		this.modules.push({
+			title: "Tree species",
+			name: "mosaic-tree-species", //FIXME: This doesn't exist - but maybe it doesn't need to?
+			portals: ["dendro"],
+			callback: this.renderDendroTreeSpecies
+		});
+
+		//Isotopes
+		this.modules.push({
+			title: "Isotopes in samples",
+			name: "mosaic-isotopes-in-samples",
+			portals: ["isotopes"],
+			callback: this.renderIsotopesInSamples
+		});
+
+		this.modules.push({
+			title: "Isotopes in samples",
+			name: "mosaic-isotopes-in-samples",
+			portals: ["isotopes"],
+			callback: this.renderIsotopesInSamples
+		});
+		*/
 	}
 	
+	setLoadingIndicator(containerNode, isLoading) {
+		if(isLoading) {
+			$(containerNode).addClass("result-mosaic-loading-indicator-bg");
+		}
+		else {
+			$(containerNode).removeClass("result-mosaic-loading-indicator-bg");
+		}
+	}
+
 	clearData() {
 		this.data.columns = [];
 		this.data.rows = [];
@@ -129,7 +205,6 @@ class ResultMosaic extends ResultModule {
 			if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 				this.importResultData(respData);
 				this.renderData();
-				this.resultManager.showLoadingIndicator(false);
 			}
 			else {
 				console.log("WARN: ResultMosaic discarding old result package data ("+respData.RequestId+"/"+this.requestId+").");
@@ -142,7 +217,7 @@ class ResultMosaic extends ResultModule {
 	
 	renderData() {
 		this.unrender();
-		
+		$('#result-mosaic-container').show();
 		$('#result-mosaic-container').css("display", "grid");
 
 		this.sites = [];
@@ -153,18 +228,36 @@ class ResultMosaic extends ResultModule {
 		}
 
 		let portal = this.hqs.portalManager.getActivePortal();
-		console.log(portal)
+
 		this.requestBatchId++;
 		for(let key in this.modules) {
 			if(this.modules[key].portals.includes(portal.name) || this.modules[key].portals.includes("*")) {
 				if($("#result-mosaic-container #"+this.modules[key].name).length == 0) {
-					$('#result-mosaic-container').append("<div class='result-mosaic-tile'><h2>"+this.modules[key].title+"</h2><div id='"+this.modules[key].name+"' class='result-mosaic-graph-container'></div></div>");
+
+					//.result-mosaic-loading-indicator-container
+
+					let tileNode = $("<div class='result-mosaic-tile'></div>");
+					tileNode.append("<h2>"+this.modules[key].title+"</h2>");
+					tileNode.append("<div id='"+this.modules[key].name+"' class='result-mosaic-graph-container'></div>");
+
+					$('#result-mosaic-container').append(tileNode);
 				}
-				this.modules[key].callback("#"+this.modules[key].name, this);
+				let promise = this.modules[key].render("#"+this.modules[key].name);
+				//let promise = this.modules[key].callback("#"+this.modules[key].name, this);
+				this.renderPromises.push(promise);
 			}
 		}
-		
-		this.hqs.hqsEventDispatch("resultModuleRenderComplete");
+
+		if(this.renderPromises.length == 0) {
+			this.hqs.hqsEventDispatch("resultModuleRenderComplete");
+			this.resultManager.showLoadingIndicator(false);
+		}
+
+		Promise.all(this.renderPromises).then(() => {
+			console.log("Mosaic modules render complete");
+			this.hqs.hqsEventDispatch("resultModuleRenderComplete");
+			//this.resultManager.showLoadingIndicator(false);
+		});
 	}
 
 	prepareChartData(data_key_name, data_value_name, data) {
@@ -282,7 +375,140 @@ class ResultMosaic extends ResultModule {
 		});
 	}
 
+	preparePieChart(renderIntoNode, dbViewName, categoryNameAttribute, categoryCountAttribute) {
+		let promise = this.fetchSiteData(this.sites, dbViewName, this.requestBatchId);
+		promise.then((promiseData) => {
+			if(promiseData.requestId < this.requestBatchId) {
+				return false;
+			}
+
+			let categories = [];
+			for(let key in promiseData.data) {
+				let dataPoint = promiseData.data[key];
+
+				let categoryFound = false;
+				categories.forEach((category) => {
+					if(category.name == dataPoint[categoryNameAttribute]) {
+						categoryFound = true;
+						category.count += dataPoint[categoryCountAttribute];
+					}
+				});
+
+				if(!categoryFound) {
+					categories.push({
+						name: dataPoint[categoryNameAttribute],
+						count: dataPoint[categoryCountAttribute]
+					});
+				}
+			}
+
+			let chartSeries = [];
+			for(let key in categories) {
+				chartSeries.push({
+					"values": [categories[key].count],
+					"text": categories[key].name
+				});
+			}
+
+			this.renderPieChart(renderIntoNode, chartSeries, "Sampling methods");
+		});
+
+		return promise;
+	}
+
+	makeChartSeries(data, categoryNameAttribute, categoryCountAttribute) {
+		let categories = [];
+		for(let key in data) {
+			let dataPoint = data[key];
+
+			let categoryFound = false;
+			categories.forEach((category) => {
+				if(category.name == dataPoint[categoryNameAttribute]) {
+					categoryFound = true;
+					category.count += dataPoint[categoryCountAttribute];
+				}
+			});
+
+			if(!categoryFound) {
+				categories.push({
+					name: dataPoint[categoryNameAttribute],
+					count: dataPoint[categoryCountAttribute]
+				});
+			}
+		}
+
+		let chartSeries = [];
+		for(let key in categories) {
+			chartSeries.push({
+				"values": [categories[key].count],
+				"text": categories[key].name
+			});
+		}
+
+		return chartSeries;
+	}
+
+	prepareBarChart(renderIntoNode, dbViewName, categoryNameAttribute, categoryCountAttribute) {
+		let promise = this.fetchSiteData(this.sites, dbViewName, this.requestBatchId);
+		promise.then((promiseData) => {
+			if(promiseData.requestId < this.requestBatchId) {
+				return false;
+			}
+
+			let categories = [];
+			for(let key in promiseData.data) {
+				let dataPoint = promiseData.data[key];
+
+				let categoryFound = false;
+				categories.forEach((category) => {
+					if(category.name == dataPoint[categoryNameAttribute]) {
+						categoryFound = true;
+						category.count += dataPoint[categoryCountAttribute];
+					}
+				});
+
+				if(!categoryFound) {
+					categories.push({
+						name: dataPoint[categoryNameAttribute],
+						count: dataPoint[categoryCountAttribute]
+					});
+				}
+			}
+
+			let chartSeries = [];
+			for(let key in categories) {
+				chartSeries.push({
+					"values": [categories[key].count],
+					"text": categories[key].name
+				});
+			}
+
+			this.renderBarChart(renderIntoNode, chartSeries, "Sampling methods");
+		});
+
+		return promise;
+	}
+
+	async renderCeramicsCulture(renderIntoNode) {
+		return await this.preparePieChart(renderIntoNode, "qse_ceramics_culture", "Culture", "count");
+	}
+
+	async renderCeramicsRelativeAges(renderIntoNode) {
+		return await this.prepareBarChart(renderIntoNode, "qse_ceramics_relative_ages", "relative_age_name", "count");
+	}
+
+	async renderCeramicsTypeCount(renderIntoNode) {
+		return await this.preparePieChart(renderIntoNode, "qse_ceramics_type_count", "type_name", "count");
+	}
+
 	renderBarChart(renderIntoNode, chartSeries, chartTitle) {
+
+		if(chartSeries.length == 0) {
+			let noDataMsgNode = $("<div class='result-mosaic-no-data-msg'><div>No data</div></div>");
+			$(renderIntoNode).append(noDataMsgNode);
+			return;
+		}
+
 		var config = {
 			"type":"bar",
 			"background-color": "transparent",
@@ -359,6 +585,12 @@ class ResultMosaic extends ResultModule {
 	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {
+
+		if(chartSeries.length == 0) {
+			let noDataMsgNode = $("<div class='result-mosaic-no-data-msg'><div>No data</div></div>");
+			$(renderIntoNode).append(noDataMsgNode);
+			return;
+		}
 
 		var config = {
 			"type":"pie",
@@ -463,6 +695,16 @@ class ResultMosaic extends ResultModule {
 		});
 	}
 
+	removeFromGraphRegistry(anchorNodeName) {
+		for(let k in this.graphs) {
+			if(this.graphs[k].anchor == anchorNodeName) {
+				this.graphs.splice(k, 1);
+				return true;
+			}
+		}
+		return false;
+	}
+
 	async fetchSiteData(siteIds, dbView, requestId) {
 
 		if(siteIds.length == 0) {
@@ -516,6 +758,11 @@ class ResultMosaic extends ResultModule {
 	
 	
 	unrender() {
+
+		this.modules.forEach((module) => {
+			module.unrender();
+		});
+
 		if(this.renderTryInterval != null) {
 			console.log("WARN: Unrendering when renderTryInterval is active.");
 			clearInterval(this.renderTryInterval);
@@ -526,7 +773,11 @@ class ResultMosaic extends ResultModule {
 			this.resultMap.unrender();
 		}
 
-		//$('#result-mosaic-container').html("");
+		for(let k in this.graphs) {
+			zingchart.exec(this.graphs[k].anchor.substr(1), 'destroy');
+			this.removeFromGraphRegistry(this.graphs[k].anchor);
+		}
+		$("#result-mosaic-container").html("");
 	}
 	
 	exportSettings() {

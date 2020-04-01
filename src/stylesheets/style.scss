@@ -981,6 +981,33 @@ polyline{
   height:100%;
 }
 
+.result-mosaic-loading-indicator-container {
+  display:flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.result-mosaic-loading-indicator-bg {
+  background-position: 50% 50%;
+  //background-image: url('../assets/ajax-loader.gif');
+  //background-image: url('../assets/loading-indicator4.svg');
+  background-image: url('../assets/visead-loading.gif');
+  background-repeat: no-repeat;
+	background-size: 40%;
+	background-color: transparent;
+}
+
+.result-mosaic-no-data-msg {
+  display:flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1.6rem;
+}
+
 .result-mosaic-tile {
   width:100%;
   height:100%;
@@ -997,6 +1024,11 @@ polyline{
 }
 
 .result-mosaic-graph-container {
+  /*
+  display:flex;
+  align-items: center;
+  justify-content: center;
+  */
   width: 100%;
   height: 100%;
   background-color: $pane-bg-color;
