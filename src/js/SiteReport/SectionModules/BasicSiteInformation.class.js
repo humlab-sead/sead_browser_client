@@ -149,19 +149,12 @@ class BasicSiteInformation {
 	}
 	
 	renderReferences(references) {
-		console.log(references);
 		let referenceHtml = "";
 		references.forEach((ref) => {
 			referenceHtml += "<div class='sr-ref-item'>";
-			if(ref.authors != null) {
-				referenceHtml += "<span class='sr-ref-author'>"+ref.authors+"</span>";
-			}
-			
-			if(ref.authors != null && ref.year != null) {
-				//referenceHtml += ", ";
-				referenceHtml += " ";
-			}
-			
+			let authors = ref.authors != null ? ref.authors : "&lt;authors missing&gt;";
+			referenceHtml += "<span class='sr-ref-author'>"+authors+"</span>";
+			referenceHtml += " ";
 			if(ref.year != null) {
 				referenceHtml += "<span class='sr-ref-year'>("+ref.year+")</span>";
 			}
