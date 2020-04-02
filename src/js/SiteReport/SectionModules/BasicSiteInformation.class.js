@@ -153,16 +153,19 @@ class BasicSiteInformation {
 		let referenceHtml = "";
 		references.forEach((ref) => {
 			referenceHtml += "<div class='sr-ref-item'>";
-			referenceHtml += "<div class='sr-ref-title'>"+ref.title+"</div>";
 			if(ref.authors != null) {
 				referenceHtml += "<span class='sr-ref-author'>"+ref.authors+"</span>";
 			}
+			
 			if(ref.authors != null && ref.year != null) {
-				referenceHtml += ", ";
+				//referenceHtml += ", ";
+				referenceHtml += " ";
 			}
+			
 			if(ref.year != null) {
-				referenceHtml += "<span class='sr-ref-year'>"+ref.year+"</span>";
+				referenceHtml += "<span class='sr-ref-year'>("+ref.year+")</span>";
 			}
+			referenceHtml += "<div class='sr-ref-title'>"+ref.title+"</div>";
 			referenceHtml += "</div>";
 		});
 
