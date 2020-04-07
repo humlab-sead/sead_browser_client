@@ -87,6 +87,7 @@ div:focus {
 
 #sead-logo {
   cursor:pointer;
+  /*
   background-position: center center;
   background-size: contain;
   width: 100%;
@@ -94,6 +95,8 @@ div:focus {
   background-color:#fff;
   background-repeat: no-repeat;
   margin:0px;
+  */
+  height: 100%;
 }
 
 .sead-logo-large {
