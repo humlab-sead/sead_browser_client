@@ -410,13 +410,23 @@ h1.main-header {
 */
 
 .slot-visible {
-  border: 4px dashed $pane-bg-color;
+  border: 4px solid $pane-bg-color;
+  /*
+  background-color: #eee;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 15px, rgba(255,255,255,.5) 15px, rgba(255,255,255,.5) 40px);
+  */
+  font-size: 1.0rem;
+  padding: 20px;
+  text-align: center;
+  color: $inactive-color;
 }
 
+/*
 .slot-visible:hover {
   background-color: $aux-color;
   border: 4px solid $pane-bg-color;
 }
+*/
 
 .filter-demo-arrow {
   font-size: 7.5rem;

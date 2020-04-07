@@ -230,7 +230,7 @@ class HqsMenu {
 
 			if(typeof m.auxTriggers != "undefined") {
 				for(let key in m.auxTriggers) {
-					$(m.auxTriggers[key]).on("mouseover", () => {
+					$(m.auxTriggers[key].selector).on(m.auxTriggers[key].on, () => {
 						this.showMenu(m);
 					});
 				}

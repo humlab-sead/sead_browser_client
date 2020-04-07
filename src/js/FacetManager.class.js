@@ -146,7 +146,8 @@ class FacetManager {
 	 */
 	renderDemoSlot() {
 		this.demoSlot = this.addSlot();
-		$(this.demoSlot.getDomRef()).text("Filter");
+		let filterText = "<span>Add <span class='jslink'>filters</span> here to reduce the result data (shown on the right) down to what you are interested in seeing</span>";
+		$(this.demoSlot.getDomRef()).html(filterText);
 		$(this.demoSlot.getDomRef()).addClass("slot-visible");
 		
 		$("#facet-section").append("<div class='filter-demo-arrow'>⤷</div>");
@@ -1005,7 +1006,10 @@ class FacetManager {
 			layout: "vertical",
 			collapsed: true,
 			anchor: "#facet-menu",
-			auxTriggers: [".slot-visible"],
+			auxTriggers: [{
+				selector: ".slot-visible .jslink",
+				on: "click"
+			}],
 			customStyleClasses: "hqs-menu-block-vertical-large",
 			viewPortResizeCallback: () => {
 				let leftWidth = $("#facet-result-panel .section-left").width();
