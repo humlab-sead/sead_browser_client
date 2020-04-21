@@ -146,7 +146,7 @@ class FacetManager {
 	 */
 	renderDemoSlot() {
 		this.demoSlot = this.addSlot();
-		let filterText = "<span>Add <span class='jslink'>filters</span> here to reduce the result data (shown on the right) down to what you are interested in seeing</span>";
+		let filterText = "<span><span class='jslink-alt'>Add filters</span> here to reduce the result data (shown on the right) down to what you are interested in seeing</span>";
 		$(this.demoSlot.getDomRef()).html(filterText);
 		$(this.demoSlot.getDomRef()).addClass("slot-visible");
 		
@@ -324,7 +324,7 @@ class FacetManager {
 	* See Also:
 	* makeNewFacet
 	*/
-	addFacet(facet, minimizeOthers = false) {
+	addFacet(facet, minimizeOthers = false, insertIntoSlotPosition = null) {
 		this.hqs.hqsEventDispatch("hqsFacetPreAdd", facet);
 		if(minimizeOthers) {
 			for(var key in this.facets) {
@@ -334,7 +334,17 @@ class FacetManager {
 		
 		this.facets.push(facet);
 		let slot = this.addSlot();
-		this.updateLinks(facet.id, slot.id);
+
+		if(insertIntoSlotPosition != null) {
+			this.facets.forEach((facet) => {
+				this.updateLinks(facet.id, this.getSlotByFacet(facet).id+1);
+			});
+			this.updateLinks(facet.id, insertIntoSlotPosition);
+		}
+		else {
+			this.updateLinks(facet.id, slot.id);
+		}
+
 		this.queueFacetDataFetch(facet);
 		this.showSectionTitle(false);
 		this.updateShowOnlySelectionsControl();
@@ -646,6 +656,11 @@ class FacetManager {
 	* updateAllFacetPositions
 	*/
 	moveFacets(dropSlotId, dropFacetId, dragSlotId, dragFacetId) {
+
+		//If dropFacet == locked facet, refuse to do anything
+		if(this.getFacetById(dropFacetId).locked) {
+			return;
+		}
 
 		if(dragFacetId == dropFacetId) {
 			return;
@@ -1007,7 +1022,7 @@ class FacetManager {
 			collapsed: true,
 			anchor: "#facet-menu",
 			auxTriggers: [{
-				selector: ".slot-visible .jslink",
+				selector: ".slot-visible .jslink-alt",
 				on: "click"
 			}],
 			customStyleClasses: "hqs-menu-block-vertical-large",

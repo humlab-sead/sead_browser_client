@@ -37,10 +37,10 @@ class PortalManager {
             if(newPortalName != "general") {
                 let facet = this.hqs.facetManager.getFacetByName("dataset_master");
                 if(facet === false) {
-                    //Add master dataset facet and select the appropriate portal, and minimzie or hide it
+                    //Add master dataset facet and select the appropriate portal, and minimzie it
                     let facetTemplate = this.hqs.facetManager.getFacetTemplateByFacetId("dataset_master");
                     facet = this.hqs.facetManager.makeNewFacet(facetTemplate);
-                    this.hqs.facetManager.addFacet(facet);
+                    this.hqs.facetManager.addFacet(facet, false, 1);
                 }
 
                 if(newPortal.datasetId !== false) {
@@ -52,6 +52,8 @@ class PortalManager {
                             clearInterval(minimizeInterval);
                         }
                     }, 100);
+
+                    facet.lock();
                 }
             }
         });

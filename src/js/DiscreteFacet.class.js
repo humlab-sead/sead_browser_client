@@ -244,6 +244,9 @@ class DiscreteFacet extends Facet {
 		
 		
 		$(this.getDomRef()).find(".facet-row").bind("click", (obj) => {
+			if(this.locked) {
+				return;
+			}
 			var target = obj.target;
 			if($(obj.target).hasClass("facet-row-text")) {
 				target = $(obj.target).parent();

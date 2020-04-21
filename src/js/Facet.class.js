@@ -30,6 +30,7 @@ class Facet {
 		this.inactiveSelections = [];
 		this.requestId = 0;
 		this.deleted = false;
+		this.locked = false;
 
 		var facetDomObj = $("#facet-template")[0].cloneNode(true);
 		$(facetDomObj).attr("id", "facet-"+this.id);
@@ -358,6 +359,25 @@ class Facet {
 			return true;
 		}
 		return false;
+	}
+
+	lock(locked = true) {
+		this.locked = locked;
+		if(locked) {
+			$(this.domObj).addClass("facet-locked");
+			$(".facet-header .facet-portal-indicator", this.domObj).remove();
+			$(".facet-header", this.domObj).append("<h3 class='facet-portal-indicator'>PORTAL</h3>");
+			$(".facet-portal-indicator").css("color", this.hqs.portalManager.getActivePortal().color);
+			$(this.getDomRef()).draggable({
+				disabled: true
+			});
+		}
+		else {
+			$(this.domObj).removeClass("facet-locked");
+			$(this.getDomRef()).draggable({
+				disabled: false
+			});
+		}
 	}
 }
 

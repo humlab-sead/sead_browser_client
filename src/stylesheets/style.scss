@@ -265,6 +265,23 @@ h1.main-header {
 	padding: 0px;
 }
 
+.facet-locked {
+  opacity: 1.0;
+}
+
+.facet-locked > .facet-header {
+  cursor:not-allowed;
+}
+
+.facet-locked > .facet-header > .facet-head-btn {
+  display:none;
+}
+
+.facet-locked > .facet-body > .list-container > .facet-row  {
+  background-color: $inactive-color;
+  cursor:not-allowed;
+}
+
 .facet-header {
 	display:flex;
 	cursor:move;
@@ -283,6 +300,23 @@ h1.main-header {
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+}
+
+.facet-portal-indicator {
+  flex: 2;
+	font-weight:bold;
+	font-size:14px;
+	margin:5px;
+	margin-left:8px;
+	margin-top:8px;
+	padding:0px;
+	line-height:14px;
+
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: right;
+  color: $aux-color;
 }
 
 .facet-header-divider {
@@ -1247,6 +1281,11 @@ polyline{
 .jslink {
 	color: blue;
 	text-decoration: underline;
+	cursor:pointer;
+}
+
+.jslink-alt {
+	color: $aux-color;
 	cursor:pointer;
 }
 
