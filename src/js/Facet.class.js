@@ -56,6 +56,15 @@ class Facet {
 			}, 10);
 		});
 
+		$(".facet-title", facetDomObj).on("dblclick", () => {
+			if(this.minimized) {
+				this.maximize();
+			}
+			else {
+				this.minimize();
+			}
+		})
+
 		$(facetDomObj).find(".facet-size-btn").bind("click", () => {
 			if(this.minimized) {
 				this.maximize();
@@ -63,7 +72,6 @@ class Facet {
 			else {
 				this.minimize();
 			}
-			
 		});
 
 		$(this.getDomRef()).draggable({
