@@ -27,7 +27,7 @@ class SiteReportTable {
 		this.pagingRows = 10; //If more than this many rows in the table we enable paging (goes for both this table and its subtables)
 		this.rowPkey = this.getRowPkey(); //Primary key column
 		this.subTableColumnKey = false; //This will indicate which column contains the subtable when the data is loaded (normally it's index 0)
-		
+		this.dt = null;
 		//Just making some shortcuts...
 		this.columns = this.contentItem.data.columns;
 		this.rows = this.contentItem.data.rows;
@@ -151,6 +151,7 @@ class SiteReportTable {
 	}
 	
 	unrender() {
+		this.dt.destroy();
 		$("#"+this.tableNodeId).remove();
 	}
 
