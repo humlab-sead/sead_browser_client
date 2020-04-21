@@ -32,6 +32,7 @@ class SiteReportTable {
 		this.columns = this.contentItem.data.columns;
 		this.rows = this.contentItem.data.rows;
 		this.rowsTooltips = this.contentItem.data.rowsTooltips;
+		this.tooltipIds = [];
 		
 		this.contentItem.renderOptions.forEach((ro) => {
 			if(ro.type == "table") {
@@ -151,6 +152,10 @@ class SiteReportTable {
 	}
 	
 	unrender() {
+		this.tooltipIds.forEach(ttId => {
+			this.siteReport.hqs.tooltipManager.unRegisterTooltip(ttId);
+		});
+
 		this.dt.destroy();
 		$("#"+this.tableNodeId).remove();
 	}
@@ -279,7 +284,8 @@ class SiteReportTable {
 		popperHtml += "</div>";
 		popperHtml += "</div>";
 		
-		this.siteReport.hqs.tooltipManager.registerTooltip(aggLegNode, popperHtml, {html: false});
+		let tt = this.siteReport.hqs.tooltipManager.registerTooltip(aggLegNode, popperHtml, {html: false});
+		this.tooltipIds.push(tt);
 		return aggLegNode;
 	}
 
@@ -364,7 +370,8 @@ class SiteReportTable {
 							options = row[colKey].tooltip.options;
 						}
 						
-						this.siteReport.hqs.tooltipManager.registerTooltip("#"+cellNodeId, tooltipMsg, options);
+						let tt = this.siteReport.hqs.tooltipManager.registerTooltip("#"+cellNodeId, tooltipMsg, options);
+						this.tooltipIds.push("#"+cellNodeId);
 					}
 					
 					//buttons
@@ -603,8 +610,7 @@ class SiteReportTable {
 
 			//this.siteReport.siteReportManager.hqs.tooltipManager.registerTooltip("site-report-aggregation-bar-legend-"+index, $(el)[0], popperHtml, { "stickyWhenClicked": false })
 
-			this.siteReport.siteReportManager.hqs.tooltipManager.registerTooltip($(el), popperHtml);
-
+			let tt = this.siteReport.siteReportManager.hqs.tooltipManager.registerTooltip($(el), popperHtml);
 		});
 	}
 
@@ -661,7 +667,8 @@ class SiteReportTable {
 				}
 				
 				if(row[vk].hasOwnProperty("tooltip") && row[vk].tooltip != "") {
-					this.siteReport.hqs.tooltipManager.registerTooltip("#"+cellNodeId, row[vk].tooltip, {drawSymbol:true});
+					let tt = this.siteReport.hqs.tooltipManager.registerTooltip("#"+cellNodeId, row[vk].tooltip, {drawSymbol:true});
+					this.tooltipIds.push("#"+cellNodeId);
 				}
 				
 				subTableHtml += "<td id='"+cellNodeId+"'>"+row[vk].value+"</td>";

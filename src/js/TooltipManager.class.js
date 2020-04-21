@@ -99,11 +99,20 @@ class TooltipManager {
 	}
 
 	unRegisterTooltip(anchor) {
+		let found = false;
 		for(let key in this.tooltips) {
 			if(this.tooltips[key].anchor == anchor) {
+				found = true;
+				if(this.tooltips[key].attached) {
+					$(this.tooltips[key].tooltipNode).remove();
+					$(this.tooltips[key].anchor).remove();
+				}
 				this.tooltips.splice(key, 1);
 				return;
 			}
+		}
+		if(!found) {
+			console.log("Failed to de-register tooltip", anchor, "- not found");
 		}
 	}
 	
