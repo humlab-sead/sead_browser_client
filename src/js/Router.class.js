@@ -2,6 +2,16 @@
 class Router {
     constructor(hqs) {
         this.hqs = hqs;
+
+        this.hqs.hqsEventListen("siteReportClosed", () => {
+            let portal = this.hqs.portalManager.getActivePortal();
+            if(portal.name != "general") {
+                history.pushState({}, "", "/"+portal.name);
+            }
+            else {
+                history.pushState({}, "", "/");
+            }
+        });
     }
 
     route(path = null) {

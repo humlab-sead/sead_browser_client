@@ -115,8 +115,6 @@ class SiteReportManager {
 	}
 
 	unrenderSiteReport() {
-		history.pushState({}, "", "/");
-		
 		$("#site-report-panel").hide();
 
 		$("#facet-result-panel").css("display", "flex");
