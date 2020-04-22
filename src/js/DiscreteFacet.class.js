@@ -358,7 +358,12 @@ class DiscreteFacet extends Facet {
 			facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
 		}
 		$(this.domObj).css("height", facetHeight+"px");
-		$("#facet-"+this.id+" > .facet-body").css("height", selectionsHeight+"px");
+		if(selectionsHeight < facetHeight) {
+			$("#facet-"+this.id+" > .facet-body").css("height", selectionsHeight+"px");
+		}
+		else {
+			$("#facet-"+this.id+" > .facet-body").css("height", facetHeight+"px");
+		}
 		
 		var slotId = this.hqs.facetManager.getSlotIdByFacetId(this.id);
 		this.hqs.facetManager.updateSlotSize(slotId);

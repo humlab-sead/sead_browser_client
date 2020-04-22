@@ -39,7 +39,6 @@ class Facet {
 		$(facetDomObj).find(".facet-header-divider").css("background-color", this.color);
 		$(facetDomObj).find(".facet-body").css("height", Config.facetBodyHeight+"px");
 		$("#facet-section").append(facetDomObj);
-		$("#facet-"+this.id+" > .facet-body").css("overflow", "auto");
 
 		this.defaultHeight = $(facetDomObj).css("height");
 		this.bodyHeight = $(".facet-body", facetDomObj).css("height");

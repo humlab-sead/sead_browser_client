@@ -330,9 +330,9 @@ h1.main-header {
 .facet-body {
   /*height: 268px;*/ /* needs to have fixed height because of range/diagram filters, but this is set in js facet init - to let this value be specified in Config*/
   padding: 5px;
-  overflow: hidden;
   padding-top: 0px;
   padding-bottom: 0px;
+  overflow: auto;
 }
 
 .facet-head-btn {
@@ -594,7 +594,7 @@ h1.main-header {
 	display:none;
 	position:relative;
 	height: 100%;
-	width: 100%;
+  width: 100%;
 	/*background-color:rgba(0, 0, 255, 0.5);*/
 }
 
