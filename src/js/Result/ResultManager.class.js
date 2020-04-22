@@ -258,8 +258,9 @@ class ResultManager {
 	setActiveModule(resultModuleId, renderModule = true) {
 		if(renderModule && this.activeModuleId != "none") { //If there's already an active module, unrender this first
 			this.renderMsg(false);
-			this.getActiveModule().setActive(false);
-			this.getActiveModule().unrender();
+			let module = this.getActiveModule();
+			module.setActive(false);
+			module.unrender();
 		}
 		if(renderModule) {
 			this.getResultModuleByName(resultModuleId).render();

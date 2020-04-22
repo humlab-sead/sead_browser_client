@@ -1126,6 +1126,7 @@ class ResultMap extends ResultModule {
 	* Function: unrender
 	*/
 	unrender() {
+		console.log(this.renderIntoNode);
 		$(this.renderIntoNode).hide();
 		$("#map-popup-container").remove();
 	}
@@ -1151,7 +1152,7 @@ class ResultMap extends ResultModule {
 	* Function: resizeCallback
 	*/
 	resizeCallback() {
-		if(this.olMap != null) {
+		if(this.olMap != null && this.active) {
 			$(this.renderIntoNode).hide();
 			if(typeof(this.resizeTimeout) != "undefined") {
 				clearTimeout(this.resizeTimeout);

@@ -37,7 +37,7 @@ class GenericDataset extends DatasetModule {
 
 		for(let key = datasets.length - 1; key >= 0; key--) { //Iterating through this backwards because that makes the splicing out of items less problematic
 			if(true) { //This module will always happily accept all datasets
-				console.log("Generic claiming ", datasets[key].datasetId); //Announce to the console that we are taking this dataset and running with it
+				//console.log("Generic claiming ", datasets[key].datasetId); //Announce to the console that we are taking this dataset and running with it
 				let dataset = datasets.splice(key, 1)[0]; //Splice (remove) it from the list
 				this.datasets.push(dataset); //Add it to our own internal list of datasets we are going to care for
 
