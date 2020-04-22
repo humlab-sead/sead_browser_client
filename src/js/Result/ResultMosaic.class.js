@@ -710,7 +710,15 @@ class ResultMosaic extends ResultModule {
 		zc.bind("click", (evt) => {
 			let startIndex = evt.targetid.indexOf("-plot-") + 6;
 			let plot = evt.targetid.substring(startIndex, startIndex+1);
-			let facet = this.hqs.facetManager.spawnFacet("sites", [...config.series[plot].sites]);
+
+			let facet = this.hqs.facetManager.getFacetByName("sites");
+			if(facet === false) {
+				facet = this.hqs.facetManager.spawnFacet("sites", [...config.series[plot].sites]);
+			}
+			else {
+				facet.setSelections([...config.series[plot].sites]);
+			}
+
 
 			let iv = setInterval(() => {
 				if(facet.isDataLoaded) {
