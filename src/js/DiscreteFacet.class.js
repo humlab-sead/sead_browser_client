@@ -18,6 +18,7 @@ class DiscreteFacet extends Facet {
 		this.scrollPosition = 0;
 		this.textFilterString = "";
 		this.visibleData = [];
+		this.checkMark = "<div class='fa fa-check facet-row-checkbox-mark' aria-hidden='true'></div>";
 		
 		this.updateMaxRowTitleLength();
 		this.renderSelections();
@@ -226,12 +227,16 @@ class DiscreteFacet extends Facet {
 			if(dataPos+i < renderData.length) {
 				var dataElement = renderData[dataPos+i];
 				var selectedClass = "";
+				let checkMark = "";
 				if(this.selections.indexOf(parseInt(dataElement.id)) != -1) {
 					selectedClass = "facet-row-selected";
+					checkMark = this.checkMark;
 				}
 				
 				var displayTitle = dataElement.title;
-				out += "<div class='facet-row "+selectedClass+"' facet-row-id='"+dataElement.id+"'><div class='facet-row-text'>"+displayTitle+"</div><div class='facet-row-count'>"+dataElement.count+"</div></div>";
+				
+				out += "<div class='facet-row "+selectedClass+"' facet-row-id='"+dataElement.id+"'><div class='facet-row-checkbox-container'><div class='facet-row-checkbox'>"+checkMark+"</div></div><div class='facet-row-text'>"+displayTitle+"</div><div class='facet-row-count'>"+dataElement.count+"</div></div>";
+				
 			}
 		}
 		
@@ -243,15 +248,11 @@ class DiscreteFacet extends Facet {
 			.show();
 		
 		
-		$(this.getDomRef()).find(".facet-row").bind("click", (obj) => {
+		$(this.getDomRef()).find(".facet-row").on("click", (evt) => {
 			if(this.locked) {
 				return;
 			}
-			var target = obj.target;
-			if($(obj.target).hasClass("facet-row-text")) {
-				target = $(obj.target).parent();
-			}
-			this.toggleRowSelection(target);
+			this.toggleRowSelection(evt.currentTarget);
 		});
 
 		$(this.getDomRef()).find(".facet-row-shortened-text").bind("hover", (obj) => {
@@ -307,11 +308,13 @@ class DiscreteFacet extends Facet {
 		}
 
 		if(found !== false) {
+			$(".facet-row-checkbox-mark", rowDomObj).remove();
 			$(rowDomObj).removeClass("facet-row-selected");
 			this.selections.splice(found, 1);
 			this.removeSelection(rowId);
 		}
 		else {
+			$(".facet-row-checkbox", rowDomObj).append(this.checkMark);
 			$(rowDomObj).addClass("facet-row-selected");
 			//this.selections.push(rowId);
 			this.addSelection(rowId);
