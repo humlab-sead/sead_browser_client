@@ -750,10 +750,8 @@ class ResultMosaic extends ResultModule {
 	}
 
 	async fetchSiteData(siteIds, dbView, requestId) {
-
 		if(siteIds.length == 0) {
-			//FIXME: This case needs to be handled
-			console.log("ERR: Unhandled case; no sites");
+			console.log("No sites");
 		}
 
 		let queries = [];
@@ -776,7 +774,10 @@ class ResultMosaic extends ResultModule {
 
 		let queryData = [];
 		for(let key in queries) {
-			let requestString = this.hqs.config.siteReportServerAddress+"/"+dbView+"?or="+queries[key];
+			let requestString = this.hqs.config.siteReportServerAddress+"/"+dbView;
+			if(siteIds.length > 0) {
+				requestString += "?or="+queries[key];
+			}
 			
 			let result = await $.ajax(requestString, {
 				method: "get",
