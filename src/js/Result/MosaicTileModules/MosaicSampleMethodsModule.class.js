@@ -19,7 +19,7 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
 			}
             let chartSeries = resultMosaicModule.prepareChartData("method_id", "method_name", promiseData.data);
             resultMosaicModule.setLoadingIndicator(renderIntoNode, false);
-			resultMosaicModule.renderPieChart(renderIntoNode, chartSeries, "Sampling methods");
+			this.chart = resultMosaicModule.renderPieChart(renderIntoNode, chartSeries, "Sampling methods");
 		});
     }
 }

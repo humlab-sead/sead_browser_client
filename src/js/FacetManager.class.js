@@ -1259,6 +1259,40 @@ class FacetManager {
 		return filterDefinitions;
 	}
 	
+	/**
+	 * Function: spawnFacet
+	 * 
+	 * This is a shorthand function for making and adding a facet.
+	 */
+	spawnFacet(facetId, selections = [], triggerResultLoad = true) {
+		let found = false;
+		this.facets.forEach((facet) => {
+			if(facet.name == facetId) {
+				found = true;
+				console.log("Tried to spawn facet that already exists!");
+			}
+		});
+
+		if(found) {
+			return false;
+		}
+
+		if(triggerResultLoad) {
+			this.hqs.resultManager.setResultDataFetchingSuspended(true);
+		}
+		let facetTemplate = this.getFacetTemplateByFacetId(facetId);
+		let facet = this.makeNewFacet(facetTemplate);
+		facet.setSelections(selections);
+		this.addFacet(facet); //This will trigger a facet load request
+		if(triggerResultLoad) {
+			this.hqs.resultManager.getActiveModule().unrender(); //FIXME: This causes an error
+			this.hqs.resultManager.fetchData();
+			this.hqs.resultManager.setResultDataFetchingSuspended(false);
+		}
+		
+		return facet;
+	}
+
 }
 
 export { FacetManager as default }

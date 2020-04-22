@@ -20,7 +20,7 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
 			}
             let chartSeries = resultMosaic.prepareChartData("feature_type_id", "feature_type_name", promiseData.data);
             resultMosaic.setLoadingIndicator(renderIntoNode, false);
-			resultMosaic.renderBarChart(renderIntoNode, chartSeries);
+			this.chart = resultMosaic.renderBarChart(renderIntoNode, chartSeries);
 		});
     }
 }

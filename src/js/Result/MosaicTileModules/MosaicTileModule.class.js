@@ -1,6 +1,8 @@
 class MosaicTileModule {
     constructor(hqs) {
         this.hqs = hqs;
+        this.chart = null;
+        this.renderIntoNode = null;
     }
 
     render() {
@@ -8,7 +10,10 @@ class MosaicTileModule {
     }
 
     unrender() {
-        
+        if(this.chart != null) {
+            this.chart.destroy();
+            this.chart = null;
+        }
     }
 }
 

@@ -6,10 +6,11 @@ class MosaicCeramicsTypeCountModule extends MosaicTileModule {
         this.hqs = hqs;
         this.title = "Ceramic type count";
 		this.name = "mosaic-ceramic-type-count";
-		this.portals = ["ceramic"];
+        this.portals = ["ceramic"];
     }
 
     async render(renderIntoNode) {
+        this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.hqs.resultManager.getModule("mosaic");
         resultMosaic.setLoadingIndicator(renderIntoNode, true);
 
@@ -21,7 +22,7 @@ class MosaicCeramicsTypeCountModule extends MosaicTileModule {
 
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "type_name", "count");
         resultMosaic.setLoadingIndicator(renderIntoNode, false);
-        resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);
+        this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);
     }
 }
 

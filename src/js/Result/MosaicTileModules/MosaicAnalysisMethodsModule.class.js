@@ -21,7 +21,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
 
 			let chartSeries = resultMosaic.prepareChartData("method_id", "method_name", promiseData.data);
             resultMosaic.setLoadingIndicator(renderIntoNode, false);
-			resultMosaic.renderPieChart(renderIntoNode, chartSeries, "Analysis methods");
+			this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, "Analysis methods");
 		});
     }
 }

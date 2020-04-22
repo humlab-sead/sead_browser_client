@@ -198,6 +198,11 @@ class ResultMosaic extends ResultModule {
 		}
 	}
 	
+	/**
+	 * Function: render
+	 * 
+	 * This is the entry-function, the one being called by the ResultManager to set off the rendering of this module and its sub-modules.
+	 */
 	render() {
 		var xhr = this.fetchData();
 		xhr.then((respData, textStatus, xhr) => { //success
@@ -215,6 +220,9 @@ class ResultMosaic extends ResultModule {
 		});
 	}
 	
+	/**
+	 * Function: renderData
+	 */
 	renderData() {
 		this.unrender();
 		$('#result-mosaic-container').show();
@@ -233,14 +241,13 @@ class ResultMosaic extends ResultModule {
 		for(let key in this.modules) {
 			if(this.modules[key].portals.includes(portal.name) || this.modules[key].portals.includes("*")) {
 				if($("#result-mosaic-container #"+this.modules[key].name).length == 0) {
-
-					//.result-mosaic-loading-indicator-container
-
 					let tileNode = $("<div class='result-mosaic-tile'></div>");
 					tileNode.append("<h2>"+this.modules[key].title+"</h2>");
 					tileNode.append("<div id='"+this.modules[key].name+"' class='result-mosaic-graph-container'></div>");
-
 					$('#result-mosaic-container').append(tileNode);
+				}
+				else {
+					console.log("Not creating mosaic tile node since it exists");
 				}
 				let promise = this.modules[key].render("#"+this.modules[key].name);
 				//let promise = this.modules[key].callback("#"+this.modules[key].name, this);
@@ -269,11 +276,13 @@ class ResultMosaic extends ResultModule {
 				types[type_id] = {
 					methodId: data[key].type_id,
 					featureType: data[key][data_value_name],
+					sites: new Set([data[key].site_id]),
 					count: 1
 				};
 			}
 			else {
 				types[type_id].count++;
+				types[type_id].sites.add(data[key].site_id);
 			}
 		}
 
@@ -281,7 +290,8 @@ class ResultMosaic extends ResultModule {
 		for(let key in types) {
 			chartSeries.push({
 				"values": [types[key].count],
-				"text": types[key].featureType
+				"text": types[key].featureType,
+				"sites": types[key].sites
 			});
 		}
 		
@@ -426,13 +436,15 @@ class ResultMosaic extends ResultModule {
 				if(category.name == dataPoint[categoryNameAttribute]) {
 					categoryFound = true;
 					category.count += dataPoint[categoryCountAttribute];
+					category.sites.add(dataPoint.site_id)
 				}
 			});
 
 			if(!categoryFound) {
 				categories.push({
 					name: dataPoint[categoryNameAttribute],
-					count: dataPoint[categoryCountAttribute]
+					count: dataPoint[categoryCountAttribute],
+					sites: new Set([dataPoint.site_id])
 				});
 			}
 		}
@@ -441,7 +453,8 @@ class ResultMosaic extends ResultModule {
 		for(let key in categories) {
 			chartSeries.push({
 				"values": [categories[key].count],
-				"text": categories[key].name
+				"text": categories[key].name,
+				"sites": categories[key].sites
 			});
 		}
 
@@ -524,7 +537,7 @@ class ResultMosaic extends ResultModule {
 				}
 			},
 			"tooltip":{
-				"text": "%t (%v)",
+				"text": "%t, %v counts\n<span>Click to filter on these sites</span>",
 				"html-mode": true,
 				"decimals": 0,
 				"align": 'left',
@@ -568,6 +581,7 @@ class ResultMosaic extends ResultModule {
 			"toggle-action":"remove"
 		};
 
+		/*
 		let zc = this.getFromGraphRegistry(renderIntoNode);
 		if(zc !== false) { //Update existing chart
 			zingchart.exec(renderIntoNode.substr(1), 'setdata', {
@@ -575,13 +589,34 @@ class ResultMosaic extends ResultModule {
 			});
 		}
 		else { //Create new chart
-			let zc = zingchart.render({
+			zc = zingchart.render({
 				id : renderIntoNode.substr(1),
 				data : config,
 				height: "100%"
 			});
 			this.pushIntoGraphRegistry(zc, renderIntoNode);
 		}
+		*/
+		let zc = zingchart.render({
+			id : renderIntoNode.substring(1),
+			data : config,
+			height: "100%"
+		});
+
+		zc.bind("click", (evt) => {
+			let startIndex = evt.targetid.indexOf("-plot-") + 6;
+			let plot = evt.targetid.substring(startIndex, startIndex+1);
+			let facet = this.hqs.facetManager.spawnFacet("sites", [...config.series[plot].sites]);
+
+			let iv = setInterval(() => {
+				if(facet.isDataLoaded) {
+					facet.minimize();
+					clearInterval(iv);
+				}
+			}, 100);
+		});
+
+		return zc;
 	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {
@@ -597,7 +632,7 @@ class ResultMosaic extends ResultModule {
 			"background-color": "transparent",
 			"series": chartSeries,
 			"tooltip":{
-				"text": "%t (%v)",
+				"text": "%t, %v counts\n<span>Click to filter on these sites</span>",
 				"html-mode": true,
 				"decimals": 0,
 				"align": 'left',
@@ -618,21 +653,7 @@ class ResultMosaic extends ResultModule {
 					"decimals": 2,
 					"placement":"out",
 					"font-color":"#000",
-					"rules": [
-						{
-							rule: "%npv > 5",
-							placement: "in",
-							'offset-r': "25%",
-							'font-color': "white",
-							'background-color': "#333",
-							'border-width': 0
-						},
-						{
-							rule: "%npv <= 5",
-							placement: "out",
-							'font-color': "black",
-						}
-					]
+					'background-color': "transparent"
 				}
 			}
 		};
@@ -663,6 +684,7 @@ class ResultMosaic extends ResultModule {
 			"toggle-action":"remove"
 		};
 
+		/*
 		let zc = this.getFromGraphRegistry(renderIntoNode);
 		if(zc !== false) { //Update existing chart
 			zingchart.exec(renderIntoNode.substr(1), 'setdata', {
@@ -670,13 +692,35 @@ class ResultMosaic extends ResultModule {
 			});
 		}
 		else { //Create new chart
-			let zc = zingchart.render({
+			zc = zingchart.render({
 				id : renderIntoNode.substr(1),
 				data : config,
 				height: "100%"
 			});
 			this.pushIntoGraphRegistry(zc, renderIntoNode);
 		}
+		*/
+
+		let zc = zingchart.render({
+			id : renderIntoNode.substring(1),
+			data : config,
+			height: "100%"
+		});
+
+		zc.bind("click", (evt) => {
+			let startIndex = evt.targetid.indexOf("-plot-") + 6;
+			let plot = evt.targetid.substring(startIndex, startIndex+1);
+			let facet = this.hqs.facetManager.spawnFacet("sites", [...config.series[plot].sites]);
+
+			let iv = setInterval(() => {
+				if(facet.isDataLoaded) {
+					facet.minimize();
+					clearInterval(iv);
+				}
+			}, 100);
+		});
+
+		return zc;
 	}
 
 	getFromGraphRegistry(anchorNodeName) {
@@ -756,9 +800,7 @@ class ResultMosaic extends ResultModule {
 		return renderCategories;
 	}
 	
-	
 	unrender() {
-
 		this.modules.forEach((module) => {
 			module.unrender();
 		});
@@ -773,16 +815,17 @@ class ResultMosaic extends ResultModule {
 			this.resultMap.unrender();
 		}
 
+		/*
 		for(let k in this.graphs) {
 			zingchart.exec(this.graphs[k].anchor.substr(1), 'destroy');
 			this.removeFromGraphRegistry(this.graphs[k].anchor);
 		}
+		*/
 		$("#result-mosaic-container").html("");
 	}
 	
 	exportSettings() {
-		return {
-		};
+		return {};
 	}
 	
 	importSettings(settings) {

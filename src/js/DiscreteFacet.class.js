@@ -344,6 +344,7 @@ class DiscreteFacet extends Facet {
 	minimize() {
 		this.scrollPosition = this.getScrollPos();
 		super.minimize();
+		
 		$(".facet-text-search-input", this.getDomRef()).hide();
 		$(".facet-text-search-btn", this.getDomRef()).hide();
 		

@@ -21,7 +21,7 @@ class MosaicDendroTreeSpeciesModule extends MosaicTileModule {
 
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "genus_name", "count");
         resultMosaic.setLoadingIndicator(renderIntoNode, false);
-        resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);
+        this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);
     }
 }
 

@@ -10,6 +10,7 @@ class MosaicCeramicsCultureModule extends MosaicTileModule {
     }
 
     async render(renderIntoNode) {
+        this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.hqs.resultManager.getModule("mosaic");
         resultMosaic.setLoadingIndicator(renderIntoNode, true);
 
@@ -21,7 +22,7 @@ class MosaicCeramicsCultureModule extends MosaicTileModule {
 
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "Culture", "count");
         resultMosaic.setLoadingIndicator(renderIntoNode, false);
-        resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);
+        this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);
     }
 }
 
