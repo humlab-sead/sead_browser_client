@@ -1,8 +1,8 @@
 import Color from './color.class.js';
 import FacetManager from './FacetManager.class.js';
-import sqsLayoutManager from './sqsLayoutManager.class.js';
+import SqsLayoutManager from './SqsLayoutManager.class.js';
 import MainMenu from './MainMenu.class.js'
-import sqsMenuManager from './sqsMenuManager.class';
+import SqsMenuManager from './SqsMenuManager.class';
 import ResultManager from './Result/ResultManager.class.js';
 import ResultMap from './Result/ResultMap.class.js'
 import ResultTable from './Result/ResultTable.class.js'
@@ -56,7 +56,7 @@ class SeadQuerySystem {
 		this.color = new Color();
 		this.stateManager = new StateManager(this);
 		var viewstate = this.stateManager.getViewstateIdFromUrl();
-		this.layoutManager = new sqsLayoutManager(this);
+		this.layoutManager = new SqsLayoutManager(this);
 		this.layoutManager.createView("#facet-result-panel", "filters", this.config.facetSectionDefaultWidth, 100-this.config.facetSectionDefaultWidth, {
 			rules: [
 				{
@@ -102,9 +102,9 @@ class SeadQuerySystem {
 
 		//this.layoutManager.setActiveView("filters");
 
-		//this.siteReportLayoutManager = new sqsLayoutManager(this, "#site-report-panel", 80, 20);
+		//this.siteReportLayoutManager = new SqsLayoutManager(this, "#site-report-panel", 80, 20);
 
-		this.menuManager = new sqsMenuManager(this);
+		this.menuManager = new SqsMenuManager(this);
 		this.dialogManager = new DialogManager(this);
 	  	this.tooltipManager = new TooltipManager(this);
 		this.facetManager = new FacetManager(this, this.filterDefinitions);
