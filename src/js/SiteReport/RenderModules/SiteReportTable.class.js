@@ -21,7 +21,7 @@ import "datatables.net-responsive-dt";
 class SiteReportTable {
 	constructor(siteReport, contentItem) {
 		this.siteReport = siteReport; //The parent site report
-		this.hqs = this.siteReport.hqs;
+		this.sqs = this.siteReport.sqs;
 		this.contentItem = contentItem; //This specific "contentItem" to render. This contains all the data we need.
 		this.tableNode = null; //DOM node ref
 		this.pagingRows = 10; //If more than this many rows in the table we enable paging (goes for both this table and its subtables)
@@ -153,7 +153,7 @@ class SiteReportTable {
 	
 	unrender() {
 		this.tooltipIds.forEach(ttId => {
-			this.siteReport.hqs.tooltipManager.unRegisterTooltip(ttId);
+			this.siteReport.sqs.tooltipManager.unRegisterTooltip(ttId);
 		});
 
 		this.dt.destroy();
@@ -284,7 +284,7 @@ class SiteReportTable {
 		popperHtml += "</div>";
 		popperHtml += "</div>";
 		
-		let tt = this.siteReport.hqs.tooltipManager.registerTooltip(aggLegNode, popperHtml, {html: false});
+		let tt = this.siteReport.sqs.tooltipManager.registerTooltip(aggLegNode, popperHtml, {html: false});
 		this.tooltipIds.push(tt);
 		return aggLegNode;
 	}
@@ -370,7 +370,7 @@ class SiteReportTable {
 							options = row[colKey].tooltip.options;
 						}
 						
-						let tt = this.siteReport.hqs.tooltipManager.registerTooltip("#"+cellNodeId, tooltipMsg, options);
+						let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+cellNodeId, tooltipMsg, options);
 						this.tooltipIds.push("#"+cellNodeId);
 					}
 					
@@ -608,9 +608,9 @@ class SiteReportTable {
 			popperHtml += "<span class='site-report-table-popper-content' style='font-size:1.4em;'>"+p+"%</span>";
 			popperHtml += "</div>";
 
-			//this.siteReport.siteReportManager.hqs.tooltipManager.registerTooltip("site-report-aggregation-bar-legend-"+index, $(el)[0], popperHtml, { "stickyWhenClicked": false })
+			//this.siteReport.siteReportManager.sqs.tooltipManager.registerTooltip("site-report-aggregation-bar-legend-"+index, $(el)[0], popperHtml, { "stickyWhenClicked": false })
 
-			let tt = this.siteReport.siteReportManager.hqs.tooltipManager.registerTooltip($(el), popperHtml);
+			let tt = this.siteReport.siteReportManager.sqs.tooltipManager.registerTooltip($(el), popperHtml);
 		});
 	}
 
@@ -667,7 +667,7 @@ class SiteReportTable {
 				}
 				
 				if(row[vk].hasOwnProperty("tooltip") && row[vk].tooltip != "") {
-					let tt = this.siteReport.hqs.tooltipManager.registerTooltip("#"+cellNodeId, row[vk].tooltip, {drawSymbol:true});
+					let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+cellNodeId, row[vk].tooltip, {drawSymbol:true});
 					this.tooltipIds.push("#"+cellNodeId);
 				}
 				
@@ -713,8 +713,8 @@ class SiteReportTable {
 		let roNode = $(this.anchorNodeSelector).parent().find(".site-report-render-options-container-extras");
 		roNode.html("");
 
-		let renderOptionKey = this.hqs.findObjectPropInArray(contentItem.renderOptions, "type", "table");
-		let optionItemKey = this.hqs.findObjectPropInArray(contentItem.renderOptions[renderOptionKey].options, "name", "columnsVisibility");
+		let renderOptionKey = this.sqs.findObjectPropInArray(contentItem.renderOptions, "type", "table");
+		let optionItemKey = this.sqs.findObjectPropInArray(contentItem.renderOptions[renderOptionKey].options, "name", "columnsVisibility");
 		let renderOption = contentItem.renderOptions[renderOptionKey].options[optionItemKey];
 
 		for(let key in renderOption.hiddenColumns) {

@@ -25,7 +25,7 @@ class Timeline {
 		this.siteBins = [];
 
 		//Set up resize event handlers
-		this.map.resultManager.hqs.hqsEventListen("layoutResize", () => this.resizeCallback());
+		this.map.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
 	}
 
@@ -529,10 +529,10 @@ class Timeline {
 	* sites - All the sites in a list which in some way touches the current selection.
 	*/
 	getSelectedSites() {
+		
 		this.binSitesByTimeSpan(this.map.data);
 		let timeSelection = this.getSelection();
-
-		if(timeSelection.length == 0) {
+		if(timeSelection.length == 0 && this.map.data.length > 0) {
 			timeSelection = [
 				this.getEarliestSite(this.map.data).time.min,
 				this.getLatestSite(this.map.data).time.max,

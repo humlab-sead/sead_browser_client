@@ -4,11 +4,17 @@ var Config = {
 		shortName: "CC-BY-4.0",
 		url: "https://creativecommons.org/licenses/by/4.0/"
 	},
+	/*
 	serverRoot: "https://browser.sead.se", //for images and such
 	serverAddress: "https://browser.sead.se:8089", //New server
-	//viewStateServerAddress: "http://browser.sead.se:8081", //HTTP
 	viewStateServerAddress: "https://browser.sead.se:8443", //HTTPS
 	siteReportServerAddress: "https://browser.sead.se:3000", //for site reports, which uses a PostgREST interface - production db (3000)
+	*/
+	serverRoot: "https://supersead.humlab.umu.se", //for images and such
+	serverAddress: "https://supersead.humlab.umu.se:8089", //New server
+	viewStateServerAddress: "https://supersead.humlab.umu.se:8443", //HTTPS
+	siteReportServerAddress: "https://supersead.humlab.umu.se:3000", //for site reports, which uses a PostgREST interface - production db (3000)
+
 	defaultResultModule: "mosaic", //map, mosaic or table
 	facetSectionDefaultWidth: 30, //percentage of total window width
 	facetBodyHeight: 268, //default facet height in px
@@ -33,7 +39,7 @@ var Config = {
 		"00ffff",
 		"0000ff"
 	],
-	activePortal: "general",
+	activeDomain: "general",
 	portals: [
 		{
 			name: "general",
@@ -61,7 +67,7 @@ var Config = {
 			]
 		},
 		{
-			name: "palaeo",
+			name: "palaeoentomology",
 			title: "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i> Palaeoentomology",
 			color: "#d00",
 			//color: "#2d5e8d",
@@ -86,7 +92,7 @@ var Config = {
 			]
 		},
 		{
-			name: "dendro",
+			name: "dendrochronology",
 			title: "<i class=\"fa fa-tree\" aria-hidden=\"true\"></i> Dendrochronology",
 			color: "#0a0",
 			//color: "#2d5e8d",
@@ -136,8 +142,8 @@ var Config = {
 			]
 		},
 		{
-			name: "isotopes",
-			title: "<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i> Isotopes",
+			name: "isotope",
+			title: "<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i> Isotope",
 			color: "#990",
 			//color: "#2d5e8d",
 			datasetId: 11,
@@ -166,6 +172,56 @@ var Config = {
 			color: "#099",
 			//color: "#2d5e8d",
 			datasetId: 3,
+			filters: [
+				"sample_groups",
+				"sites",
+				"country",
+				"geochronology",
+				"relative_age_name",
+				"ecocode",
+				"ecocode_system",
+				"tbl_denormalized_measured_values_33_0",
+				"tbl_denormalized_measured_values_33_82",
+				"tbl_denormalized_measured_values_32",
+				"tbl_denormalized_measured_values_37",
+				"family",
+				"genus",
+				"species",
+				"species_author",
+				"dataset_master"
+			]
+		},
+		{
+			name: "pollen",
+			title: "Pollen",
+			color: "#888",
+			//color: "#2d5e8d",
+			datasetId: false,
+			filters: [
+				"sample_groups",
+				"sites",
+				"country",
+				"geochronology",
+				"relative_age_name",
+				"ecocode",
+				"ecocode_system",
+				"tbl_denormalized_measured_values_33_0",
+				"tbl_denormalized_measured_values_33_82",
+				"tbl_denormalized_measured_values_32",
+				"tbl_denormalized_measured_values_37",
+				"family",
+				"genus",
+				"species",
+				"species_author",
+				"dataset_master"
+			]
+		},
+		{
+			name: "geoarchaeology",
+			title: "Geoarchaeology",
+			color: "#888",
+			//color: "#2d5e8d",
+			datasetId: false,
 			filters: [
 				"sample_groups",
 				"sites",

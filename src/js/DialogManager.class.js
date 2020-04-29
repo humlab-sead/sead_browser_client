@@ -8,8 +8,8 @@ class DialogManager {
 	/* 
 	* Function: constructor
 	*/
-	constructor(hqs) {
-		this.hqs = hqs;
+	constructor(sqs) {
+		this.sqs = sqs;
 		this.coverActive = false;
 		this.coverTiles = [];
 		this.coverTilesNum = 12;
@@ -33,12 +33,12 @@ class DialogManager {
 			evt.stopPropagation();
 		});
 		
-		this.hqs.hqsEventListen("seadStateLoadComplete", () => {
+		this.sqs.sqsEventListen("seadStateLoadComplete", () => {
 			if(Config.viewstateLoadingScreenEnabled) {
 				this.removeCover();
 			}
 		});
-		this.hqs.hqsEventListen("seadStateLoadFailed", () => {
+		this.sqs.sqsEventListen("seadStateLoadFailed", () => {
 			if(Config.viewstateLoadingScreenEnabled) {
 				this.removeCover();
 			}
@@ -58,7 +58,7 @@ class DialogManager {
 		$("#popover-dialog-frame > .popover-content").html(content);
 		$("#popover-dialog").css("display", "grid").hide();
 		$("#popover-dialog").fadeIn(100);
-		this.hqs.hqsEventDispatch("popOverOpened", {
+		this.sqs.sqsEventDispatch("popOverOpened", {
 			title: title,
 			content: content
 		});
@@ -66,7 +66,7 @@ class DialogManager {
 
 	hidePopOver() {
 		$("#popover-dialog").fadeOut(100);
-		this.hqs.hqsEventDispatch("popOverClosed", {});
+		this.sqs.sqsEventDispatch("popOverClosed", {});
 	}
 
 	/* 
@@ -201,10 +201,10 @@ class DialogManager {
 
 	/**
 	 * var content = $("#gdpr-infobox").html();
-		window.hqs.dialogManager.showPopOver("Legal policy", content);
+		window.sqs.dialogManager.showPopOver("Legal policy", content);
 	 */
 	
-	hqsMenu() {
+	sqsMenu() {
 
 		return {
 			title: "About",
@@ -220,7 +220,7 @@ class DialogManager {
 						var content = $("#about-section > .overlay-dialog-content").html();
 						content = $(content);
 						$("#data-license-section", content).text(Config.dataLicense.name).attr("href", Config.dataLicense.url);
-						window.hqs.dialogManager.showPopOver("About", content);
+						window.sqs.dialogManager.showPopOver("About", content);
 					}
 				},
 				{
@@ -228,7 +228,7 @@ class DialogManager {
 					title: "<i class=\"fa fa-user-circle\" aria-hidden=\"true\"></i> Team",
 					callback: () => {
 						var content = $("#team-section > .overlay-dialog-content").html();
-						window.hqs.dialogManager.showPopOver("Team", content);
+						window.sqs.dialogManager.showPopOver("Team", content);
 					}
 				},
 				{
@@ -236,7 +236,7 @@ class DialogManager {
 					title: "<i class=\"fa fa-user-circle\" aria-hidden=\"true\"></i> Legal",
 					callback: () => {
 						var content = $("#gdpr-infobox").html();
-						window.hqs.dialogManager.showPopOver("Legal policy", content);
+						window.sqs.dialogManager.showPopOver("Legal policy", content);
 					}
 				}
 			]

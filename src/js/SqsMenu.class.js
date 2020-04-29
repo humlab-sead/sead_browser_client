@@ -1,5 +1,5 @@
 /*
-Class: HqsMenu
+Class: sqsMenu
 Makes menus out of structures, good stuff.
 
 Structure looks like this:
@@ -63,27 +63,27 @@ var menu = {
 };
 
 */
-class HqsMenu {
+class sqsMenu {
 	/*
 	* Function: constructor
 	*
 	* Parameters:
-	* hqsMenuDef - JSON-structure defining the menu to be generated.
+	* sqsMenuDef - JSON-structure defining the menu to be generated.
 	*/
-	constructor(hqs, hqsMenuDef, init = true) {
-		this.hqs = hqs;
-		hqsMenuDef = this.normalizeMenuDef(hqsMenuDef);
-		this.id = hqsMenuDef.anchor;
-		this.menuDef = hqsMenuDef;
+	constructor(sqs, sqsMenuDef, init = true) {
+		this.sqs = sqs;
+		sqsMenuDef = this.normalizeMenuDef(sqsMenuDef);
+		this.id = sqsMenuDef.anchor;
+		this.menuDef = sqsMenuDef;
 		this.screenSmallWidthBreakPoint = 1020;
 		this.screenLargeWidthBreakPoint = 2000;
 		this.closeTimerInterval = null;
-		this.menuItemsContainerSelector = this.menuDef.anchor+".hqs-menu-container";
+		this.menuItemsContainerSelector = this.menuDef.anchor+".sqs-menu-container";
 		
 		if(init) {
-			this.renderMenuLabel(hqsMenuDef);
-			this.renderMenu(hqsMenuDef);
-			this.bindCallbacks(hqsMenuDef);
+			this.renderMenuLabel(sqsMenuDef);
+			this.renderMenu(sqsMenuDef);
+			this.bindCallbacks(sqsMenuDef);
 			this.registerTooltipBindings();
 		}
 		
@@ -94,20 +94,20 @@ class HqsMenu {
 	* Function: renderMenuLabel
 	*/
 	renderMenuLabel(m) {
-		var classes = "hqs-menu-title-container";
+		var classes = "sqs-menu-title-container";
 		
 		if(typeof m.customStyleClasses != "undefined") {
 			classes += " "+m.customStyleClasses;
 		}
 		
 		if(m.layout == "horizontal") {
-			classes += " hqs-menu-block-horizontal";
+			classes += " sqs-menu-block-horizontal";
 		}
 		else {
-			classes += " hqs-menu-block-vertical";
+			classes += " sqs-menu-block-vertical";
 		}
 		if(!m.collapsed) {
-			classes += " hqs-menu-block-expanded";
+			classes += " sqs-menu-block-expanded";
 		}
 
 		$(this.menuDef.anchor).html("");
@@ -115,15 +115,15 @@ class HqsMenu {
 			if(typeof(m.style.menuTitleClass) != "undefined") {
 				classes += " "+m.style.menuTitleClass;
 			}
-			$(this.menuDef.anchor).append("<div class='"+classes+"'><div class='hqs-menu-title'>"+this.menuDef.title+"</div></div>");
+			$(this.menuDef.anchor).append("<div class='"+classes+"'><div class='sqs-menu-title'>"+this.menuDef.title+"</div></div>");
 		}
 		
 		if(typeof m.subText != "undefined") {
-			$(".hqs-menu-title-container", this.menuDef.anchor).append("<div class='hqs-menu-title-subtext'>"+m.subText+"</div>");
+			$(".sqs-menu-title-container", this.menuDef.anchor).append("<div class='sqs-menu-title-subtext'>"+m.subText+"</div>");
 		}
 		
 		if(typeof(m.callback) == "function") {
-			$(".hqs-menu-title-container", this.menuDef.anchor).on("click", m.callback);
+			$(".sqs-menu-title-container", this.menuDef.anchor).on("click", m.callback);
 		}
 	}
 	
@@ -132,18 +132,18 @@ class HqsMenu {
 	*
 	*/
 	renderMenu(m) {
-		var hqsMenuContainerDisplay = "inline-block";
+		var sqsMenuContainerDisplay = "inline-block";
 		var menuCategoryLevelClass = "l1-container-level l1-container-level-vertical";
 		if(m.layout == "horizontal") {
-			hqsMenuContainerDisplay = "flex";
+			sqsMenuContainerDisplay = "flex";
 			menuCategoryLevelClass = "l1-container-level l1-container-level-horizontal";
 		}
 		
 		if(!m.visible) {
-			hqsMenuContainerDisplay = "none";
+			sqsMenuContainerDisplay = "none";
 		}
 
-		$(m.anchor).addClass("hqs-menu-container").css("display", hqsMenuContainerDisplay);
+		$(m.anchor).addClass("sqs-menu-container").css("display", sqsMenuContainerDisplay);
 
 		let menuFirstLevelList = $("<ul></ul>").addClass(menuCategoryLevelClass);
 		$(this.menuItemsContainerSelector).append(menuFirstLevelList);
@@ -224,7 +224,7 @@ class HqsMenu {
 
 	bindMenuAnchor(m) {
 		if(m.items.length > 0) {
-			$(m.anchor+" > .hqs-menu-title-container").on("mouseover", () => {
+			$(m.anchor+" > .sqs-menu-title-container").on("mouseover", () => {
 				this.showMenu(m);
 			});
 
@@ -239,7 +239,7 @@ class HqsMenu {
 	}
 
 	showMenu(m) {
-		$(".hqs-menu-title-container", m.anchor).addClass("hqs-menu-block-active");
+		$(".sqs-menu-title-container", m.anchor).addClass("sqs-menu-block-active");
 
 		var displayMode = "flex";
 		if(m.layout == "horizontal") {
@@ -276,7 +276,7 @@ class HqsMenu {
 		for(let key in this.menuDef.items) {
 			for (var sk in this.menuDef.items[key].children) {
 				if(this.menuDef.items[key].children[sk].tooltip != "") {
-					this.hqs.tooltipManager.registerTooltip("#menu-item-" + this.menuDef.items[key].children[sk].name, this.menuDef.items[key].children[sk].tooltip, ttOptions);
+					this.sqs.tooltipManager.registerTooltip("#menu-item-" + this.menuDef.items[key].children[sk].name, this.menuDef.items[key].children[sk].tooltip, ttOptions);
 				}
 			}
 		}
@@ -287,7 +287,7 @@ class HqsMenu {
 	*/
 	closeMenu(m) {
 		$(m.anchor+" .l1-container-level").css("display", "none");
-		$(".hqs-menu-title-container", m.anchor).removeClass("hqs-menu-block-active");
+		$(".sqs-menu-title-container", m.anchor).removeClass("sqs-menu-block-active");
 		//$(this.menuItemsContainerSelector).hide();
 		$(m.anchor+" .l1-container-level").css("right", "auto");
 	}
@@ -315,10 +315,10 @@ class HqsMenu {
 	updateRenderSelected() {
 		for(var key in this.menuDef.items) {
 			if(this.menuDef.items[key].staticSelection) {
-				$("[name="+this.menuDef.items[key].name+"]", this.menuDef.anchor).addClass("hqs-menu-static-selection");
+				$("[name="+this.menuDef.items[key].name+"]", this.menuDef.anchor).addClass("sqs-menu-static-selection");
 			}
 			else {
-				$("[name="+this.menuDef.items[key].name+"]", this.menuDef.anchor).removeClass("hqs-menu-static-selection");
+				$("[name="+this.menuDef.items[key].name+"]", this.menuDef.anchor).removeClass("sqs-menu-static-selection");
 			}
 		}
 	}
@@ -360,7 +360,7 @@ class HqsMenu {
 		}
 		
 		if(typeof menuDef.viewPortResizeCallback != "undefined") {
-			this.hqs.hqsEventListen("layoutResize", menuDef.viewPortResizeCallback);
+			this.sqs.sqsEventListen("layoutResize", menuDef.viewPortResizeCallback);
 		}
 		
 		
@@ -437,4 +437,4 @@ class HqsMenu {
 	}
 }
 
-export { HqsMenu as default }
+export { sqsMenu as default }

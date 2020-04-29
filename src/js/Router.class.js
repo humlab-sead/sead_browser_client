@@ -1,12 +1,12 @@
 
 class Router {
-    constructor(hqs) {
-        this.hqs = hqs;
+    constructor(sqs) {
+        this.sqs = sqs;
 
-        this.hqs.hqsEventListen("siteReportClosed", () => {
-            let portal = this.hqs.portalManager.getActivePortal();
-            if(portal.name != "general") {
-                history.pushState({}, "", "/"+portal.name);
+        this.sqs.sqsEventListen("siteReportClosed", () => {
+            let domain = this.sqs.domainManager.getActiveDomain();
+            if(domain.name != "general") {
+                history.pushState({}, "", "/"+domain.name);
             }
             else {
                 history.pushState({}, "", "/");
@@ -21,40 +21,40 @@ class Router {
         let pathComponents = path.split("/");
         switch(pathComponents[1]) {
             case "":
-                this.hqs.layoutManager.setActiveView("filters");
+                this.sqs.layoutManager.setActiveView("filters");
             break;
             case "site":
                 if(Number.isInteger(parseInt(pathComponents[2]))) {
-                    this.hqs.layoutManager.setActiveView("siteReport");
+                    this.sqs.layoutManager.setActiveView("siteReport");
                     let siteId = pathComponents[2];
-                    this.hqs.siteReportManager.renderSiteReport(siteId);
+                    this.sqs.siteReportManager.renderSiteReport(siteId);
                 }
                 else {
                     console.error("Invalid site requested!");
-                    this.hqs.layoutManager.setActiveView("filters");
-                    this.hqs.dialogManager.showPopOver("404 - Page not found!", "/"+pathComponents[1]);
+                    this.sqs.layoutManager.setActiveView("filters");
+                    this.sqs.dialogManager.showPopOver("404 - Page not found!", "/"+pathComponents[1]);
                 }
             break;
             case "viewstate":
-                this.hqs.layoutManager.setActiveView("filters");
+                this.sqs.layoutManager.setActiveView("filters");
             break;
             default:
-                if(this.portalExists(pathComponents[1])) {
-                    this.hqs.layoutManager.setActiveView("filters");
-                    this.hqs.portalManager.setActivePortal(pathComponents[1]);
+                if(this.domainExists(pathComponents[1])) {
+                    this.sqs.layoutManager.setActiveView("filters");
+                    this.sqs.domainManager.setActiveDomain(pathComponents[1]);
                 }
                 else {
                     console.log("404 - Page not found!");
-                    this.hqs.layoutManager.setActiveView("filters");
-                    this.hqs.dialogManager.showPopOver("404 - Page not found!", "/"+pathComponents[1]);
+                    this.sqs.layoutManager.setActiveView("filters");
+                    this.sqs.dialogManager.showPopOver("404 - Page not found!", "/"+pathComponents[1]);
                 }
                 break;
         }
     }
 
-    portalExists(portalName) {
-        for(let key in this.hqs.config.portals) {
-            if(this.hqs.config.portals[key].name == portalName) {
+    domainExists(domainName) {
+        for(let key in this.sqs.config.domains) {
+            if(this.sqs.config.domains[key].name == domainName) {
                 return true;
             }
         }

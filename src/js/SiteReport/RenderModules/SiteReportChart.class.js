@@ -5,7 +5,7 @@ import 'zingchart/es6';
 class SiteReportChart {
 	constructor(siteReport, contentItem) {
 		this.siteReport = siteReport;
-		this.hqs = this.siteReport.hqs;
+		this.sqs = this.siteReport.sqs;
 		this.contentItem = contentItem;
 		this.chartId = null;
 		
@@ -232,7 +232,7 @@ class SiteReportChart {
 		
 		
 		var colors = [];
-		colors = this.hqs.color.getMonoColorScheme(taxonCount);
+		colors = this.sqs.color.getMonoColorScheme(taxonCount);
 		
 		//Normalize the taxa structure so that each taxon contains all the samples but with zero abundance where non-existant
 		var colorKey = 0;
@@ -297,8 +297,8 @@ class SiteReportChart {
 	renderBarChartZing() {
 		var contentItem = this.contentItem;
 		var ro = this.siteReport.getSelectedRenderOption(contentItem);
-		let xAxisKey = ro.options[this.hqs.findObjectPropInArray(ro.options, "title", "X axis")].selected;
-		let yAxisKey = ro.options[this.hqs.findObjectPropInArray(ro.options, "title", "Y axis")].selected;
+		let xAxisKey = ro.options[this.sqs.findObjectPropInArray(ro.options, "title", "X axis")].selected;
+		let yAxisKey = ro.options[this.sqs.findObjectPropInArray(ro.options, "title", "Y axis")].selected;
 
 		
 		var xUnitSymbol = "";
@@ -396,7 +396,7 @@ class SiteReportChart {
 			hoverBackgroundColor: "#f60"
 		});
 
-		var bgColor = this.hqs.color.getColorScheme(1)[0];
+		var bgColor = this.sqs.color.getColorScheme(1)[0];
 		bgColor = "#34454f";
 
 		for(var key in contentItem.data.rows) {
@@ -545,8 +545,8 @@ class SiteReportChart {
 			}
 		}
 		
-		//var colors = this.hqs.siteReportManager.siteReport.getColorScheme(categories.length);
-		var colors = this.hqs.color.getMonoColorScheme(categories.length, "#34454f", "#34454f");
+		//var colors = this.sqs.siteReportManager.siteReport.getColorScheme(categories.length);
+		var colors = this.sqs.color.getMonoColorScheme(categories.length, "#34454f", "#34454f");
 		
 		for(var key in categories) {
 			config.series.push({

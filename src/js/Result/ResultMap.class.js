@@ -2,7 +2,7 @@
 import Config from '../../config/config.js'
 import ResultModule from './ResultModule.class.js'
 import Timeline from './Timeline.class.js';
-import HqsMenu from '../HqsMenu.class';
+import sqsMenu from '../sqsMenu.class';
 
 /*OpenLayers imports*/
 import Map from 'ol/Map';
@@ -26,7 +26,7 @@ import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
 *	Chain looks like this: render() => fetchData() => importResultData() => renderMap()
 *																		 => renderVisibleDataLayers()
 * 2. importSettings() => setMapDataLayer() => renderCallback()
-* 3. resultMapBaseLayersControlsHqsMenu() => makeMapControlMenuCallback() => setMapDataLayer()
+* 3. resultMapBaseLayersControlssqsMenu() => makeMapControlMenuCallback() => setMapDataLayer()
 * 
 */
 class ResultMap extends ResultModule {
@@ -67,12 +67,12 @@ class ResultMap extends ResultModule {
 		//These attributes are used to set the style of map points
 		this.style = {
 			default: {
-				fillColor: this.resultManager.hqs.color.getColorScheme(20, 0.5)[13],
+				fillColor: this.resultManager.sqs.color.getColorScheme(20, 0.5)[13],
 				strokeColor: "#fff",
 				textColor: "#fff",
 			},
 			selected: {
-				fillColor: this.resultManager.hqs.color.getColorScheme(20, 1.0)[14],
+				fillColor: this.resultManager.sqs.color.getColorScheme(20, 1.0)[14],
 				strokeColor: "#fff",
 				textColor: "#fff",
 			},
@@ -166,9 +166,9 @@ class ResultMap extends ResultModule {
 		this.dataLayers.push(dataLayer);
 
 		//Set up viewport resize event handlers
-		this.resultManager.hqs.hqsEventListen("layoutResize", () => this.resizeCallback());
+		this.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
-		this.resultManager.hqs.hqsEventListen("siteReportClosed", () => this.resizeCallback());
+		this.resultManager.sqs.sqsEventListen("siteReportClosed", () => this.resizeCallback());
 
 		//Create attached timeline object
 		this.timeline = new Timeline(this);
@@ -178,7 +178,7 @@ class ResultMap extends ResultModule {
 	/*
 	* Function: render
 	*
-	* Called from outside. Its the command from hqs to render the contents of this module. Will fetch data and then import & render it.
+	* Called from outside. Its the command from sqs to render the contents of this module. Will fetch data and then import & render it.
 	*/
 	render() {
 		let xhr = this.fetchData();
@@ -264,7 +264,7 @@ class ResultMap extends ResultModule {
 		}
 
 		this.renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
-		this.renderData = this.resultManager.hqs.hqsOffer("resultMapData", {
+		this.renderData = this.resultManager.sqs.sqsOffer("resultMapData", {
 			data: this.renderData
 		}).data;
 
@@ -279,7 +279,7 @@ class ResultMap extends ResultModule {
 		}
 		
 		
-		this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
+		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 	}
 
 	/*
@@ -360,10 +360,10 @@ class ResultMap extends ResultModule {
 			this.removeAllDataLayers();
 		}
 
-		let latHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "high");
-		let latLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lat", "low");
-		let lngHigh = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "high");
-		let lngLow = this.resultManager.hqs.getExtremePropertyInList(filteredData, "lng", "low");
+		let latHigh = this.resultManager.sqs.getExtremePropertyInList(filteredData, "lat", "high");
+		let latLow = this.resultManager.sqs.getExtremePropertyInList(filteredData, "lat", "low");
+		let lngHigh = this.resultManager.sqs.getExtremePropertyInList(filteredData, "lng", "high");
+		let lngLow = this.resultManager.sqs.getExtremePropertyInList(filteredData, "lng", "low");
 
 		let extentNW = null;
 		let extentSE = null;
@@ -456,19 +456,19 @@ class ResultMap extends ResultModule {
 		d3.select("#result-map-controls-container")
 			.append("div")
 			.attr("id", "result-map-baselayer-controls-menu");
-		new HqsMenu(this.resultManager.hqs, this.resultMapBaseLayersControlsHqsMenu());
+		new sqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlssqsMenu());
 
 		d3.select("#result-map-controls-container")
 			.append("div")
 			.attr("id", "result-map-datalayer-controls-menu");
-		new HqsMenu(this.resultManager.hqs, this.resultMapDataLayersControlsHqsMenu());
+		new sqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlssqsMenu());
 		*/
 
 		$(this.renderMapIntoNode).append($("<div></div>").attr("id", "result-map-controls-container"));
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-baselayer-controls-menu"));
-		new HqsMenu(this.resultManager.hqs, this.resultMapBaseLayersControlsHqsMenu());
+		new sqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlssqsMenu());
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-datalayer-controls-menu"));
-		new HqsMenu(this.resultManager.hqs, this.resultMapDataLayersControlsHqsMenu());
+		new sqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlssqsMenu());
 	}
 
 	/*
@@ -905,7 +905,7 @@ class ResultMap extends ResultModule {
 
 				$("#map-popup-title").html("");
 				var tableRows = "<tr row-site-id='"+prop.id+"'><td>"+prop.name+"</td></tr>";
-				tableRows = hqs.hqsOffer("resultMapPopupSites", {
+				tableRows = sqs.sqsOffer("resultMapPopupSites", {
 					tableRows: tableRows,
 					olFeatures: prop.features
 				}).tableRows;
@@ -927,7 +927,7 @@ class ResultMap extends ResultModule {
 					tableRows += "<tr row-site-id='"+prop.features[fk].getProperties().id+"'><td>"+prop.features[fk].getProperties().name+"</td></tr>";
 				}
 
-				tableRows = hqs.hqsOffer("resultMapPopupSites", {
+				tableRows = sqs.sqsOffer("resultMapPopupSites", {
 					tableRows: tableRows,
 					olFeatures: prop.features
 				}).tableRows;
@@ -946,7 +946,7 @@ class ResultMap extends ResultModule {
 				$("#map-popup-container").hide();
 				this.selectPopupOverlay.setPosition();
 			}
-			hqs.hqsEventDispatch("resultMapPopupRender");
+			sqs.sqsEventDispatch("resultMapPopupRender");
 		});
 		
 		return selectInteraction;
@@ -1042,9 +1042,9 @@ class ResultMap extends ResultModule {
 	}
 
 	/*
-	* Function: resultMapBaseLayersControlsHqsMenu
+	* Function: resultMapBaseLayersControlssqsMenu
 	*/
-	resultMapBaseLayersControlsHqsMenu() {
+	resultMapBaseLayersControlssqsMenu() {
 		var menu = {
 			title: "<i class=\"fa fa-globe result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Baselayer</span>", //The name of the menu as it will be displayed in the UI
 			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
@@ -1074,9 +1074,9 @@ class ResultMap extends ResultModule {
 	}
 
 	/*
-	* Function: resultMapDataLayersControlsHqsMenu
+	* Function: resultMapDataLayersControlssqsMenu
 	*/
-	resultMapDataLayersControlsHqsMenu() {
+	resultMapDataLayersControlssqsMenu() {
 		var menu = {
 			title: "<i class=\"fa fa-map-marker result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Datalayer</span>", //The name of the menu as it will be displayed in the UI
 			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items

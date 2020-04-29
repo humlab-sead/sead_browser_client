@@ -1,5 +1,5 @@
 /*
-* Class: HqsLayoutManager
+* Class: sqsLayoutManager
 * This class is responsible for adapting the user interface to various devices and their capabilities, primarily in terms of screen space.
 * It relies on the Enquire js lib which in turn relies on CSS3 media queries.
 *
@@ -14,13 +14,13 @@
 * ...and more?
 */
 import Config from "../config/config";
-import View from "./HqsView.class";
+import View from "./sqsView.class";
 import enquire from 'enquire.js'
 
-class HqsLayoutManager {
+class sqsLayoutManager {
 
-	constructor(hqs) {
-		this.hqs = hqs;
+	constructor(sqs) {
+		this.sqs = sqs;
 
 		//Set default mode based on current viewport width
 		if($(window).width() < Config.screenMobileWidthBreakPoint) {
@@ -51,8 +51,8 @@ class HqsLayoutManager {
 		});
 
 		//TODO: Check if we need to re-implement these events:
-		//this.hqs.hqsEventDispatch("layoutChange", this.mode);
-		//this.hqs.hqsEventDispatch("layoutResize");
+		//this.sqs.sqsEventDispatch("layoutChange", this.mode);
+		//this.sqs.sqsEventDispatch("layoutResize");
 	}
 
 	createView(anchor, name, leftSize = 70, rightSize = 30, options = {}) {
@@ -97,11 +97,11 @@ class HqsLayoutManager {
 	}
 
 	setMode(mode) {
-		this.hqs.hqsEventDispatch("layoutSwitchMode", { mode: this.mode });
+		this.sqs.sqsEventDispatch("layoutSwitchMode", { mode: this.mode });
 		this.mode = mode;
 	}
 
 
 }
 
-export { HqsLayoutManager as default }
+export { sqsLayoutManager as default }

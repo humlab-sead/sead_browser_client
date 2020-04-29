@@ -10,7 +10,7 @@ import DatasetModule from "./DatasetModule.class";
 class AbundanceDataset extends DatasetModule {
 	constructor(analysis) {
 		super();
-		this.hqs = analysis.hqs;
+		this.sqs = analysis.sqs;
 		this.analysis = analysis;
 		this.data = analysis.data;
 		this.taxonPromises = [];
@@ -88,7 +88,7 @@ class AbundanceDataset extends DatasetModule {
 	*/
 	async fetchDatasetAnalysisEntities(dataset) {
 		return await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset2?dataset_id=eq."+dataset.datasetId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_dataset2?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
@@ -123,7 +123,7 @@ class AbundanceDataset extends DatasetModule {
 		dataPoints.map((dp) => {
 			analysisEntityIds.push(dp.analysisEntityId);
 		});
-		let abundanceData = await this.hqs.fetchFromTable("abundances", "analysis_entity_id", analysisEntityIds);
+		let abundanceData = await this.sqs.fetchFromTable("abundances", "analysis_entity_id", analysisEntityIds);
 
 		dataPoints.map((dp) => {
 			dp.abundances = [];
@@ -154,7 +154,7 @@ class AbundanceDataset extends DatasetModule {
 	 */
 	async fetchDataset(dataset) {
 		return await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
@@ -170,7 +170,7 @@ class AbundanceDataset extends DatasetModule {
 	* Function: getDataset
 	*/
 	getDataset() {
-		var analysisKey = this.hqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
+		var analysisKey = this.sqs.findObjectPropInArray(this.analysis.data.analyses, "datasetId", this.analysisData.datasetId);
 		return this.analysis.data.analyses[analysisKey].dataset;
 	}
 	
@@ -202,7 +202,7 @@ class AbundanceDataset extends DatasetModule {
 		});
 
 		let elementIds = Array.from(uniqueElementIds);
-		let elements = await this.hqs.fetchFromTable("abundance_elements", "abundance_element_id", elementIds);
+		let elements = await this.sqs.fetchFromTable("abundance_elements", "abundance_element_id", elementIds);
 
 		elements.map((e) => {
 			dataset.dataPoints.map((dp) => {
@@ -230,11 +230,11 @@ class AbundanceDataset extends DatasetModule {
 		});
 
 		taxonIds = Array.from(taxonIds);
-		var taxonPromise = this.hqs.fetchTaxa(taxonIds);
+		var taxonPromise = this.sqs.fetchTaxa(taxonIds);
 		taxonPromise.then((taxa) => {
 			dataset.dataPoints.map((dp) => {
 				dp.abundances.map((ab) => {
-					ab.taxon = this.hqs.getTaxaById(ab.taxonId);
+					ab.taxon = this.sqs.getTaxaById(ab.taxonId);
 				});
 			});
 		});
@@ -262,7 +262,7 @@ class AbundanceDataset extends DatasetModule {
 			}
 		}
 
-		let identificationLevels = await this.hqs.fetchFromTablePairs("qse_abundance_identification_levels", taxonAbundanceIds);
+		let identificationLevels = await this.sqs.fetchFromTablePairs("qse_abundance_identification_levels", taxonAbundanceIds);
 		
 		for(let key in identificationLevels) {
 			let il = identificationLevels[key];
@@ -292,7 +292,7 @@ class AbundanceDataset extends DatasetModule {
 			}
 		}
 		
-		let modifications = await this.hqs.fetchFromTable("qse_abundance_modification", "abundance_id", abundanceIds);
+		let modifications = await this.sqs.fetchFromTable("qse_abundance_modification", "abundance_id", abundanceIds);
 		for(let dk in dataPoints) {
 			for(let ak in dataPoints[dk].abundances) {
 				for(let mk in modifications) {
@@ -364,7 +364,7 @@ class AbundanceDataset extends DatasetModule {
 		});
 		
 		this.buildIsComplete = true;
-		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
+		this.sqs.sqsEventDispatch("siteAnalysisBuildComplete");
 	}
 
 	/*
@@ -462,11 +462,11 @@ class AbundanceDataset extends DatasetModule {
 				}
 				modValue = modValue.substr(0, modValue.length-2);
 
-				let taxa = this.hqs.getTaxaById(ab.taxonId);
+				let taxa = this.sqs.getTaxaById(ab.taxonId);
 				
 				let taxonFormatted = "notaxa";
 				if(typeof(taxa != false)) {
-					taxonFormatted = this.hqs.formatTaxon(taxa, true, ab.abundanceId, ab.taxon_identification_levels);
+					taxonFormatted = this.sqs.formatTaxon(taxa, true, ab.abundanceId, ab.taxon_identification_levels);
 				}
 
 				let elementDescription = typeof ab.element == "undefined" ? "" : ab.element.element_description;
@@ -604,7 +604,7 @@ class AbundanceDataset extends DatasetModule {
 	* Function: destroy
 	*/
 	destroy() {
-		this.hqs.hqsEventUnlisten("taxaFetchingComplete-"+this.analysisData.datasetId, this);
+		this.sqs.sqsEventUnlisten("taxaFetchingComplete-"+this.analysisData.datasetId, this);
 	}
 }
 

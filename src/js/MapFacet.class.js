@@ -8,8 +8,8 @@ class MapFacet extends Facet {
 	/*
 	* Function: constructor
 	*/
-	constructor(hqs, id = null, template = {}) {
-		super(hqs, id, template);
+	constructor(sqs, id = null, template = {}) {
+		super(sqs, id, template);
 		this.olMap = null;
 
 		this.render();

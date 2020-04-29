@@ -12,8 +12,8 @@ class StateManager {
 	*
 	* Config param: requireLoginForViewstateStorage
 	*/
-	constructor(hqs) {
-		this.hqs = hqs;
+	constructor(sqs) {
+		this.sqs = sqs;
 		
 		$(window).on("seadSaveStateClicked", (event, data) => {
 			this.renderSaveViewstateDialog();
@@ -24,11 +24,11 @@ class StateManager {
 			this.updateLoadStateDialog();
 		});
 		
-		this.hqs.hqsEventListen("userLoggedIn", () => {
+		this.sqs.sqsEventListen("userLoggedIn", () => {
 			this.updateLoadStateDialog();
 		});
 
-		this.hqs.hqsEventListen("userLoggedOut", () => {
+		this.sqs.sqsEventListen("userLoggedOut", () => {
 			this.updateLoadStateDialog();
 		});
 
@@ -37,22 +37,22 @@ class StateManager {
 	renderSaveViewstateDialog() {
 		//let content = $("#templates > #viewstate-save-dialog").html();
 		let content = $("#templates > #viewstate-save-dialog")[0].cloneNode(true);
-		this.hqs.dialogManager.showPopOver("Save viewstate", content.outerHTML);
+		this.sqs.dialogManager.showPopOver("Save viewstate", content.outerHTML);
 
 
 
 		/*
 		var content = $("#viewstate-save-dialog > .overlay-dialog-content").html();
-		this.hqs.dialogManager.showPopOver("Save viewstate", content);
+		this.sqs.dialogManager.showPopOver("Save viewstate", content);
 		*/
 		$("#viewstate-save-btn").on("click", () => {
 			let state = this.saveState();
 			this.sendState(state).then(() => {
-				this.hqs.dialogManager.hidePopOver();
+				this.sqs.dialogManager.hidePopOver();
 				var content = $("#viewstate-post-save-dialog .overlay-dialog-content");
 				$("#viewstate-url", content).html("<a href='"+Config.serverRoot+"/viewstate/"+state.id+"'>"+Config.serverRoot+"/viewstate/"+state.id+"</a>");
 				$("#viewstate-key", content).html(state.id);
-				this.hqs.dialogManager.showPopOver("Viewstate saved", content.html());
+				this.sqs.dialogManager.showPopOver("Viewstate saved", content.html());
 			});
 		});
 		
@@ -60,7 +60,7 @@ class StateManager {
 
 	renderLoadViewstateDialog() {
 		var content = $("#viewstate-load-dialog > .overlay-dialog-content").html();
-		this.hqs.dialogManager.showPopOver("Load viewstate", content);
+		this.sqs.dialogManager.showPopOver("Load viewstate", content);
 	}
 
 	/*
@@ -166,9 +166,9 @@ class StateManager {
 
 
 		//If user is logged in, fetch viewstates from server
-		if(typeof this.hqs.userManager != "undefined" && this.hqs.userManager.user != null) {
+		if(typeof this.sqs.userManager != "undefined" && this.sqs.userManager.user != null) {
 
-			$.ajax(this.hqs.config.viewStateServerAddress+"/viewstates/"+this.hqs.userManager.user.id_token, {
+			$.ajax(this.sqs.config.viewStateServerAddress+"/viewstates/"+this.sqs.userManager.user.id_token, {
 				method: "get",
 				success: (viewstates) => {
 					if(!Config.requireLoginForViewstateStorage) {
@@ -210,7 +210,7 @@ class StateManager {
 			//$("#viewstate-load-list").append("<option value='"+state.id+"''>"+dateString+" "+state.name+" (id:"+state.id+") "+state.origin+"</option>");
 		});
 
-		this.hqs.tooltipManager.registerTooltip("#vs-del-header", "Deleting a viewstate will only remove it from your personal list. The viewstate will always be accessible via the correct link.", {drawSymbol: true});
+		this.sqs.tooltipManager.registerTooltip("#vs-del-header", "Deleting a viewstate will only remove it from your personal list. The viewstate will always be accessible via the correct link.", {drawSymbol: true});
 
 		$(".viewstate-delete-btn").on("click", (evt) => {
 			evt.stopPropagation();
@@ -224,12 +224,12 @@ class StateManager {
 		$(".viewstate-load-item").on("click", evt => {
 			const vsId = $(".vs-id", evt.currentTarget).text();
 			this.fetchState(vsId);
-			this.hqs.dialogManager.hidePopOver();
+			this.sqs.dialogManager.hidePopOver();
 		});
 	}
 
 	deleteViewstate(viewstateId) {
-		$.ajax(this.hqs.config.viewStateServerAddress+"/viewstate/"+viewstateId+"/"+this.hqs.userManager.user.id_token, {
+		$.ajax(this.sqs.config.viewStateServerAddress+"/viewstate/"+viewstateId+"/"+this.sqs.userManager.user.id_token, {
 			method: "delete",
 			success: () => {
 				$(".viewstate-load-item > .vs-id[vsid='"+viewstateId+"']").parent().slideUp(500);
@@ -280,13 +280,13 @@ class StateManager {
 	*/
 	async sendState(state) {
 
-		if(this.hqs.userManager.user == null) {
+		if(this.sqs.userManager.user == null) {
 			return;
 		}
 
 		var upload = {
 			"key": state.id,
-			"user_id_token": this.hqs.userManager.user.id_token,
+			"user_id_token": this.sqs.userManager.user.id_token,
 			"data": JSON.stringify(state)
 		};
 
@@ -310,11 +310,11 @@ class StateManager {
 			},
 			success: (data, textStatus, jqXHR) => {
 				/*
-				this.hqs.dialogManager.hidePopOver();
+				this.sqs.dialogManager.hidePopOver();
 				var content = $("#viewstate-post-save-dialog .overlay-dialog-content");
 				$("#viewstate-url", content).html("<a href='"+Config.serverRoot+"/viewstate/"+state.id+"'>"+Config.serverRoot+"/viewstate/"+state.id+"</a>");
 				$("#viewstate-key", content).html(state.id);
-				this.hqs.dialogManager.showPopOver("Viewstate saved", content.html());
+				this.sqs.dialogManager.showPopOver("Viewstate saved", content.html());
 				*/
 			}
 		});
@@ -343,14 +343,15 @@ class StateManager {
 		var state = {
 			id: stateId,
 			name: name,
+			apiVersion: this.sqs.apiVersion,
 			saved: Date.now(),
 			layout: {
-				left: this.hqs.layoutManager.leftLastSize
+				left: this.sqs.layoutManager.leftLastSize
 			},
-			facets: this.hqs.facetManager.getFacetState(),
-			result: this.hqs.resultManager.getResultState(),
-			siteReport: this.hqs.siteReportManager.getReportState(),
-			portal: this.hqs.portalManager.getActivePortal().name
+			facets: this.sqs.facetManager.getFacetState(),
+			result: this.sqs.resultManager.getResultState(),
+			siteReport: this.sqs.siteReportManager.getReportState(),
+			domain: this.sqs.domainManager.getActiveDomain().name
 		};
 
 		if(state.facets === false) {
@@ -391,7 +392,7 @@ class StateManager {
 	*/
 	loadStateById(stateId) {
 		if(Config.viewstateLoadingScreenEnabled) {
-			this.hqs.dialogManager.setCover("Loading");
+			this.sqs.dialogManager.setCover("Loading");
 		}
 		this.fetchState(stateId);
 	}
@@ -428,7 +429,7 @@ class StateManager {
 			"/viewstate/"+state.id);
 
 		this.checkLoadStateCompleteInterval = setInterval(() => {
-			if(this.hqs.resultManager.getRenderStatus() == "complete") {
+			if(this.sqs.resultManager.getRenderStatus() == "complete") {
 				clearInterval(this.checkLoadStateCompleteInterval);
 				$.event.trigger("seadStateLoadComplete", {
 					state: state
@@ -446,13 +447,13 @@ class StateManager {
 	}
 
 	/*
-	* Function: hqsMenu
-	* Define and return the menu structure for this component, according to the HqsMenu format.
+	* Function: sqsMenu
+	* Define and return the menu structure for this component, according to the sqsMenu format.
 	*
 	* See Also:
 	* ResponsiveMenu.class.js
 	*/
-	hqsMenu() {
+	sqsMenu() {
 		return {
 			title: "Viewstate",
 			layout: "vertical",

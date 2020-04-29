@@ -9,7 +9,7 @@ import DatasetModule from "./DatasetModule.class";
 class CeramicDataset extends DatasetModule {
 	constructor(analysis) {
 		super();
-		this.hqs = analysis.hqs;
+		this.sqs = analysis.sqs;
 		this.analysis = analysis;
 		this.section = analysis.section;
 		this.data = analysis.data;
@@ -62,7 +62,7 @@ class CeramicDataset extends DatasetModule {
 	}
 
 	async fetchSampleData(datasetGroup) {
-		await $.ajax(this.hqs.config.siteReportServerAddress+"/physical_samples?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
+		await $.ajax(this.sqs.config.siteReportServerAddress+"/physical_samples?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
 			method: "get",
 			dataType: "json",
 			success: async (sampleData, textStatus, xhr) => {
@@ -106,7 +106,7 @@ class CeramicDataset extends DatasetModule {
 			let promises = [];
 
 			promises.push(new Promise((resolve, reject) => {
-				$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
+				$.ajax(this.sqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
 					method: "get",
 					dataType: "json",
 					success: async (datasetInfo, textStatus, xhr) => {
@@ -119,7 +119,7 @@ class CeramicDataset extends DatasetModule {
 
 			if(typeof this.analysis.ceramicsDataTypes == "undefined") {
 				promises.push(new Promise((resolve, reject) => {
-					$.ajax(this.hqs.config.siteReportServerAddress+"/ceramics_lookup", {
+					$.ajax(this.sqs.config.siteReportServerAddress+"/ceramics_lookup", {
 						method: "get",
 						dataType: "json",
 						success: async (ceramicsDataTypes, textStatus, xhr) => {
@@ -132,7 +132,7 @@ class CeramicDataset extends DatasetModule {
 			}
 			
 			promises.push(new Promise((resolve, reject) => {
-				$.ajax(this.hqs.config.siteReportServerAddress+"/analysis_entities?dataset_id=eq."+dataset.datasetId, {
+				$.ajax(this.sqs.config.siteReportServerAddress+"/analysis_entities?dataset_id=eq."+dataset.datasetId, {
 					method: "get",
 					dataType: "json",
 					success: async (analysisEntities, textStatus, xhr) => {
@@ -156,7 +156,7 @@ class CeramicDataset extends DatasetModule {
 
 
 	async fetchCeramicsData(dataset, analysisEntityId) {
-		await $.ajax(this.hqs.config.siteReportServerAddress+"/ceramics?analysis_entity_id=eq."+analysisEntityId, {
+		await $.ajax(this.sqs.config.siteReportServerAddress+"/ceramics?analysis_entity_id=eq."+analysisEntityId, {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {
@@ -188,7 +188,7 @@ class CeramicDataset extends DatasetModule {
 
 	buildSection(dsGroups) {
 		let analysis = dsGroups[0].datasets[0];
-		var sectionKey = this.hqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
+		var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
 		
 		if(sectionKey === false) {
 			let method = this.analysis.getMethodMetaById(analysis.methodId);
@@ -208,7 +208,7 @@ class CeramicDataset extends DatasetModule {
 		});
 		
 		this.buildIsComplete = true;
-		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this event is relevant anymore...
+		this.sqs.sqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this event is relevant anymore...
 	}
 
 	buildContentItem(datasetGroup) {

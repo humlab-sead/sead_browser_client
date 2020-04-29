@@ -15,7 +15,7 @@ import MosaicDendroTreeSpeciesModule from "./MosaicTileModules/MosaicDendroTreeS
 class ResultMosaic extends ResultModule {
 	constructor(resultManager) {
 		super(resultManager);
-		this.hqs = this.resultManager.hqs;
+		this.sqs = this.resultManager.sqs;
 		this.name = "mosaic";
 		this.prettyName = "Overview";
 		this.icon = "<i class=\"fa fa-pie-chart\" aria-hidden=\"true\"></i>";
@@ -26,28 +26,28 @@ class ResultMosaic extends ResultModule {
 		this.modules = [];
 
 
-		this.modules.push(new MosaicMapModule(this.hqs));
-		this.modules.push(new MosaicSampleMethodsModule(this.hqs));
-		this.modules.push(new MosaicAnalysisMethodsModule(this.hqs));
-		this.modules.push(new MosaicFeatureTypesModule(this.hqs));
-		this.modules.push(new MosaicCeramicsCultureModule(this.hqs));
-		this.modules.push(new MosaicCeramicsRelativeAgesModule(this.hqs));
-		this.modules.push(new MosaicCeramicsTypeCountModule(this.hqs));
-		this.modules.push(new MosaicDendroBuildingTypesModule(this.hqs));
-		this.modules.push(new MosaicDendroTreeSpeciesModule(this.hqs));
+		this.modules.push(new MosaicMapModule(this.sqs));
+		this.modules.push(new MosaicSampleMethodsModule(this.sqs));
+		this.modules.push(new MosaicAnalysisMethodsModule(this.sqs));
+		this.modules.push(new MosaicFeatureTypesModule(this.sqs));
+		this.modules.push(new MosaicCeramicsCultureModule(this.sqs));
+		this.modules.push(new MosaicCeramicsRelativeAgesModule(this.sqs));
+		this.modules.push(new MosaicCeramicsTypeCountModule(this.sqs));
+		this.modules.push(new MosaicDendroBuildingTypesModule(this.sqs));
+		this.modules.push(new MosaicDendroTreeSpeciesModule(this.sqs));
 
 		/*
 		//General
 		this.modules.push({
 			title: "Sampling methods",
 			name: "mosaic-sample-methods",
-			portals: ["general"],
+			domains: ["general"],
 			callback: this.renderSampleMethods
 		});
 		this.modules.push({
 			title: "Site distribution",
 			name: "mosaic-map",
-			portals: ["*"],
+			domains: ["*"],
 			callback: async (renderIntoNode, resultMosaic) => {
 				console.log(renderIntoNode);
 				this.setLoadingIndicator(renderIntoNode, true);
@@ -63,13 +63,13 @@ class ResultMosaic extends ResultModule {
 		this.modules.push({
 			title: "Analytical methods",
 			name: "mosaic-analysis-methods",
-			portals: ["general"],
+			domains: ["general"],
 			callback: this.renderAnalysisMethods
 		});
 		this.modules.push({
 			title: "Feature types",
 			name: "mosaic-feature-types",
-			portals: ["general"],
+			domains: ["general"],
 			callback: this.renderFeatureTypes
 		});
 
@@ -77,7 +77,7 @@ class ResultMosaic extends ResultModule {
 		this.modules.push({
 			title: "Ceramics culture",
 			name: "mosaic-ceramics-culture",
-			portals: ["ceramic"],
+			domains: ["ceramic"],
 			callback: async (renderIntoNode, resultMosaic) => {
 				this.setLoadingIndicator(renderIntoNode, true);
 				await this.renderCeramicsCulture(renderIntoNode);
@@ -87,7 +87,7 @@ class ResultMosaic extends ResultModule {
 		this.modules.push({
 			title: "Ceramics relative ages",
 			name: "mosaic-ceramics-relative-ages",
-			portals: ["ceramic"],
+			domains: ["ceramic"],
 			callback: async (renderIntoNode, resultMosaic) => {
 				this.setLoadingIndicator(renderIntoNode, true);
 				await this.renderCeramicsRelativeAges(renderIntoNode);
@@ -97,7 +97,7 @@ class ResultMosaic extends ResultModule {
 		this.modules.push({
 			title: "Ceramics type count",
 			name: "mosaic-ceramics-type-count",
-			portals: ["ceramic"],
+			domains: ["ceramic"],
 			callback: async (renderIntoNode, resultMosaic) => {
 				this.setLoadingIndicator(renderIntoNode, true);
 				await this.renderCeramicsTypeCount(renderIntoNode);
@@ -109,7 +109,7 @@ class ResultMosaic extends ResultModule {
 		this.modules.push({
 			title: "Tree species",
 			name: "mosaic-tree-species", //FIXME: This doesn't exist - but maybe it doesn't need to?
-			portals: ["dendro"],
+			domains: ["dendro"],
 			callback: this.renderDendroTreeSpecies
 		});
 
@@ -117,14 +117,14 @@ class ResultMosaic extends ResultModule {
 		this.modules.push({
 			title: "Isotopes in samples",
 			name: "mosaic-isotopes-in-samples",
-			portals: ["isotopes"],
+			domains: ["isotopes"],
 			callback: this.renderIsotopesInSamples
 		});
 
 		this.modules.push({
 			title: "Isotopes in samples",
 			name: "mosaic-isotopes-in-samples",
-			portals: ["isotopes"],
+			domains: ["isotopes"],
 			callback: this.renderIsotopesInSamples
 		});
 		*/
@@ -235,11 +235,11 @@ class ResultMosaic extends ResultModule {
 			}
 		}
 
-		let portal = this.hqs.portalManager.getActivePortal();
+		let domain = this.sqs.domainManager.getActiveDomain();
 
 		this.requestBatchId++;
 		for(let key in this.modules) {
-			if(this.modules[key].portals.includes(portal.name) || this.modules[key].portals.includes("*")) {
+			if(this.modules[key].domains.includes(domain.name) || this.modules[key].domains.includes("*")) {
 				if($("#result-mosaic-container #"+this.modules[key].name).length == 0) {
 					let tileNode = $("<div class='result-mosaic-tile'></div>");
 					tileNode.append("<h2>"+this.modules[key].title+"</h2>");
@@ -256,13 +256,13 @@ class ResultMosaic extends ResultModule {
 		}
 
 		if(this.renderPromises.length == 0) {
-			this.hqs.hqsEventDispatch("resultModuleRenderComplete");
+			this.sqs.sqsEventDispatch("resultModuleRenderComplete");
 			this.resultManager.showLoadingIndicator(false);
 		}
 
 		Promise.all(this.renderPromises).then(() => {
 			console.log("Mosaic modules render complete");
-			this.hqs.hqsEventDispatch("resultModuleRenderComplete");
+			this.sqs.sqsEventDispatch("resultModuleRenderComplete");
 			//this.resultManager.showLoadingIndicator(false);
 		});
 	}
@@ -555,7 +555,7 @@ class ResultMosaic extends ResultModule {
 
 		
 
-		let colors = this.hqs.color.getColorScheme(config.series.length);
+		let colors = this.sqs.color.getColorScheme(config.series.length);
 		let legendTextMaxLength = 15;
 		for(let key in config.series) {
 			config.series[key].backgroundColor = colors[key];
@@ -606,7 +606,7 @@ class ResultMosaic extends ResultModule {
 		zc.bind("click", (evt) => {
 			let startIndex = evt.targetid.indexOf("-plot-") + 6;
 			let plot = evt.targetid.substring(startIndex, startIndex+1);
-			let facet = this.hqs.facetManager.spawnFacet("sites", [...config.series[plot].sites]);
+			let facet = this.sqs.facetManager.spawnFacet("sites", [...config.series[plot].sites]);
 
 			let iv = setInterval(() => {
 				if(facet.isDataLoaded) {
@@ -658,7 +658,7 @@ class ResultMosaic extends ResultModule {
 			}
 		};
 
-		let colors = this.hqs.color.getColorScheme(config.series.length);
+		let colors = this.sqs.color.getColorScheme(config.series.length);
 		let legendTextMaxLength = 15;
 		for(let key in config.series) {
 			config.series[key].backgroundColor = colors[key];
@@ -707,13 +707,19 @@ class ResultMosaic extends ResultModule {
 			height: "100%"
 		});
 
+		this.pushIntoGraphRegistry({
+			anchor: renderIntoNode.substring(1),
+			graph: zc,
+			data: config
+		});
+
 		zc.bind("click", (evt) => {
 			let startIndex = evt.targetid.indexOf("-plot-") + 6;
 			let plot = evt.targetid.substring(startIndex, startIndex+1);
 
-			let facet = this.hqs.facetManager.getFacetByName("sites");
+			let facet = this.sqs.facetManager.getFacetByName("sites");
 			if(facet === false) {
-				facet = this.hqs.facetManager.spawnFacet("sites", [...config.series[plot].sites]);
+				facet = this.sqs.facetManager.spawnFacet("sites", [...config.series[plot].sites]);
 			}
 			else {
 				facet.setSelections([...config.series[plot].sites]);
@@ -734,17 +740,14 @@ class ResultMosaic extends ResultModule {
 	getFromGraphRegistry(anchorNodeName) {
 		for(let k in this.graphs) {
 			if(this.graphs[k].anchor == anchorNodeName) {
-				return this.graphs[k].graph;
+				return this.graphs[k];
 			}
 		}
 		return false;
 	}
 
-	pushIntoGraphRegistry(graphObject, anchorNodeName) {
-		this.graphs.push({
-			graph: graphObject,
-			anchor: anchorNodeName
-		});
+	pushIntoGraphRegistry(graphObject) {
+		this.graphs.push(graphObject);
 	}
 
 	removeFromGraphRegistry(anchorNodeName) {
@@ -782,7 +785,7 @@ class ResultMosaic extends ResultModule {
 
 		let queryData = [];
 		for(let key in queries) {
-			let requestString = this.hqs.config.siteReportServerAddress+"/"+dbView;
+			let requestString = this.sqs.config.siteReportServerAddress+"/"+dbView;
 			if(siteIds.length > 0) {
 				requestString += "?or="+queries[key];
 			}

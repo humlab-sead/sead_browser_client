@@ -1,16 +1,16 @@
 import MosaicTileModule from "./MosaicTileModule.class";
 
 class MosaicSampleMethodsModule extends MosaicTileModule {
-    constructor(hqs) {
+    constructor(sqs) {
         super();
-        this.hqs = hqs;
+        this.sqs = sqs;
         this.title = "Sampling methods";
 		this.name = "mosaic-sample-methods";
-		this.portals = ["general", "palaeo", "archaeobotany", "isotopes"];
+		this.domains = ["general", "palaeo", "archaeobotany", "isotopes"];
     }
 
     async render(renderIntoNode) {
-        let resultMosaicModule = this.hqs.resultManager.getModule("mosaic");
+        let resultMosaicModule = this.sqs.resultManager.getModule("mosaic");
         resultMosaicModule.setLoadingIndicator(renderIntoNode, true);
         let promise = resultMosaicModule.fetchSiteData(resultMosaicModule.sites, "qse_methods", resultMosaicModule.requestBatchId);
 		promise.then((promiseData) => {

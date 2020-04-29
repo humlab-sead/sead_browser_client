@@ -4,9 +4,9 @@ import css from '../../../stylesheets/style.scss';
 * Class: Samples
  */
 class Samples {
-	constructor(hqs, siteId) {
-		this.hqs = hqs;
-		//this.siteReport = this.hqs.siteReportManager.siteReport;
+	constructor(sqs, siteId) {
+		this.sqs = sqs;
+		//this.siteReport = this.sqs.siteReportManager.siteReport;
 		this.siteId = siteId;
 		this.buildComplete = false;
 		this.auxiliaryDataFetched = false;
@@ -102,7 +102,7 @@ class Samples {
 			for(var k in sampleGroup.samples) {
 				var sample = sampleGroup.samples[k];
 
-				this.hqs.hqsEventListen("fetchSampleDimensions", () => {
+				this.sqs.sqsEventListen("fetchSampleDimensions", () => {
 					console.log("All sample dimensions fetched");
 				});
 
@@ -250,7 +250,7 @@ class Samples {
 	 */
 	render() {
 		let section = this.compileSectionStruct();
-		let renderPromise = this.hqs.siteReportManager.siteReport.renderSection(section);
+		let renderPromise = this.sqs.siteReportManager.siteReport.renderSection(section);
 		
 		renderPromise.then(() => {
 			this.fetchAuxiliaryData(); //Lazy-loading this, which is why it's here and not up amoing the other fetch-calls
@@ -265,14 +265,14 @@ class Samples {
 	 */
 	async fetch() {
 		await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_group?site_id=eq."+this.siteId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample_group?site_id=eq."+this.siteId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
 					let auxiliaryFetchPromises = [];
 					for(var key in data) {
 						var sampleGroup = data[key];
-						var sampleGroupKey = this.hqs.findObjectPropInArray(this.data.sampleGroups, "sampleGroupId", sampleGroup.sample_group_id);
+						var sampleGroupKey = this.sqs.findObjectPropInArray(this.data.sampleGroups, "sampleGroupId", sampleGroup.sample_group_id);
 						
 						if(sampleGroupKey === false) {
 							this.data.sampleGroups.push({
@@ -313,7 +313,7 @@ class Samples {
 	
 	async fetchSampleGroupAnalyses(sampleGroupId) {
 		return await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_group_analyses?sample_group_id=eq."+sampleGroupId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample_group_analyses?sample_group_id=eq."+sampleGroupId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
@@ -339,7 +339,7 @@ class Samples {
 
 	async fetchSampleGroupBiblio(sampleGroupId) {
 		return await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_group_biblio?sample_group_id=eq."+sampleGroupId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample_group_biblio?sample_group_id=eq."+sampleGroupId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
@@ -356,12 +356,12 @@ class Samples {
 	
 	async fetchSamples(sampleGroupId) {
 		return await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample?sample_group_id=eq."+sampleGroupId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample?sample_group_id=eq."+sampleGroupId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
 					for(var key in data) {
-						var sampleGroupKey = this.hqs.findObjectPropInArray(this.data.sampleGroups, "sampleGroupId", data[key].sample_group_id);
+						var sampleGroupKey = this.sqs.findObjectPropInArray(this.data.sampleGroups, "sampleGroupId", data[key].sample_group_id);
 						var sample = {
 							"sampleId": data[key].physical_sample_id,
 							"sampleTypeId": data[key].sample_type_id,
@@ -385,21 +385,21 @@ class Samples {
 	}
 	
 	fetchSampleModifiers(sampleId, targetCell) {
-		var xhr1 = this.hqs.pushXhr(null, "fetchSampleModifiers");
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_modifiers?physical_sample_id=eq."+sampleId, {
+		var xhr1 = this.sqs.pushXhr(null, "fetchSampleModifiers");
+		xhr1.xhr = $.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample_modifiers?physical_sample_id=eq."+sampleId, {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {
 				console.log(data);
 				
 				//$("#"+targetCell).html(d);
-				this.hqs.popXhr(xhr1);
+				this.sqs.popXhr(xhr1);
 			}
 		});
 	}
 
 	async fetchSampleDimensions(sampleId, sampleStruct) {
-		let data = await $.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample_dimensions?physical_sample_id=eq."+sampleId, {
+		let data = await $.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample_dimensions?physical_sample_id=eq."+sampleId, {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {
@@ -438,7 +438,7 @@ class Samples {
 
 		Promise.all(fetchPromises).then(() => {
 			let section = this.compileSectionStruct();
-			this.hqs.siteReportManager.siteReport.updateSection(section);
+			this.sqs.siteReportManager.siteReport.updateSection(section);
 			this.auxiliaryDataFetched = true;
 		});
 	}

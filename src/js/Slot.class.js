@@ -10,8 +10,8 @@ class Slot {
 	* Parameters:
 	* id - An arbitrary id.
 	*/
-	constructor(hqs, id) {
-		this.hqs = hqs;
+	constructor(sqs, id) {
+		this.sqs = sqs;
 		this.id = id;
 		this.rendered = false;
 		
@@ -37,16 +37,16 @@ class Slot {
 			},
 			over: (event, ui) => {
 				let facetId = ui.draggable.attr("facet-id");
-				let originSlotId = this.hqs.facetManager.getSlotIdByFacetId(facetId);
-				let destinationFacetId = this.hqs.facetManager.getFacetIdBySlotId(parseInt($(event.target).attr("slot-id")));
+				let originSlotId = this.sqs.facetManager.getSlotIdByFacetId(facetId);
+				let destinationFacetId = this.sqs.facetManager.getFacetIdBySlotId(parseInt($(event.target).attr("slot-id")));
 
 				var dropSlotId = parseInt($(event.target).attr("slot-id")); //The slot being dragged to (also event.target)
 				var dragSlotId = originSlotId; //The slot being dragged from
 				var dropFacetId = destinationFacetId; //The facet in the target drop slot
 				var dragFacetId = parseInt(ui.draggable.attr("facet-id")); //The facet being dragged
 
-				this.hqs.facetManager.moveFacets(dropSlotId, dropFacetId, dragSlotId, dragFacetId);
-				this.hqs.facetManager.updateAllFacetPositions();
+				this.sqs.facetManager.moveFacets(dropSlotId, dropFacetId, dragSlotId, dragFacetId);
+				this.sqs.facetManager.updateAllFacetPositions();
 
 			},
 			deactivate: function(event, ui) {
@@ -73,8 +73,8 @@ class Slot {
 	}
 	
 	isLastSlot() {
-		var lastKey = this.hqs.facetManager.slots.length - 1;
-		return this.id == this.hqs.facetManager.slots[lastKey].id;
+		var lastKey = this.sqs.facetManager.slots.length - 1;
+		return this.id == this.sqs.facetManager.slots[lastKey].id;
 	}
 	
 	/* 
@@ -92,7 +92,7 @@ class Slot {
 	*
 	*/
 	fitSizeToFacet() {
-		var facet = this.hqs.facetManager.getFacetById(this.hqs.facetManager.getFacetIdBySlotId(this.id));
+		var facet = this.sqs.facetManager.getFacetById(this.sqs.facetManager.getFacetIdBySlotId(this.id));
 		var height = $(facet.domObj).css("height");
 		//console.log("Facet height is:", height);
 		$(this.domObj).css("height", height);

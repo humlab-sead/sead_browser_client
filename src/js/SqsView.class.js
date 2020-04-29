@@ -1,5 +1,5 @@
 /*
-* Class: HqsView
+* Class: sqsView
 * This class is responsible for adapting the user interface to various devices and their capabilities, primarily in terms of screen space.
 * It relies on the Enquire js lib which in turn relies on CSS3 media queries.
 *
@@ -16,14 +16,14 @@
 
 import enquire from 'enquire.js'
 
-class HqsView {
+class sqsView {
 
     /*
     * Function: constructor
     */
 	constructor(layoutManager, anchor, name, leftSize = 70, rightSize = 30, options = {}) {
         this.layoutManager = layoutManager;
-        this.hqs = layoutManager.hqs;
+        this.sqs = layoutManager.sqs;
         this.anchor = anchor;
         this.name = name;
 		this.leftInitSize = leftSize;
@@ -63,12 +63,12 @@ class HqsView {
 				//$("#sead-logo").removeClass("sead-logo-large").addClass("sead-logo-small");
 				//$("#sead-logo").hide();
 				$("#aux-menu").hide();
-				this.hqs.hqsEventDispatch("layoutChange", this.mode);
+				this.sqs.sqsEventDispatch("layoutChange", this.mode);
 				
 				//$("#facetMenu").hide();
 				//$(".facetMenuItemsContainer").css("position", "relative").css("box-shadow", "none");
 				//$("#facet-menu-mobile-container").show();
-				this.hqs.hqsEventDispatch("layoutResize");
+				this.sqs.sqsEventDispatch("layoutResize");
 			},
 			unmatch : () => {
 				this.mode = "desktopMode";
@@ -95,8 +95,8 @@ class HqsView {
 				//$("#facet-menu").show();
 				
 				
-				this.hqs.hqsEventDispatch("layoutChange", this.mode);
-				this.hqs.hqsEventDispatch("layoutResize");
+				this.sqs.sqsEventDispatch("layoutChange", this.mode);
+				this.sqs.sqsEventDispatch("layoutResize");
 			}
 		});
 		*/
@@ -119,7 +119,7 @@ class HqsView {
 		*/
 
 		//React to resize event to collapse header when necessary
-		this.hqs.hqsEventListen("layoutResize", () => {
+		this.sqs.sqsEventListen("layoutResize", () => {
 			/*
 			let headerWidth = $("#header-space").width();
 			console.log(headerWidth);
@@ -264,7 +264,7 @@ class HqsView {
 		}
 
 		this.apply();
-		this.hqs.hqsEventDispatch("layoutResize");
+		this.sqs.sqsEventDispatch("layoutResize");
 	}
 
 	getVisibleSection() {
@@ -279,6 +279,7 @@ class HqsView {
     * Function: setSectionSizes
     */
 	setSectionSizes(leftSize, rightSize, animate = true) {
+		console.log("setSectionSizes", leftSize, rightSize);
 
 		this.leftLastSize = leftSize;
 		this.righLastSize = rightSize;
@@ -303,6 +304,14 @@ class HqsView {
 		else {
 			$(this.anchor+" > .section-left").css("width", leftSize+"vw");
 			$(this.anchor+" > .section-right").css("width", rightSize+"vw");
+
+			/*
+			$(this.anchor+" > .section-left").css("max-width", leftSize+"vw");
+			$(this.anchor+" > .section-left").css("min-width", 10+"vw");
+
+			$(this.anchor+" > .section-right").css("max-width", rightSize+"vw");
+			$(this.anchor+" > .section-right").css("min-width", 10+"vw");
+			*/
 		}
 		
 		if(rightSize == 0) {
@@ -351,7 +360,7 @@ class HqsView {
 				$(this.anchor+" > .section-right").css("width", wp.right+"vw");
 			}
 		}).on("resize", (e) => {
-			this.hqs.hqsEventDispatch("layoutResize", e);
+			this.sqs.sqsEventDispatch("layoutResize", e);
 			//This was to prevent an issue with section-resize events being propagated as window-resize events
 			e.stopPropagation();
 
@@ -361,7 +370,7 @@ class HqsView {
 		});
 		
 		$(window).on("resize", (evt) => {
-			this.hqs.hqsEventDispatch("layoutResize", evt);
+			this.sqs.sqsEventDispatch("layoutResize", evt);
 		});
     }
     
@@ -397,4 +406,4 @@ class HqsView {
 
 }
 
-export { HqsView as default }
+export { sqsView as default }

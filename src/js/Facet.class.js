@@ -14,9 +14,9 @@ class Facet {
 	* id - The id of the facet.
 	* template - The template object which contains various information needed to instantiate the facet, such as type & title.
 	*/
-	constructor(hqs, id = null, template = {}) {
+	constructor(sqs, id = null, template = {}) {
 		this.id = id;
-		this.hqs = hqs;
+		this.sqs = sqs;
 		this.name = template.name;
 		this.type = template.type;
 		this.title = template.title;
@@ -78,12 +78,12 @@ class Facet {
 			stack: ".facet",
 			handle: ".facet-header",
 			start: (event, ui) => {
-				let facet = this.hqs.facetManager.getFacetById($(event.target).attr("facet-id"));
+				let facet = this.sqs.facetManager.getFacetById($(event.target).attr("facet-id"));
 				facet.isBeingDragged = true;
 				$(facet.getDomRef()).css("box-shadow", "0px 0px 2px 4px rgba(0,0,0,0.1)");
 			},
 			stop: (event, ui) => {
-				let facet = this.hqs.facetManager.getFacetById($(event.target).attr("facet-id"));
+				let facet = this.sqs.facetManager.getFacetById($(event.target).attr("facet-id"));
 				facet.isBeingDragged = false;
 				facet.updatePosition();
 				$(facet.getDomRef()).css("box-shadow", "0px 0px 0px 0px rgba(0,0,0,0.2)");
@@ -129,10 +129,10 @@ class Facet {
 		$(this.domObj).find(".facet-body").fadeIn(500);
 		this.minimized = false;
 
-		var slotId = this.hqs.facetManager.getSlotIdByFacetId(this.id);
-		this.hqs.facetManager.updateSlotSize(slotId);
-		this.hqs.facetManager.updateAllFacetPositions();
-		this.hqs.facetManager.updateShowOnlySelectionsControl();
+		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+		this.sqs.facetManager.updateSlotSize(slotId);
+		this.sqs.facetManager.updateAllFacetPositions();
+		this.sqs.facetManager.updateShowOnlySelectionsControl();
 	}
 
 	/*
@@ -158,10 +158,10 @@ class Facet {
 		$(this.domObj).css("height", facetHeight+"px");
 		
 		this.minimized = true;
-		var slotId = this.hqs.facetManager.getSlotIdByFacetId(this.id);
-		this.hqs.facetManager.updateSlotSize(slotId);
-		this.hqs.facetManager.updateAllFacetPositions();
-		this.hqs.facetManager.updateShowOnlySelectionsControl();
+		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+		this.sqs.facetManager.updateSlotSize(slotId);
+		this.sqs.facetManager.updateAllFacetPositions();
+		this.sqs.facetManager.updateShowOnlySelectionsControl();
 	}
 
 	/*
@@ -218,20 +218,24 @@ class Facet {
 		/*FIXME: This is undefined, should be facet that triggered the request, not necessarily this facet (could be one above in the chain).
 		* Except for when a facet was deleted - this should not count as the trigger in that instance. Yeah it's confusing and I hate it.
 		*/
-		var triggerCode = this.hqs.facetManager.getLastTriggeringFacet().name;
+		var triggerCode = this.sqs.facetManager.getLastTriggeringFacet().name;
 		
-		var fs = this.hqs.facetManager.getFacetState();
-		var fc = this.hqs.facetManager.facetStateToDEF(fs, {
+		var fs = this.sqs.facetManager.getFacetState();
+		var fc = this.sqs.facetManager.facetStateToDEF(fs, {
 			requestType: requestType,
 			targetCode: this.name,
 			triggerCode: triggerCode
 		});
-		
+
+		let domainCode = this.sqs.domainManager.getActiveDomain().name;
+		domainCode = domainCode == "general" ? "" : domainCode;
+
 		var reqData = {
 			requestId: ++this.requestId,
 			requestType: requestType,
 			targetCode: this.name,
 			triggerCode: triggerCode,
+			domainCode: domainCode,
 			facetConfigs: fc
 		};
 
@@ -254,13 +258,13 @@ class Facet {
 					console.log("WARN: Not importing facet data since this facet is either deleted or "+respData.FacetsConfig.RequestId+" != "+this.requestId);
 				}
 
-				for(var key in this.hqs.facetManager.pendingDataFetchQueue) {
-					if(this === this.hqs.facetManager.pendingDataFetchQueue[key]) {
-						this.hqs.facetManager.pendingDataFetchQueue.splice(key, 1);
+				for(var key in this.sqs.facetManager.pendingDataFetchQueue) {
+					if(this === this.sqs.facetManager.pendingDataFetchQueue[key]) {
+						this.sqs.facetManager.pendingDataFetchQueue.splice(key, 1);
 					}
 				}
 
-				if(this.hqs.facetManager.pendingDataFetchQueue.length == 0) {
+				if(this.sqs.facetManager.pendingDataFetchQueue.length == 0) {
 					$.event.trigger("seadFacetPendingDataFetchQueueEmpty", {
 						facet: this
 					});
@@ -341,8 +345,8 @@ class Facet {
 
 		//stop any previously running animation
 		this.getDomRef().stop();
-		let slotId = this.hqs.facetManager.getSlotIdByFacetId(this.id);
-		let slot = this.hqs.facetManager.getSlotById(slotId);
+		let slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+		let slot = this.sqs.facetManager.getSlotById(slotId);
 		let slotPos = slot.getDomRef().position();
 		
 		//animate facet to position of its slot
@@ -372,9 +376,9 @@ class Facet {
 		this.locked = locked;
 		if(locked) {
 			$(this.domObj).addClass("facet-locked");
-			$(".facet-header .facet-portal-indicator", this.domObj).remove();
-			$(".facet-header", this.domObj).append("<h3 class='facet-portal-indicator'>PORTAL</h3>");
-			$(".facet-portal-indicator").css("color", this.hqs.portalManager.getActivePortal().color);
+			$(".facet-header .facet-domain-indicator", this.domObj).remove();
+			$(".facet-header", this.domObj).append("<h3 class='facet-domain-indicator'>PORTAL</h3>");
+			$(".facet-domain-indicator").css("color", this.sqs.domainManager.getActiveDomain().color);
 			$(this.getDomRef()).draggable({
 				disabled: true
 			});

@@ -1,16 +1,16 @@
 import MosaicTileModule from "./MosaicTileModule.class";
 
 class MosaicDendroBuildingTypesModule extends MosaicTileModule {
-    constructor(hqs) {
+    constructor(sqs) {
         super();
-        this.hqs = hqs;
+        this.sqs = sqs;
         this.title = "Dendro building types";
 		this.name = "mosaic-building-types";
-		this.portals = ["dendro"];
+		this.domains = ["dendro"];
     }
 
     async render(renderIntoNode) {
-        let resultMosaic = this.hqs.resultManager.getModule("mosaic");
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         resultMosaic.setLoadingIndicator(renderIntoNode, true);
 
         let pData = await resultMosaic.fetchSiteData(resultMosaic.sites, "qse_dendro_building_types", resultMosaic.requestBatchId);

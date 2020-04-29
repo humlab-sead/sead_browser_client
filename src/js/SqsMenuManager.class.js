@@ -1,14 +1,14 @@
-import HqsMenu from './HqsMenu.class.js'
+import sqsMenu from './sqsMenu.class.js'
 
 /*
-* Class: HqsMenuManager
+* Class: sqsMenuManager
 */
-class HqsMenuManager {
+class sqsMenuManager {
 	/*
 	* Function: constructor
 	*/
-	constructor(hqs) {
-		this.hqs = hqs;
+	constructor(sqs) {
+		this.sqs = sqs;
 		this.menus = [];
 		
 		$(window).on("seadStatePostLoad", (event, data) => {
@@ -35,7 +35,7 @@ class HqsMenuManager {
 	/*
 	* Function: createMenu
 	*
-	* Creates and renders an HqsMenu given a HqsMenu definition.
+	* Creates and renders an sqsMenu given a sqsMenu definition.
 	*
 	*/
 	createMenu(menuDef) {
@@ -56,7 +56,7 @@ class HqsMenuManager {
 			menuDef.anchor = "";
 			console.log("WARN: Anchor attribute empty when creating menu, this is not allowed!");
 		}
-		var menu = new HqsMenu(this.hqs, menuDef);
+		var menu = new sqsMenu(this.sqs, menuDef);
 		this.menus.push(menu);
 		return menu;
 	}
@@ -94,14 +94,14 @@ class HqsMenuManager {
 	/*
 	* Function: combineMenus
 	*
-	* This function will merge several hqsMenu-definitions into a single menu. Useful for when you want to let each module define its own menu items, but you want to combine menu items from several modules in the same menu.
+	* This function will merge several sqsMenu-definitions into a single menu. Useful for when you want to let each module define its own menu items, but you want to combine menu items from several modules in the same menu.
 	*
 	* Parameters:
-	* masterMenu - The master menu. Needs to contain at least the attributes title and anchor, according to the hqsMenu spec.
-	* menus - Array of menus according to the hqsMenu spec. The items-section from these will be merged into the master menu, other attributes such as title of the menu will be ignored.
+	* masterMenu - The master menu. Needs to contain at least the attributes title and anchor, according to the sqsMenu spec.
+	* menus - Array of menus according to the sqsMenu spec. The items-section from these will be merged into the master menu, other attributes such as title of the menu will be ignored.
 	*
 	* Return:
-	* A new HqsMenu containing all the items.
+	* A new sqsMenu containing all the items.
 	*/
 	combineMenus(masterMenu, menus) {
 		if(typeof(masterMenu.items) == "undefined") {
@@ -137,9 +137,9 @@ class HqsMenuManager {
 	* Rebinds the triggers to the menu anchors. In case the anchors were previously removed and re-added, this needs to be called.
 	*/
 	rebind(menuDef) {
-		let m = new  HqsMenu(this.hqs, menuDef, false);
+		let m = new  sqsMenu(this.sqs, menuDef, false);
 		m.bindMenuAnchor(m.menuDef);
 	}
 }
 
-export { HqsMenuManager as default }
+export { sqsMenuManager as default }

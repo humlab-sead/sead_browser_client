@@ -17,8 +17,8 @@ import css from '../../../stylesheets/style.scss';
  */
 
 class BasicSiteInformation {
-	constructor(hqs, siteId) {
-		this.hqs = hqs;
+	constructor(sqs, siteId) {
+		this.sqs = sqs;
 		this.siteId = siteId;
 		this.data = {};
 		this.buildComplete = false;
@@ -26,10 +26,10 @@ class BasicSiteInformation {
 		this.auxiliaryDataFetched = true; //There is currently no auxiliary data to fetch
 
 		/*
-		this.hqs.hqsEventListen("fetchBasicSiteInformation", () => {
+		this.sqs.sqsEventListen("fetchBasicSiteInformation", () => {
             this.buildComplete = true;
 			this.render();
-			this.hqs.hqsEventDispatch("siteReportSiteInformationBuildComplete");
+			this.sqs.sqsEventDispatch("siteReportSiteInformationBuildComplete");
 		}, this);
 		*/
 	}
@@ -45,13 +45,13 @@ class BasicSiteInformation {
 	async fetch() {
 		
 		let p1 = new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/sites?site_id=eq."+this.siteId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/sites?site_id=eq."+this.siteId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
 					if(data.length == 0) {
 						//Result set was empty - which means this site doesn't exist
-						this.hqs.hqsEventDispatch("siteReportSiteNotFound");
+						this.sqs.sqsEventDispatch("siteReportSiteNotFound");
 						console.log("WARN: Site "+this.siteId+" does not exist.");
 					}
 					else {
@@ -76,7 +76,7 @@ class BasicSiteInformation {
 		
 		
 		let p2 = new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_site_locations?site_id=eq."+this.siteId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_site_locations?site_id=eq."+this.siteId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
@@ -103,7 +103,7 @@ class BasicSiteInformation {
 
 		//Fetch references on the site-level
 		let p3 = new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_site_biblio?site_id=eq."+this.siteId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_site_biblio?site_id=eq."+this.siteId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
@@ -117,7 +117,7 @@ class BasicSiteInformation {
 		});
 
 		let p4 = new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset_biblio?site_id=eq."+this.siteId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_dataset_biblio?site_id=eq."+this.siteId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
@@ -176,7 +176,7 @@ class BasicSiteInformation {
 	render() {
 		var data = this.data;
 		var node = $(".site-report-title-site-name").html(this.data.siteName);
-		this.hqs.tooltipManager.registerTooltip(node, "Name of the site as given by the data provider", {drawSymbol: true, placement: "top"});
+		this.sqs.tooltipManager.registerTooltip(node, "Name of the site as given by the data provider", {drawSymbol: true, placement: "top"});
 		
 		var exportLinksHtml = "";
 		exportLinksHtml += "<ul class='site-report-export-links'>";
@@ -222,7 +222,7 @@ class BasicSiteInformation {
 		for(var i = 0; i < data.locations.length; i++) {
 			var el = $("<span>" + data.locations[i].locationName + "</span>");
 			locationsContainer.append(el);
-			this.hqs.tooltipManager.registerTooltip(el, data.locations[i].locationTypeDescription, {highlightAnchor: true});
+			this.sqs.tooltipManager.registerTooltip(el, data.locations[i].locationTypeDescription, {highlightAnchor: true});
 			
 			if (i+1 < data.locations.length) {
 				locationsContainer.append(", ");
@@ -239,18 +239,18 @@ class BasicSiteInformation {
 			}
 
 			//Check here if the loading of the SR data is complete before doing anything else
-			if(hqs.siteReportManager.siteReport.fetchComplete) {
-				this.hqs.siteReportManager.siteReport.renderExportDialog(["json"]);
+			if(sqs.siteReportManager.siteReport.fetchComplete) {
+				this.sqs.siteReportManager.siteReport.renderExportDialog(["json"]);
 			}
 			else {
 				let node = $(".site-report-export-btn > li").append("<i class=\"fa fa-spinner\" aria-hidden=\"true\"></i>&nbsp;");
 				$(".fa-spinner", node).css("animation", "spin 0.2s linear infinite");
 				this.exportTryInterval = setInterval(() => {
-					if(hqs.siteReportManager.siteReport.fetchComplete) {
+					if(sqs.siteReportManager.siteReport.fetchComplete) {
 						clearInterval(this.exportTryInterval);
 						this.exportTryInterval = null;
 						$(".site-report-export-btn .fa-spinner").remove();
-						this.hqs.siteReportManager.siteReport.renderExportDialog(["json"]);
+						this.sqs.siteReportManager.siteReport.renderExportDialog(["json"]);
 					}
 				}, 200);
 			}
@@ -326,13 +326,13 @@ class BasicSiteInformation {
 		
 		this.olMap.addLayer(vectorLayer);
 		
-		this.hqs.hqsEventListen("layoutResize", () => {
+		this.sqs.sqsEventListen("layoutResize", () => {
 			this.olMap.updateSize();
 		});
 	}
 	
 	destroy() {
-		this.hqs.hqsEventUnlisten("fetchBasicSiteInformation", this);
+		this.sqs.sqsEventUnlisten("fetchBasicSiteInformation", this);
 	}
 }
 export { BasicSiteInformation as default }

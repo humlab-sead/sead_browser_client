@@ -1,17 +1,17 @@
 import MosaicTileModule from "./MosaicTileModule.class";
 
 class MosaicCeramicsRelativeAgesModule extends MosaicTileModule {
-    constructor(hqs) {
+    constructor(sqs) {
         super();
-        this.hqs = hqs;
+        this.sqs = sqs;
         this.title = "Ceramic relative ages";
 		this.name = "mosaic-ceramic-relative-ages";
-		this.portals = ["ceramic"];
+		this.domains = ["ceramic"];
     }
 
     async render(renderIntoNode) {
         this.renderIntoNode = renderIntoNode;
-        let resultMosaic = this.hqs.resultManager.getModule("mosaic");
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         resultMosaic.setLoadingIndicator(renderIntoNode, true);
 
         let pData = await resultMosaic.fetchSiteData(resultMosaic.sites, "qse_ceramics_relative_ages", resultMosaic.requestBatchId);

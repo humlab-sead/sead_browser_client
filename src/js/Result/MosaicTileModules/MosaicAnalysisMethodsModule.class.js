@@ -1,16 +1,16 @@
 import MosaicTileModule from "./MosaicTileModule.class";
 
 class MosaicAnalysisMethodsModule extends MosaicTileModule {
-    constructor(hqs) {
+    constructor(sqs) {
         super();
-        this.hqs = hqs;
+        this.sqs = sqs;
         this.title = "Analytical methods";
 		this.name = "mosaic-analysis-methods";
-		this.portals = ["general", "palaeo", "archaeobotany", "isotopes"];
+		this.domains = ["general", "palaeo", "archaeobotany", "isotopes"];
     }
 
     async render(renderIntoNode) {
-        let resultMosaic = this.hqs.resultManager.getModule("mosaic");
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         resultMosaic.setLoadingIndicator(renderIntoNode, true);
         
         let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_analysis_methods", resultMosaic.requestBatchId);

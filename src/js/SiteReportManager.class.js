@@ -6,13 +6,13 @@ import Config from "../config/config.js";
  */
 
 class SiteReportManager {
-	constructor(hqs) {
-		this.hqs = hqs;
+	constructor(sqs) {
+		this.sqs = sqs;
 		this.siteReport = null;
 		this.siteReportsEnabled = true;
 
-		this.hqs.hqsEventListen("resultModuleRenderComplete", () => {
-			if(this.hqs.resultManager.getActiveModule().name == "table" || this.hqs.resultManager.getActiveModule().name == "map") {
+		this.sqs.sqsEventListen("resultModuleRenderComplete", () => {
+			if(this.sqs.resultManager.getActiveModule().name == "table" || this.sqs.resultManager.getActiveModule().name == "map") {
 				$(".site-report-link").off("click").on("click", (event) => {
 					var siteId = parseInt($(event.currentTarget).attr("site-id"));
 					this.renderSiteReport(siteId);
@@ -20,7 +20,7 @@ class SiteReportManager {
 			}
 		});
 
-		this.hqs.hqsEventListen("resultMapPopupRender", (data) => {
+		this.sqs.sqsEventListen("resultMapPopupRender", (data) => {
 			$(".site-report-link").off("click").on("click", (event) => {
 				var siteId = parseInt($(event.currentTarget).attr("site-id"));
 				this.renderSiteReport(siteId);
@@ -28,13 +28,13 @@ class SiteReportManager {
 		});
 		
 		/*
-		this.hqs.hqsEventListen("siteReportClosed", () => {
+		this.sqs.sqsEventListen("siteReportClosed", () => {
 			console.log("siteReportClosed button clicked");
-			this.hqs.setActiveView("filters");
+			this.sqs.setActiveView("filters");
 
-			let layoutMode = this.hqs.layoutManager.getMode();
+			let layoutMode = this.sqs.layoutManager.getMode();
 			if(layoutMode == "mobileMode") {
-				this.hqs.layoutManager.switchSection("right");
+				this.sqs.layoutManager.switchSection("right");
 			}
 
 			this.siteReport.hide();
@@ -43,20 +43,20 @@ class SiteReportManager {
 			this.siteReport = null;
 			console.log("site report close - push")
 			history.pushState({}, "", "/");
-			if(this.hqs.resultManager.activeModuleId == "none") {
-				this.hqs.resultManager.activeModuleId = Config.defaultResultModule;
+			if(this.sqs.resultManager.activeModuleId == "none") {
+				this.sqs.resultManager.activeModuleId = Config.defaultResultModule;
 			}
-			this.hqs.resultManager.setActiveModule(this.hqs.resultManager.activeModuleId);
+			this.sqs.resultManager.setActiveModule(this.sqs.resultManager.activeModuleId);
 		});
 		*/
 
-		this.hqs.hqsEventListen("siteReportClosed", () => {
+		this.sqs.sqsEventListen("siteReportClosed", () => {
 			console.log("siteReportClosed");
 			//history.pushState({}, "", "/");
 		});
 	}
 	
-	hqsOffer(offerName, offerData) {
+	sqsOffer(offerName, offerData) {
 		if(this.siteReportsEnabled) {
 			if(offerName == "resultTableData") {
 				$("tbody > tr", offerData.node).each((index, el) => {
@@ -88,18 +88,18 @@ class SiteReportManager {
 		}
 		
 		//This XHR is just for checking if the site with this ID actually exist
-		var xhr1 = this.hqs.pushXhr(null, "checkIfSiteExists");
-		xhr1.xhr = $.ajax(this.hqs.config.siteReportServerAddress+"/sites?site_id=eq."+siteId, {
+		var xhr1 = this.sqs.pushXhr(null, "checkIfSiteExists");
+		xhr1.xhr = $.ajax(this.sqs.config.siteReportServerAddress+"/sites?site_id=eq."+siteId, {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {
 				if(data.length == 0) {
-					this.hqs.dialogManager.showPopOver("Not found", "The requested site ("+siteId+") does not exist.")
+					this.sqs.dialogManager.showPopOver("Not found", "The requested site ("+siteId+") does not exist.")
 				}
 				else {
 					//Yay - it exists, so go ahead and render, if system is ready...
-					if(this.hqs.systemReady) {
-						this.hqs.setActiveView("siteReport");
+					if(this.sqs.systemReady) {
+						this.sqs.setActiveView("siteReport");
 						this.siteReport = new SiteReport(this, siteId);
 					}
 					else {
@@ -109,7 +109,7 @@ class SiteReportManager {
 					}
 				}
 				
-				this.hqs.popXhr(xhr1);
+				this.sqs.popXhr(xhr1);
 			}
 		});
 	}
@@ -132,11 +132,11 @@ class SiteReportManager {
 		$("#site-report-exit-menu").animate({
 			left: "-100px"
 		}, 250, () => {
-			this.hqs.menuManager.removeMenu(this.siteReport.backMenu);
+			this.sqs.menuManager.removeMenu(this.siteReport.backMenu);
 
 			/*
-			if(this.hqs.layoutManager.getMode() != "mobileMode") {
-				$("#aux-menu, #portal-menu").show().animate({
+			if(this.sqs.layoutManager.getMode() != "mobileMode") {
+				$("#aux-menu, #domain-menu").show().animate({
 					top: "0px"
 				}, 250);
 			}
@@ -149,12 +149,12 @@ class SiteReportManager {
 		
 
 		//If the site report was the entry point, no result module will be selected or rendered, so we need to fix that here...
-		if(this.hqs.resultManager.getActiveModule() === false) {
-			this.hqs.resultManager.setActiveModule("map", true);
+		if(this.sqs.resultManager.getActiveModule() === false) {
+			this.sqs.resultManager.setActiveModule("map", true);
 		}
 
-		this.hqs.hqsEventDispatch("siteReportClosed"); //Also fun fact: This is called from a function which calls this function - recursion...
-		this.hqs.setActiveView("filters");
+		this.sqs.sqsEventDispatch("siteReportClosed"); //Also fun fact: This is called from a function which calls this function - recursion...
+		this.sqs.setActiveView("filters");
 	}
 	
 	/*
@@ -184,7 +184,7 @@ class SiteReportManager {
 		return state;
 	}
 	
-	hqsMenu() {
+	sqsMenu() {
 		return {
 			title: "<i class=\"fa fa-arrow-circle-o-left\" style='font-size: 1.5em' aria-hidden=\"true\"></i>",
 			anchor: "#site-report-exit-menu",

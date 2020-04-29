@@ -16,7 +16,7 @@ import SiteReportChart from './RenderModules/SiteReportChart.class';
 class SiteReport {
 	constructor(siteReportManager, siteId) {
 		this.siteReportManager = siteReportManager;
-		this.hqs = this.siteReportManager.hqs;
+		this.sqs = this.siteReportManager.sqs;
 		this.siteId = siteId;
 		this.animationTime = 400;
 		this.animationEasing = "easeOutCubic";
@@ -34,20 +34,20 @@ class SiteReport {
 
         this.showLoadingIndicator();
 		
-		this.hqs.hqsEventListen("siteReportSiteNotFound", () => {
+		this.sqs.sqsEventListen("siteReportSiteNotFound", () => {
 			clearTimeout(this.loadIndicatorTimeout);
 			this.hideLoadingIndicator();
 			$(".site-report-title-site-name").html("<span class='siteReportError'>Site not found</span>");
 		});
 
-		this.hqs.hqsEventListen("siteReportRenderComplete", () => {
+		this.sqs.sqsEventListen("siteReportRenderComplete", () => {
 			clearTimeout(this.loadIndicatorTimeout);
 			this.hideLoadingIndicator();
 		});
 
-		let bsi = new BasicSiteInformation(this.hqs, this.siteId);
-		let samples = new Samples(this.hqs, this.siteId);
-		let analysis = new Analysis(this.hqs, this.siteId);
+		let bsi = new BasicSiteInformation(this.sqs, this.siteId);
+		let samples = new Samples(this.sqs, this.siteId);
+		let analysis = new Analysis(this.sqs, this.siteId);
 
 		Promise.all([bsi.fetch(), samples.fetch(), analysis.fetch()]).then(() => {
 			this.fetchComplete = true;
@@ -70,7 +70,7 @@ class SiteReport {
 			"weight": 1
 		});
 
-		this.backMenu = this.siteReportManager.hqs.menuManager.createMenu(this.siteReportManager.hqs.siteReportManager.hqsMenu());
+		this.backMenu = this.siteReportManager.sqs.menuManager.createMenu(this.siteReportManager.sqs.siteReportManager.sqsMenu());
 		$("#site-report-exit-menu").css("position", "relative").css("left", "-100px").show();
 		$("#site-report-exit-menu").animate({
 			left: "0px"
@@ -135,11 +135,11 @@ class SiteReport {
 		
 		
 		/*
-		$("#facet-menu, #aux-menu, #portal-menu").animate({
+		$("#facet-menu, #aux-menu, #domain-menu").animate({
 			top: "-100px"
 		}, 250, () => {
-			$("#facet-menu, #aux-menu, #portal-menu").hide();
-			this.backMenu = this.siteReportManager.hqs.menuManager.createMenu(this.siteReportManager.hqs.siteReportManager.hqsMenu());
+			$("#facet-menu, #aux-menu, #domain-menu").hide();
+			this.backMenu = this.siteReportManager.sqs.menuManager.createMenu(this.siteReportManager.sqs.siteReportManager.sqsMenu());
 			$("#site-report-exit-menu").css("position", "relative").css("left", "-100px").show();
 			$("#site-report-exit-menu").animate({
 				left: "0px"
@@ -148,8 +148,8 @@ class SiteReport {
 		*/
 
 		/*
-		this.siteReportManager.hqs.setActiveView("siteReport");
-		this.siteReportManager.siteReportLayoutManager = new HqsLayoutManager(this.siteReportManager.hqs, "#site-report-panel", 80, 20, {
+		this.siteReportManager.sqs.setActiveView("siteReport");
+		this.siteReportManager.siteReportLayoutManager = new sqsLayoutManager(this.siteReportManager.sqs, "#site-report-panel", 80, 20, {
 			collapseIntoVertial: true
 		});
 		*/
@@ -283,7 +283,7 @@ class SiteReport {
 			});
 		
 		if(section.hasOwnProperty("methodDescription")) {
-			this.hqs.tooltipManager.registerTooltip($(".site-report-level-title", sectionNode), section.methodDescription, {drawSymbol: true});
+			this.sqs.tooltipManager.registerTooltip($(".site-report-level-title", sectionNode), section.methodDescription, {drawSymbol: true});
 		}
 		
 		//If this is a top-level section, add another class for different theming
@@ -311,7 +311,7 @@ class SiteReport {
 		//Just register some tooltips if description is available
 		if(typeof(section.description) != "undefined") {
 			var helpAnchor = $(".site-report-level-title", sectionNode);
-			this.hqs.tooltipManager.registerTooltip(helpAnchor, section.description, {drawSymbol: true});
+			this.sqs.tooltipManager.registerTooltip(helpAnchor, section.description, {drawSymbol: true});
 		}
 		else {
 			$("#site-report-"+section.name+"-help").remove();
@@ -427,8 +427,8 @@ class SiteReport {
 		$("#site-report-section-"+section.name+" > .site-report-level-content").append("<div id='"+cicId+"' class='content-item-container'></div>");
 		$("#site-report-section-"+section.name+" > .site-report-level-content > #cic-"+contentItem.name).append(headerNode);
 
-		this.hqs.tooltipManager.registerTooltip($(".dataset-id", headerNode), "Unique dataset identifier", { drawSymbol: true });
-		this.hqs.tooltipManager.registerTooltip($(".contentitem-title", headerNode), "Name of the dataset", { drawSymbol: true });
+		this.sqs.tooltipManager.registerTooltip($(".dataset-id", headerNode), "Unique dataset identifier", { drawSymbol: true });
+		this.sqs.tooltipManager.registerTooltip($(".contentitem-title", headerNode), "Name of the dataset", { drawSymbol: true });
 		
 		$(headerNode).append("<div class='content-item-header-divider'></div>");
 		
@@ -561,7 +561,7 @@ class SiteReport {
 	
 	async renderExportDialog(formats = ["json", "xlsx", "png"], section = "all", contentItem = "all") {
 		
-		let exportData = this.hqs.copyObject(this.data);
+		let exportData = this.sqs.copyObject(this.data);
 		this.prepareExportStructure(exportData.sections);
 
 		var exportStruct = {
@@ -593,7 +593,7 @@ class SiteReport {
 		
 		var dialogNodeId = shortid.generate();
 		var dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");
-		this.siteReportManager.hqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
+		this.siteReportManager.sqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
 		
 
 		if(section == "all" || section.name == "samples") {
@@ -927,7 +927,7 @@ class SiteReport {
 			let option = selectedRo.options[key];
 			if(option.showControls !== false) {
 				html += "<label class='site-report-view-selector-label' for=''>"+option.title+":</label>";
-				html += "<select renderOptionExtraKey='"+key+"' class='site-report-view-selector-control site-report-render-mode-selector hqs'>";
+				html += "<select renderOptionExtraKey='"+key+"' class='site-report-view-selector-control site-report-render-mode-selector sqs'>";
 				for(let k2 in option.options) {
 					let selectedHtml = option.selected == option.options[k2] ? "selected" : "";
 					html += "<option value='"+option.options[k2]+"' "+selectedHtml+">"+contentItem.data.columns[option.options[k2]].title+"</option>";
@@ -982,7 +982,7 @@ class SiteReport {
 		let columnKey = null;
 		for(let key in contentItem.renderOptions) {
 			if(contentItem.renderOptions[key].selected) {
-				let sortKey = this.hqs.findObjectPropInArray(contentItem.renderOptions[key].options, "title", "Sort");
+				let sortKey = this.sqs.findObjectPropInArray(contentItem.renderOptions[key].options, "title", "Sort");
 				if(sortKey !== false) {
 					columnKey = contentItem.renderOptions[key].options[sortKey].selected;
 				}
@@ -1010,9 +1010,9 @@ class SiteReport {
 			}
 		}
 
-		this.hqs.hqsEventUnlisten("siteReportSiteInformationBuildComplete", this);
-		this.hqs.hqsEventUnlisten("siteReportSamplesBuildComplete", this);
-		this.hqs.hqsEventUnlisten("siteReportAnalysesBuildComplete", this);
+		this.sqs.sqsEventUnlisten("siteReportSiteInformationBuildComplete", this);
+		this.sqs.sqsEventUnlisten("siteReportSamplesBuildComplete", this);
+		this.sqs.sqsEventUnlisten("siteReportAnalysesBuildComplete", this);
 	}
 	
 }

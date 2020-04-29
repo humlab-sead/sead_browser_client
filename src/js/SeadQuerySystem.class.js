@@ -1,8 +1,8 @@
 import Color from './color.class.js';
 import FacetManager from './FacetManager.class.js';
-import HqsLayoutManager from './HqsLayoutManager.class.js';
+import sqsLayoutManager from './sqsLayoutManager.class.js';
 import MainMenu from './MainMenu.class.js'
-import HqsMenuManager from './HqsMenuManager.class';
+import sqsMenuManager from './sqsMenuManager.class';
 import ResultManager from './Result/ResultManager.class.js';
 import ResultMap from './Result/ResultMap.class.js'
 import ResultTable from './Result/ResultTable.class.js'
@@ -13,17 +13,17 @@ import TooltipManager from './TooltipManager.class.js';
 import SiteReportManager from './SiteReportManager.class';
 import HelpAgent from './HelpAgent.class.js';
 import UserManager from './UserManager.class.js';
-import PortalManager from './PortalManager.class.js';
+import DomainManager from './DomainManager.class.js';
 import Router from './Router.class.js';
 //import filterDefinitions from '../filters.json';
 import css from '../stylesheets/style.scss';
 import Config from '../config/config.js';
 
 /* 
-* Class: HumlabQuerySystem
-* This is the master class of the whole HumlabQuerySystem (HQS) application. There should only be one instance of this and it contains all other instantiated classes and data structures in the application.
+* Class: SeadQuerySystem
+* This is the master class of the whole SeadQuerySystem (sqs) application. There should only be one instance of this and it contains all other instantiated classes and data structures in the application.
 */
-class HumlabQuerySystem {
+class SeadQuerySystem {
 	constructor(settings) {
 		this.settings = settings;
 		this.requestId = 0;
@@ -31,7 +31,7 @@ class HumlabQuerySystem {
 		this.config = Config;
 		this.xhrList = [];
 		this.xhrCallbackRegistry = [];
-		this.hqsEventRegistry = [];
+		this.sqsEventRegistry = [];
 		this.eventGroups = [];
 		this.filterDefinitions = [];
 		this.taxa = []; //Local taxonomy db
@@ -40,14 +40,15 @@ class HumlabQuerySystem {
 		this.config = this.loadUserSettings(this.config);
 
 		this.preload().then(() => {
-			this.buildSystem();
+			console.log("SQS preload complete");
+			this.bootstrapSystem();
+			console.log("SQS bootstrap complete");
 		});
 
 		$("body").show();
 	}
 
-	buildSystem() {
-
+	bootstrapSystem() {
 		$("#sead-logo").on("click", () => {
 			window.location = "/";
 		});
@@ -55,12 +56,12 @@ class HumlabQuerySystem {
 		this.color = new Color();
 		this.stateManager = new StateManager(this);
 		var viewstate = this.stateManager.getViewstateIdFromUrl();
-		this.layoutManager = new HqsLayoutManager(this);
+		this.layoutManager = new sqsLayoutManager(this);
 		this.layoutManager.createView("#facet-result-panel", "filters", this.config.facetSectionDefaultWidth, 100-this.config.facetSectionDefaultWidth, {
 			rules: [
 				{
 					type: "show",
-					selector: "#portal-menu, #aux-menu",
+					selector: "#domain-menu, #aux-menu",
 					evaluator: () => {
 						return this.layoutManager.getMode() == "desktopMode";
 					}
@@ -93,7 +94,7 @@ class HumlabQuerySystem {
 				},
 				{
 					type: "show",
-					selector: "#portal-menu, #aux-menu, #facet-menu",
+					selector: "#domain-menu, #aux-menu, #facet-menu",
 					evaluator: false
 				}
 			]
@@ -101,14 +102,19 @@ class HumlabQuerySystem {
 
 		//this.layoutManager.setActiveView("filters");
 
-		//this.siteReportLayoutManager = new HqsLayoutManager(this, "#site-report-panel", 80, 20);
+		//this.siteReportLayoutManager = new sqsLayoutManager(this, "#site-report-panel", 80, 20);
 
-		this.menuManager = new HqsMenuManager(this);
+		this.menuManager = new sqsMenuManager(this);
+		this.dialogManager = new DialogManager(this);
+	  	this.tooltipManager = new TooltipManager(this);
 		this.facetManager = new FacetManager(this, this.filterDefinitions);
 		this.mainMenu = new MainMenu();
 		
 		this.siteReportManager = new SiteReportManager(this);
 		var siteId = this.siteReportManager.getSiteIdFromUrl();
+
+		this.domainManager = new DomainManager(this, "general");
+		//this.domainManager.setActiveDomain("general", false);
 
 		this.resultManager = new ResultManager(this);
 		this.resultManager.addModule([
@@ -149,14 +155,13 @@ class HumlabQuerySystem {
             body: "You need to narrow down the search result by applying more filters before any result data can be shown here."
         });
         */
-	  	this.dialogManager = new DialogManager(this);
-	  	this.tooltipManager = new TooltipManager(this);
+	  	
 	  	this.help = new HelpAgent();
 	  	this.help.setState(true);
 		this.userManager = new UserManager(this);
-		this.portalManager = new PortalManager(this, this.filterDefinitions);
+		
 
-		this.menuManager.createMenu(this.resultManager.hqsMenu());
+		this.menuManager.createMenu(this.resultManager.sqsMenu());
 
 		var auxMenuDef = {
 			title: "<i class=\"fa fa-bars\" style='font-size: 1.5em' aria-hidden=\"true\"></i>",
@@ -164,23 +169,23 @@ class HumlabQuerySystem {
 		};
 		
 		var auxMenu = this.menuManager.combineMenus(auxMenuDef, [
-			this.stateManager.hqsMenu(),
-			this.dialogManager.hqsMenu(),
-			//this.userManager.hqsMenu(),
-			this.help.hqsMenu()
+			this.stateManager.sqsMenu(),
+			this.dialogManager.sqsMenu(),
+			//this.userManager.sqsMenu(),
+			this.help.sqsMenu()
 		]);
 
 		this.menuManager.createMenu(auxMenu);
 
-		this.portalManager.setActivePortal("general", false);
-		//this.menuManager.createMenu(this.portalManager.hqsMenu());
+		
+		//this.menuManager.createMenu(this.domainManager.sqsMenu());
 		
 
 		this.facetManager.buildFilterStructure("general");
 		/*
 		this.facetDef = this.facetManager.importFacetDefinitions();
-		var hqsMenuStruct = this.facetManager.makeHqsMenuFromFacetDef(this.facetDef);
-		this.menuManager.createMenu(hqsMenuStruct);
+		var sqsMenuStruct = this.facetManager.makesqsMenuFromFacetDef(this.facetDef);
+		this.menuManager.createMenu(sqsMenuStruct);
 		*/
 
 		if(viewstate != false) {
@@ -190,8 +195,8 @@ class HumlabQuerySystem {
 		/*
 	  	var jqxhr = this.facetManager.fetchFacetDefinitions(this);
 	  	jqxhr.done((data, textStatus, jqXHR) => {
-	  		var hqsMenuStruct = this.facetManager.makeHqsMenuFromFacetDef(this.facetDef);
-	  		this.menuManager.createMenu(hqsMenuStruct);
+	  		var sqsMenuStruct = this.facetManager.makesqsMenuFromFacetDef(this.facetDef);
+	  		this.menuManager.createMenu(sqsMenuStruct);
 	  		if(viewstate != false) {
 		  		this.stateManager.loadStateById(viewstate);
 		  	}
@@ -240,7 +245,7 @@ class HumlabQuerySystem {
 					$("#privacy-policy-link").on("click", (evt) => {
 						evt.stopPropagation();
 						var content = $("#gdpr-infobox").html();
-						window.hqs.dialogManager.showPopOver("Legal policy", content);
+						window.sqs.dialogManager.showPopOver("Legal policy", content);
 					});
 				}
 			});
@@ -251,7 +256,7 @@ class HumlabQuerySystem {
 		this.renderTimelineDummyWarning();
 
 		this.systemReady = true;
-		this.hqsEventDispatch("hqsInitComplete");
+		this.sqsEventDispatch("sqsInitComplete");
 		this.router.route();
 	}
 
@@ -277,12 +282,40 @@ class HumlabQuerySystem {
 	 */
 	async preload() {
 
+		let fetchApiVersion = new Promise((resolve, reject) => {
+			$.ajax(this.config.serverAddress+"/api/values", {
+				method: "get",
+				dataType: "json",
+				success: (data) => {
+					this.apiVersion = data;
+					resolve(data);
+				},
+				error: (e) => {
+					reject(e);
+				}
+			});
+		});
+
 		let fetchFacetDefinitionsPromise = new Promise((resolve, reject) => {
 			$.ajax(this.config.serverAddress+"/api/facets", {
 				method: "get",
 				dataType: "json",
 				success: (data) => {
 					this.importFilters(data);
+					resolve(data);
+				},
+				error: (e) => {
+					reject(e);
+				}
+			});
+		});
+
+		let fetchDomainDefinitionsPromise = new Promise((resolve, reject) => {
+			$.ajax(this.config.serverAddress+"/api/facets/domain", {
+				method: "get",
+				dataType: "json",
+				success: async (data) => {
+					await this.importDomains(data);
 					resolve(data);
 				},
 				error: (e) => {
@@ -339,7 +372,7 @@ class HumlabQuerySystem {
 			});
 		});
 
-		return await Promise.all([fetchFacetDefinitionsPromise, fetchDataTypesPromise, fetchDatasetMasters]);
+		return await Promise.all([fetchApiVersion, fetchFacetDefinitionsPromise, fetchDataTypesPromise, fetchDatasetMasters, fetchDomainDefinitionsPromise]);
 	}
 
 	importFilters(data) {
@@ -371,6 +404,63 @@ class HumlabQuerySystem {
 		}
 	}
 
+	async importDomains(domains) {
+		let fetchDomainFiltersPromises = [];
+		//First create the "general" domain since we need it for internal use, but the server doesn't provide it
+		domains.unshift({
+			FacetId: false,
+			FacetCode: "general",
+			DisplayTitle: "General",
+			Description: "General domain facet",
+			FacetGroupKey: "DOMAIN",
+			FacetTypeKey: "discrete",
+			IsApplicable: false,
+			IsDefault: false,
+			AggregateType: "count",
+			AggregateTitle: "Number of datasets",
+			FacetGroup: {
+				FacetGroupKey: "DOMAIN",
+				DisplayTitle: "Domain facets",
+				Description: "DOMAIN"
+			}
+		});
+
+		//Fetch the filters associated with each domain/domain
+		domains.forEach((domain) => {
+			fetchDomainFiltersPromises.push(new Promise((resolve, reject) => {
+				$.ajax(this.config.serverAddress+"/api/facets/domain/"+domain.FacetCode, {
+					method: "get",
+					dataType: "json",
+					success: (data) => {
+						domain.Facets = data;
+						resolve(data);
+					},
+					error: (e) => {
+						reject(e);
+					}
+				});
+			}));
+		});
+
+		await Promise.all(fetchDomainFiltersPromises).then((data) => {
+			Config.domains = [];
+			domains.forEach((domain) => {
+				let domainFacetCodes = [];
+				domain.Facets.forEach((facet) => {
+					domainFacetCodes.push(facet.FacetCode);
+				});
+
+				Config.domains.push({
+					name: domain.FacetCode,
+					//title: "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i> General",
+					title: domain.DisplayTitle,
+					color: "#888",
+					filters: domainFacetCodes
+				});
+			});
+		});
+	}
+
 	getFilterGroupById(groupId) {
 		for(let key in this.filterDefinitions) {
 			let group = this.filterDefinitions[key];
@@ -385,20 +475,20 @@ class HumlabQuerySystem {
 	}
 	
 	//FIXME: Maybe this can be made static?
-	hqsEventDispatch(eventName, args) {
+	sqsEventDispatch(eventName, args) {
 		//console.log("Event dispatch:", eventName, args);
 		$.event.trigger(eventName, args);
 	}
 
-	hqsEventListen(eventName, callback = null, owner = null) {
+	sqsEventListen(eventName, callback = null, owner = null) {
 		var eventAlreadyRegistered = false;
-		for(var key in this.hqsEventRegistry) {
-			if (this.hqsEventRegistry[key].eventName == eventName) {
+		for(var key in this.sqsEventRegistry) {
+			if (this.sqsEventRegistry[key].eventName == eventName) {
 				eventAlreadyRegistered = true;
 			}
 		}
 		
-		this.hqsEventRegistry.push({
+		this.sqsEventRegistry.push({
 			eventName: eventName,
 			callback: callback,
 			owner: owner
@@ -406,9 +496,9 @@ class HumlabQuerySystem {
 		
 		if (eventAlreadyRegistered === false) {
 			$(window).on(eventName, (event, data) => {
-				for (var key in this.hqsEventRegistry) {
-					if (this.hqsEventRegistry[key].eventName == eventName) {
-						this.hqsEventRegistry[key].callback(event, data);
+				for (var key in this.sqsEventRegistry) {
+					if (this.sqsEventRegistry[key].eventName == eventName) {
+						this.sqsEventRegistry[key].callback(event, data);
 					}
 				}
 			});
@@ -416,20 +506,20 @@ class HumlabQuerySystem {
 		
 	}
 	
-	hqsEventUnlisten(eventName, owner = null) {
-		//console.log("hqsEventUnlisten", eventName);
+	sqsEventUnlisten(eventName, owner = null) {
+		//console.log("sqsEventUnlisten", eventName);
 
 		//Remove event from internal registry
-		for(var key in this.hqsEventRegistry) {
-			if(this.hqsEventRegistry[key].eventName == eventName && this.hqsEventRegistry[key].owner === owner) {
+		for(var key in this.sqsEventRegistry) {
+			if(this.sqsEventRegistry[key].eventName == eventName && this.sqsEventRegistry[key].owner === owner) {
 				//console.log("Removing event ", eventName, " for owner ", owner, " from registry");
-				this.hqsEventRegistry.splice(key, 1);
+				this.sqsEventRegistry.splice(key, 1);
 			}
 		}
 		
 		var eventStillExistsInRegistry = false;
-		for(var key in this.hqsEventRegistry) {
-			if(this.hqsEventRegistry[key].eventName == eventName) {
+		for(var key in this.sqsEventRegistry) {
+			if(this.sqsEventRegistry[key].eventName == eventName) {
 				eventStillExistsInRegistry = true;
 			}
 		}
@@ -442,7 +532,7 @@ class HumlabQuerySystem {
 	}
 
 	
-	hqsEventListenToGroup(events, callback = null, owner = null) {
+	sqsEventListenToGroup(events, callback = null, owner = null) {
 
 		let handlerFunc = (evt, data) => {
 			for(let k in this.eventGroups) {
@@ -462,7 +552,7 @@ class HumlabQuerySystem {
 					//console.log("Group complete", this.eventGroups[k])
 					this.eventGroups[k].callback();
 					for(let k3 in this.eventGroups[k].events) {
-						this.hqsEventUnlisten(this.eventGroups[k].events[k3]);
+						this.sqsEventUnlisten(this.eventGroups[k].events[k3]);
 					}
 					this.eventGroups.splice(k, 1);
 				}
@@ -478,15 +568,15 @@ class HumlabQuerySystem {
 		});
 		
 		for(let key in events) {
-			this.hqsEventListen(events[key], handlerFunc);
+			this.sqsEventListen(events[key], handlerFunc);
 		}
 		
 	}
 
-	hqsOffer(offerName, offerData) {
+	sqsOffer(offerName, offerData) {
 		for(var key in this.modules) {
-			if(typeof(this.modules[key].hqsOffer) == "function") {
-				offerData = this.modules[key].hqsOffer(offerName, offerData);
+			if(typeof(this.modules[key].sqsOffer) == "function") {
+				offerData = this.modules[key].sqsOffer(offerName, offerData);
 			}
 		}
 		return offerData;
@@ -495,15 +585,15 @@ class HumlabQuerySystem {
 	setActiveView(viewName) {
 		console.log("setActiveView", viewName);
 		this.activeView = viewName;
-		if(this.layoutManager instanceof HqsLayoutManager) {
+		if(this.layoutManager instanceof sqsLayoutManager) {
 			this.layoutManager.setActiveView(viewName);
 		}
 		
 		/*
-		if(this.layoutManager instanceof HqsLayoutManager) {
+		if(this.layoutManager instanceof sqsLayoutManager) {
 			this.layoutManager.setup();
 		}
-		if(this.facetManager instanceof FacetManager && this.facetManager.siteReportLayoutManager instanceof HqsLayoutManager) {
+		if(this.facetManager instanceof FacetManager && this.facetManager.siteReportLayoutManager instanceof sqsLayoutManager) {
 			this.facetManager.siteReportLayoutManager.setup();
 		}
 		*/
@@ -574,7 +664,7 @@ class HumlabQuerySystem {
 				if(splicedXhr.eventOnComplete != null) {
 					if(this.getXhrByEvent(splicedXhr.eventOnComplete).length == 0) {
 						//No more pending xhr's with this event name, so dispatch the event in question
-						this.hqsEventDispatch(splicedXhr.eventOnComplete);
+						this.sqsEventDispatch(splicedXhr.eventOnComplete);
 					}
 				}
 				return splicedXhr;
@@ -947,7 +1037,7 @@ class HumlabQuerySystem {
 	}
 
 	storeUserSettings(settings) {
-		let userSettingsJson = window.localStorage.getItem("hqsUserSettings");
+		let userSettingsJson = window.localStorage.getItem("sqsUserSettings");
 		let userSettings;
 		if(!userSettingsJson) {
 			userSettings = {};
@@ -959,11 +1049,11 @@ class HumlabQuerySystem {
 		Object.keys(settings).forEach((key) => {
 			userSettings[key] = settings[key]
 		});
-		window.localStorage.setItem("hqsUserSettings", JSON.stringify(userSettings));
+		window.localStorage.setItem("sqsUserSettings", JSON.stringify(userSettings));
 	}
 
 	loadUserSettings(mainConfig) {
-		let userSettingsJson = window.localStorage.getItem("hqsUserSettings");
+		let userSettingsJson = window.localStorage.getItem("sqsUserSettings");
 		if(!userSettingsJson) {
 			return mainConfig;
 		}
@@ -976,4 +1066,4 @@ class HumlabQuerySystem {
 	
 }
 
-export { HumlabQuerySystem as default }
+export { SeadQuerySystem as default }

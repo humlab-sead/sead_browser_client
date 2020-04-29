@@ -6,7 +6,7 @@ import DatasetModule from "./DatasetModule.class";
 class MeasuredValueDataset extends DatasetModule {
 	constructor(analysis) {
 		super();
-		this.hqs = analysis.hqs;
+		this.sqs = analysis.sqs;
 		this.analysis = analysis;
 		this.section = analysis.section;
 		this.data = analysis.data;
@@ -53,7 +53,7 @@ class MeasuredValueDataset extends DatasetModule {
 	
 	async fetchDataset(dataset) {
 		await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset2?dataset_id=eq."+dataset.datasetId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_dataset2?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
@@ -82,7 +82,7 @@ class MeasuredValueDataset extends DatasetModule {
 		dataset.dataPoints.map((dp) => {
 			analysisEntityIds.add(dp.analysisEntityId);
 		});
-		let measuredValues = await this.hqs.fetchFromTable("measured_values", "analysis_entity_id", Array.from(analysisEntityIds));
+		let measuredValues = await this.sqs.fetchFromTable("measured_values", "analysis_entity_id", Array.from(analysisEntityIds));
 
 		dataset.dataPoints.map((dp) => {
 			measuredValues.map((mv) => {
@@ -118,7 +118,7 @@ class MeasuredValueDataset extends DatasetModule {
 		});
 		
 		this.buildIsComplete = true;
-		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete");
+		this.sqs.sqsEventDispatch("siteAnalysisBuildComplete");
 	}
 
 	appendDatasetToSection(section, dataset) {

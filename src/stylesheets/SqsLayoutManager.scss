@@ -15,8 +15,8 @@
 	width: 100vw;
 	height:calc(100vh - 89px);
 	
-	max-width: 70vw;
-	min-width: 30vw;
+	max-width: 70vw; //FIXME: This should not be hard-coded
+	min-width: 30vw; //FIXME: This should not be hard-coded
 	
 	overflow-x: hidden;
 	overflow-y: auto;
@@ -25,8 +25,8 @@
 .section-right {
 	margin: 0px;
 	width: 0vw;
-	max-width: 70vw;
-	min-width: 30vw;
+	max-width: 70vw; //FIXME: This should not be hard-coded
+	min-width: 30vw; //FIXME: This should not be hard-coded
 	height:calc(100vh - 89px);
 	
 	border-left-style:solid;

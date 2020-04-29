@@ -30,8 +30,8 @@ class Analysis {
 	/*
 	* Function: constructor
 	*/
-	constructor(hqs, siteId) {
-		this.hqs = hqs;
+	constructor(sqs, siteId) {
+		this.sqs = sqs;
 		this.siteId = siteId;
 		this.buildComplete = false;
 		this.auxiliaryDataFetched = true; //There is currently no auxiliary data to fetch for any analysis module, so... 
@@ -99,7 +99,7 @@ class Analysis {
 	* Function: render
 	*/
 	render() {
-		this.hqs.siteReportManager.siteReport.renderSection(this.section);
+		this.sqs.siteReportManager.siteReport.renderSection(this.section);
 		this.destroyAllDatasetModules();
 	}
 	
@@ -120,7 +120,7 @@ class Analysis {
 		//Fetching all analyses for this site
 		await new Promise((resolve, reject) => {
 
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_site_analyses?site_id=eq."+this.siteId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_site_analyses?site_id=eq."+this.siteId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
@@ -132,7 +132,7 @@ class Analysis {
 						
 						//Check that this datasetId is not already registered. Sometimes we get duplicate dataset ID's with different sample groups as individual rows,
 						//presumably because multiple sample groups are sometimes used to perform an analysis
-						var analysisKey = this.hqs.findObjectPropInArray(this.data.analyses, "datasetId", data[key].dataset_id);
+						var analysisKey = this.sqs.findObjectPropInArray(this.data.analyses, "datasetId", data[key].dataset_id);
 						
 						if(analysisKey === false) {
 							this.data.analyses.push({
@@ -210,7 +210,7 @@ class Analysis {
 	 */
 	async fetchAnalysis(dataset) {
 		await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_analysis?dataset_id=eq."+dataset.datasetId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_analysis?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
@@ -230,7 +230,7 @@ class Analysis {
 
 	async fetchDataset(datasetId) {
 		await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/datasets?dataset_id=eq."+dataset.datasetId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/datasets?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: (data, textStatus, xhr) => {
@@ -268,7 +268,7 @@ class Analysis {
 			}
 			
 			if(methodFound == false) {
-				$.ajax(this.hqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
+				$.ajax(this.sqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
 					method: "get",
 					dataType: "json",
 					success: (data, textStatus, xhr) => {
@@ -307,7 +307,7 @@ class Analysis {
 		}
 		let fetchIds = Array.from(uniqueFetchIds);
 
-		let sampleTypes = await this.hqs.fetchFromTable("qse_sample_types", "sample_type_id", fetchIds);
+		let sampleTypes = await this.sqs.fetchFromTable("qse_sample_types", "sample_type_id", fetchIds);
 
 		dataset.dataPoints.map((dp) => {
 			sampleTypes.map((st) => {
@@ -328,7 +328,7 @@ class Analysis {
 	*/
 	async fetchMethodMetaData(methodId) {
 		return new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
@@ -348,7 +348,7 @@ class Analysis {
 
 	async fetchMethodsInGroup(methodGroupId) {
 		return new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/methods?method_group_id=eq."+methodGroupId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/methods?method_group_id=eq."+methodGroupId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
@@ -379,7 +379,7 @@ class Analysis {
 	*/
 	async fetchMethodGroupMetaData(methodGroupId) {
 		return new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/method_groups?method_group_id=eq."+methodGroupId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/method_groups?method_group_id=eq."+methodGroupId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {

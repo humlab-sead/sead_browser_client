@@ -1,6 +1,6 @@
 class MosaicTileModule {
-    constructor(hqs) {
-        this.hqs = hqs;
+    constructor(sqs) {
+        this.sqs = sqs;
         this.chart = null;
         this.renderIntoNode = null;
     }

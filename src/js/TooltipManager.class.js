@@ -20,8 +20,8 @@ class TooltipManager {
 	/*
 	* Function: constructor
 	*/
-	constructor(hqs) {
-		this.hqs = hqs;
+	constructor(sqs) {
+		this.sqs = sqs;
 		this.tooltips = [];
 		this.defaultOptions = {
 			arrow: true,

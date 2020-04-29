@@ -14,7 +14,7 @@ class DendrochronologyDataset extends DatasetModule {
 	*/
 	constructor(analysis) {
 		super();
-		this.hqs = analysis.hqs;
+		this.sqs = analysis.sqs;
 		this.analysis = analysis;
 		this.section = analysis.section;
 		this.data = analysis.data;
@@ -77,7 +77,7 @@ class DendrochronologyDataset extends DatasetModule {
 	}
 
 	async fetchDendroDating(datasetGroup) {
-		await $.ajax(this.hqs.config.siteReportServerAddress+"/qse_dendro_dating?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
+		await $.ajax(this.sqs.config.siteReportServerAddress+"/qse_dendro_dating?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
 			method: "get",
 			dataType: "json",
 			success: async (data, textStatus, xhr) => {
@@ -89,7 +89,7 @@ class DendrochronologyDataset extends DatasetModule {
 	/* Function: fetchSampleData
 	*/
 	async fetchSampleData(datasetGroup) {
-		await $.ajax(this.hqs.config.siteReportServerAddress+"/physical_samples?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
+		await $.ajax(this.sqs.config.siteReportServerAddress+"/physical_samples?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
 			method: "get",
 			dataType: "json",
 			success: async (sampleData, textStatus, xhr) => {
@@ -142,7 +142,7 @@ class DendrochronologyDataset extends DatasetModule {
 			let promises = [];
 
 			promises.push(new Promise((resolve, reject) => {
-				$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
+				$.ajax(this.sqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
 					method: "get",
 					dataType: "json",
 					success: async (datasetInfo, textStatus, xhr) => {
@@ -155,7 +155,7 @@ class DendrochronologyDataset extends DatasetModule {
 
 			if(typeof this.analysis.dendroDataTypes == "undefined") {
 				promises.push(new Promise((resolve, reject) => {
-					$.ajax(this.hqs.config.siteReportServerAddress+"/dendro_lookup", {
+					$.ajax(this.sqs.config.siteReportServerAddress+"/dendro_lookup", {
 						method: "get",
 						dataType: "json",
 						success: async (dendroDataTypes, textStatus, xhr) => {
@@ -168,7 +168,7 @@ class DendrochronologyDataset extends DatasetModule {
 			}
 			
 			promises.push(new Promise((resolve, reject) => {
-				$.ajax(this.hqs.config.siteReportServerAddress+"/analysis_entities?dataset_id=eq."+dataset.datasetId, {
+				$.ajax(this.sqs.config.siteReportServerAddress+"/analysis_entities?dataset_id=eq."+dataset.datasetId, {
 					method: "get",
 					dataType: "json",
 					success: async (analysisEntities, textStatus, xhr) => {
@@ -197,7 +197,7 @@ class DendrochronologyDataset extends DatasetModule {
 			for(let key in dataset.sampleGroups) {
 				let sampleGroup = dataset.sampleGroups[key];
 				promises.push(new Promise((resolve, reject) => {
-					$.ajax(this.hqs.config.siteReportServerAddress+"/qse_sample?sample_group_id=eq."+sampleGroup.sampleGroupId, {
+					$.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample?sample_group_id=eq."+sampleGroup.sampleGroupId, {
 						method: "get",
 						dataType: "json",
 						success: async (samples, textStatus, xhr) => {
@@ -226,7 +226,7 @@ class DendrochronologyDataset extends DatasetModule {
 	/* Function: fetchDendroData
 	*/
 	async fetchDendroData(dataset, analysisEntityId) {
-		await $.ajax(this.hqs.config.siteReportServerAddress+"/dendro?analysis_entity_id=eq."+analysisEntityId, {
+		await $.ajax(this.sqs.config.siteReportServerAddress+"/dendro?analysis_entity_id=eq."+analysisEntityId, {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {
@@ -256,7 +256,7 @@ class DendrochronologyDataset extends DatasetModule {
 		return false;
 
 		/*
-		var analysisKey = this.hqs.findObjectPropInArray(this.data.analyses, "datasetId", this.analysisData.datasetId);
+		var analysisKey = this.sqs.findObjectPropInArray(this.data.analyses, "datasetId", this.analysisData.datasetId);
 		let dataTypes = this.analysis.data.analyses[analysisKey].dendroDataTypes;
 		for(let key in dataTypes) {
 			if(dataTypes[key].dendro_lookup_id == lookupId) {
@@ -392,7 +392,7 @@ class DendrochronologyDataset extends DatasetModule {
 		
 		//let analysis = datasets[0];
 		let analysis = dsGroups[0].datasets[0];
-		var sectionKey = this.hqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
+		var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
 		
 		let method = this.analysis.getMethodMetaById(analysis.methodId);
 		
@@ -413,7 +413,7 @@ class DendrochronologyDataset extends DatasetModule {
 		});
 		
 		this.buildIsComplete = true;
-		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this event is relevant anymore...
+		this.sqs.sqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this event is relevant anymore...
 	}
 
 	/* Function: buildContentItem

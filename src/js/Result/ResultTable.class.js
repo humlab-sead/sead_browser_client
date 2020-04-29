@@ -184,7 +184,7 @@ class ResultTable extends ResultModule {
 		tableHtml += "</tbody></table>";
 		let tableNode = $(tableHtml);
 		
-		let reply = this.resultManager.hqs.hqsOffer("resultTableData", {
+		let reply = this.resultManager.sqs.sqsOffer("resultTableData", {
 			data: renderData,
 			node: tableNode
 		});
@@ -201,7 +201,7 @@ class ResultTable extends ResultModule {
 			order: [[ 1, "asc" ]]
 		});
 
-		this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
+		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 
 	}
 
@@ -216,7 +216,7 @@ class ResultTable extends ResultModule {
 		$('#result-table-container').html("<table id='result-datatable'></table>");
 		
 		var renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
-		renderData = this.resultManager.hqs.hqsOffer("resultTableData", {
+		renderData = this.resultManager.sqs.sqsOffer("resultTableData", {
 			data: renderData
 		}).data;
 
@@ -256,7 +256,7 @@ class ResultTable extends ResultModule {
 			bFilter: false
 		});
 
-		this.resultManager.hqs.hqsEventDispatch("resultModuleRenderComplete");
+		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 	}
 	
 	getRenderStatus() {

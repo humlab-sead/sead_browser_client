@@ -54,7 +54,7 @@ input {
 
 }
 
-select.hqs {
+select.sqs {
   font-family: "Didact Gothic", sans-serif;
   font-weight: bold;
   height: 18px;
@@ -1324,7 +1324,7 @@ polyline{
   padding:3px;
 }
 
-#facet-menu > .hqs-menu-block-vertical-large {
+#facet-menu > .sqs-menu-block-vertical-large {
   background-color: $aux-color !important;
 }
 
@@ -1353,7 +1353,7 @@ polyline{
   z-index: 1;
 }
 
-#result-menu > .hqs-menu-title {
+#result-menu > .sqs-menu-title {
   background-color: $inactive-color;
 
 }

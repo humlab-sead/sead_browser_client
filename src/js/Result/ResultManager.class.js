@@ -11,8 +11,8 @@ class ResultManager {
 	/*
 	* Function: constructor
 	*/
-	constructor(hqs) {
-		this.hqs = hqs;
+	constructor(sqs) {
+		this.sqs = sqs;
 		this.modules = [];
 		this.activeModuleId = "none";
 		this.resultSectionDisabled = false;
@@ -23,10 +23,10 @@ class ResultManager {
 		//Event hook-ins below
 		if(this.resultSectionDisabled == false) {
 			$(window).on("seadResultMenuSelection", (event, data) => {
-				this.hqs.storeUserSettings({
+				this.sqs.storeUserSettings({
 					defaultResultModule: data.selection
 				});
-				this.hqs.resultManager.setActiveModule(data.selection);
+				this.sqs.resultManager.setActiveModule(data.selection);
 			});
 			
 			$(window).on("seadFacetSelection", (event, data) => {
@@ -73,12 +73,12 @@ class ResultManager {
 			});
 			
 			/*
-			sead.hqsEventListen("resultModuleRenderComplete", () => {
+			sead.sqsEventListen("resultModuleRenderComplete", () => {
 				this.resultModuleRenderStatus = "complete";
 			});
 			*/
 			
-			this.hqs.hqsEventListen("layoutResize", (evt) => {
+			this.sqs.sqsEventListen("layoutResize", (evt) => {
 				if($(".section-right").width() < 655) {
 					$("#result-title").hide();
 				}
@@ -87,13 +87,17 @@ class ResultManager {
 				}
 			});
 			
-			this.hqs.hqsEventListen("layoutChange", (evt, data) => {
+			this.sqs.sqsEventListen("layoutChange", (evt, data) => {
 				if(data == "mobileMode") {
 					$("#result-menu .result-tab-title").hide();
 				}
 				if(data == "desktopMode") {
 					$("#result-menu .result-tab-title").show();
 				}
+			});
+
+			this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
+				this.getActiveModule().render();
 			});
 		}
 		
@@ -125,13 +129,13 @@ class ResultManager {
 	* requestDataType
 	*/
 	getRequestData(requestId = 0, requestDataType = "tabular") {
-		var facetState = this.hqs.facetManager.getFacetState();
+		var facetState = this.sqs.facetManager.getFacetState();
 
 		var targetCode = "";
 		var triggerCode = "";
 
 		//If there's no facets or none of the facets has any selections, compile a special request package to get all the data.
-		if(this.hqs.facetManager.facets.length == 0 || this.hqs.facetManager.facetsHasSelections() === false) {
+		if(this.sqs.facetManager.facets.length == 0 || this.sqs.facetManager.facetsHasSelections() === false) {
 			targetCode = "sites";
 			triggerCode = "sites";
             facetState = [{
@@ -143,12 +147,12 @@ class ResultManager {
 		}
 		else{
 			//If you think this is stupid then I agree with you.
-			targetCode = this.hqs.facetManager.getLastFacet().name;
+			targetCode = this.sqs.facetManager.getLastFacet().name;
 			triggerCode = targetCode;
 		}
 		
 		
-		var facetDef = this.hqs.facetManager.facetStateToDEF(facetState, {
+		var facetDef = this.sqs.facetManager.facetStateToDEF(facetState, {
 			requestType: "populate",
 			targetCode: targetCode,
 			triggerCode: triggerCode
@@ -157,10 +161,13 @@ class ResultManager {
 		var viewTypeId = "";
 		viewTypeId = requestDataType;
 
+		let domainCode = this.sqs.domainManager.getActiveDomain().name == "general" ? "" : this.sqs.domainManager.getActiveDomain().name;
+		
 		var reqData = {
 		   "facetsConfig": {
 		       "requestId": requestId,
-		       "requestType": "populate",
+			   "requestType": "populate",
+			   "domainCode": domainCode,
 		       "targetCode": targetCode,
 		       "triggerCode": triggerCode,
 		       "facetConfigs": facetDef
@@ -269,7 +276,7 @@ class ResultManager {
 		this.activeModuleId = resultModuleId;
 
 		//Update result menu to set which button is highlighted, this needs to be done manually here if a result module is activated programmatically
-		let menu = this.hqs.menuManager.getMenuByAnchor("#result-menu");
+		let menu = this.sqs.menuManager.getMenuByAnchor("#result-menu");
 		if(menu !== false) {
 			menu.setSelected(resultModuleId);
 		}
@@ -284,7 +291,7 @@ class ResultManager {
 	* triggeringFacet - This is the facet which triggered the update.
 	*/
 	updateResultView(triggeringFacet = false, forceRender = false) {
-		this.hqs.facetManager.setLastTriggeringFacet(triggeringFacet);
+		this.sqs.facetManager.setLastTriggeringFacet(triggeringFacet);
 		
 		if(this.getResultDataFetchingSuspended() == false) {
 			this.renderMsg(false);
@@ -401,11 +408,11 @@ class ResultManager {
 	}
 
 	/*
-	* Function: hqsMenu
+	* Function: sqsMenu
 	*
 	* Strangely similar to the rMenu. How queer!
 	*/
-	hqsMenu() {
+	sqsMenu() {
 		return {
 			title: "VIEW :",
 			layout: "horizontal",
@@ -414,7 +421,7 @@ class ResultManager {
 			staticSelection: true,
 			showMenuTitle: false,
 			viewPortResizeCallback: () => {
-				if(this.hqs.layoutManager.getMode() == "mobileMode") {
+				if(this.sqs.layoutManager.getMode() == "mobileMode") {
 					$("#result-menu #menu-item-map .result-tab-title").hide();
 					$("#result-menu #menu-item-table .result-tab-title").hide();
 					$("#result-menu #menu-item-mosaic .result-tab-title").hide();

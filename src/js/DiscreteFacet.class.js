@@ -9,8 +9,8 @@ class DiscreteFacet extends Facet {
 	/*
 	* Function: constructor
 	*/
-	constructor(hqs, id = null, template = {}) {
-		super(hqs, id, template);
+	constructor(sqs, id = null, template = {}) {
+		super(sqs, id, template);
 		this.contentWindow = [];
 		this.rowHeight = Config.discreteFacetRowHeight;
 		this.viewportItemCapacity = Math.floor(Config.facetBodyHeight / this.rowHeight);
@@ -34,8 +34,8 @@ class DiscreteFacet extends Facet {
 
 		this.registerTextSearchEvents();
 		
-		this.hqs.tooltipManager.registerTooltip($(".facet-size-btn", this.getDomRef()), "Show only selections");
-		this.hqs.tooltipManager.registerTooltip($(".facet-text-search-btn", this.getDomRef()), "Filter list by text");
+		this.sqs.tooltipManager.registerTooltip($(".facet-size-btn", this.getDomRef()), "Show only selections");
+		this.sqs.tooltipManager.registerTooltip($(".facet-text-search-btn", this.getDomRef()), "Filter list by text");
 	}
 	
 	/*
@@ -368,9 +368,9 @@ class DiscreteFacet extends Facet {
 			$("#facet-"+this.id+" > .facet-body").css("height", facetHeight+"px");
 		}
 		
-		var slotId = this.hqs.facetManager.getSlotIdByFacetId(this.id);
-		this.hqs.facetManager.updateSlotSize(slotId);
-		this.hqs.facetManager.updateAllFacetPositions();
+		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+		this.sqs.facetManager.updateSlotSize(slotId);
+		this.sqs.facetManager.updateAllFacetPositions();
 		
 		$(".discrete-facet-blank-space", this.getDomRef()).hide();
 		this.updateRenderData();
@@ -394,9 +394,9 @@ class DiscreteFacet extends Facet {
 		
 		$(this.domObj).find(".facet-body").scrollTop(this.scrollPosition);
 
-		var slotId = this.hqs.facetManager.getSlotIdByFacetId(this.id);
-		this.hqs.facetManager.updateSlotSize(slotId);
-		this.hqs.facetManager.updateAllFacetPositions();
+		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+		this.sqs.facetManager.updateSlotSize(slotId);
+		this.sqs.facetManager.updateAllFacetPositions();
 	}
 
 	/*

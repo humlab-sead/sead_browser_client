@@ -8,14 +8,14 @@ import '../../node_modules/cookieconsent/build/cookieconsent.min.js';
 import '../../node_modules/cookieconsent/build/cookieconsent.min.css';
 //import '../../node_modules/jquery.tabulator/dist/css/tabulator.min.css'; //new name: tabulator-tables
 import 'jquery-ui/themes/base/base.css';
-import '../stylesheets/HqsLayoutManager.scss';
-import '../stylesheets/HqsMenu.scss';
+import '../stylesheets/sqsLayoutManager.scss';
+import '../stylesheets/sqsMenu.scss';
 import '../stylesheets/style.scss';
 import '../../flexnav/css/flexnav.css';
 import '../../flexnav/js/jquery.flexnav.js';
 import '../../node_modules/font-awesome/css/font-awesome.css';
 import '../../node_modules/normalize.css/normalize.css';
-import HumlabQuerySystem from './HumlabQuerySystem.class.js';
+import SeadQuerySystem from './SeadQuerySystem.class.js';
 import Config from '../config/config.js';
 import "../assets/icons/favicon.ico";
 import "../assets/icons/site.webmanifest";
@@ -25,27 +25,14 @@ import "../assets/icons/site.webmanifest";
 //Set some globals
 window.$ = $;
 window.jQuery = jQuery;
-window.hqs = null;
+window.sqs = null;
 window.config = Config;
 
 //When document ready...
 $(document).ready(() => {
-    window.hqs = new HumlabQuerySystem({
-        portal: "dendro"
-    });
-    window.hqs.init();
-    //window.hqs.resultManager.setActiveModule(Config.defaultResultModule, false);
-    //debugScript();
-	//debugSize();
+    window.sqs = new SeadQuerySystem();
+    window.sqs.init();
 });
-
-function debugScript() {
-    $(".add-facet-btn").each(function() {
-        if($(this).attr("name") == "geochronology" || $(this).attr("name") == "site") {
-            $(this).trigger("click");
-        }
-    });
-}
 
 function debugSize() {
 	$.each( $('*'), function() {

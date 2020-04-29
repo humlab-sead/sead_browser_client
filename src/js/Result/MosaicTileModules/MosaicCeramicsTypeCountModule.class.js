@@ -1,17 +1,17 @@
 import MosaicTileModule from "./MosaicTileModule.class";
 
 class MosaicCeramicsTypeCountModule extends MosaicTileModule {
-    constructor(hqs) {
+    constructor(sqs) {
         super();
-        this.hqs = hqs;
+        this.sqs = sqs;
         this.title = "Ceramic type count";
 		this.name = "mosaic-ceramic-type-count";
-        this.portals = ["ceramic"];
+        this.domains = ["ceramic"];
     }
 
     async render(renderIntoNode) {
         this.renderIntoNode = renderIntoNode;
-        let resultMosaic = this.hqs.resultManager.getModule("mosaic");
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         resultMosaic.setLoadingIndicator(renderIntoNode, true);
 
         let pData = await resultMosaic.fetchSiteData(resultMosaic.sites, "qse_ceramics_type_count", resultMosaic.requestBatchId);

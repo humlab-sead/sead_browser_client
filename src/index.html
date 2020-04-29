@@ -26,7 +26,7 @@
     <meta name="google-signin-client_id" content="989880823583-jmp43kmh4puojj41t6klg867uk486sfr.apps.googleusercontent.com">
     <script>function googleInit() {
       let interval = setInterval(() => {
-        if(typeof hqs != "undefined" && typeof hqs.userManager != "undefined") {
+        if(typeof sqs != "undefined" && typeof sqs.userManager != "undefined") {
           clearInterval(interval);
         }
       }, 100);
@@ -51,7 +51,7 @@
         </div>
 
         
-        <div id="portal-menu">
+        <div id="domain-menu">
         </div>
 
         <div id="aux-menu">
@@ -272,7 +272,7 @@
 
         <div class="site-report-render-options-container">
           <label class="site-report-view-selector-label" for="">Display as:</label>
-          <select id="" class="site-report-view-selector-control site-report-render-mode-selector hqs"></select>
+          <select id="" class="site-report-view-selector-control site-report-render-mode-selector sqs"></select>
         </div>
         <div class="site-report-render-options-container site-report-render-options-container-extras">
         </div>

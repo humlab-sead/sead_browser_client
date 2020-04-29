@@ -13,7 +13,7 @@ import shortid from "shortid";
 class GenericDataset extends DatasetModule {
 	constructor(analysis) {
 		super();
-		this.hqs = analysis.hqs;
+		this.sqs = analysis.sqs;
 		this.analysis = analysis;
 		this.section = analysis.section;
 		this.data = analysis.data;
@@ -84,7 +84,7 @@ class GenericDataset extends DatasetModule {
 	 */
 	async fetchDataset(dataset) {
 		await new Promise((resolve, reject) => {
-			$.ajax(this.hqs.config.siteReportServerAddress+"/qse_dataset2?dataset_id=eq."+dataset.datasetId, {
+			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_dataset2?dataset_id=eq."+dataset.datasetId, {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
@@ -119,7 +119,7 @@ class GenericDataset extends DatasetModule {
 					"collapsed": true,
 					"contentItems": []
 				});
-				this.hqs.tooltipManager.registerTooltip("#"+warningTooltipId, "The SEAD system currently lacks support for handling this type of analysis. The data will be presented in a raw and incomplete format.");
+				this.sqs.tooltipManager.registerTooltip("#"+warningTooltipId, "The SEAD system currently lacks support for handling this type of analysis. The data will be presented in a raw and incomplete format.");
 				section = this.sectionsList[sectionsLength-1];
 			}
 			this.appendDatasetToSection(section, dataset);
@@ -128,7 +128,7 @@ class GenericDataset extends DatasetModule {
 		//console.log(JSON.stringify(this.sectionsList, null, 2));
 		
 		this.buildIsComplete = true;
-		this.hqs.hqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this is relevant anymore... I used events for determining if all DatasetModules had finished building before I switched to promises
+		this.sqs.sqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this is relevant anymore... I used events for determining if all DatasetModules had finished building before I switched to promises
 	}
 
 	/**

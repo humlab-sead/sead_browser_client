@@ -33,8 +33,8 @@ class RangeFacet extends Facet {
 	/*
 	* Function: constructor
 	*/
-	constructor(hqs, id = null, template = {}) {
-		super(hqs, id, template);
+	constructor(sqs, id = null, template = {}) {
+		super(sqs, id, template);
 		this.totalUpper = null; //Lowest possible value of this filter, without filters applied
 		this.totalLower = null; //Highest possible value of this fulter, without filters applied
 		this.datasets = {
@@ -73,7 +73,7 @@ class RangeFacet extends Facet {
 		$(".slider-manual-input-container[endpoint='lower'] > input", this.getDomRef()).val(this.selections[0]);
 		
 		if(selectionsUpdated) {
-			this.hqs.facetManager.queueFacetDataFetch(this);
+			this.sqs.facetManager.queueFacetDataFetch(this);
 			this.broadcastSelection();
 		}
 		
@@ -287,10 +287,10 @@ class RangeFacet extends Facet {
 		}
 
 		if(this.hasSelection()) {
-			this.data = this.hqs.copyObject(this.datasets.filtered);
+			this.data = this.sqs.copyObject(this.datasets.filtered);
 		}
 		else {
-			this.data = this.hqs.copyObject(this.datasets.unfiltered);
+			this.data = this.sqs.copyObject(this.datasets.unfiltered);
 		}
 		
 		let categories = this.reduceResolutionOfDataset(this.data, selections, this.numberOfCategories);
@@ -574,9 +574,9 @@ class RangeFacet extends Facet {
 		$(this.getDomRef()).css("height", "60px");
 		$(".facet-body", this.getDomRef()).css("height", "100%").show();
 		
-		var slotId = this.hqs.facetManager.getSlotIdByFacetId(this.id);
-		this.hqs.facetManager.updateSlotSize(slotId);
-		this.hqs.facetManager.updateAllFacetPositions();
+		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+		this.sqs.facetManager.updateSlotSize(slotId);
+		this.sqs.facetManager.updateAllFacetPositions();
 	}
 	
 	/*
@@ -588,16 +588,16 @@ class RangeFacet extends Facet {
 		$(".rangeslider-container-wrapper", this.getDomRef()).css("margin-top", "0px").css("margin-bottom", "0px");
 		$(".chart-canvas-container", this.getDomRef()).show();
 		
-		var slotId = this.hqs.facetManager.getSlotIdByFacetId(this.id);
-		this.hqs.facetManager.updateSlotSize(slotId);
-		this.hqs.facetManager.updateAllFacetPositions();
+		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+		this.sqs.facetManager.updateSlotSize(slotId);
+		this.sqs.facetManager.updateAllFacetPositions();
 
 
 		if(this.hasSelection()) {
-			this.data = this.hqs.copyObject(this.datasets.filtered);
+			this.data = this.sqs.copyObject(this.datasets.filtered);
 		}
 		else {
-			this.data = this.hqs.copyObject(this.datasets.unfiltered);
+			this.data = this.sqs.copyObject(this.datasets.unfiltered);
 		}
 		
 		let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());

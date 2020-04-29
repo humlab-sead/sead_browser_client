@@ -1,20 +1,20 @@
 class UserManager {
-	constructor(hqs) {
-		this.hqs = hqs;
+	constructor(sqs) {
+		this.sqs = sqs;
 		this.user = null;
 		this.googleLoginRendered = false;
 
-		this.hqs.hqsEventListen("seadSaveStateClicked", () => {
-			this.hqs.stateManager.setViewStateDialog("save");
+		this.sqs.sqsEventListen("seadSaveStateClicked", () => {
+			this.sqs.stateManager.setViewStateDialog("save");
 			this.renderGoogleLogin();
 		});
 
-		this.hqs.hqsEventListen("seadLoadStateClicked", () => {
-			this.hqs.stateManager.setViewStateDialog("load");
+		this.sqs.sqsEventListen("seadLoadStateClicked", () => {
+			this.sqs.stateManager.setViewStateDialog("load");
 			this.renderGoogleLogin();
 		});
 
-		this.hqs.hqsEventListen("popOverClosed", () => {
+		this.sqs.sqsEventListen("popOverClosed", () => {
 			this.unRenderGoogeLogin();
 		});
 	}
@@ -42,7 +42,7 @@ class UserManager {
 
 	renderGoogleLogin() {
 
-		let dialog = this.hqs.stateManager.getViewStateDialog();
+		let dialog = this.sqs.stateManager.getViewStateDialog();
 		let dialogNodeId = "";
 		if(dialog == "save") {
 			dialogNodeId = "#viewStateSaveGoogleLogin";
@@ -125,7 +125,7 @@ class UserManager {
 
 		var profile = googleUser.getBasicProfile();
 
-		window.hqs.userManager.user = {
+		window.sqs.userManager.user = {
 			"id": profile.getId(),
 			"name": profile.getName(),
 			"email": profile.getEmail(),
@@ -133,8 +133,8 @@ class UserManager {
 			"id_token":  googleUser.getAuthResponse().id_token
 		};
 
-		window.hqs.userManager.renderUserLoggedIn();
-		window.hqs.hqsEventDispatch("userLoggedIn", window.hqs.userManager.user);
+		window.sqs.userManager.renderUserLoggedIn();
+		window.sqs.sqsEventDispatch("userLoggedIn", window.sqs.userManager.user);
 	}
 
 	googleLoginFail(error) {
@@ -145,8 +145,8 @@ class UserManager {
 		let auth2 = gapi.auth2.getAuthInstance();
 		auth2.signOut().then(() => {
 			//"this" is NOT the UserManager here
-			window.hqs.userManager.user = null;
-			let dialog = window.hqs.stateManager.getViewStateDialog();
+			window.sqs.userManager.user = null;
+			let dialog = window.sqs.stateManager.getViewStateDialog();
 			if(dialog == "save") {
 				$("#googleLoginContainer #googleLoginRecommendationSave").show();
 				$("#googleLoginContainer #googleLoginRecommendationLoad").hide();
@@ -166,10 +166,10 @@ class UserManager {
 
 		//auth2.disconnect(); //Revokes all of the scopes that the user granted.
 
-		window.hqs.hqsEventDispatch("userLoggedOut");
+		window.sqs.sqsEventDispatch("userLoggedOut");
 	}
 
-	hqsMenu() {
+	sqsMenu() {
 		return {
 			title: "Account",
 			layout: "vertical",

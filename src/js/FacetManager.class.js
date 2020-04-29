@@ -14,8 +14,8 @@ class FacetManager {
 	* Function: constructor
 	* 
 	*/
-	constructor(hqs, filterDefinitions) {
-		this.hqs = hqs;
+	constructor(sqs, filterDefinitions) {
+		this.sqs = sqs;
 		this.filterDefinitions = filterDefinitions;
 		this.slots = [];
 		this.facets = [];
@@ -70,7 +70,7 @@ class FacetManager {
 		this.renderShowOnlySelectionsButton();
 		this.renderDemoSlot();
 		
-		this.hqs.hqsEventListen("hqsFacetPreAdd", () => {
+		this.sqs.sqsEventListen("sqsFacetPreAdd", () => {
 			if(this.demoSlot != null) {
 				$(".filter-demo-arrow").remove();
 				this.removeSlot(this.demoSlot, true);
@@ -79,15 +79,17 @@ class FacetManager {
 			$("#facet-show-only-selections-btn").show();
 		});
 		
-		this.hqs.hqsEventListen("hqsFacetPostAdd", () => {
+		this.sqs.sqsEventListen("sqsFacetPostAdd", () => {
 			this.updateSlotArrows();
 		});
-		this.hqs.hqsEventListen("hqsFacetPostRemove", () => {
+		this.sqs.sqsEventListen("sqsFacetPostRemove", () => {
 			this.updateSlotArrows();
 		});
 
-		this.hqs.hqsEventListen("portalChanged", (evt, portalName) => {
-			this.buildFilterStructure(portalName);
+		this.sqs.sqsEventListen("domainChanged", (evt, domainName) => {
+			this.buildFilterStructure(domainName);
+			//Refresh all facets
+			this.chainQueueFacetDataFetch();
 		});
 		
 	}
@@ -99,7 +101,7 @@ class FacetManager {
 			this.showOnlySelections(this.showOnlySelectionsSetting ? false : true);
 		});
 		
-		this.hqs.hqsEventListen("seadFacetDeletion", () => {
+		this.sqs.sqsEventListen("seadFacetDeletion", () => {
 			this.updateShowOnlySelectionsControl();
 		});
 	}
@@ -153,7 +155,7 @@ class FacetManager {
 		$("#facet-section").append("<div class='filter-demo-arrow'>⤷</div>");
 
 		//Re-bind menu to this demo slot
-		this.hqs.menuManager.rebind(this.makeHqsMenuFromFacetDef(this.facetDef));
+		this.sqs.menuManager.rebind(this.makesqsMenuFromFacetDef(this.facetDef));
 	}
 	
 	/*
@@ -219,13 +221,13 @@ class FacetManager {
 	*/
 	makeNewFacet(template) {
 		if(template.type == "discrete") {
-			return new DiscreteFacet(this.hqs, this.getNewFacetId(), template);
+			return new DiscreteFacet(this.sqs, this.getNewFacetId(), template);
 		}
 		if(template.type == "range") {
-			return new RangeFacet(this.hqs, this.getNewFacetId(), template);
+			return new RangeFacet(this.sqs, this.getNewFacetId(), template);
 		}
 		if(template.type == "map") {
-			return new MapFacet(this.hqs, this.getNewFacetId(), template);
+			return new MapFacet(this.sqs, this.getNewFacetId(), template);
 		}
 	}
 
@@ -298,7 +300,10 @@ class FacetManager {
 	* Parameters:
 	* fromFacetPosition - The starting position, including this position itself. First position is 1, not 0. Because making lists which starts to count from zero doesn't really make a lot of sense when you think about it. Because a number is a symbol which indicates a certain quantity of something. So saying something is number 0 is a perversion of the numerical system since it utilizes numbers as arbitrary symbols rather than a system of counting, there - I said it!
 	*/
-	chainQueueFacetDataFetch(fromFacet) {
+	chainQueueFacetDataFetch(fromFacet = null) {
+		if(fromFacet == null) {
+			fromFacet = this.getFacetById(this.getFacetIdBySlotId(1));
+		}
 		this.setLastTriggeringFacet(fromFacet.id);
 		var fromSlotId = this.getSlotByFacet(fromFacet).id;
 		for(var key in this.links) {
@@ -325,7 +330,7 @@ class FacetManager {
 	* makeNewFacet
 	*/
 	addFacet(facet, minimizeOthers = false, insertIntoSlotPosition = null) {
-		this.hqs.hqsEventDispatch("hqsFacetPreAdd", facet);
+		this.sqs.sqsEventDispatch("sqsFacetPreAdd", facet);
 		if(minimizeOthers) {
 			for(var key in this.facets) {
 				this.facets[key].minimize();
@@ -349,7 +354,7 @@ class FacetManager {
 		this.showSectionTitle(false);
 		this.updateShowOnlySelectionsControl();
 		
-		this.hqs.hqsEventDispatch("hqsFacetPostAdd", facet);
+		this.sqs.sqsEventDispatch("sqsFacetPostAdd", facet);
 	}
 
 	/*
@@ -387,7 +392,7 @@ class FacetManager {
 	* You ever found yourself in a situation where you have the ID of a facet but you need its template to instanciate it because that's just how they built the system? Fear no more! With getFacetTemplateByFacetId YOU can have your brand new template shipped to your home, call now! 
 	*/	
 	getFacetTemplateByFacetId(facetId) {
-		var facetDef = this.hqs.facetDef;
+		var facetDef = this.sqs.facetDef;
 		for(var catKey in facetDef) {
 			for(var facetKey in facetDef[catKey].filters) {
 				if(facetId == facetDef[catKey].filters[facetKey].name) {
@@ -408,7 +413,7 @@ class FacetManager {
 	* facet - The facet instance.
 	*/	
 	removeFacet(facet) {
-		this.hqs.hqsEventDispatch("hqsFacetPreRemove", facet);
+		this.sqs.sqsEventDispatch("sqsFacetPreRemove", facet);
 		var killKey = null;
 		for(var key in this.facets) {
 			if(this.facets[key].id == facet.id) {
@@ -435,7 +440,7 @@ class FacetManager {
 			this.showSectionTitle(true);
 		}
 		
-		this.hqs.hqsEventDispatch("hqsFacetPostRemove", facet);
+		this.sqs.sqsEventDispatch("sqsFacetPostRemove", facet);
 	}
 
 	/*
@@ -515,7 +520,7 @@ class FacetManager {
 	*/
 	addSlot() {
 		let slotId = this.slots.length+1;
-		let slot = new Slot(this.hqs, slotId);
+		let slot = new Slot(this.sqs, slotId);
 		this.slots.push(slot);
 		return slot;
 	}
@@ -757,41 +762,53 @@ class FacetManager {
 
 	* Returns:
 	*/
-	importFacetDefinitions(data) {
-		this.hqs.facetDef = [];
-		
-		for(var key in data) {
-			var group = data[key];
-			var groupKey = this.hqs.facetDef.push({
-				name: group.facetGroupKey,
-				title: group.displayTitle,
-				color: "#214466",
-				filters: []
+	importFacetDefinitions(facetDef) {
+		this.sqs.facetDef = [];
+
+		//Check that this group has at least one enabled item, otherwise don't render it
+		for(let key in facetDef) {
+			let group = facetDef[key];
+			group.enabled = false;
+			group.items.forEach((facet) => {
+				if(facet.enabled != false) {
+					group.enabled = true;
+				}
 			});
-			
-			groupKey = groupKey - 1;
-			
-			for(var fk in group.items) {
+		}
+
+		for(var key in facetDef) {
+			var group = facetDef[key];
+			if(group.enabled) {
+				var groupKey = this.sqs.facetDef.push({
+					name: group.facetGroupKey,
+					title: group.displayTitle,
+					color: "#214466",
+					filters: []
+				});
 				
-				if(typeof(group.items[fk].enabled) == "undefined") {
-					group.items[fk].enabled = true;
-				}
-				if(group.items[fk].enabled) {
-					var filter = {
-						name: group.items[fk].facetCode,
-						title: group.items[fk].displayTitle,
-						type: group.items[fk].facetTypeKey,
-						dependencies : group.items[fk].dependencies,
-						description: group.items[fk].description
+				groupKey = groupKey - 1;
+				
+				for(var fk in group.items) {
+					
+					if(typeof(group.items[fk].enabled) == "undefined") {
+						group.items[fk].enabled = true;
 					}
-					filter.callback = this.makeFacetMenuCallback(filter);
-					this.hqs.facetDef[groupKey].filters.push(filter);
+					if(group.items[fk].enabled) {
+						var filter = {
+							name: group.items[fk].facetCode,
+							title: group.items[fk].displayTitle,
+							type: group.items[fk].facetTypeKey,
+							dependencies : group.items[fk].dependencies,
+							description: group.items[fk].description
+						}
+						filter.callback = this.makeFacetMenuCallback(filter);
+						this.sqs.facetDef[groupKey].filters.push(filter);
+					}
 				}
-				
 			}
 		}
 
-		return this.hqs.facetDef;
+		return this.sqs.facetDef;
 		
 		/*
 		* NOTE: Here we do some filtering on the facet definitions given from the server. This should not be necessary in production but done to filter out some garbage we're getting from the server right now.
@@ -1012,9 +1029,9 @@ class FacetManager {
 	}
 	
 	/*
-	* Function: makeHqsMenuFromFacetDef
+	* Function: makesqsMenuFromFacetDef
 	*/
-	makeHqsMenuFromFacetDef(facetDef) {
+	makesqsMenuFromFacetDef(facetDef) {
 		
 		var menu = {
 			title: "Filters",
@@ -1025,10 +1042,10 @@ class FacetManager {
 				selector: ".slot-visible .jslink-alt",
 				on: "click"
 			}],
-			customStyleClasses: "hqs-menu-block-vertical-large",
+			customStyleClasses: "sqs-menu-block-vertical-large",
 			viewPortResizeCallback: () => {
 				let leftWidth = $("#facet-result-panel .section-left").width();
-				$("#facet-menu > .hqs-menu-block-vertical-large").css("width", leftWidth+"px");
+				$("#facet-menu > .sqs-menu-block-vertical-large").css("width", leftWidth+"px");
 				$("#facet-menu .l1-container-level").css("width", leftWidth+"px")
 			},
 			items: []
@@ -1055,7 +1072,7 @@ class FacetManager {
 					title: facetDef[gk].filters[fk].title,
 					tooltip: facetDef[gk].filters[fk].description,
 					callback: (menuItem) => {
-						var facets = this.hqs.facetManager.facets;
+						var facets = this.sqs.facetManager.facets;
 						var facetExists = false;
 						
 						//FIXME: We should be allowing multple instances of the same facet type... but the backend doesn't suppoert it - I think ???
@@ -1069,9 +1086,9 @@ class FacetManager {
 						}
 						
 						if(facetExists === false) {
-							var t = this.hqs.facetManager.getFacetTemplateByFacetId(menuItem.name);
-							var facet = this.hqs.facetManager.makeNewFacet(t);
-							this.hqs.facetManager.addFacet(facet);
+							var t = this.sqs.facetManager.getFacetTemplateByFacetId(menuItem.name);
+							var facet = this.sqs.facetManager.makeNewFacet(t);
+							this.sqs.facetManager.addFacet(facet);
 						}
 					}
 				});
@@ -1223,19 +1240,20 @@ class FacetManager {
 		}
 	}
 
-	buildFilterStructure(portalName) {
-        let filterList = null;
-        for(let key in Config.portals) {
-            if(Config.portals[key].name == portalName) {
-                filterList = Config.portals[key].filters;
+	buildFilterStructure(domainName) {
+        let domainFilterList = null;
+        for(let key in Config.domains) {
+            if(Config.domains[key].name == domainName) {
+                domainFilterList = Config.domains[key].filters;
                 break;
             }
 		}
 
-        this.filterDefinitions = this.filterFilters(filterList, this.filterDefinitions);
-        this.facetDef = this.importFacetDefinitions(this.filterDefinitions);
-        var hqsMenuStruct = this.makeHqsMenuFromFacetDef(this.facetDef);
-		let menu = this.hqs.menuManager.createMenu(hqsMenuStruct);
+        this.filterDefinitions = this.filterFilters(domainFilterList, this.filterDefinitions);
+		this.facetDef = this.importFacetDefinitions(this.filterDefinitions);
+		
+        var sqsMenuStruct = this.makesqsMenuFromFacetDef(this.facetDef);
+		this.sqs.menuManager.createMenu(sqsMenuStruct);
 	}
 	
 	/*
@@ -1278,16 +1296,16 @@ class FacetManager {
 		}
 
 		if(triggerResultLoad) {
-			this.hqs.resultManager.setResultDataFetchingSuspended(true);
+			this.sqs.resultManager.setResultDataFetchingSuspended(true);
 		}
 		let facetTemplate = this.getFacetTemplateByFacetId(facetId);
 		let facet = this.makeNewFacet(facetTemplate);
 		facet.setSelections(selections);
 		this.addFacet(facet); //This will trigger a facet load request
 		if(triggerResultLoad) {
-			this.hqs.resultManager.getActiveModule().unrender(); //FIXME: This causes an error
-			this.hqs.resultManager.fetchData();
-			this.hqs.resultManager.setResultDataFetchingSuspended(false);
+			this.sqs.resultManager.getActiveModule().unrender(); //FIXME: This causes an error
+			this.sqs.resultManager.fetchData();
+			this.sqs.resultManager.setResultDataFetchingSuspended(false);
 		}
 		
 		return facet;
