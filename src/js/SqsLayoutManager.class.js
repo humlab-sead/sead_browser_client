@@ -14,7 +14,7 @@
 * ...and more?
 */
 import Config from "../config/config";
-import View from "./sqsView.class";
+import SqsView from "./SqsView.class";
 import enquire from 'enquire.js'
 
 class sqsLayoutManager {
@@ -56,7 +56,7 @@ class sqsLayoutManager {
 	}
 
 	createView(anchor, name, leftSize = 70, rightSize = 30, options = {}) {
-		let v = new View(this, anchor, name, leftSize, rightSize, options);
+		let v = new SqsView(this, anchor, name, leftSize, rightSize, options);
 		this.views.push(v);
 	}
 

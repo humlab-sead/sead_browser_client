@@ -2,7 +2,7 @@
 import Config from '../../config/config.js'
 import ResultModule from './ResultModule.class.js'
 import Timeline from './Timeline.class.js';
-import sqsMenu from '../sqsMenu.class';
+import SqsMenu from '../SqsMenu.class';
 
 /*OpenLayers imports*/
 import Map from 'ol/Map';
@@ -466,9 +466,9 @@ class ResultMap extends ResultModule {
 
 		$(this.renderMapIntoNode).append($("<div></div>").attr("id", "result-map-controls-container"));
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-baselayer-controls-menu"));
-		new sqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlssqsMenu());
+		new SqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlsSqsMenu());
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-datalayer-controls-menu"));
-		new sqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlssqsMenu());
+		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
 	}
 
 	/*
@@ -1044,7 +1044,7 @@ class ResultMap extends ResultModule {
 	/*
 	* Function: resultMapBaseLayersControlssqsMenu
 	*/
-	resultMapBaseLayersControlssqsMenu() {
+	resultMapBaseLayersControlsSqsMenu() {
 		var menu = {
 			title: "<i class=\"fa fa-globe result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Baselayer</span>", //The name of the menu as it will be displayed in the UI
 			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
@@ -1076,7 +1076,7 @@ class ResultMap extends ResultModule {
 	/*
 	* Function: resultMapDataLayersControlssqsMenu
 	*/
-	resultMapDataLayersControlssqsMenu() {
+	resultMapDataLayersControlsSqsMenu() {
 		var menu = {
 			title: "<i class=\"fa fa-map-marker result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Datalayer</span>", //The name of the menu as it will be displayed in the UI
 			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items

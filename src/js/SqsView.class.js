@@ -16,7 +16,7 @@
 
 import enquire from 'enquire.js'
 
-class sqsView {
+class SqsView {
 
     /*
     * Function: constructor
@@ -406,4 +406,4 @@ class sqsView {
 
 }
 
-export { sqsView as default }
+export { SqsView as default }

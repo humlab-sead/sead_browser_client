@@ -1,9 +1,9 @@
-import sqsMenu from './sqsMenu.class.js'
+import SqsMenu from './SqsMenu.class.js'
 
 /*
 * Class: sqsMenuManager
 */
-class sqsMenuManager {
+class SqsMenuManager {
 	/*
 	* Function: constructor
 	*/
@@ -35,7 +35,7 @@ class sqsMenuManager {
 	/*
 	* Function: createMenu
 	*
-	* Creates and renders an sqsMenu given a sqsMenu definition.
+	* Creates and renders an SqsMenu given a SqsMenu definition.
 	*
 	*/
 	createMenu(menuDef) {
@@ -56,7 +56,7 @@ class sqsMenuManager {
 			menuDef.anchor = "";
 			console.log("WARN: Anchor attribute empty when creating menu, this is not allowed!");
 		}
-		var menu = new sqsMenu(this.sqs, menuDef);
+		var menu = new SqsMenu(this.sqs, menuDef);
 		this.menus.push(menu);
 		return menu;
 	}
@@ -94,14 +94,14 @@ class sqsMenuManager {
 	/*
 	* Function: combineMenus
 	*
-	* This function will merge several sqsMenu-definitions into a single menu. Useful for when you want to let each module define its own menu items, but you want to combine menu items from several modules in the same menu.
+	* This function will merge several SqsMenu-definitions into a single menu. Useful for when you want to let each module define its own menu items, but you want to combine menu items from several modules in the same menu.
 	*
 	* Parameters:
-	* masterMenu - The master menu. Needs to contain at least the attributes title and anchor, according to the sqsMenu spec.
-	* menus - Array of menus according to the sqsMenu spec. The items-section from these will be merged into the master menu, other attributes such as title of the menu will be ignored.
+	* masterMenu - The master menu. Needs to contain at least the attributes title and anchor, according to the SqsMenu spec.
+	* menus - Array of menus according to the SqsMenu spec. The items-section from these will be merged into the master menu, other attributes such as title of the menu will be ignored.
 	*
 	* Return:
-	* A new sqsMenu containing all the items.
+	* A new SqsMenu containing all the items.
 	*/
 	combineMenus(masterMenu, menus) {
 		if(typeof(masterMenu.items) == "undefined") {
@@ -137,9 +137,9 @@ class sqsMenuManager {
 	* Rebinds the triggers to the menu anchors. In case the anchors were previously removed and re-added, this needs to be called.
 	*/
 	rebind(menuDef) {
-		let m = new  sqsMenu(this.sqs, menuDef, false);
+		let m = new  SqsMenu(this.sqs, menuDef, false);
 		m.bindMenuAnchor(m.menuDef);
 	}
 }
 
-export { sqsMenuManager as default }
+export { SqsMenuManager as default }
