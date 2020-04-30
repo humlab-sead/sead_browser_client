@@ -43,6 +43,10 @@ class SeadQuerySystem {
 			console.log("SQS preload complete");
 			this.bootstrapSystem();
 			console.log("SQS bootstrap complete");
+
+			this.domainManager.setActiveDomain("general");
+			this.facetManager.spawnFacet("tbl_denormalized_measured_values_33_0");
+			this.domainManager.setActiveDomain("isotope");
 		});
 
 		$("body").show();
@@ -585,15 +589,15 @@ class SeadQuerySystem {
 	setActiveView(viewName) {
 		console.log("setActiveView", viewName);
 		this.activeView = viewName;
-		if(this.layoutManager instanceof sqsLayoutManager) {
+		if(this.layoutManager instanceof SqsLayoutManager) {
 			this.layoutManager.setActiveView(viewName);
 		}
 		
 		/*
-		if(this.layoutManager instanceof sqsLayoutManager) {
+		if(this.layoutManager instanceof SqsLayoutManager) {
 			this.layoutManager.setup();
 		}
-		if(this.facetManager instanceof FacetManager && this.facetManager.siteReportLayoutManager instanceof sqsLayoutManager) {
+		if(this.facetManager instanceof FacetManager && this.facetManager.siteReportLayoutManager instanceof SqsLayoutManager) {
 			this.facetManager.siteReportLayoutManager.setup();
 		}
 		*/
