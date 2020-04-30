@@ -43,10 +43,6 @@ class SeadQuerySystem {
 			console.log("SQS preload complete");
 			this.bootstrapSystem();
 			console.log("SQS bootstrap complete");
-
-			this.domainManager.setActiveDomain("general");
-			this.facetManager.spawnFacet("tbl_denormalized_measured_values_33_0");
-			this.domainManager.setActiveDomain("isotope");
 		});
 
 		$("body").show();
