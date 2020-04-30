@@ -335,6 +335,53 @@ h1.main-header {
   overflow: auto;
 }
 
+.facet-body-disabled {
+  padding: 5px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  overflow: auto;
+  height: 80px;
+}
+
+.facet-disabled-msg {
+  display:none; //should be "flex" when shown
+  align-items: center;
+  justify-content: center;
+  position:absolute;
+  top: 28px;
+  left: 0px;
+  width: 100%;
+  height: 80px;
+  background-color: $inactive-color;
+  background-color: rgba(60, 60, 60, 0.9);
+  background-color: lightgray;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.25) 35px, rgba(255,255,255,.25) 70px);
+  z-index: 1;
+}
+
+.facet-disabled-msg > div {
+  text-align:center;
+}
+
+.facet-disabled-msg h2 {
+  display:block;
+  color: #fff;
+  font-size: 1.4rem;
+  background-color: $inactive-color;
+  padding: 2px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.facet-disabled-msg .text {
+  color: $inactive-color;
+  background-color: transparent;
+  font-size: 0.9rem;
+  padding: 2px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
 .facet-head-btn {
   display:inline-block;
   font-size: 16px !important;

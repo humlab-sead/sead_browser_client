@@ -282,6 +282,11 @@ class RangeFacet extends Facet {
 	* Renders the chart and the slider. Basically all the content in the facet.
 	*/
 	renderData(selections = []) {
+		if(!this.enabled) {
+			//Don't render if this facet is currently disabled
+			return;
+		}
+		
 		if(selections.length == 0) {
 			selections = this.getSelections();
 		}
@@ -312,12 +317,29 @@ class RangeFacet extends Facet {
 	}
 
 	/*
+	* Function: unRenderData
+	* Virtual. Every subclass needs to implement this.
+	*/
+	unRenderData() {
+		console.log("unRenderData");
+		if(this.chart != null) {
+			console.log(this.chart);
+			this.chart.destroy();
+		}
+		if(this.sliderElement != null) {
+			console.log(this.sliderElement);
+			this.sliderElement.destroy();
+		}
+		console.log($(".facet-body > .chart-container", this.getDomRef()));
+		$(".facet-body > .chart-container", this.getDomRef()).hide();
+	}
+
+	/*
 	 * Function: renderChart
 	 *
 	 * Renders the chart and only the chart-part of the range facet. Will render whatever is currently in this.data (within selections).
 	 */
 	renderChart(categories, selections) {
-
 		var chartContainerNode = $(".chart-canvas-container", this.getDomRef());
 		$(".range-chart-canvas", chartContainerNode).remove();
 		chartContainerNode.append($("<canvas></canvas>").attr("id", "facet_"+this.id+"_canvas").addClass("range-chart-canvas"));

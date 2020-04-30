@@ -19,11 +19,6 @@ class Slot {
 		$(slotDomObj).attr("id", "slot-"+this.id);
 		$(slotDomObj).attr("slot-id", this.id);
 		$("#facet-section").append(slotDomObj);
-		
-		/*
-		this.betweenSlotArrow = null;
-		this.renderBetweenSlotArrow();
-		*/
 
 		this.domObj = slotDomObj;
 

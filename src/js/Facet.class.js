@@ -31,17 +31,16 @@ class Facet {
 		this.requestId = 0;
 		this.deleted = false;
 		this.locked = false;
+		this.enabled = true; //If this facet is not applicable within the current domain, this will be false.
 
 		var facetDomObj = $("#facet-template")[0].cloneNode(true);
 		$(facetDomObj).attr("id", "facet-"+this.id);
 		$(facetDomObj).attr("facet-id", this.id);
 		$(facetDomObj).find(".facet-title").html(this.title);
 		$(facetDomObj).find(".facet-header-divider").css("background-color", this.color);
-		$(facetDomObj).find(".facet-body").css("height", Config.facetBodyHeight+"px");
+		this.setHeight(Config.facetBodyHeight);
 		$("#facet-section").append(facetDomObj);
-
 		this.defaultHeight = $(facetDomObj).css("height");
-		this.bodyHeight = $(".facet-body", facetDomObj).css("height");
 		this.domObj = facetDomObj;
 
 		$(facetDomObj).find(".facet-delete-btn").bind("click", () => {
@@ -92,6 +91,38 @@ class Facet {
 		});
 	}
 
+	setHeight(height = Config.facetBodyHeight) {
+		$(".facet-body", this.domObj).css("height", height+"px");
+		this.bodyHeight = $(".facet-body", this.domObj).css("height");
+		/*
+		let slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+		this.sqs.facetManager.updateSlotSize(slotId);
+		this.sqs.facetManager.updateAllFacetPositions();
+		//this.sqs.facetManager.updateShowOnlySelectionsControl();
+		*/
+	}
+
+	disable() {
+		this.enabled = false;
+		return;
+		this.unRenderData();
+		$(".facet-body > .facet-disabled-msg", this.domObj).css("display", "flex");
+		$(".facet-size-btn", this.domObj).hide();
+		/*
+		let slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+		this.sqs.facetManager.updateSlotSize(slotId);
+		this.sqs.facetManager.updateAllFacetPositions();
+		//this.sqs.facetManager.updateShowOnlySelectionsControl();
+		*/
+	}
+
+	enable() {
+		this.enabled = true;
+		return;
+		this.renderData();
+		$(".facet-body > .facet-disabled-msg", this.domObj).css("display", "none");
+		$(".facet-size-btn", this.domObj).show();
+	}
 
 	/*
 	* Function: showLoadingIndicator
@@ -177,7 +208,15 @@ class Facet {
 	* Virtual. Every subclass needs to implement this.
 	*/
 	renderData() {
-		console.log("WARN: renderData in Facet parent class called. This is probably not what you wanted.");
+		console.warn("WARN: renderData in Facet parent class called. This is probably not what you wanted.");
+	}
+
+	/*
+	* Function: unRenderData
+	* Virtual. Every subclass needs to implement this.
+	*/
+	unRenderData() {
+		console.warn("WARN: unRenderData in Facet parent class called. This is probably not what you wanted.");
 	}
 
 	/*

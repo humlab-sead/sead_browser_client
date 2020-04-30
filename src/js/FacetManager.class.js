@@ -88,6 +88,18 @@ class FacetManager {
 
 		this.sqs.sqsEventListen("domainChanged", (evt, domainName) => {
 			this.buildFilterStructure(domainName);
+
+			//Disable all deployed facets which are not applicable in the current domain
+			console.log(this.facets);
+			let domain = this.sqs.domainManager.getDomain(domainName);
+			console.log(domain);
+			this.facets.forEach((facet) => {
+				if(!domain.filters.includes(facet.name)) {
+					console.log(facet.name+" doesn't exist in the current domain, deleting.");
+					facet.destroy();
+				}
+			});
+
 			//Refresh all facets
 			this.chainQueueFacetDataFetch();
 		});
@@ -284,6 +296,10 @@ class FacetManager {
 	* Queue is a funny word. Anyway, this is basically what you want to use for getting data for a facet. Think of it as "fetchFacetData" if you like, but it's really more of a queue-thingy going on here so...
 	*/
 	queueFacetDataFetch(facet) {
+		if(!facet.enabled) {
+			return;
+		}
+		
 		if(!this.facetDataFetchingSuspended) {
 			facet.fetchData();
 		}
@@ -408,6 +424,7 @@ class FacetManager {
 	/*
 	* Function: removeFacet
 	* Have your facet become a nuisance? Let removeFacet be your problem solver.
+	* NOTE: You should probably call Facet.destroy() instead - this will trigger a call to this function automatically because of the event sent out.
 
 	* Parameters:
 	* facet - The facet instance.
