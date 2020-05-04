@@ -1,4 +1,4 @@
-import Color from './color.class.js';
+import Color from './Color.class.js';
 import FacetManager from './FacetManager.class.js';
 import SqsLayoutManager from './SqsLayoutManager.class.js';
 import MainMenu from './MainMenu.class.js'
@@ -43,6 +43,9 @@ class SeadQuerySystem {
 			console.log("SQS preload complete");
 			this.bootstrapSystem();
 			console.log("SQS bootstrap complete");
+		}, (reason) => {
+			$("#preload-failed-indicator").css("display", "block");
+			$(".seadlogo-loading-indicator-bg").hide();
 		});
 
 		$("body").show();
@@ -52,6 +55,9 @@ class SeadQuerySystem {
 		$("#sead-logo").on("click", () => {
 			window.location = "/";
 		});
+
+		$("#preload-loading-indicator").remove();
+		$("#header-container").css("display", "flex");
 
 		this.color = new Color();
 		this.stateManager = new StateManager(this);
@@ -71,8 +77,6 @@ class SeadQuerySystem {
 					selector: "#facet-menu",
 					evaluator: () => {
 						let visibleSection = this.layoutManager.getActiveView().getVisibleSection();
-						console.log(this.layoutManager.getMode(), visibleSection); 
-						//This rule actually works just fine - should instead look into who else is controlling this button, someone is playing a slide-in animation on it... 
 						return this.layoutManager.getMode() == "desktopMode" || visibleSection == "left";
 					}
 				},
@@ -182,26 +186,10 @@ class SeadQuerySystem {
 		
 
 		this.facetManager.buildFilterStructure("general");
-		/*
-		this.facetDef = this.facetManager.importFacetDefinitions();
-		var sqsMenuStruct = this.facetManager.makesqsMenuFromFacetDef(this.facetDef);
-		this.menuManager.createMenu(sqsMenuStruct);
-		*/
 
 		if(viewstate != false) {
 			this.stateManager.loadStateById(viewstate);
 		}
-
-		/*
-	  	var jqxhr = this.facetManager.fetchFacetDefinitions(this);
-	  	jqxhr.done((data, textStatus, jqXHR) => {
-	  		var sqsMenuStruct = this.facetManager.makesqsMenuFromFacetDef(this.facetDef);
-	  		this.menuManager.createMenu(sqsMenuStruct);
-	  		if(viewstate != false) {
-		  		this.stateManager.loadStateById(viewstate);
-		  	}
-	  	});
-		*/
 		
 		this.router = new Router(this);
 
@@ -282,10 +270,13 @@ class SeadQuerySystem {
 	 */
 	async preload() {
 
+		let preloadTimeout = 10000;
+
 		let fetchApiVersion = new Promise((resolve, reject) => {
 			$.ajax(this.config.serverAddress+"/api/values", {
 				method: "get",
 				dataType: "json",
+				timeout: preloadTimeout,
 				success: (data) => {
 					this.apiVersion = data;
 					resolve(data);
@@ -300,6 +291,7 @@ class SeadQuerySystem {
 			$.ajax(this.config.serverAddress+"/api/facets", {
 				method: "get",
 				dataType: "json",
+				timeout: preloadTimeout,
 				success: (data) => {
 					this.importFilters(data);
 					resolve(data);
@@ -314,6 +306,7 @@ class SeadQuerySystem {
 			$.ajax(this.config.serverAddress+"/api/facets/domain", {
 				method: "get",
 				dataType: "json",
+				timeout: preloadTimeout,
 				success: async (data) => {
 					await this.importDomains(data);
 					resolve(data);
@@ -329,6 +322,7 @@ class SeadQuerySystem {
 			$.ajax(this.config.siteReportServerAddress+"/data_types", {
 				method: "get",
 				dataType: "json",
+				timeout: preloadTimeout,
 				beforeSend: () => {
 				
 				},
@@ -354,6 +348,7 @@ class SeadQuerySystem {
 			$.ajax(this.config.siteReportServerAddress+"/dataset_masters", {
 				method: "get",
 				dataType: "json",
+				timeout: preloadTimeout,
 				success: (data, textStatus, xhr) => {
 					this.config.dataSetMasters = [];
 					for(var key in data) {
@@ -443,20 +438,24 @@ class SeadQuerySystem {
 		});
 
 		await Promise.all(fetchDomainFiltersPromises).then((data) => {
-			Config.domains = [];
+
 			domains.forEach((domain) => {
 				let domainFacetCodes = [];
 				domain.Facets.forEach((facet) => {
 					domainFacetCodes.push(facet.FacetCode);
 				});
 
-				Config.domains.push({
-					name: domain.FacetCode,
-					//title: "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i> General",
-					title: domain.DisplayTitle,
-					color: "#888",
-					filters: domainFacetCodes
+				let domainConfigObject = null;
+				Config.domains.forEach((cd) => {
+					if(cd.name == domain.FacetCode) {
+						domainConfigObject = cd;
+					}
 				});
+
+				if(domainConfigObject != null) {
+					domainConfigObject.title = domain.DisplayTitle;
+					domainConfigObject.filters = domainFacetCodes;
+				}
 			});
 		});
 	}
@@ -588,15 +587,6 @@ class SeadQuerySystem {
 		if(this.layoutManager instanceof SqsLayoutManager) {
 			this.layoutManager.setActiveView(viewName);
 		}
-		
-		/*
-		if(this.layoutManager instanceof SqsLayoutManager) {
-			this.layoutManager.setup();
-		}
-		if(this.facetManager instanceof FacetManager && this.facetManager.siteReportLayoutManager instanceof SqsLayoutManager) {
-			this.facetManager.siteReportLayoutManager.setup();
-		}
-		*/
 	}
 
 	getActiveView() {

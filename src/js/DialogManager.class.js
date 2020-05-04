@@ -233,7 +233,7 @@ class DialogManager {
 				},
 				{
 					name: "legal",
-					title: "<i class=\"fa fa-user-circle\" aria-hidden=\"true\"></i> Legal",
+					title: "<i class=\"fa fa-file-text-o\" aria-hidden=\"true\"></i> Legal",
 					callback: () => {
 						var content = $("#gdpr-infobox").html();
 						window.sqs.dialogManager.showPopOver("Legal policy", content);

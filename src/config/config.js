@@ -40,206 +40,46 @@ var Config = {
 		"0000ff"
 	],
 	activeDomain: "general",
-	portals: [
+	domains: [
 		{
 			name: "general",
-			title: "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i> General",
-			color: "#888",
-			//color: "#2d5e8d",
-			datasetId: false, //All the datasets
-			filters: [
-				"sample_groups",
-				"sites",
-				"country",
-				"geochronology",
-				"relative_age_name",
-				"ecocode",
-				"ecocode_system",
-				"tbl_denormalized_measured_values_33_0",
-				"tbl_denormalized_measured_values_33_82",
-				"tbl_denormalized_measured_values_32",
-				"tbl_denormalized_measured_values_37",
-				"family",
-				"genus",
-				"species",
-				"species_author",
-				"dataset_master"
-			]
-		},
-		{
-			name: "palaeoentomology",
-			title: "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i> Palaeoentomology",
-			color: "#d00",
-			//color: "#2d5e8d",
-			datasetId: 1,
-			filters: [
-				"sample_groups",
-				"sites",
-				"country",
-				"geochronology",
-				"relative_age_name",
-				"ecocode",
-				"ecocode_system",
-				"tbl_denormalized_measured_values_33_0",
-				"tbl_denormalized_measured_values_33_82",
-				"tbl_denormalized_measured_values_32",
-				"tbl_denormalized_measured_values_37",
-				"family",
-				"genus",
-				"species",
-				"species_author",
-				"dataset_master"
-			]
+			icon: "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>",
+			color: "#888"
 		},
 		{
 			name: "dendrochronology",
-			title: "<i class=\"fa fa-tree\" aria-hidden=\"true\"></i> Dendrochronology",
-			color: "#0a0",
-			//color: "#2d5e8d",
-			datasetId: 10,
-			filters: [
-				"sample_groups",
-				"sites",
-				"country",
-				"geochronology",
-				"relative_age_name",
-				"ecocode",
-				"ecocode_system",
-				"tbl_denormalized_measured_values_33_0",
-				"tbl_denormalized_measured_values_33_82",
-				"tbl_denormalized_measured_values_32",
-				"tbl_denormalized_measured_values_37",
-				"family",
-				"genus",
-				"species",
-				"species_author",
-				"dataset_master"
-			]
+			icon: "<i class=\"fa fa-tree\" aria-hidden=\"true\"></i>",
+			color: "#0a0"
+		},
+		{
+			name: "palaeoentomology",
+			icon: "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
+			color: "#d00"
 		},
 		{
 			name: "archaeobotany",
-			title: "<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i> Archaeobotany",
-			color: "#a0a",
-			//color: "#2d5e8d",
-			datasetId: 2, //Not sure about this one
-			filters: [
-				"sample_groups",
-				"sites",
-				"country",
-				"geochronology",
-				"relative_age_name",
-				"ecocode",
-				"ecocode_system",
-				"tbl_denormalized_measured_values_33_0",
-				"tbl_denormalized_measured_values_33_82",
-				"tbl_denormalized_measured_values_32",
-				"tbl_denormalized_measured_values_37",
-				"family",
-				"genus",
-				"species",
-				"species_author",
-				"dataset_master"
-			]
-		},
-		{
-			name: "isotope",
-			title: "<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i> Isotope",
-			color: "#990",
-			//color: "#2d5e8d",
-			datasetId: 11,
-			filters: [
-				"sample_groups",
-				"sites",
-				"country",
-				"geochronology",
-				"relative_age_name",
-				"ecocode",
-				"ecocode_system",
-				"tbl_denormalized_measured_values_33_0",
-				"tbl_denormalized_measured_values_33_82",
-				"tbl_denormalized_measured_values_32",
-				"tbl_denormalized_measured_values_37",
-				"family",
-				"genus",
-				"species",
-				"species_author",
-				"dataset_master"
-			]
-		},
-		{
-			name: "ceramic",
-			title: "<i class=\"fa fa-beer\" aria-hidden=\"true\"></i> Ceramic",
-			color: "#099",
-			//color: "#2d5e8d",
-			datasetId: 3,
-			filters: [
-				"sample_groups",
-				"sites",
-				"country",
-				"geochronology",
-				"relative_age_name",
-				"ecocode",
-				"ecocode_system",
-				"tbl_denormalized_measured_values_33_0",
-				"tbl_denormalized_measured_values_33_82",
-				"tbl_denormalized_measured_values_32",
-				"tbl_denormalized_measured_values_37",
-				"family",
-				"genus",
-				"species",
-				"species_author",
-				"dataset_master"
-			]
+			icon: "<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i>",
+			color: "#a0a"
 		},
 		{
 			name: "pollen",
-			title: "Pollen",
-			color: "#888",
-			//color: "#2d5e8d",
-			datasetId: false,
-			filters: [
-				"sample_groups",
-				"sites",
-				"country",
-				"geochronology",
-				"relative_age_name",
-				"ecocode",
-				"ecocode_system",
-				"tbl_denormalized_measured_values_33_0",
-				"tbl_denormalized_measured_values_33_82",
-				"tbl_denormalized_measured_values_32",
-				"tbl_denormalized_measured_values_37",
-				"family",
-				"genus",
-				"species",
-				"species_author",
-				"dataset_master"
-			]
+			icon: "<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i>",
+			color: "#888"
 		},
 		{
 			name: "geoarchaeology",
-			title: "Geoarchaeology",
-			color: "#888",
-			//color: "#2d5e8d",
-			datasetId: false,
-			filters: [
-				"sample_groups",
-				"sites",
-				"country",
-				"geochronology",
-				"relative_age_name",
-				"ecocode",
-				"ecocode_system",
-				"tbl_denormalized_measured_values_33_0",
-				"tbl_denormalized_measured_values_33_82",
-				"tbl_denormalized_measured_values_32",
-				"tbl_denormalized_measured_values_37",
-				"family",
-				"genus",
-				"species",
-				"species_author",
-				"dataset_master"
-			]
+			icon: "<i class=\"fa fa-map\" aria-hidden=\"true\"></i>",
+			color: "#909"
+		},
+		{
+			name: "isotope",
+			icon: "<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i>",
+			color: "#990"
+		},
+		{
+			name: "ceramic",
+			icon: "<i class=\"fa fa-beer\" aria-hidden=\"true\"></i>",
+			color: "#099"
 		}
 	]
 }

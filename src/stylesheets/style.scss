@@ -48,6 +48,7 @@ body {
   padding: 0px;
   margin: 0px;
   height: 100%;
+  background-color: $pane-bg-color;
 }
 
 input {
@@ -163,7 +164,7 @@ h1.main-header {
 }
 
 #header-container {
-	display:flex;
+	display:none; //should be flex when shown
 	justify-content: space-between;
 	align-items: center;
 	align-content: center;
@@ -1705,4 +1706,43 @@ polyline{
 #viewStateSaveGoogleLogin {
   grid-column: right;
   align-items: center;
+}
+
+#preload-loading-indicator {
+}
+
+.seadlogo-loading-indicator-container {
+  position:fixed;
+  top: 0px;
+  left: 0px;
+  width: 100vw;
+  height: 100vh;
+  display:flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.seadlogo-loading-indicator-bg {
+  display:block;
+  width: 25%;
+  height: 25%;
+  background-position: 50% 50%;
+  background-image: url('../assets/visead-loading.gif');
+  background-repeat: no-repeat;
+	background-size: 100%;
+  background-color: transparent;
+}
+
+
+#preload-failed-indicator {
+  display:none;
+  width: 50%;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+#preload-failed-indicator > h2 {
+  color: rgb(210, 0, 0);
+  background-color: transparent;
 }

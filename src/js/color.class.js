@@ -10,11 +10,13 @@ class Color {
     /*
 	Function: getColorScheme
 	 */
-	getColorScheme(numColors, alpha = false) {
+	getColorScheme(numColors, alpha = false, keyColors = null) {
 		var iterations = Math.ceil(numColors / 16);
 		var scheme = new ColorScheme;
 
-		let keyColors = JSON.parse(JSON.stringify(Config.keyColors));
+		if(keyColors == null) {
+			keyColors = JSON.parse(JSON.stringify(Config.keyColors));
+		}
 		
 		var colors = [];
 		for(var i = 0; i < iterations && keyColors.length > 0; i++) {

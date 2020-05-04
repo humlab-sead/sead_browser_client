@@ -1081,9 +1081,20 @@ class FacetManager {
 			
 			for(var fk in facetDef[gk].filters) {
 				
+				console.log(facetDef[gk].filters[fk].type);
+
+				let icon = "";
+				if(facetDef[gk].filters[fk].type == "discrete") {
+					icon = "<span class='sqs-menu-facet-type-icon'>L</span>";
+				}
+				if(facetDef[gk].filters[fk].type == "range") {
+					icon = "<span class='sqs-menu-facet-type-icon'>R</span>";
+				}
+
+
 				facetGroup.children.push({
 					name: facetDef[gk].filters[fk].name,
-					title: facetDef[gk].filters[fk].title,
+					title: "<div>"+icon+" "+facetDef[gk].filters[fk].title+"</div>",
 					tooltip: facetDef[gk].filters[fk].description,
 					callback: (menuItem) => {
 						var facets = this.sqs.facetManager.facets;

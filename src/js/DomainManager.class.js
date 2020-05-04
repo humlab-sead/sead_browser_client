@@ -21,8 +21,10 @@ class DomainManager {
         */
 
         this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
+            /* DISABLED colors for now, there's too many domains for this to work well - I think...
             let newDomain = this.getDomain(newDomainName);
             $("#facet-menu .l2-title").css("border-left", "4px solid "+newDomain.color);
+            */
         });
         
         $(window).on("seadStateLoad", (event, data) => {
@@ -64,7 +66,7 @@ class DomainManager {
     
     updateMenu() {
         this.sqs.menuManager.createMenu(this.sqsMenu());
-        $("#domain-menu .sqs-menu-title-subtext").css("background-color", this.activeDomain.color);
+        //$("#domain-menu .sqs-menu-title-subtext").css("background-color", this.activeDomain.color);
     }
 
     /*
@@ -87,10 +89,10 @@ class DomainManager {
 
         for(let key in this.config.domains) {
             let domain = config.domains[key];
+
             menu.items.push({
                 name: domain.name,
-                //title: "<i class=\"fa fa-tree\" aria-hidden=\"true\"></i> "+domain.title,
-                title: domain.title,
+                title: domain.icon+" "+domain.title,
                 staticSelection: domain.name == selectedDomain.name,
                 callback: () => {
                     this.setActiveDomain(domain.name);
