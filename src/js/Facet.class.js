@@ -38,8 +38,8 @@ class Facet {
 		$(facetDomObj).attr("facet-id", this.id);
 		$(facetDomObj).find(".facet-title").html(this.title);
 		$(facetDomObj).find(".facet-header-divider").css("background-color", this.color);
-		this.setHeight(Config.facetBodyHeight);
 		$("#facet-section").append(facetDomObj);
+		this.setHeight(Config.facetBodyHeight);
 		this.defaultHeight = $(facetDomObj).css("height");
 		this.domObj = facetDomObj;
 
