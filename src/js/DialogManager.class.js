@@ -57,7 +57,9 @@ class DialogManager {
 		$("#popover-dialog-frame > h1").text(title);
 		$("#popover-dialog-frame > .popover-content").html(content);
 		$("#popover-dialog").css("display", "grid").hide();
-		$("#popover-dialog").fadeIn(100);
+		$("#popover-dialog-frame").hide();
+		$("#popover-dialog").show();
+		$("#popover-dialog-frame").slideDown(100);
 		this.sqs.sqsEventDispatch("popOverOpened", {
 			title: title,
 			content: content
