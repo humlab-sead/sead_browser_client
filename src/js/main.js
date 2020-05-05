@@ -18,7 +18,8 @@ import '../../node_modules/normalize.css/normalize.css';
 import SeadQuerySystem from './SeadQuerySystem.class.js';
 import Config from '../config/config.js';
 import "../assets/icons/favicon.ico";
-import "../assets/icons/site.webmanifest";
+import "../assets/icons/android-chrome-192x192.png";
+import "../site.webmanifest";
 
 "use strict";
 
