@@ -199,7 +199,7 @@ class StateManager {
 
 	renderViewStates(viewstates) {
 		$("#viewstate-load-list").html("");
-		let header = "<div class='viewstate-load-item-header'><div>ID</div><div>Name</div><div>Time</div><div>Version</div><div id='vs-del-header'>Del</div></div>";
+		let header = "<div class='viewstate-load-item-header'><div>ID</div><div>Name</div><div>Created</div><div>Version</div><div id='vs-del-header'>Del</div></div>";
 		$("#viewstate-load-list").append(header);
 
 		viewstates.map((state) => {
