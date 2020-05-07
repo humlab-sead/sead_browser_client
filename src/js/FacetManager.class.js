@@ -1090,8 +1090,6 @@ class FacetManager {
 			};
 			
 			for(var fk in facetDef[gk].filters) {
-				
-				console.log(facetDef[gk].filters[fk].type);
 
 				let icon = "";
 				if(facetDef[gk].filters[fk].type == "discrete") {
