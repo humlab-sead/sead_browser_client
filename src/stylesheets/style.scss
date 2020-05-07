@@ -769,7 +769,7 @@ h1.main-header {
 
 .viewstate-load-item-header {
   display:grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   grid-template-rows: auto;
   width: 100%;
   font-weight: bold;
@@ -780,7 +780,7 @@ h1.main-header {
 
 .viewstate-load-item {
   display:grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   grid-template-rows: auto;
   width: 100%;
   grid-column-gap: 20px;

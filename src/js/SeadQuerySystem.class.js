@@ -278,7 +278,7 @@ class SeadQuerySystem {
 				dataType: "json",
 				timeout: preloadTimeout,
 				success: (data) => {
-					this.apiVersion = data;
+					this.apiVersion = data[0]+data[1];
 					resolve(data);
 				},
 				error: (e) => {

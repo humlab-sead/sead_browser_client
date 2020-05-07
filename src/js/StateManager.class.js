@@ -199,15 +199,29 @@ class StateManager {
 
 	renderViewStates(viewstates) {
 		$("#viewstate-load-list").html("");
-		let header = "<div class='viewstate-load-item-header'><div>ID</div><div>Name</div><div>Time</div><div id='vs-del-header'>Del</div></div>";
+		let header = "<div class='viewstate-load-item-header'><div>ID</div><div>Name</div><div>Time</div><div>Version</div><div id='vs-del-header'>Del</div></div>";
 		$("#viewstate-load-list").append(header);
 
 		viewstates.map((state) => {
+			let oldApiWarn = "";
+			if(typeof state.apiVersion == "undefined") {
+				state.apiVersion = "Unknown";
+			}
+			if(state.apiVersion != this.sqs.apiVersion) {
+				oldApiWarn = "<i class=\"fa fa-exclamation-triangle old-viewstate-api-warning\" aria-hidden=\"true\"></i>";
+			}
 			var dateString = this.formatTimestampToDateString(state.saved);
 
-			let vsRow = "<div class='viewstate-load-item'><div class='vs-id' vsid='"+state.id+"'>"+state.id+"</div><div>"+state.name+"</div><div>"+dateString+"</div><div><i class='fa fa-trash viewstate-delete-btn' aria-hidden='true'></i></div></div>";
+			let vsRow = $("<div id='vs-"+state.id+"' class='viewstate-load-item'></div>");
+			vsRow.append("<div class='vs-id' vsid='"+state.id+"'>"+state.id+"</div>");
+			vsRow.append("<div>"+state.name+"</div>");
+			vsRow.append("<div>"+dateString+"</div>");
+			vsRow.append("<div>"+oldApiWarn+" "+state.apiVersion+"</div>");
+			vsRow.append("<div><i class='fa fa-trash viewstate-delete-btn' aria-hidden='true'></i></div>");
+
 			$("#viewstate-load-list").append(vsRow);
-			//$("#viewstate-load-list").append("<option value='"+state.id+"''>"+dateString+" "+state.name+" (id:"+state.id+") "+state.origin+"</option>");
+
+			this.sqs.tooltipManager.registerTooltip("#vs-"+state.id+" .old-viewstate-api-warning", "This viewstate was created using an older version of the SEAD browser and thus may not produce the same result in the current version.");
 		});
 
 		this.sqs.tooltipManager.registerTooltip("#vs-del-header", "Deleting a viewstate will only remove it from your personal list. The viewstate will always be accessible via the correct link.", {drawSymbol: true});
