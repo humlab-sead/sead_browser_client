@@ -27,7 +27,7 @@ class DomainManager {
             */
         });
         
-        $(window).on("seadStateLoad", (event, data) => {
+        $(window).on("seadStatePreLoad", (event, data) => {
             let state = data.state;
             if(state.domain) {
                 this.setActiveDomain(state.domain);
