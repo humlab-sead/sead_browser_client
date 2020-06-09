@@ -5,10 +5,12 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-168923041-1"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'UA-168923041-1');
+    if (document.location.hostname.search("browser.sead.se") !== -1) {
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      
+      gtag('config', 'UA-168923041-1');
+    }
   </script>
 
   	<meta charset="utf-8">
