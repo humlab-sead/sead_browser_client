@@ -7,14 +7,18 @@ const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPl
 process.traceDeprecation = true;
 
 module.exports = {
-	entry: './src/js/main.js',
+	//entry: './src/js/main.js',
+	entry: {
+		app: './src/js/main.js'
+		//config: './src/config/config.js'
+	},
 	performance: {
 		hints: false
 	},
 	output: {
 		path: path.resolve(__dirname, './dist'),
 		publicPath: '/',
-		filename: 'dist.js',
+		filename: '[name].js',
 		chunkFilename: '[name].bundle.js'
 	},
 	optimization: {
@@ -62,10 +66,20 @@ module.exports = {
 			},
 			{
 				test: /\.js$/,
-				exclude: /(node_modules|bower_components)/,
+				exclude: [
+					/(node_modules|bower_components)/,
+					path.resolve(__dirname, './src/config/config.js')
+				],
 				use: {
 					loader: 'babel-loader'
 				}
+			},
+			{
+				test: /config\.js$/,
+				loader: 'file-loader',
+				options: {
+					name: '[name].[ext]?[hash:8]',
+				},
 			},
 		    {
 		        test: /\.(html)$/i,
@@ -111,7 +125,7 @@ module.exports = {
 		noInfo: true
 	},
 	performance: {
-	hints: "warning"
+		hints: "warning"
 	},
 	devtool: '#eval-source-map',
 	plugins: [

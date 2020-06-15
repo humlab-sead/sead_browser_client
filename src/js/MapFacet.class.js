@@ -1,5 +1,5 @@
 import 'ol';
-import Config from '../config/config.js'
+//import Config from '../config/config.js'
 import Facet from './Facet.class.js'
 /*
 * Class: MapFacet

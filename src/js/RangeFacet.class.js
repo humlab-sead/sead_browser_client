@@ -2,7 +2,7 @@ import Facet from './Facet.class.js';
 import noUiSlider from "nouislider";
 import "nouislider/distribute/nouislider.min.css";
 import styles from '../stylesheets/style.scss'
-import Config from "../config/config";
+//import Config from "../config/config";
 import { runInThisContext } from 'vm';
 
 /*

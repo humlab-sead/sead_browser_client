@@ -2,7 +2,7 @@ import noUiSlider from "nouislider";
 import "nouislider/distribute/nouislider.min.css";
 import Color from "../Color.class";
 import css from '../../stylesheets/style.scss';
-import Config from "../../config/config.js";
+//import Config from "../../config/config.js";
 
 
 /*

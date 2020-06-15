@@ -1,6 +1,6 @@
 import ColorScheme from 'color-scheme';
 import KolorWheel from 'kolorwheel';
-import Config from '../config/config.js'
+//import Config from '../config/config.js'
 
 class Color {
     constructor() {

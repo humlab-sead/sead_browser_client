@@ -1,6 +1,6 @@
 import shortid from 'shortid';
 import XLSX from 'xlsx';
-import Config from '../../config/config.js';
+//import Config from '../../config/config.js';
 import BasicSiteInformation from './SectionModules/BasicSiteInformation.class';
 import Samples from './SectionModules/Samples.class';
 import Analysis from './SectionModules/Analysis.class';

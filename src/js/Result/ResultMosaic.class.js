@@ -1,4 +1,4 @@
-import Config from '../../config/config.js'
+//import Config from '../../config/config.js'
 import ResultModule from './ResultModule.class.js'
 //import ResultMap from "./ResultMap.class";
 

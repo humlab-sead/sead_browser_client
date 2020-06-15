@@ -1,4 +1,4 @@
-import Config from '../config/config.js';
+//import Config from '../config/config.js';
 import _ from 'underscore';
 /* 
 Class: Facet
@@ -39,6 +39,9 @@ class Facet {
 		$(facetDomObj).find(".facet-title").html(this.title);
 		$(facetDomObj).find(".facet-header-divider").css("background-color", this.color);
 		$("#facet-section").append(facetDomObj);
+		
+		//Config.facetBodyHeight = "20%";
+
 		this.setHeight(Config.facetBodyHeight);
 		this.defaultHeight = $(facetDomObj).css("height");
 		this.domObj = facetDomObj;
@@ -93,6 +96,7 @@ class Facet {
 
 	setHeight(height = Config.facetBodyHeight) {
 		$(".facet-body", this.domObj).css("height", height+"px");
+		//$(".facet-body", this.domObj).css("height", height);
 		this.bodyHeight = $(".facet-body", this.domObj).css("height");
 		/*
 		let slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);

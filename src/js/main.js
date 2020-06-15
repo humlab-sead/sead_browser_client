@@ -16,7 +16,7 @@ import '../../flexnav/js/jquery.flexnav.js';
 import '../../node_modules/font-awesome/css/font-awesome.css';
 import '../../node_modules/normalize.css/normalize.css';
 import SeadQuerySystem from './SeadQuerySystem.class.js';
-import Config from '../config/config.js';
+//import Config from '../config/config.js';
 import "../assets/icons/favicon.ico";
 import "../assets/icons/android-chrome-192x192.png";
 import "../site.webmanifest";

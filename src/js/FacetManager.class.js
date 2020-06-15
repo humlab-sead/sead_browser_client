@@ -1,4 +1,4 @@
-import Config from '../config/config.js';
+//import Config from '../config/config.js';
 import Slot from './Slot.class.js'
 import Facet from './Facet.class.js'
 import DiscreteFacet from './DiscreteFacet.class.js'

@@ -13,7 +13,7 @@
 * .section-left
 * ...and more?
 */
-import Config from "../config/config";
+//import Config from "../config/config";
 import SqsView from "./SqsView.class";
 import enquire from 'enquire.js'
 

@@ -1,4 +1,4 @@
-import Config from '../config/config.js'
+//import Config from '../config/config.js'
 import Facet from './Facet.class.js'
 import _ from 'underscore';
 /*

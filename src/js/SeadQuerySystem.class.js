@@ -17,7 +17,7 @@ import DomainManager from './DomainManager.class.js';
 import Router from './Router.class.js';
 //import filterDefinitions from '../filters.json';
 import css from '../stylesheets/style.scss';
-import Config from '../config/config.js';
+import '../config/config.js';
 
 /* 
 * Class: SeadQuerySystem
@@ -37,7 +37,7 @@ class SeadQuerySystem {
 		this.taxa = []; //Local taxonomy db
 		this.systemReady = false;
 
-		this.config = this.loadUserSettings(this.config);
+		this.config = this.loadUserSettings(Config);
 
 		this.preload().then(() => {
 			console.log("SQS preload complete");

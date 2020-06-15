@@ -1,4 +1,4 @@
-var Config = {
+const Config = {
 	dataLicense: {
 		name: "Creative Commons Attribution 4.0 International",
 		shortName: "CC-BY-4.0",
@@ -84,4 +84,4 @@ var Config = {
 	]
 }
 
-export { Config as default }
+//export { Config as default }

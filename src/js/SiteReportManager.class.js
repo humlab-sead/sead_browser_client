@@ -1,5 +1,5 @@
 import SiteReport from './SiteReport/SiteReport.class';
-import Config from "../config/config.js";
+//import Config from "../config/config.js";
 
 /*
 * Class: SiteReportManager

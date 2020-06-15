@@ -1,4 +1,4 @@
-import Config from '../../config/config.js'
+//import Config from '../../config/config.js'
 import DataTables from 'datatables';
 import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
 import ResultModule from './ResultModule.class.js'

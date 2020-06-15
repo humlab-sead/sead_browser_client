@@ -1,5 +1,5 @@
 //import * as d3 from 'd3';
-import Config from '../../config/config.js'
+//import Config from '../../config/config.js'
 import ResultModule from './ResultModule.class.js'
 import Timeline from './Timeline.class.js';
 import SqsMenu from '../SqsMenu.class';
