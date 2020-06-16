@@ -18,22 +18,26 @@ import SeadQuerySystem from './SeadQuerySystem.class.js';
 import "../assets/icons/favicon.ico";
 import "../assets/icons/android-chrome-192x192.png";
 import "../site.webmanifest";
-import Config from '../config/config.json';
 
 "use strict";
 
-//Set some globals
-window.Config = Config;
-window.$ = $;
-window.jQuery = jQuery;
-window.sqs = null;
-window.config = Config;
+fetch('config.json')
+    .then(response => response.json())
+    .then((Config) => {
+    //Set some globals
+    window.Config = Config;
+    window.$ = $;
+    window.jQuery = jQuery;
+    window.sqs = null;
+    window.config = Config;
 
-//When document ready...
-$(document).ready(() => {
-    window.sqs = new SeadQuerySystem();
-    window.sqs.init();
+    //When document ready...
+    $(document).ready(() => {
+        window.sqs = new SeadQuerySystem();
+        window.sqs.init();
+    });
 });
+
 
 function debugSize() {
 	$.each( $('*'), function() {

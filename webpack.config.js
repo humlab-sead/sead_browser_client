@@ -1,6 +1,7 @@
 var path = require('path')
 var webpack = require('webpack')
 var HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
 process.traceDeprecation = true;
 
@@ -125,6 +126,11 @@ module.exports = {
 		new HtmlWebpackPlugin({
 			template: 'src/index.html',
 			hash: true
+		}),
+		new CopyPlugin({
+			patterns: [
+			  { from: 'src/config/config.json', to: 'config.json' }
+			],
 		})
 	]
 }
