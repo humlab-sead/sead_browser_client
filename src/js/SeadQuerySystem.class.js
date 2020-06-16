@@ -15,9 +15,8 @@ import HelpAgent from './HelpAgent.class.js';
 import UserManager from './UserManager.class.js';
 import DomainManager from './DomainManager.class.js';
 import Router from './Router.class.js';
-//import filterDefinitions from '../filters.json';
 import css from '../stylesheets/style.scss';
-import '../config/config.js';
+
 
 /* 
 * Class: SeadQuerySystem

@@ -1,16 +1,12 @@
 var path = require('path')
 var webpack = require('webpack')
 var HtmlWebpackPlugin = require('html-webpack-plugin');
-var ArchivePlugin = require('webpack-archive-plugin');
-const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 process.traceDeprecation = true;
 
 module.exports = {
-	//entry: './src/js/main.js',
 	entry: {
 		app: './src/js/main.js'
-		//config: './src/config/config.js'
 	},
 	performance: {
 		hints: false
@@ -73,13 +69,6 @@ module.exports = {
 				use: {
 					loader: 'babel-loader'
 				}
-			},
-			{
-				test: /config\.js$/,
-				loader: 'file-loader',
-				options: {
-					name: '[name].[ext]?[hash:8]',
-				},
 			},
 		    {
 		        test: /\.(html)$/i,
@@ -177,6 +166,5 @@ if (process.env.NODE_ENV === 'production') {
         NODE_ENV: '"production"'
       }
     })
-	//new BundleAnalyzerPlugin()
   ])
 }
