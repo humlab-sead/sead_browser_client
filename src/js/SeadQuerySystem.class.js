@@ -268,14 +268,11 @@ class SeadQuerySystem {
 	* in static code, so here we are.
 	 */
 	async preload() {
-
-		let preloadTimeout = 10000;
-
 		let fetchApiVersion = new Promise((resolve, reject) => {
 			$.ajax(this.config.serverAddress+"/api/values", {
 				method: "get",
 				dataType: "json",
-				timeout: preloadTimeout,
+				timeout: Config.preloadTimeout,
 				success: (data) => {
 					this.apiVersion = data[0]+data[1];
 					resolve(data);
@@ -290,7 +287,7 @@ class SeadQuerySystem {
 			$.ajax(this.config.serverAddress+"/api/facets", {
 				method: "get",
 				dataType: "json",
-				timeout: preloadTimeout,
+				timeout: Config.preloadTimeout,
 				success: (data) => {
 					this.importFilters(data);
 					resolve(data);
@@ -305,7 +302,7 @@ class SeadQuerySystem {
 			$.ajax(this.config.serverAddress+"/api/facets/domain", {
 				method: "get",
 				dataType: "json",
-				timeout: preloadTimeout,
+				timeout: Config.preloadTimeout,
 				success: async (data) => {
 					await this.importDomains(data);
 					resolve(data);
@@ -321,7 +318,7 @@ class SeadQuerySystem {
 			$.ajax(this.config.siteReportServerAddress+"/data_types", {
 				method: "get",
 				dataType: "json",
-				timeout: preloadTimeout,
+				timeout: Config.preloadTimeout,
 				beforeSend: () => {
 				
 				},
@@ -347,7 +344,7 @@ class SeadQuerySystem {
 			$.ajax(this.config.siteReportServerAddress+"/dataset_masters", {
 				method: "get",
 				dataType: "json",
-				timeout: preloadTimeout,
+				timeout: Config.preloadTimeout,
 				success: (data, textStatus, xhr) => {
 					this.config.dataSetMasters = [];
 					for(var key in data) {
