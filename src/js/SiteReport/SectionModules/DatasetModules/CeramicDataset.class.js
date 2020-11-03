@@ -191,7 +191,7 @@ class CeramicDataset extends DatasetModule {
 		var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
 		
 		if(sectionKey === false) {
-			let method = this.analysis.getMethodMetaById(analysis.methodId);
+			let method = this.analysis.getMethodMetaDataById(analysis.methodId);
 			var sectionsLength = this.section.sections.push({
 				"name": analysis.methodId,
 				"title": analysis.methodName,

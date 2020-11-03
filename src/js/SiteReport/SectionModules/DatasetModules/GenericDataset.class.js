@@ -41,7 +41,7 @@ class GenericDataset extends DatasetModule {
 				let dataset = datasets.splice(key, 1)[0]; //Splice (remove) it from the list
 				this.datasets.push(dataset); //Add it to our own internal list of datasets we are going to care for
 
-				if(this.analysis.getMethodMetaById(dataset.methodId) === false) { //Try to get method meta data from cache first
+				if(this.analysis.getMethodMetaDataById(dataset.methodId) === false) { //Try to get method meta data from cache first
 					this.datasetFetchPromises.push(this.analysis.fetchMethodMetaData(dataset.methodId)); //Otherwise we fetch it, using a function in the Analysis instance a step above us, since this is somehting all modules will want to do
 				}
 			}
@@ -111,7 +111,7 @@ class GenericDataset extends DatasetModule {
 			let section = this.analysis.getSectionByMethodId(dataset.methodId);
 			if(section === false) {
 				let warningTooltipId = "sr-warning-tt-"+shortid.generate();
-				let method = this.analysis.getMethodMetaById(dataset.methodId);
+				let method = this.analysis.getMethodMetaDataById(dataset.methodId);
 				var sectionsLength = this.sectionsList.push({
 					"name": dataset.methodId,
 					"title": dataset.methodName+"&nbsp;&nbsp;<i id='"+warningTooltipId+"' class=\"fa fa-exclamation-triangle site-report-analysis-unknown-warning\" aria-hidden=\"true\"></i>",

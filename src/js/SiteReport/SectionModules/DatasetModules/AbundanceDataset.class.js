@@ -29,7 +29,7 @@ class AbundanceDataset extends DatasetModule {
 			this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(methodId));
 		});
 
-		Promise.all(this.metaDataFetchingPromises).then(() => {
+		Promise.all(this.metaDataFetchingPromises).then((data) => {
 			this.methodMetaDataFetchingComplete = true;
 		});
 	}
@@ -58,7 +58,7 @@ class AbundanceDataset extends DatasetModule {
 		this.sectionsList = sectionsList;
 		for(let key = datasets.length - 1; key >= 0; key--) {
 			if(this.methodIds.includes(datasets[key].methodId)) {
-				//console.log("Abundance claiming ", datasets[key].datasetId);
+				console.log("Abundance claiming ", datasets[key].datasetId, datasets[key]);
 				let dataset = datasets.splice(key, 1)[0];
 				this.datasets.push(dataset);
 			}
@@ -75,6 +75,9 @@ class AbundanceDataset extends DatasetModule {
 
 			let promises = this.datasetFetchPromises.concat(this.metaDataFetchingPromises); //To make sure meta data fetching is also complete...
 			Promise.all(promises).then(() => {
+				if(this.methodMetaDataFetchingComplete !== true) {
+					console.warn("Method metadata fetching not complete!");
+				}
 				if(this.datasets.length > 0) {
 					this.buildSection(this.datasets);
 				}
@@ -334,12 +337,13 @@ class AbundanceDataset extends DatasetModule {
 	* Function: buildSection
 	*/
 	buildSection(datasets) {
+
 		//Create sections
 		//We want to create as many sections as there are different types of methods in our datasets (usually just one though)
 		datasets.map((dataset) => {
 			let section = this.analysis.getSectionByMethodId(dataset.methodId);
 			if(section === false) {
-				let method = this.analysis.getMethodMetaById(dataset.methodId);
+				let method = this.analysis.getMethodMetaDataById(dataset.methodId);
 				var sectionsLength = this.sectionsList.push({
 					"name": dataset.methodId,
 					"title": dataset.methodName,

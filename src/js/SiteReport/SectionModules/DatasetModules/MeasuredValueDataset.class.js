@@ -25,7 +25,7 @@ class MeasuredValueDataset extends DatasetModule {
 		this.sectionsList = sectionsList;
 		for(let key = datasets.length - 1; key >= 0; key--) {
 			if(datasets[key].methodGroupId == this.methodGroupId) { //Claim all in method group 2
-				//console.log("MeasuredValueDataset claiming ", datasets[key].datasetId);
+				console.log("MeasuredValueDataset claiming ", datasets[key].datasetId);
 				let dataset = datasets.splice(key, 1)[0];
 				this.datasets.push(dataset);
 			}
@@ -104,7 +104,7 @@ class MeasuredValueDataset extends DatasetModule {
 		datasets.map((dataset) => {
 			let section = this.analysis.getSectionByMethodId(dataset.methodId);
 			if(section === false) {
-				let method = this.analysis.getMethodMetaById(dataset.methodId);
+				let method = this.analysis.getMethodMetaDataById(dataset.methodId);
 				var sectionsLength = this.sectionsList.push({
 					"name": dataset.methodId,
 					"title": dataset.methodName,

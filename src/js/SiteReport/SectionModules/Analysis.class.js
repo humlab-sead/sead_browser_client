@@ -3,6 +3,9 @@ import AbundanceDataset from './DatasetModules/AbundanceDataset.class';
 import MeasuredValueDataset from './DatasetModules/MeasuredValueDataset.class';
 import DendrochronologyDataset from "./DatasetModules/DendrochronologyDataset.class";
 import CeramicDataset from "./DatasetModules/CeramicDataset.class";
+import RadioMetricDatingDataset from "./DatasetModules/RadioMetricDatingDataset.class";
+import DatingToPeriodDataset from "./DatasetModules/DatingToPeriodDataset.class";
+
 /*
 * Class: Analysis
 * 
@@ -43,15 +46,15 @@ class Analysis {
 			"contentItems": [],
 			"sections": [] //Each type of analysis/method will get its own section here
 		};
-
-		this.methods = []; //Will contain method meta data
 		
 		this.data = {
 			"analyses": []
 		};
 		
+		//Will contain method meta data
 		this.meta = {
-			"methods": []
+			"methods": [], 
+			"methodGroups": []
 		};
 		
 		/* ABOUT analysisModules
@@ -77,6 +80,12 @@ class Analysis {
 		});
 		this.datasetModules.push({
 			"className": CeramicDataset
+		});
+		this.datasetModules.push({
+			"className": RadioMetricDatingDataset
+		});
+		this.datasetModules.push({
+			"className": DatingToPeriodDataset
 		});
 		this.datasetModules.push({
 			"className": GenericDataset
@@ -113,6 +122,19 @@ class Analysis {
 		}
 	}
 
+	async fetchSamplesBySampleGroupId(sampleGroupId) {
+		let samples = null;
+		await $.ajax(this.sqs.config.siteReportServerAddress+"/physical_samples?sample_group_id=eq."+sampleGroupId, {
+			method: "get",
+			dataType: "json",
+			success: (data, textStatus, xhr) => {
+				samples = data;
+			}
+		});
+
+		return samples;
+	}
+
 	/*
 	* Function: fetch
 	*/
@@ -123,7 +145,7 @@ class Analysis {
 			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_site_analyses?site_id=eq."+this.siteId, {
 				method: "get",
 				dataType: "json",
-				success: (data, textStatus, xhr) => {
+				success: async (data, textStatus, xhr) => {
 					for(var key in data) { //For each analysis...
 						//Each analysis (data[key]) here contains:
 						//method_id - Defines what type of analysis this is
@@ -134,6 +156,9 @@ class Analysis {
 						//presumably because multiple sample groups are sometimes used to perform an analysis
 						var analysisKey = this.sqs.findObjectPropInArray(this.data.analyses, "datasetId", data[key].dataset_id);
 						
+						//Load the physical_samples for this sampleGroup
+						let samples = await this.fetchSamplesBySampleGroupId(data[key].sample_group_id);
+
 						if(analysisKey === false) {
 							this.data.analyses.push({
 								"methodGroupId": data[key].method_group_id,
@@ -141,14 +166,14 @@ class Analysis {
 								"datasetId": data[key].dataset_id,
 								"sampleGroups": [{
 									"sampleGroupId": data[key].sample_group_id,
-									"samples": []
+									"samples": samples
 								}]
 							});
 						}
 						else {
 							this.data.analyses[analysisKey].sampleGroups.push({
 								"sampleGroupId": data[key].sample_group_id,
-								"samples": []
+								"samples": samples
 							});
 						}
 					}
@@ -248,6 +273,16 @@ class Analysis {
 		});
 	}
 
+	addMethodMetaData(method) {
+		for(var key in this.meta.methods) {
+			if(this.meta.methods[key].method_id == method.methodId) {
+				return false;
+			}
+		}
+		this.meta.methods.push(method);
+		return true;
+	}
+
 	/*
 	* Function: fetchMethodMetaData
 	*
@@ -257,35 +292,34 @@ class Analysis {
 	* methodId - The id of the method to fetch.
 	 */
 	async fetchMethodMetaData(methodId) {
-		new Promise((resolve, reject) => {
-			let methodObj = null;
-			var methodFound = false;
-			for(var key in this.meta.methods) {
-				if(this.meta.methods[key].method_id == methodId) {
-					methodFound = true;
-					methodObj = this.meta.methods[key];
+		if(this.getMethodMetaDataById(methodId) === false) {
+			await $.ajax(this.sqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
+				method: "get",
+				dataType: "json",
+				success: (data, textStatus, xhr) => {
+					let method = data[0];
+					//this.addMethodMetaData(method);
+
+					this.addMethodMetaData({
+						methodId: method.method_id,
+						description: method.description,
+						abbrev: method.method_abbrev_or_alt_name,
+						name: method.method_name,
+						recordTypeId: method.record_type_id,
+						unitId: method.unit_id
+					});
+
+					return method;
+				},
+				error: () => {
+					console.error("WARN: Failed to fetch method meta data");
+					return false;
 				}
-			}
-			
-			if(methodFound == false) {
-				$.ajax(this.sqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
-					method: "get",
-					dataType: "json",
-					success: (data, textStatus, xhr) => {
-						let method = data[0];
-						this.meta.methods.push(method);
-						resolve(method);
-					},
-					error: () => {
-						console.error("WARN: Failed to fetch method meta data");
-						reject();
-					}
-				});
-			}
-			else {
-				resolve(methodObj);
-			}
-		});
+			});
+		}
+		else {
+			return this.getMethodMetaDataById(methodId);
+		}
 	}
 	
 	/*
@@ -318,42 +352,14 @@ class Analysis {
 		});
 	}
 
-	/*
-	* Function: fetchMethodMetaData
-	*
-	* Fetch information about a particular method, such as name and description.
-	*
-	* Parameters:
-	* methodId - The ID of the method.
-	*/
-	async fetchMethodMetaData(methodId) {
-		return new Promise((resolve, reject) => {
-			$.ajax(this.sqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
-				method: "get",
-				dataType: "json",
-				success: async (data, textStatus, xhr) => {
-					this.methods.push({
-						methodId: data[0].method_id,
-						description: data[0].description,
-						abbrev: data[0].method_abbrev_or_alt_name,
-						name: data[0].method_name,
-						recordTypeId: data[0].record_type_id,
-						unitId: data[0].unit_id
-					});
-					resolve();
-				}
-			});
-		});
-	}
-
 	async fetchMethodsInGroup(methodGroupId) {
-		return new Promise((resolve, reject) => {
-			$.ajax(this.sqs.config.siteReportServerAddress+"/methods?method_group_id=eq."+methodGroupId, {
-				method: "get",
-				dataType: "json",
-				success: async (data, textStatus, xhr) => {
-					data.map((method) => {
-						this.methods.push({
+		await $.ajax(this.sqs.config.siteReportServerAddress+"/methods?method_group_id=eq."+methodGroupId, {
+			method: "get",
+			dataType: "json",
+			success: async (data, textStatus, xhr) => {
+				data.map((method) => {
+					if(this.getMethodMetaDataById(method.method_id) === false) {
+						this.addMethodMetaData({
 							methodId: method.method_id,
 							description: method.description,
 							abbrev: method.method_abbrev_or_alt_name,
@@ -361,11 +367,9 @@ class Analysis {
 							recordTypeId: method.record_type_id,
 							unitId: method.unit_id
 						});
-					});
-					
-					resolve();
-				}
-			});
+					}
+				});
+			}
 		});
 	}
 
@@ -383,11 +387,11 @@ class Analysis {
 				method: "get",
 				dataType: "json",
 				success: async (data, textStatus, xhr) => {
-					this.methodGroup = {
+					this.meta.methodGroups.push({
 						methodGroupId: data[0].method_group_id,
 						description: data[0].description,
 						name: data[0].group_name
-					};
+					});
 					resolve();
 				}
 			});
@@ -395,12 +399,22 @@ class Analysis {
 	}
 
 	/*
-	* Function: getMethodMetaById
+	* Function: getMethodMetaDataById
 	*/
-	getMethodMetaById(methodId) {
-		for(let key in this.methods) {
-			if(this.methods[key].methodId == methodId) {
-				return this.methods[key];
+	getMethodMetaDataById(methodId) {
+		for(let key in this.meta.methods) {
+			if(this.meta.methods[key].methodId == methodId) {
+				return this.meta.methods[key];
+			}
+		}
+		//console.warn("Couldn't find method with ID", methodId, "in method db (db has "+this.meta.methods.length+" entries)", this.meta.methods);
+		return false;
+	}
+
+	getMethodGroupMetaDataById(methodGroupId) {
+		for(let key in this.meta.methodGroups) {
+			if(this.meta.methodGroups[key].methodGroupId == methodGroupId) {
+				return this.meta.methodGroups[key];
 			}
 		}
 		return false;
@@ -416,6 +430,44 @@ class Analysis {
 			}
 		}
 		return false;
+	}
+
+	async fetchRelativeAgesByAnalysisEntityId(analysisEntityId) {
+		let relativeDates = null;
+
+		//One analysis entity can have multiple dating/ageing-specifications, so first get the links to all of those
+		await $.ajax(this.sqs.config.siteReportServerAddress+"/relative_dates?analysis_entity_id=eq."+analysisEntityId, {
+			method: "get",
+			dataType: "json",
+			success: async (data, textStatus, xhr) => {
+				relativeDates = data;
+			}
+		});
+
+		let promises = [];
+
+		//Then for each link, get the dating/ageing-specifikations themselves
+		for(let key in relativeDates) {
+			let p = $.ajax(this.sqs.config.siteReportServerAddress+"/relative_ages?relative_age_id=eq."+relativeDates[key].relative_age_id, {
+				method: "get",
+				dataType: "json",
+				success: async (data, textStatus, xhr) => {
+					return data[0];
+				}
+			});
+			promises.push(p);
+		}
+
+		let returnData =  {
+			analysisEntityId: analysisEntityId,
+			dating: []
+		};
+
+		await Promise.all(promises).then((dating) => {
+			returnData.dating = dating[0];
+		});
+
+		return returnData;
 	}
 }
 

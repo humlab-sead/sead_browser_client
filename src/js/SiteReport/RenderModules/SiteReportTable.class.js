@@ -327,8 +327,12 @@ class SiteReportTable {
 
 	renderTableRow(row) {
 		
+		let rowClasses = "site-report-table-row subtable-collapsed";
+		if(this.hasSubTable()) {
+			rowClasses += " site-report-table-row-with-subtable"
+		}
 		var rowPrimaryKeyValue = row[this.rowPkey].value;
-		var rowNode = $("<tr row-id='"+rowPrimaryKeyValue+"' class='site-report-table-row subtable-collapsed'></tr>");
+		var rowNode = $("<tr row-id='"+rowPrimaryKeyValue+"' class='"+rowClasses+"'></tr>");
 
 		for(var colKey in row) {
 			var currentColumn = this.columns[colKey];

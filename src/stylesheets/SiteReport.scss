@@ -312,7 +312,11 @@
 }
 
 table.site-report-table > tbody > tr.site-report-table-row:hover > td {
-  background-color:$base-color;
+  background-color:$pane-bg-color;
+}
+
+table.site-report-table > tbody > tr.site-report-table-row-with-subtable:hover > td {
+  background-color:$pane-bg-color;
 }
 
 .site-report-table tbody th, table.dataTable tbody td {
@@ -325,14 +329,23 @@ thead > tr > td {
   font-weight: bold;
 }
 
-.site-report-table tbody > tr > td {
-  border-width: 0px 0px 1px 0px;
-  border-style: solid;
-  border-color: $inactive-color;
+.site-report-table tbody .site-report-table-row td {
+  background-color: #c6c6c6;
+  color: #000;
 }
 
-tr.site-report-table-row {
+.site-report-table tbody .site-report-table-row-with-subtable td {
+  background-color: $inactive-color !important;
+  color: #fff !important;
+}
+
+tr.site-report-table-row-with-subtable:hover td {
   cursor:pointer;
+  background-color:$base-color !important;
+}
+
+.site-report-subtable > tbody > tr:hover > td {
+  background-color:$pane-bg-color !important;
 }
 
 

@@ -919,6 +919,12 @@ class SeadQuerySystem {
 		}
 		queryString = queryString.substr(0, queryString.length-1);
 		queryString += ")";
+
+		if(fetchParams.length == 0) {
+			console.warn("Function fetchFromTablePairs was called with an empty list of fetchParams - which seems kind of strange!");
+			return;
+		}
+
 		queries.push(queryString);
 
 		let queryData = [];

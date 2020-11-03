@@ -65,11 +65,11 @@ class Samples {
 				"pkey": false,
 				"title": "Sampling method"
 			},
-			{
+			/*{ Disabled this feature because of unpredictable analyses sections
 				"dataType": "string",
 				"pkey": false,
 				"title": "Analyses"
-			},
+			},*/
 			{
 				"dataType": "string",
 				"pkey": false,
@@ -198,6 +198,9 @@ class Samples {
 				});
 			}
 
+			//Disabling this feature for now since it's problematic in the way that we need to know what sections this SR will contain and what they will be named, and this is currently not predictable.
+			analysesButtons = [];
+
 			section.contentItems[0].data.rows.push([
 				{
 					"type": "subtable",
@@ -218,13 +221,13 @@ class Samples {
 					"value": sampleGroup.methodName,
 					"tooltip": sampleGroup.methodDescription == null ? "" : sampleGroup.methodDescription
 				},
-				{
+				/*{
 					"type": "cell",
 					"value": "",
 					"buttons": analysesButtons,
 					"tooltip": "Analyses performed on this sample group",
 					"excludeInExport": true
-				},
+				},*/
 				{
 					"type": "cell",
 					"value": authors,

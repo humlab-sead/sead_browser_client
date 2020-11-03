@@ -22,10 +22,15 @@ class DendrochronologyDataset extends DatasetModule {
 		this.datasetFetchPromises = [];
 		this.datasets = [];
 		this.buildIsComplete = false;
+		this.methodMetaDataFetchingComplete = false;
 
 		this.methodId = 10;
 		this.metaDataFetchingPromises = [];
 		this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(this.methodId));
+
+		Promise.all(this.metaDataFetchingPromises).then(() => {
+			this.methodMetaDataFetchingComplete = true;
+		});
 	}
 	
 	/* Function: offerAnalyses
@@ -394,7 +399,7 @@ class DendrochronologyDataset extends DatasetModule {
 		let analysis = dsGroups[0].datasets[0];
 		var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
 		
-		let method = this.analysis.getMethodMetaById(analysis.methodId);
+		let method = this.analysis.getMethodMetaDataById(analysis.methodId);
 		
 		if(sectionKey === false) {
 			var sectionsLength = this.section.sections.push({

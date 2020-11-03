@@ -21,7 +21,7 @@ import "../site.webmanifest";
 
 "use strict";
 
-fetch('config.json')
+fetch('/config.json')
     .then(response => response.json())
     .then((Config) => {
     //Set some globals
