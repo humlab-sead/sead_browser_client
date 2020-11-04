@@ -86,7 +86,7 @@ class DatingToPeriodDataset extends DatasetModule {
     }
 
 	async fetchDataset(offeredDataset) {
-		await $.ajax("http://localhost:8484/dataset/"+offeredDataset.datasetId, {
+		await $.ajax(this.sqs.config.dataServerAddress+"/dataset/"+offeredDataset.datasetId, {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {
