@@ -8,7 +8,7 @@
 	"serverAddress":"https://supersead.humlab.umu.se:8089",
 	"viewStateServerAddress":"https://supersead.humlab.umu.se:8443",
 	"siteReportServerAddress":"https://supersead.humlab.umu.se:3000",
-	"dataServerAddress": "https://supersead.humlab.umu.se:5435",
+	"dataServerAddress": "https://api.supersead.humlab.umu.se",
 	"defaultResultModule":"mosaic",
 	"facetSectionDefaultWidth":30,
 	"facetBodyHeight":268,
