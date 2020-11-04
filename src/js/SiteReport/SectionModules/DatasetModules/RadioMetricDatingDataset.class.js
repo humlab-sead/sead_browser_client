@@ -1,5 +1,6 @@
 import DatasetModule from "./DatasetModule.class";
 import moment from "moment";
+import { $dataMetaSchema } from "ajv";
 
 
 /*
@@ -71,6 +72,8 @@ class RadioMetricDatingDataset extends DatasetModule {
 				console.warn("Meta data fetching not complete!");
 			}
 
+
+
 			this.fetch(this.datasets).then(() => {
 				this.dsGroups = this.groupDatasetsBySample(this.datasets);
 
@@ -95,9 +98,6 @@ class RadioMetricDatingDataset extends DatasetModule {
 			await this.fetchAnalysisEntities(datasets[key]);
 			await this.fetchGeochronologyData(datasets[key]);
 			await this.fetchDataset(this.datasets[key]);
-
-			//this.datasetFetchPromises.push(this.analysis.fetchAnalysis(this.datasets[key]));
-			//this.datasetFetchPromises.push(this.fetchDataset(this.datasets[key]));
 		}
 	}
 

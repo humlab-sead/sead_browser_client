@@ -14,6 +14,7 @@ class DatingToPeriodDataset extends DatasetModule {
 		this.taxonPromises = [];
 		this.analyses = [];
 		this.datasetFetchPromises = [];
+		this.offeredDatasets = [];
 		this.datasets = [];
 		this.buildIsComplete = false;
 		this.section = analysis.section;
@@ -61,77 +62,36 @@ class DatingToPeriodDataset extends DatasetModule {
 			if(this.methodGroupIds.includes(datasets[key].methodGroupId)) {
 				//console.log("DatingToPeriodDataset claiming ", datasets[key].datasetId, datasets[key]);
 				let dataset = datasets.splice(key, 1)[0];
-				this.datasets.push(dataset);
+				this.offeredDatasets.push(dataset);
+				//this.datasets.push(dataset);
 			}
 		}
 
 		//Now fetch & build all datasets
 		return new Promise((resolve, reject) => {
-			for(let key in this.datasets) {
-                
-				let p = this.analysis.fetchAnalysis(this.datasets[key]);
-				this.datasetFetchPromises.push(p);
-				p = this.fetchDatasetAnalysisEntities(this.datasets[key]);
-                this.datasetFetchPromises.push(p);
-                
+			let fetchDataPromises = [];
+			fetchDataPromises = fetchDataPromises.concat(this.metaDataFetchingPromises);
+			for(let key in this.offeredDatasets) {
+				fetchDataPromises.push(this.fetchDataset(this.offeredDatasets[key]));
 			}
 
-			let promises = this.datasetFetchPromises.concat(this.metaDataFetchingPromises); //To make sure meta data fetching is also complete...
-			Promise.all(promises).then(() => {
-
-				let fetchDatingPromises = [];
-                for(let key in this.datasets) {
-                    for(let dpKey in this.datasets[key].dataPoints) {
-                        let analysisEntityId = this.datasets[key].dataPoints[dpKey].analysisEntityId;
-						let p = this.analysis.fetchRelativeAgesByAnalysisEntityId(analysisEntityId);
-						fetchDatingPromises.push(p);
-                    }
+			Promise.all(fetchDataPromises).then(() => {
+				if(this.datasets.length > 0) {
+					this.buildSection(this.datasets);
 				}
-				
-				Promise.all(fetchDatingPromises).then(dating => {
-					for(let key in this.datasets) {
-						for(let dpKey in this.datasets[key].dataPoints) {
-
-							for(let datingKey in dating) {
-								if(this.datasets[key].dataPoints[dpKey].analysisEntityId == dating[datingKey].analysisEntityId) {
-									this.datasets[key].dataPoints[dpKey].dating = dating[datingKey].dating;
-								}
-							}
-						}
-					}
-
-					if(this.datasets.length > 0) {
-						this.buildSection(this.datasets);
-					}
-				});
-
-				resolve();
 			});
+
+			resolve();
 		});
     }
-    
-    /*
-	* Function: fetchDatasetAnalysisEntities
-	*/
-	async fetchDatasetAnalysisEntities(dataset) {
-		return await new Promise((resolve, reject) => {
-			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_dataset2?dataset_id=eq."+dataset.datasetId, {
-				method: "get",
-				dataType: "json",
-				success: async (data, textStatus, xhr) => {
-					dataset.dataPoints = [];
-					data.map((dataPoint) => {
-						dataset.dataPoints.push({
-							analysisEntityId: dataPoint.analysis_entity_id,
-							physicalSampleId: dataPoint.physical_sample_id,
-							sampleGroupId: dataPoint.sample_group_id,
-							sampleTypeId: dataPoint.sample_type_id,
-							sampleName: dataPoint.sample_name
-						});
-					});
-					resolve();
-				}
-			});
+
+	async fetchDataset(offeredDataset) {
+		await $.ajax("http://localhost:8484/dataset/"+offeredDataset.datasetId, {
+			method: "get",
+			dataType: "json",
+			success: (data, textStatus, xhr) => {
+				this.datasets.push(data);
+			}
 		});
 	}
 
@@ -169,12 +129,12 @@ class DatingToPeriodDataset extends DatasetModule {
 
 		for(let key in datasets) {
 			
-			let methodGroup = this.analysis.getMethodGroupMetaDataById(datasets[key].methodGroupId);
+			let methodGroup = this.analysis.getMethodGroupMetaDataById(datasets[key].method.method_group_id);
 
-			let section = this.getSection("section-method-group-"+datasets[key].methodGroupId);
+			let section = this.getSection("section-method-group-"+datasets[key].method.method_group_id);
 			if(section === false) {
 				section = this.createSection({
-					"name": "section-method-group-"+datasets[key].methodGroupId,
+					"name": "section-method-group-"+datasets[key].method.method_group_id,
 					"title": methodGroup.name,
 					"methodDescription": methodGroup == null ? "" : methodGroup.description,
 					"collapsed": true,
@@ -226,37 +186,41 @@ class DatingToPeriodDataset extends DatasetModule {
 		];
 
 		let rows = [];
-		for(let dpKey in dataset.dataPoints) {
+		//for(let dpKey in dataset.dataPoints) {
+		for(let dKey in dataset.analysis_entities) {
 
-			let ageName = dataset.dataPoints[dpKey].dating[0].relative_age_name;
-			if(dataset.dataPoints[dpKey].dating[0].abbreviation != null) {
-				ageName += " ("+dataset.dataPoints[dpKey].dating[0].abbreviation+")";
+			let ae = dataset.analysis_entities[dKey];
+			console.log(ae);
+
+			let ageName = ae.age_data.relative_age_name;
+			if(ae.age_data.abbreviation != null) {
+				ageName += " ("+ae.age_data.abbreviation+")";
 			}
 
 			let c14Age = "None";
-			if(dataset.dataPoints[dpKey].dating[0].c14_age_younger != null && dataset.dataPoints[dpKey].dating[0].c14_age_older != null) {
-				c14Age = dataset.dataPoints[dpKey].dating[0].c14_age_younger+" - "+dataset.dataPoints[dpKey].dating[0].c14_age_older;
+			if(ae.age_data.c14_age_younger != null && ae.age_data.c14_age_older != null) {
+				c14Age = ae.age_data.c14_age_younger+" - "+ae.age_data.c14_age_older;
 			}
 
 			let calAge = "None";
-			if(dataset.dataPoints[dpKey].dating[0].cal_age_younger != null && dataset.dataPoints[dpKey].dating[0].cal_age_older != null) {
-				calAge = dataset.dataPoints[dpKey].dating[0].cal_age_younger+" - "+dataset.dataPoints[dpKey].dating[0].cal_age_older;
+			if(ae.age_data.cal_age_younger != null && ae.age_data.cal_age_older != null) {
+				calAge = ae.age_data.cal_age_younger+" - "+ae.age_data.cal_age_older;
 			}
 
 			let row = [
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": dataset.dataPoints[dpKey].analysisEntityId
+					"value": ae.analysis_entity_id
 				},
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": dataset.dataPoints[dpKey].sampleName
+					"value": ae.physical_sample.sample_name
 				},
 				{
 					"type": "cell",
-					"tooltip": dataset.dataPoints[dpKey].dating[0].description,
+					"tooltip": ae.age_data.description,
 					"value": ageName
 				},
 				{
@@ -272,7 +236,7 @@ class DatingToPeriodDataset extends DatasetModule {
 				{
 					"type": "cell",
 					"tooltip": "",
-					"value": dataset.dataPoints[dpKey].dating[0].notes == null ? "None" : notes = dataset.dataPoints[dpKey].dating[0].notes
+					"value": ae.age_data.notes == null ? "None" : notes = ae.age_data.notes
 				}
 			];
 
@@ -281,9 +245,9 @@ class DatingToPeriodDataset extends DatasetModule {
 		}
 
 		let ci = {
-			"name": dataset.datasetId, //This just needs to be something unique for this CI within this SR
-			"title": "Sample "+dataset.datasetName, //Normally this would be: analysis.datasetName
-			"datasetId": dataset.datasetId, //Normally: analysis.datasetId
+			"name": "dataset-"+dataset.dataset_id, //This just needs to be something unique for this CI within this SR
+			"title": "Sample "+dataset.dataset_name, 
+			"datasetId": dataset.datasedataset_idtId, 
 			"data": {
 				"columns": columns,
 				"rows": rows
