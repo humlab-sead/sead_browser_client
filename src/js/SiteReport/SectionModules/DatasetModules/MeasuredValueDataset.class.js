@@ -191,6 +191,7 @@ class MeasuredValueDataset extends DatasetModule {
 		let contentItem = {
 			"name": analysis.datasetId,
 			"title": analysis.datasetName,
+			"titleTooltip": "Name of the dataset",
 			"datasetId": analysis.datasetId,
 			"data": {
 				"columns": columns,

@@ -339,7 +339,14 @@ class RadioMetricDatingDataset extends DatasetModule {
 			let dataset = datasetGroup.datasets[dk];
 
 			for(let key in dataset.geochronology) {
-				let valueMeasurement = dataset.geochronology[key].age+", +"+dataset.geochronology[key].error_older+" / -"+dataset.geochronology[key].error_younger;
+				let valueMeasurement = dataset.geochronology[key].age;
+
+				if(dataset.geochronology[key].error_older != dataset.geochronology[key].error_younger) {
+					valueMeasurement += " +"+dataset.geochronology[key].error_older+" / -"+dataset.geochronology[key].error_younger;
+				}
+				else {
+					valueMeasurement += " +/-"+dataset.geochronology[key].error_older;
+				}
 
 				let datingUncertainty = null;
 				if(dataset.geochronology[key].dating_uncertainty_id != null) {
@@ -367,7 +374,7 @@ class RadioMetricDatingDataset extends DatasetModule {
 					},
 					{
 						"type": "cell",
-						"tooltip": datingUncertainty != null ? datingUncertainty.description : "",
+						"tooltip": "", //datingUncertainty != null ? datingUncertainty.description : ""
 						"value": valueMeasurement
 					},
 					{

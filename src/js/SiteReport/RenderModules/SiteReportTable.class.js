@@ -100,7 +100,8 @@ class SiteReportTable {
 			"paging": this.rows.length > this.pagingRows,
 			"bInfo": false,
 			"bFilter": false,
-			"sDom": '<"top"i>rt<"bottom"flp><"clear">'
+			"sDom": '<"top"i>rt<"bottom"flp><"clear">',
+			"order": [[1, 'asc']]
 		});
 		
 	

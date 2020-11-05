@@ -534,6 +534,7 @@ class AbundanceDataset extends DatasetModule {
 		section.contentItems.push({
 			"name": analysis.datasetId,
 			"title": analysis.datasetName,
+			"titleTooltip": "Name of the dataset",
 			"datasetId": analysis.datasetId,
 			"data": {
 				"columns": columns,

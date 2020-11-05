@@ -427,9 +427,16 @@ class SiteReport {
 		$("#site-report-section-"+section.name+" > .site-report-level-content").append("<div id='"+cicId+"' class='content-item-container'></div>");
 		$("#site-report-section-"+section.name+" > .site-report-level-content > #cic-"+contentItem.name).append(headerNode);
 
+		/* Disabled these because they are not always true - a contentItem is not always ONE dataset, sometimes it's a table where each row is a dataset
 		this.sqs.tooltipManager.registerTooltip($(".dataset-id", headerNode), "Unique dataset identifier", { drawSymbol: true });
 		this.sqs.tooltipManager.registerTooltip($(".contentitem-title", headerNode), "Name of the dataset", { drawSymbol: true });
-		
+		*/
+
+		//This (partially) replaces the above - we leave it up to the dataset modules to define their own tooltips here, which makes more sense anyway
+		if(typeof contentItem.titleTooltip != "undefined" && contentItem.titleTooltip != "") {
+			this.sqs.tooltipManager.registerTooltip($(".contentitem-title", headerNode), contentItem.titleTooltip, { drawSymbol: true });
+		}
+
 		$(headerNode).append("<div class='content-item-header-divider'></div>");
 		
 		var renderModeSelectorNode = this.renderContentDisplayOptionsPanel(section, contentItem);
