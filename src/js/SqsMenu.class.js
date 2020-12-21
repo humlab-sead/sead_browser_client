@@ -201,14 +201,21 @@ class sqsMenu {
 
 		$(m.anchor).on("mouseleave", () => {
 			if(m.collapsed) {
-				this.closeMenu(m);
+				m.closeTimeout = setTimeout(() => {
+					this.closeMenu(m);
+				}, 500);
 			}
+		});
+
+		$(m.anchor+" .l1-container-level").on("mouseover", () => {
+			clearTimeout(m.closeTimeout);
 		});
 		
 		$(m.anchor+" .l1-container").on("click", (event) => { //replace this with mouseover if you like annoying menus
 			//$(m.anchor+" .l2-level", event.currentTarget).show();
 			$(".l2-level").hide();
 			$(".l2-level", event.currentTarget).show();
+			m.activeL1 = $(event.currentTarget).attr("name");
 		});
 		
 		for(var key in m.items) {
@@ -260,6 +267,9 @@ class sqsMenu {
 		
 		if(menuHeight > viewportHeight-100) {
 			$(m.anchor+" .l2-level").hide();
+			if(typeof m.activeL1 != "undefined") { //If menu was closed with a L2-level open, remember that choice
+				$(m.anchor+" .l1-container[name='"+m.activeL1+"'] .l2-level").show();
+			}
 		}
 		else {
 			$(m.anchor+" .l2-level").show();

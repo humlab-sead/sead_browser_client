@@ -171,12 +171,19 @@
   border-left: 2px solid #fff;
 }
 
+.l1-container-level-vertical .l1-container .l1-title:hover {
+  background-color: $base-color-light !important;
+  color: #fff !important;
+  cursor: pointer;
+}
+
 .l1-container-level-vertical .l1-title {
   margin-left: 10px;
   margin-right: 10px;
   font-size: 1.25rem;
   background-color: #ddd;
   color: #333;
+  
   /*
   border-bottom: 1px solid #fff;
   border-top: 1px solid #fff;
@@ -195,7 +202,7 @@
 
 .l1-container-level-horizontal {
   	@include l1-container-level;
-	position: relative;
+	  position: relative;
   	margin-top: 0px;
   	height: 33px;
 }
@@ -214,6 +221,10 @@
   font-size: 20px;
   float:left;
   color: #fff;
+}
+
+.l1-container.l1-inactive:hover {
+  background-color: $base-color-light !important;
 }
 
 li.l1-container:hover {
