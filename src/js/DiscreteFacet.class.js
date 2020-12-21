@@ -178,7 +178,8 @@ class DiscreteFacet extends Facet {
 	*/
 	updateRenderData(data = null) {
 		if(this.minimized) {
-			this.renderData(this.getSelectionsAsDataItems());
+			//this.renderData(this.getSelectionsAsDataItems());
+			this.renderMinimizedView(this.getSelectionsAsDataItems());
 		}
 		else {
 			if(data == null) {
@@ -186,6 +187,36 @@ class DiscreteFacet extends Facet {
 			}
 			this.renderData(data);
 		}
+	}
+
+	renderMinimizedView(renderData = []) {
+
+		let topBlankSpaceHeight = 0;
+		let bottomBlankSpaceHeight = 0;
+		var topBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", topBlankSpaceHeight);
+		var bottomBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", bottomBlankSpaceHeight);
+
+		let displayTitle = "";
+		if(renderData.length == 1) {
+			displayTitle = renderData.length+ " selection";
+		}
+		else {
+			displayTitle = renderData.length+ " selections";
+		}
+
+		let out = "<div class='facet-row facet-row-selected' facet-row-id='collapsed-facet-info-row'><div class='facet-row-checkbox-container'><div class='facet-row-checkbox'>"+this.checkMark+"</div></div><div class='facet-row-text'>"+displayTitle+"</div><div class='facet-row-count'></div></div>";
+		
+		$(".list-container", this.getDomRef())
+			.html("")
+			.append(topBlankSpace)
+			.append(out)
+			.append(bottomBlankSpace)
+			.show();
+
+
+		$(".facet-row[facet-row-id='collapsed-facet-info-row']").on("click", () => {
+			this.maximize();
+		});
 	}
 
 	/*
@@ -355,7 +386,9 @@ class DiscreteFacet extends Facet {
 		var headerHeight = $(".facet-header", this.domObj).height();
 		headerHeight += 12;
 
-		var selectionsHeight = this.selections.length * this.rowHeight;
+		//var selectionsHeight = this.selections.length * this.rowHeight;
+		let selectionsHeight = this.rowHeight; //Collapse down to just 1 row
+
 		var facetHeight = headerHeight + selectionsHeight;
 		if(facetHeight > Config.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
 			facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?

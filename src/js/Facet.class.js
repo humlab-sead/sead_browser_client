@@ -95,6 +95,7 @@ class Facet {
 	}
 
 	setHeight(height = Config.facetBodyHeight) {
+		console.log("setHeight", height)
 		$(".facet-body", this.domObj).css("height", height+"px");
 		//$(".facet-body", this.domObj).css("height", height);
 		this.bodyHeight = $(".facet-body", this.domObj).css("height");
