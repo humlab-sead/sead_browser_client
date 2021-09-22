@@ -1,5 +1,6 @@
 import 'babel-polyfill';
-import "../index.html";
+import config from '../config/config.json';
+import html from "../index.html";
 import 'jquery-ui-bundle';
 import 'notifyjs-browser';
 import 'zingtouch';
@@ -12,17 +13,40 @@ import '../stylesheets/SqsMenu.scss';
 import '../stylesheets/style.scss';
 import '../../flexnav/css/flexnav.css';
 import '../../flexnav/js/jquery.flexnav.js';
-import '../../node_modules/font-awesome/css/font-awesome.css';
+import 'font-awesome/css/font-awesome.css';
 import '../../node_modules/normalize.css/normalize.css';
 import SeadQuerySystem from './SeadQuerySystem.class.js';
 import "../assets/icons/favicon.ico";
 import "../assets/icons/android-chrome-192x192.png";
 import "../site.webmanifest";
 
+import "../assets/SEAD-logo-with-subtext.png";
+
 "use strict";
 
+window.Config = config;
+window.config = config;
+
+$(function() {
+    window.sqs = new SeadQuerySystem();
+    window.sqs.init();
+})
+/*
+$(document).ready(() => {
+    window.sqs = new SeadQuerySystem();
+    window.sqs.init();
+});
+*/
+
+/*
 fetch('/config.json')
-    .then(response => response.json())
+    .then(response => {
+        if(response.ok === false) {
+            alert('Could not load configuration!');
+            return false;
+        }
+        return response.json();
+    })
     .then((Config) => {
     //Set some globals
     window.Config = Config;
@@ -37,6 +61,9 @@ fetch('/config.json')
         window.sqs.init();
     });
 });
+*/
+
+
 
 
 function debugSize() {

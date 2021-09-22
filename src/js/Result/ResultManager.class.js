@@ -1,7 +1,3 @@
-//import Config from '../../config/config.js'
-import ResultMap from './ResultMap.class.js'
-import ResultTable from './ResultTable.class.js'
-import ResultMosaic from './ResultMosaic.class.js'
 
 /* 
 * Class: ResultManager

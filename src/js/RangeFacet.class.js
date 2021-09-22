@@ -3,7 +3,7 @@ import noUiSlider from "nouislider";
 import "nouislider/distribute/nouislider.min.css";
 import styles from '../stylesheets/style.scss'
 //import Config from "../config/config";
-import { runInThisContext } from 'vm';
+//import { runInThisContext } from 'vm';
 
 /*
 Works like this:

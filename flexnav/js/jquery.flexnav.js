@@ -6,12 +6,12 @@
 
 //
 */
-
+import jquery from 'jquery';
 
 (function() {
   var $;
 
-  $ = jQuery;
+  $ = jquery;
 
   $.fn.flexNav = function(options) {
     var $nav, $top_nav_items, breakpoint, count, nav_percent, nav_width, resetMenu, resizer, settings, showMenu, toggle_selector, touch_selector;
