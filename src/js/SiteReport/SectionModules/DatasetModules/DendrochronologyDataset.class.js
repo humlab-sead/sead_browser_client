@@ -621,14 +621,9 @@ class DendrochronologyDataset extends DatasetModule {
 							"type": "select",
 							"options": [
 								{
-									"title": "All",
-									"value": "all",
-									"selected": true
-								},
-								{
 									"title": "Estimates",
 									"value": "estimates",
-									"selected": false
+									"selected": true
 								},
 								{
 									"title": "None",

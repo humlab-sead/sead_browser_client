@@ -1098,8 +1098,6 @@ class DendroChart {
             .classed("dendro-bar-germination-uncertainty", true)
             .classed("dendro-bar-germination-high-uncertainty", d => {
                 let germYoung = this.getYoungestGerminationYear(d);
-                let germOld = this.getOldestGerminationYear(d);
-                //console.log(germYoung);
                 if(germYoung.reliability != 1) {
                     return true;
                 }
@@ -1141,7 +1139,11 @@ class DendroChart {
             .attr("width", (d, i) => {
                 let germOlder = this.getOldestGerminationYear(d);
                 let germYounger = this.getYoungestGerminationYear(d);
-                //console.log(germOlder, germYounger)
+                
+                if(germYounger.reliability != 1) {
+                    return 0;
+                }
+
                 if(germOlder && germYounger) {
                     //console.log(this.xScale(germYounger) - this.xScale(germOlder))
                     return this.xScale(germYounger.value) - this.xScale(germOlder.value);
