@@ -1,6 +1,7 @@
 import shortid from "shortid";
 import Chart from "chart.js";
 import 'zingchart/es6';
+import * as d3 from 'd3';
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {
@@ -29,7 +30,6 @@ class SiteReportChart {
 	render(anchorNodeSelector) {
 		this.anchorNodeSelector = anchorNodeSelector;
 		var node = null;
-		
 		this.contentItem.renderOptions.forEach((ro, i) => {
 			if(ro.selected) {
 				switch(ro.type) {
@@ -44,6 +44,9 @@ class SiteReportChart {
 						break;
 					case "multistack":
 						node = this.renderMultistack();
+						break;
+					case "dendrochart":
+						node = this.renderDendroChart();
 						break;
 				}
 			}
@@ -141,6 +144,254 @@ class SiteReportChart {
             },
             "series": []
         };
+	}
+
+	getDendroMeasurementFromSample(dendroSample, measurementType) {
+		let value = false;
+		dendroSample.forEach(cell => {
+			if(cell.type == "subtable") {
+				cell.value.rows.forEach(subtableRow => {
+					let labelCell = this.getCellWithRole(subtableRow, "label");
+					if(labelCell.value == measurementType) {
+						let valueCell = this.getCellWithRole(subtableRow, "value");
+						value = valueCell.value;
+					}
+				})
+			}
+		})
+		return value;
+	}
+
+	getCellWithRole(tableRow, roleName) {
+		for(let key in tableRow) {
+			if(typeof tableRow[key].role != undefined && tableRow[key].role == roleName) {
+				return tableRow[key];
+			}
+		}
+		return false;
+	}
+
+	getTableRowsAsObjects(table) {
+		let dataObjects = [];
+		for(let rowKey in table.rows) {
+			let dataObject = {};
+			for(let cellKey in table.rows[rowKey]) {
+				let columnName = table.columns[cellKey].title ? table.columns[cellKey].title : table.columns[cellKey].dataType;
+				if(columnName == "subtable") {
+					let subtable = this.getTableRowsAsObjects(table.rows[rowKey][cellKey].value);
+					dataObject[columnName] = subtable;
+				}
+				else {
+					dataObject[columnName] = table.rows[rowKey][cellKey].value;
+				}
+			}
+
+			dataObjects.push(dataObject);
+		}
+		return dataObjects;
+	}
+
+	
+
+	renderDendroChartOldOld(chartTitle = "Dendrochronology") {
+		const width = 40;
+		const height = 20;
+
+		console.log(JSON.stringify(this.contentItem));
+
+		const chartId = "chart-"+shortid.generate();
+		var chartContainer = $("<div id='"+chartId+"' class='site-report-chart-container'></div>");
+		$(this.anchorNodeSelector).append(chartContainer);
+
+		let selection = d3.select(this.anchorNodeSelector).append("svg")
+			.attr("width", "200px")
+			.attr("height", "200px")
+			.style("background", "#ccc")
+			.style("color", "#666")
+			.attr("viewBox", [0, 0, width, height])
+			.selectAll("rect")
+			.data([1, 2, 3]) //[[200, 400], [300, 500]]
+			.enter()
+			.append("rect")
+			.attr("class", "dendro-bar")
+			.attr("width", "20")
+			.attr("height", "20")
+			.append("text")
+			.text(data => data)
+
+	}
+
+	renderDendroChartOld(chartTitle = "Dendrochronology") {
+		var contentItem = this.contentItem;
+		var ro = this.siteReport.getSelectedRenderOption(contentItem);
+
+		console.log(contentItem);
+		console.log(ro);
+
+		let contentItemDataObjects = this.getTableRowsAsObjects(contentItem.data)
+		console.log(contentItemDataObjects);
+
+		//let physicalSampleId = this.getValueByColumnNameFromTable(contentItem.data, "Physical sample id")
+
+		let dendroSamples = contentItem.data.rows;
+		
+
+		/**
+		 * Data should be arranged like this:
+		 * [Sample]
+		 *   => [Values] = [TreeRingsForSample1, TreeRingsForSample2, etc]
+		 * 
+		 * So each sample is a "series", and  series consists of value-stacks of tree rings
+		 */
+
+		//var config = this.getMultiStackConfig(chartTitle);
+
+		let tooltipHtml = "<div class='site-report-chart-tooltip'>";
+		tooltipHtml += "<h4>Sample</h4>";
+		tooltipHtml += "<h5>%t</h5>";
+		tooltipHtml += "<br/>";
+		tooltipHtml += "<h4>Tree rings</h4>";
+		tooltipHtml += "<h5>%v</h5>";
+		tooltipHtml += "</div>";
+
+		let config = {
+            "type": "hbar",
+            "stacked": true,
+            "title":{
+                "text": chartTitle,
+				"adjustLayout": true,
+				"font-size": "16px",
+				"font-family": "Rajdhani"
+            },
+            "legend":{
+                "visible": false,
+                "align": 'center',
+                "verticalAlign": 'bottom',
+                "layout": 'x3',
+                "toggleAction": 'remove',
+                "marker": {
+                    "borderWidth": "1px",
+                    "borderColor": "#888"
+                }
+            },
+            "plotarea":{
+                "margin": "dynamic"
+            },
+            "tooltip":{
+				"text": tooltipHtml,
+                "html-mode": true,
+                "decimals": 0,
+                "align": 'left',
+                "borderRadius": 3,
+                "fontColor":"#000000",
+                "fontSize": "16px",
+                "backgroundColor": "#ffffff"
+            },
+            "plot":{
+                "valueBox":{
+                    "text":"%total",
+                    "rules": [
+                        {
+                            "rule": '%stack-top == 0',
+                            "visible": 0
+                        }
+                    ]
+                },
+                "hoverState":{
+                    "backgroundColor": "#f60"
+				},
+				"hover-mode": "plot",
+				"stacked": true,
+				"stack": 1,
+				"stack-type": "normal"
+            },
+            "scaleX":{
+                "labels": [],
+				"format": "%v",
+                "items-overlap": true,
+				"max-labels": 100000,
+				"label": {
+					"text": "Sample name",
+					"visible": true,
+					"font-size": "14px"
+				}
+            },
+            "scaleY":{
+                "format": "%v",
+				"items-overlap": true
+            },
+            "series": []
+        };
+
+		
+		//Aggregate so that a taxon contains all the sample abundances
+		this.stackCategory = [];
+		var samples = [];
+		let sampleNames = [];
+		
+		var colors = [];
+		colors = this.sqs.color.getMonoColorScheme(dendroSamples.length);
+
+		let treeRingSeries = [];
+		for(let key in contentItemDataObjects) {
+			let seriesObj = [];
+			for(let i = 0; i < key; i++) {
+				seriesObj.push(0);
+			}
+
+			let treeRings = this.getValueByColumnNameFromKeyValueTable(contentItemDataObjects[key].subtable, "Tree rings");
+
+			seriesObj.push(parseInt(treeRings));
+
+			for(let i = parseInt(key)+1; i < contentItemDataObjects.length; i++) {
+				seriesObj.push(0);
+			}
+			treeRingSeries.push(seriesObj);
+		}
+
+		console.log(treeRingSeries);
+
+		for(let key in contentItemDataObjects) {
+			config.series.push({
+				stack: 1,
+				values: treeRingSeries[key], //This is one stackCategory, each array item is for one sample - in order
+				//text: stackCategory[key].taxonName+",<br> "+stackCategory[key].elementType, //Taxon name,
+				text: contentItemDataObjects[key]["Sample name"],
+				backgroundColor: colors[key],
+				borderColor: "#888",
+				borderWidth: "1px",
+				valueBox: {
+					fontColor: "#000000"
+				}
+			});
+		}
+		
+		this.chartId = "chart-"+shortid.generate();
+		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
+		$(this.anchorNodeSelector).append(chartContainer);
+
+		var chartHeight = 100 + (5 * 20);
+
+		zingchart.render({
+			id: this.chartId,
+			data: config,
+			defaults: this.chartTheme,
+			height: chartHeight,
+			events: {
+				click: (evt) => {
+					console.log("zingchart click evt");
+					$("#"+evt.targetid).css("position", "fixed");
+				}
+			}
+		});
+	}
+
+	getValueByColumnNameFromKeyValueTable(table, keyName) {
+		for(let key in table) {
+			if(table[key]["Measurement type"] == keyName) {
+				return table[key]["Measurement value"]
+			}
+		}
 	}
 
 	/*
@@ -250,6 +501,8 @@ class SiteReportChart {
 				
 				values.push(sampleValue);
 			}
+
+			console.log(values);
 
 			config.series.push({
 				stack: 1,

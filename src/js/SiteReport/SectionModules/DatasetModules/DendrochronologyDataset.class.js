@@ -1,6 +1,7 @@
 import DatasetModule from "./DatasetModule.class";
+import { ApiWsChannel } from "../../../ApiWsChannel.class";
 import moment from "moment";
-
+import { nanoid } from 'nanoid'
 
 /*
 * Class: DendrochronologyDataset
@@ -31,6 +32,7 @@ class DendrochronologyDataset extends DatasetModule {
 		Promise.all(this.metaDataFetchingPromises).then(() => {
 			this.methodMetaDataFetchingComplete = true;
 		});
+		
 	}
 	
 	/* Function: offerAnalyses
@@ -44,7 +46,63 @@ class DendrochronologyDataset extends DatasetModule {
 				this.datasets.push(dataset);
 			}
 		}
+		
 
+		/* - Suggested future structure - but this probably doesn't make sense since the data in the db isn't hierarchial in this way. It probably doesn't make sense to separate datasets and have AEs and sub-entities in this way for dendro
+		let samples = [{
+			physicalSampleId: null,
+			datasets: [{
+				analysisEntities: [{
+					analysisEntityId,
+					dendro: {
+						dendroId,
+						dendroLookupId,
+						measurementValue,
+						methodId,
+						methodName,
+						methodDescription,
+						dendroDateId, //This may or may not exist?
+						dating: { //This may or may not exist?
+							younger,
+							older,
+							uncertaintyId,
+							seasonOrQualifierId,
+							errorPlus,
+							errorMinus,
+							errorUncertaintyId,
+							ageTypeId,
+						}
+					}
+				}]
+			}]
+		}];
+		*/
+
+		
+		/*
+		//Convert datasets to samples
+		let sampleIds = [];
+		this.datasets.forEach(ds => {
+			ds.sampleGroups.forEach((sampleGroup) => {
+				sampleGroup.samples.forEach((sample) => {
+					sampleIds.push(sample.physical_sample_id);
+				});
+			})
+		});
+
+		let uniqueSampleIds = sampleIds.filter(function onlyUnique(value, index, self) {
+			return self.indexOf(value) === index;
+		});
+
+		let samples = [];
+		uniqueSampleIds.forEach((sampleId) => {
+			this.getDataBySampleId(sampleId).then(sampleData => {
+				samples.push(sampleData);
+				console.log(JSON.parse(sampleData))
+			});
+		});
+		*/
+		
 		return new Promise((resolve, reject) => {
 			//First order of business: Get the physical_sample_id's based on the pile of dataset id's we've got
 			//Then: Group the datasets so that for each sample we have a number of datasets (and one dataset can't belong to several samples - I guess?)
@@ -76,16 +134,147 @@ class DendrochronologyDataset extends DatasetModule {
 					resolve();
 				});
 
-				
 			});
+
+		});
+		
+	}
+
+	async getDataBySampleId(physicalSampleId) {
+		return await $.get("http://localhost:8484/sample/"+physicalSampleId);
+	}
+
+	async getDataBySampleIdOLD(physicalSampleId, wsChannel = null) {
+		let chan = null;
+		let chanCreated = false;
+		if(wsChannel == null) {
+			let chan = new ApiWsChannel();
+			await chan.connect();
+			chanCreated = true;
+		}
+		else {
+			chan = wsChannel;
+		}
+
+		chan.bindListen((msg) => {
+			let data = JSON.parse(msg.data);
+			let sample = data.result.sample;
+			if(sample.physicalSampleId == physicalSampleId) {
+				//This concludes this communication
+			}
+			console.log(sample);
+		})
+
+		chan.send({
+			cmd: "getDataForSample",
+			physicalSampleId: physicalSampleId
+		})
+
+		
+
+		if(chanCreated) {
+			chan.close();
+		}
+		return {};
+	}
+
+	async getAnalysisEntitiesForSamples(samples = []) {
+		let chan = new ApiWsChannel();
+		await chan.connect();
+		chan.listen = (msg) => {
+			console.log("received: ", msg);
+		};
+
+		let sampleIds = [];
+		samples.forEach((sample) => {
+			sampleIds.push(sample.physicalSampleId);
+		})
+
+		chan.send({
+			cmd: "getAnalysisEntitiesForSamples",
+			sampleIds: sampleIds
+		})
+
+		/*
+		samples.forEach((sample) => {
+			chan.send({
+				cmd: "getAnalysisEntitiesForSampleId",
+				sampleId: sample.physicalSampleId
+			})
+		});
+		*/
+		
+		
+		
+		return [];
+	}
+
+	getDendroData(analysisEntityId) {
+		return {};
+	}
+
+	/*
+	getDendroValues(analysisEntityId) {
+		this.getApiWsChannel().then((ws) => {
+			let msgId = nanoid();
+			ws.onmessage = (evt) => {
+				let msg = JSON.parse(evt.data);
+				if(msg.msgId == msgId) { //Check that this is for us
+					console.log(msg.data);
+				}
+			};
+			ws.send(JSON.stringify({
+				msgId: msgId,
+				sql: 'SELECT * FROM tbl_dendro_lookup'
+			}));
 		});
 	}
+	*/
+
+	/*
+	getApiWsChannel() {
+		return new Promise((resolve, reject) => {
+			const ws = new WebSocket("ws://localhost:3500", "sql");
+			this.wsConnectInterval = setInterval(() => {
+				if(ws.readyState == 1) {
+					clearInterval(this.wsConnectInterval);
+					
+					resolve(ws);
+				}
+			}, 100);
+		});
+	}
+	*/
 
 	async fetchDendroDating(datasetGroup) {
 		await $.ajax(this.sqs.config.siteReportServerAddress+"/qse_dendro_dating?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
 			method: "get",
 			dataType: "json",
 			success: async (data, textStatus, xhr) => {
+				/*
+				console.log(datasetGroup)
+				console.log(data);
+
+				//datasetGroup.datasets.dendro = data;
+
+				for(let key in data) {
+					datasetGroup.datasets.push({
+						dendro: [{
+							measurement_type: data[key].date_type,
+							measurement_value: data[key].older+" - "+data[key].younger,
+							measurement_values: {
+								age_type: data[key].age_type,
+								younger: data[key].younger,
+								older: data[key].older,
+								plus: data[key].plus,
+								minus: data[key].minus,
+								error_uncertainty: data[key].error_uncertainty,
+								season: data[key].season,
+							}
+						}]
+					});
+				}
+				*/
 				datasetGroup.dating = data;
 			}
 		});
@@ -152,7 +341,6 @@ class DendrochronologyDataset extends DatasetModule {
 					dataType: "json",
 					success: async (datasetInfo, textStatus, xhr) => {
 						dataset.physical_sample_id = datasetInfo[0].physical_sample_id;
-
 						resolve();
 					}
 				});
@@ -236,6 +424,14 @@ class DendrochronologyDataset extends DatasetModule {
 			dataType: "json",
 			success: (data, textStatus, xhr) => {
 				dataset.dendro = data;
+				for(let key in dataset.dendro) {
+					 let measurementType = this.getDendroValueType(dataset.dendro[key].dendro_lookup_id);
+					 dataset.dendro[key].measurement_type = {
+						dendro_lookup_id: measurementType.dendro_lookup_id,
+						name: measurementType.name,
+						description: measurementType.description
+					 }
+				}
 				return data;
 			}
 		});
@@ -259,17 +455,6 @@ class DendrochronologyDataset extends DatasetModule {
 			}
 		}
 		return false;
-
-		/*
-		var analysisKey = this.sqs.findObjectPropInArray(this.data.analyses, "datasetId", this.analysisData.datasetId);
-		let dataTypes = this.analysis.data.analyses[analysisKey].dendroDataTypes;
-		for(let key in dataTypes) {
-			if(dataTypes[key].dendro_lookup_id == lookupId) {
-				return dataTypes[key];
-			}
-		}
-		return false
-		*/
 	}
 
 	buildContentItem(dsGroups) {
@@ -300,46 +485,67 @@ class DendrochronologyDataset extends DatasetModule {
 
 		let rows = [];
 		dsGroups.map((dsg) => {
-
 			let subTableColumns = [
+				{
+					"title": "Dendro lookup ID",
+					"hidden": true,
+				},
 				{
 					"title": "Measurement type"
 				},
 				{
 					"title": "Measurement value"
+				},
+				{
+					"title": "DATA",
+					"hidden": true
 				}
 			];
 
 			let subTableRows = [];
 			//console.log(dsg);
 			dsg.datasets.map((ds) => {
-				//console.log(ds.dendro);
+
 				ds.dendro.map((dendro) => {
-					let measurementType = this.getDendroValueType(dendro.dendro_lookup_id).name;
+					let measurementType = dendro.measurement_type.name;
 					let measurementValue = dendro.measurement_value;
 
 					subTableRows.push([
 						{
 							"type": "cell",
 							"tooltip": "",
+							"role": "id",
+							"value": dendro.dendro_lookup_id
+						},
+						{
+							"type": "cell",
+							"tooltip": "",
+							"role": "label",
 							"value": measurementType
 						},
 						{
 							"type": "cell",
 							"tooltip": "",
+							"role": "value",
 							"value": measurementValue
+						},
+						{
+							"type": "cell",
+							"tooltip": "",
+							"role": "data",
+							"value": dendro
 						}
 					]);
-
-
 				});
-
-				
 			});
+
+			let datingRows = this.getDatingRowsFromDatasetGroup(dsg, false, false);
+			subTableRows = subTableRows.concat(datingRows);
 
 			let subTable = {
 				"columns": subTableColumns,
-				"rows": subTableRows
+				"rows": subTableRows,
+				"auxiliaryData": dsg
 			};
 
 			let row = [
@@ -363,9 +569,11 @@ class DendrochronologyDataset extends DatasetModule {
 					"value": moment(dsg.sample.date_sampled).format('MMMM YYYY')
 				}
 			];
+
 			rows.push(row);
 		});
 
+		
 
 		let contentItem = {
 			"name": 111, //Normally: analysis.datasetId
@@ -377,21 +585,141 @@ class DendrochronologyDataset extends DatasetModule {
 			},
 			"renderOptions": [
 				{
-					"name": "Spreadsheet",
+					"name": "Graph",
 					"selected": true,
+					"type": "dendrochart",
+					"options": [
+						{
+							"showControls": true,
+							"title": "Sort",
+							"type": "select",
+							"selected": 1,
+							//"options": ["Alphabetical", "Germination year", "Felling year", "Tree species"],
+							"options": [
+								{
+									"title": "Alphabetical",
+									"value": "alphabetical",
+									"selected": true
+								},
+								{
+									"title": "Germination year",
+									"value": "germination year",
+								},
+								{
+									"title": "Felling year",
+									"value": "felling year",
+								},
+								{
+									"title": "Tree species",
+									"value": "tree species",
+								},
+							]
+						},
+						{
+							"showControls": true,
+							"title": "Uncertainty",
+							"type": "select",
+							"options": [
+								{
+									"title": "All",
+									"value": "all",
+									"selected": true
+								},
+								{
+									"title": "Estimates",
+									"value": "estimates",
+									"selected": false
+								},
+								{
+									"title": "None",
+									"value": "none",
+									"selected": false
+								},
+							]
+						}
+					]
+				},
+				{
+					"name": "Spreadsheet",
+					"selected": false,
 					"type": "table",
-					"options": []
+					"options": [
+						{
+							"showControls": false,
+							"title": "Show num rows",
+							"type": "text",
+							"value": 15
+						}
+					]
 				}
 			]
 		};
+
+		//console.log(this.getTableRowsAsObjects(contentItem));
+		//console.log(JSON.stringify(contentItem))
 		
 		return contentItem;
+	}
+
+	getTableRowsAsObjects(contentItem) {
+		let dataObjects = [];
+		for(let rowKey in contentItem.data.rows) {
+			let row = contentItem.data.rows[rowKey];
+	
+			let dataObject = {
+				sampleName: row[2].value,
+				sampleTaken: row[3].value,
+				datasets: []
+			};
+	
+			row.forEach(cell => {
+				if(cell.type == "subtable") {
+	
+					let subTable = cell.value;
+					
+					subTable.rows.forEach(subTableRow => {
+						let dataset = {
+							id: null,
+							label: null,
+							value: null,
+							data: null,
+						};
+						subTableRow.forEach(subTableCell => {
+							if(subTableCell.role == "id") {
+								dataset.id = subTableCell.value;
+							}
+							if(subTableCell.role == "label") {
+								dataset.label = subTableCell.value;
+							}
+							if(subTableCell.role == "value") {
+								dataset.value = subTableCell.value;
+							}
+							if(subTableCell.role == "data") {
+								dataset.data = subTableCell.value;
+								if(typeof dataset.data.date_type != "undefined") {
+									//This is a date type
+									dataset.label = dataset.data.date_type;
+									dataset.value = "complex";
+								}
+							}
+						})
+	
+						dataObject.datasets.push(dataset);
+					})
+					
+				}
+			})
+	
+			dataObjects.push(dataObject);
+	
+		}
+	
+		return dataObjects;
 	}
 
 	/* Function: buildSection
 	*/
 	buildSection(dsGroups) {
-		console.log(dsGroups);
 
 		//let dsGroups = this.groupDatasetsBySample(datasets);
 		
@@ -412,13 +740,84 @@ class DendrochronologyDataset extends DatasetModule {
 			sectionKey = sectionsLength - 1;
 		}
 
+		//let ciGraph = this.buildContentItemChart(dsGroups);
+		//this.section.sections[sectionKey].contentItems.push(ciGraph);
+
+		let ci = this.buildContentItem(dsGroups);
+		this.section.sections[sectionKey].contentItems.push(ci);
+
+		/*
 		dsGroups.map((dsg) => {
 			let ci = this.buildContentItemOLD(dsg);
 			this.section.sections[sectionKey].contentItems.push(ci);
 		});
+		*/
 		
 		this.buildIsComplete = true;
 		this.sqs.sqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this event is relevant anymore...
+	}
+
+	buildContentItemChart(dsGroups) {
+		let columns = [
+			{
+				"dataType": "number",
+				"pkey": true,
+				"title": "Analysis entitiy id",
+				"hidden": true
+			},
+			{
+				"dataType": "string",
+				"pkey": false,
+				"title": "Value type"
+			},
+			{
+				"dataType": "string",
+				"pkey": false,
+				"title": "Measurement value"
+			}
+		];
+		let rows = [];
+
+		let contentItemId = nanoid();
+
+		let ci = {
+			"name": contentItemId, //Normally: analysis.datasetId
+			"title": "Dendrochronology", //Normally this would be: analysis.datasetName
+			"datasetId": contentItemId, //Normally: analysis.datasetId
+			"data": {
+				"columns": columns,
+				"rows": rows
+			},
+			"renderOptions": [
+				{
+					"name": "Graph",
+					"selected": true,
+					"type": "dendrochart",
+					"options": [
+					]
+				},
+				{
+					"name": "Spreadsheet",
+					"selected": false,
+					"type": "table",
+					"options": [
+						{
+							"name": "columnsVisibility",
+							"hiddenColumns": [
+								3
+							],
+							"showControls": false
+						},
+						{
+							"name": "showNumRows",
+							"value": 15
+						}
+					]
+				}
+			]
+		};
+		
+		return ci;
 	}
 
 	/* Function: buildContentItem
@@ -494,6 +893,45 @@ class DendrochronologyDataset extends DatasetModule {
 			}
 		}
 
+		let datingRows = this.getDatingRowsFromDatasetGroup(datasetGroup);
+		rows = rows.concat(datingRows);
+		
+		//datasetGroup.sample.sample_name
+		let ci = {
+			"name": datasetGroup.physical_sample_id, //Normally: analysis.datasetId
+			"title": "Sample "+datasetGroup.sample.sample_name, //Normally this would be: analysis.datasetName
+			"datasetId": datasetGroup.physical_sample_id, //Normally: analysis.datasetId
+			"data": {
+				"columns": columns,
+				"rows": rows
+			},
+			"renderOptions": [
+				{
+					"name": "Spreadsheet",
+					"selected": true,
+					"type": "table",
+					"options": [
+						{
+							"name": "columnsVisibility",
+							"hiddenColumns": [
+								3
+							],
+							"showControls": false
+						},
+						{
+							"name": "showNumRows",
+							"value": 15
+						}
+					]
+				}
+			]
+		};
+		
+		return ci;
+	}
+
+	getDatingRowsFromDatasetGroup(datasetGroup, includeAnalysisEntityIdColumn = true, appendOriginalData = false) {
+		let rows = [];
 		for(let dk in datasetGroup.dating) {
 
 			let value = "";
@@ -533,59 +971,54 @@ class DendrochronologyDataset extends DatasetModule {
 
 			let season = datasetGroup.dating[dk].season == null ? "" : datasetGroup.dating[dk].season+" ";
 
-			var row = [
-				{
+			let row = [];
+			if(includeAnalysisEntityIdColumn) {
+				row.push({
 					"type": "cell",
 					"tooltip": "",
 					"value": datasetGroup.dating[dk].analysis_entity_id
-				},
-				{
+				});
+			}
+
+			//Fetch the dendro lookup id of this: datasetGroup.dating[dk].analysis_entity_id
+			//with query: select dendro_lookup_id from tbl_dendro where analysis_entity_id=132678
+
+			//console.log(datasetGroup, datasetGroup.dating[dk].dendro_lookup_id)
+			
+			row.push({
+				"type": "cell",
+				"tooltip": "",
+				"role": "id",
+				"value": datasetGroup.dating[dk].dendro_lookup_id
+			});
+			row.push({
+				"type": "cell",
+				"tooltip": "",
+				"value": datasetGroup.dating[dk].date_type
+			});
+			row.push({
+				"type": "cell",
+				"tooltip": dateUncertaintyTooltip,
+				"value": season + value+" "+dateUncertainty
+			});
+
+			row.push({
+				"type": "cell",
+				"tooltip": "",
+				"role": "data",
+				"value": datasetGroup.dating[dk]
+			});
+
+			if(appendOriginalData) {
+				row.push({
 					"type": "cell",
 					"tooltip": "",
-					"value": datasetGroup.dating[dk].date_type
-				},
-				{
-					"type": "cell",
-					"tooltip": dateUncertaintyTooltip,
-					"value": season + value+" "+dateUncertainty
-				}
-			];
-
+					"value": datasetGroup.dating[dk]
+				});
+			}
 			rows.push(row);
 		}
-		
-		//datasetGroup.sample.sample_name
-		let ci = {
-			"name": datasetGroup.physical_sample_id, //Normally: analysis.datasetId
-			"title": "Sample "+datasetGroup.sample.sample_name, //Normally this would be: analysis.datasetName
-			"datasetId": datasetGroup.physical_sample_id, //Normally: analysis.datasetId
-			"data": {
-				"columns": columns,
-				"rows": rows
-			},
-			"renderOptions": [
-				{
-					"name": "Spreadsheet",
-					"selected": true,
-					"type": "table",
-					"options": [
-						{
-							"name": "columnsVisibility",
-							"hiddenColumns": [
-								3
-							],
-							"showControls": false
-						},
-						{
-							"name": "showNumRows",
-							"value": 15
-						}
-					]
-				}
-			]
-		};
-		
-		return ci;
+		return rows;
 	}
 	
 	/* Function: destroy

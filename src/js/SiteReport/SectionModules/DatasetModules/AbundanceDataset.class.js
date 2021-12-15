@@ -571,26 +571,41 @@ class AbundanceDataset extends DatasetModule {
 					
 					"options": [
 						{
+							"showControls": false,
 							"title": "X axis",
 							"function": "xAxis",
 							"type": "select",
 							"selected": 3, //Default column (key)
 							"key": 4, //Contains the unique values for the selected columns - not sure we need / should have this
-							"options": [3] //Column keys
+							//"options": [3], //Column keys
+							"options": [
+								{
+									"title": "Abundance",
+									"value": 3,
+								},
+							]
 						},
 						{
+							"showControls": false,
 							"title": "Y axis",
 							"function": "yAxis",
 							"type": "select",
 							"selected": 1,
-							"options": [1]
+							"options": [{
+								"title": "Sample name",
+								"value": 1,
+							},]
 						},
 						{
+							"showControls": false,
 							"title": "Sort",
 							"function": "sort", //sorts on either x or y axis - leaves it up to the render module to decide
 							"type": "select",
 							"selected": 4,
-							"options": [4] //Used to be: 1,2,3,5,6,7,8
+							"options": [{
+								"title": "Abundance taxon id",
+								"value": 4,
+							},]
 						}
 					]
 				}

@@ -212,19 +212,76 @@ class MeasuredValueDataset extends DatasetModule {
 							"title": "X axis",
 							"type": "select",
 							"selected": 1,
-							"options": [1, 2, 3, 4]
+							//"options": [1, 2, 3, 4],
+							"options": [
+								{
+									"title": 1,
+									"value": 1,
+									"selected": true
+								},
+								{
+									"title": 2,
+									"value": 2,
+								},
+								{
+									"title": 3,
+									"value": 3,
+								},
+								{
+									"title": 4,
+									"value": 4,
+								},
+							]
 						},
 						{
 							"title": "Y axis",
 							"type": "select",
 							"selected": 4,
-							"options": [1, 2, 3, 4]
+							//"options": [1, 2, 3, 4],
+							"options": [
+								{
+									"title": 1,
+									"value": 1,
+								},
+								{
+									"title": 2,
+									"value": 2,
+									"selected": true
+								},
+								{
+									"title": 3,
+									"value": 3,
+								},
+								{
+									"title": 4,
+									"value": 4,
+								},
+							]
 						},
 						{
 							"title": "Sort",
 							"type": "select",
 							"selected": 4,
-							"options": [1, 2, 3, 4]
+							//"options": [1, 2, 3, 4],
+							"options": [
+								{
+									"title": 1,
+									"value": 1,
+									"selected": true
+								},
+								{
+									"title": 2,
+									"value": 2,
+								},
+								{
+									"title": 3,
+									"value": 3,
+								},
+								{
+									"title": 4,
+									"value": 4,
+								},
+							]
 						}
 					]/*,
 					"options": {

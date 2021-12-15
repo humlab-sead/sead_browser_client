@@ -1746,3 +1746,217 @@ polyline{
   color: rgb(210, 0, 0);
   background-color: transparent;
 }
+
+.dendro-bar text {
+  color: #fff;
+  background-color: red;
+}
+
+
+#dendro-chart-svg {
+  font-size: 0.1rem;
+  font-family: FontAwesome;
+}
+
+svg text {
+  font-size: 0.1rem;
+  font-family: "Rajdhani";
+}
+
+#anchor-node {
+    position:absolute;
+    padding:0;
+    top: 10%;
+    left: 10%;
+    width: 80%;
+    height: 80%;
+    /*
+    width: 80%;
+    min-width: 100px;
+    min-height: 50px;
+    max-height: 600px;
+  */
+    border: 1px solid #ddd;
+}
+/*
+#anchor-node > svg {
+  border: 1px solid red;
+}
+*/
+.dendro-info-tooltip {
+}
+
+.dendro-tooltip-variable-name-text {
+  font-weight: bold;
+}
+
+.dendro-info-tooltip rect {
+  fill: rgba(255, 255, 255, 1.0);
+  width: 20em;
+  height: 20em;
+}
+
+.dendro-info-tooltip text {
+  fill: #000;
+}
+
+.dendro-bar {
+  color: #fff;
+  //fill: rgb(85, 51, 0);
+}
+
+.dendro-bar:hover {
+  color: #fff;
+  filter: brightness(130%);
+}
+
+.dendro-bar-uncertain {
+  color: #fff;
+  fill: rgba(0, 0, 0, 0);
+  stroke: rgba(85, 51, 0, 0.5);
+  stroke-dasharray: 1 1;
+  stroke-width: .1;
+}
+
+.dendro-bar-uncertain:hover {
+  color: #fff;
+  fill: rgba(85, 51, 0, 0.3);
+}
+
+.dendro-bar-germination-high-uncertainty {
+  fill: url(#gradient1);
+}
+
+.dendro-estimation-bar {
+  color: #fff;
+  fill: rgba(255, 255, 255, 0.5);
+  stroke: #530;
+  stroke-dasharray: 0.5;
+  stroke-width: 0.2;
+}
+
+.dendro-text {
+    fill: #fff;
+    font-size: 1em;
+}
+
+.dendro-text-large-warn {
+  font-size: 1.2em;
+}
+
+.dendro-text-extras {
+  fill: rgb(218, 185, 0);
+  font-size: 1.15em;
+}
+
+.warning-flag {
+  //font-size: 2em;
+}
+
+.tree-ring-bar {
+  fill: red;
+}
+
+
+
+
+.dendro-chart-x-axis {
+  font-size: 1em;
+}
+
+.dendro-chart-x-axis text {
+  font-family: "Rajdhani";
+  color: #555;
+}
+
+.dendro-chart-x-axis line {
+  stroke-width: 0.1em;
+  stroke: #aaa;
+}
+
+.dendro-chart-x-axis .domain {
+  visibility: visible;
+  stroke-width: 0.1em;
+  stroke: #aaa;
+}
+
+
+
+.dendro-chart-y-axis {
+  font-size: 1em;
+}
+
+.dendro-chart-y-axis text {
+  font-family: "Rajdhani";
+  color: #555;
+}
+
+.dendro-chart-y-axis line {
+  stroke-width: 0.1em;
+  stroke: #aaa;
+}
+
+.dendro-chart-y-axis .domain {
+  visibility: visible;
+  stroke-width: 0.1em;
+  stroke: #aaa;
+}
+
+
+
+.dendro-horizontal-guide-line {
+  stroke: orangered;
+  stroke-width: .1em;
+}
+
+.dendro-chart-tooltip-container {
+  position: absolute;
+  padding: 1em;
+  max-width: 30em;
+  background: #fff;
+  border: 1px solid #ccc;
+  /*
+  display:none;
+  top:0;
+  left:0;
+  position:absolute;
+  width: 50px;
+  text-align: center;
+  */
+  /*
+  
+  padding: 1em;
+  background-color: #eee;
+  border: 1px solid #ccc;
+  */
+  /*
+  fill: #444;
+	//background-image: linear-gradient(to bottom, rgba(68, 68, 68, 0.726), rgba(68, 68, 68, 0.568));
+	color: #ccc;
+	padding: 10px;
+	border-radius: 3px;
+	box-shadow: 0px 0px 20px #333;
+	//margin: 25px;
+	border: 1px solid #666;
+	text-shadow: 0 0 1px #ccc;
+  */
+}
+
+#dendro-chart-svg .dendro-chart-tooltip {
+  opacity: 1;
+}
+
+.dendro-chart-tooltip path {
+  d: path("M 0,0 1,1 -1,1 z");
+  fill: #444;
+}
+
+.dendro-chart-tooltip rect {
+  fill: #444;
+}
+
+#dendro-chart-svg .dendro-chart-tooltip text {
+  font-size: 1.8em;
+  text-anchor: middle;
+  fill: #fff;
+}

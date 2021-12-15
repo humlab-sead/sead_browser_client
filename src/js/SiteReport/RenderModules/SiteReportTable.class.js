@@ -327,7 +327,6 @@ class SiteReportTable {
 	}
 
 	renderTableRow(row) {
-		
 		let rowClasses = "site-report-table-row subtable-collapsed";
 		if(this.hasSubTable()) {
 			rowClasses += " site-report-table-row-with-subtable"
@@ -336,6 +335,9 @@ class SiteReportTable {
 		var rowNode = $("<tr row-id='"+rowPrimaryKeyValue+"' class='"+rowClasses+"'></tr>");
 
 		for(var colKey in row) {
+			if(colKey == "meta") {
+				continue;
+			}
 			var currentColumn = this.columns[colKey];
 
 			var cellNodeId = "cell-"+shortid.generate();
@@ -344,7 +346,6 @@ class SiteReportTable {
 			if(typeof currentColumn.hidden != "undefined" && currentColumn.hidden === true) {
 				colClasses += "hidden-column";
 			}
-			
 
 			if(row[colKey].type == "cell") {
 				var value = row[colKey].value;
@@ -511,7 +512,10 @@ class SiteReportTable {
 
 	renderAggregatedColumnValues(rowId) {
 		var row = this.getRowById(rowId);
-		if(!row.aggregationRendered) {
+		if(!row.meta) {
+			row.meta = {};
+		}
+		if(!row.meta.aggregationRendered) {
 			for(var ckey in this.columns) {
 				if(this.columns[ckey].dataType == "aggregation") {
 					
@@ -528,7 +532,7 @@ class SiteReportTable {
 					}
 				}
 			}
-			row.aggregationRendered = true;
+			row.meta.aggregationRendered = true;
 		}
 	}
 
@@ -657,7 +661,13 @@ class SiteReportTable {
 		var subTableHtml = "<table id='"+subTableId+"' class='site-report-subtable'><thead>";
 		subTableHtml += "<tr>";
 		subTable.columns.forEach((d, i) => {
-			subTableHtml += "<td>"+d.title+"</td>";
+			let render = true;
+			if(d.hasOwnProperty("hidden") && d.hidden) {
+				render = false;
+			}
+			if(render) {
+				subTableHtml += "<td>"+d.title+"</td>";
+			}
 		});
 
 		subTableHtml += "</tr>";
@@ -666,17 +676,24 @@ class SiteReportTable {
 		subTable.rows.forEach((row, i) => {
 			subTableHtml += "<tr>";
 			for(var vk in row) {
-				var cellNodeId = "cell-"+shortid.generate();
-				if(row[vk].hasOwnProperty("callback") && typeof(row[vk].callback) == "function") {
-					row[vk].callback(row, cellNodeId);
+				let render = true;
+				if(subTable.columns[vk].hasOwnProperty("hidden") && subTable.columns[vk].hidden) {
+					render = false;
 				}
-				
-				if(row[vk].hasOwnProperty("tooltip") && row[vk].tooltip != "") {
-					let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+cellNodeId, row[vk].tooltip, {drawSymbol:true});
-					this.tooltipIds.push("#"+cellNodeId);
+
+				if(render) {
+					var cellNodeId = "cell-"+shortid.generate();
+					if(row[vk].hasOwnProperty("callback") && typeof(row[vk].callback) == "function") {
+						row[vk].callback(row, cellNodeId);
+					}
+					
+					if(row[vk].hasOwnProperty("tooltip") && row[vk].tooltip != "") {
+						let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+cellNodeId, row[vk].tooltip, {drawSymbol:true});
+						this.tooltipIds.push("#"+cellNodeId);
+					}
+					
+					subTableHtml += "<td id='"+cellNodeId+"'>"+row[vk].value+"</td>";
 				}
-				
-				subTableHtml += "<td id='"+cellNodeId+"'>"+row[vk].value+"</td>";
 				
 			}
 			subTableHtml += "</tr>";
