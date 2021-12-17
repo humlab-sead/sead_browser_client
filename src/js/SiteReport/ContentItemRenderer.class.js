@@ -25,7 +25,7 @@ class ContentItemRenderer {
 		$("#site-report-section-"+this.section.name+" > .site-report-level-content").append("<div id='"+cicId+"' class='content-item-container'></div>");
 		$("#site-report-section-"+this.section.name+" > .site-report-level-content > #cic-"+this.contentItem.name).append(headerNode);
 
-        this.renderContentItemTooltip();
+        this.renderContentItemTooltip(headerNode);
 
 		$(headerNode).append("<div class='content-item-header-divider'></div>");
 		
@@ -52,10 +52,10 @@ class ContentItemRenderer {
 		});
 		*/
 
-        this.renderDataVisualization(this.section, this.contentItem);
+        this.renderDataVisualization();
     }
 
-    renderContentItemTooltip() {
+    renderContentItemTooltip(headerNode) {
         if(typeof this.contentItem.titleTooltip != "undefined" && this.contentItem.titleTooltip != "") {
 			this.sqs.tooltipManager.registerTooltip($(".this.contentItem-title", headerNode), this.contentItem.titleTooltip, { drawSymbol: true });
 		}
@@ -106,8 +106,9 @@ class ContentItemRenderer {
 
 	/*
 	Function: renderDataVisualization
+	updatedExtrasRenderOption - This is any update of any of the "extra" render options for this graph/table which triggered this re-render.
 	 */
-	renderDataVisualization() {
+	renderDataVisualization(updatedExtrasRenderOption = null) {
 		this.sortContentItemData(this.contentItem);
 		
 		var anchorSelector = "#site-report-section-"+this.section.name+" > .site-report-level-content > #cic-"+this.contentItem.name+" > #contentItem-"+this.contentItem.name;
@@ -119,10 +120,22 @@ class ContentItemRenderer {
 
 		let renderInstance = this.getRenderInstance(this.contentItem.name);
 
-		if(renderInstance !== false) {
-			renderInstance.unrender();
-			this.removeRenderInstance(this.contentItem.name);
+		//If we already have a renderInstace, we try to re-use that, if not we spawn a new one
+		if(renderInstance === false) {
+			this.spawnRenderInstance(anchorSelector);
 		}
+		else {
+			let updated = renderInstance.update(updatedExtrasRenderOption);
+			if(updated === false) {
+				renderInstance.unrender();
+				this.removeRenderInstance(this.contentItem.name);
+				this.spawnRenderInstance(anchorSelector);
+			}
+		}	
+	}
+
+	spawnRenderInstance(anchorSelector) {
+		let renderInstance = null;
 
 		for(var key in this.contentItem.renderOptions) {
 			if(this.contentItem.renderOptions[key].selected) {
@@ -151,6 +164,8 @@ class ContentItemRenderer {
 				}
 			}
 		}
+
+		return renderInstance;
 	}
 
     toggleContentDisplayOptionsPanel(show = true) {
@@ -189,7 +204,6 @@ class ContentItemRenderer {
 	*
 	 */
 	renderContentDisplayOptionsPanel(section, contentItem) {
-		console.log("renderContentDisplayOptionsPanel");
 		var selectedRo = this.getSelectedRenderOption(contentItem);
 		if(typeof(selectedRo.options) == "undefined") {
 			selectedRo.options = []; //Just normalizing this...
@@ -242,14 +256,20 @@ class ContentItemRenderer {
 		let html = "";
 		for(let key in selectedRo.options) {
 			let option = selectedRo.options[key];
-            console.log(option)
-			if(option.showControls !== false) {
+			if(option.enabled !== false) {
 				html += "<label class='site-report-view-selector-label' for=''>"+option.title+":</label>";
                 if(option.type == "select") {
                     html += "<select renderOptionExtraKey='"+key+"' class='site-report-view-selector-control site-report-render-mode-selector sqs'>";
                     for(let k2 in option.options) {
-                        let selectedHtml = option.selected == option.options[k2] ? "selected" : "";
-                        html += "<option value='"+k2+"' "+selectedHtml+">"+option.options[k2].title+"</option>";
+                        let selectedHtml = option.options[k2].selected ? "selected" : "";
+
+						let optionTitle = option.options[k2].title;
+						//If the title can be parsed to an integer, assume it is a reference to column name and the actual title should be looked up
+						if(!isNaN(parseInt(option.options[k2].title))) {
+							optionTitle = this.contentItem.data.columns[option.options[k2].title].title;
+						}
+
+                        html += "<option value='"+k2+"' "+selectedHtml+">"+optionTitle+"</option>";
                     }
                     html += "</select>";
                 }
@@ -265,14 +285,8 @@ class ContentItemRenderer {
 		
 		$(".site-report-render-options-container-extras .site-report-view-selector-control", node).on("change", (evt) => {
 
-            console.log($(evt.currentTarget).attr("renderoptionextrakey"), $(evt.currentTarget).val());
-
 			let selected = parseInt($(evt.currentTarget).val());
 			let renderOptionExtraKey = $(evt.currentTarget).attr("renderOptionExtraKey");
-			console.log(evt)
-			console.log(selected)
-			console.log(renderOptionExtraKey)
-			console.log(selectedRo)
 
             for(let key in selectedRo.options[renderOptionExtraKey].options) {
                 selectedRo.options[renderOptionExtraKey].options[key].selected = false;
@@ -280,10 +294,8 @@ class ContentItemRenderer {
 
 			selectedRo.options[renderOptionExtraKey].options[selected].selected = true;
 
-            console.log(this.contentItem)
-
 			//selectedRo.options[renderOptionExtraKey].selected = selected;
-		    this.renderDataVisualization();
+		    this.renderDataVisualization(selectedRo.options[renderOptionExtraKey]);
 		});
 	}
 	

@@ -2,6 +2,7 @@ import shortid from "shortid";
 import Chart from "chart.js";
 import 'zingchart/es6';
 import * as d3 from 'd3';
+import { circle } from "leaflet";
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {
@@ -23,6 +24,10 @@ class SiteReportChart {
 			}
 		};
 	}
+
+	update(updatedExtrasRenderOption = null) {
+		return false;
+    }
 
 	/*
 	* Function: render
@@ -542,6 +547,39 @@ class SiteReportChart {
 		});
 	}
 
+	getSelectedRenderOptionExtra(extraOptionTitle = "Sort") {
+        let renderOption = null;
+        this.contentItem.renderOptions.forEach(ro => {
+            if(ro.name == "Bar chart") {
+                renderOption = ro;
+            }
+        });
+
+        let sortOptionSelect = null;
+        renderOption.options.forEach(roE => {
+            if(roE.title == extraOptionTitle) {
+                sortOptionSelect = roE;
+            }
+        });
+
+        let selectedOption = null;
+        sortOptionSelect.options.forEach(selectOption => {
+            console.log(selectOption);
+            if(selectOption.selected === true) {
+                selectedOption = selectOption;
+            }
+        });
+
+        if(selectedOption == null && sortOptionSelect.options.length > 0) {
+            selectedOption = sortOptionSelect.options[0];
+        }
+        else if(selectedOption == null) {
+            return false;
+        }
+
+        return selectedOption;
+    }
+
 	/*
 	* Function: renderBarChartZing
 	*
@@ -549,11 +587,18 @@ class SiteReportChart {
 	*/
 	renderBarChartZing() {
 		var contentItem = this.contentItem;
+		/*
+		//cri.getSelectedRenderOption();
+		console.log(this.siteReport.contentItemRendererRepository);
 		var ro = this.siteReport.getSelectedRenderOption(contentItem);
 		let xAxisKey = ro.options[this.sqs.findObjectPropInArray(ro.options, "title", "X axis")].selected;
 		let yAxisKey = ro.options[this.sqs.findObjectPropInArray(ro.options, "title", "Y axis")].selected;
-
+		*/
 		
+		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
+		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
+		//let sort = this.getSelectedRenderOptionExtra("Sort");
+
 		var xUnitSymbol = "";
 		var yUnitSymbol = "";
 		

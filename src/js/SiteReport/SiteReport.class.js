@@ -336,7 +336,6 @@ class SiteReport {
 	updateSection(section) {
 		section.contentItems.forEach((contentItem) => {
 			let cri = this.getContentItemRenderer(contentItem);
-			console.log(cri)
 			let renderInstance = cri.getRenderInstance();
 			if(!renderInstance) {
 				console.warn("Could not find render instance for contentItem");

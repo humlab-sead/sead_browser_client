@@ -13,7 +13,7 @@ class DendroChart {
         this.selectedSort = selectedSort.value;
         let selectedUncertainty = this.getSelectedRenderOptionExtra("Uncertainty");
         this.showUncertainty = selectedUncertainty.value;
-        this.TEST_ENVIRONMENT = true;
+        this.USE_LOCAL_COLORS = true;
     }
 
     getSelectedRenderOptionExtra(extraOptionTitle = "Sort") {
@@ -33,7 +33,6 @@ class DendroChart {
 
         let selectedOption = null;
         sortOptionSelect.options.forEach(selectOption => {
-            console.log(selectOption);
             if(selectOption.selected === true) {
                 selectedOption = selectOption;
             }
@@ -832,7 +831,7 @@ class DendroChart {
     getBarColorByTreeSpecies(treeSpecies) {
 
         let colors = [];
-        if(this.TEST_ENVIRONMENT) {
+        if(this.USE_LOCAL_COLORS) {
             colors = ['#0074ab', '#005178', '#bfeaff', '#80d6ff', '#ff7900', '#b35500', '#ffdebf', '#ffbc80', '#daff00', '#99b300'];
             colors = ["#da4167","#899d78","#03440c","#392f5a","#247ba0","#0b3948","#102542"];
         }
@@ -859,7 +858,7 @@ class DendroChart {
         return "black";
     }
 
-    drawCertaintyBars(container, dataObjects) {
+    drawCertaintyBars(container, dataObjects, initialTransitions = true) {
 
         let warningFlags = [];
         dataObjects.forEach(d => {
@@ -869,44 +868,58 @@ class DendroChart {
             });
         });
 
+
         let bars = container.selectAll(".dendro-bar")
             .data(dataObjects)
-            .enter()
-            .append("rect")
+            .join("rect")
             .classed("dendro-bar", true)
             .attr("fill", (d) => {
                 let treeSpecies = this.getDendroMeasurementByName("Tree species", d);
                 return this.getBarColorByTreeSpecies(treeSpecies);
             })
-            .attr("sample-name", d => d.sampleName)
-            .attr("x", (d) => {
-                let plantingYear = this.getYoungestGerminationYear(d).value;
-                if(!plantingYear) {
-                    plantingYear = this.getOldestGerminationYear(d).value;
-                    this.addSampleWarning(d.sampleName, "Warnings - using older (rather than younger) germination year for calculation of youngest possible germination year, since there is no data for the oldest year.");
+            .attr("sample-name", d => d.sampleName);
+
+
+        if(initialTransitions) {
+            bars.attr("x", (d) => {
+                let fellingYear = this.getOldestFellingYear(d).value;
+                if(!fellingYear) {
+                    fellingYear = this.getYoungestFellingYear(d).value;
                 }
-                return this.xScale(plantingYear) + this.chartLeftPadding;
+                return this.xScale(fellingYear) - this.chartRightPadding;
             })
             .attr("y", (d, i) => {
                 return i * (this.barHeight + this.barMarginY) + this.chartTopPadding;
             })
-            .transition()
-            .duration(200)
             .attr("width", (d, i) => {
-                //Width should ideally be from the younger planting year to the older felling year
-                let fellingYear = this.getOldestFellingYear(d).value;
-                if(!fellingYear) {
-                    fellingYear = this.getYoungestFellingYear(d).value;
-                    this.addSampleWarning(d.sampleName, "Using younger felling year instead of older");
-                }
-                let plantingYear = this.getYoungestGerminationYear(d).value;
-                if(!plantingYear) {
-                    plantingYear = this.getOldestGerminationYear(d).value;
-                    this.addSampleWarning(d.sampleName, "Using older germination year instead of younger");
-                }
-                return (this.xScale(fellingYear) - this.xScale(plantingYear)) - this.chartLeftPadding - this.chartRightPadding;
+                return 0;
             })
             .attr("height", this.barHeight);
+        }
+
+        bars.transition()
+        .attr("x", (d) => {
+            let plantingYear = this.getYoungestGerminationYear(d).value;
+            if(!plantingYear) {
+                plantingYear = this.getOldestGerminationYear(d).value;
+                this.addSampleWarning(d.sampleName, "Warnings - using older (rather than younger) germination year for calculation of youngest possible germination year, since there is no data for the oldest year.");
+            }
+            return this.xScale(plantingYear) + this.chartLeftPadding;
+        })
+        .attr("width", (d, i) => {
+            //Width should ideally be from the younger planting year to the older felling year
+            let fellingYear = this.getOldestFellingYear(d).value;
+            if(!fellingYear) {
+                fellingYear = this.getYoungestFellingYear(d).value;
+                this.addSampleWarning(d.sampleName, "Using younger felling year instead of older");
+            }
+            let plantingYear = this.getYoungestGerminationYear(d).value;
+            if(!plantingYear) {
+                plantingYear = this.getOldestGerminationYear(d).value;
+                this.addSampleWarning(d.sampleName, "Using older germination year instead of younger");
+            }
+            return (this.xScale(fellingYear) - this.xScale(plantingYear)) - this.chartLeftPadding - this.chartRightPadding;
+        })
         
 
         container.selectAll(".dendro-bar")
@@ -1011,12 +1024,16 @@ class DendroChart {
         container.selectAll(".dendro-horizontal-guide-line").remove();
     }
 
+    removeCertaintyBarsWarnings(container) {
+        //$(".warning-flag").off("mouseover").off("mouseout").remove();
+        container.selectAll(".warning-flag").remove();
+    }
+
     drawCertaintyBarsWarnings(container, dataObjects) {
         //Draw warnings for missing youngestGerminationYear
         container.selectAll(".warning-flag")
         .data(dataObjects)
-        .enter()
-        .append("text")
+        .join("text")
         .classed("warning-flag", true)
         .attr("sample-name", d => d.sampleName)
         .html("⚠️")
@@ -1038,15 +1055,13 @@ class DendroChart {
         .transition().duration(200)
         .attr("opacity", "1");
 
-
-
         container.selectAll(".warning-flag")
             .on("mouseover", (evt) => {
                 let sampleName = $(evt.target).attr("sample-name");
                 let d = this.getDataObjectBySampleName(dataObjects, sampleName);
                 console.log(d);
 
-                let warnFlagNode = $("svg [sample-name="+d.sampleName+"].warning-flag");
+                //let warnFlagNode = $("svg [sample-name="+d.sampleName+"].warning-flag");
 
                 let tooltipContainer = document.createElement("div");
                 $(tooltipContainer).addClass("dendro-chart-tooltip-container");
@@ -1092,12 +1107,13 @@ class DendroChart {
     drawGerminationUncertaintyBars(container, dataObjects) {
         let bars = container.selectAll(".dendro-bar-germination-uncertainty")
             .data(dataObjects)
-            .enter()
-            .append("rect")
+            .join("rect")
             .classed("dendro-bar-uncertain", true)
             .classed("dendro-bar-germination-uncertainty", true)
             .classed("dendro-bar-germination-high-uncertainty", d => {
                 let germYoung = this.getYoungestGerminationYear(d);
+                let germOld = this.getOldestGerminationYear(d);
+                //console.log(germYoung);
                 if(germYoung.reliability != 1) {
                     return true;
                 }
@@ -1124,6 +1140,14 @@ class DendroChart {
                     return 0;
                 }
             })
+            .attr("visibility", () => {
+                if(this.showUncertainty == "none") {
+                    return "hidden";
+                }
+                else {
+                    return "visible";
+                }
+            })
             .transition()
             .delay(100)
             .duration(500)
@@ -1139,7 +1163,7 @@ class DendroChart {
             .attr("width", (d, i) => {
                 let germOlder = this.getOldestGerminationYear(d);
                 let germYounger = this.getYoungestGerminationYear(d);
-                
+
                 if(germYounger.reliability != 1) {
                     return 0;
                 }
@@ -1158,7 +1182,6 @@ class DendroChart {
             .on("mouseover", (evt) => {
                 let sampleName = $(evt.target).attr("sample-name");
                 let d = this.getDataObjectBySampleName(dataObjects, sampleName);
-                console.log(sampleName, d)
                 if(!d) {
                     console.warn("Couldn't find dataObject with sampleName", sampleName);
                 }
@@ -1218,8 +1241,7 @@ class DendroChart {
 
         let bars = container.selectAll(".dendro-bar-felling-uncertainty")
             .data(dataObjects)
-            .enter()
-            .append("rect")
+            .join("rect")
             .classed("dendro-bar-uncertain", true)
             .classed("dendro-bar-felling-uncertainty", true)
             .attr("sample-name", d => d.sampleName)
@@ -1234,6 +1256,14 @@ class DendroChart {
             })
             .attr("y", (d, i) => {
                 return i * (this.barHeight + this.barMarginY) + this.chartTopPadding;
+            })
+            .attr("visibility", () => {
+                if(this.showUncertainty == "none") {
+                    return "hidden";
+                }
+                else {
+                    return "visible";
+                }
             })
             .transition()
             .delay(0)
@@ -1363,8 +1393,6 @@ class DendroChart {
             tickValues.push(Math.round(yearExtent[0] + (i * yearStep)));
         }
 
-        console.log(tickValues)
-
         let xScaleLine = d3.scaleLinear()
         .domain(yearExtent)
         .range([xScaleStart, xScaleEnd]);
@@ -1386,6 +1414,9 @@ class DendroChart {
     }
 
     drawYAxis(container, dataObjects) {
+
+        container.selectAll(".dendro-chart-y-axis").remove();
+
         let sampleNames = [];
         let samplePositions = [];
         let yTick = this.viewBoxAvailableHeight / dataObjects.length;
@@ -1415,22 +1446,29 @@ class DendroChart {
     }
 
     calculateScales() {
-        let svgNode = $("#anchor-node svg");
+        let svgNode = $(this.anchorNodeSelector+" svg");
         this.svgScale = svgNode.width() / 100;
 
         this.svgScaleX = d3.scaleLinear()
-        .domain([0, $("#anchor-node svg").width()])
+        .domain([0, $(this.anchorNodeSelector+" svg").width()])
         .range([0, 100]);
 
         this.svgScaleY = d3.scaleLinear()
-        .domain([0, $("#anchor-node svg").height()])
+        .domain([0, $(this.anchorNodeSelector+" svg").height()])
         .range([0, 100]);
     }
 
     sortDataObjects(dataObjects) {
         switch(this.selectedSort) {
             case "alphabetical":
-                dataObjects.sort();
+                dataObjects.sort((a, b) => {
+                    if(a.sampleName > b.sampleName) {
+                        return 1;
+                    }
+                    if(a.sampleName <= b.sampleName) {
+                        return -1;
+                    }
+                });
                 break;
             case "germination year":
                 dataObjects.sort((a, b) => {
@@ -1477,6 +1515,7 @@ class DendroChart {
                 });
                 break;
         }
+        return dataObjects;
     }
 
     render(anchorNodeSelector) {
@@ -1491,27 +1530,26 @@ class DendroChart {
 				}
 			}
 		});
-
 		return this;
 	}
 
     renderChart() {
         this.sampleWarnings = [];
-        //$("#anchor-node svg").remove();
+        $(this.anchorNodeSelector+" svg").remove();
         let contentItem = this.contentItem;
-        let dataObjects = this.getTableRowsAsObjects(contentItem);
-        let totalNumOfSamples = dataObjects.length;
-        dataObjects = this.stripNonDatedObjects(dataObjects);
-        let undatedSamples = totalNumOfSamples - dataObjects.length;
+        this.dataObjects = this.getTableRowsAsObjects(contentItem);
+        let totalNumOfSamples = this.dataObjects.length;
+        this.dataObjects = this.stripNonDatedObjects(this.dataObjects);
+        let undatedSamples = totalNumOfSamples - this.dataObjects.length;
 
-        dataObjects.forEach((d) => {
+        this.dataObjects.forEach((d) => {
             this.sampleWarnings.push({
                 sampleName: d.sampleName,
                 warnings: []
             })
         });
 
-        this.sortDataObjects(dataObjects);
+        this.sortDataObjects(this.dataObjects);
 
         //this.barHeight = 5; //height/thickness of bars
         this.barMarginX = 5;
@@ -1526,24 +1564,23 @@ class DendroChart {
         const viewBoxHeight = 100;
 
         this.viewBoxAvailableHeight = viewBoxHeight - this.chartTopPadding - this.chartBottomPadding
-        this.barHeight = (this.viewBoxAvailableHeight / dataObjects.length) - this.barMarginY;
-        const chartHeight = dataObjects.length * this.barHeight * this.barMarginY;
+        this.barHeight = (this.viewBoxAvailableHeight / this.dataObjects.length) - this.barMarginY;
+        const chartHeight = this.dataObjects.length * this.barHeight * this.barMarginY;
         if(chartHeight > viewBoxHeight) {
             this.barHeight = 3;
         }
 
         let viewBoxAvailableWidth = viewBoxWidth - this.chartLeftPadding - this.chartRightPadding
-        this.barWidth = (viewBoxAvailableWidth / dataObjects.length) - this.barMarginX;
+        this.barWidth = (viewBoxAvailableWidth / this.dataObjects.length) - this.barMarginX;
         
         const chartPaddingX = 10;
         const chartPaddingY = 10;
-
-        this.chartId = "chart-"+shortid.generate();
-        var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
-        //$("#anchor-node").css("height", chartHeight+"px")
+    
+        const chartId = "chart-"+shortid.generate();
+        var chartContainer = $("<div id='"+chartId+"' class='site-report-chart-container'></div>");
         $(this.anchorNodeSelector).append(chartContainer);
-
-        let container = d3.select("#"+this.chartId).append("svg")
+    
+        this.container = d3.select(this.anchorNodeSelector).append("svg")
             .attr("id", "dendro-chart-svg")
             .classed("dendro-chart-svg", true)
             .attr("width", "100%")
@@ -1552,9 +1589,9 @@ class DendroChart {
             .attr("viewBox", [0, 0, viewBoxWidth, viewBoxHeight]);
 
         if(undatedSamples) {
-            container.append("text")
+            this.container.append("text")
             .attr("id", "undated-samples-warning")
-            .attr("x", 0)
+            .attr("x", -2)
             .attr("y", 2)
             .text("⚠ "+undatedSamples+" samples not shown");
 
@@ -1566,7 +1603,7 @@ class DendroChart {
             });
         }
 
-        let extentMin = d3.min(dataObjects, d => {
+        let extentMin = d3.min(this.dataObjects, d => {
             let plantingYear = this.getOldestGerminationYear(d).value
             if(!plantingYear) {
                 plantingYear = this.getYoungestGerminationYear(d).value;
@@ -1574,7 +1611,7 @@ class DendroChart {
             return plantingYear;
         });
     
-        let extentMax = d3.max(dataObjects, d => {
+        let extentMax = d3.max(this.dataObjects, d => {
             let fellingYear =  this.getOldestFellingYear(d).value;
             if(!fellingYear) {
                 fellingYear = this.getYoungestFellingYear(d).value;
@@ -1584,15 +1621,15 @@ class DendroChart {
 
         //If we couldn't find a single viable dating for any sample, then we can't calculate a range span at all and thus can't draw anything
         if(!extentMin || !extentMax) {
-            container.append("text")
+            this.container.append("text")
             .classed("dendro-text-large-warn", true)
             .attr("y", 4)
             .html("There are no dateable samples in this dataset.");
 
-            container.append("text")
+            this.container.append("text")
             .classed("dendro-text-large-warn", true)
             .attr("y", 7)
-            .html("There are "+dataObjects.length+" samples with non-dating data.");
+            .html("There are "+this.dataObjects.length+" samples with non-dating data.");
 
             return false;
         }
@@ -1602,11 +1639,9 @@ class DendroChart {
         this.xScale = d3.scaleLinear()
         .domain(yearExtent)
         .range([0, 100]);
-
-        console.log(yearExtent)
     
         this.yScale = d3.scaleLinear()
-        .domain([0, dataObjects.length])
+        .domain([0, this.dataObjects.length])
         .range([0, 100]);
         
         /*
@@ -1616,21 +1651,12 @@ class DendroChart {
         };
         */
 
-        this.drawCertaintyBars(container, dataObjects);
-        if(this.showUncertainty == "all" || this.showUncertainty == "estimates") {
-            this.drawGerminationUncertaintyBars(container, dataObjects);
-            this.drawFellingUncertaintyBars(container, dataObjects);
-        }
-        
-        /*
-        this.drawGerminationLabels(container, dataObjects);
-        this.drawFellingLabels(container, dataObjects);
-        */
+        this.updateChart(this.container, this.dataObjects);
 
-        this.drawXAxis(container, yearExtent);
-        this.drawYAxis(container, dataObjects);
+        this.drawXAxis(this.container, yearExtent);
+        this.drawYAxis(this.container, this.dataObjects);
 
-        let defs = container.append("defs");
+        let defs = this.container.append("defs");
         let gradient = defs.append("linearGradient")
             .attr("id", "gradient1")
             .attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "0%");
@@ -1643,6 +1669,24 @@ class DendroChart {
             .attr("offset", "100%")
             .attr("style", "stop-color:rgb(85, 51, 0);stop-opacity:0.5");
 
+        this.drawCertaintyBars(this.container, this.dataObjects);
+        if(this.showUncertainty == "all" || this.showUncertainty == "estimates") {
+            this.drawGerminationUncertaintyBars(this.container, this.dataObjects);
+            this.drawFellingUncertaintyBars(this.container, this.dataObjects);
+        }
+    }
+
+    update(updatedExtrasRenderOption = null) {
+        return false;
+    }
+
+    updateChart(container, dataObjects) {
+        this.dataObjects = this.sortDataObjects(this.dataObjects);
+        this.removeCertaintyBarsWarnings(container);
+        this.drawCertaintyBars(container, dataObjects);
+        this.drawFellingUncertaintyBars(container, dataObjects);
+        this.drawGerminationUncertaintyBars(container, dataObjects);
+        this.drawYAxis(container, dataObjects);
     }
 
     unrender() {

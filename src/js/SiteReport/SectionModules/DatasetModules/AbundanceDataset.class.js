@@ -551,7 +551,7 @@ class AbundanceDataset extends DatasetModule {
 							"hiddenColumns": [
 								3
 							],
-							"showControls": false
+							"enabled": false
 						}
 					]
 				},
@@ -571,7 +571,7 @@ class AbundanceDataset extends DatasetModule {
 					
 					"options": [
 						{
-							"showControls": false,
+							"enabled": false,
 							"title": "X axis",
 							"function": "xAxis",
 							"type": "select",
@@ -586,7 +586,7 @@ class AbundanceDataset extends DatasetModule {
 							]
 						},
 						{
-							"showControls": false,
+							"enabled": false,
 							"title": "Y axis",
 							"function": "yAxis",
 							"type": "select",
@@ -597,7 +597,7 @@ class AbundanceDataset extends DatasetModule {
 							},]
 						},
 						{
-							"showControls": false,
+							"enabled": false,
 							"title": "Sort",
 							"function": "sort", //sorts on either x or y axis - leaves it up to the render module to decide
 							"type": "select",

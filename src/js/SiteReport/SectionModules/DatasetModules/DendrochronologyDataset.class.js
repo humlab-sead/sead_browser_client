@@ -458,7 +458,6 @@ class DendrochronologyDataset extends DatasetModule {
 	}
 
 	buildContentItem(dsGroups) {
-		console.log(dsGroups);
 		//Defining columns
 		var columns = [
 			{
@@ -590,7 +589,7 @@ class DendrochronologyDataset extends DatasetModule {
 					"type": "dendrochart",
 					"options": [
 						{
-							"showControls": true,
+							"enabled": true,
 							"title": "Sort",
 							"type": "select",
 							"selected": 1,
@@ -616,7 +615,7 @@ class DendrochronologyDataset extends DatasetModule {
 							]
 						},
 						{
-							"showControls": true,
+							"enabled": true,
 							"title": "Uncertainty",
 							"type": "select",
 							"options": [
@@ -640,7 +639,7 @@ class DendrochronologyDataset extends DatasetModule {
 					"type": "table",
 					"options": [
 						{
-							"showControls": false,
+							"enabled": false,
 							"title": "Show num rows",
 							"type": "text",
 							"value": 15

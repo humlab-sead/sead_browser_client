@@ -44,6 +44,10 @@ class SiteReportTable {
 		});
 	}
 
+	update(updatedExtrasRenderOption = null) {
+		return false;
+    }
+
 	/*
 	* Function: render
 	*

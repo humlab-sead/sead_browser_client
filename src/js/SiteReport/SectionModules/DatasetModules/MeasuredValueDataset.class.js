@@ -209,6 +209,7 @@ class MeasuredValueDataset extends DatasetModule {
 					"type": "bar",
 					"options": [
 						{
+							"enabled": true, //Disabling this for now since I changed how this system works and now this is broken. Check how it's done in DendrochronologyDataset.class.js
 							"title": "X axis",
 							"type": "select",
 							"selected": 1,
@@ -234,6 +235,7 @@ class MeasuredValueDataset extends DatasetModule {
 							]
 						},
 						{
+							"enabled": true,
 							"title": "Y axis",
 							"type": "select",
 							"selected": 4,
@@ -246,7 +248,7 @@ class MeasuredValueDataset extends DatasetModule {
 								{
 									"title": 2,
 									"value": 2,
-									"selected": true
+									//"selected": true
 								},
 								{
 									"title": 3,
@@ -255,10 +257,12 @@ class MeasuredValueDataset extends DatasetModule {
 								{
 									"title": 4,
 									"value": 4,
+									"selected": true
 								},
 							]
 						},
 						{
+							"enabled": false,
 							"title": "Sort",
 							"type": "select",
 							"selected": 4,
