@@ -42,7 +42,7 @@
     "less": "^3.12.2",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
-    "nanoid": "^3.1.25",
+    "nanoid": "^3.1.31",
     "normalize.css": "^8.0.1",
     "notifyjs-browser": "^0.4.2",
     "nouislider": "^11.1.0",
