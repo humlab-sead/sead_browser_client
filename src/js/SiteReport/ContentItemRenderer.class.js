@@ -264,10 +264,13 @@ class ContentItemRenderer {
                         let selectedHtml = option.options[k2].selected ? "selected" : "";
 
 						let optionTitle = option.options[k2].title;
+						
+						/*
 						//If the title can be parsed to an integer, assume it is a reference to column name and the actual title should be looked up
 						if(!isNaN(parseInt(option.options[k2].title))) {
 							optionTitle = this.contentItem.data.columns[option.options[k2].title].title;
 						}
+						*/
 
                         html += "<option value='"+k2+"' "+selectedHtml+">"+optionTitle+"</option>";
                     }
@@ -367,7 +370,7 @@ class ContentItemRenderer {
 			if(selectedRoType != "table") {
 				exportFormats.push("png");
 			}
-			this.renderExportDialog(exportFormats, section, contentItem);
+			this.siteReport.renderExportDialog(exportFormats, section, contentItem);
 		});
 		
 		return node;

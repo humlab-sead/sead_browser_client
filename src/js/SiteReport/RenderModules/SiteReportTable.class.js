@@ -1,4 +1,4 @@
-import shortid from "shortid";
+import { nanoid } from 'nanoid'
 
 var $  = require( 'jquery' );
 import "jszip";
@@ -24,7 +24,7 @@ class SiteReportTable {
 		this.sqs = this.siteReport.sqs;
 		this.contentItem = contentItem; //This specific "contentItem" to render. This contains all the data we need.
 		this.tableNode = null; //DOM node ref
-		this.pagingRows = 10; //If more than this many rows in the table we enable paging (goes for both this table and its subtables)
+		this.pagingRows = 25; //If more than this many rows in the table we enable paging (goes for both this table and its subtables)
 		this.rowPkey = this.getRowPkey(); //Primary key column
 		this.subTableColumnKey = false; //This will indicate which column contains the subtable when the data is loaded (normally it's index 0)
 		this.dt = null;
@@ -59,7 +59,7 @@ class SiteReportTable {
 	render(anchorNodeSelector) {
 		this.anchorNodeSelector = anchorNodeSelector;
 		//Make table node
-		this.tableNodeId = "table-"+shortid.generate();
+		this.tableNodeId = "table-"+nanoid();
 		this.tableNode = $("<table id='"+this.tableNodeId+"' class='site-report-table'><thead><tr></tr></thead><tbody></tbody></table>");
 		
 		this.renderTableHeader();
@@ -344,10 +344,10 @@ class SiteReportTable {
 			}
 			var currentColumn = this.columns[colKey];
 
-			var cellNodeId = "cell-"+shortid.generate();
+			var cellNodeId = "cell-"+nanoid();
 			
 			let colClasses = "";
-			if(typeof currentColumn.hidden != "undefined" && currentColumn.hidden === true) {
+			if(typeof currentColumn.hidden != "undefined" && (currentColumn.hidden == true || currentColumn.hidden == "true")) {
 				colClasses += "hidden-column";
 			}
 
@@ -360,7 +360,7 @@ class SiteReportTable {
 				}
 				
 				if(currentColumn.dataType == "aggregation") {
-					var barChartContainerNodeId = this.tableNodeId+"-"+shortid.generate();
+					var barChartContainerNodeId = this.tableNodeId+"-"+nanoid();
 					rowNode.append("<td id='"+cellNodeId+"'><div id='"+barChartContainerNodeId+"'></div></td>");
 					//var barChartContainerNode = $("#"+barChartContainerNodeId, rowNode);
 					//this.renderAggregatedColumnValue(barChartContainerNode, currentColumn, row);
@@ -385,13 +385,16 @@ class SiteReportTable {
 					}
 					
 					//buttons
+					/*
 					if(typeof row[colKey].buttons != "undefined") {
 						let buttons = row[colKey].buttons;
 						for(let bk in buttons) {
 							value += "<div id='"+buttons[bk].nodeId+"' class='sample-group-analysis-infobox'>"+buttons[bk].title+"</div>";
 						}
 					}
+					*/
 
+					value = this.parseCellValueMarkup(value);
 					var cellNode = $("<td id='"+cellNodeId+"' class='"+colClasses+"'>"+value+"</td>");
 					rowNode.append(cellNode);
 				}
@@ -405,6 +408,63 @@ class SiteReportTable {
 		});
 
 		return rowNode;
+	}
+
+	parseCellValueMarkup_OLD(value) {
+		let matchingPatterns = [];
+		matchingPatterns.push({
+			type: "tooltip",
+			//regExp: new RegExp('%data:(.*?):!%tooltip:(.*?):!', 'gs')
+			regExp: new RegExp('!%data:(.*?):!%tooltip:(.*?):!', 'gs')
+		});
+		matchingPatterns.push({
+			type: "button",
+			//regExp: new RegExp('%button:(.*?):!%tooltip:(.*?):!', 'gs')
+			regExp: new RegExp('!%button:(.*?):!%tooltip:(.*?):!', 'gs')
+		});
+
+		let pairs = [];
+
+		matchingPatterns.forEach(pattern => {
+			for(let match = pattern.regExp.exec(value); match != null; match = pattern.regExp.exec(value)) {
+				if(match != null) {
+					pairs.push({
+						type: pattern.type,
+						data: match[1],
+						tooltip: match[2]
+					});
+				}
+			}
+		});
+
+		let parsedValue = "";
+		pairs.forEach(pair => {
+			let nodeId = "cell-value-"+nanoid();
+			parsedValue += "<span id='"+nodeId+"'>"+pair.data+"</span>, ";
+			let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+nodeId, pair.tooltip, {drawSymbol:pair.type == "tooltip"});
+			this.tooltipIds.push(tt);
+		});
+		
+		parsedValue = parsedValue.substring(0, parsedValue.length-2);
+
+		return parsedValue ? parsedValue : value;
+	}
+
+	parseCellValueMarkup(value) {
+		value = value.toString();
+		if(typeof value != "string") {
+			return "";
+		}
+		let result = value.replace(/(?!.*!%data)*!%data:(.*?):!%tooltip:(.*?):!(?!.*!%data)*/g, (match, ttAnchor, ttText, offset, string, groups) => {
+			
+			let nodeId = "cell-value-"+nanoid();
+			let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+nodeId, ttText, {drawSymbol: true});
+			this.tooltipIds.push(tt);
+
+			return "<span id='"+nodeId+"'>"+ttAnchor+"</span>";
+		});
+
+		return result;
 	}
 
 	triggerSubTable(rowId) {
@@ -660,9 +720,12 @@ class SiteReportTable {
 	}
 
 	renderSubTable(sampleGroupId, subTable) {
-		var subTableId = "subtable-"+shortid.generate();
 		
-		var subTableHtml = "<table id='"+subTableId+"' class='site-report-subtable'><thead>";
+		$("[row-id="+sampleGroupId+"]").addClass("table-row-expanded");
+		
+		let subTableId = "subtable-"+nanoid();
+		
+		var subTableHtml = "<div id='subtable-container-"+subTableId+"'><table id='"+subTableId+"' class='site-report-subtable'><thead>";
 		subTableHtml += "<tr>";
 		subTable.columns.forEach((d, i) => {
 			let render = true;
@@ -686,24 +749,30 @@ class SiteReportTable {
 				}
 
 				if(render) {
-					var cellNodeId = "cell-"+shortid.generate();
+					var cellNodeId = "cell-"+nanoid();
 					if(row[vk].hasOwnProperty("callback") && typeof(row[vk].callback) == "function") {
 						row[vk].callback(row, cellNodeId);
 					}
 					
 					if(row[vk].hasOwnProperty("tooltip") && row[vk].tooltip != "") {
-						let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+cellNodeId, row[vk].tooltip, {drawSymbol:true});
+						let tooltipText = row[vk].tooltip;
+						let tooltipOptions = { drawSymbol:true };
+						if(typeof row[vk].tooltip == "object") {
+							tooltipText = row[vk].tooltip.text;
+							tooltipOptions = row[vk].tooltip.options;
+						}
+						let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+cellNodeId, tooltipText, tooltipOptions);
 						this.tooltipIds.push("#"+cellNodeId);
 					}
 					
-					subTableHtml += "<td id='"+cellNodeId+"'>"+row[vk].value+"</td>";
+					subTableHtml += "<td id='"+cellNodeId+"'>"+this.parseCellValueMarkup(row[vk].value)+"</td>";
 				}
 				
 			}
 			subTableHtml += "</tr>";
 		});
 
-		subTableHtml += "</tbody></table>";
+		subTableHtml += "</tbody></table></div>";
 
 		var colsNum = this.columns.length;
 		var rowHtml = "<tr class='hidden site-report-subtable-row'>";
@@ -724,9 +793,14 @@ class SiteReportTable {
 		});
 
 		$("#"+subTableId).css("width", "100%");
+
+		$("#subtable-container-"+subTableId).slideUp(0);
+		$("#subtable-container-"+subTableId).slideDown(100);
 	}
 
 	unrenderSubTable(sampleGroupId) {
+		$("[row-id="+sampleGroupId+"]").removeClass("table-row-expanded");
+
 		var subTableRow = $("[row-id="+sampleGroupId+"]").next();
 		if(subTableRow.hasClass("hidden site-report-subtable-row")) {
 			subTableRow.remove();

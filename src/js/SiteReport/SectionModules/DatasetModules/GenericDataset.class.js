@@ -96,6 +96,10 @@ class GenericDataset extends DatasetModule {
 		});
 	}
 	
+	makeSection(siteData, sections) {
+		//console.log(siteData, sections);
+	}
+
 	/**
 	 * Function: buildSection
 	 * 

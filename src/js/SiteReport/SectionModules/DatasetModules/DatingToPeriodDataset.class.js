@@ -60,7 +60,7 @@ class DatingToPeriodDataset extends DatasetModule {
 		this.sectionsList = sectionsList;
 		for(let key = datasets.length - 1; key >= 0; key--) {
 			if(this.methodGroupIds.includes(datasets[key].methodGroupId)) {
-				//console.log("DatingToPeriodDataset claiming ", datasets[key].datasetId, datasets[key]);
+				console.warn("DatingToPeriodDataset claiming ", datasets[key].datasetId, datasets[key]);
 				let dataset = datasets.splice(key, 1)[0];
 				this.offeredDatasets.push(dataset);
 				//this.datasets.push(dataset);
@@ -141,6 +141,10 @@ class DatingToPeriodDataset extends DatasetModule {
 		}
 
 		return datasetGroups;
+	}
+
+	makeSection(siteData, sections) {
+		//console.log(siteData, sections);
 	}
 
     /**  

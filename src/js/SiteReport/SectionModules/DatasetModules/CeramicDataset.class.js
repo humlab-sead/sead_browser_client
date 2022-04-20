@@ -186,6 +186,10 @@ class CeramicDataset extends DatasetModule {
 		return false;
 	}
 
+	makeSection(siteData, sections) {
+		//console.log(siteData, sections);
+	}
+
 	buildSection(dsGroups) {
 		let analysis = dsGroups[0].datasets[0];
 		var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);

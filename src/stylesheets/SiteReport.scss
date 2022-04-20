@@ -319,6 +319,10 @@ table.site-report-table > tbody > tr.site-report-table-row-with-subtable:hover >
   background-color:$pane-bg-color;
 }
 
+table.site-report-table tr.table-row-expanded > td {
+  background-color: lighten($base-color, 10%) !important;
+}
+
 .site-report-table tbody th, table.dataTable tbody td {
   padding: 5px !important;
 }

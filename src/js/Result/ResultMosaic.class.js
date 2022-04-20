@@ -11,6 +11,9 @@ import MosaicCeramicsRelativeAgesModule from "./MosaicTileModules/MosaicCeramics
 import MosaicCeramicsTypeCountModule from "./MosaicTileModules/MosaicCeramicsTypeCountModule.class";
 import MosaicDendroBuildingTypesModule from "./MosaicTileModules/MosaicDendroBuildingTypesModule.class";
 import MosaicDendroTreeSpeciesModule from "./MosaicTileModules/MosaicDendroTreeSpeciesModule.class";
+import MosaicDendroDatingHistogramModule from "./MosaicTileModules/MosaicDendroDatingHistogramModule.class";
+import MosaicDendroTreeSpeciesChartModule from "./MosaicTileModules/MosaicDendroTreeSpeciesChartModule.class";
+import { css } from 'jquery';
 
 class ResultMosaic extends ResultModule {
 	constructor(resultManager) {
@@ -35,6 +38,8 @@ class ResultMosaic extends ResultModule {
 		this.modules.push(new MosaicCeramicsTypeCountModule(this.sqs));
 		this.modules.push(new MosaicDendroBuildingTypesModule(this.sqs));
 		this.modules.push(new MosaicDendroTreeSpeciesModule(this.sqs));
+		this.modules.push(new MosaicDendroDatingHistogramModule(this.sqs));
+		this.modules.push(new MosaicDendroTreeSpeciesChartModule(this.sqs));
 
 		/*
 		//General
@@ -128,6 +133,15 @@ class ResultMosaic extends ResultModule {
 			callback: this.renderIsotopesInSamples
 		});
 		*/
+	}
+
+	getModuleByName(name) {
+		for(let key in this.modules) {
+			if(this.modules[key].name == name) {
+				return this.modules[key];
+			}
+		}
+		return false;
 	}
 	
 	setLoadingIndicator(containerNode, isLoading) {
@@ -236,8 +250,53 @@ class ResultMosaic extends ResultModule {
 		}
 
 		let domain = this.sqs.domainManager.getActiveDomain();
+		console.log(domain);
+
+		let rows = domain.result_grid_layout[0];
+		let grid_rows_css = "";
+		for(let i = 0; i < rows; i++) {
+			grid_rows_css += "1fr ";
+		}
+		let cols = domain.result_grid_layout[1];
+		let grid_cols_css = "";
+		for(let i = 0; i < cols; i++) {
+			grid_cols_css += "1fr ";
+		}
+
+		$("#result-mosaic-container").css("grid-template-rows", grid_rows_css);
+		$("#result-mosaic-container").css("grid-template-columns", grid_cols_css);
+		
 
 		this.requestBatchId++;
+
+		domain.result_grid_modules.forEach(mConf => {
+			let module = this.getModuleByName(mConf.name);
+			console.log(mConf)
+			console.log(module)
+			let tileNode = $("<div class='result-mosaic-tile'></div>");
+			if(module !== false) {
+				tileNode.append("<h2>"+module.title+"</h2>");
+				tileNode.append("<div id='"+module.name+"' class='result-mosaic-graph-container'></div>");
+				tileNode.css("grid-row", mConf.grid_row);
+				tileNode.css("grid-column", mConf.grid_column);
+				$('#result-mosaic-container').append(tileNode);
+				let promise = module.render("#"+module.name);
+				console.log(promise);
+				this.renderPromises.push(promise);
+				
+			}
+			else {
+				tileNode.append("<h2>NoSuchModuleError - "+mConf.name+"</h2>");
+				tileNode.append("<div id='"+module.name+"' class='result-mosaic-graph-container'></div>");
+				tileNode.css("grid-row", mConf.grid_row);
+				tileNode.css("grid-column", mConf.grid_column);
+				$('#result-mosaic-container').append(tileNode);
+			}
+			
+		});
+
+		
+		/*
 		for(let key in this.modules) {
 			if(this.modules[key].domains.includes(domain.name) || this.modules[key].domains.includes("*")) {
 				if($("#result-mosaic-container #"+this.modules[key].name).length == 0) {
@@ -254,6 +313,7 @@ class ResultMosaic extends ResultModule {
 				this.renderPromises.push(promise);
 			}
 		}
+		*/
 
 		if(this.renderPromises.length == 0) {
 			this.sqs.sqsEventDispatch("resultModuleRenderComplete");
@@ -618,6 +678,101 @@ class ResultMosaic extends ResultModule {
 
 		return zc;
 	}
+
+	renderHistogram(renderIntoNode, chartSeries) {
+
+		if(chartSeries.length == 0) {
+			let noDataMsgNode = $("<div class='result-mosaic-no-data-msg'><div>No data</div></div>");
+			$(renderIntoNode).append(noDataMsgNode);
+			return;
+		}
+
+		let xScaleLabels = chartSeries[0].text;
+
+		var config = {
+			"type":"bar",
+			"background-color": "transparent",
+			"series": chartSeries,
+			"plot":{
+				"stacked": true,
+				"animation":{
+					"effect":"ANIMATION_EXPAND_BOTTOM"
+				}
+			},
+			"plotarea": {
+				"margin": '130 10 90 60'
+			},
+			"tooltip":{
+				"text": "%scale-key-text\r\n%v dated samples\r\n%t",
+				"html-mode": true,
+				"decimals": 0,
+				"align": 'left',
+				"borderRadius": 3,
+				"fontColor":"#000000",
+				"fontSize": "16px",
+				"backgroundColor": "#ffffff"
+			},
+			"scale-x": {
+				"labels": xScaleLabels,
+				"tick": {
+					"visible": false,
+					"_lineColor": '#D8D8D8'
+				},
+				"item": {
+					"color": '#6C6C6C',
+					"angle": '-35'
+				},
+			},
+		};
+		
+		let colors = this.sqs.color.getColorScheme(config.series.length);
+		let legendTextMaxLength = 15;
+		for(let key in config.series) {
+			config.series[key].backgroundColor = colors[key];
+			if(key == 0) {
+				config.series[key].text = "Low uncertainty";
+			}
+			if(key == 1) {
+				config.series[key].text = "High uncertainty";
+			}
+		}
+
+		let rows = chartSeries.length;
+		if(rows > 6) {
+			rows = 6;
+		}
+		config.legend = {
+			"highlight-plot":true,
+			"draggable":true,
+			"max-items":6,
+			"overflow":"scroll",
+			"layout":rows+"x1", //row x column
+			"toggle-action":"remove"
+		};
+
+		let zc = zingchart.render({
+			id : renderIntoNode.substring(1),
+			data : config,
+			height: "100%"
+		});
+
+		/*
+		zc.bind("click", (evt) => {
+			let startIndex = evt.targetid.indexOf("-plot-") + 6;
+			let plot = evt.targetid.substring(startIndex, startIndex+1);
+			let facet = this.sqs.facetManager.spawnFacet("sites", [...config.series[plot].sites]);
+
+			let iv = setInterval(() => {
+				if(facet.isDataLoaded) {
+					facet.minimize();
+					clearInterval(iv);
+				}
+			}, 100);
+		});
+		*/
+
+		return zc;
+	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {
 
@@ -632,7 +787,7 @@ class ResultMosaic extends ResultModule {
 			"background-color": "transparent",
 			"series": chartSeries,
 			"tooltip":{
-				"text": "%t, %v counts\n<span>Click to filter on these sites</span>",
+				"text": "%t, %v counts",
 				"html-mode": true,
 				"decimals": 0,
 				"align": 'left',
@@ -713,6 +868,7 @@ class ResultMosaic extends ResultModule {
 			data: config
 		});
 
+		/*
 		zc.bind("click", (evt) => {
 			let startIndex = evt.targetid.indexOf("-plot-") + 6;
 			let plot = evt.targetid.substring(startIndex, startIndex+1);
@@ -733,6 +889,7 @@ class ResultMosaic extends ResultModule {
 				}
 			}, 100);
 		});
+		*/
 
 		return zc;
 	}

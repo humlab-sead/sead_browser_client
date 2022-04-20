@@ -15,37 +15,205 @@ class Samples {
 		};
 	}
 
+	includeSampleDimensionsColumn(sampleGroup) {
+		for(var k in sampleGroup.physical_samples) {
+			var sample = sampleGroup.physical_samples[k];
+			if(sample.dimensions.length > 0) {
+				return true;
+			}
+		}
+		return false;
+		if(includeSampleDimensionsColumn) {
+			subTableColumns.push({
+				"title": "Sample dimensions"
+			})
+		}
+	}
 
-	compileSectionStruct() {
-		var section = {
-			"name": "samples",
-			"title": "Overview",
-			"collapsed": false,
-			"contentItems": [{
-				"name": "sampleGroups",
-				"title": "Samples taken (groupings)",
-				"data": {
-					"columns": [],
-					"rows": []
-				},
-				"renderOptions": [{
-					"selected": true,
-					"type": "table",
-					"name": "Spreadsheet",
-					"options": [
-						{
-							"showControls": false,
-							"name": "columnsVisibility",
-							"hiddenColumns": [
-								3
-							]
-						}
-					]
-				}]
-			}]
-		};
-		
-		section.contentItems[0].data.columns = [
+	insertSampleDimensionsIntoTable(subTable, sampleGroup) {
+		let insertSampleDimensionColumn = false;
+		for(var k in sampleGroup.physical_samples) {
+			var sample = sampleGroup.physical_samples[k];
+			if(sample.dimensions.length > 0) {
+				insertSampleDimensionColumn = true;
+			}
+		}
+
+		if(insertSampleDimensionColumn) {
+			subTable.columns.push({
+				"title": "Sample dimensions"
+			});
+
+			for(var k in sampleGroup.physical_samples) {
+				var sample = sampleGroup.physical_samples[k];
+				subTable.rows.forEach(row => {
+					if(row[0].value == sample.sample_name) {
+						row.push({
+							"value": sample.dimensions,
+							"type": "cell",
+							"tooltip": ""
+						});
+					}
+				});
+			}
+		}
+	}
+
+	insertSampleDescriptionsIntoTable(subTable, sampleGroup) {
+		let insertSampleDescriptionsColumn = false;
+		for(var k in sampleGroup.physical_samples) {
+			var sample = sampleGroup.physical_samples[k];
+			if(sample.descriptions.length > 0) {
+				insertSampleDescriptionsColumn = true;
+			}
+		}
+
+		if(insertSampleDescriptionsColumn) {
+			subTable.columns.push({
+				"title": "Sample descriptions"
+			});
+
+			for(var k in sampleGroup.physical_samples) {
+				var sample = sampleGroup.physical_samples[k];
+				let descriptionValue = "";
+				sample.descriptions.forEach(desc => {
+					descriptionValue += desc.description+", ";
+				});
+				descriptionValue = descriptionValue.substring(0, descriptionValue.length-2);
+				subTable.rows.forEach(row => {
+					if(row[0].value == sample.sample_name) {
+						row.push({
+							"value": descriptionValue,
+							"type": "cell",
+							"tooltip": ""
+						});
+					}
+				});
+			}
+		}
+	}
+
+	insertSampleLocationsIntoTable(subTable, sampleGroup) {
+		let insertSampleLocationsColumn = false;
+		for(var k in sampleGroup.physical_samples) {
+			var sample = sampleGroup.physical_samples[k];
+			if(sample.locations.length > 0) {
+				insertSampleLocationsColumn = true;
+			}
+		}
+
+		if(insertSampleLocationsColumn) {
+			subTable.columns.push({
+				"title": "Sample locations"
+			});
+
+			for(var k in sampleGroup.physical_samples) {
+				var sample = sampleGroup.physical_samples[k];
+				let cellValue = "";
+				sample.locations.forEach(data => {
+					cellValue += data.location+", ";
+				});
+				cellValue = cellValue.substring(0, cellValue.length-2);
+				subTable.rows.forEach(row => {
+					if(row[0].value == sample.sample_name) {
+						row.push({
+							"value": cellValue,
+							"type": "cell",
+							"tooltip": ""
+						});
+					}
+				});
+			}
+		}
+	}
+
+	insertSampleAltRefsIntoTable(subTable, sampleGroup) {
+		let insertColumn = false;
+		for(var k in sampleGroup.physical_samples) {
+			var sample = sampleGroup.physical_samples[k];
+			if(sample.alt_refs.length > 0) {
+				insertColumn = true;
+			}
+		}
+
+		if(insertColumn) {
+			subTable.columns.push({
+				"title": "Alternative identifiers"
+			});
+
+			for(var k in sampleGroup.physical_samples) {
+				var sample = sampleGroup.physical_samples[k];
+				let cellValue = "";
+				sample.alt_refs.forEach(data => {
+					/*
+					if(data.alt_ref_type) {
+						cellValue += data.alt_ref_type+": ";
+					}
+					
+					cellValue += data.alt_ref+", ";
+					*/
+					cellValue += "%data:"+data.alt_ref+":!%tooltip:"+data.alt_ref_type+" - "+data.description+":!, ";
+				});
+				cellValue = cellValue.substring(0, cellValue.length-2);
+				subTable.rows.forEach(row => {
+					if(row[0].value == sample.sample_name) {
+						row.push({
+							"value": cellValue,
+							"type": "cell",
+							"tooltip": "",
+						});
+					}
+				});
+			}
+		}
+	}
+
+	insertSampleGroupReferencesIntoTable(table, sampleGroups) {
+		let insertSampleGroupReferensesColumn = false;
+		sampleGroups.forEach(sg => {
+			if(sg.biblio.length > 0) {
+				insertSampleGroupReferensesColumn = true;
+			}
+		});
+
+		if(insertSampleGroupReferensesColumn) {
+			table.columns.push({
+				"title": "References"
+			});
+
+			sampleGroups.forEach(sg => {
+				let cellDesc = "";
+				sg.biblio.forEach(biblio => {
+					cellDesc += biblio.title+", "+biblio.year+", ";
+					if(biblio.author) {
+						cellDesc += biblio.author;
+					}
+					else {
+						cellDesc += "&lt;Author missing&gt;";
+					}
+					cellDesc += " | "
+				});
+				cellDesc = cellDesc.substring(0, cellDesc.length-3);
+
+				table.rows.forEach(row => {
+					if(row[1].value == sg.sample_group_id) {
+						let cellValue = "%button:"+"<i class='fa fa-book' aria-hidden='true'></i>"+":!%tooltip:"+cellDesc+":!, ";
+						row.push({
+							"value": cellValue,
+							"type": "cell",
+							"tooltip": ""
+						});
+					}
+				});
+
+			});
+		}
+
+	}
+
+	compileSectionStruct(siteData) {
+
+		let sampleGroupColumns = [
 			{
 				"dataType": "subtable",
 				"pkey": false
@@ -64,21 +232,19 @@ class Samples {
 				"dataType": "string",
 				"pkey": false,
 				"title": "Sampling method"
-			},
-			/*{ Disabled this feature because of unpredictable analyses sections
-				"dataType": "string",
-				"pkey": false,
-				"title": "Analyses"
-			},*/
-			{
-				"dataType": "string",
-				"pkey": false,
-				"title": "Reference"
 			}
-			];
+		];
+
+		let sampleGroupRows = [];
 		
-		for(var key in this.data.sampleGroups) {
-			var sampleGroup = this.data.sampleGroups[key];
+		let sampleGroupTable = {
+			columns: sampleGroupColumns,
+			rows: sampleGroupRows
+		}
+		
+		for(var key in siteData.sample_groups) {
+			var sampleGroup = siteData.sample_groups[key];
+			
 			
 			
 			var subTableColumns = [
@@ -88,9 +254,6 @@ class Samples {
 				},
 				{
 					"title": "Sample type"
-				},
-				{
-					"title": "Sample dimensions"
 				}
 			];
 			
@@ -99,146 +262,82 @@ class Samples {
 				"rows": []
 			};
 			
-			for(var k in sampleGroup.samples) {
-				var sample = sampleGroup.samples[k];
-
-				this.sqs.sqsEventListen("fetchSampleDimensions", () => {
-					console.log("All sample dimensions fetched");
-				});
+			for(var k in sampleGroup.physical_samples) {
+				var sample = sampleGroup.physical_samples[k];
 
 				subTable.rows.push([
 					{
 						"type": "cell",
-						"value": sample.sampleName,
+						"value": sample.sample_name,
 						"tooltip": ""
 					},
-					/*
 					{
 						"type": "cell",
-						"tooltip": "",
-						"callback": (row, targetCell) => { //FIXME: What if all of these turn up empty though?
-							//FIXME: Yeah... We're gonna have to the loading of this data before the table is rendered, sorry bro, but that's just the way it's gotta be.
-							var sampleId = row[0].value;
-							this.fetchSampleDimensions(sampleId, targetCell);
-						}
-					},
-					*/
-					{
-						"type": "cell",
-						"value": sample.sampleTypeName,
-						"tooltip": sample.sampleTypeDescription == null ? "" : sample.sampleTypeDescription
-					},
-					{
-						"type": "cell",
-						"value": typeof sample.sampleDimensions == "undefined" ? "Not loaded" : sample.sampleDimensions,
-						"tooltip": ""
+						"value": sample.sample_type_name,
+						"tooltip": sample.sample_type_description == null ? "" : sample.sample_type_description
 					}
 				]);
 				
 			}
-			
-			
-			var biblioParsed = "";
-			var authors = "";
-			for(var key in sampleGroup.biblio) {
-				var b = sampleGroup.biblio[key];
-				biblioParsed += b.publication_type+"<br />";
-				biblioParsed += b.biblio_author+"<br />";
-				biblioParsed += b.biblio_title+"<br />";
-				biblioParsed += b.biblio_year+"<br />";
-				biblioParsed += b.publisher_name+", "+b.place_of_publishing_house+"<br />";
-				if(authors.length > 0) {
-					authors += ", ";
-				}
 
-				authors += b.biblio_author != null ? b.biblio_author : "&lt;Author&gt;";
-			}
+			this.insertSampleDimensionsIntoTable(subTable, sampleGroup);
+			this.insertSampleDescriptionsIntoTable(subTable, sampleGroup);
+			this.insertSampleLocationsIntoTable(subTable, sampleGroup);
+			this.insertSampleAltRefsIntoTable(subTable, sampleGroup);
 
-			if(biblioParsed.length == 0 || authors == "null") {
-				biblioParsed = "No reference found.";
-			}
-
-			let analysesButtons = [];
-			for(let ak in sampleGroup.analyses) { //Define in-cell buttons to be rendered in the table cell
-
-				let methodId = sampleGroup.analyses[ak].method_id;
-				let sampleGroupId = sampleGroup.analyses[ak].sample_group_id;
-				let datasetId = sampleGroup.analyses[ak].dataset_id;
-				//sga = sample group analysis, just a unique identifier for this
-				analysesButtons.push({
-					nodeId: "sga-"+methodId+"-"+sampleGroupId+"-"+datasetId,
-					title: sampleGroup.analyses[ak].method_abbrev_or_alt_name,
-					callback: (evt) => { //What happens when this button is clicked
-						let buttonId = $(evt.currentTarget).attr("id");
-						let components = buttonId.split("-");
-						let methodId = components[1];
-						let sampleGroupId = components[2];
-						let datasetId = components[3];
-
-						//site-report-level-content
-						if($("[site-report-section-name="+methodId+"] > .site-report-level-content").attr("collapsed") == "true") {
-							$("[site-report-section-name="+methodId+"] > .site-report-level-title").click();
-						}
-						
-						//Scroll into view of data when it's done rendering
-						let scrollInterval = setInterval(() => {
-							//Is data still rendering?
-							if($(".data-vis-container > .siteReportContentItemLoadingMsg", "#cic-"+datasetId).length == 0) {
-								clearInterval(scrollInterval);
-								if(datasetId != "undefined") {
-									$("#cic-"+datasetId)[0].scrollIntoView();
-									$("#cic-"+datasetId).effect("highlight", {
-										color: css.auxColor,
-										duration: 3000
-									});
-								}
-							}
-						}, 100);
-					}
-				});
-			}
-
-			//Disabling this feature for now since it's problematic in the way that we need to know what sections this SR will contain and what they will be named, and this is currently not predictable.
-			analysesButtons = [];
-
-			section.contentItems[0].data.rows.push([
+			sampleGroupRows.push([
 				{
 					"type": "subtable",
 					"value": subTable
 				},
 				{
 					"type": "cell",
-					"value": sampleGroup.sampleGroupId,
+					"value": sampleGroup.sample_group_id,
 					"tooltip": ""
 				},
 				{
 					"type": "cell",
-					"value": sampleGroup.sampleGroupName,
-					"tooltip": sampleGroup.sampleGroupDescription == null ? "" : sampleGroup.sampleGroupDescription
+					"value": sampleGroup.sample_group_name,
+					"tooltip": sampleGroup.sample_group_description == null ? "" : sampleGroup.sample_group_description
 				},
 				{
 					"type": "cell",
-					"value": sampleGroup.methodName,
-					"tooltip": sampleGroup.methodDescription == null ? "" : sampleGroup.methodDescription
-				},
-				/*{
-					"type": "cell",
-					"value": "",
-					"buttons": analysesButtons,
-					"tooltip": "Analyses performed on this sample group",
-					"excludeInExport": true
-				},*/
-				{
-					"type": "cell",
-					"value": authors,
-					"tooltip": {
-						"msg": biblioParsed,
-						"options": {}
-					}
+					"value": sampleGroup.sampling_method.method_name,
+					"tooltip": sampleGroup.sampling_method.description == null ? "" : sampleGroup.sampling_method.description
 				}
 			]);
 			
 		}
+
+		this.insertSampleGroupReferencesIntoTable(sampleGroupTable, siteData.sample_groups);
+
+		var section = {
+			"name": "samples",
+			"title": "Overview",
+			"collapsed": false,
+			"contentItems": [{
+				"name": "sampleGroups",
+				"title": "Samples taken (groupings)",
+				"data": {
+					"columns": sampleGroupColumns,
+					"rows": sampleGroupRows
+				},
+				"renderOptions": [{
+					"selected": true,
+					"type": "table",
+					"name": "Spreadsheet",
+					"options": [
+						{
+							"showControls": false,
+							"name": "columnsVisibility",
+							"hiddenColumns": [
+								3
+							]
+						}
+					]
+				}]
+			}]
+		};
 
 		return section;
 	}
@@ -251,13 +350,14 @@ class Samples {
 	* so it really just compiles the data in an appropriate format and hands it over.
 	*
 	 */
-	render() {
-		let section = this.compileSectionStruct();
+	render(siteData) {
+		let section = this.compileSectionStruct(siteData);
 		let renderPromise = this.sqs.siteReportManager.siteReport.renderSection(section);
-		
+		/*
 		renderPromise.then(() => {
 			this.fetchAuxiliaryData(); //Lazy-loading this, which is why it's here and not up amoing the other fetch-calls
 		})
+		*/
 	}
 
 	/*

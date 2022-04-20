@@ -1,5 +1,6 @@
 import DatasetModule from "./DatasetModule.class";
 import { ApiWsChannel } from "../../../ApiWsChannel.class";
+import DendroLib from "../../../Common/DendroLib.class";
 import moment from "moment";
 import { nanoid } from 'nanoid'
 
@@ -47,61 +48,6 @@ class DendrochronologyDataset extends DatasetModule {
 			}
 		}
 		
-
-		/* - Suggested future structure - but this probably doesn't make sense since the data in the db isn't hierarchial in this way. It probably doesn't make sense to separate datasets and have AEs and sub-entities in this way for dendro
-		let samples = [{
-			physicalSampleId: null,
-			datasets: [{
-				analysisEntities: [{
-					analysisEntityId,
-					dendro: {
-						dendroId,
-						dendroLookupId,
-						measurementValue,
-						methodId,
-						methodName,
-						methodDescription,
-						dendroDateId, //This may or may not exist?
-						dating: { //This may or may not exist?
-							younger,
-							older,
-							uncertaintyId,
-							seasonOrQualifierId,
-							errorPlus,
-							errorMinus,
-							errorUncertaintyId,
-							ageTypeId,
-						}
-					}
-				}]
-			}]
-		}];
-		*/
-
-		
-		/*
-		//Convert datasets to samples
-		let sampleIds = [];
-		this.datasets.forEach(ds => {
-			ds.sampleGroups.forEach((sampleGroup) => {
-				sampleGroup.samples.forEach((sample) => {
-					sampleIds.push(sample.physical_sample_id);
-				});
-			})
-		});
-
-		let uniqueSampleIds = sampleIds.filter(function onlyUnique(value, index, self) {
-			return self.indexOf(value) === index;
-		});
-
-		let samples = [];
-		uniqueSampleIds.forEach((sampleId) => {
-			this.getDataBySampleId(sampleId).then(sampleData => {
-				samples.push(sampleData);
-				console.log(JSON.parse(sampleData))
-			});
-		});
-		*/
 		
 		return new Promise((resolve, reject) => {
 			//First order of business: Get the physical_sample_id's based on the pile of dataset id's we've got
@@ -110,8 +56,6 @@ class DendrochronologyDataset extends DatasetModule {
 			//Then render it so that each sample has it's own "contentItem" containing all of its datasets
 			//No wait - belay that - render the samples one on each row in the same table and then have a subtable for each bunch of datasets
 
-			//console.log(this.datasets);
-			
 			for(let key in this.datasets) {
 				this.datasetFetchPromises.push(this.analysis.fetchAnalysis(this.datasets[key]));
 				this.datasetFetchPromises.push(this.fetchDataset(this.datasets[key]));
@@ -140,11 +84,7 @@ class DendrochronologyDataset extends DatasetModule {
 		
 	}
 
-	async getDataBySampleId(physicalSampleId) {
-		return await $.get("http://localhost:8484/sample/"+physicalSampleId);
-	}
-
-	async getDataBySampleIdOLD(physicalSampleId, wsChannel = null) {
+	async getDataBySampleId(physicalSampleId, wsChannel = null) {
 		let chan = null;
 		let chanCreated = false;
 		if(wsChannel == null) {
@@ -168,9 +108,7 @@ class DendrochronologyDataset extends DatasetModule {
 		chan.send({
 			cmd: "getDataForSample",
 			physicalSampleId: physicalSampleId
-		})
-
-		
+		});
 
 		if(chanCreated) {
 			chan.close();
@@ -457,7 +395,8 @@ class DendrochronologyDataset extends DatasetModule {
 		return false;
 	}
 
-	buildContentItem(dsGroups) {
+	buildContentItem2(dsGroups) {
+		console.log(dsGroups)
 		//Defining columns
 		var columns = [
 			{
@@ -650,8 +589,34 @@ class DendrochronologyDataset extends DatasetModule {
 		};
 
 		//console.log(this.getTableRowsAsObjects(contentItem));
+
+		//If there's no dateable samples in this contentItem, switch default view to table instead
+		const dl = new DendroLib();
+		const sampleDataObjects = dl.getTableRowsAsObjects(contentItem);
+
+		let datedSampleFound = false;
+		sampleDataObjects.forEach(sampleDataObject => {
+			if(dl.getOldestGerminationYear(sampleDataObject) && dl.getYoungestFellingYear(sampleDataObject)) {
+				datedSampleFound = true;
+			}
+		});
+		datedSampleFound = true;
+
+
+		if(!datedSampleFound) {
+			contentItem.renderOptions.forEach(ro => {
+				if(ro.type == "table") {
+					ro.selected = true;
+				}
+				else {
+					ro.selected = false;
+				}
+			});
+		}
+
 		//console.log(JSON.stringify(contentItem))
-		
+		console.log(contentItem);
+
 		return contentItem;
 	}
 
@@ -709,6 +674,218 @@ class DendrochronologyDataset extends DatasetModule {
 		}
 	
 		return dataObjects;
+	}
+
+	getDendroMethodDescription(siteData, dendroLookupId) {
+		for(let key in siteData.lookup_tables.dendro) {
+			if(siteData.lookup_tables.dendro[key].dendro_lookup_id == dendroLookupId) {
+				return siteData.lookup_tables.dendro[key]
+			}
+		}
+		return null;
+	}
+
+	makeSection(siteData, sections) {
+		console.log(siteData, sections);
+
+		let dataGroups = siteData.data_groups.filter((dataGroup) => {
+			return dataGroup.type == "dendro";
+		});
+
+		console.log(dataGroups);
+
+		let columns = [
+			{
+				dataType: "subtable",
+			},
+			{
+				title: "Sample name",
+				pkey: true
+			},
+			{
+				title: "Date sampled"
+			}
+		];
+		let rows = [];
+
+		dataGroups.forEach(dataGroup => {
+
+			let dateSampled = dataGroup.date_sampled;
+			let dateSampledParsed = new Date(Date.parse(dateSampled));
+			
+			if(dateSampledParsed) {
+				let month = dateSampledParsed.getMonth()+1;
+				if(month < 10) {
+					month = "0"+month;
+				}
+				let day = dateSampledParsed.getDay();
+				if(day < 10) {
+					day = "0"+day;
+				}
+				dateSampled = dateSampledParsed.getFullYear()+"-"+month+"-"+day;
+			}
+
+			
+			let subTableColumns = [
+				{
+					title: "Dendro lookup id",
+					hidden: true
+				},
+				{
+					title: "Measurement type"
+				},
+				{
+					title: "Measurement value"
+				},
+				{
+					title: "data",
+					hidden: true
+				}
+			];
+
+			const dl = new DendroLib();
+
+			let subTableRows = [];
+			dataGroup.data_points.forEach(dp => {
+				let value = dp.value;
+				let tooltip = "";
+
+				if(dp.id == 134 || dp.id == 137) {
+					//This is Estimated felling year or Outermost tree-ring date, these are complex values that needs to be parsed
+					if(value.dating_note) {
+						tooltip = {
+							text: "Note: "+value.dating_note,
+							options: {
+								drawSymbol: true,
+								symbolChar: "fa-exclamation-triangle",
+								symbolColor: "yellow",
+								anchorPoint: "symbol"
+							 }
+						};
+					}
+					value = dl.renderDendroDatingAsString(value, siteData);
+				}
+
+				subTableRows.push([
+					{
+						type: "cell",
+						value: dp.id
+					},
+					{
+						type: "cell",
+						value: dp.label,
+						tooltip: this.getDendroMethodDescription(siteData, dp.id).description
+					},
+					{
+						type: "cell",
+						value: value,
+						tooltip: tooltip
+					},
+					{
+						type: "data",
+						value: dp.value
+					}
+				]);
+			});
+			
+			let subTable = {
+				"columns": subTableColumns,
+				"rows": subTableRows
+			};
+
+			rows.push([
+				{
+					type: "subtable",
+					value: subTable
+				},
+				{
+					type: "cell",
+					value: dataGroup.sample_name
+				},
+				{
+					type: "cell",
+					value: dateSampled
+				}
+			]);
+		});
+
+		let contentItem = {
+			"name": "dendro",
+			"title": "Dendrochronology",
+			"titleTooltip": "Name of the dataset",
+			"datasetId": 0,
+			"data": {
+				"columns": columns,
+				"rows": rows
+			},
+			"renderOptions": [
+				{
+					"name": "Spreadsheet",
+					"selected": false,
+					"type": "table"
+				},
+				{
+					"name": "Graph",
+					"selected": true,
+					"type": "dendrochart",
+					"options": [
+						{
+							"enabled": true,
+							"title": "Sort",
+							"type": "select",
+							"selected": 1,
+							//"options": ["Alphabetical", "Germination year", "Felling year", "Tree species"],
+							"options": [
+								{
+									"title": "Alphabetical",
+									"value": "alphabetical",
+									"selected": true
+								},
+								{
+									"title": "Germination year",
+									"value": "germination year",
+								},
+								{
+									"title": "Felling year",
+									"value": "felling year",
+								},
+								{
+									"title": "Tree species",
+									"value": "tree species",
+								},
+							]
+						},
+						{
+							"enabled": true,
+							"title": "Uncertainty",
+							"type": "select",
+							"options": [
+								{
+									"title": "Estimates",
+									"value": "estimates",
+									"selected": true
+								},
+								{
+									"title": "None",
+									"value": "none",
+									"selected": false
+								},
+							]
+						}
+					]
+				},
+			]
+		};
+
+		let section = {
+			"name": "dendro",
+			"title": "Dendrochronology",
+			"methodDescription": "method description",
+			"collapsed": false,
+			"contentItems": [contentItem]
+		};
+
+		sections.push(section);
 	}
 
 	/* Function: buildSection

@@ -173,9 +173,10 @@ class BasicSiteInformation {
 	* Function: render
 	*
 	*/
-	render() {
+	render(siteData) {
+		this.data = siteData;
 		var data = this.data;
-		var node = $(".site-report-title-site-name").html(this.data.siteName);
+		var node = $(".site-report-title-site-name").html(siteData.site_name);
 		this.sqs.tooltipManager.registerTooltip(node, "Name of the site as given by the data provider", {drawSymbol: true, placement: "top"});
 		
 		var exportLinksHtml = "";
@@ -184,19 +185,24 @@ class BasicSiteInformation {
 		exportLinksHtml += "</ul>";
 		
 		
-		var siteDecription = data.siteDescription;
+		var siteDecription = siteData.site_description;
 		if(siteDecription == null) {
 			siteDecription = "No data";
 		}
 
-		let siteReferencesHtml = this.renderReferences(data.bibliographicSiteReferences);
-		let datasetReferencesHtml = this.renderReferences(data.bibliographicDatasetReferences);
+		/*
+		let siteReferencesHtml = this.renderReferences(siteData.bibliographicSiteReferences);
+		let datasetReferencesHtml = this.renderReferences(siteData.bibliographicDatasetReferences);
+		*/
+
+		let siteReferencesHtml = "";
+		let datasetReferencesHtml = "";
 
 		var node = $(".site-report-aux-info-container");
 		node
 			.append("<div class='site-report-aux-header-container'><h4>Site identifier</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-aux-info-text-container'>"+data.siteId+"</div>")
+			.append("<div class='site-report-aux-info-text-container'>"+siteData.site_id+"</div>")
 			//.append("<div class='site-report-aux-header-container'><h4>Site name</h4></div>")
 			//.append("<div class='site-report-aux-header-underline'></div>")
 			//.append("<div class='site-report-aux-info-text-container'>"+data.siteName+"</div>")
@@ -219,12 +225,12 @@ class BasicSiteInformation {
 		$("#site-report-locations-container").append("<div id='site-report-map-container'></div>");
 		
 		var locationsContainer = $("#site-report-locations-container");
-		for(var i = 0; i < data.locations.length; i++) {
-			var el = $("<span>" + data.locations[i].locationName + "</span>");
+		for(var i = 0; i < siteData.location.length; i++) {
+			var el = $("<span>" + siteData.location[i].location_name + "</span>");
 			locationsContainer.append(el);
-			this.sqs.tooltipManager.registerTooltip(el, data.locations[i].locationTypeDescription, {highlightAnchor: true});
+			this.sqs.tooltipManager.registerTooltip(el, "<div style='font-weight:bold'>"+siteData.location[i].location_type+"</div><div>"+siteData.location[i].location_description+"</div>", {highlightAnchor: true});
 			
-			if (i+1 < data.locations.length) {
+			if (i+1 < siteData.location.length) {
 				locationsContainer.append(", ");
 			}
 		}
@@ -256,7 +262,7 @@ class BasicSiteInformation {
 			}
 		});
 		
-		this.renderMiniMap(data);
+		this.renderMiniMap(siteData);
 	}
 	
 	/*
@@ -264,9 +270,7 @@ class BasicSiteInformation {
 	*
 	* Renders the little map which shows site position in the sidebar.
 	*/
-	renderMiniMap() {
-		
-		var siteData = this.data;
+	renderMiniMap(siteData) {
 		
 		$("#site-report-map-container").html("");
 		
@@ -282,19 +286,17 @@ class BasicSiteInformation {
 				]
 			}),
 			view: new View({
-				center: fromLonLat([siteData.geo.longitude, siteData.geo.latitude]),
+				center: fromLonLat([parseFloat(siteData.longitude_dd), parseFloat(siteData.latitude_dd)]),
 				zoom: 4
 			})
 		});
 		
 		var iconFeatures = [];
 		
-		var coords = transform([siteData.geo.longitude, siteData.geo.latitude], 'EPSG:4326', 'EPSG:3857');
+		var coords = transform([parseFloat(siteData.longitude_dd), parseFloat(siteData.latitude_dd)], 'EPSG:4326', 'EPSG:3857');
 		var iconFeature = new Feature({
 			geometry: new Point(coords),
-			name: siteData.siteName,
-			population: 4000,
-			rainfall: 500
+			name: siteData.siteName
 		});
 		
 		iconFeatures.push(iconFeature);

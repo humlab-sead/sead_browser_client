@@ -38,6 +38,7 @@ class SeadQuerySystem {
 
 		this.config = this.loadUserSettings(Config);
 
+		/*
 		this.preload().then(() => {
 			console.log("SQS preload complete");
 			this.bootstrapSystem();
@@ -46,6 +47,8 @@ class SeadQuerySystem {
 			$("#preload-failed-indicator").css("display", "block");
 			$(".seadlogo-loading-indicator-bg").hide();
 		});
+		*/
+		this.bootstrapSystem();
 
 		$("body").show();
 	}
@@ -304,6 +307,9 @@ class SeadQuerySystem {
 				dataType: "json",
 				timeout: Config.preloadTimeout,
 				success: async (data) => {
+					if(!data) {
+						data = [];
+					}
 					await this.importDomains(data);
 					resolve(data);
 				},
@@ -723,6 +729,61 @@ class SeadQuerySystem {
 		return false;
 	}
 
+	/**
+	 * formatTaxonNew
+	 * 
+	 * All that was old is new again
+	 * 
+	 * @param {*} taxon - taxon in the sead data server format 
+	 * @param {*} identificationLevels - idenfication levels in the sead data server format
+	 */
+	 formatTaxon(taxon, identificationLevels = null, html = true) {
+
+		let familyName = taxon.family.family_name;
+		let genusName = taxon.genus.genus_name;
+		let species = taxon.species;
+
+		let modified = false;
+
+		if(identificationLevels != null) {
+			for(let key in identificationLevels) {
+				if(identificationLevels[key].identification_level_name == "c.f. Family" || identificationLevels[key].identification_level_name == "Family") {
+					familyName = "c.f. "+familyName;
+					modified = true;
+				}
+				if(identificationLevels[key].identification_level_name == "c.f. Genus" || identificationLevels[key].identification_level_name == "Genus") {
+					genusName = "c.f. "+genusName;
+					modified = true;
+				}
+				if(identificationLevels[key].identification_level_name == "c.f. Species" || identificationLevels[key].identification_level_name == "Species") {
+					species = "c.f. "+species;
+					modified = true;
+				}
+			}
+		}
+		
+		let isPlant = false; //We don't have data on plant or not plant atm, so just assume it's always not, for now
+
+		let tf = "";
+		if(!isPlant) { //Don't print out the family name if this is a plant
+			tf += familyName+", ";
+		}
+		if(html) { tf += "<span style='font-style:italic;'>"; }
+		tf += genusName;
+		if(html) { tf += "</span>"; }
+		tf += " ";
+		if(html) { tf += "<span style='font-style:italic;'>"; }
+		tf += species;
+		if(html) { tf += "</span>"; }
+		
+		if(typeof(taxon.author) != "undefined" && taxon.author != null) {
+			tf += " ";
+			tf += taxon.author.author_name;
+		}
+
+		return tf;
+	}
+
 	/*
 	* Function: formatTaxon
 	* Parameters:
@@ -731,7 +792,7 @@ class SeadQuerySystem {
 	* abundanceId - Optional. Specifies the abundance counting context (if any).
 	* taxon_identification_levels - Optional. Specifies identifications levels.
 	*/
-	formatTaxon(taxon, html = true, abundanceId = null, taxon_identification_levels = null) {
+	formatTaxonOLD(taxon, html = true, abundanceId = null, taxon_identification_levels = null) {
 		
 		let familyName = taxon.family_name;
 		let genusName = taxon.genus_name;

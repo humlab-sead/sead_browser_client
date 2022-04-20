@@ -16,6 +16,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_analysis_methods", resultMosaic.requestBatchId);
 		promise.then((promiseData) => {
 			if(promiseData.requestId < resultMosaic.requestBatchId) {
+                console.warn("Discarding old data for MosaicAnalysisMethodsModule");
 				return false;
 			}
 

@@ -33,6 +33,247 @@ class AbundanceDataset extends DatasetModule {
 			this.methodMetaDataFetchingComplete = true;
 		});
 	}
+
+
+	getSectionByMethodId(methodId, sections) {
+		for(let key in sections) {
+			if(sections[key].name == methodId) {
+				return sections[key];
+			}
+		}
+		return null;
+	}
+
+	getTaxonByIdFromLookup(siteData, taxon_id) {
+		if(!siteData.lookup_tables.taxa) {
+			return null;
+		}
+		for(let key in siteData.lookup_tables.taxa) {
+			if(siteData.lookup_tables.taxa[key].taxon_id == taxon_id) {
+				return siteData.lookup_tables.taxa[key];
+			}
+		}
+		return null;
+	}
+
+
+	getEntriesFromLookupTable(siteData, lookupTableKey, matchRefKey, matchInput) {
+		if(!siteData.lookup_tables[lookupTableKey]) {
+			return null;
+		}
+		let found = [];
+		for(let key in siteData.lookup_tables[lookupTableKey]) {
+			if(siteData.lookup_tables[lookupTableKey][key][matchRefKey] == matchInput) {
+				found.push(siteData.lookup_tables[lookupTableKey][key]);
+			}
+		}
+
+		return found;
+	}
+
+	makeSection(siteData, sections) {
+		let dataGroups = siteData.data_groups.filter((dataGroup) => {
+			return dataGroup.type == "abundance";
+		});
+
+		console.log(dataGroups);
+
+		dataGroups.forEach(dataGroup => {
+			let section = this.getSectionByMethodId(dataGroup.method_id, sections);
+			if(!section) {
+				section = {
+					"name": dataGroup.method_id,
+					"title": dataGroup.method_name,
+					"methodDescription": dataGroup.method_name,
+					"collapsed": true,
+					"contentItems": []
+				};
+				sections.push(section);
+			}
+
+			let contentItem = {
+				"name": dataGroup.id,
+				"title": dataGroup.dataset_name,
+				"titleTooltip": "Name of the dataset",
+				"datasetId": dataGroup.id,
+				"data": {
+					"columns": [],
+					"rows": []
+				},
+				"renderOptions": [
+					{
+						"name": "Spreadsheet",
+						"selected": false,
+						"type": "table"
+					},
+					{
+						"name": "Stacked bar chart",
+						"selected": true,
+						"type": "multistack",
+						"options": [
+							{
+								"enabled": false,
+								"title": "X axis",
+								"function": "xAxis",
+								"type": "select",
+								"selected": 2, //Default column (key)
+								"key": 2, //Contains the unique values for the selected columns - not sure we need / should have this
+								"options": [
+									{
+										"title": "Abundance",
+										"value": 1,
+									},
+								]
+							},
+							{
+								"enabled": false,
+								"title": "Y axis",
+								"function": "yAxis",
+								"type": "select",
+								"selected": 0,
+								"options": [{
+									"title": "Sample name",
+									"value": 0,
+								},]
+							},
+							{
+								"enabled": false,
+								"title": "Sort",
+								"function": "sort", //sorts on either x or y axis - leaves it up to the render module to decide
+								"type": "select",
+								"selected": 7,
+								"options": [{
+									"title": "Abundance taxon id",
+									"value": 7,
+								},]
+							}
+						]
+					}
+				]
+			};
+
+			contentItem.data.columns = [
+				{
+					"title": "Sample name"
+				},
+				{
+					"title": "Abundance count"
+				},
+				{
+					"title": "Taxon"
+				},
+				{
+					"title": "Identification levels"
+				},
+				{
+					"title": "Element type"
+				},
+				{
+					"title": "Modification"
+				},
+				{
+					"hidden": "true",
+					"pkey": true,
+					"title": "Sample id"
+				},
+				{
+					"hidden": "true",
+					"pkey": true,
+					"title": "Taxon id"
+				},
+			];
+			
+			dataGroup.data_points.forEach((data_point => {
+				let elementsValue = "";
+				let elementsTooltip = "";
+
+				let abundanceElements = this.getEntriesFromLookupTable(siteData, "abundance_elements", "abundance_element_id", [data_point.value.abundance_element_id]);
+				elementsValue = abundanceElements[0].element_name;
+				elementsTooltip = abundanceElements[0].element_description;
+
+				let modificationsValue = "";
+
+				let modificationIds = [];
+				data_point.value.modifications.forEach(item => {
+					modificationIds.push(item.modification_type_id);
+				});
+
+				let modifications = this.getEntriesFromLookupTable(siteData, "abundance_modifications", "modification_type_id", modificationIds);
+				modifications.forEach(mod => {
+					//tooltip-format: %data:hellothisisthedata:!%tooltip:hellothisisthetooltip:!
+					modificationsValue += "%data:"+mod.modification_type_name+":!%tooltip:"+mod.modification_type_description+":!, ";
+				});
+				modificationsValue = modificationsValue.substring(0, modificationsValue.length-2);
+
+
+				let identificationLevelsValue = "";
+				data_point.value.identification_levels.forEach(idlvlItem => {
+					identificationLevelsValue += idlvlItem.identification_level_name+", ";
+				});
+				identificationLevelsValue = identificationLevelsValue.substring(0, identificationLevelsValue.length-2);
+
+				let taxon = this.getTaxonByIdFromLookup(siteData, data_point.value.taxon_id);
+
+				let commonNames = "";
+				taxon.common_names.forEach(cn => {
+					commonNames += cn.common_name;
+					if(cn.language_name_english) {
+						commonNames += " ("+cn.language_name_english+")";
+					}
+					commonNames += ", ";
+				});
+				if(commonNames.length > 0) {
+					commonNames = commonNames.substring(0, commonNames.length-2);
+					commonNames = "Common names: "+commonNames;
+				}
+
+				contentItem.data.rows.push([
+					{
+						"type": "cell",
+						"value": data_point.sample_name
+					},
+					{
+						"type": "cell",
+						"value": data_point.value.abundance
+					},
+					{
+						"type": "cell",
+						"value": this.sqs.formatTaxon(taxon, data_point.value.identification_levels),
+						"tooltip": commonNames
+					},
+					{
+						"type": "cell",
+						"value": identificationLevelsValue
+					},
+					{
+						"type": "cell",
+						"value": elementsValue,
+						"tooltip": elementsTooltip
+					},
+					{
+						"type": "cell",
+						"value": modificationsValue
+					},
+					{
+						"type": "cell",
+						"value": data_point.physical_sample_id
+					},
+					{
+						"type": "cell",
+						"value": data_point.value.taxon_id
+					},
+				]);
+			}));
+
+			section.contentItems.push(contentItem);
+
+		});
+	}
+
+
+
+
+
 	
 	/*
 	* Function: offerAnalyses
@@ -332,7 +573,7 @@ class AbundanceDataset extends DatasetModule {
 		}
 		return this.taxaComplete;
 	}
-	
+
 	/*
 	* Function: buildSection
 	*/
@@ -559,16 +800,6 @@ class AbundanceDataset extends DatasetModule {
 					"name": "Stacked bar chart",
 					"selected": true,
 					"type": "multistack",
-					/*
-					"options": {
-						"yAxis": 1,
-						"xAxis": {
-							"key": 3,
-							"value": 4
-						}
-					},
-					*/
-					
 					"options": [
 						{
 							"enabled": false,

@@ -228,7 +228,8 @@ class SiteReportChart {
 
 	renderDendroChartOld(chartTitle = "Dendrochronology") {
 		var contentItem = this.contentItem;
-		var ro = this.siteReport.getSelectedRenderOption(contentItem);
+		let cir = this.siteReport.getContentItemRenderer(contentItem);
+		var ro = cir.getSelectedRenderOption(contentItem);
 
 		console.log(contentItem);
 		console.log(ro);
@@ -407,13 +408,15 @@ class SiteReportChart {
 	 */
 	renderMultistack(chartTitle = "Abundances") {
 		var contentItem = this.contentItem;
-		var ro = this.siteReport.getSelectedRenderOption(contentItem);
+		let cir = this.siteReport.getContentItemRenderer(contentItem);
+		var ro = cir.getSelectedRenderOption(contentItem);
 
 		let xAxisKey = null;
 		let yAxisKey = null;
 		let sortKey = null;
 
 		for(let key in ro.options) {
+
 			if(ro.options[key].function == "xAxis") {
 				xAxisKey = ro.options[key].selected;
 			}
@@ -434,7 +437,7 @@ class SiteReportChart {
 
 		//This is the list of samples we're going to use and IN THIS ORDER - VERY IMPORTANT
 		for(var key in contentItem.data.rows) {
-			var sampleId = contentItem.data.rows[key][1].value;
+			var sampleId = contentItem.data.rows[key][6].value;
 			let sampleName = contentItem.data.rows[key][yAxisKey].value;
 
 			//Get unique sample Ids
@@ -464,11 +467,11 @@ class SiteReportChart {
 		//Build data structure where the taxon is top/master, because that's the twisted weird logic that zingchart uses for rendering...
 		var taxonCount = 0;
 		for(var key in contentItem.data.rows) {
-			var taxonId = contentItem.data.rows[key][4].value;
-			var taxonName = contentItem.data.rows[key][5].value;
-			var abundance = contentItem.data.rows[key][3].value;
-			var sampleId = contentItem.data.rows[key][1].value;
-			var sampleName = contentItem.data.rows[key][1].value;
+			var taxonId = contentItem.data.rows[key][7].value;
+			var taxonName = contentItem.data.rows[key][2].value;
+			var abundance = contentItem.data.rows[key][1].value;
+			var sampleId = contentItem.data.rows[key][6].value;
+			var sampleName = contentItem.data.rows[key][0].value;
 			
 			if(typeof(this.taxa[taxonId]) == "undefined") {
 				this.taxa[taxonId] = {
@@ -506,8 +509,6 @@ class SiteReportChart {
 				
 				values.push(sampleValue);
 			}
-
-			console.log(values);
 
 			config.series.push({
 				stack: 1,
@@ -564,7 +565,6 @@ class SiteReportChart {
 
         let selectedOption = null;
         sortOptionSelect.options.forEach(selectOption => {
-            console.log(selectOption);
             if(selectOption.selected === true) {
                 selectedOption = selectOption;
             }
@@ -597,7 +597,7 @@ class SiteReportChart {
 		
 		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
 		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
-		//let sort = this.getSelectedRenderOptionExtra("Sort");
+		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
 
 		var xUnitSymbol = "";
 		var yUnitSymbol = "";
@@ -608,6 +608,16 @@ class SiteReportChart {
 		if(contentItem.data.columns[yAxisKey].hasOwnProperty("unit")) {
 			yUnitSymbol = contentItem.data.columns[yAxisKey].unit;
 		}
+
+		contentItem.data.rows.sort((a, b) => {
+			if(a[sortCol].value > b[sortCol].value) {
+				return 1;
+			}
+			else {
+				return -1;
+			}
+		});
+
 		
 		var config = {
 			"type": "bar",
@@ -645,10 +655,8 @@ class SiteReportChart {
 		let yValues = [];
 		for(var key in contentItem.data.rows) {
 			yValues.push(contentItem.data.rows[key][yAxisKey].value);
-			
 			config["scale-x"].values.push(contentItem.data.rows[key][xAxisKey].value);
 			config["scale-y"].values.push(contentItem.data.rows[key][yAxisKey].value);
-			
 			config["series"][0].values.push(contentItem.data.rows[key][yAxisKey].value);
 		}
 
@@ -678,7 +686,8 @@ class SiteReportChart {
 	renderBarChartCJS() {
 		var contentItem = this.contentItem;
 
-		var ro = this.siteReport.getSelectedRenderOption(contentItem);
+		let cir = this.siteReport.getContentItemRenderer(this.contentItem);
+		var ro = cir.getSelectedRenderOption(contentItem);
 		var xAxisKey = ro.options.xAxis;
 		var yAxisKey = ro.options.yAxis;
 		
@@ -778,7 +787,8 @@ class SiteReportChart {
 
 	renderPieChart() {
 		var contentItem = this.contentItem;
-		var ro = this.siteReport.getSelectedRenderOption(contentItem);
+		let cir = this.siteReport.getContentItemRenderer(this.contentItem);
+		var ro = cir.getSelectedRenderOption(contentItem);
 		
 		var dimensionKey = ro.options.dimension;
 		

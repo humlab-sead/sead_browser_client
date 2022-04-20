@@ -107,7 +107,9 @@ class Analysis {
 	/*
 	* Function: render
 	*/
-	render() {
+	render(siteData) {
+		//analysis.fetch()->delegateAnalyses()->dendro-fetch - need to replace this
+		this.delegateBuildSection(siteData, this.section);
 		this.sqs.siteReportManager.siteReport.renderSection(this.section);
 		this.destroyAllDatasetModules();
 	}
@@ -207,6 +209,14 @@ class Analysis {
 				}
 			});
 		});
+	}
+
+	delegateBuildSection(siteData, section) {
+		console.log(this.datasetModules, siteData);
+		for(let key in this.datasetModules) {
+			this.datasetModules[key]["instance"].makeSection(siteData, section.sections);
+		}
+		return section;
 	}
 
 	/** 

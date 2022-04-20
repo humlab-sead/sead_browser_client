@@ -1,6 +1,6 @@
 import shortid from 'shortid';
 import XLSX from 'xlsx';
-//import Config from '../../config/config.js';
+import Config from '../../config/config.json';
 import ContentItemRenderer from './ContentItemRenderer.class';
 import BasicSiteInformation from './SectionModules/BasicSiteInformation.class';
 import Samples from './SectionModules/Samples.class';
@@ -48,12 +48,6 @@ class SiteReport {
 		let samples = new Samples(this.sqs, this.siteId);
 		let analysis = new Analysis(this.sqs, this.siteId);
 
-		Promise.all([bsi.fetch(), samples.fetch(), analysis.fetch()]).then(() => {
-			this.fetchComplete = true;
-			this.hideLoadingIndicator();
-			this.enableExportButton();
-		});
-
 		this.modules.push({
 			"name": "basicSiteInformation",
 			"module": bsi
@@ -69,11 +63,38 @@ class SiteReport {
 			"weight": 1
 		});
 
+		this.fetchSite().then(siteData => {
+			this.fetchComplete = true;
+			this.hideLoadingIndicator();
+			this.enableExportButton();
+
+			bsi.render(siteData);
+			samples.render(siteData);
+			//analysis.fetch()->delegateAnalyses()->dendro-fetch - need to replace this
+			analysis.render(siteData);
+		});
+
+		
+
+		/*
+		Promise.all([bsi.fetch(), samples.fetch(), analysis.fetch()]).then(() => {
+			this.fetchComplete = true;
+			this.hideLoadingIndicator();
+			this.enableExportButton();
+		});
+		*/
+
+		
+
 		this.backMenu = this.siteReportManager.sqs.menuManager.createMenu(this.siteReportManager.sqs.siteReportManager.sqsMenu());
 		$("#site-report-exit-menu").css("position", "relative").css("left", "-100px").show();
 		$("#site-report-exit-menu").animate({
 			left: "0px"
 		}, 250);
+	}
+
+	async fetchSite() {
+		return await $.get(Config.dataServerAddress+"/site/"+this.siteId);
 	}
 
 	getModuleByName(moduleName) {

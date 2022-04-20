@@ -12,6 +12,10 @@ class DatasetModule {
         });
 	}
 
+    makeSection(siteData, sections) {
+		//console.log(siteData, sections);
+	}
+
 }
 
 export default DatasetModule;

@@ -410,6 +410,10 @@ class RadioMetricDatingDataset extends DatasetModule {
 		return ci;
 	}
 
+	makeSection(siteData, sections) {
+		//console.log(siteData, sections);
+	}
+
 	/* Function: buildSection
 	*/
 	buildSection(dsGroups) {
