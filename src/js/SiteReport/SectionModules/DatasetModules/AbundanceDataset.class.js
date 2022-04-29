@@ -203,7 +203,7 @@ class AbundanceDataset extends DatasetModule {
 				let modifications = this.getEntriesFromLookupTable(siteData, "abundance_modifications", "modification_type_id", modificationIds);
 				modifications.forEach(mod => {
 					//tooltip-format: %data:hellothisisthedata:!%tooltip:hellothisisthetooltip:!
-					modificationsValue += "%data:"+mod.modification_type_name+":!%tooltip:"+mod.modification_type_description+":!, ";
+					modificationsValue += "!%data:"+mod.modification_type_name+":!%tooltip:"+mod.modification_type_description+":!, ";
 				});
 				modificationsValue = modificationsValue.substring(0, modificationsValue.length-2);
 

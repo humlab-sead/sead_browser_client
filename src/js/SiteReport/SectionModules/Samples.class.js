@@ -152,7 +152,7 @@ class Samples {
 					
 					cellValue += data.alt_ref+", ";
 					*/
-					cellValue += "%data:"+data.alt_ref+":!%tooltip:"+data.alt_ref_type+" - "+data.description+":!, ";
+					cellValue += "!%data:"+data.alt_ref+":!%tooltip:"+data.alt_ref_type+" - "+data.description+":!, ";
 				});
 				cellValue = cellValue.substring(0, cellValue.length-2);
 				subTable.rows.forEach(row => {
