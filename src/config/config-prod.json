@@ -38,6 +38,7 @@
 	"domains":[
 		{
 			"name":"general",
+			"title": "General",
 			"icon":"<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>",
 			"color":"#888",
 			"result_grid_layout": [2, 2],
@@ -66,6 +67,7 @@
 		},
 		{
 		"name":"dendrochronology",
+		"title": "Dendrochronology",
 		"icon":"<i class=\"fa fa-tree\" aria-hidden=\"true\"></i>",
 		"color":"#0a0",
 		"result_grid_layout": [2, 2],
@@ -89,6 +91,7 @@
 		},
 		{
 		"name":"palaeoentomology",
+		"title": "Palaeoentomology",
 		"icon":"<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
 		"color":"#d00",
 		"result_grid_layout": [1, 1],
@@ -102,6 +105,7 @@
 		},
 		{
 		"name":"archaeobotany",
+		"title": "Archaeobotany",
 		"icon":"<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i>",
 		"color":"#a0a",
 		"result_grid_layout": [2, 2],
@@ -130,6 +134,7 @@
 		},
 		{
 		"name":"pollen",
+		"title": "Pollen",
 		"icon":"<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i>",
 		"color":"#888",
 		"result_grid_layout": [1, 1],
@@ -143,6 +148,7 @@
 		},
 		{
 		"name":"geoarchaeology",
+		"title": "Geoarchaeology",
 		"icon":"<i class=\"fa fa-map\" aria-hidden=\"true\"></i>",
 		"color":"#909",
 		"result_grid_layout": [1, 1],
@@ -156,6 +162,7 @@
 		},
 		{
 		"name":"isotope",
+		"title": "Isotope",
 		"icon":"<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i>",
 		"color":"#990",
 		"result_grid_layout": [1, 1],
@@ -169,6 +176,7 @@
 		},
 		{
 		"name":"ceramic",
+		"title": "Ceramic",
 		"icon":"<i class=\"fa fa-beer\" aria-hidden=\"true\"></i>",
 		"color":"#099",
 		"result_grid_layout": [2, 2],
