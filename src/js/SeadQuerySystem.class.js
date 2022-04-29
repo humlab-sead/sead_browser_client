@@ -38,7 +38,7 @@ class SeadQuerySystem {
 
 		this.config = this.loadUserSettings(Config);
 
-		/*
+		
 		this.preload().then(() => {
 			console.log("SQS preload complete");
 			this.bootstrapSystem();
@@ -47,8 +47,8 @@ class SeadQuerySystem {
 			$("#preload-failed-indicator").css("display", "block");
 			$(".seadlogo-loading-indicator-bg").hide();
 		});
-		*/
-		this.bootstrapSystem();
+		
+		//this.bootstrapSystem();
 
 		$("body").show();
 	}
