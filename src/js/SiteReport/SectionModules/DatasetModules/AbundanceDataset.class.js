@@ -188,8 +188,10 @@ class AbundanceDataset extends DatasetModule {
 				let elementsTooltip = "";
 
 				let abundanceElements = this.getEntriesFromLookupTable(siteData, "abundance_elements", "abundance_element_id", [data_point.value.abundance_element_id]);
-				elementsValue = abundanceElements[0].element_name;
-				elementsTooltip = abundanceElements[0].element_description;
+				if(abundanceElements && abundanceElements.length > 0) {
+					elementsValue = abundanceElements[0].element_name;
+					elementsTooltip = abundanceElements[0].element_description;
+				}
 
 				let modificationsValue = "";
 

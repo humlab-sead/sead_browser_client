@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 //import 'zingchart/es6';
 import * as d3 from 'd3';
+import DendroLib from "../../Common/DendroLib.class";
 
 
 class DendroChart {
@@ -16,6 +17,8 @@ class DendroChart {
         this.USE_LOCAL_COLORS = true;
         this.infoTooltipId = null;
         this.sampleWarnings = [];
+
+        this.dendroLib = new DendroLib();
 
         this.lookupTable = [
             {
@@ -248,7 +251,7 @@ class DendroChart {
         return null;
     }
     
-    getOldestGerminationYear(dataObject) {
+    getOldestGerminationYearOLD(dataObject) {
         let retVal = {
             name: "Oldest germination year",
             value: null,
@@ -319,7 +322,7 @@ class DendroChart {
     }
     
     
-    getYoungestGerminationYear(dataObject) {
+    getYoungestGerminationYearOLD(dataObject) {
         let retVal = {
             name: "Youngest germination year",
             value: null,
@@ -406,7 +409,7 @@ class DendroChart {
     }
     
     
-    getOldestFellingYear(dataObject) {
+    getOldestFellingYearOLD(dataObject) {
         let retVal = {
             name: "Oldest felling year",
             value: null,
@@ -436,7 +439,7 @@ class DendroChart {
         return retVal;
     }
     
-    getYoungestFellingYear(dataObject) {
+    getYoungestFellingYearOLD(dataObject) {
         let retVal = {
             name: "Youngest felling year",
             value: null,
@@ -655,8 +658,8 @@ class DendroChart {
                 //if we have explicit information that this is not dated...
                 return false;
             }
-            let oldestFellingYear = this.getOldestFellingYear(dataObject);
-            let youngestFellingYear = this.getYoungestFellingYear(dataObject);
+            let oldestFellingYear = this.dendroLib.getOldestFellingYear(dataObject);
+            let youngestFellingYear = this.dendroLib.getYoungestFellingYear(dataObject);
             //let efy = this.getDendroMeasurementByName("Estimated felling year", dataObject);
             if(!oldestFellingYear || !youngestFellingYear) {
                 //Or if we can't find a felling year...
@@ -707,16 +710,16 @@ class DendroChart {
         
         let renderTopOrBottom = false;
         if(tooltips.includes("germinationYearOldest")) {
-            this.germinationYearOldestTooltipId = this.renderBarTooltip(container, this.getOldestGerminationYear(dataObject).value, dendroBarGerminationNode, renderTopOrBottom = !renderTopOrBottom, "left");
+            this.germinationYearOldestTooltipId = this.renderBarTooltip(container, this.dendroLib.getOldestGerminationYear(dataObject).value, dendroBarGerminationNode, renderTopOrBottom = !renderTopOrBottom, "left");
         }
         if(tooltips.includes("germinationYearYoungest")) {
-            this.germinationYearYoungestTooltipId = this.renderBarTooltip(container, this.getYoungestGerminationYear(dataObject).value, dendroBarNode, renderTopOrBottom = !renderTopOrBottom, "left");
+            this.germinationYearYoungestTooltipId = this.renderBarTooltip(container, this.dendroLib.getYoungestGerminationYear(dataObject).value, dendroBarNode, renderTopOrBottom = !renderTopOrBottom, "left");
         }
         if(tooltips.includes("fellingYearOldest")) {
-            this.fellingYearOldestTooltipId = this.renderBarTooltip(container, this.getOldestFellingYear(dataObject).value, dendroBarNode, renderTopOrBottom = !renderTopOrBottom, "right");
+            this.fellingYearOldestTooltipId = this.renderBarTooltip(container, this.dendroLib.getOldestFellingYear(dataObject).value, dendroBarNode, renderTopOrBottom = !renderTopOrBottom, "right");
         }
         if(tooltips.includes("fellingYearYoungest")) {
-            this.fellingYearYoungestTooltipId = this.renderBarTooltip(container, this.getYoungestFellingYear(dataObject).value, dendroBarFellingNode, renderTopOrBottom = !renderTopOrBottom, "right");
+            this.fellingYearYoungestTooltipId = this.renderBarTooltip(container, this.dendroLib.getYoungestFellingYear(dataObject).value, dendroBarFellingNode, renderTopOrBottom = !renderTopOrBottom, "right");
         }
     }
 
@@ -807,16 +810,43 @@ class DendroChart {
         return false;
     }
 
-    registerSampleWarning(sampleName, warningMsg = "Warning!") {
+    /*
+    registerSampleWarning(sampleName, type, warning) {
         let sampleWarnings = this.getWarningsBySampleName(sampleName);
-        sampleWarnings.warnings.push({
-            msg: warningMsg,
+
+        let warningObj = {
+            msg: warning,
             icon: "⚠️",
+            type: type
+        };
+
+        if(typeof warning == 'string') {
+            if(!this.sampleWarningsExists(sampleWarnings, warningObj)) {
+                sampleWarnings.warnings.push(warningObj);
+            }
+        }
+
+        if(typeof warning == 'object') {
+            warning.forEach(w => {
+                warningObj.msg = w;
+                if(!this.sampleWarningsExists(sampleWarnings, warningObj)) {
+                    sampleWarnings.warnings.push(warningObj);
+                }
+            });
+        }
+    }
+    */
+
+    sampleWarningsExists(sampleWarnings, newWarningObj) {
+        let warningExists = false;
+        sampleWarnings.warnings.forEach(regWarning => {
+            if(regWarning.type == newWarningObj.type && regWarning.msg == newWarningObj.msg) {
+                warningExists = true;
+            }
         });
 
-        console.warn(sampleName+" - "+warningMsg);
+        return warningExists;
     }
-
 
     getBarColorByTreeSpecies(treeSpecies) {
 
@@ -884,160 +914,106 @@ class DendroChart {
         return props;
     }
 
-    getBarObjectFromDataObject(dataObject) {
+    getBarObjectFromDataObject(dataObject, barIndex = 0) {
         let d = dataObject;
         let barObject = {
             sample_name: d.sample_name,
+            //dataObject: dataObject,
+            height: 0,
             certainty: {
                 x: {
                     value: 0,
-                    source: "",
-                    warnings: []
+                    warnings: [],
                 },
                 y: {
-                    value: 0,
-                    source: "",
+                    value: barIndex * (this.barHeight + this.barMarginY) + this.chartTopPadding,
                     warnings: []
                 },
                 width: {
                     value: 0,
-                    source: "",
-                    warnings: []
-                },
-                height: {
-                    value: 0,
-                    source: "",
                     warnings: []
                 }
             },
             germinationUncertainty: {
                 x: {
                     value: 0,
-                    source: "",
-                    warnings: []
+                    warnings: [],
                 },
                 y: {
-                    value: 0,
-                    source: "",
+                    value: barIndex * (this.barHeight + this.barMarginY) + this.chartTopPadding,
                     warnings: []
                 },
                 width: {
                     value: 0,
-                    source: "",
-                    warnings: []
-                },
-                height: {
-                    value: 0,
-                    source: "",
                     warnings: []
                 }
             },
             fellingUncertainty: {
                 x: {
                     value: 0,
-                    source: "",
-                    warnings: []
+                    warnings: [],
                 },
                 y: {
-                    value: 0,
-                    source: "",
+                    value: barIndex * (this.barHeight + this.barMarginY) + this.chartTopPadding,
                     warnings: []
                 },
                 width: {
                     value: 0,
-                    source: "",
-                    warnings: []
-                },
-                height: {
-                    value: 0,
-                    source: "",
                     warnings: []
                 }
             }
         };
 
+
+        let oldestFellingYear = this.dendroLib.getOldestFellingYear(d);
+        let youngestFellingYear = this.dendroLib.getYoungestFellingYear(d);
+        let youngestGerminationYear = this.dendroLib.getYoungestGerminationYear(d);
+        let oldestGerminationYear = this.dendroLib.getOldestGerminationYear(d);
+
+        //CERTAINTY BAR
+
         //Figure out X
-        let germinationYear = this.getYoungestGerminationYear(d);
-        barObject.certainty.x.formula = "Youngest germination year";
-        if(!germinationYear.value) {
-            germinationYear = this.getOldestGerminationYear(d);
-            barObject.certainty.x.formula = "Oldest germination year";
-            barObject.certainty.x.warnings.push({
-                summary: "Using youngest germination year instead of oldest",
-                description: "Using older (rather than younger) germination year for calculation of youngest possible germination year, since there is no data for the oldest year."
-            });
+        if(youngestGerminationYear.value) {
+            barObject.certainty.x.value = this.xScale(youngestGerminationYear.value);
+            barObject.certainty.x.warnings = youngestGerminationYear.warnings;
         }
-        barObject.certainty.x.value = this.xScale(germinationYear.value);
-        barObject.certainty.x.source = germinationYear;
 
         //Figure out Width
-        //Width should ideally be from the younger germination year to the older felling year
-        let fellingYear = this.getOldestFellingYear(d);
-        barObject.certainty.width.formula = "Oldest felling year - Youngest germination year";
-        if(!fellingYear.value) {
-            fellingYear = this.getYoungestFellingYear(d);
-            barObject.certainty.width.formula = "Youngest felling year - Youngest germination year";
-            barObject.certainty.width.warnings.push({
-                summary: "Using younger felling year instead of older",
-                description: "This value was calculated using the youngest possible felling year instead of the oldest possible felling year since there was no data available for the oldest possible feeling year"
-            });
+        if(youngestGerminationYear.value && oldestFellingYear.value) {
+            barObject.certainty.width.value = this.xScale(oldestFellingYear.value) - this.xScale(youngestGerminationYear.value)
+            barObject.certainty.width.warnings = oldestFellingYear.warnings.concat(youngestGerminationYear.warnings);
         }
-        barObject.certainty.width.value = this.xScale(fellingYear.value);
-        barObject.certainty.width.source = fellingYear;
-        
 
-        /*
-        germinationYear = this.getYoungestGerminationYear(d);
-        if(!germinationYear.value) {
-            germinationYear = this.getOldestGerminationYear(d).value;
-            barObject.certainty.width.warnings.push({
-                summary: "Using oldest germination year instead of youngest",
-                description: "This value was calculated using the oldest possible germination year instead of the youngest possible felling year since there was no data available for the youngest possible feeling year"
-            });
+        //GERM-UNCERT BAR
+        //X
+        barObject.germinationUncertainty.x.value = this.xScale(oldestGerminationYear.value);
+        barObject.germinationUncertainty.x.warnings = oldestGerminationYear.warnings;
 
-            if(fellingYear.source == "Estimated felling year (younger)") {
-                
-            }
-            //barObject.certainty.width.source = "Youngest felling year - Youngest germination year";
-        }
-        console.log(fellingYear.source)
-        barObject.certainty.width.value = this.xScale(fellingYear.value) - this.xScale(germinationYear);
-        */
+        //Width
+        barObject.germinationUncertainty.width.value = this.xScale(youngestGerminationYear.value) - this.xScale(oldestGerminationYear.value);
+        barObject.germinationUncertainty.width.warnings = youngestGerminationYear.warnings.concat(oldestGerminationYear.warnings);
 
-        //Figure out germination uncertainty - X
-        let uncertGerminationYear = this.getOldestGerminationYear(d);
-
-        //Figure out felling uncertainty - X
-
-
-        //barObject.germinationUncertainty
-
+        //FELLING-UNCERT BAR
+        //X
+        barObject.fellingUncertainty.x.value = this.xScale(oldestFellingYear.value);
+        barObject.fellingUncertainty.x.warnings = oldestFellingYear.warnings;
+        //Width
+        barObject.fellingUncertainty.width.value = this.xScale(youngestFellingYear.value) - this.xScale(oldestFellingYear.value);
+        barObject.fellingUncertainty.width.warnings = youngestFellingYear.warnings.concat(oldestFellingYear.warnings);
 
         return barObject;
     }
 
+    concatWarnings(warnings, datingResult) {
+        if(datingResult && datingResult.warnings) {
+            warnings = warnings.concat(datingResult.warnings);
+        }
+        return warnings;
+    }
+
     drawCertaintyBars(container, dataObjects, initialTransitions = true) {
-        console.log("drawCertaintyBars");
-        let barObjects = [];
-        let warningFlags = [];
-        dataObjects.forEach(d => {
-            warningFlags.push({
-                sampleName: d.sample_name,
-                warnings: []
-            });
-            /*
-            console.log(
-                this.getOldestGerminationYear(d).value,
-                this.getYoungestGerminationYear(d).value,
-                this.getOldestFellingYear(d).value,
-                this.getYoungestFellingYear(d).value
-            );
-            */
-
-            barObjects.push(this.getBarObjectFromDataObject(d));
-        });
-
-        console.log(barObjects);
+        
+        console.log(dataObjects);
 
         let bars = container.selectAll(".dendro-bar")
             .data(dataObjects)
@@ -1051,11 +1027,7 @@ class DendroChart {
 
         if(initialTransitions) {
             bars.attr("x", (d) => {
-                let fellingYear = this.getOldestFellingYear(d).value;
-                if(!fellingYear) {
-                    fellingYear = this.getYoungestFellingYear(d).value;
-                }
-                return this.xScale(fellingYear) - this.chartRightPadding;
+                return d.barObject.certainty.x.value - this.chartRightPadding;
             })
             .attr("y", (d, i) => {
                 return i * (this.barHeight + this.barMarginY) + this.chartTopPadding;
@@ -1068,24 +1040,12 @@ class DendroChart {
 
         bars.transition()
         .attr("x", (d) => {
-            let plantingYear = this.getYoungestGerminationYear(d).value;
-            if(!plantingYear) {
-                plantingYear = this.getOldestGerminationYear(d).value;
-                this.registerSampleWarning(d.sample_name, "Warnings - using older (rather than younger) germination year for calculation of youngest possible germination year, since there is no data for the oldest year.");
-            }
-            return this.xScale(plantingYear) + this.chartLeftPadding;
+            //this.registerSampleWarning(d.barObject.sample_name, "youngestGerminationYear", d.barObject.warnings);
+            return d.barObject.certainty.x.value - this.chartRightPadding;
         })
         .attr("width", (d, i) => {
-            //Width should ideally be from the younger planting year to the older felling year
-            let fellingYear = this.getOldestFellingYear(d);
-            if(fellingYear.source != "Oldest felling year") {
-                this.registerSampleWarning(d.sample_name, "Using younger felling year instead of older");
-            }
-            let germinationYear = this.getYoungestGerminationYear(d);
-            if(germinationYear.reliability < 1) {
-                this.registerSampleWarning(d.sample_name, "Unreliable youngest germination year source: "+germinationYear.source);
-            }
-            return (this.xScale(fellingYear.value) - this.xScale(germinationYear.value)) - this.chartLeftPadding - this.chartRightPadding;
+            //this.registerSampleWarning(d.barObject.sample_name, "youngestFellingYear", d.barObject.warnings);
+            return d.barObject.certainty.width.value - this.chartLeftPadding - this.chartRightPadding;
         })
 
         container.selectAll(".dendro-bar")
@@ -1106,9 +1066,211 @@ class DendroChart {
             });
 
         setTimeout(() => {
-            this.drawCertaintyBarsWarnings(container, dataObjects);
+            
+            //this.drawCertaintyBarsWarnings(container, dataObjects);
+            //this.drawSampleBarWarnings(dataObjects);
         }, 500);
+    }
+
+    addDrawableSampleWarning(collection, sampleName, type, warningMsg) {
+        let found = false;
+        for(let key in collection) {
+            if(collection[key].sampleName == sampleName && collection[key].type == type) {
+                found = true;
+                
+                let unique = true;
+                collection[key].warnings.forEach(msg => {
+                    if(msg == warningMsg) {
+                        unique = false;
+                    }
+                })
+                if(unique) {
+                    collection[key].warnings.push(warningMsg);
+                }
+            }
+        }
+
+        if(!found) {
+            collection.push({
+                sampleName: sampleName,
+                type: type,
+                warnings: [warningMsg]
+            });
+        }
+    }
+
+    drawSampleBarWarnings(container, dataObjects) {
+        console.log(dataObjects);
+        //console.log(this.sampleWarnings);
+
+
+        let draw = [
+            {
+                sampleName: "Sample A",
+                type: "oldestGerminationYear",
+                warnings: [] //text messages (unique)
+            },
+            {
+                sampleName: "Sample A",
+                type: "youngestGerminationYear",
+                warnings: [] //text messages (unique)
+            },
+            {
+                sampleName: "Sample B",
+                type: "youngestGerminationYear",
+                warnings: [] //text messages (unique)
+            }
+        ]
+
+        let drawableSampleWarnings = [];
+        dataObjects.forEach(d => {
+             if(d.barObject.certainty.x.warnings) {
+                this.addDrawableSampleWarning(drawableSampleWarnings, d.sampleName, type, warningMsg);
+             }
+        });
+
+        console.log(drawableSampleWarnings)
+
+        //Sort warnings per-position so that we have an array with a max of 4 items where each item is a position, like oldestFellingYear, which contains X number of warnings
+        let warningPositions = [];
+        this.sampleWarnings.forEach(sampleWarning => {
+            sampleWarning.warnings.forEach(warning => {
+                let foundWarningPos = false;
+                warningPositions.forEach(wp => {
+                    if(wp.type == warning.type && wp.sampleName == sampleWarning.sampleName) {
+                        wp.messages.push(warning.msg);
+                        foundWarningPos = true;
+                    }
+                });
+                if(!foundWarningPos) {
+                    warningPositions.push({
+                        sampleName: sampleWarning.sampleName,
+                        type: warning.type,
+                        messages: [warning.msg]
+                    });
+                }
+            });
+        });
+
+        warningPositions.forEach((wp) => {
+            wp.messages = wp.messages.filter((value, index, self) => {
+                return self.indexOf(value) == index;
+            });
+        });
         
+        console.log(warningPositions);
+        
+        
+        
+
+        /*
+        let barIndex = 0;
+        this.sampleWarnings.forEach(sampleWarning => {
+            let dataObject = this.getDataObjectBySampleName(dataObjects, sampleWarning.sampleName);
+            sampleWarning.barObject = this.getBarObjectFromDataObject(dataObject, barIndex++);
+        });
+        
+
+        
+        console.log(this.sampleWarnings);
+
+        let sampleWarningsToRender = [];
+        this.sampleWarnings.forEach(sw => {
+            sw.warnings.forEach(w => {
+                sampleWarningsToRender.push({
+                    sampleName: sw.sampleName,
+                    barObject: sw.barObject,
+                    warning: w
+                });
+            });
+        });
+
+        console.log(sampleWarningsToRender);
+        */
+
+        //console.log(this.sampleWarnings[0].barObject.certainty.x.value);
+        
+        container.selectAll('.warning-flag')
+        .data(warningPositions)
+        .join("text")
+        .classed("warning-flag", true)
+        .attr("sample-name", wp => {
+            return wp.sampleName;
+        })
+        .html("⚠️")
+        .attr("x", (wp, i) => {
+            let d = this.getDataObjectBySampleName(wp.sampleName);
+            let barObject = this.getBarObjectFromDataObject(d, i);
+            //console.log(wp)
+            //console.log(barObject)
+            let returnValue = 0;
+            switch(wp.type) {
+                case "oldestFellingYear":
+                    returnValue = barObject.certainty.x.value;
+                    break;
+                case "youngestFellingYear":
+                    returnValue = barObject.fellingUncertainty.x.value + barObject.fellingUncertainty.width.value;
+                    break;
+                case "youngestGerminationYear":
+                    returnValue = barObject.germinationUncertainty.x.value + barObject.germinationUncertainty.width.value;
+                    break;
+                case "oldestGerminationYear":
+                    returnValue = barObject.germinationUncertainty.x.value;
+                    break;
+            }
+            return returnValue;
+        })
+        .attr("y", (wp, i) => {
+            let d = this.getDataObjectBySampleName(wp.sampleName);
+            let barObject = this.getBarObjectFromDataObject(d, i);
+            return barObject.certainty.y.value;
+        })
+        .on("mouseover", (evt, swr) => {
+            console.log(swr);
+        });
+        
+    }
+
+    drawSampleBarWarningsOLD(dataObjects) {
+        
+        //console.log(dataObjects);
+        dataObjects.forEach(d => {
+            let warnings = this.getWarningsBySampleName(d.sample_name);
+            console.log(d.sample_name, warnings);
+        });
+
+
+        container.selectAll(".warning-flag")
+        .data(dataObjects)
+        .join("text")
+        .classed("warning-flag", true)
+        .attr("sample-name", d => d.sample_name)
+        .html("⚠️")
+        .attr("x", (d, i) => {
+            let dendroBarNode = $("svg [sample-name="+d.sample_name+"].dendro-bar");
+            return dendroBarNode.attr("x");
+        })
+        .attr("y", (d, i) => {
+            return i * (this.barHeight + this.barMarginY) + this.chartTopPadding + 1.5;
+        })
+        .attr("visibility", (d) => {
+            let warnings = this.getWarningsBySampleName(d.sample_name);
+            console.log(warnings);
+
+            return true;
+
+            let germYoung = this.getYoungestGerminationYear(d);
+            let germOld = this.getOldestGerminationYear(d);
+
+            //console.log(germYoung, germOld)
+            return germYoung.reliability == 1 && germOld.reliability == 1 ? "hidden" : "visible";
+        })
+        .attr("opacity", "0")
+        .transition().duration(200)
+        .attr("opacity", "1");
+        
+
+        //this.getWarningsBySampleName(sampleName);
     }
 
     drawInfoTooltip(d, evt) {
@@ -1274,6 +1436,7 @@ class DendroChart {
             .on("mouseover", (evt) => {
                 let sampleName = $(evt.target).attr("sample-name");
                 let d = this.getDataObjectBySampleName(dataObjects, sampleName);
+                //let warnings = this.getWarningsBySampleName(sampleName);
 
                 //let warnFlagNode = $("svg [sample-name="+d.sampleName+"].warning-flag");
 
@@ -1284,31 +1447,35 @@ class DendroChart {
 
                 let content = "";
 
-                let germYoung = this.getYoungestGerminationYear(d);
+                //console.log(warnings);
+
+                /*
+                let germYoung = this.dendroLib.getYoungestGerminationYear(d);
                 if(germYoung && germYoung.reliability != 1) {
                     content += "<p>The youngest possible germination year for this sample has a high degree of uncertainty. It's calculated as follows: ";
                     content += germYoung.source+"</p>";
                     $(tooltipContainer).html(content);
                 }
-                let germOld = this.getOldestGerminationYear(d);
+                let germOld = this.dendroLib.getOldestGerminationYear(d);
                 if(germOld && germOld.reliability != 1) {
                     content += "<p>The oldest possible germination year for this sample has a high degree of uncertainty. It's calculated as follows: ";
                     content += germOld.source+"</p>";
                     $(tooltipContainer).html(content);
                 }
 
-                let fellingYoung = this.getYoungestFellingYear(d);
+                let fellingYoung = this.dendroLib.getYoungestFellingYear(d);
                 if(fellingYoung && fellingYoung.reliability != 1) {
                     content += "<p>The youngest possible felling year for this sample has a high degree of uncertainty. It's calculated as follows: ";
                     content += fellingYoung.source+"</p>";
                     $(tooltipContainer).html(content);
                 }
-                let fellingOld = this.getOldestFellingYear(d);
+                let fellingOld = this.dendroLib.getOldestFellingYear(d);
                 if(fellingOld && fellingOld.reliability != 1) {
                     content += "<p>The oldest possible felling year for this sample has a high degree of uncertainty. It's calculated as follows: ";
                     content += fellingOld.source+"</p>";
                     $(tooltipContainer).html(content);
                 }
+                */
 
                 $("body").append(tooltipContainer);
             })
@@ -1319,158 +1486,76 @@ class DendroChart {
     }
 
     drawGerminationUncertaintyBars(container, dataObjects) {
-        let bars = container.selectAll(".dendro-bar-germination-uncertainty")
-            .data(dataObjects)
-            .join("rect")
-            .classed("dendro-bar-uncertain", true)
-            .classed("dendro-bar-germination-uncertainty", true)
-            .classed("dendro-bar-germination-high-uncertainty", d => {
-                let germYoung = this.getYoungestGerminationYear(d);
-                let germOld = this.getOldestGerminationYear(d);
-                //console.log(germYoung);
-                if(germYoung.reliability != 1) {
-                    return true;
-                }
-            })
-            .attr("sample-name", d => d.sample_name)
-            /*
-            .attr("visibility", (d) => {
-                let germYoung = this.getYoungestGerminationYear(d);
-                let germOld = this.getOldestGerminationYear(d);
-                return "visible";
-                return !germYoung || !germOld ? "hidden" : "visible";
-            })*/
-            .attr("y", (d, i) => {
-                return i * (this.barHeight + this.barMarginY) + this.chartTopPadding;
-            })
-            .attr("height", this.barHeight)
-            .attr("width", 0)
-            .attr("x", (d) => {
-                let germYounger = this.getYoungestGerminationYear(d);
-                if(germYounger) {
-                    return this.xScale(germYounger.value) + this.chartLeftPadding;
-                }
-                else {
-                    return 0;
-                }
-            })
-            .attr("visibility", () => {
-                if(this.showUncertainty == "none") {
-                    return "hidden";
-                }
-                else {
-                    return "visible";
-                }
-            })
-            .transition()
-            .delay(100)
-            .duration(500)
-            .attr("x", (d) => {
-                let germOlder = this.getOldestGerminationYear(d);
-                if(germOlder) {
-                    return this.xScale(germOlder.value) + this.chartLeftPadding;
-                }
-                else {
-                    return 0;
-                }
-            })
-            .attr("width", (d, i) => {
-                let germOlder = this.getOldestGerminationYear(d);
-                let germYounger = this.getYoungestGerminationYear(d);
-
-                if(germYounger.reliability != 1) {
-                    return 0;
-                }
-
-                if(germOlder && germYounger) {
-                    //console.log(this.xScale(germYounger) - this.xScale(germOlder))
-                    return this.xScale(germYounger.value) - this.xScale(germOlder.value);
-                }
-                else {
-                    return 0;
-                }
-            });
-            
-
         container.selectAll(".dendro-bar-germination-uncertainty")
-            .on("mouseover", (evt) => {
-                let sampleName = $(evt.target).attr("sample-name");
-                let d = this.getDataObjectBySampleName(dataObjects, sampleName);
-                if(!d) {
-                    console.warn("Couldn't find dataObject with sampleName", sampleName);
-                }
-                this.renderBarHoverTooltip(container, d, ["germinationYearOldest", "germinationYearYoungest"]);
-                this.drawHorizontalGuideLines(container, d);
-            })
-            .on("mouseout", (evt) => {
-                this.unrenderBarHoverTooltip(container);
-                this.removeHorizontalGuideLines(container);
-            }).on("click", (evt) => {
-                let sampleName = $(evt.target).attr("sample-name");
-                let d = this.getDataObjectBySampleName(dataObjects, sampleName);
-                this.drawInfoTooltip(d, evt);
-            });
-
-        //Here we might look for samples which can't be given a germination year with any degree of accuracy and draw the uncertainty to infinity for these
-        /*
-        dataObjects = dataObjects.filter((d) => {
-            let germOlder = this.getOldestGerminationYear(d).value;
-            let germYounger = this.getYoungestGerminationYear(d).value;
-            return !germOlder && germYounger;
+        .data(dataObjects)
+        .join("rect")
+        .classed("dendro-bar-uncertain", true)
+        .classed("dendro-bar-germination-uncertainty", true)
+        .classed("dendro-bar-germination-high-uncertainty", d => {
+            return false; //FIXME: what is this? do we want this?
+        })
+        .attr("sample-name", d => d.sample_name)
+        .attr("y", (d, i) => {
+            return i * (this.barHeight + this.barMarginY) + this.chartTopPadding;
+        })
+        .attr("height", this.barHeight)
+        .attr("width", 0)
+        .attr("x", (d) => {
+            return d.barObject.germinationUncertainty.x.value;
+        })
+        .attr("visibility", () => {
+            if(this.showUncertainty == "none") {
+                return "hidden";
+            }
+            else {
+                return "visible";
+            }
+        })
+        .transition()
+        .delay(100)
+        .duration(500)
+        .attr("x", (d) => {
+            //this.registerSampleWarning(barObject.sample_name, "oldestGerminationYear", barObject.germinationUncertainty.x.warnings);
+            return d.barObject.germinationUncertainty.x.value;
+        })
+        .attr("width", (d, i) => {
+            //this.registerSampleWarning(barObject.sample_name, barObject.germinationUncertainty.width.warnings);
+            return d.barObject.germinationUncertainty.width.value;
         });
-        */
+        
 
-        /*
-        if(this.showUncertainty == "all") {
-            let groups = container.selectAll(".dendro-bar-germination-high-uncertainty")
-                .data(dataObjects)
-                .enter()
-                .append("rect")
-                    .classed("dendro-bar-uncertain", true)
-                    .classed("dendro-bar-germination-high-uncertainty", true)
-                    .attr("sample-name", d => d.sampleName)
-                    .attr("x", (d) => {
-                        return this.barMarginX;
-                    })
-                    .attr("y", (d, i) => {
-                        return i * (this.barHeight + this.barMarginY);
-                    })
-                    .transition()
-                    .delay(0)
-                    .duration(500)
-                    .attr("width", (d, i) => {
-                        let germOlder = this.getOldestGerminationYear(d);
-                        let germYounger = this.getYoungestGerminationYear(d);
-                        if(!germOlder && germYounger) {
-                            return this.xScale(germYounger.value);
-                        }
-                        else {
-                            return 0;
-                        }
-                    })
-                    .attr("height", this.barHeight);
-        }
-        */
-
+        
+    container.selectAll(".dendro-bar-germination-uncertainty")
+        .on("mouseover", (evt) => {
+            let sampleName = $(evt.target).attr("sample-name");
+            let d = this.getDataObjectBySampleName(dataObjects, sampleName);
+            if(!d) {
+                console.warn("Couldn't find dataObject with sampleName", sampleName);
+            }
+            this.renderBarHoverTooltip(container, d, ["germinationYearOldest", "germinationYearYoungest"]);
+            //this.drawHorizontalGuideLines(container, d);
+        })
+        .on("mouseout", (evt) => {
+            this.unrenderBarHoverTooltip(container);
+            //this.removeHorizontalGuideLines(container);
+        }).on("click", (evt) => {
+            let sampleName = $(evt.target).attr("sample-name");
+            let d = this.getDataObjectBySampleName(dataObjects, sampleName);
+            this.drawInfoTooltip(d, evt);
+        });
         
     }
 
     drawFellingUncertaintyBars(container, dataObjects) {
 
-        let bars = container.selectAll(".dendro-bar-felling-uncertainty")
+        container.selectAll(".dendro-bar-felling-uncertainty")
             .data(dataObjects)
             .join("rect")
             .classed("dendro-bar-uncertain", true)
             .classed("dendro-bar-felling-uncertainty", true)
             .attr("sample-name", d => d.sample_name)
             .attr("x", (d) => {
-                let fellingOlder = this.getOldestFellingYear(d).value;
-                if(fellingOlder) {
-                    return this.xScale(fellingOlder) - this.barMarginX;
-                }
-                else {
-                    return 0;
-                }
+                return d.barObject.fellingUncertainty.x.value;
             })
             .attr("y", (d, i) => {
                 return i * (this.barHeight + this.barMarginY) + this.chartTopPadding;
@@ -1487,14 +1572,8 @@ class DendroChart {
             .delay(0)
             .duration(500)
             .attr("width", (d, i) => {
-                let fellingOlder = this.getOldestFellingYear(d).value;
-                let fellingYounger = this.getYoungestFellingYear(d).value;
-                if(fellingOlder && fellingYounger) {
-                    return this.xScale(fellingYounger) - this.xScale(fellingOlder);
-                }
-                else {
-                    return 0;
-                }
+                //this.registerSampleWarning(barObject.sample_name, "oldestFellingYear", barObject.fellingUncertainty.width.warnings);
+                return d.barObject.fellingUncertainty.width.value;
             })
             .attr("height", this.barHeight)
 
@@ -1504,11 +1583,11 @@ class DendroChart {
                 let sampleName = $(evt.target).attr("sample-name");
                 let d = this.getDataObjectBySampleName(dataObjects, sampleName);
                 this.renderBarHoverTooltip(container, d, ["fellingYearOldest", "fellingYearYoungest"]);
-                this.drawHorizontalGuideLines(container, d);
+                //this.drawHorizontalGuideLines(container, d);
             })
             .on("mouseout", (evt) => {
                 this.unrenderBarHoverTooltip(container);
-                this.removeHorizontalGuideLines(container);
+                //this.removeHorizontalGuideLines(container);
             }).on("click", (evt) => {
                 let sampleName = $(evt.target).attr("sample-name");
                 let d = this.getDataObjectBySampleName(dataObjects, sampleName);
@@ -1523,9 +1602,9 @@ class DendroChart {
             .append("text")
             .classed("dendro-text", true)
             .attr("x", (d) => {
-                let plantingYear = this.getYoungestGerminationYear(d).value;
+                let plantingYear = this.dendroLib.getYoungestGerminationYear(d).value;
                 if(!plantingYear) {
-                    plantingYear = this.getOldestGerminationYear(d).value;
+                    plantingYear = this.dendroLib.getOldestGerminationYear(d).value;
                     console.warn("Warning - using older planting year for planting label")
                 }
                 return this.xScale(plantingYear) + 5;
@@ -1534,7 +1613,7 @@ class DendroChart {
                 return i * (this.barHeight + this.barMarginY) + this.fontSize;
             })
             .text(d => {
-                return this.getOldestGerminationYear(d).value+" - "+this.getYoungestGerminationYear(d).value;
+                return this.dendroLib.getOldestGerminationYear(d).value+" - "+this.dendroLib.getYoungestGerminationYear(d).value;
 
                 let plantingYear = this.getYoungestGerminationYear(d).value;
                 if(!plantingYear) {
@@ -1553,9 +1632,9 @@ class DendroChart {
             .append("text")
             .classed("dendro-text", true)
             .attr("x", (d) => {
-                let fellingYear = this.getOldestFellingYear(d).value;
+                let fellingYear = this.dendroLib.getOldestFellingYear(d).value;
                 if(!fellingYear) {
-                    fellingYear = this.getYoungestFellingYear(d).value;
+                    fellingYear = this.dendroLib.getYoungestFellingYear(d).value;
                     console.warn("Warning - using younger felling year for felling label")
                 }
                 return this.xScale(fellingYear) - 4;
@@ -1564,9 +1643,9 @@ class DendroChart {
                 return i * (this.barHeight + this.barMarginY) + this.fontSize;
             })
             .text(d => {
-                let fellingYear = this.getOldestFellingYear(d).value;
+                let fellingYear = this.dendroLib.getOldestFellingYear(d).value;
                 if(!fellingYear) {
-                    fellingYear = this.getYoungestFellingYear(d).value;
+                    fellingYear = this.dendroLib.getYoungestFellingYear(d).value;
                     console.warn("Warning - using younger felling year for felling label")
                     //fellingYear = fellingYear + ' \uf071';
                 }
@@ -1579,9 +1658,9 @@ class DendroChart {
             .append("text")
             .classed("dendro-text-extras", true)
             .attr("x", (d) => {
-                let fellingYear = this.getOldestFellingYear(d).value;
+                let fellingYear = this.dendroLib.getOldestFellingYear(d).value;
                 if(!fellingYear) {
-                    fellingYear = this.getYoungestFellingYear(d).value;
+                    fellingYear = this.dendroLib.getYoungestFellingYear(d).value;
                     console.warn("Warning - using younger felling year for felling label")
                 }
                 return this.xScale(fellingYear) - 1;
@@ -1590,9 +1669,9 @@ class DendroChart {
                 return i * (this.barHeight + this.barMarginY);
             })
             .text(d => {
-                let fellingYear = this.getOldestFellingYear(d).value;
+                let fellingYear = this.dendroLib.getOldestFellingYear(d).value;
                 if(!fellingYear) {
-                    fellingYear = this.getYoungestFellingYear(d).value;
+                    fellingYear = this.dendroLib.getYoungestFellingYear(d).value;
                     console.warn("Warning - using younger felling year for felling label")
                     fellingYear = '\uf071';
                 }
@@ -1807,7 +1886,8 @@ class DendroChart {
         const maxBarHeight = 6;
 
         this.viewBoxAvailableHeight = viewBoxHeight - this.chartTopPadding - this.chartBottomPadding
-        this.barHeight = (this.viewBoxAvailableHeight / this.dataObjects.length) - this.barMarginY;
+        //this.barHeight = (this.viewBoxAvailableHeight / this.dataObjects.length) - this.barMarginY;
+        this.barHeight = 4; //hard-coding this as an experiment
         
         if(this.barHeight > maxBarHeight) {
             this.barHeight = maxBarHeight;
@@ -1855,17 +1935,17 @@ class DendroChart {
         }
 
         let extentMin = d3.min(this.dataObjects, d => {
-            let plantingYear = this.getOldestGerminationYear(d).value
+            let plantingYear = this.dendroLib.getOldestGerminationYear(d).value
             if(!plantingYear) {
-                plantingYear = this.getYoungestGerminationYear(d).value;
+                plantingYear = this.dendroLib.getYoungestGerminationYear(d).value;
             }
             return plantingYear;
         });
     
         let extentMax = d3.max(this.dataObjects, d => {
-            let fellingYear =  this.getOldestFellingYear(d).value;
+            let fellingYear =  this.dendroLib.getOldestFellingYear(d).value;
             if(!fellingYear) {
-                fellingYear = this.getYoungestFellingYear(d).value;
+                fellingYear = this.dendroLib.getYoungestFellingYear(d).value;
             }
             return fellingYear;
         });
@@ -1937,14 +2017,20 @@ class DendroChart {
     }
 
     updateChart(container, dataObjects) {
-        console.log("updateChart")
         this.clearSampleWarnings();
         this.dataObjects = this.sortDataObjects(this.dataObjects);
         this.removeCertaintyBarsWarnings(container);
+        
+        let index = 0;
+        this.dataObjects.forEach(d => {
+            d.barObject = this.getBarObjectFromDataObject(d, index++);
+        })
+
         this.drawCertaintyBars(container, dataObjects);
         this.drawFellingUncertaintyBars(container, dataObjects);
         this.drawGerminationUncertaintyBars(container, dataObjects);
         this.drawYAxis(container, dataObjects);
+        this.drawSampleBarWarnings(container, dataObjects);
     }
 
     unrender() {

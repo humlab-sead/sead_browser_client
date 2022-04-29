@@ -708,6 +708,8 @@ class DendrochronologyDataset extends DatasetModule {
 		];
 		let rows = [];
 
+		const dl = new DendroLib();
+
 		dataGroups.forEach(dataGroup => {
 
 			let dateSampled = dataGroup.date_sampled;
@@ -742,8 +744,6 @@ class DendrochronologyDataset extends DatasetModule {
 					hidden: true
 				}
 			];
-
-			const dl = new DendroLib();
 
 			let subTableRows = [];
 			dataGroup.data_points.forEach(dp => {
@@ -809,6 +809,44 @@ class DendrochronologyDataset extends DatasetModule {
 			]);
 		});
 
+		//Check if there are any dated samples, if not, switch to spreadsheet render view
+		let oldestGermYear = null;
+		let youngestFellingYear = null;
+		dataGroups.forEach(dataGroup => {
+			let oldestGermYearValue = dl.getOldestGerminationYear(dataGroup);
+			if(!oldestGermYearValue) {
+                oldestGermYearValue = dl.getYoungestGerminationYear(dataGroup);
+            }
+			if(oldestGermYear == null) {
+				oldestGermYear = oldestGermYearValue;
+			}
+			else if(oldestGermYearValue && oldestGermYearValue.value < oldestGermYear.value) {
+				oldestGermYear = oldestGermYearValue;
+			}
+
+			let youngestFellingYearValue = dl.getYoungestFellingYear(dataGroup);
+			if(!youngestFellingYearValue) {
+                youngestFellingYearValue = dl.getOldestFellingYear(dataGroup);
+            }
+
+			if(youngestFellingYear == null) {
+				youngestFellingYear = youngestFellingYearValue;
+			}
+			else if(youngestFellingYearValue && youngestFellingYearValue.value > youngestFellingYear.value) {
+				youngestFellingYear = youngestFellingYearValue;
+			}
+			
+			//console.log(oldestGermYearValue, youngestFellingYearValue);
+		});
+		//console.log(oldestGermYear, youngestFellingYear);
+		//If one of these is null/undefined, that means that there's no dateable samples in this site
+		//(even if they are both set, they may not be set for the same sample)
+		let defaultDisplayOption = "graph";
+		if(!oldestGermYear || !youngestFellingYear) {
+			defaultDisplayOption = "table";
+		}
+
+
 		let contentItem = {
 			"name": "dendro",
 			"title": "Dendrochronology",
@@ -821,12 +859,12 @@ class DendrochronologyDataset extends DatasetModule {
 			"renderOptions": [
 				{
 					"name": "Spreadsheet",
-					"selected": false,
+					"selected": defaultDisplayOption == "table",
 					"type": "table"
 				},
 				{
 					"name": "Graph",
-					"selected": true,
+					"selected": defaultDisplayOption == "graph",
 					"type": "dendrochart",
 					"options": [
 						{
@@ -885,7 +923,7 @@ class DendrochronologyDataset extends DatasetModule {
 			"contentItems": [contentItem]
 		};
 
-		sections.push(section);
+		//sections.push(section);
 	}
 
 	/* Function: buildSection

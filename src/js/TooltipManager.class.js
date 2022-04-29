@@ -27,7 +27,6 @@ class TooltipManager {
 			arrow: true,
 			drawSymbol: false,
 			symbolChar: "fa-question-circle",
-			symbolColor: "#000",
 			anchorPoint: "symbol", // should the tooltip popup when hovering over the container area or just the symbol (if it exists)? options: 'symbol' or 'container'
 			html: true,
 			placement: "top",
@@ -166,7 +165,11 @@ class TooltipManager {
 		
 		var anchor = tooltip.anchor;
 		if(tooltip.options.drawSymbol) {
-			var symbol = $("<i style=\"color:"+tooltip.options.symbolColor+";\" class=\"fa "+tooltip.options.symbolChar+" help-icon\" tooltip-anchor-id='"+tooltip.id+"' aria-hidden=\"true\"></i>");
+			let colorAttr = "";
+			if(tooltip.options.symbolColor) {
+				colorAttr = "color:"+tooltip.options.symbolColor+";";
+			}
+			var symbol = $("<i style=\""+colorAttr+"\" class=\"fa "+tooltip.options.symbolChar+" help-icon\" tooltip-anchor-id='"+tooltip.id+"' aria-hidden=\"true\"></i>");
 			$(tooltip.anchor).append(symbol);
 			if(tooltip.options.anchorPoint == "symbol") {
 				anchor = symbol;

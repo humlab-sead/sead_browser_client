@@ -197,7 +197,7 @@ class Samples {
 
 				table.rows.forEach(row => {
 					if(row[1].value == sg.sample_group_id) {
-						let cellValue = "%button:"+"<i class='fa fa-book' aria-hidden='true'></i>"+":!%tooltip:"+cellDesc+":!, ";
+						let cellValue = "!%data:"+"<i class='fa fa-book' aria-hidden='true'></i>"+":!%tooltip:"+cellDesc+":!";
 						row.push({
 							"value": cellValue,
 							"type": "cell",

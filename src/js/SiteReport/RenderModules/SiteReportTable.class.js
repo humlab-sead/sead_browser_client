@@ -456,11 +456,9 @@ class SiteReportTable {
 			return "";
 		}
 		let result = value.replace(/(?!.*!%data)*!%data:(.*?):!%tooltip:(.*?):!(?!.*!%data)*/g, (match, ttAnchor, ttText, offset, string, groups) => {
-			
 			let nodeId = "cell-value-"+nanoid();
 			let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+nodeId, ttText, {drawSymbol: true});
 			this.tooltipIds.push(tt);
-
 			return "<span id='"+nodeId+"'>"+ttAnchor+"</span>";
 		});
 

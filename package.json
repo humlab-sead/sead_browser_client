@@ -7,11 +7,10 @@
   "license": "UNLICENSED",
   "main": "main.js",
   "scripts": {
-    "build": "webpack --progress --mode production --devtool source-map",
-    "dev": "webpack serve --progress --mode development --allowed-hosts localhost --devtool source-map",
-    "dev-old": "cross-env NODE_ENV=development webpack-dev-server --mode=development --hot --allowed-hosts localhost",
-    "build:dev": "cross-env NODE_ENV=development-release webpack --mode=production --progress",
-    "build:prod": "cross-env NODE_ENV=production webpack --mode=production --progress",
+    "build": "cp src/config/config-prod.json src/config/config.json && webpack --progress --mode production --devtool source-map",
+    "dev": "cp src/config/config-dev.json src/config/config.json && webpack serve --progress --mode development --allowed-hosts localhost --devtool source-map",
+    "build:dev": "cp src/config/config-dev.json src/config/config.json && webpack --mode=production --progress",
+    "build:prod": "cp src/config/config-prod.json src/config/config.json && webpack --mode=production --progress",
     "build:docs": "C:/Program Files (x86)/Natural Docs/NaturalDocs.exe ND-Config"
   },
   "dependencies": {
@@ -69,7 +68,6 @@
     "babel-preset-env": "^1.7.0",
     "browser-sync": "^2.27.9",
     "clean-webpack-plugin": "^4.0.0",
-    "copy-webpack-plugin": "^6.2.1",
     "cross-env": "^5.2.1",
     "css-loader": "^3.6.0",
     "extract-text-webpack-plugin": "^3.0.2",
