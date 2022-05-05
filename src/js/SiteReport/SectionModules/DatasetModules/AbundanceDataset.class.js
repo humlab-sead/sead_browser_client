@@ -57,15 +57,18 @@ class AbundanceDataset extends DatasetModule {
 	}
 
 
-	getEntriesFromLookupTable(siteData, lookupTableKey, matchRefKey, matchInput) {
-		if(!siteData.lookup_tables[lookupTableKey]) {
-			return null;
+	getEntriesFromLookupTable(siteData, lookupTableKey, matchRefKey, matchInputs) {
+		if(typeof siteData.lookup_tables[lookupTableKey] == "undefined") {
+			console.warn("Lookup table "+lookupTableKey+" does not exist!");
+			return [];
 		}
 		let found = [];
 		for(let key in siteData.lookup_tables[lookupTableKey]) {
-			if(siteData.lookup_tables[lookupTableKey][key][matchRefKey] == matchInput) {
-				found.push(siteData.lookup_tables[lookupTableKey][key]);
-			}
+			matchInputs.forEach(matchInput => {
+				if(siteData.lookup_tables[lookupTableKey][key][matchRefKey] == matchInput) {
+					found.push(siteData.lookup_tables[lookupTableKey][key]);
+				}
+			});
 		}
 
 		return found;

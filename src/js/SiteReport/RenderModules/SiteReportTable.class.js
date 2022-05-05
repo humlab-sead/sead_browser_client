@@ -410,51 +410,13 @@ class SiteReportTable {
 		return rowNode;
 	}
 
-	parseCellValueMarkup_OLD(value) {
-		let matchingPatterns = [];
-		matchingPatterns.push({
-			type: "tooltip",
-			//regExp: new RegExp('%data:(.*?):!%tooltip:(.*?):!', 'gs')
-			regExp: new RegExp('!%data:(.*?):!%tooltip:(.*?):!', 'gs')
-		});
-		matchingPatterns.push({
-			type: "button",
-			//regExp: new RegExp('%button:(.*?):!%tooltip:(.*?):!', 'gs')
-			regExp: new RegExp('!%button:(.*?):!%tooltip:(.*?):!', 'gs')
-		});
-
-		let pairs = [];
-
-		matchingPatterns.forEach(pattern => {
-			for(let match = pattern.regExp.exec(value); match != null; match = pattern.regExp.exec(value)) {
-				if(match != null) {
-					pairs.push({
-						type: pattern.type,
-						data: match[1],
-						tooltip: match[2]
-					});
-				}
-			}
-		});
-
-		let parsedValue = "";
-		pairs.forEach(pair => {
-			let nodeId = "cell-value-"+nanoid();
-			parsedValue += "<span id='"+nodeId+"'>"+pair.data+"</span>, ";
-			let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+nodeId, pair.tooltip, {drawSymbol:pair.type == "tooltip"});
-			this.tooltipIds.push(tt);
-		});
-		
-		parsedValue = parsedValue.substring(0, parsedValue.length-2);
-
-		return parsedValue ? parsedValue : value;
-	}
-
 	parseCellValueMarkup(value) {
 		value = value.toString();
 		if(typeof value != "string") {
 			return "";
 		}
+		value = value.replace(/(\r\n|\n|\r)/gm, ""); //Strip newlines since they break the pattern matching
+
 		let result = value.replace(/(?!.*!%data)*!%data:(.*?):!%tooltip:(.*?):!(?!.*!%data)*/g, (match, ttAnchor, ttText, offset, string, groups) => {
 			let nodeId = "cell-value-"+nanoid();
 			let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+nodeId, ttText, {drawSymbol: true});
