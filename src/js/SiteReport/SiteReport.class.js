@@ -1,4 +1,5 @@
-import shortid from 'shortid';
+import { Buffer } from 'buffer';
+import { nanoid } from 'nanoid';
 import XLSX from 'xlsx';
 import Config from '../../config/config.json';
 import ContentItemRenderer from './ContentItemRenderer.class';
@@ -64,6 +65,7 @@ class SiteReport {
 		});
 
 		this.fetchSite().then(siteData => {
+			this.siteData = siteData;
 			this.fetchComplete = true;
 			this.hideLoadingIndicator();
 			this.enableExportButton();
@@ -495,6 +497,7 @@ class SiteReport {
 	
 	getExportButton(exportFormat, exportStruct) {
 		var node = null;
+		let filename = "sead-export-site-"+this.siteId;
 		if(exportFormat == "json") {
 			node = $("<a id='site-report-json-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download JSON</a>");
 			
@@ -505,9 +508,10 @@ class SiteReport {
 				return value;
 			}, 2);
 			
-			var exportData = btoa(json);
+
+			let exportData = Buffer.from(json).toString('base64');
 			$(node).attr("href", "data:application/octet-stream;charset=utf-8;base64,"+exportData);
-			$(node).attr("download", "sead-export.json");
+			$(node).attr("download", filename+".json");
 			$(node).on("click", (evt) => {
 				$(evt.currentTarget).effect("pulsate", 2);
 			});
@@ -517,11 +521,9 @@ class SiteReport {
 			node = $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
 			$(node).on("click", (evt) => {
 				$(evt.currentTarget).effect("pulsate", 2);
-				var filename = "sead-export.xlsx";
 
 				//Remove columns from table which are flagged for exclusion
 				for(let key in exportStruct.datatable.columns) {
-					console.log(exportStruct.datatable.columns[key]);
 					if(exportStruct.datatable.columns[key].exclude_from_export) {
 						exportStruct.datatable.columns.splice(key, 1);
 						exportStruct.datatable.rows.forEach((row) => {
@@ -553,7 +555,7 @@ class SiteReport {
 				//add worksheet to workbook
 				XLSX.utils.book_append_sheet(wb, ws, ws_name);
 				//write workbook
-				XLSX.writeFile(wb, filename);
+				XLSX.writeFile(wb, filename+".xlsx");
 			});
 		}
 		if(exportFormat == "png") {
@@ -627,7 +629,7 @@ class SiteReport {
 
 		exportStruct.info.attribution = Config.siteReportExportAttributionString;
 		
-		var dialogNodeId = shortid.generate();
+		let dialogNodeId = nanoid();
 		var dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");
 		this.siteReportManager.sqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
 		

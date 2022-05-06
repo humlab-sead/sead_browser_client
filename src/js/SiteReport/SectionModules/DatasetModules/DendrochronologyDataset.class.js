@@ -692,7 +692,9 @@ class DendrochronologyDataset extends DatasetModule {
 			return dataGroup.type == "dendro";
 		});
 
-		console.log(dataGroups);
+		if(dataGroups.length == 0) {
+			return sections;
+		}
 
 		let columns = [
 			{
@@ -915,10 +917,23 @@ class DendrochronologyDataset extends DatasetModule {
 			]
 		};
 
+		let analysisMethod = null;
+		for(let key in siteData.analysis_methods) {
+			if(siteData.analysis_methods[key].method_id == 10) {
+				analysisMethod = siteData.analysis_methods[key];
+			}
+		}
+
+		let analysisMethodDescription = "";
+		if(analysisMethod) {
+			analysisMethodDescription = "<h4 class='tooltip-header'>"+analysisMethod.method_name+"</h4>"+analysisMethod.method_abbrev_or_alt_name+"<hr>"+analysisMethod.description;
+		}
+		
+
 		let section = {
 			"name": "dendro",
 			"title": "Dendrochronology",
-			"methodDescription": "method description",
+			"methodDescription": analysisMethodDescription,
 			"collapsed": false,
 			"contentItems": [contentItem]
 		};

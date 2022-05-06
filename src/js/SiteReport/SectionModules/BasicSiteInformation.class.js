@@ -1,4 +1,5 @@
 /*OpenLayers imports*/
+import { nanoid } from 'nanoid';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
@@ -238,7 +239,8 @@ class BasicSiteInformation {
 		$(".site-report-export-btn", node).on("click", (evt) => {
 			evt.preventDefault();
 			evt.stopPropagation();
-			
+			this.exportSite();
+			/*
 			if(this.exportTryInterval != null) {
 				//This means an export is already pending and thus we should do absolutely nothing here
 				return;
@@ -260,11 +262,22 @@ class BasicSiteInformation {
 					}
 				}, 200);
 			}
+			*/
 		});
 		
 		this.renderMiniMap(siteData);
 	}
 	
+	exportSite() {
+		let jsonBtn = this.sqs.siteReportManager.siteReport.getExportButton("json", this.sqs.siteReportManager.siteReport.siteData);
+
+		let dialogNodeId = nanoid();
+		let dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");
+		this.sqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
+
+		$("#node-"+dialogNodeId).append(jsonBtn);
+	}
+
 	/*
 	* Function: renderMiniMap
 	*
