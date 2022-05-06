@@ -240,29 +240,6 @@ class BasicSiteInformation {
 			evt.preventDefault();
 			evt.stopPropagation();
 			this.exportSite();
-			/*
-			if(this.exportTryInterval != null) {
-				//This means an export is already pending and thus we should do absolutely nothing here
-				return;
-			}
-
-			//Check here if the loading of the SR data is complete before doing anything else
-			if(sqs.siteReportManager.siteReport.fetchComplete) {
-				this.sqs.siteReportManager.siteReport.renderExportDialog(["json"]);
-			}
-			else {
-				let node = $(".site-report-export-btn > li").append("<i class=\"fa fa-spinner\" aria-hidden=\"true\"></i>&nbsp;");
-				$(".fa-spinner", node).css("animation", "spin 0.2s linear infinite");
-				this.exportTryInterval = setInterval(() => {
-					if(sqs.siteReportManager.siteReport.fetchComplete) {
-						clearInterval(this.exportTryInterval);
-						this.exportTryInterval = null;
-						$(".site-report-export-btn .fa-spinner").remove();
-						this.sqs.siteReportManager.siteReport.renderExportDialog(["json"]);
-					}
-				}, 200);
-			}
-			*/
 		});
 		
 		this.renderMiniMap(siteData);
