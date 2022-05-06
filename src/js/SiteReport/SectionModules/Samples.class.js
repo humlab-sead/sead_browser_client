@@ -31,7 +31,6 @@ class Samples {
 	}
 
 	insertSampleDimensionsIntoTable(subTable, sampleGroup, siteData = null) {
-		console.log(siteData)
 		let insertSampleDimensionColumn = false;
 		for(var k in sampleGroup.physical_samples) {
 			var sample = sampleGroup.physical_samples[k];

@@ -105,7 +105,11 @@ class SiteReportTable {
 			"bInfo": false,
 			"bFilter": false,
 			"sDom": '<"top"i>rt<"bottom"flp><"clear">',
-			"order": [[1, 'asc']]
+			"order": [[1, 'asc']],
+			"fnDrawCallback": (data) => {
+				//console.log("draw callback", data)
+				//this.resetAllSubTableExpansions();
+			}
 		});
 		
 	
@@ -296,6 +300,7 @@ class SiteReportTable {
 
 	resetAllSubTableExpansions() {
 		for(var key in this.rows) {
+			this.unrenderSubTable(this.rows[key][this.getRowPkey()].value)
 			this.rows[key][this.getSubTableKey()].expanded = false;
 		}
 	}

@@ -1859,6 +1859,17 @@ svg text {
 
 .warning-flag {
   //font-size: 2em;
+  cursor: help;
+}
+
+.tooltip-warning-list {
+  padding: 0;
+  margin-left:2em;
+  margin-right:0em;
+}
+.tooltip-warning-list li {
+  padding: 0;
+  margin: 0;
 }
 
 .tree-ring-bar {

@@ -16,6 +16,7 @@ class DendroChart {
         this.showUncertainty = selectedUncertainty.value;
         this.USE_LOCAL_COLORS = true;
         this.infoTooltipId = null;
+        this.tooltipId = null;
         this.sampleWarnings = [];
 
         this.dendroLib = new DendroLib();
@@ -211,8 +212,7 @@ class DendroChart {
     
             dataObjects.push(dataObject);
         }
-    
-        console.log(dataObjects);
+        
         return dataObjects;
     }
 
@@ -695,12 +695,16 @@ class DendroChart {
     }
 
     getDataObjectBySampleName(dataObjects, sampleName) {
+        if(typeof sampleName == "undefined") {
+            console.warn("Tried to get a dataObject with an undefined sampleName");
+            return null;
+        }
         for(let key in dataObjects) {
             if(dataObjects[key].sample_name == sampleName) {
                 return dataObjects[key];
             }
         }
-        return false;
+        return null;
     }
 
     renderBarHoverTooltip(container, dataObject, tooltips = []) {
@@ -1012,8 +1016,6 @@ class DendroChart {
     }
 
     drawCertaintyBars(container, dataObjects, initialTransitions = true) {
-        
-        console.log(dataObjects);
 
         let bars = container.selectAll(".dendro-bar")
             .data(dataObjects)
@@ -1072,7 +1074,8 @@ class DendroChart {
         }, 500);
     }
 
-    addDrawableSampleWarning(collection, sampleName, type, warningMsg) {
+    addDrawableSampleWarning(collection, dataObject, type, warningMsg) {
+        let sampleName = dataObject.sample_name;
         let found = false;
         for(let key in collection) {
             if(collection[key].sampleName == sampleName && collection[key].type == type) {
@@ -1089,146 +1092,122 @@ class DendroChart {
                 }
             }
         }
-
+        
         if(!found) {
             collection.push({
                 sampleName: sampleName,
                 type: type,
+                barObject: dataObject.barObject,
                 warnings: [warningMsg]
             });
         }
     }
 
     drawSampleBarWarnings(container, dataObjects) {
-        console.log(dataObjects);
-        //console.log(this.sampleWarnings);
-
-
-        let draw = [
-            {
-                sampleName: "Sample A",
-                type: "oldestGerminationYear",
-                warnings: [] //text messages (unique)
-            },
-            {
-                sampleName: "Sample A",
-                type: "youngestGerminationYear",
-                warnings: [] //text messages (unique)
-            },
-            {
-                sampleName: "Sample B",
-                type: "youngestGerminationYear",
-                warnings: [] //text messages (unique)
-            }
-        ]
 
         let drawableSampleWarnings = [];
         dataObjects.forEach(d => {
-             if(d.barObject.certainty.x.warnings) {
-                this.addDrawableSampleWarning(drawableSampleWarnings, d.sampleName, type, warningMsg);
-             }
-        });
 
-        console.log(drawableSampleWarnings)
-
-        //Sort warnings per-position so that we have an array with a max of 4 items where each item is a position, like oldestFellingYear, which contains X number of warnings
-        let warningPositions = [];
-        this.sampleWarnings.forEach(sampleWarning => {
-            sampleWarning.warnings.forEach(warning => {
-                let foundWarningPos = false;
-                warningPositions.forEach(wp => {
-                    if(wp.type == warning.type && wp.sampleName == sampleWarning.sampleName) {
-                        wp.messages.push(warning.msg);
-                        foundWarningPos = true;
-                    }
-                });
-                if(!foundWarningPos) {
-                    warningPositions.push({
-                        sampleName: sampleWarning.sampleName,
-                        type: warning.type,
-                        messages: [warning.msg]
-                    });
-                }
+            d.barObject.certainty.x.warnings.forEach(warningMsg => {
+                this.addDrawableSampleWarning(drawableSampleWarnings, d, "youngestGerminationYear", warningMsg);
             });
-        });
 
-        warningPositions.forEach((wp) => {
-            wp.messages = wp.messages.filter((value, index, self) => {
-                return self.indexOf(value) == index;
+            d.barObject.certainty.width.warnings.forEach(warningMsg => {
+                this.addDrawableSampleWarning(drawableSampleWarnings, d, "oldestFellingYear", warningMsg);
             });
-        });
-        
-        console.log(warningPositions);
-        
-        
-        
 
-        /*
-        let barIndex = 0;
-        this.sampleWarnings.forEach(sampleWarning => {
-            let dataObject = this.getDataObjectBySampleName(dataObjects, sampleWarning.sampleName);
-            sampleWarning.barObject = this.getBarObjectFromDataObject(dataObject, barIndex++);
-        });
-        
-
-        
-        console.log(this.sampleWarnings);
-
-        let sampleWarningsToRender = [];
-        this.sampleWarnings.forEach(sw => {
-            sw.warnings.forEach(w => {
-                sampleWarningsToRender.push({
-                    sampleName: sw.sampleName,
-                    barObject: sw.barObject,
-                    warning: w
-                });
+            d.barObject.germinationUncertainty.x.warnings.forEach(warningMsg => {
+                this.addDrawableSampleWarning(drawableSampleWarnings, d, "oldestGerminationYear", warningMsg);
             });
+
+            d.barObject.germinationUncertainty.width.warnings.forEach(warningMsg => {
+                this.addDrawableSampleWarning(drawableSampleWarnings, d, "youngestGerminationYear", warningMsg);
+            });
+
+            d.barObject.fellingUncertainty.x.warnings.forEach(warningMsg => {
+                this.addDrawableSampleWarning(drawableSampleWarnings, d, "youngestFellingYear", warningMsg);
+            });
+
+            d.barObject.fellingUncertainty.width.warnings.forEach(warningMsg => {
+                this.addDrawableSampleWarning(drawableSampleWarnings, d, "oldestFellingYear", warningMsg);
+            });
+
         });
 
-        console.log(sampleWarningsToRender);
-        */
-
-        //console.log(this.sampleWarnings[0].barObject.certainty.x.value);
-        
         container.selectAll('.warning-flag')
-        .data(warningPositions)
+        .data(drawableSampleWarnings)
         .join("text")
         .classed("warning-flag", true)
-        .attr("sample-name", wp => {
-            return wp.sampleName;
+        .attr("sample-name", dsw => {
+            return dsw.sampleName;
         })
         .html("⚠️")
-        .attr("x", (wp, i) => {
-            let d = this.getDataObjectBySampleName(wp.sampleName);
-            let barObject = this.getBarObjectFromDataObject(d, i);
-            //console.log(wp)
-            //console.log(barObject)
+        .attr("visibility", (dsw) => {
+            let barObject = dsw.barObject;
+            switch(dsw.type) {
+                case "youngestFellingYear": //if youngestFellingYear width is zero, we don't draw warning for this
+                    if(barObject.fellingUncertainty.width.value == 0 || !barObject.fellingUncertainty.width.value) {
+                        return "hidden";
+                    }
+                    break;
+                case "oldestGerminationYear": //if oldestGerminationYear width is zero, we don't draw warning for this
+                    if(barObject.germinationUncertainty.width.value == 0 || !barObject.germinationUncertainty.width.value) {
+                        return "hidden";
+                    }
+                    break;
+            }
+            return "visible";
+        })
+        .attr("x", (dsw, i) => {
+            let barObject = dsw.barObject;
             let returnValue = 0;
-            switch(wp.type) {
+            let offset = -1.0;
+            let offsetMod = 2.0;
+            switch(dsw.type) {
                 case "oldestFellingYear":
-                    returnValue = barObject.certainty.x.value;
+                    returnValue = barObject.fellingUncertainty.x.value + barObject.fellingUncertainty.width.value;
+                    offset -= offsetMod;
                     break;
                 case "youngestFellingYear":
-                    returnValue = barObject.fellingUncertainty.x.value + barObject.fellingUncertainty.width.value;
+                    returnValue = barObject.fellingUncertainty.x.value;
+                    offset += offsetMod;
                     break;
                 case "youngestGerminationYear":
                     returnValue = barObject.germinationUncertainty.x.value + barObject.germinationUncertainty.width.value;
+                    offset += offsetMod;
                     break;
                 case "oldestGerminationYear":
                     returnValue = barObject.germinationUncertainty.x.value;
+                    offset -= offsetMod;
                     break;
             }
-            return returnValue;
+
+            return returnValue + offset;
         })
-        .attr("y", (wp, i) => {
-            let d = this.getDataObjectBySampleName(wp.sampleName);
-            let barObject = this.getBarObjectFromDataObject(d, i);
-            return barObject.certainty.y.value;
+        .attr("y", (dsw, i) => {
+            return dsw.barObject.certainty.y.value + 2.5;
         })
         .on("mouseover", (evt, swr) => {
-            console.log(swr);
-        });
+            this.drawWarningTooltip(swr, evt)
+        })
+        .on("mouseout", (evt, swr) => {
+            this.removeWarningTooltip(swr, evt)
+        })
         
+    }
+
+    drawWarningTooltip(swr, evt) {
+        let content = "<ul class='tooltip-warning-list'>";
+        swr.warnings.forEach(warningMsg => {
+            content += "<li>"+warningMsg+"</li>";
+        });
+        content += "</ul>";
+        
+        this.drawTooltip(content, evt.pageX, evt.pageY);
+    }
+
+    removeWarningTooltip(swr, evt) {
+        this.removeTooltip();
     }
 
     drawSampleBarWarningsOLD(dataObjects) {
@@ -1271,6 +1250,40 @@ class DendroChart {
         
 
         //this.getWarningsBySampleName(sampleName);
+    }
+
+    drawTooltip(content, xPos, yPos) {
+        if(this.tooltipId != null) {
+            return;
+        }
+        let tooltipContainer = document.createElement("div");
+        this.tooltipId = "tooltip-"+nanoid();
+        $(tooltipContainer).attr("id", this.tooltipId);
+        $(tooltipContainer).addClass("dendro-chart-tooltip-container");
+        $(tooltipContainer).css("left", xPos+10);
+        $(tooltipContainer).css("top", yPos+2);
+        $(tooltipContainer).html(content);
+
+        $("body").append(tooltipContainer);
+
+        //$(tooltipContainer).css("top", evt.mouseX);
+        
+        setTimeout(() => {
+            $("#dendro-chart-svg").on("click", (evt) => {
+                if(this.tooltipId) {
+                    $("#"+this.tooltipId).remove();
+                    this.tooltipId = null;
+                    $("#dendro-chart-svg").off("click");
+                }
+            })
+        }, 500)
+    }
+
+    removeTooltip() {
+        if(this.tooltipId) {
+            $("#"+this.tooltipId).remove();
+            this.tooltipId = null;
+        }
     }
 
     drawInfoTooltip(d, evt) {
@@ -1868,7 +1881,7 @@ class DendroChart {
 
         //this.barHeight = 5; //height/thickness of bars
         this.barMarginX = 5;
-        this.barMarginY = 1; //y-distance between bars
+        this.barMarginY = 2; //y-distance between bars
         this.fontSize = 2; //determines y-offset of labels
         this.chartTopPadding = 5;
         this.chartBottomPadding = 10;
@@ -1893,10 +1906,12 @@ class DendroChart {
             this.barHeight = maxBarHeight;
         }
         
+        /*
         const chartHeight = this.dataObjects.length * this.barHeight * this.barMarginY;
         if(chartHeight > viewBoxHeight) {
             this.barHeight = 3;
         }
+        */
         
 
         let viewBoxAvailableWidth = viewBoxWidth - this.chartLeftPadding - this.chartRightPadding

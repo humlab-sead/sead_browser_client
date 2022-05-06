@@ -79,8 +79,6 @@ class AbundanceDataset extends DatasetModule {
 			return dataGroup.type == "abundance";
 		});
 
-		console.log(dataGroups);
-
 		dataGroups.forEach(dataGroup => {
 			let section = this.getSectionByMethodId(dataGroup.method_id, sections);
 			if(!section) {
@@ -203,13 +201,13 @@ class AbundanceDataset extends DatasetModule {
 					modificationIds.push(item.modification_type_id);
 				});
 
-				let modifications = this.getEntriesFromLookupTable(siteData, "abundance_modifications", "modification_type_id", modificationIds);
-				modifications.forEach(mod => {
-					//tooltip-format: %data:hellothisisthedata:!%tooltip:hellothisisthetooltip:!
-					modificationsValue += "!%data:"+mod.modification_type_name+":!%tooltip:"+mod.modification_type_description+":!, ";
-				});
-				modificationsValue = modificationsValue.substring(0, modificationsValue.length-2);
-
+				if(modificationIds.length > 0) {
+					let modifications = this.getEntriesFromLookupTable(siteData, "abundance_modifications", "modification_type_id", modificationIds);
+					modifications.forEach(mod => {
+						modificationsValue += "!%data:"+mod.modification_type_name+":!%tooltip:"+mod.modification_type_description+":!, ";
+					});
+					modificationsValue = modificationsValue.substring(0, modificationsValue.length-2);
+				}
 
 				let identificationLevelsValue = "";
 				data_point.value.identification_levels.forEach(idlvlItem => {

@@ -402,7 +402,7 @@ class DendroLib {
             result.value = estFellingYearValue - parseInt(treeRings) - pithValue;
             result.formula = "Estimated felling year - Tree rings - Distance to pith ("+pithSource+")";
             result.reliability = 3;
-            result.warnings.push("Oldest germination year was calculated");
+            result.warnings.push("Oldest germination year was calculated using: "+result.formula);
             return result;
         }
     
@@ -411,7 +411,7 @@ class DendroLib {
             result.value = estFellingYearValue - parseInt(treeRings);
             result.formula = "Estimated felling year - Tree rings";
             result.reliability = 4;
-            result.warnings.push("Oldest germination year was calculated");
+            result.warnings.push("Oldest germination year was calculated using: "+result.formula);
             return result;
         }
         
@@ -471,7 +471,7 @@ class DendroLib {
             result.value = estFellingYearValue - parseInt(treeAge);
             result.formula = 'Estimated felling year - Tree age ≥';
             result.reliability = 2;
-            result.warnings.push("Youngest germination year was calculated");
+            result.warnings.push("Youngest germination year was calculated using: "+result.formula);
 
             if(estFellingYear.age_type != "AD" && estFellingYear.age_type != null) {
                 result.warnings.push("Estimated felling year has an unsupported age_type: "+estFellingYear.age_type);
@@ -517,7 +517,7 @@ class DendroLib {
             result.value = estFellingYearValue - parseInt(treeRings) - pithValue;
             result.formula = "Estimated felling year - Tree rings - Distance to pith ("+pithSource+")";
             result.reliability = 3;
-            result.warnings.push("Youngest germination year was calculated");
+            result.warnings.push("Youngest germination year was calculated using: "+result.formula);
             return result;
         }
     
@@ -526,7 +526,7 @@ class DendroLib {
             result.value = estFellingYearValue - parseInt(treeRings);
             result.formula = "Estimated felling year - Tree rings";
             result.reliability = 4;
-            result.warnings.push("Youngest germination year was calculated");
+            result.warnings.push("Youngest germination year was calculated using: "+result.formula);
             return result;
         }
         

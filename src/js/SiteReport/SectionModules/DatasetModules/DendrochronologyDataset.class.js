@@ -923,7 +923,7 @@ class DendrochronologyDataset extends DatasetModule {
 			"contentItems": [contentItem]
 		};
 
-		//sections.push(section);
+		sections.push(section);
 	}
 
 	/* Function: buildSection
