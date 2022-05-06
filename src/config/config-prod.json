@@ -1,4 +1,5 @@
 {
+	"build": "production",
 	"dataLicense": {
 		"name":"Creative Commons Attribution 4.0 International",
 		"shortName":"CC-BY-4.0",

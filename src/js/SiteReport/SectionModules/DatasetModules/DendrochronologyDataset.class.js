@@ -3,6 +3,7 @@ import { ApiWsChannel } from "../../../ApiWsChannel.class";
 import DendroLib from "../../../Common/DendroLib.class";
 import moment from "moment";
 import { nanoid } from 'nanoid'
+import config from '../../../../config/config.json';
 
 /*
 * Class: DendrochronologyDataset
@@ -938,7 +939,9 @@ class DendrochronologyDataset extends DatasetModule {
 			"contentItems": [contentItem]
 		};
 
-		sections.push(section);
+		if(config.build == "staging") {
+			sections.push(section);
+		}
 	}
 
 	/* Function: buildSection
