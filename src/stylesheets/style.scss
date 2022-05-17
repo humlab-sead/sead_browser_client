@@ -1882,7 +1882,17 @@ svg text {
 }
 
 
+.dendro-tooltip-close-button {
+  position:absolute;
+  right:1em;
+  top:1em;
+  color:#666;
+}
 
+.dendro-tooltip-close-button:hover {
+  color:#888;
+  cursor:pointer;
+}
 
 .dendro-chart-x-axis {
   font-size: 1em;

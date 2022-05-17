@@ -1286,7 +1286,7 @@ class DendroChart {
         }
     }
 
-    drawInfoTooltip(d, evt) {
+    drawInfoTooltip(dataObject, evt) {
         if(this.infoTooltipId != null) {
             return;
         }
@@ -1305,56 +1305,41 @@ class DendroChart {
             $(tooltipContainer).css("top", evt.pageY);
         })
         */
-
-        let dendroVars = [
-            "Tree species",
-            "Tree rings",
-            "No. of radius",
-            "Sapwood (Sp)",
-            "Pith (P)",
-            "Waney edge (W)",
-            "Provenance",
-            "Provenance comment",
-            "Date note",
-        ];
-        let content = "";
-        dendroVars.forEach(dv => {
-            content += "<span class='dendro-tooltip-variable-name-text'>"+dv+"</span>: "+this.getDendroMeasurementByName(dv, d)+"<br />";
+        let content = "<i class='fa fa-close dendro-tooltip-close-button'></i>";
+        dataObject.datasets.forEach(dataset => {
+            let value = dataset.value;
+            if(value == "complex") {
+                value = this.dendroLib.renderDendroDatingAsString(dataset.data);
+            }
+            content += "<span class='dendro-tooltip-variable-name-text'>"+dataset.label+"</span>: "+value+"<br />";
+            
         });
 
         $(tooltipContainer).html(content);
 
         $("body").append(tooltipContainer);
+        $(".dendro-tooltip-close-button").on("click", () => {
+            this.removeInfoTooltip();
+        });
 
-        //$(tooltipContainer).css("top", evt.pageY - $(tooltipContainer).height());
-
-        $(tooltipContainer).css("top", evt.mouseX);
-
-        /*
-        if(evt.screenY > 1300) {
-            $(tooltipContainer).css("top", evt.pageY+2-tooltipContainer.clientHeight)
+        let bottomOfTooltipBox = $(tooltipContainer).position().top + $(tooltipContainer).height();
+        if(bottomOfTooltipBox > $(document).height() - 100) {
+            $(tooltipContainer).css("top", evt.pageY - $(tooltipContainer).height() - 20);
         }
-        else {
-            $(tooltipContainer).css("top", evt.pageY+2)
-        }
-        console.log(tooltipContainer.clientHeight);
-        */
-
         
         setTimeout(() => {
             $("#dendro-chart-svg").on("click", (evt) => {
-                console.log(evt)
-                if(this.infoTooltipId) {
-                    this.removeInfoTooltip();
-                    this.infoTooltipId = null;
-                    $("#dendro-chart-svg").off("click");
-                }
+                this.removeInfoTooltip();
             })
-        }, 500)
+        }, 500);
     }
 
     removeInfoTooltip() {
-        $("#"+this.infoTooltipId).remove();
+        if(this.infoTooltipId) {
+            $("#dendro-chart-svg").off("click");
+            $("#"+this.infoTooltipId).remove();
+            this.infoTooltipId = null;
+        }
     }
 
     drawUndatedSamplesTooltip(text, evt) {
@@ -1927,7 +1912,7 @@ class DendroChart {
         this.container = d3.select(this.anchorNodeSelector).append("svg")
             .attr("id", "dendro-chart-svg")
             .classed("dendro-chart-svg", true)
-            .attr("preserveAspectRatio", "xMinYMin slice")
+            .attr("preserveAspectRatio", "xMinYMin meet")
             .attr("width", "100%")
             //.attr("height", "100%")
             .attr("height", this.viewBoxRenderHeight)
