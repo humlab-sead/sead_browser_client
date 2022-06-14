@@ -11,14 +11,14 @@ import 'jquery-ui/themes/base/base.css';
 import '../stylesheets/SqsLayoutManager.scss';
 import '../stylesheets/SqsMenu.scss';
 import '../stylesheets/style.scss';
-import '../../flexnav/css/flexnav.css';
-import '../../flexnav/js/jquery.flexnav.js';
+//import '../../flexnav/css/flexnav.css';
+//import '../../flexnav/js/jquery.flexnav.js';
 import 'font-awesome/css/font-awesome.css';
 import '../../node_modules/normalize.css/normalize.css';
 import SeadQuerySystem from './SeadQuerySystem.class.js';
 import "../assets/icons/favicon.ico";
 import "../assets/icons/android-chrome-192x192.png";
-import "../site.webmanifest";
+//import "../site.webmanifest";
 
 import "../assets/SEAD-logo-with-subtext.png";
 

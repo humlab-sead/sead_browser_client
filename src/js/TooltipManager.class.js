@@ -161,7 +161,7 @@ class TooltipManager {
 		
 		tooltip.tooltipNode = $("<div class='popper' style='display:none;'>"+tooltip.msg+"</div>");
 		$("body").append(tooltip.tooltipNode);
-		new Popper(tooltip.anchor, tooltip.tooltipNode, tooltip.options);
+		//new Popper(tooltip.anchor, tooltip.tooltipNode, tooltip.options);
 		
 		var anchor = tooltip.anchor;
 		if(tooltip.options.drawSymbol) {
@@ -175,6 +175,8 @@ class TooltipManager {
 				anchor = symbol;
 			}
 		}
+
+		new Popper(tooltip.anchor, tooltip.tooltipNode, tooltip.options);
 		
 		$(anchor).on("mouseover", (evt) => {
 			var tooltip = this.getTooltipById($(evt.currentTarget).attr("tooltip-anchor-id"));

@@ -21,7 +21,7 @@ class ResultMosaic extends ResultModule {
 		this.sqs = this.resultManager.sqs;
 		this.name = "mosaic";
 		this.prettyName = "Overview";
-		this.icon = "<i class=\"fa fa-pie-chart\" aria-hidden=\"true\"></i>";
+		this.icon = "<i class=\"fa fa-bar-chart\" aria-hidden=\"true\"></i>";
 		this.currentZoomLevel = 4;
 		this.requestBatchId = 0;
 		this.graphs = [];

@@ -25,6 +25,8 @@ class DialogManager {
 		});
 		*/
 		$("body").on("click", (evt) => {
+			console.log(evt);
+			//evt.stopPropagation();
 			this.closeDialog();
 			this.hidePopOver();
 		});
@@ -64,6 +66,8 @@ class DialogManager {
 			title: title,
 			content: content
 		});
+
+		return $("#popover-dialog-frame > .popover-content");
 	}
 
 	hidePopOver() {

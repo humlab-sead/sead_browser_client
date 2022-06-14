@@ -1134,14 +1134,14 @@ class DendroChart {
 
         });
 
-        container.selectAll('.warning-flag')
+        let warningFlags = container.selectAll('.warning-flag')
         .data(drawableSampleWarnings)
         .join("text")
-        .classed("warning-flag", true)
+        .classed("warning-flag fa fa-exclamation-triangle", true)
         .attr("sample-name", dsw => {
             return dsw.sampleName;
         })
-        .html("⚠️")
+        .html("&#xf071;")
         .attr("visibility", (dsw) => {
             let barObject = dsw.barObject;
             switch(dsw.type) {
@@ -1192,7 +1192,77 @@ class DendroChart {
         })
         .on("mouseout", (evt, swr) => {
             this.removeWarningTooltip(swr, evt)
+        });
+        
+        /*
+        container.selectAll('.warning-flag-line')
+        .data(drawableSampleWarnings)
+        .join("line")
+        .classed("warning-flag-line", true)
+        .attr("width", "1em")
+        .attr("height", "1em")
+        .attr("stroke", "#aaa")
+        .attr("stroke-width", "0.1em")
+        .attr("dating-value", dsw => dsw.type)
+        .attr("x1", (dsw, i) => {
+            let barObject = dsw.barObject;
+            let returnValue = 0;
+            let offset = 0;
+            let offsetMod = 2;
+            switch(dsw.type) {
+                case "oldestFellingYear":
+                    returnValue += barObject.fellingUncertainty.x.value + barObject.fellingUncertainty.width.value;
+                    offset += offsetMod;
+                    break;
+                case "youngestFellingYear":
+                    returnValue += barObject.fellingUncertainty.x.value;
+                    offset += offsetMod;
+                    break;
+                case "youngestGerminationYear":
+                    returnValue += barObject.germinationUncertainty.x.value + barObject.germinationUncertainty.width.value;
+                    offset += offsetMod;
+                    break;
+                case "oldestGerminationYear":
+                    returnValue += barObject.germinationUncertainty.x.value;
+                    offset -= offsetMod;
+                    break;
+            }
+
+            return returnValue + offset;
         })
+        .attr("x2", (dsw, i) => {
+            let barObject = dsw.barObject;
+            let returnValue = 0;
+            let offset = 0;
+            let offsetMod = 0;
+            switch(dsw.type) {
+                case "oldestFellingYear":
+                    returnValue += barObject.fellingUncertainty.x.value + barObject.fellingUncertainty.width.value;
+                    offset += offsetMod;
+                    break;
+                case "youngestFellingYear":
+                    returnValue += barObject.fellingUncertainty.x.value;
+                    offset += offsetMod;
+                    break;
+                case "youngestGerminationYear":
+                    returnValue += barObject.germinationUncertainty.x.value + barObject.germinationUncertainty.width.value;
+                    offset -= offsetMod;
+                    break;
+                case "oldestGerminationYear":
+                    returnValue += barObject.germinationUncertainty.x.value;
+                    offset += offsetMod;
+                    break;
+            }
+
+            return returnValue + offset;
+        })
+        .attr("y1", (dsw, i) => {
+            return dsw.barObject.certainty.y.value + 2;
+        })
+        .attr("y2", (dsw, i) => {
+            return dsw.barObject.certainty.y.value + 2;
+        })
+        */
         
     }
 
@@ -1877,7 +1947,7 @@ class DendroChart {
 
         const viewBoxWidth = 100; //This defines the coordinate system
         const viewBoxHeight = 100; //This defines the coordinate system
-        this.viewBoxRenderHeight = 160 + this.dataObjects.length * 60; //This is the actually rendered height of the svg in pixels
+        this.viewBoxRenderHeight = 300 + this.dataObjects.length * 60; //This is the actually rendered height of the svg in pixels
         if(this.viewBoxRenderHeight > 972) {
             this.viewBoxRenderHeight = 972;
         }
@@ -1912,10 +1982,10 @@ class DendroChart {
         this.container = d3.select(this.anchorNodeSelector).append("svg")
             .attr("id", "dendro-chart-svg")
             .classed("dendro-chart-svg", true)
-            .attr("preserveAspectRatio", "xMinYMin meet")
+            .attr("preserveAspectRatio", "xMinYMax meet")
             .attr("width", "100%")
             //.attr("height", "100%")
-            .attr("height", this.viewBoxRenderHeight)
+            .attr("height", "100%") //this.viewBoxRenderHeight
             .attr("xmlns", "http://www.w3.org/2000/svg")
             .attr("viewBox", [0, 0, viewBoxWidth, viewBoxHeight])
 

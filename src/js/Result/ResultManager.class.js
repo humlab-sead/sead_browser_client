@@ -217,6 +217,10 @@ class ResultManager {
 		return false;
 	}
 
+	getModules() {
+		return this.modules;
+	}
+
 	/*
 	* Function: getResultModuleByName
 	* 
@@ -259,6 +263,11 @@ class ResultManager {
 	* resultModuleId
 	*/
 	setActiveModule(resultModuleId, renderModule = true) {
+		//Check that this module exists
+		if(!this.getModule(resultModuleId)) {
+			return false;
+		}
+
 		if(renderModule && this.activeModuleId != "none") { //If there's already an active module, unrender this first
 			this.renderMsg(false);
 			let module = this.getActiveModule();
@@ -409,6 +418,22 @@ class ResultManager {
 	* Strangely similar to the rMenu. How queer!
 	*/
 	sqsMenu() {
+		let menuItems = [];
+		let modules = this.getModules();
+		modules.forEach(module => {
+			menuItems.push({
+				name: module.name,
+				title: module.module.icon+"<span class='result-tab-title'>"+module.module.prettyName+"</span>",
+				icon: "",
+				staticSelection: this.getActiveModule().name == module.name ? true : false,
+				callback: () => {
+					$.event.trigger("seadResultMenuSelection", {
+						selection: module.name
+					});
+				}
+			});
+		});
+
 		return {
 			title: "VIEW :",
 			layout: "horizontal",
@@ -417,54 +442,17 @@ class ResultManager {
 			staticSelection: true,
 			showMenuTitle: false,
 			viewPortResizeCallback: () => {
-				if(this.sqs.layoutManager.getMode() == "mobileMode") {
-					$("#result-menu #menu-item-map .result-tab-title").hide();
-					$("#result-menu #menu-item-table .result-tab-title").hide();
-					$("#result-menu #menu-item-mosaic .result-tab-title").hide();
-					$(".result-map-tab-title").hide();
-				}
-				else {
-					$("#result-menu #menu-item-map .result-tab-title").show();
-					$("#result-menu #menu-item-table .result-tab-title").show();
-					$("#result-menu #menu-item-mosaic .result-tab-title").show();
-					$(".result-map-tab-title").show();
-				}
+				let modules = this.getModules();
+				modules.forEach(module => {
+					if(this.sqs.layoutManager.getMode() == "mobileMode") {
+						$("#result-menu #menu-item-"+module.name+" .result-tab-title").hide();
+					}
+					else {
+						$("#result-menu #menu-item-"+module.name+" .result-tab-title").show();
+					}
+				});
 			},
-			items: [
-				{
-					name: "map",
-					title: "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i><span class='result-tab-title'>Geographic</span>",
-					icon: "",
-					staticSelection: this.getActiveModule().name == "map" ? true : false,
-					callback: () => {
-						$.event.trigger("seadResultMenuSelection", {
-							selection: "map"
-						});
-					}
-				},
-				{
-					name: "table",
-					title: "<i class=\"fa fa-table\" aria-hidden=\"true\"></i><span class='result-tab-title'>Spreadsheet</span>",
-					icon: "",
-					staticSelection: this.getActiveModule().name == "table" ? true : false,
-					callback: () => {
-						$.event.trigger("seadResultMenuSelection", {
-							selection: "table"
-						});
-					}
-				},
-				{
-					name: "mosaic",
-					title: "<i class=\"fa fa-bar-chart\" aria-hidden=\"true\"></i><span class='result-tab-title'>Overview</span>",
-					icon: "",
-					staticSelection: this.getActiveModule().name == "mosaic" ? true : false,
-					callback: () => {
-						$.event.trigger("seadResultMenuSelection", {
-							selection: "mosaic"
-						});
-					}
-				}
-			]
+			items: menuItems
 		};
 	}
 }

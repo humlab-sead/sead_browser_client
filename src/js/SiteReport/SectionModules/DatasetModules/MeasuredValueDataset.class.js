@@ -26,12 +26,26 @@ class MeasuredValueDataset extends DatasetModule {
 		});
 
 		dataGroups.forEach(dataGroup => {
+
+			let analysisMethod = null;
+			for(let key in siteData.analysis_methods) {
+				if(siteData.analysis_methods[key].method_id == dataGroup.method_id) {
+					analysisMethod = siteData.analysis_methods[key];
+				}
+			}
+			
+			let analysisMethodDescription = "";
+			if(analysisMethod) {
+				analysisMethodDescription = "<h4 class='tooltip-header'>"+analysisMethod.method_name+"</h4>"+analysisMethod.method_abbrev_or_alt_name+"<hr>"+analysisMethod.description;
+			}
+
 			let section = this.getSectionByMethodId(dataGroup.method_id, sections);
 			if(!section) {
 				section = {
 					"name": dataGroup.method_id,
 					"title": dataGroup.method_name,
-					"methodDescription": dataGroup.method_name,
+					//"methodDescription": dataGroup.method_name,
+					"methodDescription": analysisMethodDescription,
 					"collapsed": true,
 					"contentItems": []
 				};

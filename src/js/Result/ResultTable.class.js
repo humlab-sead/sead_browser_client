@@ -12,7 +12,7 @@ class ResultTable extends ResultModule {
 	constructor(resultManager) {
 		super(resultManager);
 		this.name = "table";
-		this.prettyName = "Tabular";
+		this.prettyName = "Spreadsheet";
 		this.icon = "<i class=\"fa fa-table\" aria-hidden=\"true\"></i>";
 		this.maxRenderCount = 100000;
 		this.hasCurrentData = false;
@@ -118,6 +118,7 @@ class ResultTable extends ResultModule {
 	* Function: render
 	*/
 	render() {
+		super.render();
 		var xhr = this.fetchData();
 		xhr.then((data, textStatus, xhr) => { //success
 		},

@@ -197,6 +197,26 @@ class BasicSiteInformation {
 		*/
 
 		let siteReferencesHtml = "";
+
+		siteData.biblio.forEach(siteRef => {
+			siteReferencesHtml += "<div class='site-reference-box'>";
+
+			if(siteRef.authors) {
+				siteReferencesHtml += siteRef.authors+", ";
+			}
+			if(siteRef.title) {
+				siteReferencesHtml += "<span style='font-style:italic;'>"+siteRef.title+"</span>, ";
+			}
+			if(siteRef.year) {
+				siteReferencesHtml += siteRef.year+", ";
+			}
+			if(siteRef.isbn) {
+				siteReferencesHtml += "<br />ISBN "+siteRef.isbn;
+			}
+
+			siteReferencesHtml += "</div>";
+		});
+
 		let datasetReferencesHtml = "";
 
 		var node = $(".site-report-aux-info-container");
@@ -297,7 +317,8 @@ class BasicSiteInformation {
 		
 		
 		var strokeColor = "#000000";
-		var fillColor = css.auxColor;
+		//var fillColor = css.auxColor;
+		let fillColor = "#ff6600";
 		var iconStyle = new Style({
 			image: new CircleStyle({
 				radius: 5,

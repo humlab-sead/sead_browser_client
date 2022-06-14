@@ -86,7 +86,8 @@ class ResultMap extends ResultModule {
 		//Define base layers
 		let stamenLayer = new TileLayer({
 			source: new Stamen({
-				layer: 'terrain-background'
+				layer: 'terrain-background',
+				wrapX: true
 			}),
 			visible: true
 		});
@@ -99,7 +100,8 @@ class ResultMap extends ResultModule {
 		let bingAerialLayer = new TileLayer({
 			source: new BingMaps({
 				key: 'At_1FuTga4p88618KkMhqxYZE71lCvBhzEx7ccisF9rShHoLsDLv-5zzGh3l25X5',
-				imagerySet: "Aerial"
+				imagerySet: "Aerial",
+				wrapX: true
 			}),
 			visible: false
 		});
@@ -112,7 +114,8 @@ class ResultMap extends ResultModule {
 		let bingAerialLabelsLayer = new TileLayer({
 			source: new BingMaps({
 				key: 'At_1FuTga4p88618KkMhqxYZE71lCvBhzEx7ccisF9rShHoLsDLv-5zzGh3l25X5',
-				imagerySet: "AerialWithLabels"
+				imagerySet: "AerialWithLabels",
+				wrapX: true
 			}),
 			visible: false
 		});
@@ -125,7 +128,8 @@ class ResultMap extends ResultModule {
 		let arcticDemLayer = new TileLayer({
 			source: new TileArcGISRest({
 				url: "http://elevation2.arcgis.com/arcgis/rest/services/Polar/ArcticDEM/ImageServer",
-				attributions: "<a target='_blank' href='https://www.pgc.umn.edu/data/arcticdem/'>NSF PGC ArcticDEM</a>"
+				attributions: "<a target='_blank' href='https://www.pgc.umn.edu/data/arcticdem/'>NSF PGC ArcticDEM</a>",
+				wrapX: true
 			}),
 			visible: false
 		});

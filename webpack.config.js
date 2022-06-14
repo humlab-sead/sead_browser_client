@@ -14,6 +14,7 @@ module.exports = (env, config) => {
       path: path.resolve(__dirname, './dist'),
       filename: '[name].sead.bundle.js',
       publicPath: '/',
+      assetModuleFilename: '[name][ext][query]'
     },
     plugins: [
       new HtmlWebpackPlugin({
@@ -50,12 +51,12 @@ module.exports = (env, config) => {
         },
         // Images
         {
-          test: /\.(?:ico|gif|png|jpg|jpeg)$/i,
+          test: /\.(?:ico|gif|png|jpg|jpeg|svg)$/i,
           type: 'asset/resource',
         },
         // Fonts and SVGs
         {
-          test: /\.(woff(2)?|eot|ttf|otf|svg|)$/,
+          test: /\.(woff(2)?|eot|ttf|otf|)$/,
           type: 'asset/inline',
         },
         // CSS, PostCSS, and Sass

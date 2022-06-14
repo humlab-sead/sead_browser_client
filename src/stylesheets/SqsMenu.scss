@@ -78,7 +78,7 @@
 }
 
 .sqs-menu-block-vertical-large {
-  width: calc(30vw - 2px);
+  width: calc(20vw - 2px); //FIXME: 20vw should not be hardcoded
 }
 
 .sqs-menu-block-vertical-flexible {

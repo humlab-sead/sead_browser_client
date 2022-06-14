@@ -7,6 +7,7 @@ import ResultManager from './Result/ResultManager.class.js';
 import ResultMap from './Result/ResultMap.class.js'
 import ResultTable from './Result/ResultTable.class.js'
 import ResultMosaic from './Result/ResultMosaic.class.js'
+import ResultTaxon from './Result/ResultTaxon.class.js'
 import StateManager from './StateManager.class.js';
 import DialogManager from './DialogManager.class.js';
 import TooltipManager from './TooltipManager.class.js';
@@ -15,8 +16,7 @@ import HelpAgent from './HelpAgent.class.js';
 import UserManager from './UserManager.class.js';
 import DomainManager from './DomainManager.class.js';
 import Router from './Router.class.js';
-import css from '../stylesheets/style.scss';
-
+//import css from '../stylesheets/style.scss';
 
 /* 
 * Class: SeadQuerySystem
@@ -138,6 +138,14 @@ class SeadQuerySystem {
 			}
 		]);
 
+		if(this.config.resultTaxonModuleEnabled) {
+			this.resultManager.addModule({
+				name: "taxon",
+				module: new ResultTaxon(this.resultManager)
+			});
+		}
+
+
 		var renderDefaultResult = viewstate === false;
 		if(siteId == false) { //Don't bother firing up the result section if a direct request has been made towards a site report
 			this.resultManager.setActiveModule(this.config.defaultResultModule, renderDefaultResult);
@@ -208,12 +216,19 @@ class SeadQuerySystem {
 			this.modules.push(this.resultManager.modules[key].module);
 		}
 
+		//FIXME: This is dumb, because this should be handled by the import of the css at the head of this file
+		//but that stopped working for some reason when updating webpack, so now I'm doing it like this as a temporary measure
+		const css = {
+			paneBgColor: "#eeeeee",
+			auxColor: "#ff6600"
+		};
+
 		if(this.config.cookieWarningEnabled) {
 			window.cookieconsent.initialise({
 				container: document.getElementById("cookie-consent-content"),
 				palette:{
-					popup: {background: css.paneBgColor},
-					button: {background: css.auxColor},
+					popup: { background: css.paneBgColor },
+					button: { background: css.auxColor },
 				},
 				revokable:true,
 				onStatusChange: function(status) {
@@ -730,7 +745,7 @@ class SeadQuerySystem {
 	}
 
 	/**
-	 * formatTaxonNew
+	 * formatTaxon
 	 * 
 	 * All that was old is new again
 	 * 
