@@ -3,6 +3,7 @@ import { ApiWsChannel } from "../../../ApiWsChannel.class";
 import DendroLib from "../../../Common/DendroLib.class";
 import moment from "moment";
 import { nanoid } from 'nanoid'
+import * as d3 from 'd3';
 import config from '../../../../config/config.json';
 
 /*
@@ -18,6 +19,7 @@ class DendrochronologyDataset extends DatasetModule {
 	constructor(analysis) {
 		super();
 		this.sqs = analysis.sqs;
+		this.dl = new DendroLib(this.sqs);
 		this.analysis = analysis;
 		this.section = analysis.section;
 		this.data = analysis.data;
@@ -592,12 +594,11 @@ class DendrochronologyDataset extends DatasetModule {
 		//console.log(this.getTableRowsAsObjects(contentItem));
 
 		//If there's no dateable samples in this contentItem, switch default view to table instead
-		const dl = new DendroLib();
-		const sampleDataObjects = dl.getTableRowsAsObjects(contentItem);
+		const sampleDataObjects = this.dl.getTableRowsAsObjects(contentItem);
 
 		let datedSampleFound = false;
 		sampleDataObjects.forEach(sampleDataObject => {
-			if(dl.getOldestGerminationYear(sampleDataObject) && dl.getYoungestFellingYear(sampleDataObject)) {
+			if(this.dl.getOldestGerminationYear(sampleDataObject) && this.dl.getYoungestFellingYear(sampleDataObject)) {
 				datedSampleFound = true;
 			}
 		});
@@ -687,7 +688,6 @@ class DendrochronologyDataset extends DatasetModule {
 	}
 
 	makeSection(siteData, sections) {
-		console.log(siteData, sections);
 
 		let dataGroups = siteData.data_groups.filter((dataGroup) => {
 			return dataGroup.type == "dendro";
@@ -706,12 +706,13 @@ class DendrochronologyDataset extends DatasetModule {
 				pkey: true
 			},
 			{
+				title: "Group"
+			},
+			{
 				title: "Date sampled"
 			}
 		];
 		let rows = [];
-
-		const dl = new DendroLib();
 
 		dataGroups.forEach(dataGroup => {
 
@@ -755,18 +756,7 @@ class DendrochronologyDataset extends DatasetModule {
 
 				if(dp.id == 134 || dp.id == 137) {
 					//This is Estimated felling year or Outermost tree-ring date, these are complex values that needs to be parsed
-					if(value.dating_note) {
-						tooltip = {
-							text: "Note: "+value.dating_note,
-							options: {
-								drawSymbol: true,
-								symbolChar: "fa-exclamation-triangle",
-								symbolColor: "yellow",
-								anchorPoint: "symbol"
-							 }
-						};
-					}
-					value = dl.renderDendroDatingAsString(value, siteData);
+					value = this.dl.renderDendroDatingAsString(value, siteData);
 				}
 
 				subTableRows.push([
@@ -807,47 +797,38 @@ class DendrochronologyDataset extends DatasetModule {
 				},
 				{
 					type: "cell",
+					value: this.getSampleGroupBySampleName(dataGroup.sample_name, siteData).sample_group_name
+				},
+				{
+					type: "cell",
 					value: dateSampled
 				}
 			]);
 		});
 
+		
 		//Check if there are any dated samples, if not, switch to spreadsheet render view
-		let oldestGermYear = null;
-		let youngestFellingYear = null;
-		dataGroups.forEach(dataGroup => {
-			let oldestGermYearValue = dl.getOldestGerminationYear(dataGroup);
-			if(!oldestGermYearValue) {
-                oldestGermYearValue = dl.getYoungestGerminationYear(dataGroup);
+		let extentMin = d3.min(dataGroups, d => {
+            let plantingYear = this.dl.getOldestGerminationYear(d).value
+            if(!plantingYear) {
+                plantingYear = this.dl.getYoungestGerminationYear(d).value;
             }
-			if(oldestGermYear == null) {
-				oldestGermYear = oldestGermYearValue;
-			}
-			else if(oldestGermYearValue && oldestGermYearValue.value < oldestGermYear.value) {
-				oldestGermYear = oldestGermYearValue;
-			}
-
-			let youngestFellingYearValue = dl.getYoungestFellingYear(dataGroup);
-			if(!youngestFellingYearValue) {
-                youngestFellingYearValue = dl.getOldestFellingYear(dataGroup);
+            return plantingYear;
+        });
+    
+        let extentMax = d3.max(dataGroups, d => {
+            let fellingYear =  this.dl.getOldestFellingYear(d).value;
+            if(!fellingYear) {
+                fellingYear = this.dl.getYoungestFellingYear(d).value;
             }
+            return fellingYear;
+        });
 
-			if(youngestFellingYear == null) {
-				youngestFellingYear = youngestFellingYearValue;
-			}
-			else if(youngestFellingYearValue && youngestFellingYearValue.value > youngestFellingYear.value) {
-				youngestFellingYear = youngestFellingYearValue;
-			}
-			
-			//console.log(oldestGermYearValue, youngestFellingYearValue);
-		});
-		//console.log(oldestGermYear, youngestFellingYear);
-		//If one of these is null/undefined, that means that there's no dateable samples in this site
-		//(even if they are both set, they may not be set for the same sample)
 		let defaultDisplayOption = "graph";
-		if(!oldestGermYear || !youngestFellingYear) {
-			defaultDisplayOption = "table";
-		}
+        //If we couldn't find a single viable dating for any sample, then we can't calculate a range span at all and thus can't draw anything
+        if(!extentMin || !extentMax) {
+            defaultDisplayOption = "table";
+        }
 
 
 		let contentItem = {
@@ -942,6 +923,17 @@ class DendrochronologyDataset extends DatasetModule {
 		if(config.build == "staging") {
 			sections.push(section);
 		}
+	}
+
+	getSampleGroupBySampleName(sampleName, siteData) {
+		for(let key in siteData.sample_groups) {
+			for(let sampleKey in siteData.sample_groups[key].physical_samples) {
+				if(siteData.sample_groups[key].physical_samples[sampleKey].sample_name == sampleName) {
+					return siteData.sample_groups[key]
+				}
+			}
+		}
+		return false;
 	}
 
 	/* Function: buildSection

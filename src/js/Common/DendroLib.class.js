@@ -1,6 +1,6 @@
 class DendroLib {
-    constructor(attemptUncertainDatingCaculations = true, useLocalColors = true) {
-
+    constructor(sqs, attemptUncertainDatingCaculations = true, useLocalColors = true) {
+        this.sqs = sqs;
         this.attemptUncertainDatingCaculations = attemptUncertainDatingCaculations;
         this.useLocalColors = useLocalColors;
 
@@ -316,6 +316,8 @@ class DendroLib {
             error_uncertainty: null,
             warnings: []
         };
+
+        let valueMod = 0;
         //if we have an inferrred growth year - great, just return that
         let measurementName = "Inferred growth year ≥";
         let infGrowthYearOlder = this.getDendroMeasurementByName(measurementName, dataGroup);
@@ -369,10 +371,13 @@ class DendroLib {
             }
             if(estFellingYear.minus != null && parseInt(estFellingYear.minus)) {
                 result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
+                valueMod -= estFellingYear.minus;
             }
             if(estFellingYear.plus != null && parseInt(estFellingYear.plus)) {
                 result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
             }
+
+            result.value += valueMod;
 
             result.warnings = result.warnings.concat(currentWarnings);
             return result;
@@ -383,26 +388,23 @@ class DendroLib {
         //If we DO have Estimated felling year and also a Pith value and Tree rings, we can try a calculation based on that
         let treeRings = this.getDendroMeasurementByName("Tree rings", dataGroup);
         let pith = this.parsePith(this.getDendroMeasurementByName("Pith (P)", dataGroup));
-        if(pith.notes == "Measured width") {
-            //If pith is designated as Measured width, we can't reasonably use it and need to bail out
-            return result;
-        }
+        
         //Pith can have lower & upper values if it is a range, in which case we should select the upper value here
         let pithValue = null;
-        let pithSource = "upper";
+        let pithSource = " (upper value)";
         if(pith.upper) {
             pithValue  = parseInt(pith.upper);
         }
         else {
             pithValue = parseInt(pith.value);
-            pithSource = "value";
+            pithSource = "";
         }
 
-        if(estFellingYearValue && parseInt(treeRings) && pithValue) {
+        if(estFellingYearValue && parseInt(treeRings) && pithValue && pith.notes != "Measured width") {
             result.value = estFellingYearValue - parseInt(treeRings) - pithValue;
-            result.formula = "Estimated felling year - Tree rings - Distance to pith ("+pithSource+")";
+            result.formula = "Estimated felling year - Tree rings - Distance to pith"+pithSource;
             result.reliability = 3;
-            result.warnings.push("Oldest germination year was calculated using: "+result.formula);
+            result.warnings.push("There is no dendrochronological estimation of the oldest possible germination year, it was therefore calculated using: "+result.formula);
             return result;
         }
     
@@ -411,7 +413,7 @@ class DendroLib {
             result.value = estFellingYearValue - parseInt(treeRings);
             result.formula = "Estimated felling year - Tree rings";
             result.reliability = 4;
-            result.warnings.push("Oldest germination year was calculated using: "+result.formula);
+            result.warnings.push("There is no dendrochronological estimation of the oldest possible germination year, it was therefore calculated using: "+result.formula);
             return result;
         }
         
@@ -430,6 +432,9 @@ class DendroLib {
             error_uncertainty: null,
             warnings: []
         };
+
+        let valueMod = 0;
+
         //if we have an inferrred growth year - great (actually not sarcasm), just return that
         let measurementName = "Inferred growth year ≤";
         let infGrowthYearYounger = this.getDendroMeasurementByName(measurementName, dataGroup);
@@ -487,7 +492,10 @@ class DendroLib {
             }
             if(estFellingYear.plus != null && parseInt(estFellingYear.plus)) {
                 result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
+                valueMod += estFellingYear.plus;
             }
+
+            result.value += valueMod;
 
             result.warnings = result.warnings.concat(currentWarnings);
             return result;
@@ -498,26 +506,23 @@ class DendroLib {
         //If we DO have Estimated felling year and also a Pith value and Tree rings, we can try a calculation based on that
         let treeRings = this.getDendroMeasurementByName("Tree rings", dataGroup);
         let pith = this.parsePith(this.getDendroMeasurementByName("Pith (P)", dataGroup));
-        if(pith.notes == "Measured width") {
-            //If pith is designated as Measured width, we can't reasonably use it and need to bail out
-            return result;
-        }
+
         //Pith can have lower & upper values if it is a range, in which case we should select the upper value here
         let pithValue = null;
-        let pithSource = "lower";
+        let pithSource = " (lower value)";
         if(pith.lower) {
             pithValue  = parseInt(pith.lower);
         }
         else {
             pithValue = parseInt(pith.value);
-            pithSource = "value";
+            pithSource = "";
         }
 
-        if(estFellingYearValue && parseInt(treeRings) && pithValue) {
+        if(estFellingYearValue && parseInt(treeRings) && pithValue && pith.notes != "Measured width") {
             result.value = estFellingYearValue - parseInt(treeRings) - pithValue;
-            result.formula = "Estimated felling year - Tree rings - Distance to pith ("+pithSource+")";
+            result.formula = "Estimated felling year - Tree rings - Distance to pith"+pithSource;
             result.reliability = 3;
-            result.warnings.push("Youngest germination year was calculated using: "+result.formula);
+            result.warnings.push("There is no dendrochronological estimation of the youngest possible germination year, it was therefore calculated using: "+result.formula);
             return result;
         }
     
@@ -526,7 +531,7 @@ class DendroLib {
             result.value = estFellingYearValue - parseInt(treeRings);
             result.formula = "Estimated felling year - Tree rings";
             result.reliability = 4;
-            result.warnings.push("Youngest germination year was calculated using: "+result.formula);
+            result.warnings.push("There is no dendrochronological estimation of the youngest possible germination year, it was therefore calculated using: "+result.formula);
             return result;
         }
         
@@ -545,31 +550,34 @@ class DendroLib {
             error_uncertainty: null,
             warnings: []
         };
+
+        let valueMod = 0;
         
         let estFellingYear = this.getDendroMeasurementByName("Estimated felling year", dataGroup);
-        if(!estFellingYear) {
-            return result;
-        }
 
-        if(estFellingYear.age_type != "AD" && estFellingYear.age_type != null) {
-            result.warnings.push("Estimated felling year has an unsupported age_type: "+estFellingYear.age_type);
+        if(estFellingYear) {
+            if(estFellingYear.age_type != "AD" && estFellingYear.age_type != null) {
+                result.warnings.push("Estimated felling year has an unsupported age_type: "+estFellingYear.age_type);
+            }
+            if(estFellingYear.dating_uncertainty) {
+                result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.dating_uncertainty);
+            }
+            if(estFellingYear.error_uncertainty) {
+                result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.error_uncertainty);
+            }
+            if(estFellingYear.minus != null && parseInt(estFellingYear.minus)) {
+                result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
+                valueMod -= estFellingYear.minus;
+            }
+            if(estFellingYear.plus != null && parseInt(estFellingYear.plus)) {
+                result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
+            }
         }
-        if(estFellingYear.dating_uncertainty) {
-            result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.dating_uncertainty);
-        }
-        if(estFellingYear.error_uncertainty) {
-            result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.error_uncertainty);
-        }
-        if(estFellingYear.minus != null && parseInt(estFellingYear.minus)) {
-            result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
-        }
-        if(estFellingYear.plus != null && parseInt(estFellingYear.plus)) {
-            result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
-        }
+        
         
         if(estFellingYear && parseInt(estFellingYear.older)) {
             let value = parseInt(estFellingYear.older);
-            result.value = value;
+            result.value = value + valueMod;
             result.formula = "Estimated felling year (older)";
             result.reliability = 1;
             return result;
@@ -577,11 +585,21 @@ class DendroLib {
         else if(estFellingYear && parseInt(estFellingYear.younger)) {
             result.warnings.push("No value found for the older estimated felling year, using the younger year instead");
             let value = parseInt(estFellingYear.younger);
-            result.value = value;
+            result.value = value + valueMod;
             result.formula = "Estimated felling year (younger)";
             result.reliability = 2;
             return result;
         }
+
+        let minTreeAge = this.getDendroMeasurementByName("Tree age ≥", dataGroup);
+        let germinationYear = this.getDendroMeasurementByName("Inferred growth year ≤", dataGroup);
+        if(minTreeAge && germinationYear) {
+            result.formula = "Inferred growth year ≤ + Tree age ≥";
+            result.reliability = 3;
+            result.value = germinationYear + minTreeAge;
+            result.warnings.push("Oldest possible feeling year was calculated using: "+result.formula);
+        }
+
         return result;
     }
 
@@ -596,6 +614,8 @@ class DendroLib {
             error_uncertainty: null,
             warnings: []
         };
+
+        let valueMod = 0;
         
         let estFellingYear = this.getDendroMeasurementByName("Estimated felling year", dataGroup);
         if(!estFellingYear) {
@@ -616,11 +636,12 @@ class DendroLib {
         }
         if(estFellingYear.plus != null && parseInt(estFellingYear.plus)) {
             result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
+            valueMod += estFellingYear.plus;
         }
         
         if(estFellingYear && parseInt(estFellingYear.younger)) {
             let value = parseInt(estFellingYear.younger);
-            result.value = value;
+            result.value = value + valueMod;
             result.formula = "Estimated felling year (younger)";
             result.reliability = 1;
             return result;
@@ -628,7 +649,7 @@ class DendroLib {
         else if(estFellingYear && parseInt(estFellingYear.older)) {
             result.warnings.push("No value found for the younger estimated felling year, using the older year instead");
             let value = parseInt(estFellingYear.older);
-            result.value = value;
+            result.value = value + valueMod;
             result.formula = "Estimated felling year (older)";
             result.reliability = 2;
             return result;
@@ -678,6 +699,34 @@ class DendroLib {
         return selected;
     }
     
+    parseEstimatedFellingYearLowerAccuracy(rawValue) {
+        if(typeof rawValue == "undefined") {
+            return false;
+        }
+    
+        let result = {
+            rawValue: rawValue,
+            strValue: rawValue,
+            value: parseInt(rawValue),
+            lower: NaN,
+            upper: NaN,
+            note: "Could not parse",
+        };
+
+        //Examples
+        // "(E 1085)
+        // (V 1723/24)
+        // "(1720 ± 2)
+        // (V 1720/21); (V 1828/29)
+        // (1814-1834)
+        // "(E 1195)
+        // (1625±2)
+        // (S 1688)
+        // "(V 1558/59); (V 1703/04); (V 1816/17)
+        // "(1850±2); (1810±3)
+
+    }
+
     /**
      * parsePith
      * 
@@ -697,6 +746,7 @@ class DendroLib {
         }
     
         let result = {
+            rawValue: rawPith,
             strValue: rawPith,
             value: parseInt(rawPith),
             lower: NaN,
@@ -706,16 +756,15 @@ class DendroLib {
 
         if(Number.isInteger(rawPith)) {
             rawPith = rawPith.toString();
+            result.note = "Discrete number of rings";
         }
     
         if(rawPith.indexOf("x") !== -1) {
-            //We assume 'x' means no value - but this needs to be checked with the dendro ppl
             result.note = "No value";
         }
     
-        if(rawPith.indexOf("~") !== -1 && rawPith.indexOf("~", rawPith.indexOf("~")) == -1) {
+        if(rawPith.indexOf("~") !== -1 && rawPith.indexOf("~", rawPith.indexOf("~")+1) == -1) {
             result.strValue = rawPith.substring(rawPith.indexOf("~")+1).trim();
-    
             let range = this.valueIsRange(result.strValue);
             if(range !== false) {
                 result.value = range.value;
@@ -833,7 +882,7 @@ class DendroLib {
                 result.note = "Measured width";
             }
         }
-    
+        
         return result;
     }
     
@@ -874,9 +923,7 @@ class DendroLib {
     }
     
     renderDendroDatingAsString(datingObject, site = null, useTooltipMarkup = true) {
-
         let renderStr = "";
-    
         if(useTooltipMarkup && datingObject.error_uncertainty) {
             let uncertaintyDesc = "";
             if(site) {
@@ -887,6 +934,9 @@ class DendroLib {
                 }
             }
             renderStr = "!%data:"+datingObject.error_uncertainty+":!%tooltip:"+uncertaintyDesc+":! ";
+            renderStr = this.sqs.parseStringValueMarkup(renderStr);
+            console.log(renderStr);
+            alert('uncertainty date!');
         }
         else if(datingObject.error_uncertainty) {
             renderStr = datingObject.error_uncertainty+" ";
@@ -910,11 +960,28 @@ class DendroLib {
             renderStr = datingObject.season+" "+renderStr;
         }
 
+        if(datingObject.minus && datingObject.plus) {
+            renderStr += " (+/-"+datingObject.minus+")";
+        }
+        else if(datingObject.minus) {
+            renderStr += " (+0/-"+datingObject.minus+")";
+        }
+        else if(datingObject.plus) {
+            renderStr += " (+"+datingObject.plus+"/-0)";
+        }
+
+        if(datingObject.dating_note && useTooltipMarkup) {
+            renderStr = "!%data:"+renderStr+":!%tooltip:"+datingObject.dating_note+":! ";
+            renderStr = this.sqs.parseStringValueMarkup(renderStr, {
+                drawSymbol: true,
+                symbolChar: "fa-exclamation",
+            });
+        }
+
         return renderStr;
     }
 
     getBarColorByTreeSpecies(treeSpecies) {
-
         let colors = [];
         if(this.useLocalColors) {
             colors = ['#0074ab', '#005178', '#bfeaff', '#80d6ff', '#ff7900', '#b35500', '#ffdebf', '#ffbc80', '#daff00', '#99b300'];

@@ -16,6 +16,7 @@ import HelpAgent from './HelpAgent.class.js';
 import UserManager from './UserManager.class.js';
 import DomainManager from './DomainManager.class.js';
 import Router from './Router.class.js';
+import { nanoid } from 'nanoid';
 //import css from '../stylesheets/style.scss';
 
 /* 
@@ -799,68 +800,6 @@ class SeadQuerySystem {
 		return tf;
 	}
 
-	/*
-	* Function: formatTaxon
-	* Parameters:
-	* taxon
-	* html
-	* abundanceId - Optional. Specifies the abundance counting context (if any).
-	* taxon_identification_levels - Optional. Specifies identifications levels.
-	*/
-	formatTaxonOLD(taxon, html = true, abundanceId = null, taxon_identification_levels = null) {
-		
-		let familyName = taxon.family_name;
-		let genusName = taxon.genus_name;
-		let species = taxon.species;
-
-		let modified = false;
-
-		if(taxon_identification_levels != null && abundanceId != null) {
-			for(let key in taxon_identification_levels) {
-				if(taxon_identification_levels[key].abundance_id == abundanceId) {
-					if(taxon_identification_levels[key].identification_level_name == "c.f. Family" || taxon_identification_levels[key].identification_level_name == "Family") {
-						familyName = "c.f. "+familyName;
-						modified = true;
-					}
-					if(taxon_identification_levels[key].identification_level_name == "c.f. Genus" || taxon_identification_levels[key].identification_level_name == "Genus") {
-						genusName = "c.f. "+genusName;
-						modified = true;
-					}
-					if(taxon_identification_levels[key].identification_level_name == "c.f. Species" || taxon_identification_levels[key].identification_level_name == "Species") {
-						species = "c.f. "+species;
-						modified = true;
-					}
-				}
-			}
-		}
-		
-		let isPlant = false; //We don't have data on plant or not plant atm, so just assume it's always not, for now
-
-		let tf = "";
-		if(!isPlant) { //Don't print out the family name if this is a plant
-			tf += familyName+", ";
-		}
-		if(html) { tf += "<span style='font-style:italic;'>"; }
-		tf += genusName;
-		if(html) { tf += "</span>"; }
-		tf += " ";
-		if(html) { tf += "<span style='font-style:italic;'>"; }
-		tf += species;
-		if(html) { tf += "</span>"; }
-		
-		if(typeof(taxon.author_name) != "undefined" && taxon.author_name != null) {
-			tf += " ";
-			tf += taxon.author_name;
-		}
-		/*
-		if(modified) {
-			console.log(tf);
-		}
-		*/
-
-		return tf;
-	}
-
 	copyObject(obj) {
 		return JSON.parse(JSON.stringify(obj));
 	}
@@ -1130,6 +1069,23 @@ class SeadQuerySystem {
 			mainConfig[key] = userSettings[key]
 		});
 		return mainConfig;
+	}
+
+	parseStringValueMarkup(value, ttOptions = { drawSymbol: true }) {
+		value = value.toString();
+		if(typeof value != "string") {
+			return "";
+		}
+		value = value.replace(/(\r\n|\n|\r)/gm, ""); //Strip newlines since they break the pattern matching
+		//The pattern here is: !%data:<data>:!%tooltip:<tooltip>:! - I think, try it!
+		let result = value.replace(/(?!.*!%data)*!%data:(.*?):!%tooltip:(.*?):!(?!.*!%data)*/g, (match, ttAnchor, ttText, offset, string, groups) => {
+			let nodeId = "cell-value-"+nanoid();
+			let tt = this.tooltipManager.registerTooltip("#"+nodeId, ttText, ttOptions);
+			//this.tooltipIds.push(tt);
+			return "<span id='"+nodeId+"'>"+ttAnchor+"</span>";
+		});
+
+		return result;
 	}
 	
 }

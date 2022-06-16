@@ -1437,7 +1437,7 @@ polyline{
 .help-icon {
   font-size: 10px !important;
   vertical-align: super;
-  cursor:pointer;
+  cursor:help;
   margin-left:4px;
 }
 
@@ -2080,11 +2080,11 @@ svg text {
   stroke: #aaa;
 }
 
-
-
 .dendro-chart-y-axis {
+  font-family: "Rajdhani";
   font-size: 1em;
 }
+
 
 .dendro-chart-y-axis text {
   font-family: "Rajdhani";
@@ -2102,45 +2102,27 @@ svg text {
   stroke: #aaa;
 }
 
-
-
 .dendro-horizontal-guide-line {
   stroke: orangered;
   stroke-width: .1em;
 }
 
 .dendro-chart-tooltip-container {
-  position: fixed;
+  position: absolute;
   padding: 1em;
   max-width: 30em;
   background: #fff;
   border: 1px solid #ccc;
-  /*
-  display:none;
-  top:0;
-  left:0;
-  position:absolute;
-  width: 50px;
-  text-align: center;
-  */
-  /*
-  
-  padding: 1em;
-  background-color: #eee;
-  border: 1px solid #ccc;
-  */
-  /*
-  fill: #444;
-	//background-image: linear-gradient(to bottom, rgba(68, 68, 68, 0.726), rgba(68, 68, 68, 0.568));
-	color: #ccc;
-	padding: 10px;
-	border-radius: 3px;
-	box-shadow: 0px 0px 20px #333;
-	//margin: 25px;
-	border: 1px solid #666;
-	text-shadow: 0 0 1px #ccc;
-  */
+  box-shadow: 0px 0px 10px 2px $shadow-color;
 }
+
+.dendro-chart-tooltip-container-content {
+  display: grid;
+  grid-template-columns: [labels]1fr [values]1fr;
+  grid-template-rows: auto;
+  column-gap: 1em;
+}
+
 
 #dendro-chart-svg .dendro-chart-tooltip {
   opacity: 1;

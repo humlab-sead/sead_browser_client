@@ -399,7 +399,7 @@ class SiteReportTable {
 					}
 					*/
 
-					value = this.parseCellValueMarkup(value);
+					value = this.sqs.parseStringValueMarkup(value);
 					var cellNode = $("<td id='"+cellNodeId+"' class='"+colClasses+"'>"+value+"</td>");
 					rowNode.append(cellNode);
 				}
@@ -413,23 +413,6 @@ class SiteReportTable {
 		});
 
 		return rowNode;
-	}
-
-	parseCellValueMarkup(value) {
-		value = value.toString();
-		if(typeof value != "string") {
-			return "";
-		}
-		value = value.replace(/(\r\n|\n|\r)/gm, ""); //Strip newlines since they break the pattern matching
-
-		let result = value.replace(/(?!.*!%data)*!%data:(.*?):!%tooltip:(.*?):!(?!.*!%data)*/g, (match, ttAnchor, ttText, offset, string, groups) => {
-			let nodeId = "cell-value-"+nanoid();
-			let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+nodeId, ttText, {drawSymbol: true});
-			this.tooltipIds.push(tt);
-			return "<span id='"+nodeId+"'>"+ttAnchor+"</span>";
-		});
-
-		return result;
 	}
 
 	triggerSubTable(rowId) {
@@ -730,7 +713,7 @@ class SiteReportTable {
 						this.tooltipIds.push("#"+cellNodeId);
 					}
 					
-					subTableHtml += "<td id='"+cellNodeId+"'>"+this.parseCellValueMarkup(row[vk].value)+"</td>";
+					subTableHtml += "<td id='"+cellNodeId+"'>"+this.sqs.parseStringValueMarkup(row[vk].value)+"</td>";
 				}
 				
 			}

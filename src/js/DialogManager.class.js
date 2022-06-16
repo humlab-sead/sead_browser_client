@@ -25,7 +25,6 @@ class DialogManager {
 		});
 		*/
 		$("body").on("click", (evt) => {
-			console.log(evt);
 			//evt.stopPropagation();
 			this.closeDialog();
 			this.hidePopOver();
