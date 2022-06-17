@@ -12,9 +12,8 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
     async render(renderIntoNode) {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         resultMosaic.setLoadingIndicator(renderIntoNode, true);
-
-        //let requestString = this.sqs.config.dataServerAddress+"/dendro/dating-histogram";
-        let requestString = "http://localhost:8484/dendro/dating-histogram";
+        
+        let requestString = this.sqs.config.dataServerAddress+"/dendro/dating-histogram";
         let requestBody = {
             sites: resultMosaic.sites,
             requestId: ++this.requestId,

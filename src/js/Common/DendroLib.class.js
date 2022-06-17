@@ -654,6 +654,16 @@ class DendroLib {
             result.reliability = 2;
             return result;
         }
+
+        let maxTreeAge = this.getDendroMeasurementByName("Tree age ≤", dataGroup);
+        let germinationYear = this.getDendroMeasurementByName("Inferred growth year ≥", dataGroup);
+        if(minTreeAge && germinationYear) {
+            result.formula = "Inferred growth year ≥ + Tree age ≤";
+            result.reliability = 3;
+            result.value = germinationYear + maxTreeAge;
+            result.warnings.push("Youngest possible feeling year was calculated using: "+result.formula);
+        }
+
         return result;
     }
     
@@ -925,6 +935,7 @@ class DendroLib {
     renderDendroDatingAsString(datingObject, site = null, useTooltipMarkup = true) {
         let renderStr = "";
         if(useTooltipMarkup && datingObject.error_uncertainty) {
+            // see site 2019 for an example of this
             let uncertaintyDesc = "";
             if(site) {
                 for(let key in site.lookup_tables.error_uncertainty) {
@@ -935,8 +946,6 @@ class DendroLib {
             }
             renderStr = "!%data:"+datingObject.error_uncertainty+":!%tooltip:"+uncertaintyDesc+":! ";
             renderStr = this.sqs.parseStringValueMarkup(renderStr);
-            console.log(renderStr);
-            alert('uncertainty date!');
         }
         else if(datingObject.error_uncertainty) {
             renderStr = datingObject.error_uncertainty+" ";

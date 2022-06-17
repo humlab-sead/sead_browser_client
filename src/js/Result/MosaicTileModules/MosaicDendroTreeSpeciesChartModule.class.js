@@ -13,8 +13,8 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         resultMosaic.setLoadingIndicator(renderIntoNode, true);
 
-        //let requestString = this.sqs.config.dataServerAddress+"/dendro/dating-histogram";
-        let requestString = "http://localhost:8484/dendro/treespecies";
+        let requestString = this.sqs.config.dataServerAddress+"/dendro/treespecies";
+         
         let requestBody = {
             sites: resultMosaic.sites,
             requestId: ++this.requestId,
@@ -37,7 +37,6 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         }
 
         let categories = data.categories;
-        console.log(categories);
 
         let chartSeries = [];
 
