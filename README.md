@@ -8,4 +8,4 @@ This is the webclient of the online browser for the SEAD database
 3. `npm install` (don't be root)
 4. `npm run dev` for a locally running instance or `npm run build:prod` to build a package suitable for production
 
-Test
+
