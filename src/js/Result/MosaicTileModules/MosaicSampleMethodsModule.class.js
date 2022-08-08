@@ -11,14 +11,14 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
 
     async render(renderIntoNode) {
         let resultMosaicModule = this.sqs.resultManager.getModule("mosaic");
-        resultMosaicModule.setLoadingIndicator(renderIntoNode, true);
+        this.sqs.setBgLoadingIndicator(renderIntoNode, true);
         let promise = resultMosaicModule.fetchSiteData(resultMosaicModule.sites, "qse_methods", resultMosaicModule.requestBatchId);
 		promise.then((promiseData) => {
 			if(promiseData.requestId < resultMosaicModule.requestBatchId) {
 				return false;
 			}
             let chartSeries = resultMosaicModule.prepareChartData("method_id", "method_name", promiseData.data);
-            resultMosaicModule.setLoadingIndicator(renderIntoNode, false);
+            this.sqs.setBgLoadingIndicator(renderIntoNode, false);
 			this.chart = resultMosaicModule.renderPieChart(renderIntoNode, chartSeries, "Sampling methods");
 		});
     }

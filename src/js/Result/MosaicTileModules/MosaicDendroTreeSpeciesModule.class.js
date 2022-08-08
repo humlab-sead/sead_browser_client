@@ -11,7 +11,7 @@ class MosaicDendroTreeSpeciesModule extends MosaicTileModule {
 
     async render(renderIntoNode) {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        resultMosaic.setLoadingIndicator(renderIntoNode, true);
+        this.sqs.setBgLoadingIndicator(renderIntoNode, true);
 
         let pData = await resultMosaic.fetchSiteData(resultMosaic.sites, "qse_dendro_tree_species", resultMosaic.requestBatchId);
         if(pData.requestId < this.requestBatchId) {
@@ -20,7 +20,7 @@ class MosaicDendroTreeSpeciesModule extends MosaicTileModule {
         }
 
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "genus_name", "count");
-        resultMosaic.setLoadingIndicator(renderIntoNode, false);
+        this.sqs.setBgLoadingIndicator(renderIntoNode, false);
         this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);
     }
 }

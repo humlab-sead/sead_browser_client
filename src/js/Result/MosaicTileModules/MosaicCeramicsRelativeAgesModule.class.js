@@ -12,7 +12,7 @@ class MosaicCeramicsRelativeAgesModule extends MosaicTileModule {
     async render(renderIntoNode) {
         this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        resultMosaic.setLoadingIndicator(renderIntoNode, true);
+        this.sqs.setBgLoadingIndicator(renderIntoNode, true);
 
         let pData = await resultMosaic.fetchSiteData(resultMosaic.sites, "qse_ceramics_relative_ages", resultMosaic.requestBatchId);
         if(pData.requestId < this.requestBatchId) {
@@ -21,7 +21,7 @@ class MosaicCeramicsRelativeAgesModule extends MosaicTileModule {
         }
 
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "relative_age_name", "count");
-        resultMosaic.setLoadingIndicator(renderIntoNode, false);
+        this.sqs.setBgLoadingIndicator(renderIntoNode, false);
         this.chart = resultMosaic.renderBarChart(renderIntoNode, chartSeries, this.title);
     }
 }

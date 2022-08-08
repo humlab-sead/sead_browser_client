@@ -353,10 +353,7 @@ class ResultTaxon extends ResultModule {
 		})
 
 		if(seasonalityGroups.length == 0) {
-			const noDataBoxFrag = document.getElementById("no-data-box");
-			const noDataBox = document.importNode(noDataBoxFrag.content, true);
-			$("#rcb-seasonlity-year-wheels").html("");
-			$("#rcb-seasonlity-year-wheels").append(noDataBox);
+			this.sqs.setNoDataMsg("#rcb-seasonlity-year-wheels");
 		}
 
 		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");

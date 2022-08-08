@@ -11,7 +11,7 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
 
     async render(renderIntoNode) {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        resultMosaic.setLoadingIndicator(renderIntoNode, true);
+        this.sqs.setBgLoadingIndicator(renderIntoNode, true);
         
         let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_feature_types", resultMosaic.requestBatchId);
 		promise.then((promiseData) => {
@@ -19,7 +19,7 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
 				return false;
 			}
             let chartSeries = resultMosaic.prepareChartData("feature_type_id", "feature_type_name", promiseData.data);
-            resultMosaic.setLoadingIndicator(renderIntoNode, false);
+            this.sqs.setBgLoadingIndicator(renderIntoNode, false);
 			this.chart = resultMosaic.renderBarChart(renderIntoNode, chartSeries);
 		});
     }

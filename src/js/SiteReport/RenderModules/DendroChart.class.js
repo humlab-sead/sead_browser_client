@@ -19,7 +19,7 @@ class DendroChart {
         this.infoTooltipId = null;
         this.tooltipId = null;
         this.sampleWarnings = [];
-        this.dendroLib = new DendroLib(this.sqs);
+        this.dendroLib = new DendroLib();
 
         this.lookupTable = [
             {
@@ -1330,8 +1330,7 @@ class DendroChart {
         dataObject.datasets.forEach(dataset => {
             let value = dataset.value;
             if(value == "complex") {
-                console.log(dataset.data, this.siteReport.siteData.lookup_tables.error_uncertainty);
-                value = this.dendroLib.renderDendroDatingAsString(dataset.data, this.siteReport.siteData, true);
+                value = this.dendroLib.renderDendroDatingAsString(dataset.data, this.siteReport.siteData, true, this.sqs);
             }
             
             let varMeta = this.getDendroMetadataForLookupId(dataset.id);

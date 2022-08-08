@@ -37,9 +37,8 @@ class SeadQuerySystem {
 		this.taxa = []; //Local taxonomy db
 		this.systemReady = false;
 
-		this.config = this.loadUserSettings(Config);
+		this.storeUserSettings(this.config);
 
-		
 		this.preload().then(() => {
 			console.log("SQS preload complete");
 			this.bootstrapSystem();
@@ -48,10 +47,57 @@ class SeadQuerySystem {
 			$("#preload-failed-indicator").css("display", "block");
 			$(".seadlogo-loading-indicator-bg").hide();
 		});
-		
-		//this.bootstrapSystem();
 
 		$("body").show();
+	}
+
+	setNoDataMsg(containerNode, set = true) {
+		//Remove any overlay box that might already exist in this container (effectively overwriting that msg)
+		$(".overlay-msg-box", containerNode).remove();
+		
+		if(set) {
+			const noDataBoxFrag = document.getElementById("no-data-box");
+			const noDataBox = document.importNode(noDataBoxFrag.content, true);
+			$(containerNode).html("");
+			$(containerNode).append(noDataBox);
+		}
+		else {
+			$(containerNode).html("");
+		}
+	}
+
+	setLoadingIndicator(containerNode, set = true) {
+		$(".overlay-msg-box", containerNode).remove();
+		if(set) {
+			const boxFrag = document.getElementById("logo-loading-indicator");
+			const box = document.importNode(boxFrag.content, true);
+			$(containerNode).html("");
+			$(containerNode).append(box);
+		}
+		else {
+			$(containerNode).html("");
+		}
+
+		/*
+		//Remove any overlay box that might already exist in this container (effectively overwriting that msg)
+		$(".overlay-msg-box", containerNode).remove();
+
+		if(set) {
+			$(containerNode).append("<div class='overlay-msg-box foreground-loading-indicator result-mosaic-loading-indicator-bg'></div>")
+		}
+		else {
+			$(".foreground-loading-indicator", containerNode).remove();
+		}
+		*/
+	}
+
+	setBgLoadingIndicator(containerNode, set = true) {
+		if(set) {
+			$(containerNode).addClass("result-mosaic-loading-indicator-bg");
+		}
+		else {
+			$(containerNode).removeClass("result-mosaic-loading-indicator-bg");
+		}
 	}
 
 	bootstrapSystem() {
@@ -1059,7 +1105,8 @@ class SeadQuerySystem {
 		window.localStorage.setItem("sqsUserSettings", JSON.stringify(userSettings));
 	}
 
-	loadUserSettings(mainConfig) {
+	loadUserSettings() {
+		let mainConfig = this.config;
 		let userSettingsJson = window.localStorage.getItem("sqsUserSettings");
 		if(!userSettingsJson) {
 			return mainConfig;

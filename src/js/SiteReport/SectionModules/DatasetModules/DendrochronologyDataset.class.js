@@ -19,7 +19,7 @@ class DendrochronologyDataset extends DatasetModule {
 	constructor(analysis) {
 		super();
 		this.sqs = analysis.sqs;
-		this.dl = new DendroLib(this.sqs);
+		this.dl = new DendroLib();
 		this.analysis = analysis;
 		this.section = analysis.section;
 		this.data = analysis.data;

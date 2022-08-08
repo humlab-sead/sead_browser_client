@@ -13,7 +13,7 @@ import MosaicDendroBuildingTypesModule from "./MosaicTileModules/MosaicDendroBui
 import MosaicDendroTreeSpeciesModule from "./MosaicTileModules/MosaicDendroTreeSpeciesModule.class";
 import MosaicDendroDatingHistogramModule from "./MosaicTileModules/MosaicDendroDatingHistogramModule.class";
 import MosaicDendroTreeSpeciesChartModule from "./MosaicTileModules/MosaicDendroTreeSpeciesChartModule.class";
-import { css } from 'jquery';
+import { nanoid } from 'nanoid';
 
 class ResultMosaic extends ResultModule {
 	constructor(resultManager) {
@@ -28,114 +28,68 @@ class ResultMosaic extends ResultModule {
 		this.renderPromises = [];
 		this.modules = [];
 
-
-		this.modules.push(new MosaicMapModule(this.sqs));
-		this.modules.push(new MosaicSampleMethodsModule(this.sqs));
-		this.modules.push(new MosaicAnalysisMethodsModule(this.sqs));
-		this.modules.push(new MosaicFeatureTypesModule(this.sqs));
-		this.modules.push(new MosaicCeramicsCultureModule(this.sqs));
-		this.modules.push(new MosaicCeramicsRelativeAgesModule(this.sqs));
-		this.modules.push(new MosaicCeramicsTypeCountModule(this.sqs));
-		this.modules.push(new MosaicDendroBuildingTypesModule(this.sqs));
-		this.modules.push(new MosaicDendroTreeSpeciesModule(this.sqs));
-		this.modules.push(new MosaicDendroDatingHistogramModule(this.sqs));
-		this.modules.push(new MosaicDendroTreeSpeciesChartModule(this.sqs));
-
-		/*
-		//General
 		this.modules.push({
-			title: "Sampling methods",
-			name: "mosaic-sample-methods",
-			domains: ["general"],
-			callback: this.renderSampleMethods
+			title: "Site map",
+			className: "MosaicMapModule",
+			classTemplate: MosaicMapModule
 		});
 		this.modules.push({
-			title: "Site distribution",
-			name: "mosaic-map",
-			domains: ["*"],
-			callback: async (renderIntoNode, resultMosaic) => {
-				console.log(renderIntoNode);
-				this.setLoadingIndicator(renderIntoNode, true);
-				
-				if(typeof this.resultMap == "undefined") {
-					this.resultMap = new ResultMap(this.resultManager, "#mosaic-map");
-				}
-				await this.resultMap.fetchData();
-
-				//this.setLoadingIndicator(renderIntoNode, false);
-			}
+			title: "Sample methods",
+			className: "MosaicSampleMethodsModule",
+			classTemplate: MosaicSampleMethodsModule
 		});
 		this.modules.push({
-			title: "Analytical methods",
-			name: "mosaic-analysis-methods",
-			domains: ["general"],
-			callback: this.renderAnalysisMethods
+			title: "Analysis methods",
+			className: "MosaicAnalysisMethodsModule",
+			classTemplate: MosaicAnalysisMethodsModule
 		});
 		this.modules.push({
 			title: "Feature types",
-			name: "mosaic-feature-types",
-			domains: ["general"],
-			callback: this.renderFeatureTypes
-		});
-
-		//Ceramics
-		this.modules.push({
-			title: "Ceramics culture",
-			name: "mosaic-ceramics-culture",
-			domains: ["ceramic"],
-			callback: async (renderIntoNode, resultMosaic) => {
-				this.setLoadingIndicator(renderIntoNode, true);
-				await this.renderCeramicsCulture(renderIntoNode);
-				this.setLoadingIndicator(renderIntoNode, false);
-			}
+			className: "MosaicFeatureTypesModule",
+			classTemplate: MosaicFeatureTypesModule
 		});
 		this.modules.push({
-			title: "Ceramics relative ages",
-			name: "mosaic-ceramics-relative-ages",
-			domains: ["ceramic"],
-			callback: async (renderIntoNode, resultMosaic) => {
-				this.setLoadingIndicator(renderIntoNode, true);
-				await this.renderCeramicsRelativeAges(renderIntoNode);
-				this.setLoadingIndicator(renderIntoNode, false);
-			}
+			title: "Ceramic cultures",
+			className: "MosaicCeramicsCultureModule",
+			classTemplate: MosaicCeramicsCultureModule
 		});
 		this.modules.push({
-			title: "Ceramics type count",
-			name: "mosaic-ceramics-type-count",
-			domains: ["ceramic"],
-			callback: async (renderIntoNode, resultMosaic) => {
-				this.setLoadingIndicator(renderIntoNode, true);
-				await this.renderCeramicsTypeCount(renderIntoNode);
-				this.setLoadingIndicator(renderIntoNode, false);
-			}
+			title: "Ceramic relative ages",
+			className: "MosaicCeramicsRelativeAgesModule",
+			classTemplate: MosaicCeramicsRelativeAgesModule
 		});
-
-		//Dendro
+		this.modules.push({
+			title: "Ceramic type counts",
+			className: "MosaicCeramicsTypeCountModule",
+			classTemplate: MosaicCeramicsTypeCountModule
+		});
+		this.modules.push({
+			title: "Building types",
+			className: "MosaicDendroBuildingTypesModule",
+			classTemplate: MosaicDendroBuildingTypesModule
+		});
+		this.modules.push({
+			title: "Tree species 2",
+			className: "MosaicDendroTreeSpeciesModule",
+			classTemplate: MosaicDendroTreeSpeciesModule
+		});
+		this.modules.push({
+			title: "Dating histogram",
+			className: "MosaicDendroDatingHistogramModule",
+			classTemplate: MosaicDendroDatingHistogramModule
+		});
 		this.modules.push({
 			title: "Tree species",
-			name: "mosaic-tree-species", //FIXME: This doesn't exist - but maybe it doesn't need to?
-			domains: ["dendro"],
-			callback: this.renderDendroTreeSpecies
+			className: "MosaicDendroTreeSpeciesChartModule",
+			classTemplate: MosaicDendroTreeSpeciesChartModule
 		});
 
-		//Isotopes
-		this.modules.push({
-			title: "Isotopes in samples",
-			name: "mosaic-isotopes-in-samples",
-			domains: ["isotopes"],
-			callback: this.renderIsotopesInSamples
+		this.modules.forEach(mReg => {
+			mReg.name = new mReg.classTemplate().name;
 		});
-
-		this.modules.push({
-			title: "Isotopes in samples",
-			name: "mosaic-isotopes-in-samples",
-			domains: ["isotopes"],
-			callback: this.renderIsotopesInSamples
-		});
-		*/
 	}
 
-	getModuleByName(name) {
+	getModuleMetaByName(name) {
 		for(let key in this.modules) {
 			if(this.modules[key].name == name) {
 				return this.modules[key];
@@ -144,7 +98,17 @@ class ResultMosaic extends ResultModule {
 		return false;
 	}
 	
-	setLoadingIndicator(containerNode, isLoading) {
+	getModuleByClassName(name) {
+		for(let key in this.modules) {
+			if(this.modules[key].className == name) {
+				return this.modules[key];
+			}
+		}
+		return false;
+	}
+	
+	/*
+	setBgLoadingIndicator(containerNode, isLoading) {
 		if(isLoading) {
 			$(containerNode).addClass("result-mosaic-loading-indicator-bg");
 		}
@@ -152,6 +116,7 @@ class ResultMosaic extends ResultModule {
 			$(containerNode).removeClass("result-mosaic-loading-indicator-bg");
 		}
 	}
+	*/
 
 	clearData() {
 		this.data.columns = [];
@@ -172,7 +137,7 @@ class ResultMosaic extends ResultModule {
 			data: JSON.stringify(reqData),
 			dataType: "json",
 			method: "post",
-			contentType: 'application/json; charset=utf-8',
+			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
 				return respData;
@@ -210,6 +175,13 @@ class ResultMosaic extends ResultModule {
 			
 			this.data.rows.push(row);
 		}
+
+		this.sites = [];
+		for(let key in this.data.rows) {
+			if(Number.isInteger(this.data.rows[key].category_id)) {
+				this.sites.push(this.data.rows[key].category_id);
+			}
+		}
 	}
 	
 	/**
@@ -233,25 +205,26 @@ class ResultMosaic extends ResultModule {
 			console.log(errorThrown);
 		});
 	}
-	
-	/**
-	 * Function: renderData
-	 */
-	renderData() {
-		this.unrender();
-		$('#result-mosaic-container').show();
-		$('#result-mosaic-container').css("display", "grid");
 
-		this.sites = [];
-		for(let key in this.data.rows) {
-			if(Number.isInteger(this.data.rows[key].category_id)) {
-				this.sites.push(this.data.rows[key].category_id);
+	update() {
+		console.log("mosaic update")
+
+		var xhr = this.fetchData();
+		xhr.then((respData, textStatus, xhr) => { //success
+			if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
+				this.importResultData(respData);
+				this.updateGridModules();
 			}
-		}
-
-		let domain = this.sqs.domainManager.getActiveDomain();
-		console.log(domain);
-
+			else {
+				console.log("WARN: ResultMosaic discarding old result package data ("+respData.RequestId+"/"+this.requestId+").");
+			}
+		},
+		function(xhr, textStatus, errorThrown) { //error
+			console.log(errorThrown);
+		});
+	}
+	
+	applyDomainGridLayout(domain) {
 		let rows = domain.result_grid_layout[0];
 		let grid_rows_css = "";
 		for(let i = 0; i < rows; i++) {
@@ -265,23 +238,44 @@ class ResultMosaic extends ResultModule {
 
 		$("#result-mosaic-container").css("grid-template-rows", grid_rows_css);
 		$("#result-mosaic-container").css("grid-template-columns", grid_cols_css);
-		
+	}
 
-		this.requestBatchId++;
+	getGridBoxId(moduleConf) {
+		let gridRow = moduleConf.grid_row.replace(/\s+/g, '');
+		let gridCol = moduleConf.grid_column.replace(/\s+/g, '');
+		return "mosaic-grid-box-" + gridRow + "-" + gridCol;
+	}
 
-		domain.result_grid_modules.forEach(mConf => {
-			let module = this.getModuleByName(mConf.name);
-			console.log(mConf)
-			console.log(module)
-			let tileNode = $("<div class='result-mosaic-tile'></div>");
+	renderGridModules(resultGridModules) {
+		resultGridModules.forEach(mConf => {
+			let mosaicTileId = nanoid();
+			mConf.grid_box_id = this.getGridBoxId(mConf);
+
+			let tileNode = $("<div id='"+mosaicTileId+"' class='result-mosaic-tile'></div>");
+			let module = this.createInstanceOfModule(mConf.name);
+			mConf.module = module;
+
 			if(module !== false) {
-				tileNode.append("<h2>"+module.title+"</h2>");
-				tileNode.append("<div id='"+module.name+"' class='result-mosaic-graph-container'></div>");
+				let titleSelectHtml = "<h2><select result-mosaic-tile-id='"+mosaicTileId+"' class=\"result-mosaic-tile-chart-selector\">";
+				let selectOptionsHtml = "";
+				resultGridModules.forEach(gridModule => {
+					let moduleMeta = this.getModuleMetaByName(gridModule.name)
+					if(gridModule.name == mConf.name) {
+						selectOptionsHtml += "<option value=\""+gridModule.name+"\" selected=\"selected\">"+moduleMeta.title+"</option>";
+					}
+					else {
+						selectOptionsHtml += "<option value=\""+gridModule.name+"\">"+moduleMeta.title+"</option>";
+					}
+				});
+				
+				titleSelectHtml += selectOptionsHtml;
+				titleSelectHtml += "</select></h2>";
+				tileNode.append(titleSelectHtml);
+				tileNode.append("<div id='"+mConf.grid_box_id+"' module-name='"+mConf.name+"' class='result-mosaic-graph-container'></div>");
 				tileNode.css("grid-row", mConf.grid_row);
 				tileNode.css("grid-column", mConf.grid_column);
 				$('#result-mosaic-container').append(tileNode);
-				let promise = module.render("#"+module.name);
-				console.log(promise);
+				let promise = module.render("#"+mConf.grid_box_id);
 				this.renderPromises.push(promise);
 				
 			}
@@ -292,6 +286,201 @@ class ResultMosaic extends ResultModule {
 				tileNode.css("grid-column", mConf.grid_column);
 				$('#result-mosaic-container').append(tileNode);
 			}
+
+		});
+
+		this.bindGridModuleSelectionCallbacks();
+	}
+
+	getLiveModuleInstanceByName(name) {
+		let domain = this.sqs.domainManager.getActiveDomain();
+		for(let key in domain.result_grid_modules) {
+			if(domain.result_grid_modules[key].name == name) {
+				return domain.result_grid_modules[key].module;
+			}
+		}
+		return false;
+	}
+
+	updateGridModules() {
+		let activeDomain = this.sqs.domainManager.getActiveDomain();
+		let userConfig = this.sqs.loadUserSettings();
+
+		let gridModuleLayout = null;
+		userConfig.domains.forEach(d => {
+			if(d.name == activeDomain.name) {
+				gridModuleLayout = d.result_grid_modules;
+			}
+		});
+
+		gridModuleLayout.forEach(moduleConf => {
+			let module = this.getLiveModuleInstanceByName(moduleConf.name);
+			console.log("Updating grid module "+module.name);
+			module.update();
+		});
+	}
+
+	bindGridModuleSelectionCallbacks() {
+
+		$(".result-mosaic-tile-chart-selector").on("change", (evt) => {
+			let tileNodeId = $(evt.target).attr("result-mosaic-tile-id");
+			let graphContainer = $("#"+tileNodeId+" .result-mosaic-graph-container")
+			let gridBoxId = graphContainer.attr("id");
+
+			//let currentModuleName = $("#"+tileNodeId).attr("module-name");
+			let selectedModuleName = $(evt.target).val();
+
+			let userConfig = this.sqs.loadUserSettings();
+			let activeDomain = this.sqs.domainManager.getActiveDomain();
+			
+			userConfig.domains.forEach(userConfDom => {
+				if(userConfDom.name == activeDomain.name) {
+					for(let key in userConfDom.result_grid_modules) {
+						if(typeof userConfDom.result_grid_modules[key].grid_box_id == "undefined") {
+							userConfDom.result_grid_modules[key].grid_box_id = this.getGridBoxId(userConfDom.result_grid_modules[key]);
+						}
+						if(userConfDom.result_grid_modules[key].grid_box_id == gridBoxId) {
+							console.log("updating "+userConfDom.result_grid_modules[key].name+" to "+selectedModuleName)
+							userConfDom.result_grid_modules[key].name = selectedModuleName;
+						}
+					}
+				}
+			});
+			this.sqs.storeUserSettings(userConfig);
+			$("#"+gridBoxId).attr("module-name", selectedModuleName);
+			$("#"+gridBoxId).html("");
+
+			let newModule = this.createInstanceOfModule(selectedModuleName);
+			newModule.render("#"+gridBoxId);
+		});
+	}
+
+	createInstanceOfModule(moduleName) {
+		for(let key in this.modules) {
+			if(this.modules[key].name == moduleName) {
+				return new this.modules[key].classTemplate(this.sqs);
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Function: renderData
+	 */
+	renderData() {
+		this.unrender();
+		$('#result-mosaic-container').show();
+		$('#result-mosaic-container').css("display", "grid");
+
+		//let userConfig = this.sqs.loadUserSettings();
+		let domain = this.sqs.domainManager.getActiveDomain();
+		this.applyDomainGridLayout(domain);
+
+		if($(".result-mosaic-tile").length == 0) {
+			this.renderGridModules(domain.result_grid_modules);
+		}
+		else {
+			this.updateGridModules(domain.result_grid_modules);
+		}
+		
+		return;
+
+		this.requestBatchId++;
+
+		let dendroChartOptions = [];
+		domain.result_grid_modules.forEach(mConf => {
+			let module = this.getModuleByName(mConf.module);
+			dendroChartOptions.push({
+				moduleName: mConf.module,
+				html: "<option value=\""+module.name+"\">"+module.title+"</option>"
+			});
+		});
+		
+
+		domain.result_grid_modules.forEach(mConf => {
+			let tileNodeId = nanoid();
+			mConf.grid_box_id = tileNodeId;
+			let tileNode = $("<div class='result-mosaic-tile'></div>");
+			let module = this.getModuleByName(mConf.module);
+
+			if(module !== false) {
+				let titleSelectHtml = "<h2><select tile-node-id='"+tileNodeId+"' class=\"result-mosaic-tile-chart-selector\">";
+				dendroChartOptions.forEach(dco => {
+					if(dco.moduleName == module.name) {
+						titleSelectHtml += "<option value=\""+module.name+"\" selected=\"selected\">"+module.title+"</option>";
+					}
+					else {
+						titleSelectHtml += dco.html;
+					}
+				});
+
+				titleSelectHtml += dendroChartOptions;
+				titleSelectHtml += "</select></h2>";
+				tileNode.append(titleSelectHtml);
+				//tileNode.append("<div id='"+module.name+"' class='result-mosaic-graph-container'></div>");
+				tileNode.append("<div id='"+tileNodeId+"' module-name='"+module.name+"' class='result-mosaic-graph-container'></div>");
+				tileNode.css("grid-row", mConf.grid_row);
+				tileNode.css("grid-column", mConf.grid_column);
+				$('#result-mosaic-container').append(tileNode);
+				let promise = module.render("#"+tileNodeId);
+				this.renderPromises.push(promise);
+				
+			}
+			else {
+				tileNode.append("<h2>NoSuchModuleError - "+mConf.module+"</h2>");
+				tileNode.append("<div id='"+module.name+"' class='result-mosaic-graph-container'></div>");
+				tileNode.css("grid-row", mConf.grid_row);
+				tileNode.css("grid-column", mConf.grid_column);
+				$('#result-mosaic-container').append(tileNode);
+			}
+			
+		});
+
+		$(".result-mosaic-tile-chart-selector").on("change", (evt) => {
+			let currentModuleName = $("#"+tileNodeId).attr("module-name");
+			let selectedModuleName = $(evt.target).val();
+			let tileNodeId = $(evt.target).attr("tile-node-id");
+
+			let tileNode = $("#"+tileNodeId);
+
+			let userConfig = this.sqs.loadUserSettings();
+			let activeDomain = this.sqs.domainManager.getActiveDomain();
+			
+			userConfig.domains.forEach(userConfDom => {
+				if(userConfDom.name == activeDomain.name) {
+					console.log(activeDomain, userConfDom);
+					for(let key in userConfDom.result_grid_modules) {
+						if(userConfDom.result_grid_modules[key].grid_box_id == tileNodeId) {
+							userConfDom.result_grid_modules[key].module = selectedModuleName;
+						}
+					}
+				}
+			});
+			this.sqs.storeUserSettings(userConfig);
+
+			domain.result_grid_modules.forEach(mConf => {
+				if(mConf.module == selectedModuleName) {
+					mConf.grid_row = tileNode.css("grid-row");
+					mConf.grid_column = tileNode.css("grid-column");
+				}
+			});
+
+
+			//Unrender old module before rendring new one
+			/*
+			let currentModuleName = $("#"+tileNodeId).attr("module-name");
+			let currentModule = this.getModuleByName(currentModuleName);
+			currentModule.unrender();
+			*/
+
+			//Update module name for this node
+			//FIXME: What is you have multiple instances though?
+			$("#"+tileNodeId).attr("module-name", selectedModuleName);
+			$("#"+tileNodeId).html("");
+
+			let module = this.getModuleByName(selectedModuleName);
+			module.render("#"+tileNodeId);
+
 			
 		});
 
@@ -577,9 +766,11 @@ class ResultMosaic extends ResultModule {
 	renderBarChart(renderIntoNode, chartSeries, chartTitle) {
 
 		if(chartSeries.length == 0) {
-			let noDataMsgNode = $("<div class='result-mosaic-no-data-msg'><div>No data</div></div>");
-			$(renderIntoNode).append(noDataMsgNode);
+			this.renderNoDataMsg(renderIntoNode);
 			return;
+		}
+		else {
+			this.unrenderNoDataMsg(renderIntoNode);
 		}
 
 		var config = {
@@ -679,12 +870,14 @@ class ResultMosaic extends ResultModule {
 		return zc;
 	}
 
-	renderHistogram(renderIntoNode, chartSeries) {
+	renderHistogram(renderIntoNode, chartSeries, render = true) {
 
 		if(chartSeries.length == 0) {
-			let noDataMsgNode = $("<div class='result-mosaic-no-data-msg'><div>No data</div></div>");
-			$(renderIntoNode).append(noDataMsgNode);
+			this.renderNoDataMsg(renderIntoNode);
 			return;
+		}
+		else {
+			this.unrenderNoDataMsg(renderIntoNode);
 		}
 
 		let xScaleLabels = chartSeries[0].text;
@@ -750,36 +943,53 @@ class ResultMosaic extends ResultModule {
 			"toggle-action":"remove"
 		};
 
-		let zc = zingchart.render({
-			id : renderIntoNode.substring(1),
-			data : config,
-			height: "100%"
-		});
+		if(render) {
+			let zc = zingchart.render({
+				id : renderIntoNode.substring(1),
+				data : config,
+				height: "100%"
+			});
 
-		/*
-		zc.bind("click", (evt) => {
-			let startIndex = evt.targetid.indexOf("-plot-") + 6;
-			let plot = evt.targetid.substring(startIndex, startIndex+1);
-			let facet = this.sqs.facetManager.spawnFacet("sites", [...config.series[plot].sites]);
+			/*
+			zc.bind("click", (evt) => {
+				let startIndex = evt.targetid.indexOf("-plot-") + 6;
+				let plot = evt.targetid.substring(startIndex, startIndex+1);
+				let facet = this.sqs.facetManager.spawnFacet("sites", [...config.series[plot].sites]);
 
-			let iv = setInterval(() => {
-				if(facet.isDataLoaded) {
-					facet.minimize();
-					clearInterval(iv);
-				}
-			}, 100);
-		});
-		*/
+				let iv = setInterval(() => {
+					if(facet.isDataLoaded) {
+						facet.minimize();
+						clearInterval(iv);
+					}
+				}, 100);
+			});
+			*/
 
-		return zc;
+			return zc;
+		}
+		else {
+			return config;
+		}
+		
+	}
+
+	renderNoDataMsg(renderIntoNode) {
+		let noDataMsgNode = $("<div class='result-mosaic-no-data-msg'><div>No data</div></div>");
+		$(renderIntoNode).append(noDataMsgNode);
+	}
+
+	unrenderNoDataMsg(renderIntoNode) {
+		$(".result-mosaic-no-data-msg", renderIntoNode).remove();
 	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {
 
 		if(chartSeries.length == 0) {
-			let noDataMsgNode = $("<div class='result-mosaic-no-data-msg'><div>No data</div></div>");
-			$(renderIntoNode).append(noDataMsgNode);
+			this.renderNoDataMsg(renderIntoNode);
 			return;
+		}
+		else {
+			this.unrenderNoDataMsg(renderIntoNode);
 		}
 
 		var config = {
@@ -970,6 +1180,7 @@ class ResultMosaic extends ResultModule {
 	}
 	
 	unrender() {
+		/*
 		this.modules.forEach((module) => {
 			module.unrender();
 		});
@@ -983,16 +1194,31 @@ class ResultMosaic extends ResultModule {
 		if(typeof(this.resultMap) != "undefined") {
 			this.resultMap.unrender();
 		}
-
+		*/
 		/*
 		for(let k in this.graphs) {
 			zingchart.exec(this.graphs[k].anchor.substr(1), 'destroy');
 			this.removeFromGraphRegistry(this.graphs[k].anchor);
 		}
 		*/
+
 		$("#result-mosaic-container").html("");
 	}
-	
+
+	/*
+	unrenderModule(moduleName) {
+		this.modules.forEach((module) => {
+			if(module.name == moduleName) {
+				//module.unrender();
+				if(module.renderIntoNode != null) {
+					//module.renderIntoNode.substr(1)
+					zingchart.exec(module.renderIntoNode, 'destroy');
+				}
+				
+			}
+		});
+	}
+	*/
 	exportSettings() {
 		return {};
 	}

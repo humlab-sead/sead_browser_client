@@ -18,6 +18,10 @@ class MosaicMapModule extends MosaicTileModule {
         await this.resultMap.fetchData();
     }
 
+    update() {
+        this.resultMap.update();
+	}
+
     unrender() {
         this.resultMap = null;
     }

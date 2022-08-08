@@ -11,7 +11,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
 
     async render(renderIntoNode) {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        resultMosaic.setLoadingIndicator(renderIntoNode, true);
+        this.sqs.setBgLoadingIndicator(renderIntoNode, true);
         
         let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_analysis_methods", resultMosaic.requestBatchId);
 		promise.then((promiseData) => {
@@ -21,7 +21,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
 			}
 
 			let chartSeries = resultMosaic.prepareChartData("method_id", "method_name", promiseData.data);
-            resultMosaic.setLoadingIndicator(renderIntoNode, false);
+            this.sqs.setBgLoadingIndicator(renderIntoNode, false);
 			this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, "Analysis methods");
 		});
     }

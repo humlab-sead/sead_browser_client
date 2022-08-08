@@ -199,9 +199,8 @@ class ResultMap extends ResultModule {
 	/*
 	* Function: fetchData
 	*/
-	fetchData() {
-		if(this.resultDataFetchingSuspended) {
-			this.pendingDataFetch = true;
+	async fetchData() {
+		if(this.resultManager.getResultDataFetchingSuspended()) {
 			return false;
 		}
 		
@@ -238,7 +237,7 @@ class ResultMap extends ResultModule {
 	*
 	* Imports result data and then renders it.
 	*/
-	importResultData(data) {
+	importResultData(data, renderMap = true) {
 		this.data = [];
 		var keyMap = {};
 
@@ -276,14 +275,18 @@ class ResultMap extends ResultModule {
 			this.data = this.timeline.makeFakeTimeData(this.data); //FIXME: REMOVE THIS WHEN THERE IS DATA AVAILABLE
 		}
 
-		this.renderMap();
-		this.renderVisibleDataLayers();
-		if(Config.timelineEnabled) {
-			this.timeline.render();
+		if(renderMap) {
+			this.renderMap();
+			this.renderVisibleDataLayers();
+			if(Config.timelineEnabled) {
+				this.timeline.render();
+			}
+			this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 		}
-		
-		
-		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
+	}
+
+	async update() {
+		await this.fetchData();
 	}
 
 	/*
@@ -1130,7 +1133,6 @@ class ResultMap extends ResultModule {
 	* Function: unrender
 	*/
 	unrender() {
-		console.log(this.renderIntoNode);
 		$(this.renderIntoNode).hide();
 		$("#map-popup-container").remove();
 	}

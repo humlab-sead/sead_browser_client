@@ -9,6 +9,10 @@ class MosaicTileModule {
 
     }
 
+    update() {
+        
+    }
+
     unrender() {
         if(this.chart != null) {
             this.chart.destroy();

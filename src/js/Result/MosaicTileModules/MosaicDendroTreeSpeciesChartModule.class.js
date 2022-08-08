@@ -9,9 +9,12 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         this.requestId = 0;
     }
 
-    async render(renderIntoNode) {
+    async fetch(renderIntoNode = null) {
+        this.sqs.setNoDataMsg(renderIntoNode, false);
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        resultMosaic.setLoadingIndicator(renderIntoNode, true);
+        if(renderIntoNode) {
+            this.sqs.setLoadingIndicator(renderIntoNode, true);
+        }
 
         let requestString = this.sqs.config.dataServerAddress+"/dendro/treespecies";
          
@@ -31,12 +34,28 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
             }
         });
 
+        if(data.categories.length == 0) {
+            this.sqs.setNoDataMsg(renderIntoNode);
+            return;
+        }
+
         if(data.requestId != this.requestId) {
             console.log("Discarding old dendro tree species data");
             return;
         }
 
+        if(renderIntoNode) {
+            this.sqs.setLoadingIndicator(renderIntoNode, false);
+        }
         let categories = data.categories;
+
+        return categories;
+    }
+
+    async render(renderIntoNode) {
+        this.renderIntoNode = renderIntoNode;
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        let categories = await this.fetch(renderIntoNode);
 
         let chartSeries = [];
 
@@ -47,38 +66,19 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
                 "sites": []
             });
         }
-
-        /*
-        chartSeries.push({
-            "values": [],
-            "text": [],
-            "sites": []
-        });
-
-		for(let key in categories) {
-			chartSeries[0].values.push(categories[key].count);
-            chartSeries[0].text.push(categories[key].name);
-		}
-        */
-
-        /*
-        let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_feature_types", resultMosaic.requestBatchId);
-		promise.then((promiseData) => {
-			if(promiseData.requestId < resultMosaic.requestBatchId) {
-				return false;
-			}
-            
-            
-            let chartSeries = resultMosaic.prepareChartData("feature_type_id", "feature_type_name", promiseData.data);
-            resultMosaic.setLoadingIndicator(renderIntoNode, false);
-			this.chart = resultMosaic.renderBarChart(renderIntoNode, chartSeries);
-            
-		});
-        */
-
-        resultMosaic.setLoadingIndicator(renderIntoNode, false);
+        
         this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries);
     }
+
+    async update() {
+        let chartSeries = await this.fetch(this.renderIntoNode);
+        if(typeof chartSeries == "undefined") {
+            console.warn("Unhandled case!")
+        }
+        else {
+            this.render(this.renderIntoNode);
+        }
+	}
 }
 
 export default MosaicDendroTreeSpeciesChartModule;

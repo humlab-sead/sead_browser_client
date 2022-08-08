@@ -1,6 +1,5 @@
 class DendroLib {
-    constructor(sqs, attemptUncertainDatingCaculations = true, useLocalColors = true) {
-        this.sqs = sqs;
+    constructor(attemptUncertainDatingCaculations = true, useLocalColors = true) {
         this.attemptUncertainDatingCaculations = attemptUncertainDatingCaculations;
         this.useLocalColors = useLocalColors;
 
@@ -352,6 +351,9 @@ class DendroLib {
             }
             currentWarnings.push("Using the younger estimated felling year for calculation since an older year was not found");
         }
+
+        return result;
+
         
         estFellingYearValue = parseInt(estFellingYearValue);
 
@@ -420,6 +422,31 @@ class DendroLib {
         //At this point we give up
         return result;
     }
+
+    async getDatedSamplesForAllSites() {
+        let siteIdFrom = 2000;
+        let siteIdTo = 2050;
+
+        for(let siteId = siteIdFrom; siteIdFrom < siteIdTo; siteId++) {
+            await this.getDatedSamplesForSite(siteId);
+        }
+    }
+
+    async getDatedSamplesForSite(siteId) {
+        return new Promise((resolve, reject) => {
+            $.get(Config.dataServerAddress+"/site/"+siteId).then(siteData => {
+
+                /*
+                let contentItem = this.contentItem;
+                this.dataObjects = this.getTableRowsAsObjects(contentItem);
+                let totalNumOfSamples = this.dataObjects.length;
+                this.dataObjects = this.stripNonDatedObjects(this.dataObjects);
+                */
+
+                resolve(siteData);
+            });
+        });
+    }
     
     getYoungestGerminationYear(dataGroup) {
         let result = {
@@ -469,6 +496,8 @@ class DendroLib {
             }
             currentWarnings.push("Using the older estimated felling year for calculation since a younger year was not found");
         }
+
+        return result;
         
         estFellingYearValue = parseInt(estFellingYearValue);
 
@@ -583,6 +612,7 @@ class DendroLib {
             return result;
         }
         else if(estFellingYear && parseInt(estFellingYear.younger)) {
+            //If there's no older felling year, but there is a younger one, then consider the oldest possible felling year to be unknown
             result.warnings.push("No value found for the older estimated felling year, using the younger year instead");
             let value = parseInt(estFellingYear.younger);
             result.value = value + valueMod;
@@ -932,7 +962,16 @@ class DendroLib {
         })
     }
     
-    renderDendroDatingAsString(datingObject, site = null, useTooltipMarkup = true) {
+    /**
+     * renderDendroDatingAsString
+     * 
+     * @param {*} datingObject 
+     * @param {*} site 
+     * @param {*} useTooltipMarkup 
+     * @param {*} sqs - This needs to be provided if useTooltipMarkup is set to true!
+     * @returns 
+     */
+    renderDendroDatingAsString(datingObject, site = null, useTooltipMarkup = true, sqs = null) {
         let renderStr = "";
         if(useTooltipMarkup && datingObject.error_uncertainty) {
             // see site 2019 for an example of this
@@ -979,9 +1018,12 @@ class DendroLib {
             renderStr += " (+"+datingObject.plus+"/-0)";
         }
 
-        if(datingObject.dating_note && useTooltipMarkup) {
+        if(datingObject.dating_note && useTooltipMarkup && sqs == null) {
+            console.warn("In renderDendroDatingAsString, useTooltipMarkup was requested but no reference to SQS were provided!");
+        }
+        if(datingObject.dating_note && useTooltipMarkup && sqs != null) {
             renderStr = "!%data:"+renderStr+":!%tooltip:"+datingObject.dating_note+":! ";
-            renderStr = this.sqs.parseStringValueMarkup(renderStr, {
+            renderStr = sqs.parseStringValueMarkup(renderStr, {
                 drawSymbol: true,
                 symbolChar: "fa-exclamation",
             });

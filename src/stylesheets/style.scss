@@ -559,6 +559,7 @@ h1.main-header {
 }
 
 #result-export-button {
+  display: none;
   position: fixed;
   bottom: 5vh;
   right: 5vw;
@@ -566,7 +567,6 @@ h1.main-header {
   min-height: 2em;
   background: $base-color;
   color: #fff;
-  display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0px 0px 10px 2px $shadow-color;
@@ -1230,16 +1230,12 @@ polyline{
   display: none; /*should be 'grid' when active*/
   grid-template-columns: repeat(2, 1fr [mosaic-column]);
   grid-template-rows: repeat(2, 1fr [mosaic-row]);
-
-  /*
-  grid-template-columns: repeat(auto-fit, minmax(40%, 1fr));
-  */
-
   grid-gap: 10px;
   justify-items: center;
   align-items: center;
   width: 100%;
   height:100%;
+  background: #fff;
 }
 
 .result-mosaic-loading-indicator-container {
@@ -1254,7 +1250,8 @@ polyline{
   background-position: 50% 50%;
   //background-image: url('../assets/ajax-loader.gif');
   //background-image: url('../assets/loading-indicator4.svg');
-  background-image: url('../assets/visead-loading.gif');
+  background-image: url('../assets/logo-loading-indicator.webp');
+  //background-image: url('../assets/sead-logo-animated.svg');
   background-repeat: no-repeat;
 	background-size: 40%;
 	background-color: transparent;
@@ -1282,6 +1279,10 @@ polyline{
   /*color: #fff;*/
   padding-left: 2px;
   padding-right: 2px;
+}
+
+.result-mosaic-tile > h2 select {
+  border-width: 0;
 }
 
 .result-mosaic-graph-container {
@@ -1394,7 +1395,8 @@ polyline{
 }
 
 #cover-tiles-logo {
-  background-image: url('../assets/visead-loading.gif');
+  background-image: url('../assets/logo-loading-indicator.webp');
+  //background-image: url('../assets/sead-logo-animated.svg');
   background-size: 40vw;
   background-position: center top;
   position:absolute;
@@ -1874,6 +1876,13 @@ polyline{
 #preload-loading-indicator {
 }
 
+.overlay-msg-box {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .seadlogo-loading-indicator-container {
   position:fixed;
   top: 0px;
@@ -1891,7 +1900,8 @@ polyline{
   width: 25%;
   height: 25%;
   background-position: 50% 50%;
-  background-image: url('../assets/visead-loading.gif');
+  background-image: url('../assets/logo-loading-indicator.webp');
+  //background-image: url('../assets/sead-logo-animated.svg');
   background-repeat: no-repeat;
 	background-size: contain;
   background-color: transparent;
@@ -1908,6 +1918,15 @@ polyline{
 #preload-failed-indicator > h2 {
   color: rgb(210, 0, 0);
   background-color: transparent;
+}
+
+.foreground-loading-indicator {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  top:0px;
+  left:0px;
+  z-index:100;
 }
 
 .dendro-bar text {
@@ -2163,7 +2182,7 @@ svg text {
 .no-data-box {
   width: 80%;
   height: 80%;
-  margin: 2em;
+  margin: 10%;
   display: flex;
   align-items: center;
   justify-content: center;
