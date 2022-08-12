@@ -9,21 +9,34 @@ class MosaicMapModule extends MosaicTileModule {
 		this.name = "mosaic-map";
         this.domains = ["*"];
         this.resultMap = null;
+        this.pendingRequestPromise = null;
+        this.active = true;
     }
 
     async render(renderIntoNode) {
+        this.active = true;
         if(this.resultMap == null) {
             this.resultMap = new ResultMap(this.sqs.resultManager, renderIntoNode);
         }
         await this.resultMap.fetchData();
     }
 
-    update() {
+    async fetch() {
+
+    }
+
+    async update() {
         this.resultMap.update();
 	}
 
+    async unrender() {
+
+    }
+
     unrender() {
         this.resultMap = null;
+        this.pendingRequestPromise = null;
+        this.active = false;
     }
 }
 

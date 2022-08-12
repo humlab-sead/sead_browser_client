@@ -20,8 +20,21 @@ class ResultTable extends ResultModule {
 			columns: [],
 			rows: []
 		};
+
+		$(window).on("seadResultMenuSelection", (event, data) => {
+			if(data.selection != this.name) {
+				$("#result-table-container").hide();
+			}
+			else {
+				$("#result-table-container").show();
+			}
+		});
 	}
 	
+	isVisible() {
+		return true;
+	}
+
 	/*
 	* Function: clearData
 	*/

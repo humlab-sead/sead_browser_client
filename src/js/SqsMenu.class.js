@@ -165,6 +165,9 @@ class sqsMenu {
 			firstLevelListItem.attr("id", "menu-item-"+items[key].name);
 			firstLevelListItem.attr("name", items[key].name);
 			firstLevelListItem.addClass(l1Classes);
+			if(items[key].visible == false) {
+				firstLevelListItem.css("display", "none");
+			}
 			let span = $("<span></span>");
 			span.addClass(l1TitleClasses);
 			span.html(items[key].title);
@@ -199,17 +202,7 @@ class sqsMenu {
 
 		this.bindMenuAnchor(m);
 
-		$(m.anchor).on("mouseleave", () => {
-			if(m.collapsed) {
-				m.closeTimeout = setTimeout(() => {
-					this.closeMenu(m);
-				}, 500);
-			}
-		});
-
-		$(m.anchor+" .l1-container-level").on("mouseover", () => {
-			clearTimeout(m.closeTimeout);
-		});
+		
 		
 		$(m.anchor+" .l1-container").on("click", (event) => { //replace this with mouseover if you like annoying menus
 			//$(m.anchor+" .l2-level", event.currentTarget).show();
@@ -232,16 +225,34 @@ class sqsMenu {
 	bindMenuAnchor(m) {
 		if(m.items.length > 0) {
 			$(m.anchor+" > .sqs-menu-title-container").on("mouseover", () => {
+				console.log("sqsMenu anchor 1");
+				clearTimeout(m.closeTimeout);
+				this.showMenu(m);
+			});
+
+			$(m.anchor+" > .l1-container-level").on("mouseover", () => {
+				console.log("sqsMenu anchor 2");
+				clearTimeout(m.closeTimeout);
 				this.showMenu(m);
 			});
 
 			if(typeof m.auxTriggers != "undefined") {
 				for(let key in m.auxTriggers) {
 					$(m.auxTriggers[key].selector).on(m.auxTriggers[key].on, () => {
+						console.log("sqsMenu anchor 3");
+						clearTimeout(m.closeTimeout);
 						this.showMenu(m);
 					});
 				}
 			}
+
+			$(m.anchor).on("mouseleave", () => {
+				if(m.collapsed) {
+					m.closeTimeout = setTimeout(() => {
+						this.closeMenu(m);
+					}, 500);
+				}
+			});
 		}
 	}
 

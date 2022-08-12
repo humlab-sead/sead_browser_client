@@ -213,6 +213,7 @@ class DendroChart {
             dataObjects.push(dataObject);
         }
         
+        console.log(dataObjects);
         return dataObjects;
     }
 
@@ -318,156 +319,6 @@ class DendroChart {
         */
     
         //At this point we give up
-        return retVal;
-    }
-    
-    
-    getYoungestGerminationYearOLD(dataObject) {
-        let retVal = {
-            name: "Youngest germination year",
-            value: null,
-            formula: "",
-            reliability: null,
-            warnings: []
-        };
-
-        /*
-        TODO:
-        * Check for existance of dendro_date_id in tbl_dendro_date_notes
-        * Take into account error_plus/minus
-        * dating_uncertainty_id 
-        * error_uncertainty_id ("Ca")
-        * age_type_id
-        */
-
-
-        //a) if we have an inferrred growth year - great, just return that
-        let infGrowthYearOlder = this.getDendroMeasurementByName("Inferred growth year ≤", dataObject);
-        if(parseInt(infGrowthYearOlder)) {
-            retVal.value = parseInt(infGrowthYearOlder);
-            retVal.formula = "Inferred growth year ≤";
-            retVal.reliability = 1;
-            return retVal;
-        }
-        
-        //Character stash: ≥ ≤ 
-    
-        //b) If above failed...then attempt a calculation based on: 'Estimated felling year' - 'Tree age ≥'
-        let estFellingYear = this.getDendroMeasurementByName("Estimated felling year", dataObject);
-        let treeAge = this.getDendroMeasurementByName("Tree age ≥", dataObject);
-        if(parseInt(estFellingYear.younger) && parseInt(treeAge)) {
-            retVal.value = parseInt(estFellingYear.younger) - parseInt(treeAge);
-            retVal.formula = "Estimated felling year (younger) - Tree age ≥";
-            retVal.reliability = 2;
-            retVal.warnings.push({
-                label: "Youngest germination year",
-                description: "The value for the youngest possible germination year was calculated using the formula: "+retVal.formula+", since we couldn't find a value for "+this.getDendroMeasurementTypeById(133).name
-            });
-            return retVal;
-        }
-
-        
-        //If the above failed, that means we either don't have Estimated felling year OR Tree age >=
-        //If we don't have Estimated felling year we're fecked and have to give up on dating
-        //If we DO have Estimated felling year and also a Pith value and Tree rings, we can try a calculation based on that
-        let treeRings = this.getDendroMeasurementByName("Tree rings", dataObject);
-        let pith = this.parsePith(this.getDendroMeasurementByName("Pith (P)", dataObject));
-        if(parseInt(estFellingYear.younger) && parseInt(treeRings) && (parseInt(pith.value) || parseInt(pith.lower))) {
-            if(pith.notes == "Measured width") {
-                //If pith is designated as Measured width, we can't reasonably use it and need to bail out
-                return retVal;
-            }
-    
-            //Pith can have lower & upper values if it is a range, in which case we should select the upper value here
-            let pithValue = pith.lower ? pith.lower : pith.value;
-    
-            retVal.value = parseInt(estFellingYear.younger) - parseInt(treeRings) - parseInt(pithValue);
-            retVal.formula = "Estimated felling year (younger) - Tree rings - Distance to pith";
-            retVal.reliability = 3;
-            retVal.warnings.push({
-                label: "Youngest germination year",
-                description: "The value for the youngest possible germination year was calculated using the formula: "+retVal.formula+", since we couldn't find a value for "+this.getDendroMeasurementTypeById(133).name+" nor "+this.getDendroMeasurementTypeById(130).name
-            });
-
-            return retVal;
-        }
-        
-        /*
-        //WARNING: this gives a very vauge dating, saying almost nothing about germination year, only minimum lifespan
-        estFellingYear = this.getDendroMeasurementByName("Estimated felling year", dataObject);
-        treeRings = this.getDendroMeasurementByName("Tree rings", dataObject);
-        if(parseInt(estFellingYear.younger) && parseInt(treeRings)) {
-            retVal.value = parseInt(estFellingYear.younger) - parseInt(treeRings);
-            retVal.formula = "Estimated felling year (younger) - Tree rings";
-            retVal.reliability = 4;
-            return retVal;
-        }
-        */
-        
-        //At this point we give up
-        return retVal;
-    }
-    
-    
-    getOldestFellingYearOLD(dataObject) {
-        let retVal = {
-            name: "Oldest felling year",
-            value: null,
-            formula: "",
-            reliability: null,
-            warnings: []
-        };
-        let estFellingYear = this.getDendroMeasurementByName("Estimated felling year", dataObject);
-
-        if(parseInt(estFellingYear.older)) {
-            retVal.value = parseInt(estFellingYear.older);
-            retVal.formula = "Estimated felling year (older)";
-            retVal.reliability = 1;
-            return retVal;
-        }
-        else if(parseInt(estFellingYear.younger)) {
-            retVal.value = parseInt(estFellingYear.younger);
-            retVal.formula = "Estimated felling year (younger)";
-            retVal.reliability = 2;
-            retVal.warnings.push({
-                label: "Oldest felling year",
-                description: "The value for the oldest possible felling year was calculated using the younger felling year, since we couldn't find a value for the older felling year."
-            });
-            return retVal;
-        }
-        
-        return retVal;
-    }
-    
-    getYoungestFellingYearOLD(dataObject) {
-        let retVal = {
-            name: "Youngest felling year",
-            value: null,
-            formula: "",
-            reliability: null,
-            warnings: []
-        };
-
-        let estFellingYear = this.getDendroMeasurementByName("Estimated felling year", dataObject);
-    
-        if(parseInt(estFellingYear.younger)) {
-            retVal.value = parseInt(estFellingYear.younger);
-            retVal.formula = "Estimated felling year (younger)";
-            retVal.reliability = 1;
-            return retVal;
-        }
-        else if(parseInt(estFellingYear.older)) {
-            //If there's no younger, but we have an older, revert to that
-            retVal.value = parseInt(estFellingYear.older);
-            retVal.formula = "Estimated felling year (older)";
-            retVal.reliability = 2;
-            retVal.warnings.push({
-                label: "Youngest felling year",
-                description: "The value for the youngest possible felling year was calculated using the older felling year, since we couldn't find a value for the younger felling year."
-            });
-            return retVal;
-        }
-        
         return retVal;
     }
     
@@ -691,6 +542,8 @@ class DendroChart {
         let dendroBarNode = $("svg [sample-name="+dataObject.sample_name+"].dendro-bar");
         let dendroBarGerminationNode = $("svg [sample-name="+dataObject.sample_name+"].dendro-bar-germination-uncertainty");
         let dendroBarFellingNode = $("svg [sample-name="+dataObject.sample_name+"].dendro-bar-felling-uncertainty");
+        let sapwoodNode = $("svg [sample-name="+dataObject.sample_name+"].dendro-sapwood-bar");
+        let fellingUnknownNode = $("svg [sample-name="+dataObject.sample_name+"].dendro-ukn-felling");
         
         let renderTopOrBottom = false;
         if(tooltips.includes("germinationYearOldest")) {
@@ -705,6 +558,15 @@ class DendroChart {
         if(tooltips.includes("fellingYearYoungest")) {
             this.fellingYearYoungestTooltipId = this.renderBarTooltip(container, this.dendroLib.getYoungestFellingYear(dataObject).value, dendroBarFellingNode, renderTopOrBottom = !renderTopOrBottom, "right");
         }
+        if(tooltips.includes("sapwoodOldest")) {
+            this.sapwoodOldestTooltipId = this.renderBarTooltip(container, "Sapwood ≥ 10", sapwoodNode, renderTopOrBottom = !renderTopOrBottom, "left");
+        }
+        if(tooltips.includes("sapwoodYoungest")) {
+            this.sapwoodYoungestTooltipId = this.renderBarTooltip(container, this.dendroLib.getYoungestFellingYear(dataObject).value+10, sapwoodNode, renderTopOrBottom = !renderTopOrBottom, "right");
+        }
+        if(tooltips.includes("fellingUnknown")) {
+            this.fellingUnknownTooltipId = this.renderBarTooltip(container, "Unknown ➟", fellingUnknownNode, renderTopOrBottom = !renderTopOrBottom, "left");
+        }
     }
 
     renderBarTooltip(container, value, el, renderTop = true, renderLeftOrRight = "left") {
@@ -717,14 +579,18 @@ class DendroChart {
         tooltipGroup.append("rect").attr("opacity", 0);
         tooltipGroup.append("text").attr("opacity", 0);
 
+        let numValueChars = value.toString().length;
+        let xPos = (numValueChars / 2) + 2;
+        let width = numValueChars + 4;
+
         container.select("#"+nodeId)
         .attr("transform", () => {
             let x = 0;
             if(renderLeftOrRight == "left") {
-                x = parseFloat($(el).attr("x")) - 4;
+                x = parseFloat($(el).attr("x")) - xPos;
             }
             else {
-                x = parseFloat($(el).attr("x")) + parseFloat($(el).attr("width")) - 4;
+                x = parseFloat($(el).attr("x")) + parseFloat($(el).attr("width")) - xPos;
             }
             let y = 0;
             if(renderTop) {
@@ -739,7 +605,7 @@ class DendroChart {
         container.select("#"+nodeId+" path")
         .attr("opacity", 1)
         .attr("transform", () => {
-            let x = 4;
+            let x = xPos;
             let y = 0;
             let rot = 0;
             if(renderTop) {
@@ -754,13 +620,13 @@ class DendroChart {
 
         container.select("#"+nodeId+" rect")
         .attr("opacity", 1)
-        .attr("width", 8)
+        .attr("width", width)
         .attr("height", 4);
 
         container.select("#"+nodeId+" text")
         .attr("opacity", 1)
-        .attr("x", 4)
-        .attr("y", 3)
+        .attr("x", xPos)
+        .attr("y", 2.75)
         .text(value);
 
         return nodeId;
@@ -782,6 +648,18 @@ class DendroChart {
         if(this.fellingYearYoungestTooltipId) {
             container.selectAll("#"+this.fellingYearYoungestTooltipId).remove();
             this.fellingYearYoungestTooltipId = null;
+        }
+        if(this.sapwoodOldestTooltipId) {
+            container.selectAll("#"+this.sapwoodOldestTooltipId).remove();
+            this.sapwoodOldestTooltipId = null;
+        }
+        if(this.sapwoodYoungestTooltipId) {
+            container.selectAll("#"+this.sapwoodYoungestTooltipId).remove();
+            this.sapwoodYoungestTooltipId = null;
+        }
+        if(this.fellingUnknownTooltipId) {
+            container.selectAll("#"+this.fellingUnknownTooltipId).remove();
+            this.fellingUnknownTooltipId = null;
         }
     }
 
@@ -832,7 +710,7 @@ class DendroChart {
         return warningExists;
     }
 
-    getBarColorByTreeSpecies(treeSpecies) {
+    getBarColorByTreeSpecies(treeSpecies, colorMod = false) {
 
         let colors = [];
         if(this.USE_LOCAL_COLORS) {
@@ -843,23 +721,45 @@ class DendroChart {
             colors = this.sqs.color.getColorScheme(7);
         }
 
+        let selectedColor = null;
+
         switch(treeSpecies.toLowerCase()) {
             case "hassel":
-                return colors[0];
+                selectedColor = colors[0];
+                break;
             case "gran":
-                return colors[1];
+                selectedColor = colors[1];
+                break;
             case "tall":
-                return colors[2];
+                selectedColor = colors[2];
+                break;
             case "asp":
-                return colors[3];
+                selectedColor = colors[3];
+                break;
             case "björk":
-                return colors[4];
+                selectedColor = colors[4];
+                break;
             case "ek":
-                return colors[5];
+                selectedColor = colors[5];
+                break;
             case "bok":
-                return colors[6];
+                selectedColor = colors[6];
+                break;
         }
-        return "black";
+
+        if(!selectedColor) {
+            return "#000";
+        }
+
+        if(colorMod) {
+            let colorObj = d3.color(selectedColor);
+            colorObj.r += colorMod;
+            colorObj.g += colorMod;
+            colorObj.b += colorMod;
+            selectedColor = "rgb("+colorObj.r+", "+colorObj.g+", "+colorObj.b+")";
+        }
+
+        return selectedColor;
     }
 
     getBarProperties(dataObject) {
@@ -888,8 +788,6 @@ class DendroChart {
         }
         props.widthRaw = this.xScale(fellingYear) - this.xScale(plantingYear);
         props.width = (this.xScale(fellingYear) - this.xScale(plantingYear));
-
-        console.log(props);
 
 
         //make sure the x value is not smaller than the stop-x (width)
@@ -945,6 +843,12 @@ class DendroChart {
                     value: 0,
                     warnings: []
                 }
+            },
+            sapwood: {
+                width: {
+                    value: 0,
+                    warnings: []
+                }
             }
         };
 
@@ -960,6 +864,8 @@ class DendroChart {
         if(youngestGerminationYear.value) {
             barObject.certainty.x.value = this.xScale(youngestGerminationYear.value);
             barObject.certainty.x.warnings = youngestGerminationYear.warnings;
+
+            barObject.sapwood.width.value = this.xScale(youngestGerminationYear.value + oldestFellingYear.value - youngestGerminationYear.value + 10);
         }
 
         //Figure out Width
@@ -984,6 +890,8 @@ class DendroChart {
         //Width
         barObject.fellingUncertainty.width.value = this.xScale(youngestFellingYear.value) - this.xScale(oldestFellingYear.value);
         barObject.fellingUncertainty.width.warnings = youngestFellingYear.warnings.concat(oldestFellingYear.warnings);
+
+        
 
         return barObject;
     }
@@ -1049,6 +957,90 @@ class DendroChart {
                 let d = this.getDataObjectBySampleName(dataObjects, sampleName);
                 this.drawInfoTooltip(d, evt);
             });
+    }
+
+    drawSapwoodBars(container, dataObjects) {
+        let sapwoodBars = container.selectAll(".dendro-sapwood-bar")
+        .data(dataObjects)
+            .join("rect")
+            .classed("dendro-bar", true)
+            .classed("dendro-sapwood-bar", true)
+            .attr("fill", (d) => {
+                let treeSpecies = this.getDendroMeasurementByName("Tree species", d);
+                if(!treeSpecies) {
+                    return "#ccc";
+                }
+                return this.getBarColorByTreeSpecies(treeSpecies, 20);
+            })
+            .attr("sample-name", d => d.sample_name)
+            .attr("visibility", d => {
+                let estimatedFellingYear = this.getDendroMeasurementByName("Estimated felling year", d);
+                if(parseInt(estimatedFellingYear.younger) || parseInt(estimatedFellingYear.older)) {
+                    return "hidden";
+                }
+                else {
+                    return "visible";
+                }
+                //return d.barObject.fellingUncertainty.width.value == 0 ? "visible" : "hidden";
+            })
+            .attr("x", (d) => {
+                return d.barObject.certainty.x.value + d.barObject.certainty.width.value;
+            })
+            .attr("y", (d, i) => {
+                return i * (this.barHeight + this.barMarginY) + this.chartTopPadding;
+            })
+            .attr("width", (d, i) => {
+                let value = (this.xScale(0) - this.xScale(10)) * -1;
+                return value; //Just trying to get the width in grahical units equal to 10 years
+            })
+            .attr("height", this.barHeight);
+        
+        sapwoodBars.on("mouseover", (evt) => {
+                let sampleName = $(evt.target).attr("sample-name");
+                let d = this.getDataObjectBySampleName(dataObjects, sampleName);
+                this.renderBarHoverTooltip(container, d, ["sapwoodOldest", "sapwoodYoungest"]);
+            })
+            .on("mouseout", (evt) => {
+                this.unrenderBarHoverTooltip(container);
+            });
+
+        let fellingUnknownBars = container.selectAll(".dendro-ukn-felling")
+        .data(dataObjects)
+            .join("rect")
+            .classed("dendro-bar", true)
+            .classed("dendro-ukn-felling", true)
+            .attr("fill", "url(#uknFellingGradient)")
+            .attr("sample-name", d => d.sample_name)
+            .attr("visibility", d => {
+                let estimatedFellingYear = this.getDendroMeasurementByName("Estimated felling year", d);
+                if(parseInt(estimatedFellingYear.younger) || parseInt(estimatedFellingYear.older)) {
+                    return "hidden";
+                }
+                else {
+                    return "visible";
+                }
+            })
+            .attr("x", (d) => {
+                return d.barObject.certainty.x.value + d.barObject.certainty.width.value + (this.xScale(0) - this.xScale(10)) * -1;
+            })
+            .attr("y", (d, i) => {
+                return i * (this.barHeight + this.barMarginY) + this.chartTopPadding;
+            })
+            .attr("width", (d, i) => {
+                let value = 100 - (d.barObject.certainty.x.value + d.barObject.certainty.width.value + (this.xScale(0) - this.xScale(10)) * -1);
+                return value;
+            })
+            .attr("height", this.barHeight);
+
+            fellingUnknownBars.on("mouseover", (evt) => {
+                let sampleName = $(evt.target).attr("sample-name");
+                let d = this.getDataObjectBySampleName(dataObjects, sampleName);
+                this.renderBarHoverTooltip(container, d, ["fellingUnknown"]);
+            })
+            .on("mouseout", (evt) => {
+                this.unrenderBarHoverTooltip(container);
+            });
+
     }
 
     addDrawableSampleWarning(collection, dataObject, type, warningMsg) {
@@ -1254,6 +1246,7 @@ class DendroChart {
         return null;
     }
 
+
     drawInfoTooltip(dataObject, evt) {
         if(this.infoTooltipId != null) {
             return;
@@ -1326,7 +1319,6 @@ class DendroChart {
 
         //TODO:  sample.locations, sample.dimensions
 
-
         dataObject.datasets.forEach(dataset => {
             let value = dataset.value;
             if(value == "complex") {
@@ -1378,6 +1370,30 @@ class DendroChart {
             })
         }, 500);
     }
+
+    /*
+    createTooltipContainer() {
+        let tooltipContainer = document.createElement("div");
+        this.infoTooltipId = "info-tooltip-"+nanoid();
+        $(tooltipContainer).attr("id", this.infoTooltipId);
+        $(tooltipContainer).addClass("dendro-chart-tooltip-container");
+        $(tooltipContainer).css("left", evt.pageX+10);
+        $(tooltipContainer).css("top", evt.pageY+2);
+
+        let content = "<i class='fa fa-close dendro-tooltip-close-button'></i>";
+        content += "<div class='dendro-chart-tooltip-container-content'>";
+        content += "</div>";
+
+        $(tooltipContainer).html(content);
+
+        $("body").append(tooltipContainer);
+        $(".dendro-tooltip-close-button").on("click", () => {
+            this.removeInfoTooltip();
+        });
+
+        return ".dendro-chart-tooltip-container-content":
+    }
+    */
 
     removeInfoTooltip() {
         if(this.infoTooltipId) {
@@ -1929,7 +1945,9 @@ class DendroChart {
         
         $(this.anchorNodeSelector+" svg").remove();
         let contentItem = this.contentItem;
-        this.dataObjects = this.getTableRowsAsObjects(contentItem);
+        //this.dataObjects = this.getTableRowsAsObjects(contentItem);
+        this.dataObjects = contentItem.data.dataGroups;
+
         let totalNumOfSamples = this.dataObjects.length;
         this.dataObjects = this.stripNonDatedObjects(this.dataObjects);
         //console.log(this.dataObjects.length+" / "+totalNumOfSamples);
@@ -2015,7 +2033,7 @@ class DendroChart {
             return false;
         }
         
-        let yearExtent = [extentMin, extentMax];
+        let yearExtent = [extentMin-10, extentMax+10];
 
         this.xScale = d3.scaleLinear()
         .domain(yearExtent)
@@ -2055,6 +2073,18 @@ class DendroChart {
             .attr("offset", "100%")
             .attr("style", "stop-color:rgb(85, 51, 0);stop-opacity:0.5");
 
+        let uknFellingGradient = defs.append("linearGradient")
+            .attr("id", "uknFellingGradient")
+            .attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "0%");
+        
+            uknFellingGradient.append("stop")
+            .attr("offset", "0%")
+            .attr("style", "stop-color:rgb(160, 160, 160);stop-opacity:1.0");
+
+            uknFellingGradient.append("stop")
+            .attr("offset", "100%")
+            .attr("style", "stop-color:rgb(160, 160, 160);stop-opacity:0.0");
+
         //this.drawCertaintyBars(this.container, this.dataObjects);
         if(this.showUncertainty == "all" || this.showUncertainty == "estimates") {
             this.drawGerminationUncertaintyBars(this.container, this.dataObjects);
@@ -2077,6 +2107,7 @@ class DendroChart {
         })
 
         this.drawCertaintyBars(container, dataObjects);
+        this.drawSapwoodBars(container, dataObjects);
         this.drawFellingUncertaintyBars(container, dataObjects);
         this.drawGerminationUncertaintyBars(container, dataObjects);
         this.drawYAxis(container, dataObjects);

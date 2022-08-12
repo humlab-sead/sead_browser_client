@@ -688,6 +688,7 @@ class DendrochronologyDataset extends DatasetModule {
 	}
 
 	makeSection(siteData, sections) {
+		console.log("makeSection")
 
 		let dataGroups = siteData.data_groups.filter((dataGroup) => {
 			return dataGroup.type == "dendro";
@@ -718,8 +719,10 @@ class DendrochronologyDataset extends DatasetModule {
 
 			let dateSampled = dataGroup.date_sampled;
 			let dateSampledParsed = new Date(Date.parse(dateSampled));
-			
-			if(dateSampledParsed) {
+			if(dateSampledParsed == "Invalid Date") {
+				dateSampled = "Unknown"
+			}
+			else {
 				let month = dateSampledParsed.getMonth()+1;
 				if(month < 10) {
 					month = "0"+month;
@@ -750,24 +753,30 @@ class DendrochronologyDataset extends DatasetModule {
 			];
 
 			let subTableRows = [];
-			dataGroup.data_points.forEach(dp => {
-				let value = dp.value;
+			dataGroup.datasets.forEach(dataset => {
+				let value = dataset.value;
 				let tooltip = "";
 
-				if(dp.id == 134 || dp.id == 137) {
+				/*
+				if(dataset.id == 134 || dataset.id == 137) {
 					//This is Estimated felling year or Outermost tree-ring date, these are complex values that needs to be parsed
 					value = this.dl.renderDendroDatingAsString(value, siteData);
+				}
+				*/
+
+				if(dataset.id == 134 || dataset.id == 137) {
+					value = this.dl.renderDendroDatingAsString(dataset.data, siteData, true, this.sqs);
 				}
 
 				subTableRows.push([
 					{
 						type: "cell",
-						value: dp.id
+						value: dataset.id
 					},
 					{
 						type: "cell",
-						value: dp.label,
-						tooltip: this.getDendroMethodDescription(siteData, dp.id).description
+						value: dataset.label,
+						tooltip: this.getDendroMethodDescription(siteData, dataset.id).description
 					},
 					{
 						type: "cell",
@@ -776,7 +785,7 @@ class DendrochronologyDataset extends DatasetModule {
 					},
 					{
 						type: "data",
-						value: dp.value
+						value: dataset.value == "complex" ? dataset.data : dataset.value
 					}
 				]);
 			});
@@ -838,7 +847,8 @@ class DendrochronologyDataset extends DatasetModule {
 			"datasetId": 0,
 			"data": {
 				"columns": columns,
-				"rows": rows
+				"rows": rows,
+				"dataGroups": dataGroups
 			},
 			"renderOptions": [
 				{
@@ -911,7 +921,6 @@ class DendrochronologyDataset extends DatasetModule {
 			analysisMethodDescription = "<h4 class='tooltip-header'>"+analysisMethod.method_name+"</h4>"+analysisMethod.method_abbrev_or_alt_name+"<hr>"+analysisMethod.description;
 		}
 		
-
 		let section = {
 			"name": "dendro",
 			"title": "Dendrochronology",

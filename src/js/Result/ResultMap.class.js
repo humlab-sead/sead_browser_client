@@ -7,7 +7,7 @@ import SqsMenu from '../SqsMenu.class';
 /*OpenLayers imports*/
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
+import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer } from 'ol/layer';
 import { Stamen, BingMaps, TileArcGISRest } from 'ol/source';
 import { Group as GroupLayer } from 'ol/layer';
 import Overlay from 'ol/Overlay';
@@ -50,7 +50,6 @@ class ResultMap extends ResultModule {
 			this.renderTimelineIntoNode = $(".result-timeline-render-container", renderIntoNode)[0];
 		}
 		
-		
 		this.olMap = null;
 		this.name = "map";
 		this.prettyName = "Geographic";
@@ -63,6 +62,14 @@ class ResultMap extends ResultModule {
 		this.timeline = null;
 		this.defaultExtent = [-9240982.715065815, -753638.6533165146, 11461833.521917604, 19264301.810231723];
 		
+		$(window).on("seadResultMenuSelection", (event, data) => {
+			if(data.selection != this.name) {
+				$("#result-map-container").hide();
+			}
+			else {
+				$("#result-map-container").show();
+			}
+		});
 
 		//These attributes are used to set the style of map points
 		this.style = {
@@ -169,6 +176,24 @@ class ResultMap extends ResultModule {
 		});
 		this.dataLayers.push(dataLayer);
 
+
+		//Heatmap
+		dataLayer = new HeatmapLayer({
+			opacity: 0.5
+		});
+		dataLayer.setProperties({
+			layerId: "heatmap",
+			title: "Heatmap",
+			type: "dataLayer",
+			renderCallback: () => {
+				this.renderHeatmapLayer();
+			},
+			visible: false
+		});
+		this.dataLayers.push(dataLayer);
+		
+
+
 		//Set up viewport resize event handlers
 		this.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
@@ -179,12 +204,16 @@ class ResultMap extends ResultModule {
 		
 	}
 
+	isVisible() {
+		return true;
+	}
+
 	/*
 	* Function: render
 	*
 	* Called from outside. Its the command from sqs to render the contents of this module. Will fetch data and then import & render it.
 	*/
-	render() {
+	render(fetch = true) {
 		let xhr = this.fetchData();
 		xhr.then((data, textStatus, xhr) => { //success
 			if(this.active) {
@@ -211,7 +240,7 @@ class ResultMap extends ResultModule {
 			data: JSON.stringify(reqData),
 			dataType: "json",
 			method: "post",
-			contentType: 'application/json; charset=utf-8',
+			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
 				if(respData.RequestId == this.requestId && this.active) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
@@ -221,13 +250,9 @@ class ResultMap extends ResultModule {
 				else {
 					console.log("WARN: ResultMap discarding old result package data ("+respData.RequestId+"/"+this.requestId+").");
 				}
-
 			},
 			error: (respData, textStatus, jqXHR) => {
 				this.resultManager.showLoadingIndicator(false, true);
-			},
-			complete: (xhr, textStatus) => {
-				
 			}
 		});
 	}
@@ -351,7 +376,7 @@ class ResultMap extends ResultModule {
 				loadTilesWhileInteracting: true,
 				loadTilesWhileAnimating: true
 			});
-			
+
 			this.olMap.on("moveend", () => {
 				var newZoomLevel = this.olMap.getView().getZoom();
 				if (newZoomLevel != this.currentZoomLevel) {
@@ -474,6 +499,7 @@ class ResultMap extends ResultModule {
 		$(this.renderMapIntoNode).append($("<div></div>").attr("id", "result-map-controls-container"));
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-baselayer-controls-menu"));
 		new SqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlsSqsMenu());
+
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-datalayer-controls-menu"));
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
 	}
@@ -573,6 +599,36 @@ class ResultMap extends ResultModule {
 		this.olMap.addLayer(clusterLayer);
 	}
 
+	renderHeatmapLayer() {
+		let timeFilteredData = this.timeline.getSelectedSites();
+		var geojson = this.getDataAsGeoJSON(timeFilteredData);
+
+		var gf = new GeoJSON({
+			featureProjection: "EPSG:3857"
+		});
+		var featurePoints = gf.readFeatures(geojson);
+
+		var pointsSource = new VectorSource({
+			features: featurePoints
+		});
+
+		var layer = new HeatmapLayer({
+			source: pointsSource,
+			weight: function(feature) {
+				return 1.0;
+			},
+			radius: 10,
+			blur: 30,
+			zIndex: 1
+		});
+		
+		layer.setProperties({
+			"layerId": "heatmap",
+			"type": "dataLayer"
+		});
+		
+		this.olMap.addLayer(layer);
+	}
 
 	/*
 	* Function: renderPointsLayer

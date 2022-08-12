@@ -1,4 +1,3 @@
-import zingchart from "zingchart";
 import MosaicTileModule from "./MosaicTileModule.class";
 
 class MosaicDendroDatingHistogramModule extends MosaicTileModule {
@@ -9,10 +8,16 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
 		this.name = "mosaic-dendro-dating-histogram";
         this.requestId = 0;
         this.renderIntoNode = null;
+        this.pendingRequestPromise = null;
+        this.active = true;
     }
 
     async fetch(renderIntoNode = null) {
         
+        if(this.pendingRequestPromise != null) {
+            this.pendingRequestPromise.abort();
+        }
+
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         if(renderIntoNode) {
             this.sqs.setLoadingIndicator(renderIntoNode, true);
@@ -26,7 +31,7 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
 
         requestBody = JSON.stringify(requestBody);
 
-        let data = await $.ajax(requestString, {
+        this.pendingRequestPromise = $.ajax(requestString, {
             method: "post",
             dataType: "json",
             data: requestBody,
@@ -35,14 +40,27 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
             }
         });
 
-        if(data.categories.length == 0) {
-            this.sqs.setNoDataMsg(renderIntoNode);
-            return;
+        let data = null;
+        try {
+            data = await this.pendingRequestPromise;
+            this.pendingRequestPromise = null;
+        }
+        catch(error) {
+            this.pendingRequestPromise = null;
+            return [];
+        }
+
+        if(!this.active) {
+            return false;
         }
 
         if(data.requestId != this.requestId) {
             console.log("Discarding old dendro dating data");
             return;
+        }
+
+        if(data.categories.length == 0) {
+            return false;
         }
 
         let categories = data.categories;
@@ -88,21 +106,33 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
     }
 
     async render(renderIntoNode) {
+        this.active = true;
         this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         let chartSeries = await this.fetch(renderIntoNode);
-        this.chart = resultMosaic.renderHistogram(renderIntoNode, chartSeries);
+
+        if(chartSeries === false) {
+            this.sqs.setNoDataMsg(this.renderIntoNode);
+        }
+        else {
+            this.chart = resultMosaic.renderHistogram(this.renderIntoNode, chartSeries);
+        }
     }
 
     async update() {
         let chartSeries = await this.fetch(this.renderIntoNode);
-        if(typeof chartSeries == "undefined") {
-            console.warn("Unhandled case!")
+        if(chartSeries === false) {
+            this.sqs.setNoDataMsg(this.renderIntoNode);
         }
         else {
             this.render(this.renderIntoNode);
         }
 	}
+
+    async unrender() {
+        this.pendingRequestPromise = null;
+        this.active = false;
+    }
 }
 
 export default MosaicDendroDatingHistogramModule;

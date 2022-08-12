@@ -11,6 +11,10 @@ class ResultDefault {
 	
 	}
 
+	isVisible() {
+		return true;
+	}
+
 	render() {
 		var domObj = $("#result-default-contents-template")[0].cloneNode(true);
 		$(domObj).attr("id", "result-default-contents");

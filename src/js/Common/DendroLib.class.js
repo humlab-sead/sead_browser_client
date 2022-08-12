@@ -223,7 +223,58 @@ class DendroLib {
 
         return sampleDataObjects;
     }
+    
+    getTableRowsAsObjects(contentItem) {
+        let sampleNameColKey = this.getTableColumnKeyByTitle(contentItem.data, "Sample name");
+        let dateSampledColKey = this.getTableColumnKeyByTitle(contentItem.data, "Date sampled");
 
+        let dataObjects = [];
+        for(let rowKey in contentItem.data.rows) {
+            let row = contentItem.data.rows[rowKey];
+
+            let dataObject = {
+                sample_name: row[sampleNameColKey].value,
+                date_sampled: row[dateSampledColKey].value,
+                datasets: []
+            };
+    
+            row.forEach(cell => {
+                if(cell.type == "subtable") {
+    
+                    let subTable = cell.value;
+                    
+                    let idColKey = this.getTableColumnKeyByTitle(subTable, "Dendro lookup id");
+                    let labelColKey = this.getTableColumnKeyByTitle(subTable, "Measurement type");
+                    let valueColKey = this.getTableColumnKeyByTitle(subTable, "Measurement value");
+                    let dataColKey = this.getTableColumnKeyByTitle(subTable, "data");
+                    
+                    subTable.rows.forEach(subTableRow => {
+                        let value = subTableRow[valueColKey].value;
+                        if(subTableRow[idColKey].value == 134 || subTableRow[idColKey].value == 137) {
+                            //This is Estimated felling year or Outermost tree-ring date, these are complex values that needs to be parsed
+                            value = "complex";
+                        }
+
+                        let dataset = {
+                            id: subTableRow[idColKey].value,
+                            label: subTableRow[labelColKey].value,
+                            value: value,
+                            data: subTableRow[dataColKey].value,
+                        };
+    
+                        dataObject.datasets.push(dataset);
+                    })
+                    
+                }
+            })
+    
+            dataObjects.push(dataObject);
+        }
+        
+        return dataObjects;
+    }
+
+    /*
     getTableRowsAsObjects(contentItem) {
         let sampleDataObjects = [];
         for(let rowKey in contentItem.data.rows) {
@@ -273,9 +324,10 @@ class DendroLib {
             })
             sampleDataObjects.push(sampleDataObject);
         }
-    
+        
         return sampleDataObjects;
     }
+    */
 
     getDendroMeasurementByName(name, sampleDataObject) {
         let dendroLookupId = null;
@@ -302,6 +354,7 @@ class DendroLib {
                 return sampleDataObject[dpKey][key].value;
             }
         }
+        
     }
 
     getOldestGerminationYear(dataGroup) {
@@ -352,7 +405,7 @@ class DendroLib {
             currentWarnings.push("Using the younger estimated felling year for calculation since an older year was not found");
         }
 
-        return result;
+        //return result; //This used to be the cut-off, WHY?
 
         
         estFellingYearValue = parseInt(estFellingYearValue);
@@ -372,11 +425,11 @@ class DendroLib {
                 result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.error_uncertainty);
             }
             if(estFellingYear.minus != null && parseInt(estFellingYear.minus)) {
-                result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
+                //result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
                 valueMod -= estFellingYear.minus;
             }
             if(estFellingYear.plus != null && parseInt(estFellingYear.plus)) {
-                result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
+                //result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
             }
 
             result.value += valueMod;
@@ -421,31 +474,6 @@ class DendroLib {
         
         //At this point we give up
         return result;
-    }
-
-    async getDatedSamplesForAllSites() {
-        let siteIdFrom = 2000;
-        let siteIdTo = 2050;
-
-        for(let siteId = siteIdFrom; siteIdFrom < siteIdTo; siteId++) {
-            await this.getDatedSamplesForSite(siteId);
-        }
-    }
-
-    async getDatedSamplesForSite(siteId) {
-        return new Promise((resolve, reject) => {
-            $.get(Config.dataServerAddress+"/site/"+siteId).then(siteData => {
-
-                /*
-                let contentItem = this.contentItem;
-                this.dataObjects = this.getTableRowsAsObjects(contentItem);
-                let totalNumOfSamples = this.dataObjects.length;
-                this.dataObjects = this.stripNonDatedObjects(this.dataObjects);
-                */
-
-                resolve(siteData);
-            });
-        });
     }
     
     getYoungestGerminationYear(dataGroup) {
@@ -497,7 +525,7 @@ class DendroLib {
             currentWarnings.push("Using the older estimated felling year for calculation since a younger year was not found");
         }
 
-        return result;
+        //return result; //This used to be the cut-off, WHY?
         
         estFellingYearValue = parseInt(estFellingYearValue);
 
@@ -517,10 +545,10 @@ class DendroLib {
                 result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.error_uncertainty);
             }
             if(estFellingYear.minus != null && parseInt(estFellingYear.minus)) {
-                result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
+                //result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
             }
             if(estFellingYear.plus != null && parseInt(estFellingYear.plus)) {
-                result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
+                //result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
                 valueMod += estFellingYear.plus;
             }
 
@@ -595,11 +623,11 @@ class DendroLib {
                 result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.error_uncertainty);
             }
             if(estFellingYear.minus != null && parseInt(estFellingYear.minus)) {
-                result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
+                //result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
                 valueMod -= estFellingYear.minus;
             }
             if(estFellingYear.plus != null && parseInt(estFellingYear.plus)) {
-                result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
+                //result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
             }
         }
         
@@ -613,7 +641,7 @@ class DendroLib {
         }
         else if(estFellingYear && parseInt(estFellingYear.younger)) {
             //If there's no older felling year, but there is a younger one, then consider the oldest possible felling year to be unknown
-            result.warnings.push("No value found for the older estimated felling year, using the younger year instead");
+            //result.warnings.push("No value found for the older estimated felling year, using the younger year instead");
             let value = parseInt(estFellingYear.younger);
             result.value = value + valueMod;
             result.formula = "Estimated felling year (younger)";
@@ -661,6 +689,7 @@ class DendroLib {
         if(estFellingYear.error_uncertainty) {
             result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.error_uncertainty);
         }
+        /*
         if(estFellingYear.minus != null && parseInt(estFellingYear.minus)) {
             result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
         }
@@ -668,6 +697,7 @@ class DendroLib {
             result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
             valueMod += estFellingYear.plus;
         }
+        */
         
         if(estFellingYear && parseInt(estFellingYear.younger)) {
             let value = parseInt(estFellingYear.younger);
@@ -687,7 +717,7 @@ class DendroLib {
 
         let maxTreeAge = this.getDendroMeasurementByName("Tree age ≤", dataGroup);
         let germinationYear = this.getDendroMeasurementByName("Inferred growth year ≥", dataGroup);
-        if(minTreeAge && germinationYear) {
+        if(maxTreeAge && germinationYear) {
             result.formula = "Inferred growth year ≥ + Tree age ≤";
             result.reliability = 3;
             result.value = germinationYear + maxTreeAge;
@@ -984,7 +1014,13 @@ class DendroLib {
                 }
             }
             renderStr = "!%data:"+datingObject.error_uncertainty+":!%tooltip:"+uncertaintyDesc+":! ";
-            renderStr = this.sqs.parseStringValueMarkup(renderStr);
+            if(sqs != null) {
+                renderStr = sqs.parseStringValueMarkup(renderStr);
+            }
+            else {
+                console.warn("Skipping parseStringValueMarkup since we have no reference to sqs");
+            }
+            
         }
         else if(datingObject.error_uncertainty) {
             renderStr = datingObject.error_uncertainty+" ";

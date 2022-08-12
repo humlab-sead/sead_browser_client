@@ -28,65 +28,114 @@ class ResultMosaic extends ResultModule {
 		this.renderPromises = [];
 		this.modules = [];
 
+		$(window).on("seadResultMenuSelection", (event, data) => {
+			if(data.selection != this.name) {
+				$("#result-mosaic-container").hide();
+			}
+			else {
+				$("#result-mosaic-container").show();
+			}
+		});
+
+		/*
+		//On domain change - unrender/render all tile modules
+		this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
+			if(this.resultManager.getActiveModule().name == this.name) {
+				
+				this.modules.forEach(moduleMeta => {
+					console.log(moduleMeta)
+					//let module = this.getInstanceOfModule(moduleMeta.name);
+					//module.unrender();
+				})
+				
+			}
+		});
+		*/
+
 		this.modules.push({
 			title: "Site map",
 			className: "MosaicMapModule",
-			classTemplate: MosaicMapModule
+			classTemplate: MosaicMapModule,
+			module: null
 		});
 		this.modules.push({
 			title: "Sample methods",
 			className: "MosaicSampleMethodsModule",
-			classTemplate: MosaicSampleMethodsModule
+			classTemplate: MosaicSampleMethodsModule,
+			module: null
 		});
 		this.modules.push({
 			title: "Analysis methods",
 			className: "MosaicAnalysisMethodsModule",
-			classTemplate: MosaicAnalysisMethodsModule
+			classTemplate: MosaicAnalysisMethodsModule,
+			module: null
 		});
 		this.modules.push({
 			title: "Feature types",
 			className: "MosaicFeatureTypesModule",
-			classTemplate: MosaicFeatureTypesModule
+			classTemplate: MosaicFeatureTypesModule,
+			module: null
 		});
 		this.modules.push({
 			title: "Ceramic cultures",
 			className: "MosaicCeramicsCultureModule",
-			classTemplate: MosaicCeramicsCultureModule
+			classTemplate: MosaicCeramicsCultureModule,
+			module: null
 		});
 		this.modules.push({
 			title: "Ceramic relative ages",
 			className: "MosaicCeramicsRelativeAgesModule",
-			classTemplate: MosaicCeramicsRelativeAgesModule
+			classTemplate: MosaicCeramicsRelativeAgesModule,
+			module: null
 		});
 		this.modules.push({
 			title: "Ceramic type counts",
 			className: "MosaicCeramicsTypeCountModule",
-			classTemplate: MosaicCeramicsTypeCountModule
+			classTemplate: MosaicCeramicsTypeCountModule,
+			module: null
 		});
 		this.modules.push({
 			title: "Building types",
 			className: "MosaicDendroBuildingTypesModule",
-			classTemplate: MosaicDendroBuildingTypesModule
+			classTemplate: MosaicDendroBuildingTypesModule,
+			module: null
 		});
 		this.modules.push({
 			title: "Tree species 2",
 			className: "MosaicDendroTreeSpeciesModule",
-			classTemplate: MosaicDendroTreeSpeciesModule
+			classTemplate: MosaicDendroTreeSpeciesModule,
+			module: null
 		});
 		this.modules.push({
 			title: "Dating histogram",
 			className: "MosaicDendroDatingHistogramModule",
-			classTemplate: MosaicDendroDatingHistogramModule
+			classTemplate: MosaicDendroDatingHistogramModule,
+			module: null
 		});
 		this.modules.push({
 			title: "Tree species",
 			className: "MosaicDendroTreeSpeciesChartModule",
-			classTemplate: MosaicDendroTreeSpeciesChartModule
+			classTemplate: MosaicDendroTreeSpeciesChartModule,
+			module: null
 		});
 
 		this.modules.forEach(mReg => {
 			mReg.name = new mReg.classTemplate().name;
 		});
+	}
+
+	/*
+	initGridModuleLayout() {
+		let domain = this.sqs.domainManager.getActiveDomain();
+		for(let key in domain.result_grid_modules) {
+			let moduleName = domain.result_grid_modules[key].name;
+
+		}
+	}
+	*/
+
+	isVisible() {
+		return true;
 	}
 
 	getModuleMetaByName(name) {
@@ -188,8 +237,11 @@ class ResultMosaic extends ResultModule {
 	 * Function: render
 	 * 
 	 * This is the entry-function, the one being called by the ResultManager to set off the rendering of this module and its sub-modules.
+	 * 
+	 * This will also be called when the domain changes, despite the reuslt module not changing, which means we need to unrender any previous mosaic tiles
 	 */
 	render() {
+		this.unrenderGridModules();
 		var xhr = this.fetchData();
 		xhr.then((respData, textStatus, xhr) => { //success
 
@@ -208,7 +260,6 @@ class ResultMosaic extends ResultModule {
 
 	update() {
 		console.log("mosaic update")
-
 		var xhr = this.fetchData();
 		xhr.then((respData, textStatus, xhr) => { //success
 			if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
@@ -247,49 +298,68 @@ class ResultMosaic extends ResultModule {
 	}
 
 	renderGridModules(resultGridModules) {
+		for(let key in this.modules) {
+			if(this.modules[key].module != null) {
+				this.modules[key].module.unrender();
+			}
+		}
+
 		resultGridModules.forEach(mConf => {
 			let mosaicTileId = nanoid();
 			mConf.grid_box_id = this.getGridBoxId(mConf);
-
-			let tileNode = $("<div id='"+mosaicTileId+"' class='result-mosaic-tile'></div>");
-			let module = this.createInstanceOfModule(mConf.name);
-			mConf.module = module;
-
-			if(module !== false) {
-				let titleSelectHtml = "<h2><select result-mosaic-tile-id='"+mosaicTileId+"' class=\"result-mosaic-tile-chart-selector\">";
-				let selectOptionsHtml = "";
-				resultGridModules.forEach(gridModule => {
-					let moduleMeta = this.getModuleMetaByName(gridModule.name)
-					if(gridModule.name == mConf.name) {
-						selectOptionsHtml += "<option value=\""+gridModule.name+"\" selected=\"selected\">"+moduleMeta.title+"</option>";
-					}
-					else {
-						selectOptionsHtml += "<option value=\""+gridModule.name+"\">"+moduleMeta.title+"</option>";
-					}
-				});
-				
-				titleSelectHtml += selectOptionsHtml;
-				titleSelectHtml += "</select></h2>";
-				tileNode.append(titleSelectHtml);
-				tileNode.append("<div id='"+mConf.grid_box_id+"' module-name='"+mConf.name+"' class='result-mosaic-graph-container'></div>");
-				tileNode.css("grid-row", mConf.grid_row);
-				tileNode.css("grid-column", mConf.grid_column);
-				$('#result-mosaic-container').append(tileNode);
-				let promise = module.render("#"+mConf.grid_box_id);
-				this.renderPromises.push(promise);
-				
-			}
-			else {
-				tileNode.append("<h2>NoSuchModuleError - "+mConf.name+"</h2>");
-				tileNode.append("<div id='"+module.name+"' class='result-mosaic-graph-container'></div>");
-				tileNode.css("grid-row", mConf.grid_row);
-				tileNode.css("grid-column", mConf.grid_column);
-				$('#result-mosaic-container').append(tileNode);
-			}
-
+			this.renderGridModule(mConf, mosaicTileId);
 		});
 
 		this.bindGridModuleSelectionCallbacks();
+	}
+
+	renderGridModule(moduleConf, mosaicTileId) {
+		let module = this.getInstanceOfModule(moduleConf.name);
+		
+		let tileNode = $("<div id='"+mosaicTileId+"' class='result-mosaic-tile'></div>");
+		if(!module) {
+			tileNode.append("<h2>NoSuchModuleError - "+moduleConf.name+"</h2>");
+			tileNode.append("<div id='"+module.name+"' class='result-mosaic-graph-container'></div>");
+			tileNode.css("grid-row", moduleConf.grid_row);
+			tileNode.css("grid-column", moduleConf.grid_column);
+		}
+		else {
+			moduleConf.module = module;
+			moduleConf.moduleInstanceId = nanoid();
+			let titleSelectHtml = this.renderGridModuleSelector(moduleConf, mosaicTileId);
+			tileNode.append(titleSelectHtml);
+			tileNode.append("<div id='"+moduleConf.grid_box_id+"' module-instance-id='"+moduleConf.moduleInstanceId+"' module-name='"+moduleConf.name+"' class='result-mosaic-graph-container'></div>");
+			tileNode.css("grid-row", moduleConf.grid_row);
+			tileNode.css("grid-column", moduleConf.grid_column);
+			$('#result-mosaic-container').append(tileNode);
+			let promise = module.render("#"+moduleConf.grid_box_id);
+			this.renderPromises.push(promise);
+		}
+		
+	}
+
+	unrenderGridModules() {
+		
+	}
+
+	renderGridModuleSelector(moduleConf, mosaicTileId) {
+		let domain = this.sqs.domainManager.getActiveDomain();
+		let titleSelectHtml = "<h2><select result-mosaic-tile-id='"+mosaicTileId+"' class=\"result-mosaic-tile-chart-selector\">";
+		let selectOptionsHtml = "";
+		domain.result_grid_modules.forEach(gridModule => {
+			let moduleMeta = this.getModuleMetaByName(gridModule.name)
+			if(gridModule.name == moduleConf.name) {
+				selectOptionsHtml += "<option value=\""+gridModule.name+"\" selected=\"selected\">"+moduleMeta.title+"</option>";
+			}
+			else {
+				selectOptionsHtml += "<option value=\""+gridModule.name+"\">"+moduleMeta.title+"</option>";
+			}
+		});
+		
+		titleSelectHtml += selectOptionsHtml;
+		titleSelectHtml += "</select></h2>";
+
+		return titleSelectHtml;
 	}
 
 	getLiveModuleInstanceByName(name) {
@@ -312,7 +382,7 @@ class ResultMosaic extends ResultModule {
 				gridModuleLayout = d.result_grid_modules;
 			}
 		});
-
+		
 		gridModuleLayout.forEach(moduleConf => {
 			let module = this.getLiveModuleInstanceByName(moduleConf.name);
 			console.log("Updating grid module "+module.name);
@@ -320,45 +390,52 @@ class ResultMosaic extends ResultModule {
 		});
 	}
 
-	bindGridModuleSelectionCallbacks() {
+	getModuleMetaByInstanceId(moduleInstanceId) {
+		let domain = this.sqs.domainManager.getActiveDomain();
+		for(let key in domain.result_grid_modules) {
+			if(domain.result_grid_modules[key].moduleInstanceId == moduleInstanceId) {
+				return domain.result_grid_modules[key];
+			}
+		}
+	}
 
+	bindGridModuleSelectionCallbacks() {
 		$(".result-mosaic-tile-chart-selector").on("change", (evt) => {
 			let tileNodeId = $(evt.target).attr("result-mosaic-tile-id");
 			let graphContainer = $("#"+tileNodeId+" .result-mosaic-graph-container")
 			let gridBoxId = graphContainer.attr("id");
+			
+			let currentModuleInstanceId = graphContainer.attr("module-instance-id")
+			let currentModuleMeta = this.getModuleMetaByInstanceId(currentModuleInstanceId);
+			currentModuleMeta.module.unrender();
 
-			//let currentModuleName = $("#"+tileNodeId).attr("module-name");
 			let selectedModuleName = $(evt.target).val();
 
-			let userConfig = this.sqs.loadUserSettings();
 			let activeDomain = this.sqs.domainManager.getActiveDomain();
-			
-			userConfig.domains.forEach(userConfDom => {
-				if(userConfDom.name == activeDomain.name) {
-					for(let key in userConfDom.result_grid_modules) {
-						if(typeof userConfDom.result_grid_modules[key].grid_box_id == "undefined") {
-							userConfDom.result_grid_modules[key].grid_box_id = this.getGridBoxId(userConfDom.result_grid_modules[key]);
-						}
-						if(userConfDom.result_grid_modules[key].grid_box_id == gridBoxId) {
-							console.log("updating "+userConfDom.result_grid_modules[key].name+" to "+selectedModuleName)
-							userConfDom.result_grid_modules[key].name = selectedModuleName;
-						}
-					}
+
+			for(let key in activeDomain.result_grid_modules) {
+				if(typeof activeDomain.result_grid_modules[key].grid_box_id == "undefined") {
+					activeDomain.result_grid_modules[key].grid_box_id = this.getGridBoxId(activeDomain.result_grid_modules[key]);
 				}
-			});
-			this.sqs.storeUserSettings(userConfig);
+				if(activeDomain.result_grid_modules[key].moduleInstanceId == currentModuleInstanceId) {
+					console.log("updating "+activeDomain.result_grid_modules[key].name+" to "+selectedModuleName)
+					activeDomain.result_grid_modules[key].name = selectedModuleName;
+				}
+			}
+
 			$("#"+gridBoxId).attr("module-name", selectedModuleName);
 			$("#"+gridBoxId).html("");
 
-			let newModule = this.createInstanceOfModule(selectedModuleName);
-			newModule.render("#"+gridBoxId);
+			let module = this.getInstanceOfModule(selectedModuleName);
+			module.render("#"+gridBoxId);
 		});
 	}
 
-	createInstanceOfModule(moduleName) {
+	getInstanceOfModule(moduleName) {
 		for(let key in this.modules) {
 			if(this.modules[key].name == moduleName) {
-				return new this.modules[key].classTemplate(this.sqs);
+				this.modules[key].module = new this.modules[key].classTemplate(this.sqs);
+				return this.modules[key].module;
 			}
 		}
 		return null;
@@ -382,138 +459,6 @@ class ResultMosaic extends ResultModule {
 		else {
 			this.updateGridModules(domain.result_grid_modules);
 		}
-		
-		return;
-
-		this.requestBatchId++;
-
-		let dendroChartOptions = [];
-		domain.result_grid_modules.forEach(mConf => {
-			let module = this.getModuleByName(mConf.module);
-			dendroChartOptions.push({
-				moduleName: mConf.module,
-				html: "<option value=\""+module.name+"\">"+module.title+"</option>"
-			});
-		});
-		
-
-		domain.result_grid_modules.forEach(mConf => {
-			let tileNodeId = nanoid();
-			mConf.grid_box_id = tileNodeId;
-			let tileNode = $("<div class='result-mosaic-tile'></div>");
-			let module = this.getModuleByName(mConf.module);
-
-			if(module !== false) {
-				let titleSelectHtml = "<h2><select tile-node-id='"+tileNodeId+"' class=\"result-mosaic-tile-chart-selector\">";
-				dendroChartOptions.forEach(dco => {
-					if(dco.moduleName == module.name) {
-						titleSelectHtml += "<option value=\""+module.name+"\" selected=\"selected\">"+module.title+"</option>";
-					}
-					else {
-						titleSelectHtml += dco.html;
-					}
-				});
-
-				titleSelectHtml += dendroChartOptions;
-				titleSelectHtml += "</select></h2>";
-				tileNode.append(titleSelectHtml);
-				//tileNode.append("<div id='"+module.name+"' class='result-mosaic-graph-container'></div>");
-				tileNode.append("<div id='"+tileNodeId+"' module-name='"+module.name+"' class='result-mosaic-graph-container'></div>");
-				tileNode.css("grid-row", mConf.grid_row);
-				tileNode.css("grid-column", mConf.grid_column);
-				$('#result-mosaic-container').append(tileNode);
-				let promise = module.render("#"+tileNodeId);
-				this.renderPromises.push(promise);
-				
-			}
-			else {
-				tileNode.append("<h2>NoSuchModuleError - "+mConf.module+"</h2>");
-				tileNode.append("<div id='"+module.name+"' class='result-mosaic-graph-container'></div>");
-				tileNode.css("grid-row", mConf.grid_row);
-				tileNode.css("grid-column", mConf.grid_column);
-				$('#result-mosaic-container').append(tileNode);
-			}
-			
-		});
-
-		$(".result-mosaic-tile-chart-selector").on("change", (evt) => {
-			let currentModuleName = $("#"+tileNodeId).attr("module-name");
-			let selectedModuleName = $(evt.target).val();
-			let tileNodeId = $(evt.target).attr("tile-node-id");
-
-			let tileNode = $("#"+tileNodeId);
-
-			let userConfig = this.sqs.loadUserSettings();
-			let activeDomain = this.sqs.domainManager.getActiveDomain();
-			
-			userConfig.domains.forEach(userConfDom => {
-				if(userConfDom.name == activeDomain.name) {
-					console.log(activeDomain, userConfDom);
-					for(let key in userConfDom.result_grid_modules) {
-						if(userConfDom.result_grid_modules[key].grid_box_id == tileNodeId) {
-							userConfDom.result_grid_modules[key].module = selectedModuleName;
-						}
-					}
-				}
-			});
-			this.sqs.storeUserSettings(userConfig);
-
-			domain.result_grid_modules.forEach(mConf => {
-				if(mConf.module == selectedModuleName) {
-					mConf.grid_row = tileNode.css("grid-row");
-					mConf.grid_column = tileNode.css("grid-column");
-				}
-			});
-
-
-			//Unrender old module before rendring new one
-			/*
-			let currentModuleName = $("#"+tileNodeId).attr("module-name");
-			let currentModule = this.getModuleByName(currentModuleName);
-			currentModule.unrender();
-			*/
-
-			//Update module name for this node
-			//FIXME: What is you have multiple instances though?
-			$("#"+tileNodeId).attr("module-name", selectedModuleName);
-			$("#"+tileNodeId).html("");
-
-			let module = this.getModuleByName(selectedModuleName);
-			module.render("#"+tileNodeId);
-
-			
-		});
-
-		
-		/*
-		for(let key in this.modules) {
-			if(this.modules[key].domains.includes(domain.name) || this.modules[key].domains.includes("*")) {
-				if($("#result-mosaic-container #"+this.modules[key].name).length == 0) {
-					let tileNode = $("<div class='result-mosaic-tile'></div>");
-					tileNode.append("<h2>"+this.modules[key].title+"</h2>");
-					tileNode.append("<div id='"+this.modules[key].name+"' class='result-mosaic-graph-container'></div>");
-					$('#result-mosaic-container').append(tileNode);
-				}
-				else {
-					console.log("Not creating mosaic tile node since it exists");
-				}
-				let promise = this.modules[key].render("#"+this.modules[key].name);
-				//let promise = this.modules[key].callback("#"+this.modules[key].name, this);
-				this.renderPromises.push(promise);
-			}
-		}
-		*/
-
-		if(this.renderPromises.length == 0) {
-			this.sqs.sqsEventDispatch("resultModuleRenderComplete");
-			this.resultManager.showLoadingIndicator(false);
-		}
-
-		Promise.all(this.renderPromises).then(() => {
-			console.log("Mosaic modules render complete");
-			this.sqs.sqsEventDispatch("resultModuleRenderComplete");
-			//this.resultManager.showLoadingIndicator(false);
-		});
 	}
 
 	prepareChartData(data_key_name, data_value_name, data) {
@@ -1180,45 +1125,9 @@ class ResultMosaic extends ResultModule {
 	}
 	
 	unrender() {
-		/*
-		this.modules.forEach((module) => {
-			module.unrender();
-		});
-
-		if(this.renderTryInterval != null) {
-			console.log("WARN: Unrendering when renderTryInterval is active.");
-			clearInterval(this.renderTryInterval);
-		}
-
-		$("#result-mosaic-container").hide();
-		if(typeof(this.resultMap) != "undefined") {
-			this.resultMap.unrender();
-		}
-		*/
-		/*
-		for(let k in this.graphs) {
-			zingchart.exec(this.graphs[k].anchor.substr(1), 'destroy');
-			this.removeFromGraphRegistry(this.graphs[k].anchor);
-		}
-		*/
-
 		$("#result-mosaic-container").html("");
 	}
 
-	/*
-	unrenderModule(moduleName) {
-		this.modules.forEach((module) => {
-			if(module.name == moduleName) {
-				//module.unrender();
-				if(module.renderIntoNode != null) {
-					//module.renderIntoNode.substr(1)
-					zingchart.exec(module.renderIntoNode, 'destroy');
-				}
-				
-			}
-		});
-	}
-	*/
 	exportSettings() {
 		return {};
 	}

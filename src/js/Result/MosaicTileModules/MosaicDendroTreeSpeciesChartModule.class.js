@@ -7,6 +7,8 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         this.title = "Tree species";
 		this.name = "mosaic-dendro-tree-species-chart";
         this.requestId = 0;
+        this.pendingRequestPromise = null;
+        this.active = true;
     }
 
     async fetch(renderIntoNode = null) {
@@ -25,7 +27,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
 
         requestBody = JSON.stringify(requestBody);
 
-        let data = await $.ajax(requestString, {
+        this.pendingRequestPromise = $.ajax(requestString, {
             method: "post",
             dataType: "json",
             data: requestBody,
@@ -34,28 +36,22 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
             }
         });
 
-        if(data.categories.length == 0) {
-            this.sqs.setNoDataMsg(renderIntoNode);
-            return;
+        let data = await this.pendingRequestPromise;
+        this.pendingRequestPromise = null;
+        if(!this.active) {
+            return false;
         }
 
         if(data.requestId != this.requestId) {
             console.log("Discarding old dendro tree species data");
             return;
         }
-
-        if(renderIntoNode) {
-            this.sqs.setLoadingIndicator(renderIntoNode, false);
+        
+        if(data.categories.length == 0) {
+            return false;
         }
+
         let categories = data.categories;
-
-        return categories;
-    }
-
-    async render(renderIntoNode) {
-        this.renderIntoNode = renderIntoNode;
-        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        let categories = await this.fetch(renderIntoNode);
 
         let chartSeries = [];
 
@@ -66,19 +62,42 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
                 "sites": []
             });
         }
+
+        if(renderIntoNode) {
+            this.sqs.setLoadingIndicator(renderIntoNode, false);
+        }
+
+        return chartSeries;
+    }
+
+    async render(renderIntoNode) {
+        this.active = true;
+        this.renderIntoNode = renderIntoNode;
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        let chartSeries = await this.fetch(renderIntoNode);
         
-        this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries);
+        if(chartSeries === false) {
+            this.sqs.setNoDataMsg(this.renderIntoNode);
+        }
+        else {
+            this.chart = resultMosaic.renderPieChart(this.renderIntoNode, chartSeries);
+        }
     }
 
     async update() {
         let chartSeries = await this.fetch(this.renderIntoNode);
-        if(typeof chartSeries == "undefined") {
-            console.warn("Unhandled case!")
+        if(chartSeries === false) {
+            this.sqs.setNoDataMsg(this.renderIntoNode);
         }
         else {
             this.render(this.renderIntoNode);
         }
 	}
+
+    async unrender() {
+        this.pendingRequestPromise = null;
+        this.active = false;
+    }
 }
 
 export default MosaicDendroTreeSpeciesChartModule;

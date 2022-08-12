@@ -30,6 +30,17 @@ class ResultTaxon extends ResultModule {
 		};
 		this.taxonId = null;
 
+		/*
+		$(window).on("seadResultMenuSelection", (event, data) => {
+			if(data.selection != this.name) {
+				$("#result-taxon-container").hide();
+			}
+			else {
+				$("#result-taxon-container").show();
+			}
+		});
+		*/
+
 		$(window).on("seadFacetSelection", (event, evtObject) => {
 			if(evtObject.facet.name == "species") {
 				if(evtObject.facet.selections.length > 0) {
@@ -37,8 +48,26 @@ class ResultTaxon extends ResultModule {
 				}
 			}
 		});
+
+		this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
+			if(newDomainName == "palaeoentomology") {
+				$("#menu-item-taxon").show(500);
+			}
+			else {
+				$("#menu-item-taxon").hide(500);
+				//If this result module was selected, select something else
+				if(this.resultManager.getActiveModule().name == this.name) {
+					this.resultManager.setActiveModule("mosaic");
+				}
+			}
+        });
+
 	}
 	
+	isVisible() {
+		return false;
+	}
+
 	/*
 	* Function: clearData
 	*/
@@ -143,6 +172,10 @@ class ResultTaxon extends ResultModule {
 		});
 	}
 
+	update() {
+		console.warn("taxon update - stub!");
+	}
+
 	/**
 	 * groupByAttribute
 	 * 
@@ -237,7 +270,7 @@ class ResultTaxon extends ResultModule {
 		const fragment = document.getElementById("result-taxon-container-content-template");
 		const instance = document.importNode(fragment.content, true);
 		
-		let taxonData = await fetch('https://supersead.humlab.umu.se/jsonapi/taxon/'+this.taxonId).then(response => response.json());
+		let taxonData = await fetch(Config.dataServerAddress+'/taxon/'+this.taxonId).then(response => response.json());
 
 		console.log(taxonData);
 

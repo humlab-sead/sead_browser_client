@@ -3,17 +3,22 @@ class MosaicTileModule {
         this.sqs = sqs;
         this.chart = null;
         this.renderIntoNode = null;
+        this.active = true;
     }
 
-    render() {
+    async fetch() {
 
     }
 
-    update() {
+    async render() {
+
+    }
+
+    async update() {
         
     }
 
-    unrender() {
+    async unrender() {
         if(this.chart != null) {
             this.chart.destroy();
             this.chart = null;

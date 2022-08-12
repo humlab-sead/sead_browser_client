@@ -1948,10 +1948,12 @@ polyline{
   font-family: FontAwesome;
 }
 
+
 svg text {
-  font-size: 0.1rem;
+  font-size: 1em;
   font-family: "Rajdhani";
 }
+
 
 #anchor-node {
     position:absolute;
@@ -2066,7 +2068,6 @@ svg text {
   fill: red;
 }
 
-
 .dendro-tooltip-close-button {
   position:absolute;
   right:1em;
@@ -2129,7 +2130,6 @@ svg text {
 .dendro-chart-tooltip-container {
   position: absolute;
   padding: 1em;
-  max-width: 30em;
   background: #fff;
   border: 1px solid #ccc;
   box-shadow: 0px 0px 10px 2px $shadow-color;
@@ -2141,7 +2141,6 @@ svg text {
   grid-template-rows: auto;
   column-gap: 1em;
 }
-
 
 #dendro-chart-svg .dendro-chart-tooltip {
   opacity: 1;
@@ -2174,7 +2173,7 @@ svg text {
 }
 
 #dendro-chart-svg .dendro-chart-tooltip text {
-  font-size: 1.8em;
+  font-size: 1.4em;
   text-anchor: middle;
   fill: #fff;
 }

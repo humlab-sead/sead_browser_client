@@ -300,6 +300,7 @@ class ResultManager {
 		
 		if(this.getResultDataFetchingSuspended() == false) {
 			this.renderMsg(false);
+			console.log(this.getActiveModule())
 			this.getActiveModule().update();
 		}
 		else {
@@ -424,6 +425,7 @@ class ResultManager {
 			menuItems.push({
 				name: module.name,
 				title: module.module.icon+"<span class='result-tab-title'>"+module.module.prettyName+"</span>",
+				visible: typeof module.module.isVisible == "function" ? module.module.isVisible() : true,
 				icon: "",
 				staticSelection: this.getActiveModule().name == module.name ? true : false,
 				callback: () => {

@@ -16,13 +16,18 @@ class ResultModule {
 		this.sqs = this.resultManager.sqs;
 		this.active = true;
 		this.name = "";
-		this.requestId = 0;
 		this.data = [];
+		this.requestId = 0;
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			
 		});
 	}
+
+	isVisible() {
+		return true;
+	}
+	
 	/*
 	* Function: setActive
 	*/

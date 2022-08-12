@@ -66,7 +66,6 @@ class DomainManager {
     
     updateMenu() {
         this.sqs.menuManager.createMenu(this.sqsMenu());
-        //$("#domain-menu .sqs-menu-title-subtext").css("background-color", this.activeDomain.color);
     }
 
     /*
