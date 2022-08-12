@@ -248,9 +248,12 @@ class sqsMenu {
 
 			$(m.anchor).on("mouseleave", () => {
 				if(m.collapsed) {
+					this.closeMenu(m);
+					/*
 					m.closeTimeout = setTimeout(() => {
 						this.closeMenu(m);
 					}, 500);
+					*/
 				}
 			});
 		}
