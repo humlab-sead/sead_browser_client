@@ -307,13 +307,20 @@ class ResultMosaic extends ResultModule {
 		resultGridModules.forEach(mConf => {
 			let mosaicTileId = nanoid();
 			mConf.grid_box_id = this.getGridBoxId(mConf);
-			this.renderGridModule(mConf, mosaicTileId);
+			this.renderGridModule(mConf, mosaicTileId).then(() => {
+				let exportButton = $("<div></div>").addClass("result-export-button-mosaic").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
+				$("#"+mosaicTileId).append(exportButton);
+				let module = this.getInstanceOfModule(mConf.name);
+				this.bindExportModuleDataToButton("#"+mosaicTileId+" .result-export-button-mosaic", module);
+			});
+
+			
 		});
 
 		this.bindGridModuleSelectionCallbacks();
 	}
 
-	renderGridModule(moduleConf, mosaicTileId) {
+	async renderGridModule(moduleConf, mosaicTileId) {
 		let module = this.getInstanceOfModule(moduleConf.name);
 		
 		let tileNode = $("<div id='"+mosaicTileId+"' class='result-mosaic-tile'></div>");
@@ -332,8 +339,7 @@ class ResultMosaic extends ResultModule {
 			tileNode.css("grid-row", moduleConf.grid_row);
 			tileNode.css("grid-column", moduleConf.grid_column);
 			$('#result-mosaic-container').append(tileNode);
-			let promise = module.render("#"+moduleConf.grid_box_id);
-			this.renderPromises.push(promise);
+			await module.render("#"+moduleConf.grid_box_id);
 		}
 		
 	}
@@ -434,7 +440,9 @@ class ResultMosaic extends ResultModule {
 	getInstanceOfModule(moduleName) {
 		for(let key in this.modules) {
 			if(this.modules[key].name == moduleName) {
-				this.modules[key].module = new this.modules[key].classTemplate(this.sqs);
+				if(this.modules[key].module == null) {
+					this.modules[key].module = new this.modules[key].classTemplate(this.sqs);
+				}
 				return this.modules[key].module;
 			}
 		}
@@ -867,18 +875,22 @@ class ResultMosaic extends ResultModule {
 		let legendTextMaxLength = 15;
 		for(let key in config.series) {
 			config.series[key].backgroundColor = colors[key];
+			
 			if(key == 0) {
-				config.series[key].text = "Low uncertainty";
+				config.series[key].text = ""; //Low uncertainty
 			}
 			if(key == 1) {
 				config.series[key].text = "High uncertainty";
 			}
+			
+			
 		}
 
 		let rows = chartSeries.length;
 		if(rows > 6) {
 			rows = 6;
 		}
+		/*
 		config.legend = {
 			"highlight-plot":true,
 			"draggable":true,
@@ -887,6 +899,7 @@ class ResultMosaic extends ResultModule {
 			"layout":rows+"x1", //row x column
 			"toggle-action":"remove"
 		};
+		*/
 
 		if(render) {
 			let zc = zingchart.render({

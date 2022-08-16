@@ -19,6 +19,7 @@ class MosaicMapModule extends MosaicTileModule {
             this.resultMap = new ResultMap(this.sqs.resultManager, renderIntoNode);
         }
         await this.resultMap.fetchData();
+        this.data = this.resultMap.renderData;
     }
 
     async fetch() {

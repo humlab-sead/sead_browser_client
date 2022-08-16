@@ -148,6 +148,12 @@ class ResultTable extends ResultModule {
 		return true;
 	}
 
+	renderExportButton() {
+		let exportButton = $("<div></div>").addClass("result-export-button").html("Export");
+		$("#result-table-container").append(exportButton);
+		this.bindExportModuleDataToButton(exportButton);
+	}
+
 	/*
 	* Function: renderDataTable
 	*/
@@ -156,6 +162,8 @@ class ResultTable extends ResultModule {
 		this.resultManager.renderMsg(false);
 
 		$('#result-table-container').html("");
+
+		this.renderExportButton();
 
 		var renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
 
@@ -205,10 +213,11 @@ class ResultTable extends ResultModule {
 		
 		tableNode = reply.node;
 		
+		$('#result-table-container').append("<div class='datatable-container'></div>")
 		
-		$('#result-table-container').append(tableNode);
+		$("#result-table-container .datatable-container").append(tableNode);
 		$('#result-table-container').show();
-		$('#result-datatable').DataTable({
+		$("#result-datatable").DataTable({
 			paging: false,
 			bInfo: false,
 			bFilter: false,
@@ -219,58 +228,8 @@ class ResultTable extends ResultModule {
 
 	}
 
-	/*
-	* Function: renderDataTableOld
-	*/
-	renderDataTableOld() {
-
-		this.resultManager.renderMsg(false);
-
-		$('#result-table-container').html("");
-		$('#result-table-container').html("<table id='result-datatable'></table>");
-		
-		var renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
-		renderData = this.resultManager.sqs.sqsOffer("resultTableData", {
-			data: renderData
-		}).data;
-
-		var colHTML = "<thead><tr>";
-		for(var key in columns) {
-			colHTML += "<td>"+renderData.columns[key].title+"</td>";
-		}
-		colHTML += "</tr></thead>";
-		$('#result-datatable').append(colHTML);
-
-		var bodyHTML = "<tbody>";
-		for(var key in renderData.rows) {
-			var rowHTML = "<tr>";
-			for(var rk in renderData.rows[key]) {
-				var cellContent = "";
-				cellContent = renderData.rows[key][rk];
-				/*
-				if(rk == "site_link") {
-					cellContent = "<span class='site-report-link' site-id='"+renderData.rows[key][rk]+"'>"+renderData.rows[key][rk]+"</span>";
-				}
-				else {
-					cellContent = renderData.rows[key][rk];
-				}
-				*/
-				
-				rowHTML += "<td>"+cellContent+"</td>";
-			}
-			rowHTML += "</tr>";
-			bodyHTML += rowHTML;
-		}
-		bodyHTML += "</tbody>";
-		$('#result-datatable').append(bodyHTML);
-		$('#result-table-container').show();
-		$('#result-datatable').DataTable({
-			paging: false,
-			bInfo: false,
-			bFilter: false
-		});
-
-		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
+	update() {
+		this.render();
 	}
 	
 	getRenderStatus() {

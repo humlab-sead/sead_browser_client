@@ -9,6 +9,7 @@ class MosaicCeramicsTypeCountModule extends MosaicTileModule {
         this.domains = ["ceramic"];
         this.pendingRequestPromise = null;
         this.active = true;
+        this.data = null;
     }
 
     async render(renderIntoNode) {
@@ -28,6 +29,8 @@ class MosaicCeramicsTypeCountModule extends MosaicTileModule {
             console.log("Discarded stale data");
             return false;
         }
+
+        this.data = pData.data;
 
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "type_name", "count");
         this.sqs.setBgLoadingIndicator(renderIntoNode, false);

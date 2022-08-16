@@ -61,8 +61,26 @@ module.exports = (env, config) => {
         },
         // CSS, PostCSS, and Sass
         {
-          test: /\.(scss|css)$/,
-          use: ['style-loader', 'css-loader', 'postcss-loader', 'sass-loader'],
+          test: /\.(css)$/,
+          use: ['style-loader', 'css-loader']
+        },
+        {
+          test: /\.(scss)$/,
+          use: [{
+            loader: "style-loader",
+          },
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 1,
+              modules: {
+                mode: "icss",
+              },
+            },
+          },
+          {
+            loader: "sass-loader",
+          }],
         },
       ],
     },

@@ -1,3 +1,4 @@
+import { nanoid } from "nanoid";
 import MosaicTileModule from "./MosaicTileModule.class";
 
 class MosaicAnalysisMethodsModule extends MosaicTileModule {
@@ -9,6 +10,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
 		this.domains = ["general", "palaeo", "archaeobotany", "isotopes"];
         this.pendingRequestPromise = null;
         this.active = true;
+        this.data = null;
     }
 
     async render(renderIntoNode) {
@@ -16,21 +18,19 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         this.sqs.setBgLoadingIndicator(renderIntoNode, true);
         
-        this.pendingRequestPromise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_analysis_methods", resultMosaic.requestBatchId);
-		this.pendingRequestPromise.then((promiseData) => {
-            this.pendingRequestPromise = null;
-            if(!this.active) {
-                return false;
-            }
-			if(promiseData.requestId < resultMosaic.requestBatchId) {
-                console.warn("Discarding old data for MosaicAnalysisMethodsModule");
-				return false;
-			}
+        let promiseData = await resultMosaic.fetchSiteData(resultMosaic.sites, "qse_analysis_methods", resultMosaic.requestBatchId);
+		if(!this.active) {
+            return false;
+        }
+        if(promiseData.requestId < resultMosaic.requestBatchId) {
+            console.warn("Discarding old data for MosaicAnalysisMethodsModule");
+            return false;
+        }
 
-			let chartSeries = resultMosaic.prepareChartData("method_id", "method_name", promiseData.data);
-            this.sqs.setBgLoadingIndicator(renderIntoNode, false);
-			this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, "Analysis methods");
-		});
+        this.data = promiseData.data;
+        let chartSeries = resultMosaic.prepareChartData("method_id", "method_name", promiseData.data);
+        this.sqs.setBgLoadingIndicator(renderIntoNode, false);
+        this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, "Analysis methods");
     }
 
     async update() {

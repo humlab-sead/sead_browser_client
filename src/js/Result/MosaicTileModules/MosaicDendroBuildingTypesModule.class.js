@@ -9,6 +9,7 @@ class MosaicDendroBuildingTypesModule extends MosaicTileModule {
 		this.domains = ["dendro"];
         this.pendingRequestPromise = null;
         this.active = true;
+        this.data = null;
     }
 
     async render(renderIntoNode) {
@@ -27,6 +28,8 @@ class MosaicDendroBuildingTypesModule extends MosaicTileModule {
             console.log("Discarded stale data");
             return false;
         }
+
+        this.data = pData.data;
 
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "group_description", "No. of samples");
         this.sqs.setBgLoadingIndicator(renderIntoNode, false);

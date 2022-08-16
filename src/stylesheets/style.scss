@@ -558,24 +558,43 @@ h1.main-header {
   margin-top: 0px;
 }
 
-#result-export-button {
-  display: none;
-  position: fixed;
-  bottom: 5vh;
-  right: 5vw;
-  min-width: 8em;
-  min-height: 2em;
+.result-export-button {
+  display: flex;
+  width: 6em;
+  height: 2em;
   background: $base-color;
   color: #fff;
   align-items: center;
   justify-content: center;
   box-shadow: 0px 0px 10px 2px $shadow-color;
   font-family: Rajdhani;
+  font-size: 1.4em;
+  margin-bottom: 1em;
+}
+
+.result-export-button-mosaic {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 10.9em;
+  width: 6em;
+  height: 1.8em;
+  background: $base-color;
+  color: #fff;
+  align-items: center;
+  justify-content: center;
+  font-family: Rajdhani;
   font-size: 1.2em;
 }
 
-#result-export-button:hover {
+.result-export-button:hover {
   cursor:pointer;
+  background: lighten($base-color, 10%);
+}
+
+.result-export-button-mosaic:hover {
+  cursor:pointer;
+  background: lighten($base-color, 10%);
 }
 
 .result-taxon-grid-container {
@@ -1267,8 +1286,9 @@ polyline{
 }
 
 .result-mosaic-tile {
-  width:100%;
-  height:100%;
+  position: relative;
+  width: 100%;
+  height: 100%;
   background-color: #eee;
 }
 

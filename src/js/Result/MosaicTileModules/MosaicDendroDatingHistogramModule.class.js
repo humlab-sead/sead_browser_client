@@ -10,6 +10,7 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
         this.renderIntoNode = null;
         this.pendingRequestPromise = null;
         this.active = true;
+        this.data = null;
     }
 
     async fetch(renderIntoNode = null) {
@@ -43,13 +44,14 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
         let data = null;
         try {
             data = await this.pendingRequestPromise;
+            this.data = data.categories;
             this.pendingRequestPromise = null;
         }
         catch(error) {
             this.pendingRequestPromise = null;
             return [];
         }
-
+        
         if(!this.active) {
             return false;
         }
@@ -82,6 +84,7 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
             });
 		}
 
+        /*
         chartSeries.push({
             "values": [],
             "text": [],
@@ -97,6 +100,7 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
                 endTs: categories[key].endTs
             });
 		}
+        */
 
         if(renderIntoNode) {
             this.sqs.setLoadingIndicator(renderIntoNode, false);

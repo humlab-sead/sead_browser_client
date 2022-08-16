@@ -9,6 +9,7 @@ class MosaicCeramicsRelativeAgesModule extends MosaicTileModule {
 		this.domains = ["ceramic"];
         this.pendingRequestPromise = null;
         this.active = true;
+        this.data = null;
     }
 
     async render(renderIntoNode) {
@@ -28,6 +29,8 @@ class MosaicCeramicsRelativeAgesModule extends MosaicTileModule {
             console.log("Discarded stale data");
             return false;
         }
+
+        this.data = pData.data;
 
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "relative_age_name", "count");
         this.sqs.setBgLoadingIndicator(renderIntoNode, false);

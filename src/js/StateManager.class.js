@@ -260,15 +260,17 @@ class StateManager {
 	*
 	*/
 	fetchState(stateId) {
+		
 		//var address = Config.serverAddress;
 		$.ajax(Config.viewStateServerAddress+"/viewstate/"+stateId, {
 			method: "GET",
 			dataType: "json",
 			error: function(jqXHR, textStatus, errorThrown) {
+				console.warn(textStatus, errorThrown);
 			},
 			success: (data, textStatus, jqXHR) => {
 				var state = data[0];
-				
+				console.log("fetchState", state)
 				if(state === null) {
 					console.log("Failed to load viewstate "+stateId);
 					$.notify("Failed to load viewstate "+stateId, "error");
@@ -406,7 +408,7 @@ class StateManager {
 	*/
 	loadStateById(stateId) {
 		if(Config.viewstateLoadingScreenEnabled) {
-			this.sqs.dialogManager.setCover("Loading");
+			this.sqs.dialogManager.setCover();
 		}
 		this.fetchState(stateId);
 	}

@@ -208,6 +208,16 @@ class ResultMap extends ResultModule {
 		return true;
 	}
 
+	renderExportButton() {
+		let exportButton = $("<div></div>").addClass("result-export-button").html("Export");
+		exportButton.css("position", "absolute");
+		exportButton.css("top", "1em");
+		exportButton.css("left", "1em");
+		
+		$("#result-map-container").append(exportButton);
+		this.bindExportModuleDataToButton(exportButton);
+	}
+
 	/*
 	* Function: render
 	*
@@ -502,6 +512,9 @@ class ResultMap extends ResultModule {
 
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-datalayer-controls-menu"));
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
+
+
+		this.renderExportButton();
 	}
 
 	/*

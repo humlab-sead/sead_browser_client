@@ -9,6 +9,7 @@ class MosaicCeramicsCultureModule extends MosaicTileModule {
 		this.domains = ["ceramic"];
         this.pendingRequestPromise = null;
         this.active = true;
+        this.data = null;
     }
 
     async render(renderIntoNode) {
@@ -30,6 +31,7 @@ class MosaicCeramicsCultureModule extends MosaicTileModule {
             return false;
         }
 
+        this.data = pData.data;
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "Culture", "count");
         this.sqs.setBgLoadingIndicator(renderIntoNode, false);
         this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);

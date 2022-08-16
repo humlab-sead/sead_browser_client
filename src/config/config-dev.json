@@ -11,6 +11,7 @@
 	"siteReportServerAddress":"https://supersead.humlab.umu.se/postgrest",
 	"dataServerAddress": "https://supersead.humlab.umu.se/jsonapi",
 	"defaultResultModule":"mosaic",
+	"maxAllowedSitesInAnExport": 20,
 	"facetSectionDefaultWidth":20,
 	"facetBodyHeight":268,
 	"discreteFacetRowHeight":20,
@@ -182,29 +183,14 @@
 		"title": "Ceramic",
 		"icon":"<i class=\"fa fa-beer\" aria-hidden=\"true\"></i>",
 		"color":"#099",
-		"result_grid_layout": [2, 2],
+		"result_grid_layout": [1, 1],
 		"result_grid_modules": [
-				{
-					"name": "mosaic-map",
-					"grid_row": "1",
-					"grid_column": "1"
-				},
-				{
-					"name": "mosaic-ceramic-cultures",
-					"grid_row": "1",
-					"grid_column": "2"
-				},
-				{
-					"name": "mosaic-ceramic-relative-ages",
-					"grid_row": "2",
-					"grid_column": "1"
-				},
-				{
-					"name": "mosaic-ceramic-type-count",
-					"grid_row": "2",
-					"grid_column": "2"
-				}
-			]
+			{
+				"name": "mosaic-map",
+				"grid_row": "1",
+				"grid_column": "1"
+			}
+		]
 		}
 	]
 }

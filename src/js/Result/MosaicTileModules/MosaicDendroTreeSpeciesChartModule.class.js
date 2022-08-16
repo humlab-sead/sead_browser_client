@@ -9,6 +9,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         this.requestId = 0;
         this.pendingRequestPromise = null;
         this.active = true;
+        this.data = null;
     }
 
     async fetch(renderIntoNode = null) {
@@ -37,6 +38,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         });
 
         let data = await this.pendingRequestPromise;
+        this.data = data.categories;
         this.pendingRequestPromise = null;
         if(!this.active) {
             return false;
