@@ -14,14 +14,12 @@ class MosaicMapModule extends MosaicTileModule {
     }
 
     async render(renderIntoNode) {
-        console.log(this.name+" render");
         this.active = true;
-        /*
+        
         if(this.resultMap == null) {
             this.resultMap = new ResultMap(this.sqs.resultManager, renderIntoNode);
         }
-        */
-        this.resultMap = new ResultMap(this.sqs.resultManager, renderIntoNode);
+        
         await this.resultMap.fetchData();
         this.data = this.resultMap.renderData;
     }

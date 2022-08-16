@@ -380,6 +380,7 @@ class ResultMosaic extends ResultModule {
 
 	updateGridModules() {
 		let activeDomain = this.sqs.domainManager.getActiveDomain();
+		/*
 		let userConfig = this.sqs.loadUserSettings();
 
 		let gridModuleLayout = null;
@@ -388,11 +389,12 @@ class ResultMosaic extends ResultModule {
 				gridModuleLayout = d.result_grid_modules;
 			}
 		});
-		
-		gridModuleLayout.forEach(moduleConf => {
-			let module = this.getLiveModuleInstanceByName(moduleConf.name);
-			console.log("Updating grid module "+module.name);
-			module.update();
+		*/
+		activeDomain.result_grid_modules.forEach(moduleConf => {
+			console.log("Updating grid module "+moduleConf.module.name);
+			if(typeof moduleConf.module != "undefined" && moduleConf.module != null) {
+				moduleConf.module.update();
+			}
 		});
 	}
 
@@ -424,26 +426,21 @@ class ResultMosaic extends ResultModule {
 					activeDomain.result_grid_modules[key].grid_box_id = this.getGridBoxId(activeDomain.result_grid_modules[key]);
 				}
 				if(activeDomain.result_grid_modules[key].moduleInstanceId == currentModuleInstanceId) {
-					console.log("updating "+activeDomain.result_grid_modules[key].name+" to "+selectedModuleName)
+					console.log("Updating "+activeDomain.result_grid_modules[key].name+" to "+selectedModuleName)
 					activeDomain.result_grid_modules[key].name = selectedModuleName;
+					activeDomain.result_grid_modules[key].module = this.getInstanceOfModule(selectedModuleName);
+					$("#"+gridBoxId).attr("module-name", selectedModuleName);
+					$("#"+gridBoxId).html("");
+					activeDomain.result_grid_modules[key].module.render("#"+gridBoxId);
 				}
 			}
-
-			$("#"+gridBoxId).attr("module-name", selectedModuleName);
-			$("#"+gridBoxId).html("");
-
-			let module = this.getInstanceOfModule(selectedModuleName);
-			module.render("#"+gridBoxId);
 		});
 	}
 
 	getInstanceOfModule(moduleName) {
 		for(let key in this.modules) {
 			if(this.modules[key].name == moduleName) {
-				if(this.modules[key].module == null) {
-					this.modules[key].module = new this.modules[key].classTemplate(this.sqs);
-				}
-				return this.modules[key].module;
+				return new this.modules[key].classTemplate(this.sqs);
 			}
 		}
 		return null;

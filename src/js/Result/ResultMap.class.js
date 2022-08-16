@@ -253,7 +253,8 @@ class ResultMap extends ResultModule {
 			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
-				if(respData.RequestId == this.requestId && this.active) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
+				//Only load this data if it matches the last request id dispatched. Otherwise it's old data.
+				if(respData.RequestId == this.requestId && this.active) {
 					this.importResultData(respData);
 					this.resultManager.showLoadingIndicator(false);
 				}
