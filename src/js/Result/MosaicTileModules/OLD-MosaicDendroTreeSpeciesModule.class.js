@@ -10,17 +10,17 @@ class MosaicDendroTreeSpeciesModule extends MosaicTileModule {
         this.pendingRequestPromise = null;
         this.active = true;
         this.data = null;
+        console.log(this.name);
     }
 
     async render(renderIntoNode) {
+        console.log(this.name);
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         this.sqs.setBgLoadingIndicator(renderIntoNode, true);
 
-        this.pendingRequestPromise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_dendro_tree_species", resultMosaic.requestBatchId);
-
-        let pData = await this.pendingRequestPromise;
-        this.pendingRequestPromise = null;
+        let pData = await resultMosaic.fetchSiteData(resultMosaic.sites, "qse_dendro_tree_species", resultMosaic.requestBatchId);
+        
         if(!this.active) {
             return false;
         }
@@ -29,6 +29,7 @@ class MosaicDendroTreeSpeciesModule extends MosaicTileModule {
             return false;
         }
 
+        console.log(pData);
         this.data = pData.data;
 
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "genus_name", "count");
@@ -37,7 +38,7 @@ class MosaicDendroTreeSpeciesModule extends MosaicTileModule {
     }
     
     async update() {
-        
+        console.log(this.name);
     }
 
     async fetch() {
@@ -45,7 +46,6 @@ class MosaicDendroTreeSpeciesModule extends MosaicTileModule {
     }
 
     async unrender() {
-        this.pendingRequestPromise = null;
         this.active = false;
     }
 }

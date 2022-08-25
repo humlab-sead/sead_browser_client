@@ -209,6 +209,9 @@ class ResultMap extends ResultModule {
 	}
 
 	renderExportButton() {
+		if($("#result-map-container .result-export-button").length > 0) {
+			return;
+		}
 		let exportButton = $("<div></div>").addClass("result-export-button").html("Export");
 		exportButton.css("position", "absolute");
 		exportButton.css("top", "1em");
@@ -513,7 +516,6 @@ class ResultMap extends ResultModule {
 
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-datalayer-controls-menu"));
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
-
 
 		this.renderExportButton();
 	}

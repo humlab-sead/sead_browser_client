@@ -61,8 +61,8 @@ var menu = {
 		}
 	]
 };
-
 */
+
 class sqsMenu {
 	/*
 	* Function: constructor
@@ -119,7 +119,7 @@ class sqsMenu {
 		}
 		
 		if(typeof m.subText != "undefined") {
-			$(".sqs-menu-title-container", this.menuDef.anchor).append("<div class='sqs-menu-title-subtext'>"+m.subText+"</div>");
+			$(".sqs-menu-title-container", this.menuDef.anchor).append("<div style="+m.subTextContainerStyle+" class='sqs-menu-title-subtext'>"+m.subText+"</div>");
 		}
 		
 		if(typeof(m.callback) == "function") {

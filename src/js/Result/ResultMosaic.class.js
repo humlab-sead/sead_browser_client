@@ -10,7 +10,7 @@ import MosaicCeramicsCultureModule from "./MosaicTileModules/MosaicCeramicsCultu
 import MosaicCeramicsRelativeAgesModule from "./MosaicTileModules/MosaicCeramicsRelativeAgesModule.class";
 import MosaicCeramicsTypeCountModule from "./MosaicTileModules/MosaicCeramicsTypeCountModule.class";
 import MosaicDendroBuildingTypesModule from "./MosaicTileModules/MosaicDendroBuildingTypesModule.class";
-import MosaicDendroTreeSpeciesModule from "./MosaicTileModules/MosaicDendroTreeSpeciesModule.class";
+//import MosaicDendroTreeSpeciesModule from "./MosaicTileModules/OLD-MosaicDendroTreeSpeciesModule.class";
 import MosaicDendroDatingHistogramModule from "./MosaicTileModules/MosaicDendroDatingHistogramModule.class";
 import MosaicDendroTreeSpeciesChartModule from "./MosaicTileModules/MosaicDendroTreeSpeciesChartModule.class";
 import { nanoid } from 'nanoid';
@@ -98,12 +98,6 @@ class ResultMosaic extends ResultModule {
 			title: "Building types",
 			className: "MosaicDendroBuildingTypesModule",
 			classTemplate: MosaicDendroBuildingTypesModule,
-			module: null
-		});
-		this.modules.push({
-			title: "Tree species 2",
-			className: "MosaicDendroTreeSpeciesModule",
-			classTemplate: MosaicDendroTreeSpeciesModule,
 			module: null
 		});
 		this.modules.push({
@@ -310,11 +304,8 @@ class ResultMosaic extends ResultModule {
 			this.renderGridModule(mConf, mosaicTileId).then(() => {
 				let exportButton = $("<div></div>").addClass("result-export-button-mosaic").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
 				$("#"+mosaicTileId).append(exportButton);
-				let module = this.getInstanceOfModule(mConf.name);
-				this.bindExportModuleDataToButton("#"+mosaicTileId+" .result-export-button-mosaic", module);
+				this.bindExportModuleDataToButton("#"+mosaicTileId+" .result-export-button-mosaic", mConf.module);
 			});
-
-			
 		});
 
 		this.bindGridModuleSelectionCallbacks();

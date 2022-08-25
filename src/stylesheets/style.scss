@@ -2024,10 +2024,11 @@ svg text {
 
 .dendro-bar-uncertain {
   color: #fff;
-  fill: rgba(0, 0, 0, 0);
+  /*
   stroke: rgba(85, 51, 0, 0.5);
   stroke-dasharray: 1 1;
   stroke-width: .1;
+  */
 }
 
 .dendro-bar-uncertain:hover {
@@ -2155,12 +2156,16 @@ svg text {
   box-shadow: 0px 0px 10px 2px $shadow-color;
 }
 
-.dendro-chart-tooltip-container-content {
-  display: grid;
-  grid-template-columns: [labels]1fr [values]1fr;
-  grid-template-rows: auto;
-  column-gap: 1em;
+.dendro-chart-tooltip-container-content td {
+  border-width: 0;
+  padding-bottom: 0;
+  margin: 0;
 }
+
+.dendro-chart-tooltip-container-content tr:hover {
+  background: $pane-bg-color;
+}
+
 
 #dendro-chart-svg .dendro-chart-tooltip {
   opacity: 1;

@@ -367,7 +367,8 @@ class ContentItemRenderer {
 			});
 			
 			let exportFormats = ["json", "xlsx"];
-			if(selectedRoType != "table") {
+			
+			if(selectedRoType != "table" && selectedRoType != "dendrochart") {
 				exportFormats.push("png");
 			}
 			this.siteReport.renderExportDialog(exportFormats, section, contentItem);

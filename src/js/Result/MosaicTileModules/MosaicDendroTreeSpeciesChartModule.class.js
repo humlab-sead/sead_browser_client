@@ -7,12 +7,13 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         this.title = "Tree species";
 		this.name = "mosaic-dendro-tree-species-chart";
         this.requestId = 0;
-        this.pendingRequestPromise = null;
         this.active = true;
         this.data = null;
+        console.log(this.name, "init");
     }
 
     async fetch(renderIntoNode = null) {
+        console.log(this.name, "fetch");
         this.sqs.setNoDataMsg(renderIntoNode, false);
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         if(renderIntoNode) {
@@ -28,7 +29,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
 
         requestBody = JSON.stringify(requestBody);
 
-        this.pendingRequestPromise = $.ajax(requestString, {
+        let data = await $.ajax(requestString, {
             method: "post",
             dataType: "json",
             data: requestBody,
@@ -36,10 +37,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
                 "Content-Type": "application/json"
             }
         });
-
-        let data = await this.pendingRequestPromise;
-        this.data = data.categories;
-        this.pendingRequestPromise = null;
+        
         if(!this.active) {
             return false;
         }
@@ -52,6 +50,8 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         if(data.categories.length == 0) {
             return false;
         }
+
+        this.data = data.categories;
 
         let categories = data.categories;
 
@@ -73,6 +73,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
     }
 
     async render(renderIntoNode) {
+        console.log(this.name, "render");
         this.active = true;
         this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
@@ -97,7 +98,6 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
 	}
 
     async unrender() {
-        this.pendingRequestPromise = null;
         this.active = false;
     }
 }

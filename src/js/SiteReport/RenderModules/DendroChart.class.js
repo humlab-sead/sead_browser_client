@@ -579,6 +579,10 @@ class DendroChart {
         tooltipGroup.append("rect").attr("opacity", 0);
         tooltipGroup.append("text").attr("opacity", 0);
 
+        if(value == null) {
+            value = "?";
+        }
+
         let numValueChars = value.toString().length;
         let xPos = (numValueChars / 2) + 2;
         let width = numValueChars + 4;
@@ -864,23 +868,41 @@ class DendroChart {
         if(youngestGerminationYear.value) {
             barObject.certainty.x.value = this.xScale(youngestGerminationYear.value);
             barObject.certainty.x.warnings = youngestGerminationYear.warnings;
-
-            barObject.sapwood.width.value = this.xScale(youngestGerminationYear.value + oldestFellingYear.value - youngestGerminationYear.value + 10);
+            let unknownSapwood = 10; //If the number of sapwood rings are unknown, we assume at least 10
+            barObject.sapwood.width.value = this.xScale(youngestGerminationYear.value + oldestFellingYear.value - youngestGerminationYear.value + unknownSapwood);
         }
 
         //Figure out Width
-        if(youngestGerminationYear.value && oldestFellingYear.value) {   
+        if(youngestGerminationYear.value && oldestFellingYear.value) {
+
+            let datingUncert = 0;
+            if(parseInt(oldestFellingYear.dating_uncertainty)) {
+                datingUncert = parseInt(oldestFellingYear.dating_uncertainty);
+            }
+
             barObject.certainty.width.value = this.xScale(oldestFellingYear.value) - this.xScale(youngestGerminationYear.value)
-            barObject.certainty.width.warnings = oldestFellingYear.warnings.concat(youngestGerminationYear.warnings);
+            //barObject.certainty.width.warnings = oldestFellingYear.warnings.concat(youngestGerminationYear.warnings);
+            barObject.certainty.width.warnings = oldestFellingYear.warnings;
         }
 
         //GERM-UNCERT BAR
         //X
-        barObject.germinationUncertainty.x.value = this.xScale(oldestGerminationYear.value);
+        if(oldestGerminationYear.value == null) {
+            //If this is null then it's an unknown year and should be drawn as a bar fading to infinity
+            barObject.germinationUncertainty.x.value = null;
+        }
+        else {
+            barObject.germinationUncertainty.x.value = this.xScale(oldestGerminationYear.value);
+        }
         barObject.germinationUncertainty.x.warnings = oldestGerminationYear.warnings;
 
         //Width
-        barObject.germinationUncertainty.width.value = this.xScale(youngestGerminationYear.value) - this.xScale(oldestGerminationYear.value);
+        if(oldestGerminationYear.value == null) {
+            barObject.germinationUncertainty.width.value = null;    
+        }
+        else {
+            barObject.germinationUncertainty.width.value = this.xScale(youngestGerminationYear.value) - this.xScale(oldestGerminationYear.value);
+        }
         barObject.germinationUncertainty.width.warnings = youngestGerminationYear.warnings.concat(oldestGerminationYear.warnings);
 
         //FELLING-UNCERT BAR
@@ -1147,7 +1169,9 @@ class DendroChart {
                     offset += offsetMod;
                     break;
                 case "youngestGerminationYear":
-                    returnValue = barObject.germinationUncertainty.x.value + barObject.germinationUncertainty.width.value;
+                    returnValue = barObject.certainty.x.value;
+                    //returnValue = barObject.germinationUncertainty.x.value + barObject.germinationUncertainty.width.value;
+                    console.log(barObject.germinationUncertainty);
                     offset += offsetMod;
                     break;
                 case "oldestGerminationYear":
@@ -1342,15 +1366,15 @@ class DendroChart {
 
         let content = "<i class='fa fa-close dendro-tooltip-close-button'></i>";
 
-        content += "<div class='dendro-chart-tooltip-container-content'>";
+        content += "<table class='dendro-chart-tooltip-container-content'>";
         sampleVars.forEach(sv => {
             let dendroVarLabelTooltipId = "dendro-var-"+nanoid();
-            content += "<span id='"+dendroVarLabelTooltipId+"' class='dendro-tooltip-variable-name-text'>"+sv.label+":</span><span>"+sv.value+"</span>";
+            content += "<tr><td id='"+dendroVarLabelTooltipId+"' class='dendro-tooltip-variable-name-text'>"+sv.label+":</td><td>"+sv.value+"</td></tr>";
             if(sv.tooltip) {
                 this.sqs.tooltipManager.registerTooltip("#"+dendroVarLabelTooltipId, sv.tooltip, { drawSymbol: true });
             }
         });
-        content += "</div>";
+        content += "</table>";
 
         $(tooltipContainer).html(content);
 
@@ -1544,6 +1568,190 @@ class DendroChart {
             });
     }
 
+    drawStroke(container, dataObjects, type = "germination") {
+        let strokeWidth = 0.2;
+        let dashArrayValue = "1.0";
+        container.selectAll(".dendro-bar-"+type+"-uncertainty-top-stroke-line")
+        .data(dataObjects)
+        .join("line")
+        .attr("visibility", (d) => {
+            if(this.showUncertainty == "none") {
+                return "hidden";
+            }
+            if(type == "felling" && d.barObject.fellingUncertainty.width.value == 0) {
+                return "hidden";
+            }
+            return "visible";
+        })
+        .attr("stroke", "rgba(0, 0, 0, 0.1)")
+        .attr("stroke-width", strokeWidth)
+        .attr("x1", (d) => {
+            if(type == "germination") {
+                if(d.barObject.germinationUncertainty.x.value == null) {
+                    return 10;
+                }
+                else {
+                    return d.barObject.germinationUncertainty.x.value;
+                }
+            }
+            if(type == "felling") {
+                return d.barObject.fellingUncertainty.x.value;
+            }
+        })
+        .attr("x2", d => {
+            if(type == "germination") {
+                return d.barObject.certainty.x.value;
+            }
+            if(type == "felling") {
+                return d.barObject.fellingUncertainty.x.value + d.barObject.fellingUncertainty.width.value;
+            }
+        })
+        .attr("y1", (d, i) => {
+            return i * (this.barHeight + this.barMarginY) + this.chartTopPadding + strokeWidth/2;
+        })
+        .attr("y2", (d, i) => {
+            return i * (this.barHeight + this.barMarginY) + this.chartTopPadding + strokeWidth/2;
+        })
+        .attr("stroke-dasharray", dashArrayValue);
+
+
+        container.selectAll(".dendro-bar-"+type+"-uncertainty-bottom-stroke-line")
+        .data(dataObjects)
+        .join("line")
+        .attr("visibility", (d) => {
+            if(this.showUncertainty == "none") {
+                return "hidden";
+            }
+            if(type == "felling" && d.barObject.fellingUncertainty.width.value == 0) {
+                return "hidden";
+            }
+            return "visible";
+        })
+        .attr("stroke", "rgba(0, 0, 0, 0.1)")
+        .attr("stroke-width", strokeWidth)
+        .attr("x1", (d) => {
+            if(type == "germination") {
+                if(d.barObject.germinationUncertainty.x.value == null) {
+                    return 10;
+                }
+                else {
+                    return d.barObject.germinationUncertainty.x.value;
+                }
+            }
+            if(type == "felling") {
+                return d.barObject.fellingUncertainty.x.value;
+            }
+        })
+        .attr("x2", d => {
+            if(type == "germination") {
+                return d.barObject.certainty.x.value;
+            }
+            if(type == "felling") {
+                return d.barObject.fellingUncertainty.x.value + d.barObject.fellingUncertainty.width.value;
+            }
+        })
+        .attr("y1", (d, i) => {
+            return i * (this.barHeight + this.barMarginY) + this.chartTopPadding + this.barHeight - strokeWidth/2;
+        })
+        .attr("y2", (d, i) => {
+            return i * (this.barHeight + this.barMarginY) + this.chartTopPadding + this.barHeight - strokeWidth/2;
+        })
+        .attr("stroke-dasharray", dashArrayValue);
+
+
+
+        container.selectAll(".dendro-bar-"+type+"-uncertainty-end-stroke-line")
+        .data(dataObjects)
+        .join("line")
+        .attr("visibility", (d) => {
+            if(this.showUncertainty == "none") {
+                return "hidden";
+            }
+
+            if(type == "felling" && d.barObject.fellingUncertainty.width.value == 0) {
+                return "hidden";
+            }
+            
+            let result = "visible";
+            if(type == "germination") {
+                if(d.barObject.germinationUncertainty.x.value == null || d.barObject.germinationUncertainty.width.value == null) {
+                    result = "hidden";
+                }
+            }
+            if(type == "felling") {
+                if(d.barObject.fellingUncertainty.x.value == null || d.barObject.fellingUncertainty.width.value == null) {
+                    result = "hidden";
+                }
+            }
+            
+            return result;
+        })
+        .attr("stroke", "rgba(0, 0, 0, 0.1)")
+        .attr("stroke-width", strokeWidth)
+        .attr("x1", (d) => {
+            if(type == "germination") {
+                if(d.barObject.germinationUncertainty.x.value == null) {
+                    return 10;
+                }
+                else {
+                    return d.barObject.germinationUncertainty.x.value;
+                }
+            }
+            if(type == "felling") {
+                return d.barObject.fellingUncertainty.x.value + d.barObject.fellingUncertainty.width.value;
+            }
+        })
+        .attr("x2", d => {
+            if(type == "germination") {
+                if(d.barObject.germinationUncertainty.x.value == null) {
+                    return 10;
+                }
+                else {
+                    return d.barObject.germinationUncertainty.x.value;
+                }
+            }
+            if(type == "felling") {
+                return d.barObject.fellingUncertainty.x.value + d.barObject.fellingUncertainty.width.value;
+            }
+        })
+        .attr("y1", (d, i) => {
+            return i * (this.barHeight + this.barMarginY) + this.chartTopPadding + strokeWidth/2;
+        })
+        .attr("y2", (d, i) => {
+            return i * (this.barHeight + this.barMarginY) + this.chartTopPadding + this.barHeight - strokeWidth/2;
+        })
+        .attr("stroke-dasharray", dashArrayValue);
+
+
+        /*
+        container.selectAll(".dendro-bar-germination-uncertainty-end-stroke-line")
+        .data(dataObjects)
+        .join("line")
+        .attr("visibility", (d) => {
+            if(this.showUncertainty == "none") {
+                return "hidden";
+            }
+            if(d.barObject.germinationUncertainty.x.value == null || d.barObject.germinationUncertainty.width.value == null) {
+                return "visible";
+            }
+            else {
+                return "hidden";
+            }
+        })
+        .attr("stroke", "rgba(0, 0, 0, 0.1)")
+        .attr("stroke-width", strokeWidth)
+        .attr("x1", 10)
+        .attr("x2", d => d.barObject.certainty.x.value)
+        .attr("y1", (d, i) => {
+            return i * (this.barHeight + this.barMarginY) + this.chartTopPadding + this.barHeight - strokeWidth;
+        })
+        .attr("y2", (d, i) => {
+            return i * (this.barHeight + this.barMarginY) + this.chartTopPadding + this.barHeight - strokeWidth;
+        })
+        .attr("stroke-dasharray", "1.5");
+        */
+    }
+
     drawGerminationUncertaintyBars(container, dataObjects) {
         container.selectAll(".dendro-bar-germination-uncertainty")
         .data(dataObjects)
@@ -1560,7 +1768,7 @@ class DendroChart {
         .attr("height", this.barHeight)
         .attr("width", 0)
         .attr("x", (d) => {
-            return d.barObject.germinationUncertainty.x.value;
+            return d.barObject.certainty.x.value;
         })
         .attr("visibility", () => {
             if(this.showUncertainty == "none") {
@@ -1573,16 +1781,33 @@ class DendroChart {
         .transition()
         .delay(100)
         .duration(500)
+        .attr("fill", (d) => {
+            if(d.barObject.germinationUncertainty.x.value == null) {
+                return "url(#uknGerminationGradient)";
+            }
+            else {
+                return "rgba(0,0,0,0.2)";
+            }
+        })
         .attr("x", (d) => {
-            //this.registerSampleWarning(barObject.sample_name, "oldestGerminationYear", barObject.germinationUncertainty.x.warnings);
-            return d.barObject.germinationUncertainty.x.value;
+            if(d.barObject.germinationUncertainty.x.value == null) {
+                return 10;
+            }
+            else {
+                return d.barObject.germinationUncertainty.x.value;
+            }
         })
         .attr("width", (d, i) => {
+            if(d.barObject.germinationUncertainty.width.value == null) {
+                //return 20;
+                return d.barObject.certainty.x.value - 10;
+            }
             //this.registerSampleWarning(barObject.sample_name, barObject.germinationUncertainty.width.warnings);
             return d.barObject.germinationUncertainty.width.value;
         });
-        
 
+        
+    this.drawStroke(container, dataObjects, "germination");
         
     container.selectAll(".dendro-bar-germination-uncertainty")
         .on("mouseover", (evt) => {
@@ -1610,6 +1835,7 @@ class DendroChart {
         container.selectAll(".dendro-bar-felling-uncertainty")
             .data(dataObjects)
             .join("rect")
+            .attr("fill", "rgba(0, 0, 0, 0.2)")
             .classed("dendro-bar-uncertain", true)
             .classed("dendro-bar-felling-uncertainty", true)
             .attr("sample-name", d => d.sample_name)
@@ -1652,7 +1878,11 @@ class DendroChart {
                 let d = this.getDataObjectBySampleName(dataObjects, sampleName);
                 this.drawInfoTooltip(d, evt);
             });
+            
+        this.drawStroke(container, dataObjects, "felling");
     }
+
+    
 
     drawGerminationLabels(container, dataObjects) {
         container.selectAll(".dendro-label-planted")
@@ -2079,11 +2309,23 @@ class DendroChart {
         
             uknFellingGradient.append("stop")
             .attr("offset", "0%")
-            .attr("style", "stop-color:rgb(160, 160, 160);stop-opacity:1.0");
+            .attr("style", "stop-color:rgb(160, 160, 160);stop-opacity:0.5");
 
             uknFellingGradient.append("stop")
             .attr("offset", "100%")
             .attr("style", "stop-color:rgb(160, 160, 160);stop-opacity:0.0");
+
+        let uknGerminationGradient = defs.append("linearGradient")
+            .attr("id", "uknGerminationGradient")
+            .attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "0%");
+        
+            uknGerminationGradient.append("stop")
+            .attr("offset", "0%")
+            .attr("style", "stop-color:rgb(160, 160, 160);stop-opacity:0.0");
+
+            uknGerminationGradient.append("stop")
+            .attr("offset", "100%")
+            .attr("style", "stop-color:rgb(160, 160, 160);stop-opacity:0.5");
 
         //this.drawCertaintyBars(this.container, this.dataObjects);
         if(this.showUncertainty == "all" || this.showUncertainty == "estimates") {

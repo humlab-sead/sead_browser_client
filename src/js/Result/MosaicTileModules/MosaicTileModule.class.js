@@ -53,6 +53,10 @@ class MosaicTileModule {
         });
 
         $("#"+csvButtonId).on("click", () => {
+            if(this.data == null) {
+                console.warn("Data was null when trying to export!");
+                return;
+            }
             const parser = new Parser();
             const csv = parser.parse(this.data);
             const bytes = new TextEncoder().encode(csv);

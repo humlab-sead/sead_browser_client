@@ -92,7 +92,7 @@ class ResultTaxon extends ResultModule {
 			data: JSON.stringify(reqData),
 			dataType: "json",
 			method: "post",
-			contentType: 'application/json; charset=utf-8',
+			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
 				//Only load this data if it matches the last request id dispatched. Otherwise it's old data.
@@ -249,6 +249,9 @@ class ResultTaxon extends ResultModule {
 	* Function: renderData
 	*/
 	async renderData(taxonId = null) {
+
+		let taxaFacet = this.sqs.facetManager.getFacetByName("species");
+		//taxaFacet.selections
 
 		if(taxonId != null) {
 			this.taxonId = taxonId;

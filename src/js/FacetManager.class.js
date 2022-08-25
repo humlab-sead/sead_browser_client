@@ -1220,6 +1220,15 @@ class FacetManager {
 
 		return this.getFacetById(this.getFacetIdBySlotId(highestSlotId));
 	}
+
+	getFacetByName(facetName) {
+		for(let key in this.facets) {
+			if(facetName == this.facets[key].name) {
+				return this.facets[key];
+			}
+		}
+		return null;
+	}
 	
 	/*
 	* Function: getLastTriggeringFacet

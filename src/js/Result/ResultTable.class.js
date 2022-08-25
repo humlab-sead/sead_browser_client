@@ -149,6 +149,9 @@ class ResultTable extends ResultModule {
 	}
 
 	renderExportButton() {
+		if($("#result-table-container .result-export-button").length > 0) {
+			return;
+		}
 		let exportButton = $("<div></div>").addClass("result-export-button").html("Export");
 		$("#result-table-container").append(exportButton);
 		this.bindExportModuleDataToButton(exportButton);

@@ -75,6 +75,7 @@ class DomainManager {
         var menu = {
             title: "Domain",
             subText: this.activeDomain.title,
+            subTextContainerStyle: "background:"+this.activeDomain.color+";",
             layout: "vertical",
             collapsed: true,
             anchor: "#domain-menu",
