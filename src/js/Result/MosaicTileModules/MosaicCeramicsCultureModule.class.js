@@ -16,7 +16,7 @@ class MosaicCeramicsCultureModule extends MosaicTileModule {
         this.active = true;
         this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        this.sqs.setBgLoadingIndicator(renderIntoNode, true);
+        this.sqs.setLoadingIndicator(renderIntoNode, true);
 
 
         this.pendingRequestPromise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_ceramics_culture", resultMosaic.requestBatchId);
@@ -33,7 +33,7 @@ class MosaicCeramicsCultureModule extends MosaicTileModule {
 
         this.data = pData.data;
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "Culture", "count");
-        this.sqs.setBgLoadingIndicator(renderIntoNode, false);
+        this.sqs.setLoadingIndicator(renderIntoNode, false);
         this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);
     }
 

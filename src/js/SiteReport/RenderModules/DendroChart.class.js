@@ -2329,7 +2329,7 @@ class DendroChart {
 
         //this.drawCertaintyBars(this.container, this.dataObjects);
         if(this.showUncertainty == "all" || this.showUncertainty == "estimates") {
-            this.drawGerminationUncertaintyBars(this.container, this.dataObjects);
+            //this.drawGerminationUncertaintyBars(this.container, this.dataObjects);
             this.drawFellingUncertaintyBars(this.container, this.dataObjects);
         }
     }
@@ -2351,7 +2351,7 @@ class DendroChart {
         this.drawCertaintyBars(container, dataObjects);
         this.drawSapwoodBars(container, dataObjects);
         this.drawFellingUncertaintyBars(container, dataObjects);
-        this.drawGerminationUncertaintyBars(container, dataObjects);
+        //this.drawGerminationUncertaintyBars(container, dataObjects);
         this.drawYAxis(container, dataObjects);
         this.drawSampleBarWarnings(container, dataObjects);
     }

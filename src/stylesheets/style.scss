@@ -1306,11 +1306,7 @@ polyline{
 }
 
 .result-mosaic-graph-container {
-  /*
-  display:flex;
-  align-items: center;
-  justify-content: center;
-  */
+  position: absolute;
   width: 100%;
   height: 100%;
   background-color: $pane-bg-color;

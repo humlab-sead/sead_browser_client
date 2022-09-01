@@ -5,6 +5,13 @@ class DomainManager {
     constructor(sqs) {
         this.sqs = sqs;
         this.config = Config;
+
+        this.config.domains.forEach(domain => {
+            domain.result_grid_modules.forEach(tile => {
+                tile.default_module = tile.module_name;
+            });
+        });
+
         this.activeDomain = this.getDomain(Config.activeDomain);
         this.updateMenu();
 

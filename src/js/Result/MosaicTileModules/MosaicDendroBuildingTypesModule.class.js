@@ -15,7 +15,7 @@ class MosaicDendroBuildingTypesModule extends MosaicTileModule {
     async render(renderIntoNode) {
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        this.sqs.setBgLoadingIndicator(renderIntoNode, true);
+        this.sqs.setLoadingIndicator(renderIntoNode, true);
 
         this.pendingRequestPromise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_dendro_building_types", resultMosaic.requestBatchId);
 
@@ -32,7 +32,7 @@ class MosaicDendroBuildingTypesModule extends MosaicTileModule {
         this.data = pData.data;
 
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "group_description", "No. of samples");
-        this.sqs.setBgLoadingIndicator(renderIntoNode, false);
+        this.sqs.setLoadingIndicator(renderIntoNode, false);
         this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);
     }
     
