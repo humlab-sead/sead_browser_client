@@ -96,15 +96,16 @@ class DomainManager {
 
         for(let key in this.config.domains) {
             let domain = config.domains[key];
-
-            menu.items.push({
-                name: domain.name,
-                title: domain.icon+" "+domain.title,
-                staticSelection: domain.name == selectedDomain.name,
-                callback: () => {
-                    this.setActiveDomain(domain.name);
-                }
-            });
+            if(domain.enabled !== false) {
+                menu.items.push({
+                    name: domain.name,
+                    title: domain.icon+" "+domain.title,
+                    staticSelection: domain.name == selectedDomain.name,
+                    callback: () => {
+                        this.setActiveDomain(domain.name);
+                    }
+                });
+            }
         }
         
         return menu;

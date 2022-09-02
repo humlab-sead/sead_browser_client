@@ -909,6 +909,18 @@ class DendrochronologyDataset extends DatasetModule {
 			]
 		};
 
+		//This is just for hiding/disabling some parts of dendro before it's ready for production usage
+		if(this.sqs.domainManager.getDomain("dendrochronology").enabled === false) {
+			for(let key in contentItem.renderOptions) {
+				if(contentItem.renderOptions[key].type == "table") {
+					contentItem.renderOptions[key].selected = true;
+				}
+				if(contentItem.renderOptions[key].type == "dendrochart") {
+					delete contentItem.renderOptions[key];
+				}
+			}
+		}
+
 		let analysisMethod = null;
 		for(let key in siteData.analysis_methods) {
 			if(siteData.analysis_methods[key].method_id == 10) {
