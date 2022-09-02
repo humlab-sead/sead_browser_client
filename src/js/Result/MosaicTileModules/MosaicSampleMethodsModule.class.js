@@ -45,9 +45,6 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
 
     async unrender() {
         this.active = false;
-
-        console.log(this.renderIntoNode);
-        console.log($(".result-export-button-mosaic", this.renderIntoNode));
         $(".result-export-button-mosaic", this.renderIntoNode).remove();
     }
 }

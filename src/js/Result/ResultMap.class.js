@@ -517,7 +517,9 @@ class ResultMap extends ResultModule {
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-datalayer-controls-menu"));
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
 
-		this.renderExportButton();
+		if(this.sqs.config.showResultExportButton) {
+			this.renderExportButton();
+		}
 	}
 
 	/*

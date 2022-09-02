@@ -166,7 +166,9 @@ class ResultTable extends ResultModule {
 
 		$('#result-table-container').html("");
 
-		this.renderExportButton();
+		if(this.sqs.config.showResultExportButton) {
+			this.renderExportButton();
+		}
 
 		var renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
 

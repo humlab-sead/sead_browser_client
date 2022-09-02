@@ -291,9 +291,11 @@ class ResultMosaic extends ResultModule {
 			let mosaicTileId = nanoid();
 			mConf.grid_box_id = this.getGridBoxId(mConf);
 			this.renderGridModule(mConf, mosaicTileId).then(() => {
-				let exportButton = $("<div></div>").addClass("result-export-button-mosaic").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
-				$("#"+mosaicTileId).append(exportButton);
-				this.bindExportModuleDataToButton("#"+mosaicTileId+" .result-export-button-mosaic", mConf.module);
+				if(this.sqs.config.showMosaicExportButtons) {
+					let exportButton = $("<div></div>").addClass("result-export-button-mosaic").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
+					$("#"+mosaicTileId).append(exportButton);
+					this.bindExportModuleDataToButton("#"+mosaicTileId+" .result-export-button-mosaic", mConf.module);
+				}
 			});
 		});
 
