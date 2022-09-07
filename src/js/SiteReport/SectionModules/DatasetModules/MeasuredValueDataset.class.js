@@ -142,7 +142,7 @@ class MeasuredValueDataset extends DatasetModule {
 				},
 			];
 
-			dataGroup.data_points.forEach((data_point => {
+			dataGroup.datasets.forEach((data_point => {
 				contentItem.data.rows.push([
 					{
 						"type": "cell",
