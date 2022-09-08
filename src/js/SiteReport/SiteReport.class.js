@@ -495,13 +495,41 @@ class SiteReport {
 		*/
 	}
 	
+	prepareJsonExport(exportStruct) {
+		let jsonData = {
+			meta: exportStruct.meta,
+			columns: [],
+			rows: []
+		};
+
+		exportStruct.datatable.columns.forEach(col => {
+			jsonData.columns.push({
+				title: col.title,
+			});
+		});
+
+		exportStruct.datatable.rows.forEach(row => {
+			let exportRow = [];
+			row.forEach(cell => {
+				let cellValue = this.sqs.parseStringValueMarkup(cell.value);
+				cellValue = cellValue.replace(/<[^>]*>?/gm, '');
+				exportRow.push(cellValue);
+			})
+			jsonData.rows.push(exportRow);
+		});
+
+		return jsonData;
+	}
+
 	getExportButton(exportFormat, exportStruct) {
 		var node = null;
 		let filename = "sead-export-site-"+this.siteId;
 		if(exportFormat == "json") {
 			node = $("<a id='site-report-json-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download JSON</a>");
 			
-			let json = JSON.stringify(exportStruct, (key, value) => {
+			let jsonData = this.prepareJsonExport(exportStruct);
+
+			let json = JSON.stringify(jsonData, (key, value) => {
 				if(key == "renderInstance") {
 					value = null;
 				}
@@ -536,6 +564,7 @@ class SiteReport {
 				exportStruct.datatable.rows.forEach((row) => {
 					row.forEach((column) => {
 						if(typeof column.value == "string") {
+							column.value = this.sqs.parseStringValueMarkup(column.value, { drawSymbol: false });
 							column.value = column.value.replace(/<[^>]*>?/gm, '');
 						}
 					});
@@ -544,11 +573,11 @@ class SiteReport {
 				var data = this.getDataForXlsx(exportStruct.datatable);
 				
 				data.unshift([""]);
-				data.unshift(["Content: "+exportStruct.content]);
-				data.unshift(["Section: "+exportStruct.section]);
-				data.unshift(["Reference: "+exportStruct.info.attribution]);
-				data.unshift([exportStruct.info.url]);
-				data.unshift([exportStruct.info.description]);
+				data.unshift(["Content: "+exportStruct.meta.content]);
+				data.unshift(["Section: "+exportStruct.meta.section]);
+				data.unshift(["Reference: "+exportStruct.meta.attribution]);
+				data.unshift([exportStruct.meta.url]);
+				data.unshift([exportStruct.meta.description]);
 				
 				var ws_name = "SEAD Data";
 				var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(data);
@@ -567,7 +596,7 @@ class SiteReport {
 						for(let sk in this.modules[k].module.section.sections) {
 							for(let cik in this.modules[k].module.section.sections[sk].contentItems) {
 								let ci = this.modules[k].module.section.sections[sk].contentItems[cik];
-								if(ci.name == exportStruct.dataset) {
+								if(ci.name == exportStruct.meta.dataset) {
 									let chartId = $("#contentItem-"+ci.datasetId+" .site-report-chart-container").attr("id");
 									zingchart.exec(chartId, 'getimagedata', {
 										filetype: 'png',
@@ -615,19 +644,19 @@ class SiteReport {
 
 		if(section != "all" && contentItem != "all") {
 			exportStruct = {
-				info: {
+				meta: {
+					site: this.siteId,
+					section: section.title,
+					dataset: contentItem.datasetId,
+					content: contentItem.title,
 					description: "Data export from the SEAD project. Visit https://www.sead.se for more information.",
-					url: Config.serverRoot+"/site/"+this.siteId
+					url: Config.serverRoot+"/site/"+this.siteId,
 				},
-				site: this.siteId,
-				section: section.title,
-				dataset: contentItem.datasetId,
-				content: contentItem.title,
 				datatable: contentItem.data
 			};
 		}
 
-		exportStruct.info.attribution = Config.siteReportExportAttributionString;
+		exportStruct.meta.attribution = Config.siteReportExportAttributionString;
 		
 		let dialogNodeId = nanoid();
 		var dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");

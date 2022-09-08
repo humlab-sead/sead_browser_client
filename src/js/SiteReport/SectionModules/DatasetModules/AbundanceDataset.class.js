@@ -282,14 +282,8 @@ class AbundanceDataset extends DatasetModule {
 			}));
 
 			section.contentItems.push(contentItem);
-
 		});
 	}
-
-
-
-
-
 	
 	/*
 	* Function: offerAnalyses

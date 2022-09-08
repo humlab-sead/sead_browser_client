@@ -21,6 +21,10 @@ class DendroChart {
         this.sampleWarnings = [];
         this.dendroLib = new DendroLib();
 
+        this.sqs.sqsEventListen("siteReportClosed", () => {
+            this.removeInfoTooltip();
+		});
+
         this.lookupTable = [
             {
                 name: "Tree species", //What we call it - this is the name we use for internal code references
