@@ -281,9 +281,8 @@ class BasicSiteInformation {
 	* Renders the little map which shows site position in the sidebar.
 	*/
 	renderMiniMap(siteData) {
-		
 		$("#site-report-map-container").html("");
-		
+
 		this.olMap = new Map({
 			controls: [],
 			target: 'site-report-map-container',
@@ -306,7 +305,7 @@ class BasicSiteInformation {
 		var coords = transform([parseFloat(siteData.longitude_dd), parseFloat(siteData.latitude_dd)], 'EPSG:4326', 'EPSG:3857');
 		var iconFeature = new Feature({
 			geometry: new Point(coords),
-			name: siteData.siteName
+			name: siteData.site_name
 		});
 		
 		iconFeatures.push(iconFeature);
