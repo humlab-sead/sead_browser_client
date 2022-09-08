@@ -57,6 +57,15 @@ div:focus {
   outline:0;
 }
 
+.very-special-dendro-text {
+  position: absolute;
+  top: 2.3em;
+  display: flex;
+  font-size: 0.6em;
+  justify-content: flex-start;
+  margin-left: 2em;
+}
+
 #header-space {
   position:static;
   display: flex;

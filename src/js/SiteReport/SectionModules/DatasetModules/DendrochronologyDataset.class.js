@@ -941,9 +941,7 @@ class DendrochronologyDataset extends DatasetModule {
 			"contentItems": [contentItem]
 		};
 
-		if(config.build == "staging") {
-			sections.push(section);
-		}
+		sections.push(section);
 	}
 
 	getSampleGroupBySampleName(sampleName, siteData) {

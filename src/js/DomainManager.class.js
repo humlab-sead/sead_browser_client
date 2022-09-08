@@ -97,9 +97,13 @@ class DomainManager {
         for(let key in this.config.domains) {
             let domain = config.domains[key];
             if(domain.enabled !== false) {
+                let specialText = "";
+                if(domain.name == "dendrochronology") {
+                    specialText = "<div class='very-special-dendro-text'>Experimental!</div>";
+                }
                 menu.items.push({
                     name: domain.name,
-                    title: domain.icon+" "+domain.title,
+                    title: domain.icon+" "+domain.title+specialText,
                     staticSelection: domain.name == selectedDomain.name,
                     callback: () => {
                         this.setActiveDomain(domain.name);
