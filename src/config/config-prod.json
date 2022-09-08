@@ -74,7 +74,7 @@
 		},
 		{
 		"name":"dendrochronology",
-		"enabled": false,
+		"enabled": true,
 		"title": "Dendrochronology",
 		"icon":"<i class=\"fa fa-tree\" aria-hidden=\"true\"></i>",
 		"color":"#0a0",
