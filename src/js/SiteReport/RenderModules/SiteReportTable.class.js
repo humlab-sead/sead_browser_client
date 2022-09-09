@@ -528,7 +528,6 @@ class SiteReportTable {
 
 	renderAggregatedColumnValues(rowId) {
 		var row = this.getRowById(rowId);
-		console.log(row, rowId, this.rows)
 		if(typeof row.meta == "undefined") {
 			row.meta = {};
 		}
