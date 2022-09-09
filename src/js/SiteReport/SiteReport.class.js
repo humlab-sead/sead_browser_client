@@ -118,7 +118,7 @@ class SiteReport {
 	*/
 	showLoadingIndicator() {
 		let loadingIndicator = $("#result-loading-indicator")[0].cloneNode(true);
-		$(loadingIndicator).attr("id", "site-report-loading-indicator").css("margin-top", "50%");
+		$(loadingIndicator).attr("id", "site-report-loading-indicator");
 		$("#site-report-content").append(loadingIndicator);
 		$(loadingIndicator).fadeIn(100);
 	}
@@ -578,7 +578,7 @@ class SiteReport {
 				data.unshift(["Reference: "+exportStruct.meta.attribution]);
 				data.unshift([exportStruct.meta.url]);
 				data.unshift([exportStruct.meta.description]);
-				
+
 				var ws_name = "SEAD Data";
 				var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(data);
 				//add worksheet to workbook

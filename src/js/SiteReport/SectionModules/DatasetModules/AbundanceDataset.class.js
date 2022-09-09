@@ -168,6 +168,11 @@ class AbundanceDataset extends DatasetModule {
 
 			contentItem.data.columns = [
 				{
+					"title": "Abundance ID",
+					"hidden": "true",
+					"pkey": true,
+				},
+				{
 					"title": "Sample name"
 				},
 				{
@@ -187,12 +192,12 @@ class AbundanceDataset extends DatasetModule {
 				},
 				{
 					"hidden": "true",
-					"pkey": true,
+					"pkey": false,
 					"title": "Sample id"
 				},
 				{
 					"hidden": "true",
-					"pkey": true,
+					"pkey": false,
 					"title": "Taxon id"
 				},
 			];
@@ -246,6 +251,10 @@ class AbundanceDataset extends DatasetModule {
 				contentItem.data.rows.push([
 					{
 						"type": "cell",
+						"value": data_point.value.abundance_id
+					},
+					{
+						"type": "cell",
 						"value": data_point.sample_name
 					},
 					{
@@ -280,7 +289,7 @@ class AbundanceDataset extends DatasetModule {
 					},
 				]);
 			}));
-
+			
 			section.contentItems.push(contentItem);
 		});
 	}

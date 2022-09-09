@@ -124,7 +124,7 @@ class SiteReportTable {
 			
 			var currentRows = this.getCurrentlyDisplayedRows();
 			for(var key in currentRows) {
-				var rowId = currentRows[key][this.rowPkey];
+				var rowId = currentRows[key][this.rowPkey].value;
 				this.renderAggregatedColumnValues(rowId);
 			}
 		});
@@ -134,7 +134,7 @@ class SiteReportTable {
 			
 			var currentRows = this.getCurrentlyDisplayedRows();
 			for (var key in currentRows) {
-				var rowId = currentRows[key][this.rowPkey];
+				var rowId = currentRows[key][this.rowPkey].value;
 				this.renderAggregatedColumnValues(rowId);
 			}
 			
@@ -447,15 +447,19 @@ class SiteReportTable {
 	}
 	
 	getRowById(rowId) {
-		var sampleGroupIdFieldKey = null;
+		var pkeyKey = null;
 		for(var k in this.columns) {
 			if(this.columns[k].pkey === true) {
-				sampleGroupIdFieldKey = k;
+				pkeyKey = k;
 			}
+		}
+		if(!pkeyKey) {
+			console.warn("Couldn't find table pkey column.");
+			return null;
 		}
 
 		for(var k in this.rows) {
-			if(this.rows[k][sampleGroupIdFieldKey] == rowId) {
+			if(this.rows[k][pkeyKey].value == rowId) {
 				return this.rows[k];
 			}
 		}
@@ -524,7 +528,8 @@ class SiteReportTable {
 
 	renderAggregatedColumnValues(rowId) {
 		var row = this.getRowById(rowId);
-		if(!row.meta) {
+		console.log(row, rowId, this.rows)
+		if(typeof row.meta == "undefined") {
 			row.meta = {};
 		}
 		if(!row.meta.aggregationRendered) {

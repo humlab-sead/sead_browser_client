@@ -796,6 +796,7 @@ class ResultMosaic extends ResultModule {
 			height: "100%"
 		});
 
+		/*
 		zc.bind("click", (evt) => {
 			let startIndex = evt.targetid.indexOf("-plot-") + 6;
 			let plot = evt.targetid.substring(startIndex, startIndex+1);
@@ -808,6 +809,7 @@ class ResultMosaic extends ResultModule {
 				}
 			}, 100);
 		});
+		*/
 
 		return zc;
 	}

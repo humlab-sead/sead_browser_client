@@ -135,6 +135,11 @@
   height: 15em;
 }
 
+#site-report-loading-indicator {
+  position: fixed;
+  top: 50%;
+}
+
 .site-report-export-links {
   list-style-type: none;
   margin: 0px;

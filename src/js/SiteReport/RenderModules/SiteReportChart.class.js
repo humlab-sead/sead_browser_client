@@ -92,6 +92,12 @@ class SiteReportChart {
                 "align": 'right',
                 "verticalAlign": 'top',
                 "toggleAction": 'remove',
+				'draggable': true,
+				'minimize': true,
+				"header": {
+					"text": "Taxa",
+					'border-bottom': "2px solid #eee"
+				  },
                 "marker": {
                     "borderWidth": "1px",
                     "borderColor": "#888"
@@ -231,6 +237,15 @@ class SiteReportChart {
 		}
 	}
 
+	getTableColumnKeyByTitle(columnTitle) {
+		for(let key in this.contentItem.data.columns) {
+			if(this.contentItem.data.columns[key].title == columnTitle) {
+				return key;
+			}
+		}
+		return null;
+	}
+
 	/*
 	* Function: renderMultistack
 	*
@@ -266,10 +281,16 @@ class SiteReportChart {
 		var samples = [];
 		let sampleNames = [];
 
+		let taxonIdColKey = this.getTableColumnKeyByTitle("Taxon id");
+		let taxonNameColKey = this.getTableColumnKeyByTitle("Taxon");
+		let abundanceColKey = this.getTableColumnKeyByTitle("Abundance count");
+		let sampleIdColKey = this.getTableColumnKeyByTitle("Sample id");
+		let sampleNameColKey = this.getTableColumnKeyByTitle("Sample name");
+
 		//This is the list of samples we're going to use and IN THIS ORDER - VERY IMPORTANT
 		for(var key in contentItem.data.rows) {
-			var sampleId = contentItem.data.rows[key][6].value;
-			let sampleName = contentItem.data.rows[key][yAxisKey].value;
+			var sampleId = contentItem.data.rows[key][sampleIdColKey].value;
+			let sampleName = contentItem.data.rows[key][sampleNameColKey].value;
 
 			//Get unique sample Ids
 			var sampleFound = false;
@@ -297,12 +318,13 @@ class SiteReportChart {
 		
 		//Build data structure where the taxon is top/master, because that's the twisted weird logic that zingchart uses for rendering...
 		var taxonCount = 0;
+
 		for(var key in contentItem.data.rows) {
-			var taxonId = contentItem.data.rows[key][7].value;
-			var taxonName = contentItem.data.rows[key][2].value;
-			var abundance = contentItem.data.rows[key][1].value;
-			var sampleId = contentItem.data.rows[key][6].value;
-			var sampleName = contentItem.data.rows[key][0].value;
+			var taxonId = contentItem.data.rows[key][taxonIdColKey].value;
+			var taxonName = contentItem.data.rows[key][taxonNameColKey].value;
+			var abundance = contentItem.data.rows[key][abundanceColKey].value;
+			var sampleId = contentItem.data.rows[key][sampleIdColKey].value;
+			var sampleName = contentItem.data.rows[key][sampleNameColKey].value;
 			
 			if(typeof(this.taxa[taxonId]) == "undefined") {
 				this.taxa[taxonId] = {
@@ -365,7 +387,7 @@ class SiteReportChart {
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
-		var chartHeight = 130 + (samples.length * 30);
+		var chartHeight = 330 + (samples.length * 30);
 
 		zingchart.render({
 			id: this.chartId,
@@ -373,9 +395,8 @@ class SiteReportChart {
 			defaults: this.chartTheme,
 			height: chartHeight,
 			events: {
-				click: (evt) => {
+				click: (evt, stuff) => {
 					console.log("zingchart click evt");
-					//$("#"+evt.targetid).css("position", "fixed");
 				}
 			}
 		});
