@@ -387,7 +387,7 @@ class SiteReportChart {
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
-		var chartHeight = 330 + (samples.length * 30);
+		var chartHeight = 130 + (samples.length * 40);
 
 		zingchart.render({
 			id: this.chartId,
