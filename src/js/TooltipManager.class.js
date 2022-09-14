@@ -27,7 +27,7 @@ class TooltipManager {
 			arrow: true,
 			drawSymbol: false,
 			symbolChar: "fa-question-circle",
-			anchorPoint: "symbol", // should the tooltip popup when hovering over the container area or just the symbol (if it exists)? options: 'symbol' or 'container'
+			anchorPoint: "container", // should the tooltip popup when hovering over the container area or just the symbol (if it exists)? options: 'symbol' or 'container'
 			html: true,
 			placement: "top",
 			highlightAnchor: false,
@@ -171,9 +171,11 @@ class TooltipManager {
 			}
 			var symbol = $("<i style=\""+colorAttr+"\" class=\"fa "+tooltip.options.symbolChar+" help-icon\" tooltip-anchor-id='"+tooltip.id+"' aria-hidden=\"true\"></i>");
 			$(tooltip.anchor).append(symbol);
+			
 			if(tooltip.options.anchorPoint == "symbol") {
 				anchor = symbol;
 			}
+			
 		}
 
 		new Popper(tooltip.anchor, tooltip.tooltipNode, tooltip.options);

@@ -17,7 +17,7 @@ class MosaicMapModule extends MosaicTileModule {
         this.active = true;
         
         if(this.resultMap == null) {
-            this.resultMap = new ResultMap(this.sqs.resultManager, renderIntoNode);
+            this.resultMap = new ResultMap(this.sqs.resultManager, renderIntoNode, false);
         }
         
         await this.resultMap.fetchData();

@@ -15,6 +15,7 @@ class DendroChart {
         this.selectedSort = selectedSort.value;
         let selectedUncertainty = this.getSelectedRenderOptionExtra("Uncertainty");
         this.showUncertainty = selectedUncertainty.value;
+        this.selectedSampleGroup = this.getSelectedRenderOptionExtra("Sample group");
         this.USE_LOCAL_COLORS = true;
         this.infoTooltipId = null;
         this.tooltipId = null;
@@ -1175,7 +1176,6 @@ class DendroChart {
                 case "youngestGerminationYear":
                     returnValue = barObject.certainty.x.value;
                     //returnValue = barObject.germinationUncertainty.x.value + barObject.germinationUncertainty.width.value;
-                    console.log(barObject.germinationUncertainty);
                     offset += offsetMod;
                     break;
                 case "oldestGerminationYear":
@@ -1306,7 +1306,7 @@ class DendroChart {
         let sampleDescriptions = "";
         sample.descriptions.forEach(desc => {
             let ttId = "value-tooltip-"+nanoid();
-            sampleDescriptions += "<span id='"+ttId+"'>"+desc.description+"</span>, "
+            sampleDescriptions += "<span id='"+ttId+"'>"+desc.description+"</span>, ";
             this.sqs.tooltipManager.registerTooltip("#"+ttId, desc.type_description, { drawSymbol: true });
         });
         sampleDescriptions = sampleDescriptions.substring(0, sampleDescriptions.length-2);
@@ -1315,6 +1315,32 @@ class DendroChart {
             value: sampleDescriptions
         });
 
+        let sampleLocations = "<table class='info-tooltip-value-table'><thead>";
+        sampleLocations += "<th>Location type</th>";
+        sampleLocations += "<th>Value</th>";
+        sampleLocations += "</thead><tbody>";
+        sample.locations.forEach(loc => {
+            let ttId = "value-tooltip-"+nanoid();
+            sampleLocations += "<tr><td id='"+ttId+"'>"+loc.location_type+":</td><td>"+loc.location+"</td></tr>";
+            this.sqs.tooltipManager.registerTooltip("#"+ttId, loc.location_type_description, { drawSymbol: true });
+        });
+        sampleLocations += "</tbody></table>";
+        if(sample.locations.length > 0) {
+            sampleVars.push({
+                label: "Sample locations",
+                value: sampleLocations
+            });
+        }
+
+
+        //TODO: Sampling contexts exists on a sample group level
+        /*
+        let samplingContexts = "";
+        sample.sampling_context.forEach(samplingContext => {
+
+        });
+        */
+        
 
         /*
         let sampleDimensions = "";
@@ -1340,10 +1366,13 @@ class DendroChart {
             }
         });
         sampleFeatures = sampleFeatures.substring(0, sampleFeatures.length-2);
-        sampleVars.push({
-            label: "Sample features",
-            value: sampleFeatures
-        });
+        if(sampleFeatures.length > 0) {
+            sampleVars.push({
+                label: "Sample features",
+                value: sampleFeatures
+            });
+        }
+        
 
         //TODO:  sample.locations, sample.dimensions
 
@@ -2188,8 +2217,22 @@ class DendroChart {
         let undatedSamples = totalNumOfSamples - this.dataObjects.length;
         this.clearSampleWarnings();
 
-        this.sortDataObjects(this.dataObjects);
+        this.dataObjects = this.dataObjects.filter(d => {
+            let result = false;
+            this.siteReport.siteData.sample_groups.forEach(sg => {
+                sg.physical_samples.forEach(ps => {
+                    if(ps.physical_sample_id == d.physical_sample_id) {
+                        if(sg.sample_group_id == this.selectedSampleGroup.value || this.selectedSampleGroup.value == "all") {
+                            result = true;
+                        }
+                    }
+                })
+            });
+            return result;
+        });
 
+        this.sortDataObjects(this.dataObjects);
+        
         //this.barHeight = 5; //height/thickness of bars
         this.barMarginX = 5;
         this.barMarginY = 2; //y-distance between bars

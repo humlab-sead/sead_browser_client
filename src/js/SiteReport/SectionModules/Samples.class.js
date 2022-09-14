@@ -1,5 +1,5 @@
 import css from '../../../stylesheets/style.scss';
-
+import { nanoid } from 'nanoid';
 /*
 * Class: Samples
  */
@@ -284,7 +284,17 @@ class Samples {
 			{
 				"dataType": "string",
 				"pkey": false,
+				"title": "Sampling context"
+			},
+			{
+				"dataType": "string",
+				"pkey": false,
 				"title": "Sampling method"
+			},
+			{
+				"dataType": "string",
+				"pkey": false,
+				"title": "Analysis methods"
 			}
 		];
 
@@ -338,6 +348,14 @@ class Samples {
 			this.insertSampleLocationsIntoTable(subTable, sampleGroup);
 			this.insertSampleAltRefsIntoTable(subTable, sampleGroup);
 
+			let samplingContextValue = "";
+			sampleGroup.sampling_context.forEach(samplingContext => {
+				let ttId = "tt-"+nanoid();
+				samplingContextValue += "<span id='"+ttId+"'>"+samplingContext.sampling_context+"</span>, ";
+				this.sqs.tooltipManager.registerTooltip("#"+ttId, samplingContext.description, { drawSymbol: true });
+			});
+			samplingContextValue = samplingContextValue.substring(0, samplingContextValue.length-2);
+
 			sampleGroupRows.push([
 				{
 					"type": "subtable",
@@ -355,8 +373,16 @@ class Samples {
 				},
 				{
 					"type": "cell",
+					"value": samplingContextValue,
+				},
+				{
+					"type": "cell",
 					"value": sampleGroup.sampling_method.method_name,
 					"tooltip": sampleGroup.sampling_method.description == null ? "" : sampleGroup.sampling_method.description
+				},
+				{
+					"type": "cell",
+					"value": "", //Analysis methods - We don't have this data yet
 				}
 			]);
 			

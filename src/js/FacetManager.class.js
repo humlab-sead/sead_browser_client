@@ -1060,6 +1060,7 @@ class FacetManager {
 		var menu = {
 			title: "Filters",
 			layout: "vertical",
+			l1layout: "vertical",
 			collapsed: true,
 			anchor: "#facet-menu",
 			auxTriggers: [{

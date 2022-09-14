@@ -33,12 +33,13 @@ class ResultMap extends ResultModule {
 	/*
 	* Function: constructor
 	*/
-	constructor(resultManager, renderIntoNode = "#result-map-container") {
+	constructor(resultManager, renderIntoNode = "#result-map-container", includeTimeline = true) {
 		super(resultManager);
 		this.renderIntoNode = renderIntoNode;
-		
+		this.includeTimeline = includeTimeline;
+
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
-		if(Config.timelineEnabled) {
+		if(Config.timelineEnabled && includeTimeline) {
 			$(this.renderIntoNode).append("<div class='result-timeline-render-container'></div>");
 		}
 		else {
@@ -46,7 +47,7 @@ class ResultMap extends ResultModule {
 		}
 
 		this.renderMapIntoNode = $(".result-map-render-container", renderIntoNode)[0];
-		if(Config.timelineEnabled) {
+		if(Config.timelineEnabled && includeTimeline) {
 			this.renderTimelineIntoNode = $(".result-timeline-render-container", renderIntoNode)[0];
 		}
 		
@@ -317,7 +318,7 @@ class ResultMap extends ResultModule {
 		if(renderMap) {
 			this.renderMap();
 			this.renderVisibleDataLayers();
-			if(Config.timelineEnabled) {
+			if(Config.timelineEnabled && this.includeTimeline) {
 				this.timeline.render();
 			}
 			this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");

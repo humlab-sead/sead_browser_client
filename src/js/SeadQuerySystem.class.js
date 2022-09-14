@@ -339,6 +339,13 @@ class SeadQuerySystem {
 	}
 	*/
 	
+	getHtmlSafeIdFromString(str) {
+		console.log(str)
+		str = str.toString();
+		console.log(typeof str)
+		
+		return str.replace(/ /g, "_");
+	}
 
 	/*
 	* Function: preload

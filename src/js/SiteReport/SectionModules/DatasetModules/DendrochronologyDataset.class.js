@@ -840,6 +840,19 @@ class DendrochronologyDataset extends DatasetModule {
         }
 
 
+		let sampleGroupsRenderOptionValues = [];
+		siteData.sample_groups.forEach(sg => {
+			sampleGroupsRenderOptionValues.push({
+				value: sg.sample_group_id,
+				title: sg.sample_group_name
+			});
+		})
+		sampleGroupsRenderOptionValues.push({
+			value: "all",
+			title: "All",
+			selected: true
+		});
+
 		let contentItem = {
 			"name": "dendro",
 			"title": "Dendrochronology",
@@ -903,6 +916,12 @@ class DendrochronologyDataset extends DatasetModule {
 									"selected": false
 								},
 							]
+						},
+						{
+							"enabled": true,
+							"title": "Sample group",
+							"type": "select",
+							"options": sampleGroupsRenderOptionValues
 						}
 					]
 				},
@@ -941,7 +960,9 @@ class DendrochronologyDataset extends DatasetModule {
 			"contentItems": [contentItem]
 		};
 
-		sections.push(section);
+		if(config.dendroSiteReportSectionEnabled) {
+			sections.push(section);
+		}
 	}
 
 	getSampleGroupBySampleName(sampleName, siteData) {

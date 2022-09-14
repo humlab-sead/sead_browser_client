@@ -305,7 +305,7 @@ class SiteReport {
 			});
 		
 		if(section.hasOwnProperty("methodDescription")) {
-			this.sqs.tooltipManager.registerTooltip($(".site-report-level-title", sectionNode), section.methodDescription, {drawSymbol: true});
+			this.sqs.tooltipManager.registerTooltip($(".site-report-level-title", sectionNode), section.methodDescription, {drawSymbol: true, anchorPoint: 'symbol'});
 		}
 		
 		//If this is a top-level section, add another class for different theming
@@ -333,7 +333,7 @@ class SiteReport {
 		//Just register some tooltips if description is available
 		if(typeof(section.description) != "undefined") {
 			var helpAnchor = $(".site-report-level-title", sectionNode);
-			this.sqs.tooltipManager.registerTooltip(helpAnchor, section.description, {drawSymbol: true});
+			this.sqs.tooltipManager.registerTooltip(helpAnchor, section.description, {drawSymbol: true, anchorPoint: 'symbol'});
 		}
 		else {
 			$("#site-report-"+section.name+"-help").remove();

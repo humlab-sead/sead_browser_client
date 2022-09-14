@@ -37,6 +37,7 @@
     "jquery-doubletaptogo": "^3.0.1",
     "jquery-ui": "^1.13.2",
     "jquery-ui-bundle": "^1.11.4",
+    "js-sha1": "^0.6.0",
     "json2csv": "^5.0.7",
     "jszip": "^3.7.1",
     "kolorwheel": "^0.2.1",

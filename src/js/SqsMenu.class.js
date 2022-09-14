@@ -138,6 +138,13 @@ class sqsMenu {
 			sqsMenuContainerDisplay = "flex";
 			menuCategoryLevelClass = "l1-container-level l1-container-level-horizontal";
 		}
+
+		/*
+		this should work to create a better filter menu, but it doesn't currently have any effect
+		if(m.l1layout == "vertical") {
+			$(".l1-container-level", m.anchor).css("flex-direction", "row");
+		}
+		*/
 		
 		if(!m.visible) {
 			sqsMenuContainerDisplay = "none";
@@ -201,8 +208,6 @@ class sqsMenu {
 
 
 		this.bindMenuAnchor(m);
-
-		
 		
 		$(m.anchor+" .l1-container").on("click", (event) => { //replace this with mouseover if you like annoying menus
 			//$(m.anchor+" .l2-level", event.currentTarget).show();
@@ -276,9 +281,9 @@ class sqsMenu {
 		}
 		
 		$(m.anchor+" .l2-level").show();
+		
 		var menuHeight = $(m.anchor+" .l1-container-level").height();
 		var viewportHeight = $(document).height();
-		
 		if(menuHeight > viewportHeight-100) {
 			$(m.anchor+" .l2-level").hide();
 			if(typeof m.activeL1 != "undefined") { //If menu was closed with a L2-level open, remember that choice
@@ -288,6 +293,7 @@ class sqsMenu {
 		else {
 			$(m.anchor+" .l2-level").show();
 		}
+
 	}
 	
 	/*

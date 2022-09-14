@@ -2017,6 +2017,23 @@ svg text {
   fill: #000;
 }
 
+.dendro-tooltip-variable-name-text {
+  vertical-align: top;
+}
+
+.info-tooltip-value-table {
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+}
+
+.info-tooltip-value-table tr {
+}
+
+.info-tooltip-value-table th {
+  text-align: left;
+  
+}
+
 .dendro-bar {
   color: #fff;
   //fill: rgb(85, 51, 0);

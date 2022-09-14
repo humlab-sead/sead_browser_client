@@ -10,6 +10,7 @@ import "datatables.net-buttons/js/buttons.print.js";
 import "datatables.net-colreorder-dt";
 import "datatables.net-fixedheader-dt";
 import "datatables.net-responsive-dt";
+import sha1 from "js-sha1";
 
 /*
 * Class: SiteReportTable
@@ -67,6 +68,7 @@ class SiteReportTable {
 		var tbodyNode = $("tbody", this.tableNode);
 		for(var key in this.rows) {
 			var rowNode = this.renderTableRow(this.rows[key]);
+			this.rows[key].nodeId = $(rowNode).attr("id");
 			$(tbodyNode).append(rowNode);
 		}
 
@@ -300,7 +302,7 @@ class SiteReportTable {
 
 	resetAllSubTableExpansions() {
 		for(var key in this.rows) {
-			this.unrenderSubTable(this.rows[key][this.getRowPkey()].value)
+			this.unrenderSubTable("#"+this.rows[key].nodeId)
 			this.rows[key][this.getSubTableKey()].expanded = false;
 		}
 	}
@@ -340,8 +342,9 @@ class SiteReportTable {
 		if(this.hasSubTable()) {
 			rowClasses += " site-report-table-row-with-subtable"
 		}
+
 		var rowPrimaryKeyValue = row[this.rowPkey].value;
-		var rowNode = $("<tr row-id='"+rowPrimaryKeyValue+"' class='"+rowClasses+"'></tr>");
+		var rowNode = $("<tr id='"+nanoid()+"' row-id='"+rowPrimaryKeyValue+"' class='"+rowClasses+"'></tr>");
 
 		for(var colKey in row) {
 			if(colKey == "meta") {
@@ -408,34 +411,43 @@ class SiteReportTable {
 
 		$(rowNode).on("click", (evt) => {
 			var rowNode = $(evt.currentTarget);
-			var rowId = rowNode.attr("row-id");
-			this.triggerSubTable(rowId);
+			let rowNodeId = rowNode.attr("id");
+			this.triggerSubTable(rowNodeId);
 		});
 
 		return rowNode;
 	}
 
-	triggerSubTable(rowId) {
+	triggerSubTable(rowNodeId) {
 		if(this.getSubTableKey() === false) {
 			return;
 		}
 
-		var r = this.getTableRowByPkey(rowId);
-		
-		var subTable = r[this.getSubTableKey()].value;
+		//var row = this.getTableRowByPkey(rowId);
+		let row = this.getTabelRowByNodeId(rowNodeId);
+		var subTable = row[this.getSubTableKey()].value;
 
 		if(!subTable.hasOwnProperty("expanded")) {
 			subTable.expanded = false;
 		}
 		
 		if(subTable.expanded === false) {
-			this.renderSubTable(rowId, subTable);
+			this.renderSubTable(rowNodeId, subTable);
 			subTable.expanded = true;
 		}
 		else {
-			this.unrenderSubTable(rowId);
+			this.unrenderSubTable(rowNodeId);
 			subTable.expanded = false;
 		}
+	}
+
+	getTabelRowByNodeId(rowNodeId) {
+		for(let key in this.rows) {
+			if(this.rows[key].nodeId == rowNodeId) {
+				return this.rows[key];
+			}
+		}
+		return null;
 	}
 
 	getTableRowByPkey(rowId) {
@@ -671,9 +683,9 @@ class SiteReportTable {
 		}
 	}
 
-	renderSubTable(sampleGroupId, subTable) {
+	renderSubTable(rowNodeId, subTable) {
 		
-		$("[row-id="+sampleGroupId+"]").addClass("table-row-expanded");
+		$("#"+rowNodeId).addClass("table-row-expanded");
 		
 		let subTableId = "subtable-"+nanoid();
 		
@@ -731,10 +743,7 @@ class SiteReportTable {
 		rowHtml += "<td colspan='"+colsNum+"'>"+subTableHtml+"</td>";
 		rowHtml += "</tr>";
 
-		//var rowId = row[this.rowPkey];
-		var rowId = sampleGroupId;
-
-		$(rowHtml).insertAfter($("[row-id="+rowId+"]").first()).show();
+		$(rowHtml).insertAfter($("#"+rowNodeId).first()).show();
 
 		$("#"+subTableId).DataTable({
 			"responsive": true,
@@ -750,10 +759,10 @@ class SiteReportTable {
 		$("#subtable-container-"+subTableId).slideDown(100);
 	}
 
-	unrenderSubTable(sampleGroupId) {
-		$("[row-id="+sampleGroupId+"]").removeClass("table-row-expanded");
+	unrenderSubTable(rowNodeId) {
+		$("#"+rowNodeId).removeClass("table-row-expanded");
 
-		var subTableRow = $("[row-id="+sampleGroupId+"]").next();
+		var subTableRow = $("#"+rowNodeId).next();
 		if(subTableRow.hasClass("hidden site-report-subtable-row")) {
 			subTableRow.remove();
 		}
