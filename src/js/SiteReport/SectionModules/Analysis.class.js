@@ -5,7 +5,7 @@ import DendrochronologyDataset from "./DatasetModules/DendrochronologyDataset.cl
 import CeramicDataset from "./DatasetModules/CeramicDataset.class";
 import RadioMetricDatingDataset from "./DatasetModules/RadioMetricDatingDataset.class";
 import DatingToPeriodDataset from "./DatasetModules/DatingToPeriodDataset.class";
-
+import MagneticSusceptibilityDataset from "./DatasetModules/MagneticSusceptibilityDataset.class";
 /*
 * Class: Analysis
 * 
@@ -68,7 +68,10 @@ class Analysis {
 		* is the one to get it.
 		 */
 		this.datasetModules = [];
-		this.activeDatasetModules = [];
+		this.activeDatasetModules = []; 
+		this.datasetModules.push({
+			"className": MagneticSusceptibilityDataset
+		});
 		this.datasetModules.push({
 			"className": AbundanceDataset
 		});
@@ -212,7 +215,7 @@ class Analysis {
 	}
 
 	delegateBuildSection(siteData, section) {
-		console.log(this.datasetModules, siteData);
+		console.log(siteData);
 		for(let key in this.datasetModules) {
 			this.datasetModules[key]["instance"].makeSection(siteData, section.sections);
 		}

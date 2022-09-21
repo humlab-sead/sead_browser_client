@@ -143,6 +143,7 @@ class ContentItemRenderer {
 					case "bar":
 					case "scatter":
 					case "pie":
+					case "msbar":
 					case "multistack":
 						renderInstance = new SiteReportChart(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);

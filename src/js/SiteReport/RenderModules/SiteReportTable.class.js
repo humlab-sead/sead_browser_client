@@ -302,7 +302,7 @@ class SiteReportTable {
 
 	resetAllSubTableExpansions() {
 		for(var key in this.rows) {
-			this.unrenderSubTable("#"+this.rows[key].nodeId)
+			this.unrenderSubTable(this.rows[key].nodeId)
 			this.rows[key][this.getSubTableKey()].expanded = false;
 		}
 	}
@@ -360,6 +360,10 @@ class SiteReportTable {
 			}
 
 			if(row[colKey].type == "cell") {
+				let unit = null;
+				if(typeof row[colKey].unit != "undefined") {
+					unit = row[colKey].unit;
+				}
 				var value = row[colKey].value;
 				var tooltip = row[colKey].tooltip;
 				
@@ -403,7 +407,11 @@ class SiteReportTable {
 					*/
 
 					value = this.sqs.parseStringValueMarkup(value);
-					var cellNode = $("<td id='"+cellNodeId+"' class='"+colClasses+"'>"+value+"</td>");
+					let cellContent = value;
+					if(unit != null) {
+						cellContent = cellContent+" "+unit;
+					}
+					var cellNode = $("<td id='"+cellNodeId+"' class='"+colClasses+"'>"+cellContent+"</td>");
 					rowNode.append(cellNode);
 				}
 			}

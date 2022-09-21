@@ -1,5 +1,14 @@
 import shortid from "shortid";
-import Chart from "chart.js";
+//import Chart from "chart.js";
+import { 
+	Chart, 
+	CategoryScale, 
+	LinearScale, 
+	BarController, 
+	BarElement,
+	Legend,
+	Tooltip
+ } from "chart.js";
 import 'zingchart/es6';
 import * as d3 from 'd3';
 import { circle } from "leaflet";
@@ -11,6 +20,14 @@ class SiteReportChart {
 		this.contentItem = contentItem;
 		this.chartId = null;
 		
+		Chart.register(CategoryScale);
+		Chart.register(LinearScale);
+		Chart.register(BarController);
+		Chart.register(BarElement);
+		Chart.register(Legend);
+		Chart.register(Tooltip);
+		
+
 		this.chartTheme = {
 			graph: {
 				title: {
@@ -37,12 +54,13 @@ class SiteReportChart {
 		var node = null;
 		this.contentItem.renderOptions.forEach((ro, i) => {
 			if(ro.selected) {
+				console.log(ro.type)
 				switch(ro.type) {
 					case "bar":
 						node = this.renderBarChartZing();
 						break;
-					case "scatter":
-						node = this.renderScatterChart();
+					case "msbar":
+						node = this.renderMagneticSusceptibilityBarChart();
 						break;
 					case "pie":
 						node = this.renderPieChart();
@@ -635,8 +653,102 @@ class SiteReportChart {
 		return chartContainer;
 	}
 
-	renderScatterChart() {
+	renderMagneticSusceptibilityBarChart() {
+		let contentItem = this.contentItem;
+		
+		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
+		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
+		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
 
+		var xUnitSymbol = "";
+		var yUnitSymbol = "";
+		
+		if(contentItem.data.columns[xAxisKey].hasOwnProperty("unit")) {
+			xUnitSymbol = contentItem.data.columns[xAxisKey].unit;
+		}
+		if(contentItem.data.columns[yAxisKey].hasOwnProperty("unit")) {
+			yUnitSymbol = contentItem.data.columns[yAxisKey].unit;
+		}
+
+		contentItem.data.rows.sort((a, b) => {
+			if(a[1].value > b[1].value) {
+				return 1;
+			}
+			else {
+				return -1;
+			}
+		});
+
+		let sampleNames = [];
+		let datasets = [];
+		datasets.push({
+			label: "Unburned",
+			backgroundColor: "darkblue",
+			data: []
+		});
+		datasets.push({
+			label: "Burned",
+			backgroundColor: "red",
+			data: []
+		});
+
+		for(var key in contentItem.data.rows) {
+			let row = contentItem.data.rows[key];
+			let sampleName = row[0].value;
+			sampleNames.push(sampleName);
+			let unburned = row[1].value;
+			let burned = row[2].value;
+			
+			datasets[0].data.push(unburned);
+			datasets[1].data.push(burned);
+		}
+
+		const data = {
+			labels: sampleNames,
+			datasets: datasets
+		};
+
+		let config = {
+			type: 'bar',
+			data: data,
+			options: {
+				plugins: {
+					legend: {
+						position: 'top',
+					},
+					tooltip: {
+						enabled: true,
+						callbacks: {
+							title: function(context) {
+								return "Sample "+context[0].label;
+							},
+							label: function(context) {
+								return context.dataset.label+" weight: "+context.formattedValue+" mg";
+							}
+						}
+					}
+				},
+				responsive: true,
+				scales: {
+					x: {
+						stacked: true,
+					},
+					y: {
+						stacked: true
+					}
+				}
+			}
+		  };
+		
+		  
+		this.chartId = "chart-"+shortid.generate();
+		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
+		$(this.anchorNodeSelector).append(chartContainer);
+
+		new Chart(
+			document.getElementById(this.chartId),
+			config
+		);
 	}
 
 	renderPieChart() {

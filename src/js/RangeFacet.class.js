@@ -2,6 +2,7 @@ import Facet from './Facet.class.js';
 import noUiSlider from "nouislider";
 import "nouislider/distribute/nouislider.min.css";
 import styles from '../stylesheets/style.scss'
+import { Chart, CategoryScale, LinearScale, BarController, BarElement } from "chart.js";
 //import Config from "../config/config";
 //import { runInThisContext } from 'vm';
 
@@ -48,6 +49,11 @@ class RangeFacet extends Facet {
 		this.maxDataValue = null;
 		this.numberOfCategories = 50; //Number of categories (bars) we want to abstract dataset
 		$(".facet-text-search-btn", this.getDomRef()).hide(); //range facets do not have text searching...
+
+		Chart.register(CategoryScale);
+		Chart.register(LinearScale);
+		Chart.register(BarController);
+		Chart.register(BarElement);
 	}
 	
 	/*
@@ -353,17 +359,6 @@ class RangeFacet extends Facet {
 			maintainAspectRatio: false,
 			legend: {
 				display: false
-			},
-			scales: {
-				xAxes: [{
-					display: true,
-					barPercentage: 1.0
-				}],
-				yAxes: [{
-					ticks: {
-						beginAtZero:true
-					}
-				}]
 			},
 			layout: {
 				padding: {

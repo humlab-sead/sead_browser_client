@@ -82,9 +82,9 @@ class AbundanceDataset extends DatasetModule {
 		dataGroups.forEach(dataGroup => {
 
 			let analysisMethod = null;
-			for(let key in siteData.analysis_methods) {
-				if(siteData.analysis_methods[key].method_id == dataGroup.method_id) {
-					analysisMethod = siteData.analysis_methods[key];
+			for(let key in siteData.lookup_tables.analysis_methods) {
+				if(siteData.lookup_tables.analysis_methods[key].method_id == dataGroup.method_id) {
+					analysisMethod = siteData.lookup_tables.analysis_methods[key];
 				}
 			}
 

@@ -130,7 +130,9 @@ class Samples {
 				var sample = sampleGroup.physical_samples[k];
 				let descriptionValue = "";
 				sample.descriptions.forEach(desc => {
-					descriptionValue += desc.description+", ";
+					let ttId = "tt-"+nanoid();
+					descriptionValue += "<span id='"+ttId+"'>"+desc.description+"</span>, ";
+					this.sqs.tooltipManager.registerTooltip("#"+ttId, "<h4 class='tooltip-header'>"+desc.type_name+"</h4>"+desc.type_description+"<hr/>"+desc.description, { drawSymbol: true });
 				});
 				descriptionValue = descriptionValue.substring(0, descriptionValue.length-2);
 				subTable.rows.forEach(row => {
@@ -164,8 +166,11 @@ class Samples {
 				var sample = sampleGroup.physical_samples[k];
 				let cellValue = "";
 				sample.locations.forEach(data => {
-					cellValue += data.location+", ";
+					let ttId = "tt-"+nanoid();
+					cellValue += "<span id='"+ttId+"'>"+data.location+"</span>, ";
+					this.sqs.tooltipManager.registerTooltip("#"+ttId, "<h4 class='tooltip-header'>"+data.location_type+"</h4>"+data.location_type_description+"<hr/>"+data.location, { drawSymbol: true });
 				});
+				
 				cellValue = cellValue.substring(0, cellValue.length-2);
 				subTable.rows.forEach(row => {
 					if(row[0].value == sample.sample_name) {
@@ -198,14 +203,9 @@ class Samples {
 				var sample = sampleGroup.physical_samples[k];
 				let cellValue = "";
 				sample.alt_refs.forEach(data => {
-					/*
-					if(data.alt_ref_type) {
-						cellValue += data.alt_ref_type+": ";
-					}
-					
-					cellValue += data.alt_ref+", ";
-					*/
-					cellValue += "!%data:"+data.alt_ref+":!%tooltip:"+data.alt_ref_type+" - "+data.description+":!, ";
+					let ttId = "tt-"+nanoid();
+					cellValue += "<span id='"+ttId+"'>"+data.alt_ref+"</span>, ";
+					this.sqs.tooltipManager.registerTooltip("#"+ttId, "<h4 class='tooltip-header'>"+data.alt_ref_type+"</h4>"+data.description+"<hr/>"+data.alt_ref, { drawSymbol: true });
 				});
 				cellValue = cellValue.substring(0, cellValue.length-2);
 				subTable.rows.forEach(row => {
@@ -295,8 +295,22 @@ class Samples {
 				"dataType": "string",
 				"pkey": false,
 				"title": "Analysis methods"
-			}
+			},
 		];
+
+		let siteHasSampleGroupDescriptions = false;
+		for(var key in siteData.sample_groups) {
+			if(siteData.sample_groups[key].descriptions.length > 0) {
+				siteHasSampleGroupDescriptions = true;
+			}
+		}
+		if(siteHasSampleGroupDescriptions) {
+			sampleGroupColumns.push({
+				"dataType": "string",
+				"pkey": false,
+				"title": "Descriptions"
+			});
+		}
 
 		let sampleGroupRows = [];
 		
@@ -356,7 +370,21 @@ class Samples {
 			});
 			samplingContextValue = samplingContextValue.substring(0, samplingContextValue.length-2);
 
-			sampleGroupRows.push([
+			let sampleGroupDescriptionCutLength = 30;
+			let sampleGroupDescriptionsStringValue = "";
+			sampleGroup.descriptions.forEach(desc => {
+				let ttId = "tt-"+nanoid();
+				let groupdDescriptionShort = desc.group_description;
+				if(desc.group_description.length > sampleGroupDescriptionCutLength) {
+					groupdDescriptionShort = desc.group_description.substring(0, 15)+"...";
+				}
+				sampleGroupDescriptionsStringValue += "<span id='"+ttId+"'>"+groupdDescriptionShort+"</span>, ";
+				this.sqs.tooltipManager.registerTooltip("#"+ttId, "<h4 class='tooltip-header'>"+desc.type_name+"</h4>"+desc.type_description+"<hr/>"+desc.group_description, { drawSymbol: true });
+			});
+			sampleGroupDescriptionsStringValue = sampleGroupDescriptionsStringValue.substring(0, sampleGroupDescriptionsStringValue.length-2);
+			
+
+			let sampleGroupRow = [
 				{
 					"type": "subtable",
 					"value": subTable
@@ -383,8 +411,17 @@ class Samples {
 				{
 					"type": "cell",
 					"value": "", //Analysis methods - We don't have this data yet
-				}
-			]);
+				},
+			];
+
+			if(siteHasSampleGroupDescriptions) {
+				sampleGroupRow.push({
+					"type": "cell",
+					"value": sampleGroupDescriptionsStringValue, //descriptions
+				});
+			}
+
+			sampleGroupRows.push(sampleGroupRow);
 			
 		}
 

@@ -348,7 +348,6 @@ class SiteReport {
 
 	getContentItemRenderer(contentItem) {
 		for(let key in this.contentItemRendererRepository) {
-			console.log(this.contentItemRendererRepository[key].contentItem.name, contentItem.name);
 			if(this.contentItemRendererRepository[key].contentItem.name == contentItem.name) {
 				return this.contentItemRendererRepository[key];
 			}

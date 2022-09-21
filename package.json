@@ -18,7 +18,7 @@
     "ajv": "^6.12.6",
     "ajv-keywords": "^3.5.2",
     "buffer": "^6.0.3",
-    "chart.js": "^2.9.4",
+    "chart.js": "^3.9.1",
     "chart.js-rangeslider": "^1.2.5",
     "color-scheme": "^1.0.1",
     "cookieconsent": "^3.1.1",
