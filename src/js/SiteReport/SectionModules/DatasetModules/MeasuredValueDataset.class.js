@@ -6,6 +6,7 @@ import DatasetModule from "./DatasetModule.class";
 class MeasuredValueDataset extends DatasetModule {
 	constructor() {
 		super();
+		this.methodIds = [37, 74]; //none! not sure we should use this module anymore...
 	}
 
 	destroy() {
@@ -20,7 +21,164 @@ class MeasuredValueDataset extends DatasetModule {
 		return null;
 	}
 
-	makeSection(siteData, sections) {
+	makeSection(site, sections) {
+		let analysisMethod = null;
+		
+		let methodDatasets = this.claimDatasets(site);
+
+		for(let key in methodDatasets) {
+            let dataset = methodDatasets[key];
+            for(let k in site.lookup_tables.analysis_methods) {
+                if(site.lookup_tables.analysis_methods[k].method_id == dataset.method_id) {
+                    analysisMethod = site.lookup_tables.analysis_methods[k];
+                }
+            }
+
+			let analysisMethodDescription = "";
+			if(analysisMethod) {
+				analysisMethodDescription = "<h4 class='tooltip-header'>"+analysisMethod.method_name+"</h4>"+analysisMethod.method_abbrev_or_alt_name+"<hr>"+analysisMethod.description;
+			}
+
+			let section = this.getSectionByMethodId(analysisMethod.method_id, sections);
+			if(!section) {
+				section = {
+					"name": analysisMethod.method_id,
+					"title": analysisMethod.method_name,
+					//"methodDescription": dataGroup.method_name,
+					"methodDescription": analysisMethodDescription,
+					"collapsed": false,
+					"contentItems": []
+				};
+				sections.push(section);
+			}
+
+			let contentItem = {
+				"name": dataset.dataset_id,
+				"title": dataset.dataset_name,
+				"titleTooltip": "Name of the dataset",
+				"datasetId": dataset.dataset_id,
+				"data": {
+					"columns": [],
+					"rows": []
+				},
+				"renderOptions": [
+					{
+						"name": "Spreadsheet",
+						"selected": false,
+						"type": "table"
+					},
+					{
+						"name": "Bar chart",
+						"selected": true,
+						"type": "bar",
+						"options": [
+							{
+								"enabled": false,
+								"title": "X axis",
+								"type": "select",
+								"selected": 0,
+								"options": [
+									{
+										"title": 0,
+										"value": 0,
+										"selected": true
+									},
+									{
+										"title": 1,
+										"value": 1,
+										"selected": false
+									},
+								]
+							},
+							{
+								"enabled": false,
+								"title": "Y axis",
+								"type": "select",
+								"selected": 1,
+								"options": [
+									{
+										"title": 0,
+										"value": 0,
+										"selected": false
+									},
+									{
+										"title": 1,
+										"value": 1,
+										"selected": true
+									},
+								]
+							},
+							{
+								"enabled": false,
+								"title": "Sort",
+								"type": "select",
+								"options": [
+									{
+										"title": 0,
+										"value": 0,
+									},
+									{
+										"title": 1,
+										"value": 1,
+										"selected": true
+									},
+								]
+							}
+						]
+					}
+				]
+			};
+	
+			contentItem.data.columns = [
+				{
+					"dataType": "string",
+					"pkey": true,
+					"title": "Sample name"
+				},
+				{
+					"dataType": "string",
+					"pkey": false,
+					"title": "Value"
+				},
+			];
+
+
+			if(analysisMethod.method_id == 33) {
+				//if this is ms - there should be pars of values/AEs, one with a prepMethod and one without, both connected to the sample physical_sample
+				//these needs to be paired up in 2 series
+			}
+
+			dataset.analysis_entities.forEach(ae => {
+				
+
+				let value = null;
+				if(typeof ae.measured_values != "undefined" && ae.measured_values.length > 0) {
+					value = parseFloat(ae.measured_values[0].measured_value);
+				}
+
+				if(ae.prepMethods.length > 0) {
+
+				}
+				
+				contentItem.data.rows.push([
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": ae.physical_sample_id
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": value
+					},
+				]);
+			});
+			
+			section.contentItems.push(contentItem);
+		}
+	}
+
+	makeSectionOLD(siteData, sections) {
 		let dataGroups = siteData.data_groups.filter((dataGroup) => {
 			return dataGroup.type == "measured_values";
 		});
@@ -28,9 +186,9 @@ class MeasuredValueDataset extends DatasetModule {
 		dataGroups.forEach(dataGroup => {
 
 			let analysisMethod = null;
-			for(let key in siteData.analysis_methods) {
-				if(siteData.analysis_methods[key].method_id == dataGroup.method_id) {
-					analysisMethod = siteData.analysis_methods[key];
+			for(let key in siteData.lookup_tables.analysis_methods) {
+				if(siteData.lookup_tables.analysis_methods[key].method_id == dataGroup.method_id) {
+					analysisMethod = siteData.lookup_tables.analysis_methods[key];
 				}
 			}
 			
@@ -44,7 +202,6 @@ class MeasuredValueDataset extends DatasetModule {
 				section = {
 					"name": dataGroup.method_id,
 					"title": dataGroup.method_name,
-					//"methodDescription": dataGroup.method_name,
 					"methodDescription": analysisMethodDescription,
 					"collapsed": true,
 					"contentItems": []

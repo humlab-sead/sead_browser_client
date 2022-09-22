@@ -688,7 +688,8 @@ class DendrochronologyDataset extends DatasetModule {
 	}
 
 	makeSection(siteData, sections) {
-		console.log("makeSection")
+
+		let dendroDatasets = this.claimDatasets(siteData);
 
 		let dataGroups = siteData.data_groups.filter((dataGroup) => {
 			return dataGroup.type == "dendro";
@@ -941,9 +942,9 @@ class DendrochronologyDataset extends DatasetModule {
 		}
 
 		let analysisMethod = null;
-		for(let key in siteData.analysis_methods) {
-			if(siteData.analysis_methods[key].method_id == 10) {
-				analysisMethod = siteData.analysis_methods[key];
+		for(let key in siteData.lookup_tables.analysis_methods) {
+			if(siteData.lookup_tables.analysis_methods[key].method_id == 10) {
+				analysisMethod = siteData.lookup_tables.analysis_methods[key];
 			}
 		}
 
