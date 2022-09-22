@@ -54,13 +54,15 @@ class SiteReportChart {
 		var node = null;
 		this.contentItem.renderOptions.forEach((ro, i) => {
 			if(ro.selected) {
-				console.log(ro.type)
 				switch(ro.type) {
 					case "bar":
 						node = this.renderBarChartZing();
 						break;
-					case "msbar":
+					case "ms-bar":
 						node = this.renderMagneticSusceptibilityBarChart();
+						break;
+					case "loi-bar":
+						node = this.renderLossOnIgnitionChart();
 						break;
 					case "pie":
 						node = this.renderPieChart();
@@ -651,6 +653,97 @@ class SiteReportChart {
 		new Chart(ctx, this.chartConfig);
 
 		return chartContainer;
+	}
+
+	renderLossOnIgnitionChart() {
+		let contentItem = this.contentItem;
+		
+		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
+		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
+		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
+
+		var xUnitSymbol = "";
+		var yUnitSymbol = "";
+		
+		if(contentItem.data.columns[xAxisKey].hasOwnProperty("unit")) {
+			xUnitSymbol = contentItem.data.columns[xAxisKey].unit;
+		}
+		if(contentItem.data.columns[yAxisKey].hasOwnProperty("unit")) {
+			yUnitSymbol = contentItem.data.columns[yAxisKey].unit;
+		}
+
+		contentItem.data.rows.sort((a, b) => {
+			if(a[1].value > b[1].value) {
+				return 1;
+			}
+			else {
+				return -1;
+			}
+		});
+
+		let sampleNames = [];
+		let datasets = [];
+		datasets.push({
+			label: "Burn loss",
+			backgroundColor: "red",
+			data: []
+		});
+
+		for(var key in contentItem.data.rows) {
+			let row = contentItem.data.rows[key];
+			let sampleName = row[0].value;
+			sampleNames.push(sampleName);
+			let value = row[1].value;
+			
+			datasets[0].data.push(value);
+		}
+
+		const data = {
+			labels: sampleNames,
+			datasets: datasets
+		};
+
+		let config = {
+			type: 'bar',
+			data: data,
+			options: {
+				plugins: {
+					legend: {
+						position: 'top',
+					},
+					tooltip: {
+						enabled: true,
+						callbacks: {
+							title: function(context) {
+								return "Sample "+context[0].label;
+							},
+							label: function(context) {
+								return context.dataset.label+" loss: "+context.formattedValue+" %";
+							}
+						}
+					}
+				},
+				responsive: true,
+				scales: {
+					x: {
+						stacked: true,
+					},
+					y: {
+						stacked: true
+					}
+				}
+			}
+		  };
+		
+		  
+		this.chartId = "chart-"+shortid.generate();
+		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
+		$(this.anchorNodeSelector).append(chartContainer);
+
+		new Chart(
+			document.getElementById(this.chartId),
+			config
+		);
 	}
 
 	renderMagneticSusceptibilityBarChart() {

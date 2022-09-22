@@ -28,7 +28,7 @@ class ContentItemRenderer {
         this.renderContentItemTooltip(headerNode);
 
 		$(headerNode).append("<div class='content-item-header-divider'></div>");
-		
+
 		var renderModeSelectorNode = this.renderContentDisplayOptionsPanel(this.section, this.contentItem);
 		if(renderModeSelectorNode !== false) {
 			$(headerNode).append(renderModeSelectorNode);
@@ -143,7 +143,8 @@ class ContentItemRenderer {
 					case "bar":
 					case "scatter":
 					case "pie":
-					case "msbar":
+					case "ms-bar":
+					case "loi-bar":
 					case "multistack":
 						renderInstance = new SiteReportChart(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);

@@ -425,6 +425,13 @@ class RadioMetricDatingDataset extends DatasetModule {
 
 		let methodGroup = this.analysis.getMethodGroupMetaDataById(this.methodGroupId);
 
+		/*
+		let analysisMethodDescription = "";
+		if(analysisMethod) {
+			analysisMethodDescription = "<h4 class='tooltip-header'>"+analysisMethod.method_name+"</h4>"+analysisMethod.method_abbrev_or_alt_name+"<hr>"+analysisMethod.description;
+		}
+		*/
+
 		//let method = this.analysis.getMethodMetaDataById(dsGroups[0].methodId);
 		let sectionName = "method-group-"+methodGroup.methodGroupId;
 		var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", sectionName);

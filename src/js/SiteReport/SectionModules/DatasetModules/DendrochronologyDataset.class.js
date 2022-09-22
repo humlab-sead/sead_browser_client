@@ -688,7 +688,8 @@ class DendrochronologyDataset extends DatasetModule {
 	}
 
 	makeSection(siteData, sections) {
-		console.log("makeSection")
+
+		let dendroDatasets = this.claimDatasets(siteData);
 
 		let dataGroups = siteData.data_groups.filter((dataGroup) => {
 			return dataGroup.type == "dendro";

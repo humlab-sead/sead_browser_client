@@ -1,13 +1,13 @@
 import { unset } from "lodash";
 import DatasetModule from "./DatasetModule.class";
 /*
-* Class: MagneticSusceptibilityDataset
+* Class: LossOnIgnitionDataset
  */
 
-class MagneticSusceptibilityDataset extends DatasetModule {
+class LossOnIgnitionDataset extends DatasetModule {
 	constructor() {
 		super();
-        this.methodIds = [33];
+        this.methodIds = [32];
 	}
 
 	destroy() {
@@ -23,6 +23,7 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 	}
 
 	makeSection(site, sections) {
+		
 		let analysisMethod = null;
 		let methodDatasets = this.claimDatasets(site);
 
@@ -74,7 +75,7 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 					{
 						"name": "Bar chart",
 						"selected": true,
-						"type": "ms-bar",
+						"type": "loi-bar",
 						"options": [
 							{
 								"enabled": false,
@@ -142,102 +143,38 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 				{
 					"dataType": "string",
 					"pkey": false,
-					"title": "Unburned"
-				},
-				{
-					"dataType": "string",
-					"pkey": false,
-					"title": "Burned"
+					"title": "Value"
 				},
 			];
 
-            let unburnedSeries = [];
-            let burnedSeries = [];
-			//since this is ms - there should be pars of values/AEs, one with a prepMethod and one without, both connected to the sample physical_sample
-            //these needs to be paired up in 2 series
+            let series = [];
 
-			/* NOTE: This is what should be the correct code! But it's swapped in the database so the AEs that are NOT connected to the 550-prepMethod are actually the ones that are burned...
-				so this is commented out and we use the below reversed code instead
-            let burnedAnalysisEntities = dataset.analysis_entities.filter((ae) => {
-                return ae.prepMethods.length > 0 && ae.prepMethods.includes(82);
-            });
-
-            let unburnedAnalysisEntities = dataset.analysis_entities.filter((ae) => {
-                return ae.prepMethods.length < 1 || !ae.prepMethods.includes(82);
-            });
-			*/
-
-			if(dataset.dataset_id == 3) {
-				console.log(dataset.analysis_entities);
-			}
-
-			let unburnedAnalysisEntities = dataset.analysis_entities.filter((ae) => {
-                return ae.prepMethods.length > 0 && ae.prepMethods.includes(82);
-            });
-
-            let burnedAnalysisEntities = dataset.analysis_entities.filter((ae) => {
-                return ae.prepMethods.length < 1 || !ae.prepMethods.includes(82);
-            });
-			//End of reversed code
-
-            unburnedAnalysisEntities.sort((ae1, ae2) => {
+            dataset.analysis_entities.sort((ae1, ae2) => {
                 return ae1.physical_sample_id > ae2.physical_sample_id;
             });
 
-            burnedAnalysisEntities.sort((ae1, ae2) => {
-                return ae1.physical_sample_id > ae2.physical_sample_id;
-            });
-
-            //console.log(burnedAnalysisEntities);
-            //console.log(unburnedAnalysisEntities);
-
-            for(let key in unburnedAnalysisEntities) {
-                unburnedSeries.push([
-                    unburnedAnalysisEntities[key].physical_sample_id,
-                    parseFloat(unburnedAnalysisEntities[key].measured_values[0].measured_value)
+            for(let key in dataset.analysis_entities) {
+                let ae = dataset.analysis_entities[key];
+                series.push([
+                    ae.physical_sample_id,
+                    parseFloat(ae.measured_values[0].measured_value)
                 ]);
-
-                let partnerValue = null;
-
-                let partnerAe = this.getAnalysisEntityByPhysicalSampleId(burnedAnalysisEntities, unburnedAnalysisEntities[key].physical_sample_id);
-                if(partnerAe) {
-                    partnerValue = parseFloat(partnerAe.measured_values[0].measured_value);
-                }
-
-                burnedSeries.push([
-                    unburnedAnalysisEntities[key].physical_sample_id,
-                    partnerValue
-                ]);
-                //console.log(unburnedAnalysisEntities[key].physical_sample_id+" - "+burnedAnalysisEntities[key].physical_sample_id);
             }
 
-
-            //NOTE NOTE NOTE: burned and unburned seems to be swapped!! but we're gonna ignore that for now
-            for(let key in unburnedSeries) {
-                //console.log(unburnedSeries[key], burnedSeries[key]);
-
+            for(let key in series) {
 				let unit = analysisMethod.unit.unit_abbrev;
-
-				let unburnedValue = unburnedSeries[key][1] == null ? "null" : unburnedSeries[key][1];
-				let burnedValue = burnedSeries[key][1] == null ? "null" : burnedSeries[key][1];
-
+				let value = series[key][1] == null ? "null" : series[key][1];
 				contentItem.data.rows.push([
 					{
 						"type": "cell",
 						"tooltip": "",
-						"value": unburnedSeries[key][0]
+						"value": series[key][0]
 					},
 					{
 						"type": "cell",
 						"tooltip": "",
 						"unit": unit,
-						"value": unburnedValue,
-					},
-					{
-						"type": "cell",
-						"tooltip": "",
-						"unit": unit,
-						"value": burnedValue,
+						"value": value,
 					},
 				]);
             }
@@ -399,4 +336,4 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 
 }
 
-export { MagneticSusceptibilityDataset as default }
+export { LossOnIgnitionDataset as default }

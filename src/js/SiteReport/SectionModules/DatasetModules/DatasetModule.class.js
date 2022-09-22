@@ -1,7 +1,19 @@
 class DatasetModule {
     constructor(analysis) {
-
+        this.methodIds = [];
     }
+
+    claimDatasets(site) {
+		let methodDatasets = site.datasets.filter(dataset => {
+			return this.methodIds.includes(dataset.method_id);
+		});
+
+		site.datasets = site.datasets.filter(dataset => {
+			return !this.methodIds.includes(dataset.method_id);
+		});
+
+		return methodDatasets;
+	}
 
     /**
      * Function: offerAnalyses

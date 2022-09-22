@@ -295,7 +295,7 @@ class SiteReport {
 			sectionTitle = section.methodName;
 		}
 		$(".site-report-level-title", sectionNode)
-			.html("<i class=\"site-report-sections-expand-button fa fa-plus-circle\" aria-hidden=\"true\">&nbsp;</i>"+sectionTitle)
+			.html("<i class=\"site-report-sections-expand-button fa fa-plus-circle\" aria-hidden=\"true\">&nbsp;</i><span class='title-text'>"+sectionTitle+"</span><span class='section-warning'></span>")
 			.on("click", (evt) => {
 				var parent = $(evt.currentTarget).parent();
 				var collapsed = parent.children(".site-report-level-content").attr("collapsed") == "true";
@@ -305,7 +305,7 @@ class SiteReport {
 			});
 		
 		if(section.hasOwnProperty("methodDescription")) {
-			this.sqs.tooltipManager.registerTooltip($(".site-report-level-title", sectionNode), section.methodDescription, {drawSymbol: true, anchorPoint: 'symbol'});
+			this.sqs.tooltipManager.registerTooltip($(".site-report-level-title > .title-text", sectionNode), section.methodDescription, {drawSymbol: true, anchorPoint: 'symbol'});
 		}
 		
 		//If this is a top-level section, add another class for different theming
@@ -314,6 +314,11 @@ class SiteReport {
 			$(".site-report-sections-expand-button", sectionNode).remove();
 		}
 		
+		if(section.warning) {
+			$(".section-warning", sectionNode).html("<i class=\"fa fa-exclamation-triangle site-report-section-warning-icon\" aria-hidden=\"true\"></i>");
+			this.sqs.tooltipManager.registerTooltip($(".section-warning", sectionNode), section.warningText);
+		}
+
 		if(level == 0) {
 			//$("#site-report-content").append(sectionNode);
 			this.appendNodeToDomByWeight("#site-report-content", sectionNode);

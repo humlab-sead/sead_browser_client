@@ -34,7 +34,6 @@ class AbundanceDataset extends DatasetModule {
 		});
 	}
 
-
 	getSectionByMethodId(methodId, sections) {
 		for(let key in sections) {
 			if(sections[key].name == methodId) {
@@ -79,8 +78,9 @@ class AbundanceDataset extends DatasetModule {
 			return dataGroup.type == "abundance";
 		});
 
-		dataGroups.forEach(dataGroup => {
+		let methodDatasets = this.claimDatasets(siteData);
 
+		dataGroups.forEach(dataGroup => {
 			let analysisMethod = null;
 			for(let key in siteData.lookup_tables.analysis_methods) {
 				if(siteData.lookup_tables.analysis_methods[key].method_id == dataGroup.method_id) {
@@ -291,58 +291,6 @@ class AbundanceDataset extends DatasetModule {
 			}));
 			
 			section.contentItems.push(contentItem);
-		});
-	}
-	
-	/*
-	* Function: offerAnalyses
-	*
-	* Ok, so, this is a little strange perhaps and deserves some explanation. What's going on here is that the instance of Analysis will fetch just the most basic information regarding which analysis are attached to a certain site.
-	* That object will then delegate the responsibility of fetching the rest of the information and structuring it properly, since how this should be done varies between different types, and this is delegated by "offering"
-	* the analysis to all the available analysis modules, and whichever module claims it will have it. This (offerAnalyses) is the function which will be passed the analyses and will have to make a decision on wether to claim them or not
-	* based on the information available in each analysis object.
-	*
-	* This function is never called from within this module itself, only from the outside from the higher level Analysis module.
-	* 
-	* If this function decides to claim one (or more) datasets from the passed in array, it needs to splice these out of the array - that's how the actual claiming is done.
-	*
-	* The module should structure the fetched information according to the general site report format for sections, content-items and tables structures. You can find the definition of this format inside Johan's head (this needs to be fixed - not the head, the writing down of the format (Tag: FIXME))
-	*
-	* Parameters:
-	* 	datasets - An array of dataset/analysis objects to make decision on.
-	*
-	* Returns:
-	* A promise which should resolve when the data structure for this analysis/dataset is completely built and filled out.
-	*/ 
-	offerAnalyses(datasets, sectionsList) {
-		this.sectionsList = sectionsList;
-		for(let key = datasets.length - 1; key >= 0; key--) {
-			if(this.methodIds.includes(datasets[key].methodId)) {
-				console.log("Abundance claiming ", datasets[key].datasetId, datasets[key]);
-				let dataset = datasets.splice(key, 1)[0];
-				this.datasets.push(dataset);
-			}
-		}
-
-		//Now fetch & build all datasets
-		return new Promise((resolve, reject) => {
-			for(let key in this.datasets) {
-				let p = this.analysis.fetchAnalysis(this.datasets[key]);
-				this.datasetFetchPromises.push(p);
-				p = this.fetchDatasetAnalysisEntities(this.datasets[key]);
-				this.datasetFetchPromises.push(p);
-			}
-
-			let promises = this.datasetFetchPromises.concat(this.metaDataFetchingPromises); //To make sure meta data fetching is also complete...
-			Promise.all(promises).then(() => {
-				if(this.methodMetaDataFetchingComplete !== true) {
-					console.warn("Method metadata fetching not complete!");
-				}
-				if(this.datasets.length > 0) {
-					this.buildSection(this.datasets);
-				}
-				resolve();
-			});
 		});
 	}
 	

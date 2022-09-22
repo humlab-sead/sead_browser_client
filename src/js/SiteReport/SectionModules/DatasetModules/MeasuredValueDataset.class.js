@@ -6,6 +6,7 @@ import DatasetModule from "./DatasetModule.class";
 class MeasuredValueDataset extends DatasetModule {
 	constructor() {
 		super();
+		this.methodIds = [37, 74]; //none! not sure we should use this module anymore...
 	}
 
 	destroy() {
@@ -22,15 +23,21 @@ class MeasuredValueDataset extends DatasetModule {
 
 	makeSection(site, sections) {
 		let analysisMethod = null;
-		for(let key in site.datasets) {
-			let dataset = site.datasets[key];
-			for(let k in site.lookup_tables.analysis_methods) {
-				if(site.lookup_tables.analysis_methods[k].method_id == dataset.method_id) {
-					analysisMethod = site.lookup_tables.analysis_methods[k];
-				}
-			}
+		
+		let methodDatasets = this.claimDatasets(site);
 
-			//console.log(dataset, analysisMethod);
+		for(let key in methodDatasets) {
+            let dataset = methodDatasets[key];
+            for(let k in site.lookup_tables.analysis_methods) {
+                if(site.lookup_tables.analysis_methods[k].method_id == dataset.method_id) {
+                    analysisMethod = site.lookup_tables.analysis_methods[k];
+                }
+            }
+
+			let analysisMethodDescription = "";
+			if(analysisMethod) {
+				analysisMethodDescription = "<h4 class='tooltip-header'>"+analysisMethod.method_name+"</h4>"+analysisMethod.method_abbrev_or_alt_name+"<hr>"+analysisMethod.description;
+			}
 
 			let section = this.getSectionByMethodId(analysisMethod.method_id, sections);
 			if(!section) {
@@ -38,7 +45,7 @@ class MeasuredValueDataset extends DatasetModule {
 					"name": analysisMethod.method_id,
 					"title": analysisMethod.method_name,
 					//"methodDescription": dataGroup.method_name,
-					"methodDescription": analysisMethod.description,
+					"methodDescription": analysisMethodDescription,
 					"collapsed": false,
 					"contentItems": []
 				};
@@ -195,7 +202,6 @@ class MeasuredValueDataset extends DatasetModule {
 				section = {
 					"name": dataGroup.method_id,
 					"title": dataGroup.method_name,
-					//"methodDescription": dataGroup.method_name,
 					"methodDescription": analysisMethodDescription,
 					"collapsed": true,
 					"contentItems": []
