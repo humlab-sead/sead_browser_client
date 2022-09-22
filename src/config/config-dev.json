@@ -9,7 +9,7 @@
 	"serverAddress":"https://browser.sead.se/query",
 	"viewStateServerAddress":"https://supersead.humlab.umu.se/vsapi",
 	"siteReportServerAddress":"https://supersead.humlab.umu.se/postgrest",
-	"dataServerAddress": "http://localhost:8484",
+	"dataServerAddress": "https://supersead.humlab.umu.se/jsonapi",
 	"defaultResultModule":"mosaic",
 	"maxAllowedSitesInAnExport": 20,
 	"facetSectionDefaultWidth":20,
