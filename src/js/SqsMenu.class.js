@@ -280,6 +280,7 @@ class sqsMenu {
 	}
 
 	showMenu(m) {
+		$(this.menuItemsContainerSelector+" > .l1-container-level").css("display", displayMode);
 		$(".sqs-menu-title-container", m.anchor).addClass("sqs-menu-block-active");
 
 		var displayMode = "flex";
@@ -299,7 +300,7 @@ class sqsMenu {
 		
 		var menuHeight = $(m.anchor+" .l1-container-level").height();
 		var viewportHeight = $(document).height();
-		if(menuHeight > viewportHeight-100) {
+		if(true || menuHeight > viewportHeight-100) { //This is forced to being collapsed atm because the expanded view is problematic in the way that the menuHeight grows very large in the collapsed mode (ironically)
 			$(m.anchor+" .l2-level").hide();
 			if(typeof m.activeL1 != "undefined") { //If menu was closed with a L2-level open, remember that choice
 				$(m.anchor+" .l1-container[name='"+m.activeL1+"'] .l2-level").show();
@@ -318,6 +319,9 @@ class sqsMenu {
 			$(".l2-level").removeClass("l2-expanded");
 			$(".l1-arrow").css("visibility", "hidden");
 		}
+
+		let l1Width = $(m.anchor+" .l1-container-level").width();
+		$(".l2-expanded").css("margin-left", l1Width);
 	}
 	
 	/*
