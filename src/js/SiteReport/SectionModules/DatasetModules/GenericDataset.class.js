@@ -70,7 +70,7 @@ class GenericDataset extends DatasetModule {
 					"title": analysisMethod.method_name,
 					//"methodDescription": dataGroup.method_name,
 					"methodDescription": analysisMethodDescription,
-					"collapsed": false,
+					"collapsed": true,
 					"warning": true,
 					"warningText": "SEAD currently lacks the module to render this data properly.",
 					"contentItems": []

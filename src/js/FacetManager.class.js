@@ -1062,6 +1062,8 @@ class FacetManager {
 			layout: "vertical",
 			l1layout: "vertical",
 			collapsed: true,
+			expandHorizontally: true,
+			l2TriggerEvent: "mouseover",
 			anchor: "#facet-menu",
 			auxTriggers: [{
 				selector: ".slot-visible .jslink-alt",

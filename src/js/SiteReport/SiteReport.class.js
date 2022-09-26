@@ -66,6 +66,7 @@ class SiteReport {
 
 		this.fetchSite().then(siteData => {
 			this.siteData = siteData;
+			console.log(this.siteData);
 			this.fetchComplete = true;
 			this.hideLoadingIndicator();
 			this.enableExportButton();
