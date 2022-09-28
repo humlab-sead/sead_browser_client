@@ -199,6 +199,7 @@ class CeramicDataset extends DatasetModule {
 			var sectionsLength = this.section.sections.push({
 				"name": analysis.methodId,
 				"title": analysis.methodName,
+				"methodId": method.method_id,
 				"methodDescription": method == null ? "" : method.description,
 				"collapsed": true,
 				"contentItems": []

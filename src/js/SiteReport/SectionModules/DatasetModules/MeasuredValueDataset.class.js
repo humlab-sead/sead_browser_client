@@ -6,7 +6,7 @@ import DatasetModule from "./DatasetModule.class";
 class MeasuredValueDataset extends DatasetModule {
 	constructor() {
 		super();
-		this.methodIds = [37, 74]; //none! not sure we should use this module anymore...
+		this.methodIds = [37, 74, 106];
 	}
 
 	destroy() {
@@ -44,7 +44,7 @@ class MeasuredValueDataset extends DatasetModule {
 				section = {
 					"name": analysisMethod.method_id,
 					"title": analysisMethod.method_name,
-					//"methodDescription": dataGroup.method_name,
+					"methodId": analysisMethod.method_id,
 					"methodDescription": analysisMethodDescription,
 					"collapsed": true,
 					"contentItems": []
@@ -202,6 +202,7 @@ class MeasuredValueDataset extends DatasetModule {
 				section = {
 					"name": dataGroup.method_id,
 					"title": dataGroup.method_name,
+					"methodId": analysisMethod.method_id,
 					"methodDescription": analysisMethodDescription,
 					"collapsed": true,
 					"contentItems": []

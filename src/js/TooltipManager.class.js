@@ -27,7 +27,7 @@ class TooltipManager {
 			arrow: true,
 			drawSymbol: false,
 			symbolChar: "fa-question-circle",
-			anchorPoint: "container", // should the tooltip popup when hovering over the container area or just the symbol (if it exists)? options: 'symbol' or 'container'
+			anchorPoint: "container", // should the tooltip popup when hovering over the container area, or just the symbol (if it exists)? options: 'symbol' or 'container'
 			html: true,
 			placement: "top",
 			highlightAnchor: false,
@@ -59,6 +59,10 @@ class TooltipManager {
 		}, 500);
 	}
 	
+	registerCallback(anchor, eventType, callback) {
+
+	}
+
 	/*
 	* Function: registerTooltip
 	*
@@ -90,7 +94,7 @@ class TooltipManager {
 		};
 
 		if(found) {
-			//console.log("Re-defining tooltip for anchor", anchor);
+			console.warn("Re-defining tooltip for anchor", anchor);
 			this.tooltips[foundKey] = ttObject;
 		}
 		else {
@@ -136,8 +140,22 @@ class TooltipManager {
 					console.log("WARN: Multiple anchor targets found when attaching tooltip.");
 				}
 				
-				if(found == 1) {
-					this.tooltips[key].tooltipNode = this.createTooltip(this.tooltips[key]);
+				if(found == 1) { 
+					if(this.tooltips[key].msg != null && typeof this.tooltips[key].msg == "function") {
+						//This is a bit of a hack - if you pass in a function as the tooltip "msg" then it will execute it as a regular custom callback
+						//so basically we're hijacking the tooltip manager to do something similar but different from just showing tooltips
+						$(this.tooltips[key].anchor).on("mouseover", null, this.tooltips[key], (evt) => {
+							evt.data.msg();
+						});
+						if(typeof this.tooltips[key].options.mouseout == "function") { //If a mouseout property/callback was provided...
+							$(this.tooltips[key].anchor).on("mouseout", null, this.tooltips[key], (evt) => {
+								evt.data.options.mouseout();
+							});
+						}
+					}
+					else {
+						this.tooltips[key].tooltipNode = this.createTooltip(this.tooltips[key]);
+					}
 					this.tooltips[key].attached = true;
 				}
 				

@@ -46,7 +46,7 @@ class SiteReport {
 		});
 
 		let bsi = new BasicSiteInformation(this.sqs, this.siteId);
-		let samples = new Samples(this.sqs, this.siteId);
+		let samples = new Samples(this.sqs, this.site);
 		let analysis = new Analysis(this.sqs, this.siteId);
 
 		this.modules.push({

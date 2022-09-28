@@ -98,6 +98,7 @@ class AbundanceDataset extends DatasetModule {
 				section = {
 					"name": dataGroup.method_id,
 					"title": dataGroup.method_name,
+					"methodId": analysisMethod.method_id,
 					"methodDescription": analysisMethodDescription,
 					"collapsed": true,
 					"contentItems": []

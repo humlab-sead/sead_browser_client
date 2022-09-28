@@ -83,7 +83,7 @@ class sqsMenu {
 		
 		if(init) {
 			this.renderMenuLabel(sqsMenuDef);
-			this.renderMenu(sqsMenuDef);
+			this.prepareMenu(sqsMenuDef);
 			this.bindCallbacks(sqsMenuDef);
 			this.registerTooltipBindings();
 		}
@@ -132,7 +132,7 @@ class sqsMenu {
 	* Function: renderMenu
 	*
 	*/
-	renderMenu(m) {
+	prepareMenu(m) {
 		var sqsMenuContainerDisplay = "inline-block";
 		var menuCategoryLevelClass = "l1-container-level l1-container-level-vertical";
 		if(m.layout == "horizontal") {
@@ -247,13 +247,13 @@ class sqsMenu {
 			$(m.anchor+" > .sqs-menu-title-container").on("mouseover", () => {
 				console.log("sqsMenu anchor 1");
 				clearTimeout(m.closeTimeout);
-				this.showMenu(m);
+				this.renderMenu(m);
 			});
 
 			$(m.anchor+" > .l1-container-level").on("mouseover", () => {
 				console.log("sqsMenu anchor 2");
 				clearTimeout(m.closeTimeout);
-				this.showMenu(m);
+				this.renderMenu(m);
 			});
 
 			if(typeof m.auxTriggers != "undefined") {
@@ -261,7 +261,7 @@ class sqsMenu {
 					$(m.auxTriggers[key].selector).on(m.auxTriggers[key].on, () => {
 						console.log("sqsMenu anchor 3");
 						clearTimeout(m.closeTimeout);
-						this.showMenu(m);
+						this.renderMenu(m);
 					});
 				}
 			}
@@ -279,7 +279,7 @@ class sqsMenu {
 		}
 	}
 
-	showMenu(m) {
+	renderMenu(m) {
 		$(this.menuItemsContainerSelector+" > .l1-container-level").css("display", displayMode);
 		$(".sqs-menu-title-container", m.anchor).addClass("sqs-menu-block-active");
 
@@ -296,9 +296,12 @@ class sqsMenu {
 			$(m.anchor+" .l1-container-level").css("right", "0px");
 		}
 		
+		//$(".l2-level").removeClass("l2-expanded");
+		$(".l2-expanded").hide();
 		$(m.anchor+" .l2-level").show();
 		
 		var menuHeight = $(m.anchor+" .l1-container-level").height();
+		console.log(menuHeight)
 		var viewportHeight = $(document).height();
 		if(true || menuHeight > viewportHeight-100) { //This is forced to being collapsed atm because the expanded view is problematic in the way that the menuHeight grows very large in the collapsed mode (ironically)
 			$(m.anchor+" .l2-level").hide();

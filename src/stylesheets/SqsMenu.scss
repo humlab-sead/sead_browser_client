@@ -178,7 +178,9 @@
 */
 
 #facet-menu .l2-title {
+  /*
   border-left: 2px solid #fff;
+  */
 }
 
 .l1-container-level-vertical .l1-container .l1-title:hover {
@@ -195,9 +197,13 @@
   color: #333;
   
   /*
-  border-bottom: 1px solid #fff;
+  
   border-top: 1px solid #fff;
   */
+}
+
+#facet-menu .l1-title {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .l1-container-level-vertical .l1-title:hover {
@@ -259,7 +265,7 @@ li.l1-container:hover {
   padding-right: 0px;
   /*width: 189px;*/
   color: #fff;
-  background-color: #eee;
+  background-color: rgba(238, 238, 238, 1);
   color: #333;
 }
 
@@ -272,14 +278,14 @@ li.l1-container:hover {
 
 .l2-title { /* .menu-item */
 	padding-left:25px;
-  	padding-right:5px;
-  	padding-bottom: 3px;
-  	padding-top: 3px;
-  	cursor:pointer;
-  	font-size: 16px;
-  	/*background-color: #666;*/
+  padding-right:5px;
+  padding-bottom: 3px;
+  padding-top: 3px;
+  cursor:pointer;
+  font-size: 16px;
+  /*background-color: #666;*/
 
-  	border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 
@@ -293,9 +299,10 @@ li.l1-container:hover {
   position: fixed;
   margin-top: calc(-2em - 3px);
   padding: 1em;
-  background: white;
+  background-color: rgba(238, 238, 238, 1);
   width: fit-content;
   box-shadow: 2px 12px 10px 5px $shadow-color;
+  border-radius: 0.2em;
 }
 
 .sqs-menu-static-selection {

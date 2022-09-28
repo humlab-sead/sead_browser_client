@@ -4,10 +4,10 @@ import { nanoid } from 'nanoid';
 * Class: Samples
  */
 class Samples {
-	constructor(sqs, siteId) {
+	constructor(sqs, site) {
 		this.sqs = sqs;
 		//this.siteReport = this.sqs.siteReportManager.siteReport;
-		this.siteId = siteId;
+		this.site = site;
 		this.buildComplete = false;
 		this.auxiliaryDataFetched = false;
 		this.data = {
@@ -221,6 +221,92 @@ class Samples {
 		}
 	}
 
+	getMethodFromDatasetId(site, datasetId) {
+		for(let key in site.datasets) {
+			if(site.datasets[key].dataset_id == datasetId) {
+				for(let alKey in site.lookup_tables.analysis_methods) {
+					if(site.lookup_tables.analysis_methods[alKey].method_id == site.datasets[key].method_id) {
+						return site.lookup_tables.analysis_methods[alKey];
+					}
+				}
+			}
+		}
+		return null;
+	}
+
+	insertSampleAnalysesIntoTable(table, site) {
+		let sampleGroupColKey = null;
+		for(let key in table.columns) {
+			if(table.columns[key].pkey === true) {
+				sampleGroupColKey = key;
+			}
+		}
+
+		for(let key in table.rows) {
+			let row = table.rows[key];
+			let sampleGroupId = row[sampleGroupColKey].value;
+			let analysisMethodsTags = [];
+			for(let sgKey in site.sample_groups) {
+				if(site.sample_groups[sgKey].sample_group_id == sampleGroupId) {
+					site.sample_groups[sgKey].datasets.forEach(dataset => {
+						let method = this.getMethodFromDatasetId(site, dataset);
+
+						let found = false;
+						analysisMethodsTags.forEach(methodTag => {
+							if(methodTag.method_id == method.method_id) {
+								found = true;
+							}
+						});
+						if(!found) {
+							analysisMethodsTags.push(method);
+						}
+					});
+				}
+			}
+			let value = "<div class='analyses-tags-container'>";
+			analysisMethodsTags.forEach(methodTag => {
+				value += this.getAnalysisTag(site, methodTag)+" ";
+				
+			});
+			value += "</div>";
+			row.push({
+				"type": "cell",
+				"value": value,
+				"tooltip": ""
+			});
+		}
+		
+		table.columns.push({
+			"dataType": "string",
+			"pkey": false,
+			"title": "Analysis methods"
+		});
+	}
+
+	getAnalysisTag(site, method) {
+		let analysisTagId = "analysis-tag-"+nanoid();
+
+		this.sqs.tooltipManager.registerTooltip("#"+analysisTagId, () => {
+			let siteReport = this.sqs.siteReportManager.siteReport;
+			for(let key in siteReport.data.sections) {
+				let section = siteReport.data.sections[key];
+				if(section.name == "analyses") {
+					section.sections.forEach(l2Section => {
+						if(method.method_id == l2Section.name) {
+							$("#site-report-section-"+l2Section.name).addClass("site-report-section-highlighted");
+						}
+					});
+				}
+			}
+		}, {
+			mouseout: () => {
+				$(".site-report-level-container").removeClass("site-report-section-highlighted");
+			}
+		});
+		return "<div id='"+analysisTagId+"' class='sample-group-analysis-tag'>"+method.method_abbrev_or_alt_name+"</div>";
+	}
+
+
 	insertSampleGroupReferencesIntoTable(table, sampleGroups) {
 		let insertSampleGroupReferensesColumn = false;
 		sampleGroups.forEach(sg => {
@@ -290,11 +376,6 @@ class Samples {
 				"dataType": "string",
 				"pkey": false,
 				"title": "Sampling method"
-			},
-			{
-				"dataType": "string",
-				"pkey": false,
-				"title": "Analysis methods"
 			},
 		];
 
@@ -408,10 +489,6 @@ class Samples {
 					"value": sampleGroup.sampling_method.method_name,
 					"tooltip": sampleGroup.sampling_method.description == null ? "" : sampleGroup.sampling_method.description
 				},
-				{
-					"type": "cell",
-					"value": "", //Analysis methods - We don't have this data yet
-				},
 			];
 
 			if(siteHasSampleGroupDescriptions) {
@@ -425,6 +502,7 @@ class Samples {
 			
 		}
 
+		this.insertSampleAnalysesIntoTable(sampleGroupTable, siteData);
 		this.insertSampleGroupReferencesIntoTable(sampleGroupTable, siteData.sample_groups);
 
 		var section = {
@@ -469,197 +547,6 @@ class Samples {
 	render(siteData) {
 		let section = this.compileSectionStruct(siteData);
 		let renderPromise = this.sqs.siteReportManager.siteReport.renderSection(section);
-		/*
-		renderPromise.then(() => {
-			this.fetchAuxiliaryData(); //Lazy-loading this, which is why it's here and not up amoing the other fetch-calls
-		})
-		*/
-	}
-
-	/*
-	* Function: fetch
-	*
-	* Will fetch the sample groups.
-	*
-	 */
-	async fetch() {
-		await new Promise((resolve, reject) => {
-			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample_group?site_id=eq."+this.siteId, {
-				method: "get",
-				dataType: "json",
-				success: (data, textStatus, xhr) => {
-					let auxiliaryFetchPromises = [];
-					for(var key in data) {
-						var sampleGroup = data[key];
-						var sampleGroupKey = this.sqs.findObjectPropInArray(this.data.sampleGroups, "sampleGroupId", sampleGroup.sample_group_id);
-						
-						if(sampleGroupKey === false) {
-							this.data.sampleGroups.push({
-								"sampleGroupId": sampleGroup.sample_group_id,
-								"methodId": sampleGroup.method_id,
-								"methodAbbreviation": sampleGroup.method_abbrev_or_alt_name,
-								"methodDescription": sampleGroup.method_description,
-								"methodName": sampleGroup.method_name,
-								"sampleGroupDescription": sampleGroup.sample_group_description,
-								"sampleGroupDescriptionTypeDescription": sampleGroup.sample_group_description_type_description,
-								"sampleGroupDescriptionTypeName": sampleGroup.sample_group_description_type_name,
-								"sampleGroupName": sampleGroup.sample_group_name,
-								"samplingContextId": sampleGroup.sampling_context_id,
-								"samples": []
-							});
-							
-
-							auxiliaryFetchPromises.push(this.fetchSampleGroupBiblio(sampleGroup.sample_group_id));
-							auxiliaryFetchPromises.push(this.fetchSamples(sampleGroup.sample_group_id));
-							auxiliaryFetchPromises.push(this.fetchSampleGroupAnalyses(sampleGroup.sample_group_id));
-						}
-						
-					}
-
-					Promise.all(auxiliaryFetchPromises).then((data) => {
-						this.render();
-						this.buildComplete = true;
-					});
-
-					resolve(data);
-				},
-				error: () => {
-					reject();
-				}
-			});
-		});
-	}
-	
-	async fetchSampleGroupAnalyses(sampleGroupId) {
-		return await new Promise((resolve, reject) => {
-			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample_group_analyses?sample_group_id=eq."+sampleGroupId, {
-				method: "get",
-				dataType: "json",
-				success: (data, textStatus, xhr) => {
-					for(let key in this.data.sampleGroups) {
-						if(typeof this.data.sampleGroups[key].analyses == "undefined") {
-							this.data.sampleGroups[key].analyses = [];
-						}
-						for(let ak in data) {
-							let analysis = data[ak];
-							if(this.data.sampleGroups[key].sampleGroupId == analysis.sample_group_id) {
-								this.data.sampleGroups[key].analyses.push(analysis);
-							}
-						}
-					}
-					resolve(data);
-				},
-				error: () => {
-					reject();
-				}
-			});
-		});
-	}
-
-	async fetchSampleGroupBiblio(sampleGroupId) {
-		return await new Promise((resolve, reject) => {
-			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample_group_biblio?sample_group_id=eq."+sampleGroupId, {
-				method: "get",
-				dataType: "json",
-				success: (data, textStatus, xhr) => {
-					var sampleGroup = this.getSampleGroupById(sampleGroupId);
-					sampleGroup.biblio = data;
-					resolve(data);
-				},
-				error: () => {
-					reject();
-				}
-			});
-		});
-	}
-	
-	async fetchSamples(sampleGroupId) {
-		return await new Promise((resolve, reject) => {
-			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample?sample_group_id=eq."+sampleGroupId, {
-				method: "get",
-				dataType: "json",
-				success: (data, textStatus, xhr) => {
-					for(var key in data) {
-						var sampleGroupKey = this.sqs.findObjectPropInArray(this.data.sampleGroups, "sampleGroupId", data[key].sample_group_id);
-						var sample = {
-							"sampleId": data[key].physical_sample_id,
-							"sampleTypeId": data[key].sample_type_id,
-							"sampleTypeName": data[key].sample_type_name,
-							"sampleName": data[key].sample_name,
-							"sampleTypeDescription": data[key].sample_type_description
-						};
-						this.data.sampleGroups[sampleGroupKey].samples.push(sample);
-						//this.fetchSampleModifiers(data[key].physical_sample_id, sample);
-						//this.fetchSampleDimensions(data[key].physical_sample_id, sample); //FIXME: Yeah... this is a performance-hog and it turns out empty at least some of the time anyway... so... that's gonna be a no from me dog
-						
-					}
-					
-					resolve(data);
-				},
-				error: () => {
-					reject();
-				}
-			});
-		});
-	}
-	
-	fetchSampleModifiers(sampleId, targetCell) {
-		var xhr1 = this.sqs.pushXhr(null, "fetchSampleModifiers");
-		xhr1.xhr = $.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample_modifiers?physical_sample_id=eq."+sampleId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				console.log(data);
-				
-				//$("#"+targetCell).html(d);
-				this.sqs.popXhr(xhr1);
-			}
-		});
-	}
-
-	async fetchSampleDimensions(sampleId, sampleStruct) {
-		let data = await $.ajax(this.sqs.config.siteReportServerAddress+"/qse_sample_dimensions?physical_sample_id=eq."+sampleId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				var d = "";
-				for(var key in data) {
-
-					let unit = data[key].unit_abbrev;
-					if(unit == "") {
-						unit = "ukn unit";
-					}
-
-					d += data[key].dimension_value+" "+unit;
-					if(key != data.length-1) {
-						d += ", ";
-					}
-				}
-				sampleStruct.sampleDimensions = d;
-			}
-		});
-
-		return data;
-	}
-
-	/*
-	* Function: fetchAuxiliaryData
-	*
-	* Fetches extra data (normally triggered for exports) that is normally not fetched (or presented) in the site reports because of the cost of fetching it.
-	*/
-	async fetchAuxiliaryData() {
-		let fetchPromises = [];
-		this.data.sampleGroups.forEach((sampleGroup) => {
-			sampleGroup.samples.forEach(async (sample) => {
-				fetchPromises.push(this.fetchSampleDimensions(sample.sampleId, sample));
-			});
-		});
-
-		Promise.all(fetchPromises).then(() => {
-			let section = this.compileSectionStruct();
-			this.sqs.siteReportManager.siteReport.updateSection(section);
-			this.auxiliaryDataFetched = true;
-		});
 	}
 	
 	getSampleGroupById(sampleGroupId) {

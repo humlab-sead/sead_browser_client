@@ -29,9 +29,8 @@ class DendrochronologyDataset extends DatasetModule {
 		this.buildIsComplete = false;
 		this.methodMetaDataFetchingComplete = false;
 
-		this.methodId = 10;
+		this.methodIds = [10];
 		this.metaDataFetchingPromises = [];
-		this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(this.methodId));
 
 		Promise.all(this.metaDataFetchingPromises).then(() => {
 			this.methodMetaDataFetchingComplete = true;
@@ -39,53 +38,6 @@ class DendrochronologyDataset extends DatasetModule {
 		
 	}
 	
-	/* Function: offerAnalyses
-	*/
-	offerAnalyses(datasets, sectionsList) {
-		this.sectionsList = sectionsList;
-		for(let key = datasets.length - 1; key >= 0; key--) {
-			if(this.methodId == datasets[key].methodId) {
-				//console.log("Dendrochronology claiming ", datasets[key].datasetId);
-				let dataset = datasets.splice(key, 1)[0];
-				this.datasets.push(dataset);
-			}
-		}
-		
-		
-		return new Promise((resolve, reject) => {
-			//First order of business: Get the physical_sample_id's based on the pile of dataset id's we've got
-			//Then: Group the datasets so that for each sample we have a number of datasets (and one dataset can't belong to several samples - I guess?)
-
-			//Then render it so that each sample has it's own "contentItem" containing all of its datasets
-			//No wait - belay that - render the samples one on each row in the same table and then have a subtable for each bunch of datasets
-
-			for(let key in this.datasets) {
-				this.datasetFetchPromises.push(this.analysis.fetchAnalysis(this.datasets[key]));
-				this.datasetFetchPromises.push(this.fetchDataset(this.datasets[key]));
-			}
-			
-			Promise.all(this.datasetFetchPromises).then(() => {
-
-				this.dsGroups = this.groupDatasetsBySample(this.datasets);
-
-				let fetchPromises = [];
-				this.dsGroups.forEach((dsg) => {
-					fetchPromises.push(this.fetchSampleData(dsg));
-					fetchPromises.push(this.fetchDendroDating(dsg));
-				});
-
-				Promise.all(fetchPromises).then(() => {
-					if(this.datasets.length > 0) {
-						this.buildSection(this.dsGroups);
-					}
-					resolve();
-				});
-
-			});
-
-		});
-		
-	}
 
 	async getDataBySampleId(physicalSampleId, wsChannel = null) {
 		let chan = null;
@@ -954,10 +906,11 @@ class DendrochronologyDataset extends DatasetModule {
 		}
 		
 		let section = {
-			"name": "dendro",
+			"name": analysisMethod.method_id,
 			"title": "Dendrochronology",
+			"methodId": analysisMethod.method_id,
 			"methodDescription": analysisMethodDescription,
-			"collapsed": false,
+			"collapsed": true,
 			"contentItems": [contentItem]
 		};
 

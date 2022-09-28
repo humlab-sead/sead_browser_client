@@ -219,8 +219,11 @@ class Analysis {
 	}
 
 	delegateBuildSection(siteData, section) {
+		let siteDataCopy = JSON.parse(JSON.stringify(siteData));
+		//The dataset modules will actually grab/delete datasets from the siteData struct as they claim them,
+		//so we feed them a copy instead of the original so that the original siteData struct remains complete
 		for(let key in this.datasetModules) {
-			this.datasetModules[key]["instance"].makeSection(siteData, section.sections);
+			this.datasetModules[key]["instance"].makeSection(siteDataCopy, section.sections);
 		}
 		return section;
 	}

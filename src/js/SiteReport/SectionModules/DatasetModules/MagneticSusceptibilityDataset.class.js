@@ -48,7 +48,7 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 				section = {
 					"name": analysisMethod.method_id,
 					"title": analysisMethod.method_name,
-					//"methodDescription": dataGroup.method_name,
+					"methodId": analysisMethod.method_id,
 					"methodDescription": analysisMethodDescription,
 					"collapsed": true,
 					"contentItems": []

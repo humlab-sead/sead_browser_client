@@ -1,5 +1,4 @@
 import shortid from "shortid";
-//import Chart from "chart.js";
 import { 
 	Chart, 
 	CategoryScale, 
@@ -11,7 +10,6 @@ import {
  } from "chart.js";
 import 'zingchart/es6';
 import * as d3 from 'd3';
-import { circle } from "leaflet";
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {
@@ -19,14 +17,12 @@ class SiteReportChart {
 		this.sqs = this.siteReport.sqs;
 		this.contentItem = contentItem;
 		this.chartId = null;
-		
 		Chart.register(CategoryScale);
 		Chart.register(LinearScale);
 		Chart.register(BarController);
 		Chart.register(BarElement);
 		Chart.register(Legend);
 		Chart.register(Tooltip);
-		
 
 		this.chartTheme = {
 			graph: {

@@ -3,6 +3,16 @@ import "nouislider/distribute/nouislider.min.css";
 import Color from "../Color.class";
 import css from '../../stylesheets/style.scss';
 //import Config from "../../config/config.js";
+import { 
+	Chart, 
+	CategoryScale, 
+	LinearScale, 
+	BarController, 
+	BarElement,
+	Legend,
+	Tooltip,
+	LineController
+ } from "chart.js";
 
 
 /*
@@ -23,6 +33,14 @@ class Timeline {
 		this.selection = [];
 		this.rendered = false;
 		this.siteBins = [];
+
+		Chart.register(CategoryScale);
+		Chart.register(LinearScale);
+		Chart.register(BarController);
+		Chart.register(BarElement);
+		Chart.register(Legend);
+		Chart.register(Tooltip);
+		Chart.register(LineController);
 
 		//Set up resize event handlers
 		this.map.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
