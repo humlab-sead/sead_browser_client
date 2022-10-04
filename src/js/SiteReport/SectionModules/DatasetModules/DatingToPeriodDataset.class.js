@@ -143,7 +143,7 @@ class DatingToPeriodDataset extends DatasetModule {
 		return datasetGroups;
 	}
 
-	makeSection(siteData, sections) {
+	async makeSection(siteData, sections) {
 		let datasets = this.claimDatasets(siteData);
 	}
 

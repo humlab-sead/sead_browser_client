@@ -6,6 +6,7 @@ import ContentItemRenderer from './ContentItemRenderer.class';
 import BasicSiteInformation from './SectionModules/BasicSiteInformation.class';
 import Samples from './SectionModules/Samples.class';
 import Analysis from './SectionModules/Analysis.class';
+import EcoCodes from './SectionModules/EcoCodes.class';
 
 /*
 * Class: SiteReport
@@ -45,9 +46,10 @@ class SiteReport {
 			this.hideLoadingIndicator();
 		});
 
-		let bsi = new BasicSiteInformation(this.sqs, this.siteId);
-		let samples = new Samples(this.sqs, this.site);
-		let analysis = new Analysis(this.sqs, this.siteId);
+		const bsi = new BasicSiteInformation(this.sqs, this.siteId);
+		const samples = new Samples(this.sqs, this.site);
+		const ecoCodes = new EcoCodes(this.sqs, this.site);
+		const analysis = new Analysis(this.sqs, this.siteId);
 
 		this.modules.push({
 			"name": "basicSiteInformation",
@@ -63,6 +65,12 @@ class SiteReport {
 			"module": analysis,
 			"weight": 1
 		});
+		this.modules.push({
+			"name": "ecocodes",
+			"module": ecoCodes,
+			"weight": 0
+		});
+		
 
 		this.fetchSite().then(siteData => {
 			this.siteData = siteData;
@@ -71,10 +79,24 @@ class SiteReport {
 			this.hideLoadingIndicator();
 			this.enableExportButton();
 
+			/*
+			bsi.fetch(siteData).then(() => {
+				bsi.render(siteData);
+			});
+
+			samples.fetch(siteData).then(() => {
+				samples.render(siteData);
+			});
+
+			analysis.fetch(siteData).then(() => {
+				analysis.render(siteData);
+			});
+			*/
+
 			bsi.render(siteData);
 			samples.render(siteData);
-			//analysis.fetch()->delegateAnalyses()->dendro-fetch - need to replace this
 			analysis.render(siteData);
+			//ecoCodes.render(siteData);
 		});
 
 		
@@ -185,7 +207,6 @@ class SiteReport {
 	* DEFUNCT
 	 */
 	getExportData() {
-		console.log(this.data);
 		var data = JSON.parse(JSON.stringify(this.data));
 		var sections = data.sections;
 		

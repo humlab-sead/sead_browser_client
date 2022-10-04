@@ -21,7 +21,7 @@ class MeasuredValueDataset extends DatasetModule {
 		return null;
 	}
 
-	makeSection(site, sections) {
+	async makeSection(site, sections) {
 		let analysisMethod = null;
 		
 		let methodDatasets = this.claimDatasets(site);
@@ -178,7 +178,7 @@ class MeasuredValueDataset extends DatasetModule {
 		}
 	}
 
-	makeSectionOLD(siteData, sections) {
+	async makeSectionOLD(siteData, sections) {
 		let dataGroups = siteData.data_groups.filter((dataGroup) => {
 			return dataGroup.type == "measured_values";
 		});

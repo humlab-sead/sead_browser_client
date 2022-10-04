@@ -152,48 +152,51 @@ class ResultMap extends ResultModule {
 		this.baseLayers.push(bingAerialLabelsLayer);
 		this.baseLayers.push(arcticDemLayer);
 		
-		//Define data layers
-		let dataLayer = new VectorLayer();
-		dataLayer.setProperties({
-			layerId: "clusterPoints",
-			title: "Clustered",
-			type: "dataLayer",
-			renderCallback: () => {
-				this.renderClusteredPointsLayer();
-			},
-			visible: true
-		});
-		this.dataLayers.push(dataLayer);
+		if(Config.resultMapDataLayers.includes("clusterPoints")) {
+			//Define data layers
+			let dataLayer = new VectorLayer();
+			dataLayer.setProperties({
+				layerId: "clusterPoints",
+				title: "Clustered",
+				type: "dataLayer",
+				renderCallback: () => {
+					this.renderClusteredPointsLayer();
+				},
+				visible: true
+			});
+			this.dataLayers.push(dataLayer);
+		}
 
-		dataLayer = new VectorLayer();
-		dataLayer.setProperties({
-			layerId: "points",
-			title: "Individual",
-			type: "dataLayer",
-			renderCallback: () => {
-				this.renderPointsLayer();
-			},
-			visible: false
-		});
-		this.dataLayers.push(dataLayer);
-
-
-		//Heatmap
-		dataLayer = new HeatmapLayer({
-			opacity: 0.5
-		});
-		dataLayer.setProperties({
-			layerId: "heatmap",
-			title: "Heatmap",
-			type: "dataLayer",
-			renderCallback: () => {
-				this.renderHeatmapLayer();
-			},
-			visible: false
-		});
-		this.dataLayers.push(dataLayer);
+		if(Config.resultMapDataLayers.includes("clusterPoints")) {
+			dataLayer = new VectorLayer();
+			dataLayer.setProperties({
+				layerId: "points",
+				title: "Individual",
+				type: "dataLayer",
+				renderCallback: () => {
+					this.renderPointsLayer();
+				},
+				visible: false
+			});
+			this.dataLayers.push(dataLayer);	
+		}
 		
-
+		if(Config.resultMapDataLayers.includes("heatmap")) {
+			//Heatmap
+			dataLayer = new HeatmapLayer({
+				opacity: 0.5
+			});
+			dataLayer.setProperties({
+				layerId: "heatmap",
+				title: "Heatmap",
+				type: "dataLayer",
+				renderCallback: () => {
+					this.renderHeatmapLayer();
+				},
+				visible: false
+			});
+			this.dataLayers.push(dataLayer);
+		}
 
 		//Set up viewport resize event handlers
 		this.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());

@@ -1,4 +1,5 @@
 import shortid from "shortid";
+import { nanoid } from "nanoid";
 import { 
 	Chart, 
 	CategoryScale, 
@@ -53,6 +54,9 @@ class SiteReportChart {
 				switch(ro.type) {
 					case "bar":
 						node = this.renderBarChartZing();
+						break;
+					case "ecocode":
+						node = this.renderEcoCodeChart();
 						break;
 					case "ms-bar":
 						node = this.renderMagneticSusceptibilityBarChart();
@@ -733,6 +737,89 @@ class SiteReportChart {
 		
 		  
 		this.chartId = "chart-"+shortid.generate();
+		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
+		$(this.anchorNodeSelector).append(chartContainer);
+
+		new Chart(
+			document.getElementById(this.chartId),
+			config
+		);
+	}
+
+	renderEcoCodeChart() {
+		console.log("renderEcoCodeChart")
+		let contentItem = this.contentItem;
+		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
+		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
+		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
+
+		let ecoCodeNames =[];
+		let datasets = [];
+		
+		datasets.push({
+			label: "Eco codes",
+			data: [],
+			backgroundColor: []
+		});
+
+		for(var key in contentItem.data.rows) {
+			let row = contentItem.data.rows[key];
+			let ecoCodeName = row[0].value;
+			ecoCodeNames.push(ecoCodeName);
+			datasets[0].data.push(row[yAxisKey].value);
+			
+			//Find the color for this ecocode
+			for(let defKey in this.sqs.bugsEcoCodeDefinitions) {
+				if(this.sqs.bugsEcoCodeDefinitions[defKey].name == ecoCodeName) {
+					datasets[0].backgroundColor.push(this.sqs.bugsEcoCodeDefinitions[defKey].color);
+				}
+			}
+		}
+
+		const data = {
+			labels: ecoCodeNames,
+			datasets: datasets
+		};
+
+		let config = {
+			type: 'bar',
+			data: data,
+			options: {
+				plugins: {
+					title: {
+						display: true,
+						text: 'Eco codes'
+					},
+					legend: {
+						display: false,
+						position: 'top',
+					},
+					tooltip: {
+						enabled: true,
+						callbacks: {
+							title: function(context) {
+								return context[0].label;
+							},
+							label: function(context) {
+								return "Abundance count: "+context.formattedValue;
+							}
+						}
+					}
+				},
+				responsive: true,
+				scales: {
+					x: {
+						stacked: true,
+					},
+					y: {
+						stacked: true
+					}
+				}
+			}
+		  };
+		
+		  
+		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
 		$(this.anchorNodeSelector).append(chartContainer);
 

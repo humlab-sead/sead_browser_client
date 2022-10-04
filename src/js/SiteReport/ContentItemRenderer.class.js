@@ -2,6 +2,7 @@ import shortid from 'shortid';
 import SiteReportTable from './RenderModules/SiteReportTable.class';
 import SiteReportChart from './RenderModules/SiteReportChart.class';
 import DendroChart from './RenderModules/DendroChart.class';
+import EcoCodeChart from './RenderModules/EcoCodeChart.class';
 
 class ContentItemRenderer {
     constructor(siteReport, section, contentItem) {
@@ -146,12 +147,18 @@ class ContentItemRenderer {
 					case "ms-bar":
 					case "loi-bar":
 					case "multistack":
+					case "ecocode":
 						renderInstance = new SiteReportChart(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);
 						this.addRenderInstance(this.contentItem.name, renderInstance);
 						break;
 					case "dendrochart":
 						renderInstance = new DendroChart(this.siteReport, this.contentItem);
+						renderInstance.render(anchorSelector);
+						this.addRenderInstance(this.contentItem.name, renderInstance);
+						break;
+					case "ecocodechart":
+						renderInstance = new EcoCodeChart(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);
 						this.addRenderInstance(this.contentItem.name, renderInstance);
 						break;

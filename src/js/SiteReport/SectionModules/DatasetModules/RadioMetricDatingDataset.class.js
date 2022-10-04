@@ -410,7 +410,7 @@ class RadioMetricDatingDataset extends DatasetModule {
 		return ci;
 	}
 
-	makeSection(siteData, sections) {
+	async makeSection(siteData, sections) {
 		//console.log(siteData, sections);
 	}
 

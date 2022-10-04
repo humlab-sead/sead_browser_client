@@ -22,7 +22,7 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 		return null;
 	}
 
-	makeSection(site, sections) {
+	async makeSection(site, sections) {
 		let analysisMethod = null;
 		let methodDatasets = this.claimDatasets(site);
 
@@ -255,7 +255,7 @@ class MagneticSusceptibilityDataset extends DatasetModule {
         return null;
     }
 
-	makeSectionOLD(siteData, sections) {
+	async makeSectionOLD(siteData, sections) {
 		let dataGroups = siteData.data_groups.filter((dataGroup) => {
 			return dataGroup.type == "measured_values";
 		});

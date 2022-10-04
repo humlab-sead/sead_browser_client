@@ -41,7 +41,7 @@ class GenericDataset extends DatasetModule {
 		return null;
 	}
 	
-	makeSection(site, sections) {
+	async makeSection(site, sections) {
 		let analysisMethod = null;
 		let methodDatasets = site.datasets; //claim ALL that remains
 

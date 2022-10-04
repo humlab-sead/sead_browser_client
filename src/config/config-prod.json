@@ -11,6 +11,7 @@
 	"siteReportServerAddress":"https://browser.sead.se/postgrest",
 	"dataServerAddress": "https://browser.sead.se/jsonapi",
 	"defaultResultModule":"mosaic",
+	"resultMapDataLayers": ["clusterPoints", "points"],
 	"maxAllowedSitesInAnExport": 20,
 	"facetSectionDefaultWidth":20,
 	"facetBodyHeight":268,

@@ -15,6 +15,9 @@ class Samples {
 		};
 	}
 
+	async fetch() {
+	}
+
 	includeSampleDimensionsColumn(sampleGroup) {
 		for(var k in sampleGroup.physical_samples) {
 			var sample = sampleGroup.physical_samples[k];
@@ -544,7 +547,7 @@ class Samples {
 	* so it really just compiles the data in an appropriate format and hands it over.
 	*
 	 */
-	render(siteData) {
+	async render(siteData) {
 		let section = this.compileSectionStruct(siteData);
 		let renderPromise = this.sqs.siteReportManager.siteReport.renderSection(section);
 	}

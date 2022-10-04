@@ -24,7 +24,7 @@ class DatasetModule {
         });
 	}
 
-    makeSection(siteData, sections) {
+    async makeSection(siteData, sections) {
 		//console.log(siteData, sections);
 	}
 

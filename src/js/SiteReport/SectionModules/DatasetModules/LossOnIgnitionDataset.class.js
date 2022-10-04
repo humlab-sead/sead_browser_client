@@ -22,7 +22,7 @@ class LossOnIgnitionDataset extends DatasetModule {
 		return null;
 	}
 
-	makeSection(site, sections) {
+	async makeSection(site, sections) {
 		
 		let analysisMethod = null;
 		let methodDatasets = this.claimDatasets(site);

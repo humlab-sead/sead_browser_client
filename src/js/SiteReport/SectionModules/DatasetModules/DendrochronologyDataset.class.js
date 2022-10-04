@@ -639,7 +639,7 @@ class DendrochronologyDataset extends DatasetModule {
 		return null;
 	}
 
-	makeSection(siteData, sections) {
+	async makeSection(siteData, sections) {
 
 		let dendroDatasets = this.claimDatasets(siteData);
 

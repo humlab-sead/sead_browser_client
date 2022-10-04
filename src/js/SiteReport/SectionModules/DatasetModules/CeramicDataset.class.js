@@ -186,7 +186,7 @@ class CeramicDataset extends DatasetModule {
 		return false;
 	}
 
-	makeSection(siteData, sections) {
+	async makeSection(siteData, sections) {
 		let datasets = this.claimDatasets(siteData);
 	}
 

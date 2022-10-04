@@ -114,9 +114,9 @@ class Analysis {
 	/*
 	* Function: render
 	*/
-	render(siteData) {
+	async render(siteData) {
 		//analysis.fetch()->delegateAnalyses()->dendro-fetch - need to replace this
-		this.delegateBuildSection(siteData, this.section);
+		await this.delegateBuildSection(siteData, this.section);
 		this.sqs.siteReportManager.siteReport.renderSection(this.section);
 		this.destroyAllDatasetModules();
 	}
@@ -218,13 +218,16 @@ class Analysis {
 		});
 	}
 
-	delegateBuildSection(siteData, section) {
+	async delegateBuildSection(siteData, section) {
 		let siteDataCopy = JSON.parse(JSON.stringify(siteData));
 		//The dataset modules will actually grab/delete datasets from the siteData struct as they claim them,
 		//so we feed them a copy instead of the original so that the original siteData struct remains complete
+		let buildSectionPromises = [];
 		for(let key in this.datasetModules) {
-			this.datasetModules[key]["instance"].makeSection(siteDataCopy, section.sections);
+			let p = this.datasetModules[key]["instance"].makeSection(siteDataCopy, section.sections);
+			buildSectionPromises.push(p);
 		}
+		await Promise.all(buildSectionPromises);
 		return section;
 	}
 

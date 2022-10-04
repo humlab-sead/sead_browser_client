@@ -125,6 +125,10 @@ class SeadQuerySystem {
 		$("#header-container").css("display", "flex");
 
 		this.color = new Color();
+		let colors = this.color.getColorScheme(22, false);
+		for(let key in this.bugsEcoCodeDefinitions) {
+			this.bugsEcoCodeDefinitions[key].color = colors[key];
+		}
 		this.stateManager = new StateManager(this);
 		var viewstate = this.stateManager.getViewstateIdFromUrl();
 		this.layoutManager = new SqsLayoutManager(this);
@@ -452,6 +456,12 @@ class SeadQuerySystem {
 					reject(e);
 				}
 			});
+		});
+
+		fetch(this.config.siteReportServerAddress+"/ecocode_definitions?ecocode_group_id=eq.2")
+		.then((response) => response.json())
+		.then(ecocodes => {
+			this.bugsEcoCodeDefinitions = ecocodes;
 		});
 
 		return await Promise.all([fetchApiVersion, fetchFacetDefinitionsPromise, fetchDataTypesPromise, fetchDatasetMasters, fetchDomainDefinitionsPromise]);

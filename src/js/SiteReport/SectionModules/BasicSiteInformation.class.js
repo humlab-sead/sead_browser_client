@@ -35,118 +35,7 @@ class BasicSiteInformation {
 		*/
 	}
 
-	/*
-	* Function: fetchBasicSiteInformation
-	*
-	* Fetches basic site information. Somehow that felt redundant to say. Anyhow, you probably don't want to call this directly. Look at fetch instead.
-	*
-	* See also:
-	* fetch
-	 */
 	async fetch() {
-		
-		let p1 = new Promise((resolve, reject) => {
-			$.ajax(this.sqs.config.siteReportServerAddress+"/sites?site_id=eq."+this.siteId, {
-				method: "get",
-				dataType: "json",
-				success: (data, textStatus, xhr) => {
-					if(data.length == 0) {
-						//Result set was empty - which means this site doesn't exist
-						this.sqs.sqsEventDispatch("siteReportSiteNotFound");
-						console.log("WARN: Site "+this.siteId+" does not exist.");
-					}
-					else {
-						data = data[0];
-						this.data.siteId = data.site_id;
-						this.data.nationalSiteIdentifier = data.national_site_identifier;
-						this.data.siteDescription = data.site_description;
-						this.data.siteName = data.site_name;
-						this.data.geo = {
-							"altitude": data.altitude,
-							"latitude": data.latitude_dd,
-							"longitude": data.longitude_dd
-						};
-					}
-					resolve(data);
-				},
-				error: () => {
-					reject();
-				}
-			});
-		});
-		
-		
-		let p2 = new Promise((resolve, reject) => {
-			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_site_locations?site_id=eq."+this.siteId, {
-				method: "get",
-				dataType: "json",
-				success: (data, textStatus, xhr) => {
-					//Locations for a site is normally a hierarchy of locations rather than separate locations, so we might get 3 results which
-					//are city, municipality and country.
-					this.data.locations = [];
-					for(var key in data) {
-						this.data.locations.push({
-							"siteLocationId": data[key].site_location_id,
-							"locationId": data[key].location_id,
-							"locationName": data[key].location_name,
-							"locationTypeId": data[key].location_type_id,
-							"locationTypeName": data[key].location_type,
-							"locationTypeDescription": data[key].description
-						});
-					}
-					resolve(data);
-				},
-				error: () => {
-					reject();
-				}
-			});
-		});
-
-		//Fetch references on the site-level
-		let p3 = new Promise((resolve, reject) => {
-			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_site_biblio?site_id=eq."+this.siteId, {
-				method: "get",
-				dataType: "json",
-				success: (data, textStatus, xhr) => {
-					this.data.bibliographicSiteReferences = data;
-					resolve(data);
-				},
-				error: () => {
-					reject();
-				}
-			});
-		});
-
-		let p4 = new Promise((resolve, reject) => {
-			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_dataset_biblio?site_id=eq."+this.siteId, {
-				method: "get",
-				dataType: "json",
-				success: (data, textStatus, xhr) => {
-					let refs = [];
-					let uniqueRefs = new Set();
-					data.forEach((ref) => {
-						let refExists = false;
-						refs.forEach((r) => {
-							if(r.biblio_id == ref.biblio_id) {
-								refExists = true;
-							}
-						});
-						if(!refExists) {
-							refs.push(ref);
-						}
-					});
-					
-					this.data.bibliographicDatasetReferences = refs;
-					resolve(data);
-				},
-				error: () => {
-					reject();
-				}
-			});
-		});
-
-		await Promise.all([p1, p2, p3, p4]);
-		this.render();
 	}
 	
 	renderReferences(references) {
@@ -174,7 +63,7 @@ class BasicSiteInformation {
 	* Function: render
 	*
 	*/
-	render(siteData) {
+	async render(siteData) {
 		this.data = siteData;
 		var data = this.data;
 		var node = $(".site-report-title-site-name").html(siteData.site_name);

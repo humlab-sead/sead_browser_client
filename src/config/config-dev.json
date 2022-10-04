@@ -11,6 +11,7 @@
 	"siteReportServerAddress":"https://supersead.humlab.umu.se/postgrest",
 	"dataServerAddress": "https://supersead.humlab.umu.se/jsonapi",
 	"defaultResultModule":"mosaic",
+	"resultMapDataLayers": ["clusterPoints", "points", "heatmap"],
 	"maxAllowedSitesInAnExport": 20,
 	"facetSectionDefaultWidth":20,
 	"facetBodyHeight":268,
