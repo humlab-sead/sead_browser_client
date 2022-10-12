@@ -3,11 +3,11 @@ import Color from "../Color.class";
 import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
 import ResultModule from './ResultModule.class.js'
 import Config from '../../config/config.json';
-
+/*
 import '../../assets/taxa-images/figure1.png';
 import '../../assets/taxa-images/figure2.png';
 import '../../assets/taxa-images/figure3.png';
-
+*/
 /*
 * Class: ResultTaxon
 */
@@ -366,9 +366,11 @@ class ResultTaxon extends ResultModule {
 		if(!Config.useExternalTaxonApis) {
 			$("#result-taxon-image-container").html("");
 			$("#result-taxon-image-container").addClass("result-taxon-image-container-2-col");
+			/*
 			$("#result-taxon-image-container").append("<div><img src='/figure1.png' /></div>");
 			$("#result-taxon-image-container").append("<div><img src='/figure2.png' /></div>");
 			$("#result-taxon-image-container").append("<div><img src='/figure3.png' /></div>");
+			*/
 		}
 		else {
 			this.fetchGbifImages(taxonData).then(gbifMedia => {
