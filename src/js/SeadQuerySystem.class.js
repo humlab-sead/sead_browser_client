@@ -125,7 +125,7 @@ class SeadQuerySystem {
 		$("#header-container").css("display", "flex");
 
 		this.color = new Color();
-		let colors = this.color.getColorScheme(22, false);
+		let colors = this.color.getColorScheme(22);
 		for(let key in this.bugsEcoCodeDefinitions) {
 			this.bugsEcoCodeDefinitions[key].color = colors[key];
 		}

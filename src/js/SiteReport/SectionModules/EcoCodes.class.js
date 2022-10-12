@@ -26,9 +26,11 @@ class EcoCodes {
 	async render(siteData) {
         console.log("EcoCode module render");
 
+		/*
         let response = await fetch(this.sqs.config.dataServerAddress+"/ecocodes/site/"+siteData.site_id);
         let ecoCodeBundles = await response.json();
         console.log(ecoCodeBundles);
+		*/
 
         let sampleGroupColumns = [];
         let sampleGroupRows = [];

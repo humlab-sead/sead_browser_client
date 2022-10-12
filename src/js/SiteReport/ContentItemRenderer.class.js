@@ -148,6 +148,7 @@ class ContentItemRenderer {
 					case "loi-bar":
 					case "multistack":
 					case "ecocode":
+					case "ecocodes-samples":
 						renderInstance = new SiteReportChart(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);
 						this.addRenderInstance(this.contentItem.name, renderInstance);
@@ -377,7 +378,7 @@ class ContentItemRenderer {
 			
 			let exportFormats = ["json", "xlsx"];
 			
-			if(selectedRoType != "table" && selectedRoType != "dendrochart") {
+			if(selectedRoType != "table" && selectedRoType != "dendrochart" && selectedRoType != "ecocodes-samples" && selectedRoType != "ecocode") {
 				exportFormats.push("png");
 			}
 			this.siteReport.renderExportDialog(exportFormats, section, contentItem);

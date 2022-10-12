@@ -94,7 +94,7 @@ class TooltipManager {
 		};
 
 		if(found) {
-			console.warn("Re-defining tooltip for anchor", anchor);
+			//console.warn("Re-defining tooltip for anchor", anchor);
 			this.tooltips[foundKey] = ttObject;
 		}
 		else {

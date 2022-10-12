@@ -347,7 +347,7 @@ class SiteReportTable {
 		var rowNode = $("<tr id='"+nanoid()+"' row-id='"+rowPrimaryKeyValue+"' class='"+rowClasses+"'></tr>");
 
 		for(var colKey in row) {
-			if(colKey == "meta") {
+			if(colKey == "meta" || colKey == "nodeId") {
 				continue;
 			}
 			var currentColumn = this.columns[colKey];

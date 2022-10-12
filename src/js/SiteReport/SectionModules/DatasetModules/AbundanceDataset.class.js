@@ -74,13 +74,7 @@ class AbundanceDataset extends DatasetModule {
 		return found;
 	}
 
-	async makeSection(siteData, sections) {
-		let dataGroups = siteData.data_groups.filter((dataGroup) => {
-			return dataGroup.type == "abundance";
-		});
-
-		let methodDatasets = this.claimDatasets(siteData);
-
+	async getSiteEcoCodeContentItem(siteData) {
 		let ecoCodeBundles = await new Promise(async (resolve, reject) => {
 			let response = await fetch(this.sqs.config.dataServerAddress+"/ecocodes/site/"+siteData.site_id);
 			let ecoCodeBundles = await response.json();
@@ -107,8 +101,12 @@ class AbundanceDataset extends DatasetModule {
 						"title": "Aggregated abundance",
 					},
 					{
-						"title": "Unique taxa",
-					}
+						"title": "Aggregated taxa",
+					},
+					{
+						title: "Ecocode definition ID",
+						hidden: true,
+					},
 				],
 				"rows": []
 			},
@@ -174,7 +172,7 @@ class AbundanceDataset extends DatasetModule {
 			ecoCodeContentItem.data.rows.push([
 				{
 					type: "cell",
-					value: ecoCodeBundle.ecocode.definition
+					value: ecoCodeBundle.ecocode.name
 				},
 				{
 					type: "cell",
@@ -183,9 +181,224 @@ class AbundanceDataset extends DatasetModule {
 				{
 					type: "cell",
 					value: ecoCodeBundle.taxa.length
+				},
+				{
+					type: "cell",
+					value: ecoCodeBundle.ecocode.ecocode_definition_id
 				}
 			]);
 		});
+
+		return ecoCodeContentItem;
+	}
+
+	async getSamplesEcoCodeContentItem(siteData) {
+		let ecoCodeBundles = await new Promise(async (resolve, reject) => {
+			let response = await fetch(this.sqs.config.dataServerAddress+"/ecocodes/site/"+siteData.site_id+"/samples");
+			let ecoCodeBundles = await response.json();
+			resolve(ecoCodeBundles.ecocode_bundles);
+		});
+
+		//console.log(ecoCodeBundles);
+		
+		/*
+		X: Environment
+		Y: Abundance / Taxa
+		*/
+		
+		let ecoCodeContentItem = {
+			"name": "generated-"+nanoid(4),
+			"title": "Eco codes per sample",
+			"titleTooltip": "BUGS eco codes",
+			"datasetId": "generated-"+nanoid(4),
+			"data": {
+				"columns": [
+					{
+						"title": "Sample ID",
+						"pkey": true,
+						"hidden": true,
+					},
+					{
+						"title": "Sample name",
+					},
+					{
+						"title": "Aggregated abundance",
+					},
+					{
+						"title": "Aggregated taxa",
+					},
+					{
+						dataType: "subtable",
+					}
+				],
+				"rows": []
+			},
+			"renderOptions": [
+				{
+					"name": "Spreadsheet",
+					"selected": false,
+					"type": "table",
+				},
+				{
+					"name": "Bar chart",
+					"selected": true,
+					"type": "ecocodes-samples",
+					"options": [
+						{
+							"enabled": false,
+							"title": "X axis",
+							"function": "xAxis",
+							"type": "select",
+							"selected": 0, //Default column (key)
+							"key": 0, //Contains the unique values for the selected columns - not sure we need / should have this
+							"options": [
+								{
+									"title": "Abundance",
+									"value": 2,
+								},
+							]
+						},
+						{
+							"enabled": true,
+							"title": "X axis", //Since this is a reversed/horizontal bar chart the Y axis becomes the X axis...
+							"function": "yAxis",
+							"type": "select",
+							"selected": 1,
+							"options": [
+								{
+									"title": "Aggregated abundance",
+									"value": 1,
+								},
+								{
+									"title": "Aggregated taxa",
+									"value": 2,
+								}
+							]
+						},
+						{
+							"enabled": true,
+							"title": "Sort",
+							"function": "sort", //sorts on either x or y axis - leaves it up to the render module to decide
+							"type": "select",
+							"selected": 2,
+							"options": [
+								{
+									"title": "Abundance",
+									"value": 2,
+								},
+								{
+									"title": "Taxa",
+									"value": 3,
+								}
+							]
+						}
+					]
+				}
+			]
+		};
+
+		
+		ecoCodeBundles.forEach(ecoCodeBundle => {
+			let subTable = {
+				columns: [
+					{
+						title: "Ecocode",
+						pkey: true,
+					},
+					{
+						title: "Aggregated abundance",
+						sort: "desc"
+					},
+					{
+						title: "Aggregated taxa",
+					},
+					{
+						title: "Ecocode definition ID",
+						hidden: true,
+					},
+				],
+				rows: []
+			}
+
+			let sampleAggAbundance = 0;
+			let sampleAggTaxa = 0;
+
+			ecoCodeBundle.ecocodes.forEach(ecocode => {
+				let subTableRow = [];
+				subTableRow.push(
+					{
+						type: "cell",
+						value: ecocode.ecocode.name,
+					},
+					{
+						type: "cell",
+						value: ecocode.abundance,
+					},
+					{
+						type: "cell",
+						value: ecocode.taxa.length,
+					},
+					{
+						type: "cell",
+						value: ecocode.ecocode.ecocode_definition_id,
+					},
+				);
+
+				sampleAggAbundance += ecocode.abundance;
+				sampleAggTaxa += ecocode.taxa.length;
+
+				subTable.rows.push(subTableRow);
+			});
+			
+
+			//console.log(ecoCodeBundle);
+			//console.log(subTable);
+			
+			let sampleName = "";
+			siteData.sample_groups.forEach(sg => {
+				sg.physical_samples.forEach(ps => {
+					if(ps.physical_sample_id == ecoCodeBundle.physical_sample_id) {
+						sampleName = ps.sample_name;
+					}
+				});
+			})
+		
+			ecoCodeContentItem.data.rows.push([
+				{
+					type: "cell",
+					value: ecoCodeBundle.physical_sample_id
+				},
+				{
+					type: "cell",
+					value: sampleName
+				},
+				{
+					type: "cell",
+					value: sampleAggAbundance
+				},
+				{
+					type: "cell",
+					value: sampleAggTaxa
+				},
+				{
+					type: "subtable",
+					value: subTable
+				}
+			]);
+		});
+
+		return ecoCodeContentItem;
+	}
+
+	async makeSection(siteData, sections) {
+		let dataGroups = siteData.data_groups.filter((dataGroup) => {
+			return dataGroup.type == "abundance";
+		});
+
+		let methodDatasets = this.claimDatasets(siteData);
+
+		let siteEcoCodeContentItem = await this.getSiteEcoCodeContentItem(siteData);
+		let siteSamplesEcoCodeContentItem = await this.getSamplesEcoCodeContentItem(siteData);
 
 		dataGroups.forEach(dataGroup => {
 			let analysisMethod = null;
@@ -271,6 +484,7 @@ class AbundanceDataset extends DatasetModule {
 							}
 						]
 					}
+					
 				]
 			};
 
@@ -403,7 +617,8 @@ class AbundanceDataset extends DatasetModule {
 
 		let ecoCodeSection = this.getSectionByMethodId(3, sections);
 		if(ecoCodeSection) {
-			ecoCodeSection.contentItems.push(ecoCodeContentItem);
+			ecoCodeSection.contentItems.push(siteEcoCodeContentItem);
+			ecoCodeSection.contentItems.push(siteSamplesEcoCodeContentItem);
 		}
 		else {
 			console.warn("Tried to insert a contentItem into a section that couldn't be found.");

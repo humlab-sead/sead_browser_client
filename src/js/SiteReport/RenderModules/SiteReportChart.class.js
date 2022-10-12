@@ -58,6 +58,9 @@ class SiteReportChart {
 					case "ecocode":
 						node = this.renderEcoCodeChart();
 						break;
+					case "ecocodes-samples":
+						node = this.renderEcoCodesPerSampleChart();
+						break;
 					case "ms-bar":
 						node = this.renderMagneticSusceptibilityBarChart();
 						break;
@@ -114,6 +117,7 @@ class SiteReportChart {
                 "toggleAction": 'remove',
 				'draggable': true,
 				'minimize': true,
+				'alpha': 0.5,
 				"header": {
 					"text": "Taxa",
 					'border-bottom': "2px solid #eee"
@@ -747,13 +751,12 @@ class SiteReportChart {
 	}
 
 	renderEcoCodeChart() {
-		console.log("renderEcoCodeChart")
 		let contentItem = this.contentItem;
 		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
 		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
 		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
 
-		let ecoCodeNames =[];
+		let ecoCodeNames = [];
 		let datasets = [];
 		
 		datasets.push({
@@ -785,6 +788,7 @@ class SiteReportChart {
 			type: 'bar',
 			data: data,
 			options: {
+				animation: false,
 				plugins: {
 					title: {
 						display: true,
@@ -801,7 +805,172 @@ class SiteReportChart {
 								return context[0].label;
 							},
 							label: function(context) {
-								return "Abundance count: "+context.formattedValue;
+								return contentItem.data.columns[yAxisKey].title+": "+context.formattedValue;
+							}
+						}
+					}
+				},
+				responsive: true,
+				scales: {
+					x: {
+						stacked: true,
+					},
+					y: {
+						stacked: true
+					}
+				}
+			}
+		  };
+		
+		  
+		this.chartId = "chart-"+nanoid();
+		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
+		$(this.anchorNodeSelector).append(chartContainer);
+
+		new Chart(
+			document.getElementById(this.chartId),
+			config
+		);
+	}
+
+	getSubTableCellFromRow(row) {
+		for(let key in row) {
+			let cell = row[key];
+			if(cell.type == "subtable") {
+				return cell;
+			}	
+		}
+	}
+
+	renderEcoCodesPerSampleChart() {
+		let contentItem = this.contentItem;
+		let yAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
+		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
+
+		//The contentItemRenderer will already have applied its own basic form of sort here
+		//but we wish to sort the ecocodes in each sample based on the site-level aggregated values, so we have to do our own sort here to figure that out
+		
+		let ecocodes = JSON.parse(JSON.stringify(this.sqs.bugsEcoCodeDefinitions)); //copy this
+
+		//let's find out which eco codes are the largest based on aggregating them over all samples
+		for(let key in contentItem.data.rows) {
+			let row = contentItem.data.rows[key];
+			let subtable = this.getSubTableCellFromRow(row).value;
+			subtable.rows.forEach(subtableRow => {
+				let ecocodeDefinitionId = subtableRow[3].value;
+				let ecoCodeAbundanceAgg = subtableRow[1].value;
+				let ecoCodeTaxaAgg = subtableRow[2].value;
+
+				for(let ecocodeKey in ecocodes) {
+					if(ecocodes[ecocodeKey].ecocode_definition_id == ecocodeDefinitionId) {
+						if(typeof ecocodes[ecocodeKey].abundanceAgg == "undefined") {
+							ecocodes[ecocodeKey].abundanceAgg = 0;
+						}
+						ecocodes[ecocodeKey].abundanceAgg += ecoCodeAbundanceAgg;
+						if(typeof ecocodes[ecocodeKey].taxaAgg == "undefined") {
+							ecocodes[ecocodeKey].taxaAgg = 0;
+						}
+						ecocodes[ecocodeKey].taxaAgg += ecoCodeTaxaAgg;
+					}
+				}
+			});
+		}
+
+		let sortVar = "abundanceAgg";
+		if(sortCol == 3) {
+			sortVar = "taxaAgg";
+		}
+		ecocodes.sort((a, b) => {
+			if(a[sortVar] > b[sortVar]) {
+				return -1;
+			}
+			else {
+				return 1;
+			}
+		});
+
+		let ecocodesSorted = ecocodes; //Just to make it clear what this is for
+
+		let pkeyCol = null;
+		for(let key in contentItem.data.columns) {
+			if(contentItem.data.columns[key].pkey) {
+				pkeyCol = key;
+			}
+		}
+
+		let datasets = [];
+		let sampleNames = [];
+		contentItem.data.rows.forEach(row => {
+			//each row is a sample
+			let sampleId = row[pkeyCol].value;
+			let sampleName = row[1].value;
+			let aggAbundance = row[2].value;
+			let aggTaxa = row[3].value;
+			let subTable = row[4].value;
+			sampleNames.push(sampleName);
+		});
+
+		//sorting
+		//order of ecocodes should match with their size in the site aggregation chart
+
+		ecocodesSorted.forEach(ecocode => {
+
+			let dataset = {
+				label: ecocode.name,
+				data: [], 
+				backgroundColor: ecocode.color
+			}
+			
+			contentItem.data.rows.forEach(row => {
+				let sampleId = row[pkeyCol].value;
+				let aggAbundance = row[2].value;
+				let aggTaxa = row[3].value;
+				let subTable = row[4].value;
+
+
+
+				subTable.rows.forEach(r => {
+					let rowEcocodeName = r[0].value;
+					let ecocodeDefinitionId = r[3].value;
+					if(rowEcocodeName == ecocode.name) {
+						//console.log(rowEcocodeName+": "+r[yAxisKey].value);
+						dataset.data.push(r[yAxisKey].value);
+					}
+				});
+			});
+			datasets.push(dataset);
+		});
+
+		//Datasets should not be samples, they should be per ecocode
+		const data = {
+			labels: sampleNames,
+			datasets: datasets
+		};
+
+		let config = {
+			type: 'bar',
+			data: data,
+			options: {
+				animation: false,
+				indexAxis: 'y',
+				plugins: {
+					title: {
+						display: true,
+						text: 'Eco codes'
+					},
+					legend: {
+						display: true,
+						position: 'bottom',
+						align: 'center'
+					},
+					tooltip: {
+						enabled: true,
+						callbacks: {
+							title: function(context) {
+								return contentItem.data.columns[yAxisKey].title+": "+context[0].formattedValue;
+							},
+							label: function(context) {
+								return context.dataset.label;
 							}
 						}
 					}

@@ -251,7 +251,6 @@ class sqsMenu {
 			});
 
 			$(m.anchor+" > .l1-container-level").on("mouseover", () => {
-				console.log("sqsMenu anchor 2");
 				clearTimeout(m.closeTimeout);
 				this.renderMenu(m);
 			});
@@ -301,7 +300,6 @@ class sqsMenu {
 		$(m.anchor+" .l2-level").show();
 		
 		var menuHeight = $(m.anchor+" .l1-container-level").height();
-		console.log(menuHeight)
 		var viewportHeight = $(document).height();
 		if(true || menuHeight > viewportHeight-100) { //This is forced to being collapsed atm because the expanded view is problematic in the way that the menuHeight grows very large in the collapsed mode (ironically)
 			$(m.anchor+" .l2-level").hide();
