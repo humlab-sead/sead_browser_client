@@ -101,9 +101,10 @@ class SiteReportChart {
 		tooltipHtml += "%v counts of %t (%plot-sum counts across all samples in this analysis)";
 		tooltipHtml += "</div>";
 
-		return {
+		let config = {
             "type": "hbar",
             "stacked": true,
+			"background-color": "#ffffff",
             "title":{
                 "text": chartTitle,
 				"adjustLayout": true,
@@ -129,7 +130,6 @@ class SiteReportChart {
             },
             "plotarea":{
                 "margin": "dynamic",
-				"margin-right": "25%",
             },
             "tooltip":{
 				"text": tooltipHtml,
@@ -176,6 +176,12 @@ class SiteReportChart {
             },
             "series": []
         };
+
+		if(legend) {
+			config.plotarea["margin-right"] = "25%";
+		}
+
+		return config;
 	}
 
 	getDendroMeasurementFromSample(dendroSample, measurementType) {
@@ -298,7 +304,7 @@ class SiteReportChart {
 			}
 		}
 
-		var config = this.getMultiStackConfig(chartTitle, true);
+		var config = this.getMultiStackConfig(chartTitle, false);
 		
 		//Aggregate so that a taxon contains all the sample abundances
 		this.taxa = []; //should maybe be called something like stackCategory to make it more generic?
