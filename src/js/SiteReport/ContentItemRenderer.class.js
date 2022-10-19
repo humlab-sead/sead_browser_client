@@ -1,4 +1,5 @@
 import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import SiteReportTable from './RenderModules/SiteReportTable.class';
 import SiteReportChart from './RenderModules/SiteReportChart.class';
 import DendroChart from './RenderModules/DendroChart.class';
@@ -19,7 +20,7 @@ class ContentItemRenderer {
 			datasetId = "<span class='dataset-id'>("+this.contentItem.name+")</span>";
 		}
 		
-		var headerNode = $("<div class='content-item-header-container'><h4><span class='this.contentItem-title'>"+this.contentItem.title+"</span>"+datasetId+"</h4></div>");
+		var headerNode = $("<div class='content-item-header-container'><h4><span class='contentItem-title'>"+this.contentItem.title+"</span>"+datasetId+"</h4></div>");
 		
 		let cicId = "cic-"+this.contentItem.name; //content-item-container id
 		//$("#site-report-section-"+section.name+" > .site-report-level-content").append(headerNode);
@@ -58,7 +59,7 @@ class ContentItemRenderer {
 
     renderContentItemTooltip(headerNode) {
         if(typeof this.contentItem.titleTooltip != "undefined" && this.contentItem.titleTooltip != "") {
-			this.sqs.tooltipManager.registerTooltip($(".this.contentItem-title", headerNode), this.contentItem.titleTooltip, { drawSymbol: true });
+			this.sqs.tooltipManager.registerTooltip($(".contentItem-title", headerNode), this.contentItem.titleTooltip, { drawSymbol: true });
 		}
     }
 
