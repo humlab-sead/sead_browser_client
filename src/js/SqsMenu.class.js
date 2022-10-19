@@ -7,7 +7,6 @@ Structure looks like this:
 var menu = {
 	title: "My Menu", //The name of the menu as it will be displayed in the UI
 	layout: "horizontal", //"horizontal" or "vertical" - the flow director of the menu items
-	expandHorizontally: false, //
 	collapsed: false, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
 	anchor: "#help-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
 	staticSelection: false, //whether a selected item remains highlighted or not, purely visual
@@ -83,7 +82,7 @@ class sqsMenu {
 		
 		if(init) {
 			this.renderMenuLabel(sqsMenuDef);
-			this.prepareMenu(sqsMenuDef);
+			this.renderMenu(sqsMenuDef);
 			this.bindCallbacks(sqsMenuDef);
 			this.registerTooltipBindings();
 		}
@@ -132,7 +131,7 @@ class sqsMenu {
 	* Function: renderMenu
 	*
 	*/
-	prepareMenu(m) {
+	renderMenu(m) {
 		var sqsMenuContainerDisplay = "inline-block";
 		var menuCategoryLevelClass = "l1-container-level l1-container-level-vertical";
 		if(m.layout == "horizontal") {
@@ -159,7 +158,6 @@ class sqsMenu {
 		var items = m.items;
 		for(var key in items) {
 			let l1Classes = "l1-container";
-			
 			if(typeof items[key].children != "undefined" && items[key].children.length > 0) {
 				//Disable parent clickity-ness
 				l1Classes += " l1-inactive";
@@ -179,14 +177,10 @@ class sqsMenu {
 			}
 			let span = $("<span></span>");
 			span.addClass(l1TitleClasses);
-			if(m.expandHorizontally) {
-				span.html("<div class='l1-tite-flex-container'>"+items[key].title+ " <span class='l1-arrow'>&#9650;</span></div>");
-			}
-			else {
-				span.html(items[key].title);
-			}
+			span.html(items[key].title);
 			firstLevelListItem.append(span);
 			menuFirstLevelList.append(firstLevelListItem);
+
 
 			if(items[key].children.length > 0) {
 				let menuSecondLevelList = $("<ul></ul>").attr("id", "menu-item-"+items[key].name).addClass("l2-level").css("border-left-color", "#000");
@@ -215,20 +209,11 @@ class sqsMenu {
 
 		this.bindMenuAnchor(m);
 		
-		$(m.anchor+" .l1-container").on(m.l2TriggerEvent, (event) => {
+		$(m.anchor+" .l1-container").on("click", (event) => { //replace this with mouseover if you like annoying menus
 			//$(m.anchor+" .l2-level", event.currentTarget).show();
-			if(m.expandHorizontally && m.mode == "collapsed") {
-				$(".l2-level").removeClass("l2-expanded");
-				$(".l2-level", event.currentTarget).addClass("l2-expanded");
-				$(".l2-level", event.currentTarget).show();
-				m.activeL1 = $(event.currentTarget).attr("name");
-			}
-			else {
-				$(".l2-level").removeClass("l2-expanded");
-				$(".l2-level").hide();
-				$(".l2-level", event.currentTarget).show();
-				m.activeL1 = $(event.currentTarget).attr("name");
-			}
+			$(".l2-level").hide();
+			$(".l2-level", event.currentTarget).show();
+			m.activeL1 = $(event.currentTarget).attr("name");
 		});
 		
 		for(var key in m.items) {
@@ -247,12 +232,13 @@ class sqsMenu {
 			$(m.anchor+" > .sqs-menu-title-container").on("mouseover", () => {
 				console.log("sqsMenu anchor 1");
 				clearTimeout(m.closeTimeout);
-				this.renderMenu(m);
+				this.showMenu(m);
 			});
 
 			$(m.anchor+" > .l1-container-level").on("mouseover", () => {
+				console.log("sqsMenu anchor 2");
 				clearTimeout(m.closeTimeout);
-				this.renderMenu(m);
+				this.showMenu(m);
 			});
 
 			if(typeof m.auxTriggers != "undefined") {
@@ -260,26 +246,32 @@ class sqsMenu {
 					$(m.auxTriggers[key].selector).on(m.auxTriggers[key].on, () => {
 						console.log("sqsMenu anchor 3");
 						clearTimeout(m.closeTimeout);
-						this.renderMenu(m);
+						this.showMenu(m);
 					});
 				}
 			}
 
+			//This closes the menu if clicked outside it
+			$(document).on("click", (evt) => {
+				var target = $(evt.target);
+				if(!target.closest(m.anchor).length && 
+				$(m.anchor).is(":visible")) {
+					this.closeMenu(m);
+  				}
+			});
+
 			$(m.anchor).on("mouseleave", () => {
 				if(m.collapsed) {
 					//this.closeMenu(m);
-					
 					m.closeTimeout = setTimeout(() => {
 						this.closeMenu(m);
-					}, 100);
-					
+					}, 5000);
 				}
 			});
 		}
 	}
 
-	renderMenu(m) {
-		$(this.menuItemsContainerSelector+" > .l1-container-level").css("display", displayMode);
+	showMenu(m) {
 		$(".sqs-menu-title-container", m.anchor).addClass("sqs-menu-block-active");
 
 		var displayMode = "flex";
@@ -295,34 +287,20 @@ class sqsMenu {
 			$(m.anchor+" .l1-container-level").css("right", "0px");
 		}
 		
-		//$(".l2-level").removeClass("l2-expanded");
-		$(".l2-expanded").hide();
 		$(m.anchor+" .l2-level").show();
 		
 		var menuHeight = $(m.anchor+" .l1-container-level").height();
 		var viewportHeight = $(document).height();
-		if(true || menuHeight > viewportHeight-100) { //This is forced to being collapsed atm because the expanded view is problematic in the way that the menuHeight grows very large in the collapsed mode (ironically)
+		if(menuHeight > viewportHeight-100) {
 			$(m.anchor+" .l2-level").hide();
 			if(typeof m.activeL1 != "undefined") { //If menu was closed with a L2-level open, remember that choice
 				$(m.anchor+" .l1-container[name='"+m.activeL1+"'] .l2-level").show();
 			}
-			m.mode = "collapsed";
 		}
 		else {
 			$(m.anchor+" .l2-level").show();
-			m.mode = "expanded";
 		}
 
-		if(m.expandHorizontally && m.mode == "collapsed") {
-			$(".l1-arrow").css("visibility", "visible");
-		}
-		else {
-			$(".l2-level").removeClass("l2-expanded");
-			$(".l1-arrow").css("visibility", "hidden");
-		}
-
-		let l1Width = $(m.anchor+" .l1-container-level").width();
-		$(".l2-expanded").css("margin-left", l1Width);
 	}
 	
 	/*
@@ -450,12 +428,6 @@ class sqsMenu {
 		}
 		if(typeof(menuDef.layout) == "undefined") {
 			menuDef.layout = "vertical";
-		}
-		if(typeof(menuDef.l2TriggerEvent) == "undefined") {
-			menuDef.l2TriggerEvent = "click";
-		}
-		if(typeof(menuDef.expandHorizontally) == "undefined") {
-			menuDef.expandHorizontally = false;
 		}
 		if(typeof(menuDef.title) == "undefined") {
 			menuDef.collapsed = true;
