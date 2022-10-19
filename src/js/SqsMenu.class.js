@@ -251,21 +251,23 @@ class sqsMenu {
 				}
 			}
 
-			//This closes the menu if clicked outside it
-			$(document).on("click", (evt) => {
-				var target = $(evt.target);
-				if(!target.closest(m.anchor).length && 
-				$(m.anchor).is(":visible")) {
-					this.closeMenu(m);
-  				}
-			});
-
 			$(m.anchor).on("mouseleave", () => {
 				if(m.collapsed) {
-					//this.closeMenu(m);
+					console.log(m)
+					if(m.anchor == "#facet-menu") {
+						m.closeTimeout = setTimeout(() => {
+							this.closeMenu(m);
+						}, 2000);	
+					}
+					else {
+						this.closeMenu(m);
+					}
+					
+					/*
 					m.closeTimeout = setTimeout(() => {
 						this.closeMenu(m);
-					}, 5000);
+					}, 500);
+					*/
 				}
 			});
 		}
