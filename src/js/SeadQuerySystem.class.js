@@ -1,3 +1,4 @@
+import Config from '../config/config.json';
 import Color from './Color.class.js';
 import FacetManager from './FacetManager.class.js';
 import SqsLayoutManager from './SqsLayoutManager.class.js';
@@ -125,9 +126,12 @@ class SeadQuerySystem {
 		$("#header-container").css("display", "flex");
 
 		this.color = new Color();
-		let colors = this.color.getColorScheme(22);
 		for(let key in this.bugsEcoCodeDefinitions) {
-			this.bugsEcoCodeDefinitions[key].color = colors[key];
+			for(let colorKey in Config.ecocodeColors) {
+				if(Config.ecocodeColors[colorKey].ecocode_definition_id == this.bugsEcoCodeDefinitions[key].ecocode_definition_id) {
+					this.bugsEcoCodeDefinitions[key].color = Config.ecocodeColors[colorKey].color;
+				}
+			}
 		}
 		this.stateManager = new StateManager(this);
 		var viewstate = this.stateManager.getViewstateIdFromUrl();
