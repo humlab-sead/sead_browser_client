@@ -42,6 +42,108 @@
 		"00ffff",
 		"0000ff"
 	],
+	"ecocodeColors": [
+		{
+			"ecocode_definition_id": 284,
+			"name": "aquatics",
+			"color": "#0000fe"
+		},
+		{
+			"ecocode_definition_id": 285,
+			"name": "indicators: standing water",
+			"color": "#6898fa"
+		},
+		{
+			"ecocode_definition_id": 287,
+			"name": "pasture/dung",
+			"color": "#653332"
+		},
+		{
+			"ecocode_definition_id": 288,
+			"name": "meadowland",
+			"color": "#cccd33"
+		},
+		{
+			"ecocode_definition_id": 289,
+			"name": "wood & trees",
+			"color": "#006634"
+		},
+		{
+			"ecocode_definition_id": 290,
+			"name": "indicators: deciduous",
+			"color": "#003334"
+		},
+		{
+			"ecocode_definition_id": 292,
+			"name": "wetlands/marshes",
+			"color": "#6766cc"
+		},
+		{
+			"ecocode_definition_id": 293,
+			"name": "open wet habitats",
+			"color": "#00ccff"
+		},
+		{
+			"ecocode_definition_id": 294,
+			"name": "disturbed/arable",
+			"color": "#ff9934"
+		},
+		{
+			"ecocode_definition_id": 295,
+			"name": "sandy/dry",
+			"color": "#ff6600"
+		},
+		{
+			"ecocode_definition_id": 296,
+			"name": "dung/foul habitats",
+			"color": "#653332"
+		},
+		{
+			"ecocode_definition_id": 297,
+			"name": "carrion",
+			"color": "#fe0000"
+		},
+		{
+			"ecocode_definition_id": 298,
+			"name": "indicators: dung",
+			"color": "#653332"
+		},
+		{
+			"ecocode_definition_id": 299,
+			"name": "mould beetles",
+			"color": "#808080"
+		},
+		{
+			"ecocode_definition_id": 300,
+			"name": "general synantropic",
+			"color": "#000000"
+		},
+		{
+			"ecocode_definition_id": 301,
+			"name": "stored grain pest",
+			"color": "#9900cc"
+		},
+		{
+			"ecocode_definition_id": 302,
+			"name": "dry dead wood",
+			"color": "#ff99cb"
+		},
+		{
+			"ecocode_definition_id": 303,
+			"name": "heatland & moorland",
+			"color": "#cb99cc"
+		},
+		{
+			"ecocode_definition_id": 304,
+			"name": "halotolerant",
+			"color": "#996533"
+		},
+		{
+			"ecocode_definition_id": 305,
+			"name": "ectoparasites",
+			"color": "#990100"
+		}
+	],
 	"activeDomain":"general",
 	"domains":[
 		{
