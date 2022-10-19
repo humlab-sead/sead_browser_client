@@ -87,10 +87,9 @@ class AbundanceDataset extends DatasetModule {
 		*/
 		
 		let ecoCodeContentItem = {
-			"name": "generated-"+nanoid(4),
+			"name": "ci-"+nanoid(),
 			"title": "Eco codes",
-			"titleTooltip": "BUGS eco codes",
-			"datasetId": "generated-"+nanoid(4),
+			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
 			"data": {
 				"columns": [
 					{
@@ -207,10 +206,9 @@ class AbundanceDataset extends DatasetModule {
 		*/
 		
 		let ecoCodeContentItem = {
-			"name": "generated-"+nanoid(4),
+			"name": "contentItem-"+nanoid(),
 			"title": "Eco codes per sample",
-			"titleTooltip": "BUGS eco codes",
-			"datasetId": "generated-"+nanoid(4),
+			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
 			"data": {
 				"columns": [
 					{
@@ -397,6 +395,10 @@ class AbundanceDataset extends DatasetModule {
 
 		let methodDatasets = this.claimDatasets(siteData);
 
+		if(methodDatasets.length == 0) {
+			return;
+		}
+		
 		let siteEcoCodeContentItem = await this.getSiteEcoCodeContentItem(siteData);
 		let siteSamplesEcoCodeContentItem = await this.getSamplesEcoCodeContentItem(siteData);
 
