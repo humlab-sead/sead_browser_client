@@ -21,7 +21,6 @@ class DatingToPeriodDataset extends DatasetModule {
 		this.section = analysis.section;
 
 		this.methodIds = [];
-		//this.methodGroupId = 19; //Selecting everything in "Dating to period" method group
 		this.methodGroupIds = [19, 20]
 		this.methodMetaDataFetchingComplete = false;
 
@@ -234,15 +233,6 @@ class DatingToPeriodDataset extends DatasetModule {
 						"name": "Spreadsheet",
 						"selected": true,
 						"type": "table",
-						"options": [
-							{
-								"name": "columnsVisibility",
-								"hiddenColumns": [
-									3
-								],
-								"showControls": false
-							}
-						]
 					}
 				]
 			};
