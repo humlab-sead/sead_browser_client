@@ -188,6 +188,7 @@ class CeramicDataset extends DatasetModule {
 
 	async makeSection(siteData, sections) {
 		let datasets = this.claimDatasets(siteData);
+		//console.log(datasets);
 	}
 
 	buildSection(dsGroups) {

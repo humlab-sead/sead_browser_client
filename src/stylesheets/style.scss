@@ -618,7 +618,7 @@ h1.main-header {
   grid-template-areas: 
             "a b c c"
             "d e h h"
-            "f f f g";
+            "f f i g";
 }
 
 /*
@@ -640,10 +640,16 @@ h1.main-header {
   overflow: auto;
   max-height: 100%;
   max-width: 100%;
+  justify-content: center;
 }
 
-.result-taxon-image-container-2-col {
-  grid-template-columns: 1fr 1fr !important;
+#result-taxon-image-container .no-images-message-box {
+  display: flex;
+  margin-top:2em;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
 #result-taxon-image-container div {
@@ -664,7 +670,7 @@ h1.main-header {
 #result-taxon-image-container img {
   display: block;
   border: 1px solid #ccc;
-  width: 100%;
+  width: 90%;
   object-fit: contain;
 }
 
@@ -1565,6 +1571,10 @@ polyline{
   background-color: $aux-color !important;
 }
 
+#facet-menu :hover  {
+  background-color: lighten($aux-color, 10%) !important;
+}
+
 #facet-menu > .menu-category-level {
   left: 0px;
 }
@@ -2246,4 +2256,18 @@ svg text {
   background: $pane-bg-color;
   padding: 1em;
   margin-bottom: 1em;
+}
+
+.rcb-ecocodes-container {
+  display: flex;
+  justify-content: flex-start;
+  column-gap: 2em;
+}
+
+.ecocode-color-box {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: .5em;
+  border: 1px solid grey;
 }

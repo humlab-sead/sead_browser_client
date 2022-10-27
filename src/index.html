@@ -194,7 +194,6 @@
             <h3>
               <div>
                 Species
-              <i class="fa fa-book"></i>
               </div>
             </h3>
             
@@ -202,8 +201,11 @@
             </div>
             <br />
             <div id="result-taxon-image-container">
-              <i class="fa fa-picture-o" aria-hidden="true"></i>
-              No image available
+              <div class="no-images-message-box">
+                <i class="fa fa-picture-o" aria-hidden="true"></i>
+                <br/>
+                <h4>No images available</h4>
+              </div>
             </div>
 
           </div>
@@ -213,9 +215,8 @@
               <div>
                 Measureable attributes
               </div>
-              <i class="fa fa-book"></i>
             </h3>
-            <div id="rcb-measurable-attributes">
+            <div id="rcb-measurable-attributes" class="text">
             </div>
           </div>
 
@@ -224,7 +225,6 @@
               <div>
                 Seasonality
               </div>
-              <i class="fa fa-book"></i>
             </h3>
 
             <div id="rcb-seasonlity-year-wheels"></div>
@@ -241,7 +241,6 @@
               <div>
                 Taxonomic notes
               </div>
-              <i class="fa fa-book"></i>
             </h3>
             <div id="rcb-taxonomic-notes" class="text">
             </div>
@@ -252,7 +251,6 @@
               <div>
                 Rarity
               </div>
-              <i class="fa fa-book"></i>
             </h3>
 
             <div class="text">
@@ -270,7 +268,6 @@
               <div>
                 Biology
               </div>
-              <i class="fa fa-book"></i>
             </h3>
             <div id="rcb-biology" class="text"></div>            
           </div>
@@ -280,7 +277,6 @@
               <div>
                 Distribution
               </div>
-              <i class="fa fa-book"></i>
             </h3>
             <div id="rcb-distribution" class="text"></div>
           </div>
@@ -290,8 +286,8 @@
               <div>
                 Ecology Summary
               </div>
-              <i class="fa fa-book"></i>
             </h3>
+            <div id="rcb-ecology-summary" class="text"></div>
           </div>
 
           <div class="result-content-box" style="grid-area: g;">
@@ -299,8 +295,8 @@
               <div>
                 Species Association
               </div>
-              <i class="fa fa-book"></i>
             </h3>
+            <div id="rcb-species-association" class="text"></div>
           </div>
 
         </div>

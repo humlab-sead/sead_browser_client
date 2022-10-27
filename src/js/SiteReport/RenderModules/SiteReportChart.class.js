@@ -833,7 +833,7 @@ class SiteReportChart {
 		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
-		new Chart(
+		let c = new Chart(
 			document.getElementById(this.chartId),
 			config
 		);

@@ -53,6 +53,27 @@ class DatasetModule {
 		//console.log(siteData, sections);
 	}
 
+	getSectionByMethodId(methodId, sections) {
+		for(let key in sections) {
+			if(sections[key].name == methodId) {
+				return sections[key];
+			}
+		}
+		return null;
+	}
+
+	getAnalysisMethodMetaById(siteData, methodId) {
+		if(typeof siteData.lookup_tables.analysis_methods == "undefined") {
+			return null;
+		}
+		for(let key in siteData.lookup_tables.analysis_methods) {
+			if(siteData.lookup_tables.analysis_methods[key]) {
+				if(siteData.lookup_tables.analysis_methods[key].method_id == methodId) {
+					return siteData.lookup_tables.analysis_methods[key];
+				}
+			}
+		}
+	}
 }
 
 export default DatasetModule;

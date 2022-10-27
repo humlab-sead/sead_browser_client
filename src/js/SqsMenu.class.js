@@ -85,10 +85,8 @@ class sqsMenu {
 			this.renderMenu(sqsMenuDef);
 			this.bindCallbacks(sqsMenuDef);
 			this.registerTooltipBindings();
-		}
-		
+		}	
 	}
-	
 	
 	/*
 	* Function: renderMenuLabel
@@ -229,47 +227,40 @@ class sqsMenu {
 
 	bindMenuAnchor(m) {
 		if(m.items.length > 0) {
-			$(m.anchor+" > .sqs-menu-title-container").on("mouseover", () => {
-				console.log("sqsMenu anchor 1");
-				clearTimeout(m.closeTimeout);
+			$(m.anchor+" > .sqs-menu-title-container").on(m.anchorTriggerEvent, () => {
+				//console.log("sqsMenu anchor 1");
 				this.showMenu(m);
 			});
 
 			$(m.anchor+" > .l1-container-level").on("mouseover", () => {
-				console.log("sqsMenu anchor 2");
-				clearTimeout(m.closeTimeout);
+				//console.log("sqsMenu anchor 2");
 				this.showMenu(m);
 			});
 
 			if(typeof m.auxTriggers != "undefined") {
 				for(let key in m.auxTriggers) {
 					$(m.auxTriggers[key].selector).on(m.auxTriggers[key].on, () => {
-						console.log("sqsMenu anchor 3");
-						clearTimeout(m.closeTimeout);
+						//console.log("sqsMenu anchor 3");
 						this.showMenu(m);
 					});
 				}
 			}
 
-			$(m.anchor).on("mouseleave", () => {
-				if(m.collapsed) {
-					console.log(m)
-					if(m.anchor == "#facet-menu") {
-						m.closeTimeout = setTimeout(() => {
-							this.closeMenu(m);
-						}, 2000);	
-					}
-					else {
+			if(m.anchorTriggerEvent == "mouseover" && m.collapsed) {
+				$(m.anchor).on("mouseleave", () => {
+					this.closeMenu(m);
+				});
+			}
+			if(m.anchorTriggerEvent == "click") {
+				//trigger close menu on click on an item or clicking outside it
+				$(document).on("click", (evt) => {
+					let target = $(evt.target);
+					if(!target.closest(m.anchor).length && $(m.anchor).is(":visible")) {
 						this.closeMenu(m);
 					}
-					
-					/*
-					m.closeTimeout = setTimeout(() => {
-						this.closeMenu(m);
-					}, 500);
-					*/
-				}
-			});
+				});
+			}
+			
 		}
 	}
 
@@ -419,6 +410,9 @@ class sqsMenu {
 	*/
 	normalizeMenuDef(menuDef) {
 
+		if(typeof menuDef.anchorTriggerEvent == "undefined") {
+			menuDef.anchorTriggerEvent = "mouseover";
+		}
 		if(typeof(menuDef) == "undefined") {
 			return false;
 		}

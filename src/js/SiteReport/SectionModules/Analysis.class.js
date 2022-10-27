@@ -454,6 +454,18 @@ class Analysis {
 		return false;
 	}
 
+	getSampleBySampleId(siteData, physicalSampleId) {
+		for(let key in siteData.sample_groups) {
+			let sg = siteData.sample_groups[key];
+			for(let skey in sg.physical_samples) {
+				if(sg.physical_samples[skey].physical_sample_id == physicalSampleId) {
+					return sg.physical_samples[skey];
+				}
+			}
+		}
+		return null;
+	}
+
 	async fetchRelativeAgesByAnalysisEntityId(analysisEntityId) {
 		let relativeDates = null;
 

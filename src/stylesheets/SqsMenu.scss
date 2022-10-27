@@ -178,6 +178,7 @@
 */
 
 #facet-menu .l2-title {
+  background-color: $pane-bg-color !important;
   /*
   border-left: 2px solid #fff;
   */
@@ -278,16 +279,14 @@ li.l1-container:hover {
 
 .l2-title { /* .menu-item */
 	padding-left:25px;
-  padding-right:5px;
+  padding-right: 5px;
   padding-bottom: 3px;
   padding-top: 3px;
-  cursor:pointer;
+  cursor: pointer;
   font-size: 16px;
   /*background-color: #666;*/
-
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
-
 
 .l2-title:hover {
   background-color: $base-color-light;
@@ -381,7 +380,6 @@ li.l1-container:hover {
   .l1-container {
     background-color: #ddd;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    
   }
   .l1-title {
     font-size: 1.0rem;

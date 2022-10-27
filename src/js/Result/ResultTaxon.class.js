@@ -20,7 +20,7 @@ class ResultTaxon extends ResultModule {
 		this.resultManager = resultManager;
 		this.sqs = resultManager.sqs;
 		this.name = "taxon";
-		this.prettyName = "Taxon";
+		this.prettyName = "Species";
 		this.icon = "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>";
 		this.maxRenderCount = 100000;
 		this.hasCurrentData = false;
@@ -172,10 +172,6 @@ class ResultTaxon extends ResultModule {
 		});
 	}
 
-	update() {
-		console.warn("taxon update - stub!");
-	}
-
 	/**
 	 * groupByAttribute
 	 * 
@@ -230,7 +226,7 @@ class ResultTaxon extends ResultModule {
 
 		let gbifData = await fetch("https://api.gbif.org/v1/species/match?verbose=true&family="+family+"&genus="+genus).then(response => response.json());
 		
-		console.log(gbifData);
+		//console.log(gbifData);
 
 		// https://api.gbif.org/v1/species/2015780
 		
@@ -238,51 +234,169 @@ class ResultTaxon extends ResultModule {
 
 		let gbifMedia = await fetch("https://api.gbif.org/v1/species/"+gbifData.genusKey+"/media").then(response => response.json());
 
-		console.log(gbifMedia)
-
-		
-
 		return gbifMedia;
 	}
 
-	/*
-	* Function: renderData
-	*/
-	async renderData(taxonId = null) {
+	async fetchEolImages(taxonData) {
+		//console.log(taxonData);
+		let family = taxonData.family.family_name.toLowerCase();
+		let genus = taxonData.genus.genus_name.toLowerCase();
+		let species = taxonData.species.toLowerCase();
 
-		let taxaFacet = this.sqs.facetManager.getFacetByName("species");
-		//taxaFacet.selections
+		return new Promise((resolve, reject) => {
+			fetch("https://eol.org/api/search/1.0.json?q="+genus+"%20"+species+"&page=1&key=").then(response => response.json()).then(eolResponse => {
+				//console.log(eolResponse);
+				if(eolResponse.results.length < 5) {
+					eolResponse.results.forEach(eolSpecies => {
+						fetch("https://eol.org/api/pages/1.0/"+eolSpecies.id+".json?details=true&images_per_page=10").then(response => response.json()).then(eolSpeciesResponse => {
+							//console.log(eolSpeciesResponse);
+							resolve(eolSpeciesResponse);
+							/*
+							images = eolSpeciesResponse.dataObjects;
+							eolSpeciesResponse.dataObjects.forEach(eolDataObject => {
+								eolDataObject.eolThumbnailURL;
+								images.push();
+							});
+							*/
+						});
+					});
+				}
+				else {
+					let msg = "EOL returned too many hits in species search ("+eolResponse.results.length+"), not going to fetch images.";
+					console.warn(msg);
+					reject(msg);
+				}
+				
+			});
+		});
 
-		if(taxonId != null) {
-			this.taxonId = taxonId;
-		}
+		//fetch("https://eol.org/api/pages/1.0/1172877.json?details=true&images_per_page=10");
+	}
 
-		console.log("taxon - renderData", this.taxonId);
-
-		if(this.taxonId == null) {
-			this.taxonId = 31907
-			this.taxonId = 18054;
-			//this.taxonId = 350;
-			this.taxonId = 39708;
-			this.taxonId = 30652;
-			//return;
-		}
-
-		this.resultManager.renderMsg(false);
-
-		const fragment = document.getElementById("result-taxon-container-content-template");
-		const instance = document.importNode(fragment.content, true);
-		
-		let taxonData = await fetch(Config.dataServerAddress+'/taxon/'+this.taxonId).then(response => response.json());
-
-		console.log(taxonData);
-
+	renderSpecies(container, taxonData) {
 		let taxonSpecString = this.sqs.formatTaxon(taxonData);
+		const maxImages = 15;
+		/*
+		this.fetchGbifImages(taxonData).then(gbifMedia => {
+			console.log(gbifMedia)
+			let html = "";
+			let imageCount = 0;
+			let imageFiles = [];
+			gbifMedia.results.forEach(media => {
+				//Make sure that we haven't already rendered one copy of this image because sometimes gbif returns multiple of the same image
+				if(imageCount < maxImages && !imageFiles.includes(media.identifier)) {
+					html += "<img src='"+media.identifier+"'/>";
+					imageFiles.push(media.identifier);
+					imageCount++;
+				}
+			});
 
-		$("#rcb-species-value", instance).html(taxonSpecString);
+			if(gbifMedia.results.length > 0) {
+				$("#result-taxon-image-container").html(html);
+			}
+		});
+		*/
 
+		this.fetchEolImages(taxonData).then(eolResponse => {
+			console.log(eolResponse);
+			if(typeof eolResponse.taxonConcept.dataObjects != "undefined") {
 
-		let measurableAttributesHtml = "";
+			}
+		});
+
+		$("#rcb-species-value", container).html(taxonSpecString);
+		
+	}
+
+	getSelectedSpecies() {
+		let selectedSpecies = null;
+		let taxaFacet = this.sqs.facetManager.getFacetByName("species");
+		if(taxaFacet != null) {
+			if(taxaFacet.selections.length > 0) {
+				selectedSpecies = taxaFacet.selections[taxaFacet.selections.length-1];
+			}
+		}
+		return selectedSpecies;
+	}
+
+	update() {
+		this.renderData();
+	}
+
+	renderSpeciesAssociation(container, taxonData) {
+		let html = "<ul>";
+		taxonData.species_associations.forEach(assoc => {
+			let assocTypeName = assoc.association_type_name.charAt(0).toUpperCase() + assoc.association_type_name.slice(1);
+			html += "<li>"+assocTypeName+" species <span id='assoc-species-"+assoc.associated_taxon_id+"'>"+assoc.associated_taxon_id+"</span></li>";
+		});
+		html += "</ul>";
+
+		fetch(Config.dataServerAddress+'/taxon/'+taxonData.taxon_id)
+			.then((response) => response.json())
+			.then((taxon) => {
+				let formattedSpecies = this.sqs.formatTaxon(taxon, null, true);
+				$("#assoc-species-"+taxon.taxon_id).html(formattedSpecies);
+			});
+
+		$("#rcb-species-association", container).append(html);
+	}
+
+	renderEcologySummary(container, taxonData) {
+
+		let bugsEcocodes = taxonData.ecocodes.filter(ecocode =>  {
+			return typeof ecocode.definition != "undefined" && ecocode.definition.ecocode_group_id == 2;
+		});
+		let kochEcocodes = taxonData.ecocodes.filter(ecocode =>  {
+			return typeof ecocode.definition != "undefined" && ecocode.definition.ecocode_group_id == 3;
+		});
+
+		let ecologyHtml = "<div class='rcb-ecocodes-container'>";
+		ecologyHtml += "<div class='bugs-ecocodes'>";
+		ecologyHtml += "<h4>Bugs EcoCodes</h4>";
+		bugsEcocodes.forEach(bugsCode => {
+			let codeColor = "#000";
+			for(let key in Config.ecocodeColors) {
+				if(bugsCode.definition.ecocode_definition_id == Config.ecocodeColors[key].ecocode_definition_id) {
+					codeColor = Config.ecocodeColors[key].color;
+				}
+			}
+			let ttId = "tt-"+nanoid();
+			ecologyHtml += "<div id='"+ttId+"'>";
+			ecologyHtml += "<div class='ecocode-color-box' style='background-color:"+codeColor+";'></div>";
+			ecologyHtml += bugsCode.definition.name+" ("+bugsCode.definition.abbreviation+")";
+			ecologyHtml += "</div>";
+
+			let tooltipContent = "<h4 class='tooltip-header'>Bugs EcoCode - "+bugsCode.definition.name+"</h4><hr/>";
+			tooltipContent += "Definition: "+bugsCode.definition.definition+"<br/>Abbreviation: "+bugsCode.definition.abbreviation+"<br/><br/>Notes:<br/>"+bugsCode.definition.notes;
+			this.sqs.tooltipManager.registerTooltip("#"+ttId, tooltipContent, {drawSymbol:true});
+		});
+		ecologyHtml += "</div>";
+
+		ecologyHtml += "<div class='koch-ecocodes'>";
+		ecologyHtml += "<h4>Koch EcoCodes</h4>";
+		kochEcocodes.forEach(kochCode => {
+			let codeName = kochCode.definition.name.charAt(0).toUpperCase() + kochCode.definition.name.slice(1);
+			let codeColor = "#000";
+			let ttId = "tt-"+nanoid();
+			ecologyHtml += "<div id='"+ttId+"'>";
+			ecologyHtml += "<div class='ecocode-color-box' style='background-color:"+codeColor+";'></div>";
+			ecologyHtml += codeName+" ("+kochCode.definition.abbreviation+")";
+			ecologyHtml += "</div>";
+
+			//let tooltipContent = codeName+" "+kochCode.definition.abbreviation;
+			let tooltipContent = "<h4 class='tooltip-header'>Koch EcoCode - "+codeName+"</h4><hr/>";
+			tooltipContent += "Abbreviation: "+kochCode.definition.abbreviation;
+			this.sqs.tooltipManager.registerTooltip("#"+ttId, tooltipContent, {drawSymbol:true});
+		});
+		ecologyHtml += "</div>";
+
+		ecologyHtml += "</div>";
+
+		$("#rcb-ecology-summary", container).append(ecologyHtml);
+	}
+
+	renderMeasurableAttributes(container, taxonData) {
+		let measurableAttributesHtml = "<ul>";
 		taxonData.measured_attributes.forEach(attr => {
 			let value = attr.data;
 			if(parseFloat(value)) {
@@ -290,10 +404,14 @@ class ResultTaxon extends ResultModule {
 			}
 			//First letter to lower-case
 			let atttributeType = attr.attribute_type.charAt(0).toLowerCase() + attr.attribute_type.slice(1);
-			measurableAttributesHtml += "<div>"+attr.attribute_measure+" "+atttributeType+" "+value+" "+attr.attribute_units+"</div>";
+			let attributeMeasure = attr.attribute_measure.charAt(0).toUpperCase() + attr.attribute_measure.slice(1);
+			measurableAttributesHtml += "<li>"+attributeMeasure+" "+atttributeType+" "+value+" "+attr.attribute_units+"</li>";
 		});
-		$("#rcb-measurable-attributes", instance).html(measurableAttributesHtml);
+		measurableAttributesHtml += "</ul>";
+		$("#rcb-measurable-attributes", container).html(measurableAttributesHtml);
+	}
 
+	renderTaxonomicNotes(container, taxonData) {
 		let taxaNotesHtml = "";
 		taxonData.taxonomy_notes.forEach(taxaNote => {
 
@@ -309,7 +427,47 @@ class ResultTaxon extends ResultModule {
 			//registerTooltip(anchor, msg, options = {})
 			//this.sqs.tooltipManager.registerTooltip("#rcb-taxonomic-notes", "Hello!");
 		});
-		$("#rcb-taxonomic-notes", instance).html(taxaNotesHtml);
+		$("#rcb-taxonomic-notes", container).html(taxaNotesHtml);
+	}
+
+	/*
+	* Function: renderData
+	*/
+	async renderData() {
+		let taxonId = this.getSelectedSpecies();
+		if(taxonId != null) {
+			this.taxonId = taxonId;
+		}
+
+		console.log("taxon - renderData", this.taxonId);
+
+		if(this.taxonId == null) {
+			this.taxonId = 31907
+			this.taxonId = 18054;
+			//this.taxonId = 350;
+			this.taxonId = 39708;
+			this.taxonId = 30652;
+			this.taxonId = 34877;
+			//this.taxonId = 33465;
+			this.taxonId = 30124;
+			this.taxonId = 34145;
+			//return;
+		}
+
+		this.resultManager.renderMsg(false);
+
+		const fragment = document.getElementById("result-taxon-container-content-template");
+		const instance = document.importNode(fragment.content, true);
+		
+		let taxonData = await fetch(Config.dataServerAddress+'/taxon/'+this.taxonId).then(response => response.json());
+		this.renderSpecies(instance, taxonData);
+		this.renderSpeciesAssociation(instance, taxonData);		
+		this.renderEcologySummary(instance, taxonData);
+		this.renderMeasurableAttributes(instance, taxonData);
+		this.renderTaxonomicNotes(instance, taxonData);
+
+		console.log(taxonData)
+		
 
 		let distHtml = "";
 		taxonData.distribution.forEach(dist => {
@@ -363,14 +521,16 @@ class ResultTaxon extends ResultModule {
 		$('#result-taxon-container').append(instance);
 		$('#result-taxon-container').show();
 
+
+		/*
 		if(!Config.useExternalTaxonApis) {
 			$("#result-taxon-image-container").html("");
 			$("#result-taxon-image-container").addClass("result-taxon-image-container-2-col");
-			/*
-			$("#result-taxon-image-container").append("<div><img src='/figure1.png' /></div>");
-			$("#result-taxon-image-container").append("<div><img src='/figure2.png' /></div>");
-			$("#result-taxon-image-container").append("<div><img src='/figure3.png' /></div>");
-			*/
+			
+			//$("#result-taxon-image-container").append("<div><img src='/figure1.png' /></div>");
+			//$("#result-taxon-image-container").append("<div><img src='/figure2.png' /></div>");
+			//$("#result-taxon-image-container").append("<div><img src='/figure3.png' /></div>");
+			
 		}
 		else {
 			this.fetchGbifImages(taxonData).then(gbifMedia => {
@@ -385,6 +545,7 @@ class ResultTaxon extends ResultModule {
 				});
 			});
 		}
+		*/
 
 		seasonalityGroups.forEach(group => {
 			this.renderYearWheel(group.domId, group.items);

@@ -412,6 +412,8 @@ class RadioMetricDatingDataset extends DatasetModule {
 
 	async makeSection(siteData, sections) {
 		//console.log(siteData, sections);
+		let datasets = this.claimDatasets(siteData);
+		//console.log(datasets);
 	}
 
 	/* Function: buildSection
