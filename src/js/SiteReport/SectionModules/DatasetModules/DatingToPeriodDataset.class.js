@@ -1,4 +1,3 @@
-import { inArray } from "jquery";
 import { nanoid } from "nanoid";
 import DatasetModule from "./DatasetModule.class";
 /*
@@ -12,7 +11,6 @@ class DatingToPeriodDataset extends DatasetModule {
 		this.sqs = analysis.sqs;
 		this.analysis = analysis;
 		this.data = analysis.data;
-		this.taxonPromises = [];
 		this.analyses = [];
 		this.datasetFetchPromises = [];
 		this.offeredDatasets = [];
@@ -30,13 +28,12 @@ class DatingToPeriodDataset extends DatasetModule {
         	this.metaDataFetchingPromises.push(this.analysis.fetchMethodsInGroup(this.methodGroupIds[key]));
 		}
 
-        
-
 		Promise.all(this.metaDataFetchingPromises).then(() => {
 			this.methodMetaDataFetchingComplete = true;
 		});
 	}
 
+	/*
 	getSection(sectionData) {
 		let sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", sectionData.name);
 		if(sectionKey === false) {
@@ -47,6 +44,7 @@ class DatingToPeriodDataset extends DatasetModule {
 
 		return this.section.sections[sectionKey];
 	}
+	*/
 
 	getSection(sectionName) {
 		let sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", sectionName);
@@ -242,7 +240,7 @@ class DatingToPeriodDataset extends DatasetModule {
 
 	}
 
-	formatAge(younger, older) {
+	formatAge(older, younger) {
 		if(younger && older) {
 			return parseFloat(older)+" - "+parseFloat(younger)+" BP";
 		}
@@ -444,7 +442,6 @@ class DatingToPeriodDataset extends DatasetModule {
 	* Function: destroy
 	*/
 	destroy() {
-		this.sqs.sqsEventUnlisten("taxaFetchingComplete-"+this.analysisData.datasetId, this);
 	}
 }
 
