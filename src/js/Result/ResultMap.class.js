@@ -315,17 +315,21 @@ class ResultMap extends ResultModule {
 		}).data;
 
 		if(this.timeline != null) {
-			this.data = this.timeline.makeFakeTimeData(this.data); //FIXME: REMOVE THIS WHEN THERE IS DATA AVAILABLE
+			//this.data = this.timeline.makeFakeTimeData(this.data); //FIXME: REMOVE THIS WHEN THERE IS DATA AVAILABLE
+			this.timeline.fetchTimeData(this.data).then(d => {
+				this.data = d;
+				if(renderMap) {
+					this.renderMap();
+					this.renderVisibleDataLayers();
+					if(Config.timelineEnabled && this.includeTimeline) {
+						this.timeline.render();
+					}
+					this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
+				}
+			});
 		}
 
-		if(renderMap) {
-			this.renderMap();
-			this.renderVisibleDataLayers();
-			if(Config.timelineEnabled && this.includeTimeline) {
-				this.timeline.render();
-			}
-			this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
-		}
+		
 	}
 
 	async update() {

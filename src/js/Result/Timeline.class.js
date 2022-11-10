@@ -11,7 +11,9 @@ import {
 	BarElement,
 	Legend,
 	Tooltip,
-	LineController
+	LineController,
+	PointElement,
+	LineElement
  } from "chart.js";
 
 
@@ -41,10 +43,14 @@ class Timeline {
 		Chart.register(Legend);
 		Chart.register(Tooltip);
 		Chart.register(LineController);
+		Chart.register(PointElement);
+		Chart.register(LineElement);
 
 		//Set up resize event handlers
+		/*
 		this.map.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
+		*/
 	}
 
 	resizeCallback() {
@@ -150,10 +156,13 @@ class Timeline {
 		$(".slider-manual-input-container", this.sliderAnchorNode).show();
 		
 		//Adjust slider left and/or right margins to account for length of digits in each left/right legend, which affects where the slider endpoint needs to positioned
-		let rightMargin = this.chart.chart.legend.margins.right;
-		let leftMargin = this.chart.chart.legend.margins.left;
-		$(".timeline-slider-container").css("margin-right", rightMargin+"px");
-		$(".timeline-slider-container").css("margin-left", leftMargin+"px");
+		console.log(this.chart);
+		//let rightMargin = this.chart.chart.legend.margins.right;
+		//let leftMargin = this.chart.chart.legend.margins.left;
+		let rightMargin = "2em";
+		let leftMargin = "4em";
+		$(".timeline-slider-container").css("margin-right", rightMargin);
+		$(".timeline-slider-container").css("margin-left", leftMargin);
 
 
 		//This event fires when slider is being dragged
@@ -352,6 +361,18 @@ class Timeline {
 		return dataset;
 	}
 
+	async fetchTimeData(dataset) {
+		console.log(dataset);
+		dataset.forEach(site => {
+			site.time = {
+				max: -2500,
+				min: -100000
+			};
+		});
+
+		return dataset;
+	}
+
 	renderChart(data) {
 		const chartAnchorNode = $(".timeline-chart-container", this.map.renderTimelineIntoNode);
 		chartAnchorNode.append("<div class='timeline-chart-container-wrapper'></div>");
@@ -366,19 +387,21 @@ class Timeline {
 		this.chartJSOptions = {
 			responsive: true,
 			maintainAspectRatio: false,
-			legend: {
-				display: false
+			plugins: {
+				legend: {
+					display: false
+				},
 			},
 			scales: {
-				xAxes: [{
+				xAxes: {
 					id: 'time-x-axis',
 					display: false,
 					ticks: {
 						min: 0,
 						max: 200000
 					}
-				}],
-				yAxes: [{
+				},
+				yAxes: {
 					id: 'sites-y-axis',
 					type: 'linear',
 					position: "left",
@@ -396,7 +419,7 @@ class Timeline {
 						fontSize: 14
 					}
 				},
-				{
+				yAxes2: {
 					id: 'temperature-y-axis',
 					type: 'linear',
 					position: "right",
@@ -414,7 +437,7 @@ class Timeline {
 						fontStyle: "bold",
 						fontSize: 14
 					}
-				}]
+				}
 			},
 			layout: {
 				padding: {
@@ -734,6 +757,7 @@ class Timeline {
 	* selection
 	*/
 	getChartDataSets(data, selection = []) {
+		console.log(data)
 		if(selection.length == 0) {
 			selection[0] = this.totalMin;
 			selection[1] = this.totalMax;
@@ -787,11 +811,13 @@ class Timeline {
 					backgroundColor: color.hexToRgba(css.baseColor, 0.75),
 					borderColor: color.hexToRgba(css.paneBgColor, 0.5),
 					type: "line",
-					pointRadius: 2,
+					//pointRadius: 2,
 					fill: false
 				}
 			]
 		};
+
+		console.log(chartJSDatasets)
 
 		return chartJSDatasets;
 	}

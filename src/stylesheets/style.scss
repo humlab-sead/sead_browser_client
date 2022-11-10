@@ -638,8 +638,8 @@ h1.main-header {
   display: flex;
   flex-wrap: wrap;
   overflow: auto;
-  max-height: 100%;
-  max-width: 100%;
+  height: 100%;
+  min-width: 100%;
   justify-content: center;
 }
 
@@ -666,17 +666,46 @@ h1.main-header {
   width: 100%;
 }
 
-
 #result-taxon-image-container img {
   display: block;
   border: 1px solid #ccc;
-  width: 90%;
+  width: auto;
+  height: 6em;
+  object-fit: contain;
+  margin: .5em;
+}
+
+.result-taxon-image-box {
+}
+
+.result-taxon-image {
   object-fit: contain;
 }
 
+.result-taxon-image-info {
+}
+
+.popover-content {
+  display: block;
+}
 
 #result-taxon-image-container i {
   font-size: 5vw;
+}
+
+#result-taxon-image-container-warning {
+  position: absolute;
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  top: 5.5em;
+}
+
+#result-taxon-image-container-warning div {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  padding: .35em;
+  border-radius: .35em;
 }
 
 .result-module-container {
@@ -1340,17 +1369,6 @@ polyline{
   margin-top: 10px;
 }
 
-#timeline-dummy-warning {
-  position: absolute;
-  background-color: rgba(160, 0, 0, 0.8);
-  color: #fff;
-  z-index: 10;
-  border-color: black;
-  padding: 10px;
-  border-radius: 10px;
-  transform: rotate(-30deg);
-}
-
 .resultMosaicChart {
   background-color: #eef;
 }
@@ -1744,12 +1762,13 @@ polyline{
 }
 
 #popover-dialog-frame {
+  position: relative;
   grid-column: 2;
   grid-row: 2;
   background-color: #fff;
   box-shadow: 0px 0px 20px #666;
   padding: 30px;
-  overflow: hidden;
+  overflow: auto;
   max-height: 90%;
   max-width: 90%;
   border-width: 1px;
@@ -1763,10 +1782,10 @@ polyline{
 }
 
 .popover-close-btn {
-  float:right;
-  font-size: 24px;
-  margin-top: -20px;
-  margin-right: -20px;
+  position:absolute;
+  top: .5em;
+  right: .5em;
+  font-size: 2em !important;
 }
 
 .popover-close-btn:hover {

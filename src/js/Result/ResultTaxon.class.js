@@ -220,17 +220,10 @@ class ResultTaxon extends ResultModule {
 
 	async fetchGbifImages(taxonData) {
 		//GBIF API search
-		// https://api.gbif.org/v1/species/match?verbose=true&family=CERCOPIDAE&genus=Lepyronia
 		let family = taxonData.family.family_name;
 		let genus = taxonData.genus.genus_name;
 
 		let gbifData = await fetch("https://api.gbif.org/v1/species/match?verbose=true&family="+family+"&genus="+genus).then(response => response.json());
-		
-		//console.log(gbifData);
-
-		// https://api.gbif.org/v1/species/2015780
-		
-		// https://api.gbif.org/v1/species/2015780/media
 
 		let gbifMedia = await fetch("https://api.gbif.org/v1/species/"+gbifData.genusKey+"/media").then(response => response.json());
 
@@ -238,26 +231,16 @@ class ResultTaxon extends ResultModule {
 	}
 
 	async fetchEolImages(taxonData) {
-		//console.log(taxonData);
 		let family = taxonData.family.family_name.toLowerCase();
 		let genus = taxonData.genus.genus_name.toLowerCase();
 		let species = taxonData.species.toLowerCase();
 
 		return new Promise((resolve, reject) => {
 			fetch("https://eol.org/api/search/1.0.json?q="+genus+"%20"+species+"&page=1&key=").then(response => response.json()).then(eolResponse => {
-				//console.log(eolResponse);
-				if(eolResponse.results.length < 5) {
+				if(eolResponse.results.length < 50) {
 					eolResponse.results.forEach(eolSpecies => {
 						fetch("https://eol.org/api/pages/1.0/"+eolSpecies.id+".json?details=true&images_per_page=10").then(response => response.json()).then(eolSpeciesResponse => {
-							//console.log(eolSpeciesResponse);
 							resolve(eolSpeciesResponse);
-							/*
-							images = eolSpeciesResponse.dataObjects;
-							eolSpeciesResponse.dataObjects.forEach(eolDataObject => {
-								eolDataObject.eolThumbnailURL;
-								images.push();
-							});
-							*/
 						});
 					});
 				}
@@ -269,42 +252,36 @@ class ResultTaxon extends ResultModule {
 				
 			});
 		});
-
-		//fetch("https://eol.org/api/pages/1.0/1172877.json?details=true&images_per_page=10");
 	}
 
 	renderSpecies(container, taxonData) {
 		let taxonSpecString = this.sqs.formatTaxon(taxonData);
-		const maxImages = 15;
-		/*
-		this.fetchGbifImages(taxonData).then(gbifMedia => {
-			console.log(gbifMedia)
-			let html = "";
-			let imageCount = 0;
-			let imageFiles = [];
-			gbifMedia.results.forEach(media => {
-				//Make sure that we haven't already rendered one copy of this image because sometimes gbif returns multiple of the same image
-				if(imageCount < maxImages && !imageFiles.includes(media.identifier)) {
-					html += "<img src='"+media.identifier+"'/>";
-					imageFiles.push(media.identifier);
-					imageCount++;
-				}
-			});
-
-			if(gbifMedia.results.length > 0) {
-				$("#result-taxon-image-container").html(html);
-			}
-		});
-		*/
-
 		this.fetchEolImages(taxonData).then(eolResponse => {
-			console.log(eolResponse);
 			if(typeof eolResponse.taxonConcept.dataObjects != "undefined") {
-
+				this.renderSpeciesImages(eolResponse.taxonConcept.dataObjects);
 			}
 		});
-
 		$("#rcb-species-value", container).html(taxonSpecString);
+	}
+
+	renderSpeciesImages(images) {
+		let imageNodes = [];
+		images.forEach(image => {
+			let imageNode = $("<img class='result-taxon-image-thumb' src='"+image.eolThumbnailURL+"' />");
+			imageNode.on("click", (evt) => {
+				evt.stopPropagation();
+				let imageInfo = "©"+image.rightsHolder+"<br />";
+				imageInfo += "Provider: <a href='https://eol.org/' target='_blank'>Encyclopedia of Life</a><br />"
+				imageInfo += "License: "+image.license+"<br />";
+				imageInfo += "Description: "+image.description;
+				this.sqs.dialogManager.showPopOver("", "<div class='result-taxon-image-box'><img class='result-taxon-image' src='"+image.eolMediaURL+"' /><div class='result-taxon-image-info'>"+imageInfo+"</div></div>");
+			});
+			imageNodes.push(imageNode);
+		});
+		$("#result-taxon-image-container").html("");
+		$("#result-taxon-image-container").append(imageNodes);
+
+		this.sqs.tooltipManager.registerTooltip("#result-taxon-image-container-warning", "The images are fetched from external providers using search strings based on genus and species name, because of this, reuslts may be returned that represent different species than the intended one.")
 		
 	}
 
@@ -404,7 +381,12 @@ class ResultTaxon extends ResultModule {
 			}
 			//First letter to lower-case
 			let atttributeType = attr.attribute_type.charAt(0).toLowerCase() + attr.attribute_type.slice(1);
-			let attributeMeasure = attr.attribute_measure.charAt(0).toUpperCase() + attr.attribute_measure.slice(1);
+
+			let attributeMeasure = "";
+			if(attr.attribute_measure != null) {
+				attributeMeasure = attr.attribute_measure.charAt(0).toUpperCase() + attr.attribute_measure.slice(1);
+			}
+			
 			measurableAttributesHtml += "<li>"+attributeMeasure+" "+atttributeType+" "+value+" "+attr.attribute_units+"</li>";
 		});
 		measurableAttributesHtml += "</ul>";
@@ -451,6 +433,9 @@ class ResultTaxon extends ResultModule {
 			//this.taxonId = 33465;
 			this.taxonId = 30124;
 			this.taxonId = 34145;
+			this.taxonId = 32092;
+			this.taxonId = 29234;
+			this.taxonId = 29992;
 			//return;
 		}
 

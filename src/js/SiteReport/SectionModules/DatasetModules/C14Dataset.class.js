@@ -12,7 +12,7 @@ class C14Dataset extends DatasetModule {
 		this.analysis = analysis;
 		this.data = analysis.data;
         this.buildIsComplete = true;
-        this.methodIds = [151];
+        this.methodIds = [151, 148, 38];
     }
 
     async makeSection(siteData, sections) {
@@ -23,8 +23,6 @@ class C14Dataset extends DatasetModule {
 			}
 			return false;
 		});
-
-        console.log(dataGroups);
 
         dataGroups.forEach(dataGroup => {
 			let section = this.getSectionByMethodId(dataGroup.method_id, sections);			
@@ -70,7 +68,6 @@ class C14Dataset extends DatasetModule {
 			
 			dataGroup.data_points.forEach(point => {
 				let sample = this.analysis.getSampleBySampleId(siteData, point.physical_sample_id);
-
 				let lab = this.getDatingLabById(siteData, point.dating_values.dating_lab_id);
 
 				let row = [
@@ -92,12 +89,12 @@ class C14Dataset extends DatasetModule {
 					{
 						"type": "cell",
 						"tooltip": "",
-						"value": point.dating_values.notes
+						"value": point.dating_values.notes != null ? point.dating_values.notes : "No data"
 					},
 					{
 						"type": "cell",
 						"tooltip": lab != null ? "Lab name: "+lab.lab_name + "<hr/>International ID: " + lab.international_lab_id : "",
-						"value": point.dating_values.lab_number
+						"value": point.dating_values.lab_number != null ? point.dating_values.lab_number : "No data"
 					},
 				];
 
@@ -150,19 +147,6 @@ class C14Dataset extends DatasetModule {
 		if(parseInt(datingValues.error_younger)) {
 			ageYounger -= parseInt(datingValues.error_younger);
 		}
-
-		/*
-		ageStr += parseInt(datingValues.age)+" BP";
-
-		if(datingValues.error_older && datingValues.error_younger) {
-			if(datingValues.error_older == datingValues.error_younger) {
-				ageStr += " +/-"+parseInt(datingValues.error_older);
-			}
-			else {
-
-			}
-		}
-		*/
 
 		ageStr += ageOlder+" - "+ageYounger+" BP";
 
