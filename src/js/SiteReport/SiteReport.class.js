@@ -522,29 +522,7 @@ class SiteReport {
 	}
 	
 	prepareJsonExport(exportStruct) {
-		let jsonData = {
-			meta: exportStruct.meta,
-			columns: [],
-			rows: []
-		};
-
-		exportStruct.datatable.columns.forEach(col => {
-			jsonData.columns.push({
-				title: col.title,
-			});
-		});
-
-		exportStruct.datatable.rows.forEach(row => {
-			let exportRow = [];
-			row.forEach(cell => {
-				let cellValue = this.sqs.parseStringValueMarkup(cell.value);
-				cellValue = cellValue.replace(/<[^>]*>?/gm, '');
-				exportRow.push(cellValue);
-			})
-			jsonData.rows.push(exportRow);
-		});
-
-		return jsonData;
+		return exportStruct;
 	}
 
 	getExportButton(exportFormat, exportStruct) {
