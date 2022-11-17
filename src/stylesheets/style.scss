@@ -888,6 +888,25 @@ h1.main-header {
 	/*background-color:rgba(0, 0, 255, 0.5);*/
 }
 
+.staging-container {
+  margin:0;
+  padding:0;
+}
+
+.staging-container hr {
+  margin:0;
+  padding:0;
+  border: none;
+  height: 1px;
+  color: rgba(0, 0, 0, 0.2); /* old IE */
+  background-color: rgba(0, 0, 0, 0.2); /* Modern Browsers */
+}
+
+.staging-container-text {
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+}
+
 .scroll-selection-indicator {
   background-color: $aux-color;
   height: 100%;
@@ -1783,8 +1802,8 @@ polyline{
 
 .popover-close-btn {
   position:absolute;
-  top: .5em;
-  right: .5em;
+  top: .25em;
+  right: .25em;
   font-size: 2em !important;
 }
 
