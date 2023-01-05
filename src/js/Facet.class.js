@@ -21,6 +21,7 @@ class Facet {
 		this.type = template.type;
 		this.title = template.title;
 		this.color = template.color;
+		this.description = template.description;
 		this.rendered = false;
 		this.isBeingDragged = false;
 		this.data = [];
@@ -37,6 +38,9 @@ class Facet {
 		$(facetDomObj).attr("id", "facet-"+this.id);
 		$(facetDomObj).attr("facet-id", this.id);
 		$(facetDomObj).find(".facet-title").html(this.title);
+		
+		this.sqs.tooltipManager.registerTooltip($(".facet-title", facetDomObj), this.description);
+
 		$(facetDomObj).find(".facet-header-divider").css("background-color", this.color);
 		$("#facet-section").append(facetDomObj);
 		
@@ -53,7 +57,7 @@ class Facet {
 		$("#section-left").on("resize", () => {
 			clearTimeout(this.resizeTicker);
 			this.resizeTicker = setTimeout(() => {
-				this.adaptToNewWidth($("#section-left").width());
+				this.adaptToNewWidth($(".section-left").width());
 			}, 10);
 		});
 
@@ -263,13 +267,16 @@ class Facet {
 		* Except for when a facet was deleted - this should not count as the trigger in that instance. Yeah it's confusing and I hate it.
 		*/
 		var triggerCode = this.sqs.facetManager.getLastTriggeringFacet().name;
+		let targetCode = this.name;
 		
 		var fs = this.sqs.facetManager.getFacetState();
+		console.log(fs);
 		var fc = this.sqs.facetManager.facetStateToDEF(fs, {
 			requestType: requestType,
-			targetCode: this.name,
+			targetCode: targetCode,
 			triggerCode: triggerCode
 		});
+		console.log(fc);
 
 		let domainCode = this.sqs.domainManager.getActiveDomain().name;
 		domainCode = domainCode == "general" ? "" : domainCode;
@@ -277,11 +284,12 @@ class Facet {
 		var reqData = {
 			requestId: ++this.requestId,
 			requestType: requestType,
-			targetCode: this.name,
+			targetCode: targetCode,
 			triggerCode: triggerCode,
 			domainCode: domainCode,
 			facetConfigs: fc
 		};
+		console.log(reqData);
 
 		return $.ajax(config.serverAddress+"/api/facets/load", {
 			data: JSON.stringify(reqData),

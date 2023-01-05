@@ -11,29 +11,32 @@
 
 
 .section-left {
+	border-top: 0px solid $inactive-color;
+	background-color: #fff;
 	margin: 0px;
-	width: 100vw;
-	height:calc(100vh - 89px);
 	
-	max-width: 80vw; //FIXME: This should not be hard-coded
-	min-width: 20vw; //FIXME: This should not be hard-coded
+	max-width: 70vw; //FIXME: This should not be hard-coded
+	min-width: 30vw; //FIXME: This should not be hard-coded
 	
 	overflow-x: hidden;
 	overflow-y: auto;
+
+	height: 100vh;
+  	width: 100%;
 }
 
 .section-right {
 	margin: 0px;
-	width: 0vw;
-	max-width: 80vw; //FIXME: This should not be hard-coded
-	min-width: 20vw; //FIXME: This should not be hard-coded
-	height:calc(100vh - 89px);
+	max-width: 70vw; //FIXME: This should not be hard-coded
+	min-width: 30vw; //FIXME: This should not be hard-coded
 	
 	border-left-style:solid;
 	border-left-width: 1px;
 	border-left-color: rgba(6, 6, 9, 0.1);
 
 	overflow: auto;
+	height: 100%;
+  	width: 100%;
 }
 
 .section-toggle-button {

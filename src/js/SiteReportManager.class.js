@@ -15,7 +15,8 @@ class SiteReportManager {
 			if(this.sqs.resultManager.getActiveModule().name == "table" || this.sqs.resultManager.getActiveModule().name == "map") {
 				$(".site-report-link").off("click").on("click", (event) => {
 					var siteId = parseInt($(event.currentTarget).attr("site-id"));
-					this.renderSiteReport(siteId);
+					window.location.href = "/site/"+siteId;
+					//this.renderSiteReport(siteId);
 				});
 			}
 		});
@@ -23,7 +24,8 @@ class SiteReportManager {
 		this.sqs.sqsEventListen("resultMapPopupRender", (data) => {
 			$(".site-report-link").off("click").on("click", (event) => {
 				var siteId = parseInt($(event.currentTarget).attr("site-id"));
-				this.renderSiteReport(siteId);
+				window.location.href = "/site/"+siteId;
+				//this.renderSiteReport(siteId);
 			});
 		});
 		
@@ -82,6 +84,7 @@ class SiteReportManager {
 	}
 	
 	renderSiteReport(siteId, updateHistory = true) {
+		console.log("Rendering siteReport for site:", siteId);
 		if(updateHistory) {
 			var stateObj = {};
 			history.pushState(stateObj, "", "/site/"+siteId);
@@ -133,17 +136,6 @@ class SiteReportManager {
 			left: "-100px"
 		}, 250, () => {
 			this.sqs.menuManager.removeMenu(this.siteReport.backMenu);
-
-			/*
-			if(this.sqs.layoutManager.getMode() != "mobileMode") {
-				$("#aux-menu, #domain-menu").show().animate({
-					top: "0px"
-				}, 250);
-			}
-			$("#facet-menu").show().animate({
-				top: "0px"
-			}, 250);
-			*/
 			
 		});
 		

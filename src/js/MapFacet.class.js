@@ -60,7 +60,7 @@ class MapFacet extends Facet {
 			this.drawInteraction.setActive(false);
 		});
 
-		$("#section-left").on("resize", () => {
+		$(".section-left").on("resize", () => {
 			clearTimeout(this.resizeTicker);
 			this.resizeTicker = setTimeout(() => {
 				this.olMap.updateSize();

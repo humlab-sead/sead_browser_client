@@ -1,11 +1,10 @@
-//import Config from '../config/config.js'
 import Facet from './Facet.class.js'
 import _ from 'underscore';
 /*
-* Class: DiscreteFacet
-* Subclass of Facet. Renders data in a list.
+* Class: MultiStageFacet
+* Subclass of Facet. Renders data in stages as a list.
 */
-class DiscreteFacet extends Facet {
+class MultiStageFacet extends Facet {
 	/*
 	* Function: constructor
 	*/
@@ -13,24 +12,27 @@ class DiscreteFacet extends Facet {
 		super(sqs, id, template);
 		this.contentWindow = [];
 		this.rowHeight = Config.discreteFacetRowHeight;
-		this.viewportItemCapacity = Math.floor(Config.facetBodyHeight / this.rowHeight);
+        this.facetBodyHeight = Config.facetBodyHeight - this.rowHeight;
+		this.viewportItemCapacity = Math.floor(this.facetBodyHeight / this.rowHeight);
 		this.textSize = Config.discreteFacetTextSize;
 		this.scrollPosition = 0;
 		this.textFilterString = "";
 		this.visibleData = [];
 		this.checkMark = "<div class='fa fa-check facet-row-checkbox-mark' aria-hidden='true'></div>";
-		this.specialFunctionLinks = [];
-		/*
-		if(this.name == "species") {
-			this.specialFunctionLinks.push({
-				icon: '<i class="fa fa-bug" aria-hidden="true"></i>',
-				callback: () => {
-					console.log(this);
-				}
-			});
-		}
-		*/
-		
+		this.selectionStages = template.stagedFilters;
+		this.filters = []; //A facet can have multiple filters...? Possibly!
+		this.filters.push({
+			name: "ecocode_system",
+			selections: []
+		});
+		this.filters.push({
+			name: "ecocode",
+			selections: []
+		});
+        console.log(template)
+        this.selectNextFilterStage();
+
+        console.log("multistagefacet", this.selectionStages)
 
 		this.updateMaxRowTitleLength();
 		this.renderSelections();
@@ -48,7 +50,14 @@ class DiscreteFacet extends Facet {
 		
 		this.sqs.tooltipManager.registerTooltip($(".facet-size-btn", this.getDomRef()), "Show only selections");
 		this.sqs.tooltipManager.registerTooltip($(".facet-text-search-btn", this.getDomRef()), "Filter list by text");
+        
 	}
+
+    selectNextFilterStage() {
+        if(this.selectionStages.length > 0) {
+            this.name = this.selectionStages.shift();
+        }
+    }
 	
 	/*
 	 * Function: registerTextSearchEvents
@@ -277,26 +286,14 @@ class DiscreteFacet extends Facet {
 				}
 				
 				var displayTitle = dataElement.title;
-
-				let specialFunctionLinks = "";
-				this.specialFunctionLinks.forEach(funcLink => {
-					let onClickFunc = (evt) => {
-						evt.stopPropagation();
-						evt.stopImmediatePropagation();
-						evt.preventDefault();
-						funcLink.callback();
-					};
-					let link = "<span class='filter-special-function-link' onclick='"+onClickFunc+"'>"+funcLink.icon+"</span>";
-					specialFunctionLinks += link;
-				});
-				if(specialFunctionLinks.length > 0) {
-					specialFunctionLinks += " ";
-				}
-				out += "<div class='facet-row "+selectedClass+"' facet-row-id='"+dataElement.id+"'><div class='facet-row-checkbox-container'><div class='facet-row-checkbox'>"+checkMark+"</div></div><div class='facet-row-text'>"+specialFunctionLinks+displayTitle+"</div><div class='facet-row-count'>"+dataElement.count+"</div></div>";
+				
+				out += "<div class='facet-row "+selectedClass+"' facet-row-id='"+dataElement.id+"'><div class='facet-row-checkbox-container'><div class='facet-row-checkbox'>"+checkMark+"</div></div><div class='facet-row-text'>"+displayTitle+"</div><div class='facet-row-count'>"+dataElement.count+"</div></div>";
 				
 			}
 		}
-		
+        
+        $(".staging-container", this.getDomRef()).html("<div class='staging-container-text'>Ecocode system (1/2)</div><hr/>");
+
 		$(".list-container", this.getDomRef())
 			.html("")
 			.append(topBlankSpace)
@@ -384,6 +381,26 @@ class DiscreteFacet extends Facet {
 		}
 
 
+		/*
+        //Here we probably want to:
+		//1. Disable any more selections to prevent double-clicking/selecting anything else
+		//2. step forard to the next "stage"
+		this.selectNextFilterStage();
+        //3. Animate in (and load) the next staged filter
+		$(this.getDomRef()).find(".list-container").animate({
+			left: "-110%"
+		}, 500, 
+		"swing", 
+		() => {
+			console.log("complete")
+			$(".list-container", this.getDomRef()).html("");
+			this.fetchData();
+			$(".list-container", this.getDomRef()).animate({
+				left: "0%"
+			}, 500);
+		});
+		*/
+
 		//Send a ping upwards notifying that a selection was made
 		this.broadcastSelection();
 
@@ -417,8 +434,8 @@ class DiscreteFacet extends Facet {
 		let selectionsHeight = this.rowHeight; //Collapse down to just 1 row
 
 		var facetHeight = headerHeight + selectionsHeight;
-		if(facetHeight > Config.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
-			facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
+		if(facetHeight > this.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
+			facetHeight = this.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
 		}
 		$(this.domObj).css("height", facetHeight+"px");
 		if(selectionsHeight < facetHeight) {
@@ -537,4 +554,4 @@ class DiscreteFacet extends Facet {
 
 }
 
-export { DiscreteFacet as default }
+export { MultiStageFacet as default }

@@ -61,6 +61,14 @@ class sqsLayoutManager {
 	}
 
 	setActiveView(viewName) {
+		console.log("Activated view:", viewName);
+		/*
+		if(false) {
+			var stateObj = {};
+			history.pushState(stateObj, "", "/site/"+siteId);
+		}
+		*/
+
 		let oldView = this.getActiveView();
 		if(oldView !== false) {
 			oldView.cleanup();

@@ -362,7 +362,7 @@ class Timeline {
 	}
 
 	async fetchTimeData(dataset) {
-		console.log(dataset);
+		//console.log(dataset);
 		dataset.forEach(site => {
 			site.time = {
 				max: -2500,

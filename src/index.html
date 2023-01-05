@@ -48,62 +48,86 @@
 
   </head>
   <body style="display:none;">
-    
+
     <div id="cover-tiles"></div>
     <div id="main-container">
-      <div id="header-container">
-        <div id="facet-menu">
-        </div>
-
-        <div id="site-report-exit-menu">
-        </div>
-
-        <div id="header-space">
-          <!--<div id="sead-logo" class="sead-logo-large"></div>-->
-          <img id="sead-logo" src="assets/SEAD-logo-with-subtext.png">
-        </div>
-
-        
-        <div id="domain-menu">
-        </div>
-
-        <div id="aux-menu">
-        </div>
-
-        <div id="whatisthis-menu">
-        </div>
-
-      </div>
-
-      <div id="preload-loading-indicator" class="seadlogo-loading-indicator-container">
-        <div class="seadlogo-loading-indicator-bg"></div>
-        <div id="preload-failed-indicator">
-          <i class="fa fa-exclamation-triangle" style="font-size: 3.5rem;" aria-hidden="true"></i>
-          <br /><br /><br />
-          <h2>SEAD failed to load <i class="fa fa-frown-o" aria-hidden="true"></i></h2>
-            <br />
-          Please try again later
-        </div>
-      </div>
       
-      <div id="facet-result-panel" class="responsive-layout-container">
-          <div class="section-toggle-button">Switch section</div>
+      <div id="filter-view-main-container">
         <div class="section-left">
-          <!--<div id="facet-section-title" class="section-title">Filter section</div>-->
-          <div id="facet-auxiliary-controls">
-            <div id="facet-show-only-selections-btn">
-              <div class="fa fa-check facet-head-btn" aria-hidden="true"></div>
-              Minimize all filters
+          <div id="facet-main-container">
+            <div id="logo-aux-container">
+              <div id="sead-logo"></div>
+              
+              <div style="margin:0;padding:0;">
+                <div id="aux-menu-button" class="menu-button">
+                  <i class="fa fa-bars" style='font-size: 1.5em' aria-hidden="true"></i>
+                </div>
+                <div id="aux-menu"></div>
+              </div>
+              
+            </div>
+            
+            <div id="filter-menu-container">
+              <svg
+                sodipodi:docname="filter-menu.svg"
+                id="filter-menu-svg"
+                version="1.1"
+                viewBox="0 0 131.59724 43.948433"
+                preserveAspectRatio="none"
+                height="43.948433mm"
+                width="131.59724mm"
+                inkscape:version="1.2.2 (732a01da63, 2022-12-09)"
+                xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+                xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlns:svg="http://www.w3.org/2000/svg">
+                <defs
+                  id="defs2" />
+                <g
+                  id="layer1"
+                  transform="translate(-53.79269,-45.951021)">
+                  <path
+                    style="fill:#444444;fill-opacity:1;stroke:#ffffff;stroke-width:0.2;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
+                    d="m 53.89269,46.051494 v 43.747643 l 63.62498,-0.200192 7.45081,-21.334237 -7.45081,-21.912729 z"
+                    id="domain-menu"
+                    sodipodi:nodetypes="cccccc" />
+                  <path
+                    style="fill:#2d5e8d;fill-opacity:1;stroke:#ffffff;stroke-width:0.2;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
+                    d="m 117.51767,46.351978 4.7171,21.573259 -4.7171,21.673706 67.77227,0.100047 V 46.251934 l -67.77227,0.100045"
+                    id="facet-menu"
+                    sodipodi:nodetypes="cccccc" />
+                </g>
+              </svg>
+              <div id="filter-menu-text-container">
+                <div id="domain-text" class="filter-menu-text">
+                  Domain
+                  <div class="selected-domain-text">General</div>
+                </div>
+                <div id="filters-text" class="filter-menu-text">Filters</div>
+              </div>
+            </div>
+            <div id="domains-menu-anchor-point"></div>
+            <div id="filters-menu-anchor-point"></div>
+              
+              <!--
+              <object class="svgClass" type="image/svg+xml" data="./assets/filter-menu.svg"></object>
+              -->
+              <!--<img src="./assets/filter-menu.svg"/>-->
+              <!--
+              <div id="domain-menu">
+              </div>
+              <div id="facet-menu">
+              </div>
+              -->
+            
+      
+            <div id="facet-section">
             </div>
           </div>
-
-          <div id="facet-section">
-          </div>
         </div>
+        
         <div class="section-right">
-
-         <div id="result-section">
-
+          <div id="result-section">
             <div id="result-tabs-container">
               <h2 id="result-title">Filter Output</h2>
               <div id="result-menu"></div>
@@ -116,15 +140,15 @@
               <div id="result-mosaic-container" class="result-module-container"></div>
               <div id="result-taxon-container" class="result-module-container"></div>
             </div>
-            
          </div>
-         
         </div>
       </div>
-      <div id="site-report-panel" class="responsive-layout-container">
-          <div class="section-toggle-button">Switch section</div>
+      
+
+      <div id="site-report-main-container" class="responsive-layout-container">
+        <div class="section-toggle-button">Switch section</div>
         <div class="section-left">
-	        <div class="site-report-container">
+          <div class="site-report-container">
 
               <div class="site-report-title-container">
                 <h1 class="site-report-title">
@@ -135,9 +159,9 @@
 
               <div id="site-report-tabs"></div>
 
-	          <div id="site-report-content">
-	          </div>
-	        </div>
+            <div id="site-report-content">
+            </div>
+          </div>
         </div>
         <div class="section-right">
           <div id="site-report-right-container">
@@ -146,6 +170,48 @@
           </div>
         </div>
 
+      </div>
+
+
+      <!--
+      <div id="header-container">
+
+        <div id="site-report-exit-menu">
+        </div>
+        
+        <div id="header-space">
+          <img id="sead-logo" src="assets/SEAD-logo-with-subtext.png">
+        </div>
+
+        <div id="whatisthis-menu">
+        </div>
+
+      </div>
+      -->
+
+      
+      
+      <!--
+      <div id="facet-result-panel" class="responsive-layout-container">
+        <div class="section-toggle-button">Switch section</div>
+        <div id="facet-auxiliary-controls">
+          <div id="facet-show-only-selections-btn">
+            <div class="fa fa-check facet-head-btn" aria-hidden="true"></div>
+            Minimize all filters
+          </div>
+        </div>
+      </div>
+      -->
+
+      <div id="preload-loading-indicator" class="seadlogo-loading-indicator-container">
+        <div class="seadlogo-loading-indicator-bg"></div>
+        <div id="preload-failed-indicator">
+          <i class="fa fa-exclamation-triangle" style="font-size: 3.5rem;" aria-hidden="true"></i>
+          <br /><br /><br />
+          <h2>SEAD failed to load <i class="fa fa-frown-o" aria-hidden="true"></i></h2>
+            <br />
+          Please try again later
+        </div>
       </div>
 
 
@@ -200,11 +266,13 @@
             <div id="rcb-species-value" class="centered-label">
             </div>
             <br />
+            <!--
             <div id="result-taxon-image-container-warning">
               <div>
                 <i class="fa fa-exclamation-circle" aria-hidden="true"></i> Images may not represent actual species!
               </div>
             </div>
+            -->
             <br />
             <div id="result-taxon-image-container">
               <div class="no-images-message-box">
@@ -387,6 +455,7 @@
 
         </div>
         <hr class="facet-header-divider" />
+        <div class="staging-container"></div>
         <div class="facet-body">
           <div class="facet-no-data-msg">No Data</div>
           <div class="list-container"></div>

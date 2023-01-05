@@ -13,7 +13,7 @@
 	"defaultResultModule":"mosaic",
 	"resultMapDataLayers": ["clusterPoints", "points"],
 	"maxAllowedSitesInAnExport": 20,
-	"facetSectionDefaultWidth":20,
+	"facetSectionDefaultWidth":30,
 	"facetBodyHeight":268,
 	"discreteFacetRowHeight":20,
 	"discreteFacetTextSize":10,

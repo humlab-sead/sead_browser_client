@@ -49,6 +49,7 @@ class ResultTaxon extends ResultModule {
 			}
 		});
 
+		/*
 		this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
 			if(newDomainName == "palaeoentomology") {
 				$("#menu-item-taxon").show(500);
@@ -61,6 +62,7 @@ class ResultTaxon extends ResultModule {
 				}
 			}
         });
+		*/
 
 	}
 	
@@ -582,6 +584,7 @@ class ResultTaxon extends ResultModule {
 			placement : 'fixed=50%;60%',
 			fontSize : '11px',
 			fontColor: "#000",
+			fontWeight: "light",
 			text : '%t'
 			}
 		},
@@ -648,10 +651,12 @@ class ResultTaxon extends ResultModule {
 		months.forEach(month => {
 			let bgColor = "#fff";
 			let fontColor = "#000";
+			let activeMonth = false;
 			if(selectedMonths.includes(month.name)) {
 				bgColor = selectionColor;
-				bgColor = "#000";
+				bgColor = color.colors.baseColor;
 				fontColor = "#fff";
+				activeMonth = true;
 			}
 			
 			chartConfig.series.push({
@@ -664,7 +669,7 @@ class ResultTaxon extends ResultModule {
 					backgroundColor: "#000"
 				},
 				text: month.shortName,
-				description: month.name,
+				description: activeMonth ? "Active in "+month.name : "Not active in "+month.name,
 			});
 		});
 

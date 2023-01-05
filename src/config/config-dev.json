@@ -8,12 +8,12 @@
 	"serverRoot":"https://supersead.humlab.umu.se",
 	"serverAddress":"https://browser.sead.se/query",
 	"viewStateServerAddress":"https://supersead.humlab.umu.se/vsapi",
-	"siteReportServerAddress":"https://supersead.humlab.umu.se/postgrest",
-	"dataServerAddress": "https://supersead.humlab.umu.se/jsonapi",
+	"siteReportServerAddress":"https://browser.sead.se/postgrest",
+	"dataServerAddress": "https://browser.sead.se/jsonapi",
 	"defaultResultModule":"mosaic",
 	"resultMapDataLayers": ["clusterPoints", "points", "heatmap"],
 	"maxAllowedSitesInAnExport": 20,
-	"facetSectionDefaultWidth":20,
+	"facetSectionDefaultWidth":30,
 	"facetBodyHeight":268,
 	"discreteFacetRowHeight":20,
 	"discreteFacetTextSize":10,
@@ -151,7 +151,7 @@
 			"enabled": true,
 			"title": "General",
 			"icon":"<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>",
-			"color":"#888",
+			"color":"#333",
 			"result_grid_layout": [2, 2],
 			"result_grid_modules": [
 				{
@@ -206,7 +206,7 @@
 		"enabled": true,
 		"title": "Palaeoentomology",
 		"icon":"<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
-		"color":"#d00",
+		"color":"#a00",
 		"result_grid_layout": [1, 1],
 		"result_grid_modules": [
 				{
@@ -221,7 +221,7 @@
 		"enabled": true,
 		"title": "Archaeobotany",
 		"icon":"<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i>",
-		"color":"#a0a",
+		"color":"#9c591b",
 		"result_grid_layout": [2, 2],
 			"result_grid_modules": [
 				{
@@ -251,7 +251,7 @@
 		"enabled": true,
 		"title": "Pollen",
 		"icon":"<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i>",
-		"color":"#888",
+		"color":"#216600",
 		"result_grid_layout": [1, 1],
 		"result_grid_modules": [
 				{
@@ -281,7 +281,7 @@
 		"enabled": true,
 		"title": "Isotope",
 		"icon":"<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i>",
-		"color":"#990",
+		"color":"#690",
 		"result_grid_layout": [1, 1],
 		"result_grid_modules": [
 				{

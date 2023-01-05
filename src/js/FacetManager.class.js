@@ -4,7 +4,7 @@ import Facet from './Facet.class.js'
 import DiscreteFacet from './DiscreteFacet.class.js'
 import RangeFacet from './RangeFacet.class.js'
 import MapFacet from './MapFacet.class.js';
-
+import MultiStageFacet from './MultiStageFacet.class';
 /* 
 Class: FacetManager
 The FacetManager handles all things concerning the manipulation of multiple facets, basically anything that has to do with facets that exceeds the scope of the individual facet. For example moving/swapping of facets.
@@ -172,9 +172,6 @@ class FacetManager {
 		$(this.demoSlot.getDomRef()).addClass("slot-visible");
 		
 		$("#facet-section").append("<div class='filter-demo-arrow'>⤷</div>");
-
-		//Re-bind menu to this demo slot
-		this.sqs.menuManager.rebind(this.makesqsMenuFromFacetDef(this.facetDef));
 	}
 	
 	/*
@@ -239,14 +236,15 @@ class FacetManager {
 	* The created facet object.
 	*/
 	makeNewFacet(template) {
-		if(template.type == "discrete") {
-			return new DiscreteFacet(this.sqs, this.getNewFacetId(), template);
-		}
-		if(template.type == "range") {
-			return new RangeFacet(this.sqs, this.getNewFacetId(), template);
-		}
-		if(template.type == "map") {
-			return new MapFacet(this.sqs, this.getNewFacetId(), template);
+		switch(template.type) {
+			case "multistage":
+				return new MultiStageFacet(this.sqs, this.getNewFacetId(), template);
+			case "discrete":
+				return new DiscreteFacet(this.sqs, this.getNewFacetId(), template);
+			case "range":
+				return new RangeFacet(this.sqs, this.getNewFacetId(), template);
+			case "map":
+				return new MapFacet(this.sqs, this.getNewFacetId(), template);
 		}
 	}
 
@@ -303,6 +301,7 @@ class FacetManager {
 	* Queue is a funny word. Anyway, this is basically what you want to use for getting data for a facet. Think of it as "fetchFacetData" if you like, but it's really more of a queue-thingy going on here so...
 	*/
 	queueFacetDataFetch(facet) {
+		console.log("queueFacetDataFetch", facet);
 		if(!facet.enabled) {
 			return;
 		}
@@ -324,6 +323,7 @@ class FacetManager {
 	* fromFacetPosition - The starting position, including this position itself. First position is 1, not 0. Because making lists which starts to count from zero doesn't really make a lot of sense when you think about it. Because a number is a symbol which indicates a certain quantity of something. So saying something is number 0 is a perversion of the numerical system since it utilizes numbers as arbitrary symbols rather than a system of counting, there - I said it!
 	*/
 	chainQueueFacetDataFetch(fromFacet = null) {
+		console.log("chainQueueFacetDataFetch", fromFacet);
 		if(fromFacet == null) {
 			fromFacet = this.getFacetById(this.getFacetIdBySlotId(1));
 		}
@@ -822,6 +822,7 @@ class FacetManager {
 							name: group.items[fk].facetCode,
 							title: group.items[fk].displayTitle,
 							type: group.items[fk].facetTypeKey,
+							stagedFilters: group.items[fk].stagedFilters ? group.items[fk].stagedFilters : [],
 							dependencies : group.items[fk].dependencies,
 							description: group.items[fk].description
 						}
@@ -970,6 +971,49 @@ class FacetManager {
 	getFacetState(inDataExchangeFormat = false, excludeDeletedFacets = true) {
 		this.facetState = [];
 
+		let virtualSlotNumber = 0;
+		this.facets.sort((facetA, facetB) => {
+			return this.getSlotIdByFacetId(facetA.id) > this.getSlotIdByFacetId(facetB.id);
+		});
+		
+		for(var key in this.facets) {
+			if((excludeDeletedFacets === true && this.facets[key].deleted === false) || excludeDeletedFacets === false) {
+				
+				if(typeof this.facets[key].filters != "undefined" && this.facets[key].filters.length > 1) {
+					for(let filterKey in this.facets[key].filters) {
+						let filter = this.facets[key].filters[filterKey];
+						this.facetState.push({
+							name: filter.name,
+							position: this.getSlotIdByFacetId(this.facets[key].id) + filterKey,
+							selections: filter.selections,
+							type: this.facets[key].type,
+							minimized: this.facets[key].minimized
+						});
+					}
+				}
+				else {
+					this.facetState.push({
+						name: this.facets[key].name,
+						position: this.getSlotIdByFacetId(this.facets[key].id),
+						selections: this.facets[key].getSelections(),
+						type: this.facets[key].type,
+						minimized: this.facets[key].minimized
+					});	
+				}
+				
+			}
+		}
+
+		if(inDataExchangeFormat) {
+			return this.facetStateToDEF(this.facetState);
+		}
+		return this.facetState;
+	}
+
+	/*
+	getFacetState(inDataExchangeFormat = false, excludeDeletedFacets = true) {
+		this.facetState = [];
+
 		for(var key in this.facets) {
 			if((excludeDeletedFacets === true && this.facets[key].deleted === false) || excludeDeletedFacets === false) {
 				this.facetState.push({
@@ -987,7 +1031,7 @@ class FacetManager {
 		}
 		return this.facetState;
 	}
-
+	*/
 	/*
 	* Function: facetStateToDEF
 	* 
@@ -1056,24 +1100,30 @@ class FacetManager {
 	* Function: makesqsMenuFromFacetDef
 	*/
 	makesqsMenuFromFacetDef(facetDef) {
-		
 		var menu = {
 			title: "Filters",
 			layout: "vertical",
 			l1layout: "vertical",
+			customLabel: true,
+			//menuItemsContainerSelector: "#filters-menu-anchor-point",
 			collapsed: true,
 			expandHorizontally: true,
 			l2TriggerEvent: "mouseover",
-			anchor: "#facet-menu",
-			anchorTriggerEvent: "click",
-			auxTriggers: [{
+			anchor: "#filters-menu-anchor-point",
+			//anchor: "#facet-menu", //anchor should be the anchor point / container for the actual pop-out menum, then we should have a separate attr for the activator/button
+			triggers: [{
+				selector: "#facet-menu",
+				on: "click"
+			},
+			{
 				selector: ".slot-visible .jslink-alt",
 				on: "click"
 			}],
-			customStyleClasses: "sqs-menu-block-vertical-large",
+			anchorTriggerEvent: "click",
+			//customStyleClasses: "sqs-menu-block-vertical-large",
 			viewPortResizeCallback: () => {
 				let leftWidth = $("#facet-result-panel .section-left").width();
-				$("#facet-menu > .sqs-menu-block-vertical-large").css("width", leftWidth+"px");
+				//$("#facet-menu > .sqs-menu-block-vertical-large").css("width", leftWidth+"px");
 				$("#facet-menu .l1-container-level").css("width", leftWidth+"px")
 			},
 			items: []
@@ -1102,32 +1152,37 @@ class FacetManager {
 				if(facetDef[gk].filters[fk].type == "range") {
 					icon = "<span class='sqs-menu-facet-type-icon'>R</span>";
 				}
+				if(facetDef[gk].filters[fk].type == "multistage") {
+					icon = "<span class='sqs-menu-facet-type-icon'>M</span>";
+				}
 
 
 				facetGroup.children.push({
 					name: facetDef[gk].filters[fk].name,
 					title: "<div>"+icon+" "+facetDef[gk].filters[fk].title+"</div>",
 					tooltip: facetDef[gk].filters[fk].description,
-					callback: (menuItem) => {
-						var facets = this.sqs.facetManager.facets;
-						var facetExists = false;
-						
-						//FIXME: We should be allowing multple instances of the same facet type... but the backend doesn't suppoert it - I think ???
-						
-						for(var key in facets) {
-							if(facets[key].name == menuItem.name) {
-								//Facet already exists
-								facetExists = true;
-								$("#facet-menu [name='"+menuItem.name+"']").effect("shake");
+					callback: (() => { //This is a self-executing function that returns a function (which is the callback)
+						let facetName = facetDef[gk].filters[fk].name;
+						return () => {
+							var facets = this.sqs.facetManager.facets;
+							var facetExists = false;
+							//FIXME: We should be allowing multple instances of the same facet type... but the backend doesn't suppoert it - I think ???
+							
+							for(var key in facets) {
+								if(facets[key].name == facetName) {
+									//Facet already exists
+									facetExists = true;
+									$("#facet-menu [name='"+facetName+"']").effect("shake");
+								}
+							}
+							
+							if(facetExists === false) {
+								let t = this.sqs.facetManager.getFacetTemplateByFacetId(facetName);
+								var facet = this.sqs.facetManager.makeNewFacet(t);
+								this.sqs.facetManager.addFacet(facet);
 							}
 						}
-						
-						if(facetExists === false) {
-							var t = this.sqs.facetManager.getFacetTemplateByFacetId(menuItem.name);
-							var facet = this.sqs.facetManager.makeNewFacet(t);
-							this.sqs.facetManager.addFacet(facet);
-						}
-					}
+					})()
 				});
 			}
 			
@@ -1233,6 +1288,7 @@ class FacetManager {
 		}
 		return null;
 	}
+	
 	
 	/*
 	* Function: getLastTriggeringFacet

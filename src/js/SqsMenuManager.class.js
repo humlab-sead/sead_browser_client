@@ -129,17 +129,6 @@ class SqsMenuManager {
 		
 		return masterMenu;
 	}
-
-
-	/*
-	* Function: rebind
-	* 
-	* Rebinds the triggers to the menu anchors. In case the anchors were previously removed and re-added, this needs to be called.
-	*/
-	rebind(menuDef) {
-		let m = new  SqsMenu(this.sqs, menuDef, false);
-		m.bindMenuAnchor(m.menuDef);
-	}
 }
 
 export { SqsMenuManager as default }

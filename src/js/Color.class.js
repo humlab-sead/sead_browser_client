@@ -1,8 +1,10 @@
+import colors from "../stylesheets/colors.scss";
 import ColorScheme from 'color-scheme';
 import KolorWheel from 'kolorwheel';
 
 class Color {
     constructor() {
+		this.colors = colors;
 	}
 
     /*

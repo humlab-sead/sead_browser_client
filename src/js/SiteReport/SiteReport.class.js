@@ -16,6 +16,7 @@ import EcoCodes from './SectionModules/EcoCodes.class';
 
 class SiteReport {
 	constructor(siteReportManager, siteId) {
+		console.log("New siteReport for site", siteId);
 		this.siteReportManager = siteReportManager;
 		this.sqs = this.siteReportManager.sqs;
 		this.siteId = siteId;
@@ -165,40 +166,7 @@ class SiteReport {
 		//Empty everything
 		$("#site-report-content").html("");
 		$(".site-report-aux-info-container").html("");
-		
-		$("#facet-result-panel").animate({
-			left: "-100vw"
-		}, this.animationTime, this.animationEasing, () => {
-			$("#facet-result-panel").hide();
-		});
-		
 		$(".site-report-container").show();
-		
-		$(".site-report-container").animate({
-			left: "0vw"
-		}, this.animationTime, this.animationEasing);
-		
-		
-		/*
-		$("#facet-menu, #aux-menu, #domain-menu").animate({
-			top: "-100px"
-		}, 250, () => {
-			$("#facet-menu, #aux-menu, #domain-menu").hide();
-			this.backMenu = this.siteReportManager.sqs.menuManager.createMenu(this.siteReportManager.sqs.siteReportManager.sqsMenu());
-			$("#site-report-exit-menu").css("position", "relative").css("left", "-100px").show();
-			$("#site-report-exit-menu").animate({
-				left: "0px"
-			}, 250);
-		});
-		*/
-
-		/*
-		this.siteReportManager.sqs.setActiveView("siteReport");
-		this.siteReportManager.siteReportLayoutManager = new sqsLayoutManager(this.siteReportManager.sqs, "#site-report-panel", 80, 20, {
-			collapseIntoVertial: true
-		});
-		*/
-
 	}
 	
 	

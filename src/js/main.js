@@ -1,13 +1,11 @@
 import 'babel-polyfill';
 import config from '../config/config.json';
 import html from "../index.html";
-import 'jquery-ui-bundle';
 import 'notifyjs-browser';
 import 'zingtouch';
 import 'cookieconsent';
 import '../../node_modules/cookieconsent/build/cookieconsent.min.js';
 import '../../node_modules/cookieconsent/build/cookieconsent.min.css';
-import 'jquery-ui/themes/base/base.css';
 import '../stylesheets/SqsLayoutManager.scss';
 import '../stylesheets/SqsMenu.scss';
 import '../stylesheets/style.scss';
@@ -19,8 +17,11 @@ import SeadQuerySystem from './SeadQuerySystem.class.js';
 import "../assets/icons/favicon.ico";
 import "../assets/icons/android-chrome-192x192.png";
 //import "../site.webmanifest";
+import "../../node_modules/jquery-ui-dist/jquery-ui.min.css"
+import "../../node_modules/jquery-ui-dist/jquery-ui.min.js"
 
 import "../assets/SEAD-logo-with-subtext.png";
+import "../assets/filter-menu.svg";
 
 "use strict";
 
