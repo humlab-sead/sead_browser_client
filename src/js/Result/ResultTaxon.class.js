@@ -50,7 +50,8 @@ class ResultTaxon extends ResultModule {
 		});
 
 		this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
-			if(newDomainName == "palaeoentomology") {
+			console.log(this.sqs.config);
+			if(newDomainName == "palaeoentomology" && this.sqs.config.resultTaxonModuleEnabled) {
 				$("#menu-item-taxon").show(500);
 			}
 			else {
