@@ -2,8 +2,9 @@
 
 .responsive-layout-container {
 	display: none;
-	position: relative;
-	/*left: 0px;*/
+	position: absolute;
+	left: 0;
+	top: 0;
 
 	margin: 0px;
 	padding: 0px;

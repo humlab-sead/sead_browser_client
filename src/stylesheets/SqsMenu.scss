@@ -433,6 +433,7 @@ li.l1-container:hover {
 }
 
 .first-level-item {
+  position: relative;
   background: #eee;
   //background: rgba(0, 0, 0, 0.6);
   //color: #fff;
@@ -464,9 +465,12 @@ li.l1-container:hover {
 .first-level-item-title {
   margin-bottom: 0.25em;
   margin-top: 0.25em;
+  margin-left: .5em;
+  margin-right: .5em;
 }
 
 .second-level-item {
+  position: relative;
   background: #eee;
   padding: 0.5em;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);

@@ -95,12 +95,25 @@ class DomainManager {
             triggers: [{
 				selector: "#domain-menu",
 				on: "click"
+			},
+            {
+				selector: "#filter-menu-domain-area",
+				on: "click"
 			}],
             callbacks: [{
                 selector: "#domain-menu",
                 on: "mouseover",
                 callback: () => {
                     this.sqs.svgSetFill($("#domain-menu")[0], "#666");
+                    $("#filter-menu-domain-area").css("background", "#666");
+                }
+            },
+            {
+                selector: "#filter-menu-domain-area",
+                on: "mouseover",
+                callback: () => {
+                    this.sqs.svgSetFill($("#domain-menu")[0], "#666");
+                    $("#filter-menu-domain-area").css("background", "#666");
                 }
             },
             {
@@ -109,6 +122,16 @@ class DomainManager {
                 callback: () => {
                     let domain = this.getActiveDomain();
                     this.sqs.svgSetFill($("#domain-menu")[0], domain.color);
+                    $("#filter-menu-domain-area").css("background", domain.color);
+                }
+            },
+            {
+                selector: "#filter-menu-domain-area",
+                on: "mouseout",
+                callback: () => {
+                    let domain = this.getActiveDomain();
+                    this.sqs.svgSetFill($("#domain-menu")[0], domain.color);
+                    $("#filter-menu-domain-area").css("background", domain.color);
                 }
             },
             {
@@ -118,6 +141,7 @@ class DomainManager {
                     let domain = this.getActiveDomain();
                     $("#domain-text .selected-domain-text").text(domain.title);
                     this.sqs.svgSetFill($("#domain-menu")[0], domain.color);
+                    $("#filter-menu-domain-area").css("background", domain.color);
                 }
             }],
             customStyleClasses: "sqs-menu-block-vertical-flexible",
@@ -139,6 +163,7 @@ class DomainManager {
                         this.setActiveDomain(domain.name);
                         $("#domain-text > .selected-domain-text").text(domain.title);
                         $("#domain-menu").css("fill", domain.color);
+                        $("#filter-menu-domain-area").css("background", domain.color);
                     }
                 });
             }

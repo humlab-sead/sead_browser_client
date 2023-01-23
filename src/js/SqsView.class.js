@@ -137,7 +137,7 @@ class SqsView {
     
     apply() {
 		//FIXME: When site report is being exited then setView(Fitlers) is being called, which takes us back - not to the fitlers btu to the reuslt section (in mobile mode), which is not techincally wrong, but the rules for this view doesnt account for this
-		console.log(this.name, "apply", this.layoutManager.getMode());
+		console.log("View "+this.name, "applying", this.layoutManager.getMode());
         $(this.anchor).css("display", "flex"); //used to be 'flex'
 		$(this.anchor).css("visibility", "visible");
 
@@ -171,7 +171,7 @@ class SqsView {
 				this.switchSection("both");
 			}
             $(".ui-resizable-handle").show();
-            this.setSectionSizes(this.leftInitSize, this.rightInitSize, false);
+            this.setSectionSizes(this.leftInitSize, this.rightInitSize, true);
 		}
 		
 		for(let key in this.options.rules) {
@@ -283,6 +283,10 @@ class SqsView {
 		this.leftLastSize = leftSize;
 		this.righLastSize = rightSize;
 
+		console.log(this.anchor+" > .section-left")
+		console.log(animate)
+		console.log(leftSize, rightSize);
+
 		if(animate) {
 			$(this.anchor+" > .section-left").animate(
 				{
@@ -353,10 +357,11 @@ class SqsView {
 				$(this.anchor+" > .section-right").css("width", wp.right+"vw");
 			}
 		}).on("resize", (e) => {
+			console.log("evt: layoutResize")
 			this.sqs.sqsEventDispatch("layoutResize", e);
+			
 			//This was to prevent an issue with section-resize events being propagated as window-resize events
 			e.stopPropagation();
-			
 			var wp = this.calculateWidthsAsPercentage();
 			this.leftLastSize = wp.left;
 			this.rightLastSize = wp.right;

@@ -300,7 +300,6 @@ class ResultManager {
 		
 		if(this.getResultDataFetchingSuspended() == false) {
 			this.renderMsg(false);
-			console.log(this.getActiveModule())
 			this.getActiveModule().update();
 		}
 		else {

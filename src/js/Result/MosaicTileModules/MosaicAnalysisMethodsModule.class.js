@@ -25,20 +25,52 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         this.sqs.setLoadingIndicator(this.renderIntoNode, true);
-        
-        let promiseData = await resultMosaic.fetchSiteData(resultMosaic.sites, "qse_analysis_methods", resultMosaic.requestBatchId);
-		if(!this.active) {
-            return false;
-        }
-        if(promiseData.requestId < resultMosaic.requestBatchId) {
-            console.warn("Discarding old data for MosaicAnalysisMethodsModule");
-            return false;
-        }
 
-        this.data = promiseData.data;
-        let chartSeries = resultMosaic.prepareChartData("method_id", "method_name", promiseData.data);
+        let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/analysis_methods", {
+            method: "POST",
+            mode: "cors",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(resultMosaic.sites)
+        });
+        let data = await response.json();
+
+        let colors = this.sqs.color.getColorScheme(data.analysis_methods_datasets.length);
+
+        let  chartData = [{
+            labels: [],
+            values: [],
+            customdata: [],
+            marker: {
+                colors: colors
+            },
+            type: 'pie',
+            hole: 0.4,
+            name: "Analysis methods by datasets",
+            hoverinfo: 'label+percent',
+            textinfo: 'label+percent',
+            textposition: "inside",
+            hovertemplate: "%{percent} of datasets are %{customdata}<extra></extra>"
+        }];
+
+        data.analysis_methods_datasets.sort((a, b) => {
+             if(a.dataset_count > b.dataset_count) {
+                return -1;
+             }
+             else {
+                return 1;
+             }
+        });
+
+        data.analysis_methods_datasets.forEach(method => {
+            chartData[0].labels.push(method.method_abbrev_or_alt_name);
+            chartData[0].values.push(method.dataset_count);
+            chartData[0].customdata.push(method.method_name);
+        });
+
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-        this.chart = resultMosaic.renderPieChart(this.renderIntoNode, chartSeries, "Analysis methods");
+        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, "Analysis methods counted by datasets");
     }
 
     async update() {

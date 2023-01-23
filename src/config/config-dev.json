@@ -9,7 +9,7 @@
 	"serverAddress":"https://browser.sead.se/query",
 	"viewStateServerAddress":"https://supersead.humlab.umu.se/vsapi",
 	"siteReportServerAddress":"https://browser.sead.se/postgrest",
-	"dataServerAddress": "https://browser.sead.se/jsonapi",
+	"dataServerAddress": "https://supersead.humlab.umu.se/jsonapi",
 	"defaultResultModule":"mosaic",
 	"resultMapDataLayers": ["clusterPoints", "points", "heatmap"],
 	"maxAllowedSitesInAnExport": 20,
@@ -157,22 +157,17 @@
 				{
 					"module_name": "mosaic-map",
 					"grid_row": "1",
-					"grid_column": "1"
+					"grid_column": "span 2"
 				},
 				{
 					"module_name": "mosaic-sample-methods",
-					"grid_row": "1",
+					"grid_row": "2",
 					"grid_column": "2"
 				},
 				{
 					"module_name": "mosaic-analysis-methods",
 					"grid_row": "2",
 					"grid_column": "1"
-				},
-				{
-					"module_name": "mosaic-feature-types",
-					"grid_row": "2",
-					"grid_column": "2"
 				}
 			]
 		},
@@ -227,22 +222,17 @@
 				{
 					"module_name": "mosaic-map",
 					"grid_row": "1",
-					"grid_column": "1"
+					"grid_column": "span 2"
 				},
 				{
 					"module_name": "mosaic-sample-methods",
-					"grid_row": "1",
+					"grid_row": "2",
 					"grid_column": "2"
 				},
 				{
 					"module_name": "mosaic-analysis-methods",
 					"grid_row": "2",
 					"grid_column": "1"
-				},
-				{
-					"module_name": "mosaic-feature-types",
-					"grid_row": "2",
-					"grid_column": "2"
 				}
 			]
 		},

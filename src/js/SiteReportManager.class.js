@@ -15,8 +15,8 @@ class SiteReportManager {
 			if(this.sqs.resultManager.getActiveModule().name == "table" || this.sqs.resultManager.getActiveModule().name == "map") {
 				$(".site-report-link").off("click").on("click", (event) => {
 					var siteId = parseInt($(event.currentTarget).attr("site-id"));
-					window.location.href = "/site/"+siteId;
-					//this.renderSiteReport(siteId);
+					//window.location.href = "/site/"+siteId;
+					this.renderSiteReport(siteId);
 				});
 			}
 		});
@@ -24,8 +24,8 @@ class SiteReportManager {
 		this.sqs.sqsEventListen("resultMapPopupRender", (data) => {
 			$(".site-report-link").off("click").on("click", (event) => {
 				var siteId = parseInt($(event.currentTarget).attr("site-id"));
-				window.location.href = "/site/"+siteId;
-				//this.renderSiteReport(siteId);
+				//window.location.href = "/site/"+siteId;
+				this.renderSiteReport(siteId);
 			});
 		});
 		
@@ -54,7 +54,7 @@ class SiteReportManager {
 
 		this.sqs.sqsEventListen("siteReportClosed", () => {
 			console.log("siteReportClosed");
-			//history.pushState({}, "", "/");
+			history.pushState({}, "", "/");
 		});
 	}
 	
@@ -120,8 +120,8 @@ class SiteReportManager {
 	unrenderSiteReport() {
 		$("#site-report-panel").hide();
 
-		$("#facet-result-panel").css("display", "flex");
-		$("#facet-result-panel").animate({
+		//$("#filter-view-main-container").css("display", "flex");
+		$("#filter-view-main-container").animate({
 			left: "0vw"
 		}, this.animationTime, this.animationEasing);
 		
@@ -139,7 +139,6 @@ class SiteReportManager {
 			
 		});
 		
-
 		//If the site report was the entry point, no result module will be selected or rendered, so we need to fix that here...
 		if(this.sqs.resultManager.getActiveModule() === false) {
 			this.sqs.resultManager.setActiveModule("map", true);

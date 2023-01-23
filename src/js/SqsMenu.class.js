@@ -96,8 +96,16 @@ class sqsMenu {
 			}
 			this.renderMenu(this.menuDef);
 			this.bindCallbacks(this.menuDef);
-			this.registerTooltipBindings();
+			
 			*/
+			this.registerTooltipBindings();
+
+			if(typeof this.menuDef.viewPortResizeCallback == "function") {
+				setTimeout(() => {
+					this.menuDef.viewPortResizeCallback();
+				}, 500);
+			}
+			
 		}
 	}
 	
@@ -266,6 +274,12 @@ class sqsMenu {
 			evt.stopImmediatePropagation();
 			this.closeAllMenus();
 		})
+
+		this.sqs.sqsEventListen("layoutResize", (evt) => {
+			if(typeof this.menuDef.viewPortResizeCallback == "function") {
+				this.menuDef.viewPortResizeCallback();
+			}
+		});
 	}
 
 	closeAllMenus() {
@@ -287,7 +301,7 @@ class sqsMenu {
 		for(let key in this.menuDef.items) {
 			for (var sk in this.menuDef.items[key].children) {
 				if(this.menuDef.items[key].children[sk].tooltip != "") {
-					this.sqs.tooltipManager.registerTooltip("#menu-item-" + this.menuDef.items[key].children[sk].name, this.menuDef.items[key].children[sk].tooltip, ttOptions);
+					this.sqs.tooltipManager.registerTooltip("[menu-item='"+this.menuDef.items[key].children[sk].name+"']", this.menuDef.items[key].children[sk].tooltip, ttOptions);
 				}
 			}
 		}

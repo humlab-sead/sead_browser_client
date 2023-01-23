@@ -141,9 +141,23 @@ div:focus {
   */
 }
 
+#filter-menu-container > #filter-menu-domain-area {
+  position: relative;
+  width: 50%;
+  height: auto;
+  background: grey;
+}
+
+#filter-menu-container > #filter-menu-filter-area {
+  position: relative;
+  width: 50%;
+  height: auto;
+  background: #2d5e8d;
+}
+
 #filter-menu-container > svg {
   cursor: pointer;
-  width: 100%;
+  width: 1.2em;
   height: 4em;
 }
 
@@ -189,10 +203,11 @@ div:focus {
 }
 
 #filters-menu-anchor-point {
-  position: absolute;
-  width: 100%;
+  position: fixed;
+  width: auto;
+  min-width: 30vw;
   display: none;
-  z-index: 2;
+  z-index: 100;
   box-shadow: 0px .5em .5em .25em $shadow-color;
 }
 
@@ -200,7 +215,7 @@ div:focus {
   position: absolute;
   width: 100%;
   display: none;
-  z-index: 2;
+  z-index: 100;
   box-shadow: 0px .5em .5em .25em $shadow-color;
 }
 
@@ -1712,11 +1727,11 @@ polyline{
 #facet-menu > .sqs-menu-block-vertical-large {
   background-color: $base-color !important;
 }
-
+/*
 #facet-menu:hover  {
   background-color: lighten($base-color, 10%) !important;
 }
-
+*/
 #facet-menu > .menu-category-level {
   left: 0px;
 }

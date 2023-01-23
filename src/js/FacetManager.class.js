@@ -1116,15 +1116,52 @@ class FacetManager {
 				on: "click"
 			},
 			{
+				selector: "#filter-menu-filter-area",
+				on: "click"
+			},
+			{
 				selector: ".slot-visible .jslink-alt",
 				on: "click"
 			}],
+			callbacks: [
+				{
+					selector: "#facet-menu",
+					on: "mouseover",
+					callback: () => {
+						this.sqs.svgSetFill($("#facet-menu")[0], "#3978b4");
+						$("#filter-menu-filter-area").css("background", "#3978b4");
+					}
+				},
+				{
+					selector: "#facet-menu",
+					on: "mouseout",
+					callback: () => {
+						this.sqs.svgSetFill($("#facet-menu")[0], this.sqs.color.colors.baseColor);
+						$("#filter-menu-filter-area").css("background", this.sqs.color.colors.baseColor);
+					}
+				},
+				{
+					selector: "#filter-menu-filter-area",
+					on: "mouseover",
+					callback: () => {
+						this.sqs.svgSetFill($("#facet-menu")[0], "#3978b4");
+						$("#filter-menu-filter-area").css("background", "#3978b4");
+					}
+				},
+				{
+					selector: "#filter-menu-filter-area",
+					on: "mouseout",
+					callback: () => {
+						this.sqs.svgSetFill($("#facet-menu")[0], this.sqs.color.colors.baseColor);
+						$("#filter-menu-filter-area").css("background", this.sqs.color.colors.baseColor);
+					}
+				},
+			],
 			anchorTriggerEvent: "click",
 			//customStyleClasses: "sqs-menu-block-vertical-large",
 			viewPortResizeCallback: () => {
-				let leftWidth = $("#facet-result-panel .section-left").width();
-				//$("#facet-menu > .sqs-menu-block-vertical-large").css("width", leftWidth+"px");
-				$("#facet-menu .l1-container-level").css("width", leftWidth+"px")
+				let pos = $("#filter-menu-filter-area").position().left - 15;
+				$("#filters-menu-anchor-point").css("left", pos+"px");
 			},
 			items: []
 		};

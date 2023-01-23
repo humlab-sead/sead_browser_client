@@ -4,7 +4,7 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
     constructor(sqs) {
         super();
         this.sqs = sqs;
-        this.title = "Sampling methods";
+        this.title = "Sampling methods by sample groups";
 		this.name = "mosaic-sample-methods";
 		this.domains = ["general", "palaeo", "archaeobotany", "isotopes"];
         this.active = true;
@@ -21,18 +21,73 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
             return false;
         }
         this.active = true;
-        let resultMosaicModule = this.sqs.resultManager.getModule("mosaic");
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         this.sqs.setLoadingIndicator(this.renderIntoNode, true);
+
+        let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/sample_methods", {
+            method: "POST",
+            mode: "cors",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(resultMosaic.sites)
+        });
+        let data = await response.json();
+        console.log(data)
+
+        let colors = this.sqs.color.getColorScheme(data.sample_methods_sample_groups.length);
+
+
+
+
+        let  chartData = [{
+            labels: [],
+            values: [],
+            customdata: [],
+            marker: {
+                colors: colors
+            },
+            type: 'pie',
+            hole: 0.4,
+            name: "Sampling methods by sample groups",
+            hoverinfo: 'label+percent',
+            textinfo: 'label+percent',
+            textposition: "inside",
+            hovertemplate: "%{percent} of sample groups are %{customdata}<extra></extra>"
+        }];
+
+        data.sample_methods_sample_groups.sort((a, b) => {
+             if(a.sample_groups_count > b.sample_groups_count) {
+                return -1;
+             }
+             else {
+                return 1;
+             }
+        });
+
+        data.sample_methods_sample_groups.forEach(method => {
+            chartData[0].labels.push(method.method_abbrev_or_alt_name);
+            chartData[0].values.push(method.sample_groups_count);
+            chartData[0].customdata.push(method.method_name);
+        });
+
+        this.sqs.setLoadingIndicator(this.renderIntoNode, false);
+        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, "Sampling methods counted by sample groups");
+
+
+        /*
         const promiseData = await resultMosaicModule.fetchSiteData(resultMosaicModule.sites, "qse_methods", resultMosaicModule.requestBatchId);
         if(promiseData.requestId < resultMosaicModule.requestBatchId) {
             return false;
         }
 
         this.data = promiseData.data;
+        console.log(this.data);
 
         let chartSeries = resultMosaicModule.prepareChartData("method_id", "method_name", promiseData.data);
-        this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-        this.chart = resultMosaicModule.renderPieChart(this.renderIntoNode, chartSeries, "Sampling methods");
+        console.log(chartSeries);
+        */
+        //this.chart = resultMosaicModule.renderPieChart(this.renderIntoNode, chartSeries, "Sampling methods");
     }
 
     async fetch() {

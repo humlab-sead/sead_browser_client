@@ -185,13 +185,14 @@ class SeadQuerySystem {
 			this.svgSetFill(domainBox, "#444");
 		});
 		*/
-		
+		/*
 		$(filterBox).on("mouseover", () => {
 			this.svgSetFill(filterBox, "#3978b4");
 		});
 		$(filterBox).on("mouseout", () => {
 			this.svgSetFill(filterBox, "#2d5e8d");
 		});
+		*/
 		
 		
 
@@ -365,26 +366,20 @@ class SeadQuerySystem {
 
 	svgSetFill(element, color) {
 		let style = element.getAttribute("style");
-		let styleAttrs = style.split(";")
+		let styleAttrs = style.split(";");
 		let newStyleString = "";
 		styleAttrs.forEach(styleAttr => {
-			let attrParts = styleAttr.split(":");
-			let name = attrParts[0];
-			let value = attrParts[1];
-			if(name == "fill") {
-				value = color;
+			if(styleAttr.length > 0) {
+				let attrParts = styleAttr.split(":");
+				let name = attrParts[0];
+				let value = attrParts[1];
+				if(name == "fill") {
+					value = color;
+				}
+				newStyleString += name+":"+value+";";
 			}
-			newStyleString += name+":"+value+";";
 		});
 		element.setAttribute("style", newStyleString);
-	}
-	
-	getHtmlSafeIdFromString(str) {
-		console.log(str)
-		str = str.toString();
-		console.log(typeof str)
-		
-		return str.replace(/ /g, "_");
 	}
 
 	/*
@@ -726,6 +721,9 @@ class SeadQuerySystem {
 		this.activeView = viewName;
 		if(this.layoutManager instanceof SqsLayoutManager) {
 			this.layoutManager.setActiveView(viewName);
+		}
+		else {
+			console.warn("Ignoring request to setActiveView because there's no LayoutManager.");
 		}
 	}
 
