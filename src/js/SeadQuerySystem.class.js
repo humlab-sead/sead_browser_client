@@ -163,6 +163,7 @@ class SeadQuerySystem {
 		this.layoutManager.createView("#site-report-main-container", "siteReport", 80, 20, {
 			collapseIntoVertial: true,
 			rules: [
+				/*
 				{
 					selector: "#site-report-main-container, #site-report-exit-menu"
 				},
@@ -171,6 +172,7 @@ class SeadQuerySystem {
 					selector: "#domain-menu, #aux-menu-button, #facet-menu",
 					evaluator: false
 				}
+				*/
 			]
 		});
 

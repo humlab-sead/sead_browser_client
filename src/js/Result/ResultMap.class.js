@@ -502,6 +502,14 @@ class ResultMap extends ResultModule {
 	* Function: renderInterface
 	*/
 	renderInterfaceControls() {
+
+		console.log("renderInterfaceControls");
+
+		$(this.renderMapIntoNode).append("<div id='result-map-controls-container'></div>")
+		$("#result-map-controls-container").append("<div id='result-map-baselayer-controls-menu'></div>")
+		let baseLayersMenu = new SqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlsSqsMenu());
+		console.log(baseLayersMenu);
+
 		/*
 		d3.select(this.renderMapIntoNode)
 			.append("div")
@@ -510,13 +518,14 @@ class ResultMap extends ResultModule {
 		d3.select("#result-map-controls-container")
 			.append("div")
 			.attr("id", "result-map-baselayer-controls-menu");
-		new sqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlssqsMenu());
+		new SqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlssqsMenu());
 
 		d3.select("#result-map-controls-container")
 			.append("div")
 			.attr("id", "result-map-datalayer-controls-menu");
-		new sqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlssqsMenu());
-		*/
+		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlssqsMenu());
+		
+		
 
 		$(this.renderMapIntoNode).append($("<div></div>").attr("id", "result-map-controls-container"));
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-baselayer-controls-menu"));
@@ -524,6 +533,8 @@ class ResultMap extends ResultModule {
 
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-datalayer-controls-menu"));
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
+
+		*/
 
 		if(this.sqs.config.showResultExportButton) {
 			this.renderExportButton();

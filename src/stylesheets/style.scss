@@ -127,7 +127,8 @@ div:focus {
   border-width: 0;
   margin-top: .5em;
   margin-bottom: .5em;
-  margin-left: 1em;
+  margin-left: 0em;
+  height: 85%;
 }
 
 #filter-menu-container {
@@ -238,8 +239,16 @@ div:focus {
 }
 
 #site-report-main-container {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   visibility: hidden;
+}
+
+#site-report-grid-container {
+  display: grid;
+  width: calc(100vw - 2em);
+  margin: 1em;
+  grid-gap: 1em;
   grid-template-columns: 2fr 1fr;
   grid-template-rows: 1fr;
   grid-template-areas:

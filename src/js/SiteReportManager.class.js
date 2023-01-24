@@ -132,20 +132,14 @@ class SiteReportManager {
 			$(".site-report-container").hide();
 		});
 		
-		$("#site-report-exit-menu").animate({
-			left: "-100px"
-		}, 250, () => {
-			this.sqs.menuManager.removeMenu(this.siteReport.backMenu);
-			
-		});
-		
 		//If the site report was the entry point, no result module will be selected or rendered, so we need to fix that here...
 		if(this.sqs.resultManager.getActiveModule() === false) {
-			this.sqs.resultManager.setActiveModule("map", true);
+			this.sqs.resultManager.setActiveModule(this.sqs.config.defaultResultModule, true);
 		}
 
-		this.sqs.sqsEventDispatch("siteReportClosed"); //Also fun fact: This is called from a function which calls this function - recursion...
+		this.sqs.sqsEventDispatch("siteReportClosed");
 		this.sqs.setActiveView("filters");
+		this.sqs.sqsEventDispatch("layoutResize");
 	}
 	
 	/*
@@ -176,15 +170,18 @@ class SiteReportManager {
 	}
 	
 	sqsMenu() {
+		return {};
+		/*
 		return {
 			title: "<i class=\"fa fa-arrow-circle-o-left\" style='font-size: 1.5em' aria-hidden=\"true\"></i>",
 			anchor: "#site-report-exit-menu",
-			visible: false,
+			visible: true,
 			customStyleClasses: "site-report-exit-menu",
 			callback: () => {
 				this.unrenderSiteReport();
 			}
 		};
+		*/
 	}
 }
 

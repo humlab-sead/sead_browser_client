@@ -8,7 +8,7 @@
 	"serverRoot":"https://supersead.humlab.umu.se",
 	"serverAddress":"https://browser.sead.se/query",
 	"viewStateServerAddress":"https://supersead.humlab.umu.se/vsapi",
-	"siteReportServerAddress":"https://browser.sead.se/postgrest",
+	"siteReportServerAddress":"https://supersead.humlab.umu.se/postgrest",
 	"dataServerAddress": "https://supersead.humlab.umu.se/jsonapi",
 	"defaultResultModule":"mosaic",
 	"resultMapDataLayers": ["clusterPoints", "points", "heatmap"],

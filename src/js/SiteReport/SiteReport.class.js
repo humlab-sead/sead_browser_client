@@ -113,10 +113,20 @@ class SiteReport {
 		
 
 		this.backMenu = this.siteReportManager.sqs.menuManager.createMenu(this.siteReportManager.sqs.siteReportManager.sqsMenu());
+		/*
 		$("#site-report-exit-menu").css("position", "relative").css("left", "-100px").show();
 		$("#site-report-exit-menu").animate({
 			left: "0px"
 		}, 250);
+		*/
+
+		this.sqs.tooltipManager.registerTooltip("#site-report-exit-menu", "Back to site finder", {
+			placement: "right"
+		});
+
+		$("#site-report-exit-menu").on("click", () => {
+			this.siteReportManager.unrenderSiteReport();
+		});
 	}
 
 	async fetchSite() {

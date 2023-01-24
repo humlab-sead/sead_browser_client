@@ -389,6 +389,12 @@ class SqsView {
 
 	setActive(active) {
 		this.active = active;
+		if(this.active) {
+			$(this.anchor).css("visibility", "visible");
+		}
+		else {
+			$(this.anchor).css("visibility", "hidden");
+		}
 	}
 
 	getActive() {
