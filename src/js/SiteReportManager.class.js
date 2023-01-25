@@ -15,6 +15,7 @@ class SiteReportManager {
 			if(this.sqs.resultManager.getActiveModule().name == "table" || this.sqs.resultManager.getActiveModule().name == "map") {
 				$(".site-report-link").off("click").on("click", (event) => {
 					var siteId = parseInt($(event.currentTarget).attr("site-id"));
+					//window.location.href = "/site/"+siteId;
 					this.renderSiteReport(siteId);
 				});
 			}
@@ -23,6 +24,7 @@ class SiteReportManager {
 		this.sqs.sqsEventListen("resultMapPopupRender", (data) => {
 			$(".site-report-link").off("click").on("click", (event) => {
 				var siteId = parseInt($(event.currentTarget).attr("site-id"));
+				//window.location.href = "/site/"+siteId;
 				this.renderSiteReport(siteId);
 			});
 		});
@@ -52,7 +54,7 @@ class SiteReportManager {
 
 		this.sqs.sqsEventListen("siteReportClosed", () => {
 			console.log("siteReportClosed");
-			//history.pushState({}, "", "/");
+			history.pushState({}, "", "/");
 		});
 	}
 	
@@ -82,6 +84,7 @@ class SiteReportManager {
 	}
 	
 	renderSiteReport(siteId, updateHistory = true) {
+		console.log("Rendering siteReport for site:", siteId);
 		if(updateHistory) {
 			var stateObj = {};
 			history.pushState(stateObj, "", "/site/"+siteId);
@@ -117,8 +120,8 @@ class SiteReportManager {
 	unrenderSiteReport() {
 		$("#site-report-panel").hide();
 
-		$("#facet-result-panel").css("display", "flex");
-		$("#facet-result-panel").animate({
+		//$("#filter-view-main-container").css("display", "flex");
+		$("#filter-view-main-container").animate({
 			left: "0vw"
 		}, this.animationTime, this.animationEasing);
 		
@@ -129,32 +132,14 @@ class SiteReportManager {
 			$(".site-report-container").hide();
 		});
 		
-		$("#site-report-exit-menu").animate({
-			left: "-100px"
-		}, 250, () => {
-			this.sqs.menuManager.removeMenu(this.siteReport.backMenu);
-
-			/*
-			if(this.sqs.layoutManager.getMode() != "mobileMode") {
-				$("#aux-menu, #domain-menu").show().animate({
-					top: "0px"
-				}, 250);
-			}
-			$("#facet-menu").show().animate({
-				top: "0px"
-			}, 250);
-			*/
-			
-		});
-		
-
 		//If the site report was the entry point, no result module will be selected or rendered, so we need to fix that here...
 		if(this.sqs.resultManager.getActiveModule() === false) {
-			this.sqs.resultManager.setActiveModule("map", true);
+			this.sqs.resultManager.setActiveModule(this.sqs.config.defaultResultModule, true);
 		}
 
-		this.sqs.sqsEventDispatch("siteReportClosed"); //Also fun fact: This is called from a function which calls this function - recursion...
+		this.sqs.sqsEventDispatch("siteReportClosed");
 		this.sqs.setActiveView("filters");
+		this.sqs.sqsEventDispatch("layoutResize");
 	}
 	
 	/*
@@ -185,15 +170,18 @@ class SiteReportManager {
 	}
 	
 	sqsMenu() {
+		return {};
+		/*
 		return {
 			title: "<i class=\"fa fa-arrow-circle-o-left\" style='font-size: 1.5em' aria-hidden=\"true\"></i>",
 			anchor: "#site-report-exit-menu",
-			visible: false,
+			visible: true,
 			customStyleClasses: "site-report-exit-menu",
 			callback: () => {
 				this.unrenderSiteReport();
 			}
 		};
+		*/
 	}
 }
 

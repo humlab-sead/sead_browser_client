@@ -41,7 +41,7 @@ class TooltipManager {
 					enabled: true
 				},
 				preventOverflow: {
-					enabled: true
+					enabled: false
 				},
 				hide: {
 					enabled: false
@@ -224,9 +224,7 @@ class TooltipManager {
 		if(tooltip.options.highlightAnchor) {
 			$(tooltip.anchor).addClass("tooltip-anchor-highlight");
 		}
-		
 		var popper = new Popper($(tooltip.anchor)[0], tooltip.tooltipNode, tooltip.options);
-		
 		tooltip.sticky = sticky;
 		tooltip.popper = popper;
 		tooltip.rendered = true;

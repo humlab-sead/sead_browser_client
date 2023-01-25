@@ -6,7 +6,11 @@ Structure looks like this:
 
 var menu = {
 	title: "My Menu", //The name of the menu as it will be displayed in the UI
-	layout: "horizontal", //"horizontal" or "vertical" - the flow director of the menu items
+	triggers: [{  //The triggers which should trigger this menu. Usually just one but can be multiple.
+		selector: "#selector",
+		on: "click"
+	}],
+	layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
 	collapsed: false, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
 	anchor: "#help-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
 	staticSelection: false, //whether a selected item remains highlighted or not, purely visual
@@ -78,14 +82,31 @@ class sqsMenu {
 		this.screenSmallWidthBreakPoint = 1020;
 		this.screenLargeWidthBreakPoint = 2000;
 		this.closeTimerInterval = null;
-		this.menuItemsContainerSelector = this.menuDef.anchor+".sqs-menu-container";
+		this.menuItemsContainerSelector = this.menuDef.anchor;
+		//this.menuItemsContainerSelector = this.menuDef.anchor+".sqs-menu-container";
+		
+		this.menuDef.secondLevelCollapsed = true;
+
 		
 		if(init) {
-			this.renderMenuLabel(sqsMenuDef);
-			this.renderMenu(sqsMenuDef);
-			this.bindCallbacks(sqsMenuDef);
+			this.buildMenu(this.menuDef);
+			/*
+			if(this.menuDef.customLabel !== true) {
+				this.renderMenuLabel(this.menuDef);
+			}
+			this.renderMenu(this.menuDef);
+			this.bindCallbacks(this.menuDef);
+			
+			*/
 			this.registerTooltipBindings();
-		}	
+
+			if(typeof this.menuDef.viewPortResizeCallback == "function") {
+				setTimeout(() => {
+					this.menuDef.viewPortResizeCallback();
+				}, 500);
+			}
+			
+		}
 	}
 	
 	/*
@@ -124,177 +145,151 @@ class sqsMenu {
 			$(".sqs-menu-title-container", this.menuDef.anchor).on("click", m.callback);
 		}
 	}
-	
-	/**
-	* Function: renderMenu
-	*
-	*/
-	renderMenu(m) {
-		var sqsMenuContainerDisplay = "inline-block";
-		var menuCategoryLevelClass = "l1-container-level l1-container-level-vertical";
-		if(m.layout == "horizontal") {
-			sqsMenuContainerDisplay = "flex";
-			menuCategoryLevelClass = "l1-container-level l1-container-level-horizontal";
-		}
 
-		/*
-		this should work to create a better filter menu, but it doesn't currently have any effect
-		if(m.l1layout == "vertical") {
-			$(".l1-container-level", m.anchor).css("flex-direction", "row");
-		}
-		*/
-		
-		if(!m.visible) {
-			sqsMenuContainerDisplay = "none";
-		}
-
-		$(m.anchor).addClass("sqs-menu-container").css("display", sqsMenuContainerDisplay);
-
-		let menuFirstLevelList = $("<ul></ul>").addClass(menuCategoryLevelClass);
-		$(this.menuItemsContainerSelector).append(menuFirstLevelList);
-
-		var items = m.items;
-		for(var key in items) {
-			let l1Classes = "l1-container";
-			if(typeof items[key].children != "undefined" && items[key].children.length > 0) {
-				//Disable parent clickity-ness
-				l1Classes += " l1-inactive";
-			}
-
-			var l1TitleClasses = "l1-title";
-			if(typeof(m.style.l1TitleClass) != "undefined") {
-				l1TitleClasses += " "+m.style.l1TitleClass;
-			}
-
-			let firstLevelListItem = $("<li></li>");
-			firstLevelListItem.attr("id", "menu-item-"+items[key].name);
-			firstLevelListItem.attr("name", items[key].name);
-			firstLevelListItem.addClass(l1Classes);
-			if(items[key].visible == false) {
-				firstLevelListItem.css("display", "none");
-			}
-			let span = $("<span></span>");
-			span.addClass(l1TitleClasses);
-			span.html(items[key].title);
-			firstLevelListItem.append(span);
-			menuFirstLevelList.append(firstLevelListItem);
-
-
-			if(items[key].children.length > 0) {
-				let menuSecondLevelList = $("<ul></ul>").attr("id", "menu-item-"+items[key].name).addClass("l2-level").css("border-left-color", "#000");
-
-				for(var ck in items[key].children) {
-					let secondLevelListItem = $("<li></li>").addClass("l2-title menu-btn").attr("id", "menu-item-"+items[key].children[ck].name).attr("name", items[key].children[ck].name).html(items[key].children[ck].title);
-					menuSecondLevelList.append(secondLevelListItem);
-				}
-				
-				firstLevelListItem.append(menuSecondLevelList);
-			}
-		}
-
-		if(!m.collapsed) {
-			var displayMode;
-			if(m.layout == "horizontal") {
-				displayMode = "inline-block";
+	setSelected(itemName) {
+		let selectedNum = 0;
+		this.menuDef.items.forEach(item => {
+			if(item.name == itemName) {
+				item.selected = true;
+				selectedNum++;
 			}
 			else {
-				displayMode = "flex";
+				item.selected = false;
 			}
-			
-			$(this.menuItemsContainerSelector+" > .l1-container-level").css("display", displayMode);
-		}
-
-
-		this.bindMenuAnchor(m);
-		
-		$(m.anchor+" .l1-container").on("click", (event) => { //replace this with mouseover if you like annoying menus
-			//$(m.anchor+" .l2-level", event.currentTarget).show();
-			$(".l2-level").hide();
-			$(".l2-level", event.currentTarget).show();
-			m.activeL1 = $(event.currentTarget).attr("name");
-		});
-		
-		for(var key in m.items) {
-			if(m.items[key].staticSelection) {
-				this.setSelected(m.items[key].name);
-			}
-		}
-
-		let anchorWidth = $(m.anchor).width();
-		$(m.anchor+" .l1-container-level-vertical").css("min-width", anchorWidth+"px");
-	}
-
-
-	bindMenuAnchor(m) {
-		if(m.items.length > 0) {
-			$(m.anchor+" > .sqs-menu-title-container").on(m.anchorTriggerEvent, () => {
-				//console.log("sqsMenu anchor 1");
-				this.showMenu(m);
-			});
-
-			$(m.anchor+" > .l1-container-level").on("mouseover", () => {
-				//console.log("sqsMenu anchor 2");
-				this.showMenu(m);
-			});
-
-			if(typeof m.auxTriggers != "undefined") {
-				for(let key in m.auxTriggers) {
-					$(m.auxTriggers[key].selector).on(m.auxTriggers[key].on, () => {
-						//console.log("sqsMenu anchor 3");
-						this.showMenu(m);
-					});
+			item.children.forEach(child => {
+				if(child.name == itemName) {
+					child.selected = true;
+					selectedNum++;
 				}
+				else {
+					child.selected = false;
+				}
+			});
+		});
+
+		if(selectedNum == 0) {
+			console.warn("Nothing was selected.");
+		}
+		if(selectedNum > 1) {
+			console.warn("Multiple menu items were selected.");
+		}
+
+		let menuAnchorNode = $(this.menuDef.anchor);
+		$(".first-level-item", menuAnchorNode).removeClass("sqs-menu-selected");
+		$(".second-level-item", menuAnchorNode).removeClass("sqs-menu-selected");
+		$("[menu-item='"+itemName+"']", menuAnchorNode).addClass("sqs-menu-selected");
+
+		//this.menuDef.triggers
+
+		$("#domain-menu")[0].dispatchEvent(new CustomEvent("selectionchange"));
+	}
+	
+	buildMenu(menu) {
+		let menuAnchorNode = $(menu.anchor);
+		menuAnchorNode.html("");
+		menuAnchorNode.addClass("sqs-menu-container");
+		if(menu.layout == "horizontal") {
+			menuAnchorNode.addClass("sqs-menu-container-horizontal");
+		}
+
+		//first level items
+		menu.items.forEach(item => {
+			let firstLevelItem = $("<div menu-item='"+item.name+"'><div class='first-level-item-title'>"+item.title+"</div></div>");
+			firstLevelItem.addClass("first-level-item");
+
+			if(menu.layout == "horizontal") {
+				firstLevelItem.addClass("first-level-item-horizontal");
+				//$(".sqs-menu-container")
+				menuAnchorNode.css("display", "block");
 			}
 
-			if(m.anchorTriggerEvent == "mouseover" && m.collapsed) {
-				$(m.anchor).on("mouseleave", () => {
-					this.closeMenu(m);
-				});
-			}
-			if(m.anchorTriggerEvent == "click") {
-				//trigger close menu on click on an item or clicking outside it
-				$(document).on("click", (evt) => {
-					let target = $(evt.target);
-					if(!target.closest(m.anchor).length && $(m.anchor).is(":visible")) {
-						this.closeMenu(m);
+			//second level items (if any)
+			item.children.forEach(child => {
+				let childItem = $("<div menu-item='"+child.name+"'>"+child.title+"</div>");
+				childItem.addClass("second-level-item");
+				firstLevelItem.append(childItem);
+
+				childItem.on("click", (evt) => {
+					if(child.callback) {
+						evt.stopPropagation();
+						$(".sqs-menu-container").hide();
+						child.callback();
 					}
-				});
+				})
+			});
+
+			//bind first level items
+			firstLevelItem.on("click", (evt) => {
+				evt.stopPropagation();
+				if(item.callback) {
+					if(menu.layout == "vertical") {
+						menuAnchorNode.css("display", "none");
+					}
+					this.setSelected(item.name);
+					item.callback();
+				}
+				
+				$(".first-level-item", menuAnchorNode).removeClass("first-level-item-expanded");
+				$(".second-level-item", menuAnchorNode).css("display", "none");
+
+				//This just sets the lighter background color for expanded items
+				if(firstLevelItem.hasClass("first-level-item-expanded")) {
+					firstLevelItem.removeClass("first-level-item-expanded");
+				}
+				else {
+					firstLevelItem.addClass("first-level-item-expanded");
+				}
+
+				//This "expands" (displays) all of the children items
+				$(".second-level-item", firstLevelItem).css("display", "block");
+			});
+
+			$(menu.anchor).append(firstLevelItem);
+		});
+
+		menu.triggers.forEach(trigger => {
+			$(trigger.selector).off(trigger.on); //turn the trigger OFF to begin with, just to make sure it doesn't get double-registrered
+			$(trigger.selector).on(trigger.on, (evt) => {
+				this.closeAllMenus(); //this is to prevent multiple menus being open at once
+
+				evt.stopPropagation(); //To prevent the event reaching the body, which could cause an immediate close of the menu
+				if(menuAnchorNode.css("display") == "none") {
+					menuAnchorNode.css("display", "block");
+				}
+				else {
+					menuAnchorNode.css("display", "none");
+				}
+			});
+		});
+
+		//This is a very generic callback system where each menu can register any number of callback events
+		//the events can be any type of DOM events and the functions executed are also entirely up to the menu to define
+		//it is used for hover effect by the domain/filter-menus
+		menu.callbacks.forEach(callback => {
+			$(callback.selector).off(callback.on);
+			$(callback.selector).on(callback.on, callback.callback);
+		});
+
+		$("body").on("click", (evt) => {
+			evt.stopImmediatePropagation();
+			this.closeAllMenus();
+		})
+
+		this.sqs.sqsEventListen("layoutResize", (evt) => {
+			if(typeof this.menuDef.viewPortResizeCallback == "function") {
+				this.menuDef.viewPortResizeCallback();
 			}
-			
-		}
+		});
 	}
 
-	showMenu(m) {
-		$(".sqs-menu-title-container", m.anchor).addClass("sqs-menu-block-active");
-
-		var displayMode = "flex";
-		if(m.layout == "horizontal") {
-			displayMode = "inline-block";
-		}
-		$(m.anchor+" .l1-container-level").css("display", displayMode);
-
-		//Check if l1-container-level-vertical overflows viewport and if so, set it to: right: 0px; to make it bounce of the right edge
-		let pos = $(m.anchor+" .l1-container-level").position();
-		let width = $(m.anchor+" .l1-container-level").width();
-		if(pos.left + width > $(window).width()) {
-			$(m.anchor+" .l1-container-level").css("right", "0px");
-		}
-		
-		$(m.anchor+" .l2-level").show();
-		
-		var menuHeight = $(m.anchor+" .l1-container-level").height();
-		var viewportHeight = $(document).height();
-		if(menuHeight > viewportHeight-100) {
-			$(m.anchor+" .l2-level").hide();
-			if(typeof m.activeL1 != "undefined") { //If menu was closed with a L2-level open, remember that choice
-				$(m.anchor+" .l1-container[name='"+m.activeL1+"'] .l2-level").show();
+	closeAllMenus() {
+		$(".sqs-menu-container").each((i, el) => {
+			if($(el).hasClass("sqs-menu-container-horizontal") == false) {
+				$(el).hide();
 			}
-		}
-		else {
-			$(m.anchor+" .l2-level").show();
-		}
-
+		})
 	}
+
 	
 	/*
 	* Function: registerTooltipBindings
@@ -306,7 +301,7 @@ class sqsMenu {
 		for(let key in this.menuDef.items) {
 			for (var sk in this.menuDef.items[key].children) {
 				if(this.menuDef.items[key].children[sk].tooltip != "") {
-					this.sqs.tooltipManager.registerTooltip("#menu-item-" + this.menuDef.items[key].children[sk].name, this.menuDef.items[key].children[sk].tooltip, ttOptions);
+					this.sqs.tooltipManager.registerTooltip("[menu-item='"+this.menuDef.items[key].children[sk].name+"']", this.menuDef.items[key].children[sk].tooltip, ttOptions);
 				}
 			}
 		}
@@ -320,80 +315,6 @@ class sqsMenu {
 		$(".sqs-menu-title-container", m.anchor).removeClass("sqs-menu-block-active");
 		//$(this.menuItemsContainerSelector).hide();
 		$(m.anchor+" .l1-container-level").css("right", "auto");
-	}
-	
-	/*
-	* Function: setSelected
-	*
-	*/
-	setSelected(menuItemName) {
-		for(var key in this.menuDef.items) {
-			if(this.menuDef.items[key].name == menuItemName) {
-				this.menuDef.items[key].staticSelection = true;
-			}
-			else {
-				this.menuDef.items[key].staticSelection = false;
-			}
-		}
-		
-		this.updateRenderSelected();
-	}
-	
-	/*
-	* Function: updateRenderSelected
-	*/
-	updateRenderSelected() {
-		for(var key in this.menuDef.items) {
-			if(this.menuDef.items[key].staticSelection) {
-				$("[name="+this.menuDef.items[key].name+"]", this.menuDef.anchor).addClass("sqs-menu-static-selection");
-			}
-			else {
-				$("[name="+this.menuDef.items[key].name+"]", this.menuDef.anchor).removeClass("sqs-menu-static-selection");
-			}
-		}
-	}
-	
-	/*
-	* Function: bindCallbacks
-	* You probably don't want to call this directly, it's mostly for internal use.
-	*/
-	bindCallbacks(menuDef) {
-		
-		for(var key in menuDef.items) {
-			var item = menuDef.items[key];
-			
-			$("#menu-item-"+menuDef.items[key].name).on("click", null, menuDef.items[key], (evt) => {
-				if(evt.data.children.length == 0 && evt.data.callback != null) {
-					if(this.menuDef.staticSelection) {
-						this.setSelected($(evt.currentTarget).attr("name"));
-					}
-					evt.data.callback();
-					evt.stopPropagation();
-				}
-			});
-			
-			if(item.children.length > 0) {
-				for(var ck in item.children) {
-					$("#menu-item-"+item.children[ck].name).on("click", null, this.menuDef.items[key].children[ck], (evt) => {
-						if(evt.data.callback != null) {
-							evt.data.callback(evt.data);
-							$(menuDef.anchor+" .l1-container-level-vertical").hide();
-						}
-						else {
-							console.log("WARN: Menu event fired without having an attached callback.")
-						}
-						evt.stopPropagation();
-					});
-				}
-			}
-			
-		}
-		
-		if(typeof menuDef.viewPortResizeCallback != "undefined") {
-			this.sqs.sqsEventListen("layoutResize", menuDef.viewPortResizeCallback);
-		}
-		
-		
 	}
 	
 	unrender() {
@@ -419,6 +340,9 @@ class sqsMenu {
 		if(typeof(menuDef.title) == "undefined") {
 			menuDef.title = "";
 		}
+		if(typeof(menuDef.triggers) == "undefined") {
+			menuDef.triggers = [];
+		}
 		if(typeof(menuDef.anchor) == "undefined") {
 			menuDef.anchor = "";
 		}
@@ -442,6 +366,9 @@ class sqsMenu {
 		}
 		if(typeof(menuDef.items) == "undefined") {
 			menuDef.items = [];
+		}
+		if(typeof(menuDef.callbacks) == "undefined") {
+			menuDef.callbacks = [];
 		}
 		
 		for(var key in menuDef.items) {

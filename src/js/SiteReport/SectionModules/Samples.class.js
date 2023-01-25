@@ -467,6 +467,7 @@ class Samples {
 			});
 			sampleGroupDescriptionsStringValue = sampleGroupDescriptionsStringValue.substring(0, sampleGroupDescriptionsStringValue.length-2);
 			
+			let samplingMethod = this.getSamplingMethodById(siteData, sampleGroup.sampling_method_id);
 
 			let sampleGroupRow = [
 				{
@@ -489,8 +490,8 @@ class Samples {
 				},
 				{
 					"type": "cell",
-					"value": sampleGroup.sampling_method.method_name,
-					"tooltip": sampleGroup.sampling_method.description == null ? "" : sampleGroup.sampling_method.description
+					"value": samplingMethod.method_name,
+					"tooltip": samplingMethod.description == null ? "" : samplingMethod.description
 				},
 			];
 
@@ -539,6 +540,14 @@ class Samples {
 		return section;
 	}
 	
+	getSamplingMethodById(siteData, samplingMethodId) {
+		for(let key in siteData.lookup_tables.sampling_methods) {
+			if(siteData.lookup_tables.sampling_methods[key].method_id == samplingMethodId) {
+				return siteData.lookup_tables.sampling_methods[key];
+			}
+		}
+		return null;
+	}
 	
 	/*
 	* Function: render

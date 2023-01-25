@@ -357,8 +357,10 @@ class RangeFacet extends Facet {
 		this.chartJSOptions = {
 			responsive: true,
 			maintainAspectRatio: false,
-			legend: {
-				display: false
+			plugins: {
+				legend: {
+					display: false
+				}
 			},
 			layout: {
 				padding: {

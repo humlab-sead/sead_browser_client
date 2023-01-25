@@ -3,6 +3,9 @@ import Color from "../Color.class";
 import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
 import ResultModule from './ResultModule.class.js'
 import Config from '../../config/config.json';
+import "../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";
+import { default as Tabulator } from "tabulator-tables";
+
 /*
 import '../../assets/taxa-images/figure1.png';
 import '../../assets/taxa-images/figure2.png';
@@ -49,6 +52,7 @@ class ResultTaxon extends ResultModule {
 			}
 		});
 
+		/*
 		this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
 			console.log(this.sqs.config);
 			if(newDomainName == "palaeoentomology" && this.sqs.config.resultTaxonModuleEnabled) {
@@ -62,6 +66,7 @@ class ResultTaxon extends ResultModule {
 				}
 			}
         });
+		*/
 
 	}
 	
@@ -81,6 +86,7 @@ class ResultTaxon extends ResultModule {
 	* Function: fetchData
 	*/
 	fetchData() {
+		console.log("fetchData");
 		if(this.resultDataFetchingSuspended) {
 			this.pendingDataFetch = true;
 			return false;
@@ -95,12 +101,16 @@ class ResultTaxon extends ResultModule {
 			method: "post",
 			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
-			success: (respData, textStatus, jqXHR) => {
+			success: async (respData, textStatus, jqXHR) => {
 				//Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 				//Also drop the data if the result module has switched since it was requested.
 				if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) {
-					this.importResultData(respData);
-					this.resultManager.showLoadingIndicator(false);
+					this.data = this.importResultData(respData);
+					this.taxaData = await this.fetchTaxaData(this.data);
+					if(this.active) {
+						this.resultManager.showLoadingIndicator(false);
+						this.renderData(this.taxaData);
+					}
 				}
 				else {
 					console.log("WARN: ResultTable discarding old result package data ("+respData.requestId+"/"+this.requestId+").");
@@ -153,14 +163,34 @@ class ResultTaxon extends ResultModule {
 
 			this.data.rows.push(row);
 		}
-
 		//If this module has gone inactive (normally by being replaced) since this request was sent, ignore the response
+		/*
 		if(this.active) {
 			this.renderData();
 		}
-		
+		*/
+	
+		return this.data;
 	}
 	
+	async fetchTaxaData(siteData) {
+		let siteIds = [];
+		siteData.rows.forEach(site => {
+			siteIds.push(site.site_link);
+		});
+		
+		await $.ajax({
+			method: "post",
+			url: Config.dataServerAddress+"/taxa",
+			contentType: "application/json",
+			data: JSON.stringify(siteIds),
+			success: (taxaData) => {
+				this.taxaData = taxaData;
+			}
+		});
+		return this.taxaData;
+	}
+
 	/*
 	* Function: render
 	*/
@@ -298,7 +328,8 @@ class ResultTaxon extends ResultModule {
 	}
 
 	update() {
-		this.renderData();
+		this.fetchData();
+		//this.renderData();
 	}
 
 	renderSpeciesAssociation(container, taxonData) {
@@ -416,7 +447,44 @@ class ResultTaxon extends ResultModule {
 	/*
 	* Function: renderData
 	*/
-	async renderData() {
+	async renderData(taxaData) {
+			let tableData = [];
+			taxaData.sort((a, b) => {
+				if(a.abundance > b.abundance) {
+					return -1;
+				}
+				else {
+					return 1;
+				}
+			});
+
+			taxaData.forEach(taxon => {
+				tableData.push(taxon);
+			});
+
+			$('#result-taxon-container').show();
+			
+			var table = new Tabulator("#result-taxon-container", {
+				data:tableData, //assign data to table
+				layout: "fitColumns",
+				initialSort:[             //set the initial sort order of the data
+					{column:"abundance", dir:"desc"},
+				],
+				columns:[                 //define the table columns
+					{title:"Species", field:"species"},
+					{title:"Genus", field:"genus", tooltip: true},
+					{title:"Family", field:"family", width:95, editor:"select", editorParams:{values:["male", "female"]}},
+					{title:"Abundance", field:"abundance", formatter:"progress", formatterParams:{
+						color: [this.sqs.color.colors.baseColor],
+						max: taxaData[0].abundance,
+					}, tooltip:(cell) => {
+						return "Aggregated abundance: "+cell.getValue()+" individuals";
+					}},
+				],
+			});
+			
+	}
+	async renderTaxon() {
 		let taxonId = this.getSelectedSpecies();
 		if(taxonId != null) {
 			this.taxonId = taxonId;
@@ -583,6 +651,7 @@ class ResultTaxon extends ResultModule {
 			placement : 'fixed=50%;60%',
 			fontSize : '11px',
 			fontColor: "#000",
+			fontWeight: "light",
 			text : '%t'
 			}
 		},
@@ -649,10 +718,12 @@ class ResultTaxon extends ResultModule {
 		months.forEach(month => {
 			let bgColor = "#fff";
 			let fontColor = "#000";
+			let activeMonth = false;
 			if(selectedMonths.includes(month.name)) {
 				bgColor = selectionColor;
-				bgColor = "#000";
+				bgColor = color.colors.baseColor;
 				fontColor = "#fff";
+				activeMonth = true;
 			}
 			
 			chartConfig.series.push({
@@ -665,7 +736,7 @@ class ResultTaxon extends ResultModule {
 					backgroundColor: "#000"
 				},
 				text: month.shortName,
-				description: month.name,
+				description: activeMonth ? "Active in "+month.name : "Not active in "+month.name,
 			});
 		});
 

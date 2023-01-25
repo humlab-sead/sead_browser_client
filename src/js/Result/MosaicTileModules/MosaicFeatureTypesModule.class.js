@@ -26,6 +26,19 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         this.sqs.setLoadingIndicator(this.renderIntoNode, true);
         
+        /*
+        let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/feature_types", {
+            method: "POST",
+            mode: "cors",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(resultMosaic.sites)
+        });
+        let data = await response.json();
+        */
+
+        /*
         const promiseData = await resultMosaic.fetchSiteData(resultMosaic.sites, "qse_feature_types", ++this.requestId);
         if(!this.active) {
             return false;
@@ -36,10 +49,11 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         }
 
         this.data = promiseData.data;
+        */
 
-        let chartSeries = resultMosaic.prepareChartData("feature_type_id", "feature_type_name", this.data);
+        //let chartSeries = resultMosaic.prepareChartData("feature_type_id", "feature_type_name", this.data);
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-        this.chart = resultMosaic.renderBarChart(this.renderIntoNode, chartSeries);
+        //this.chart = resultMosaic.renderBarChart(this.renderIntoNode, chartSeries);
     }
     
     async update() {

@@ -11,6 +11,7 @@ import {
  } from "chart.js";
 import 'zingchart/es6';
 import * as d3 from 'd3';
+import * as Plotly from "plotly.js";
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {
@@ -229,36 +230,6 @@ class SiteReportChart {
 		return dataObjects;
 	}
 
-	
-
-	renderDendroChartOldOld(chartTitle = "Dendrochronology") {
-		const width = 40;
-		const height = 20;
-
-		console.log(JSON.stringify(this.contentItem));
-
-		const chartId = "chart-"+shortid.generate();
-		var chartContainer = $("<div id='"+chartId+"' class='site-report-chart-container'></div>");
-		$(this.anchorNodeSelector).append(chartContainer);
-
-		let selection = d3.select(this.anchorNodeSelector).append("svg")
-			.attr("width", "200px")
-			.attr("height", "200px")
-			.style("background", "#ccc")
-			.style("color", "#666")
-			.attr("viewBox", [0, 0, width, height])
-			.selectAll("rect")
-			.data([1, 2, 3]) //[[200, 400], [300, 500]]
-			.enter()
-			.append("rect")
-			.attr("class", "dendro-bar")
-			.attr("width", "20")
-			.attr("height", "20")
-			.append("text")
-			.text(data => data)
-
-	}
-
 	getValueByColumnNameFromKeyValueTable(table, keyName) {
 		for(let key in table) {
 			if(table[key]["Measurement type"] == keyName) {
@@ -276,13 +247,115 @@ class SiteReportChart {
 		return null;
 	}
 
+	renderMultistackPlotly(chartTitle = "Abundances") {
+		let contentItem = this.contentItem;
+		let cir = this.siteReport.getContentItemRenderer(contentItem);
+		var ro = cir.getSelectedRenderOption(contentItem);
+
+		let xAxisKey = null;
+		let yAxisKey = null;
+		let sortKey = null;
+
+		for(let key in ro.options) {
+
+			if(ro.options[key].function == "xAxis") {
+				xAxisKey = ro.options[key].selected;
+			}
+			if(ro.options[key].function == "yAxis") {
+				yAxisKey = ro.options[key].selected;
+			}
+			if(ro.options[key].function == "sort") {
+				sortKey = ro.options[key].selected;
+			}
+		}
+		
+		//Aggregate so that a taxon contains all the sample abundances
+		this.taxa = []; //should maybe be called something like stackCategory to make it more generic?
+		var samples = [];
+		let sampleNames = [];
+
+		let taxonIdColKey = this.getTableColumnKeyByTitle("Taxon id");
+		let taxonNameColKey = this.getTableColumnKeyByTitle("Taxon");
+		let abundanceColKey = this.getTableColumnKeyByTitle("Abundance count");
+		let sampleIdColKey = this.getTableColumnKeyByTitle("Sample id");
+		let sampleNameColKey = this.getTableColumnKeyByTitle("Sample name");
+
+		/*
+		var species_trace = {
+			x: ['sample 1', 'sample 2', 'sample 3'],
+			y: [abundanceSpecies1, abundanceSpecies1, abundanceSpecies1]
+		}
+		*/
+
+		let uniqueTaxa = new Set();
+		for(var key in contentItem.data.rows) {
+			let taxonId = contentItem.data.rows[key][taxonIdColKey].value;
+			uniqueTaxa.add(taxonId);
+		}
+
+		let taxaTraces = [];
+		uniqueTaxa.forEach(traceTaxonId => {
+			let trace = {
+				x: [], //sample names
+				y: [], //species abundances across samples
+				name: traceTaxonId, //species name
+				type: 'bar'
+			};
+			
+			for(var key in contentItem.data.rows) {
+				let sampleName = contentItem.data.rows[key][sampleNameColKey].value;
+				let taxonId = contentItem.data.rows[key][taxonIdColKey].value;
+				let taxonAb = contentItem.data.rows[key][abundanceColKey].value;
+				if(taxonId == traceTaxonId) {
+					trace.x.push(sampleName);
+					trace.y.push(taxonAb);
+				}
+			}
+			taxaTraces.push(trace);
+		});
+		
+		var colors = [];
+		//colors = this.sqs.color.getMonoColorScheme(taxonCount);
+		//colors = this.sqs.color.getColorScheme(taxonCount, false);
+		//colors = this.sqs.color.getVariedColorScheme(taxonCount);
+		
+		let traces = [];
+
+		console.log(taxaTraces)
+
+		var trace1 = {
+			x: ['giraffes', 'orangutans', 'monkeys'],
+			y: [20, 14, 23],
+			name: 'SF Zoo',
+			type: 'bar'
+		};
+			
+		var trace2 = {
+			x: ['giraffes', 'orangutans', 'monkeys'],
+			y: [12, 18, 29],
+			name: 'LA Zoo',
+			type: 'bar'
+		};
+			
+		//var data = [trace1, trace2];
+		let data = taxaTraces;
+		var layout = {barmode: 'stack'};
+
+		this.chartId = "chart-"+shortid.generate();
+		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
+		$(this.anchorNodeSelector).append(chartContainer);
+
+		Plotly.newPlot(this.chartId, data, layout);
+
+	}
+
 	/*
 	* Function: renderMultistack
 	*
 	* WARNING: This function is currently hard-coded to only handle abundances and requires the data in a specific way.
 	* Specified X/Y-axis will be ignored.
 	 */
-	renderMultistack(chartTitle = "Abundances") {
+	async renderMultistack(chartTitle = "Abundances") {
 		var contentItem = this.contentItem;
 		let cir = this.siteReport.getContentItemRenderer(contentItem);
 		var ro = cir.getSelectedRenderOption(contentItem);
@@ -419,17 +492,22 @@ class SiteReportChart {
 
 		var chartHeight = 130 + (samples.length * 40);
 
-		zingchart.render({
-			id: this.chartId,
-			data: config,
-			defaults: this.chartTheme,
-			height: chartHeight,
-			events: {
-				click: (evt, stuff) => {
-					console.log("zingchart click evt");
+		$("#"+this.chartId).html("<div class='content-item-chart-rendering-message'>Rendering... <div class='mini-loading-indicator' style='display:inline-block;'></div></div>");
+		setTimeout(() => {
+			$("#"+this.chartId).html("");
+			zingchart.render({
+				id: this.chartId,
+				data: config,
+				defaults: this.chartTheme,
+				height: chartHeight,
+				events: {
+					click: (evt, stuff) => {
+						console.log("zingchart click evt");
+					}
 				}
-			}
-		});
+			});
+		}, 200);
+		
 	}
 
 	getSelectedRenderOptionExtra(extraOptionTitle = "Sort") {

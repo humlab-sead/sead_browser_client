@@ -321,6 +321,7 @@ class ResultMap extends ResultModule {
 				if(renderMap) {
 					this.renderMap();
 					this.renderVisibleDataLayers();
+					
 					if(Config.timelineEnabled && this.includeTimeline) {
 						this.timeline.render();
 					}
@@ -502,6 +503,26 @@ class ResultMap extends ResultModule {
 	* Function: renderInterface
 	*/
 	renderInterfaceControls() {
+
+		console.log("renderInterfaceControls");
+
+		$(this.renderMapIntoNode).append("<div id='result-map-controls-container'></div>");
+
+		let baseLayersHtml = "<div class='result-map-map-control-item-container'>";
+		baseLayersHtml += "<div id='result-map-baselayer-controls-menu' class='result-map-map-control-item'>Base layers</div>";
+		baseLayersHtml += "<div id='result-map-baselayer-controls-menu-anchor'></div>";
+		baseLayersHtml += "</div>";
+		$("#result-map-controls-container").append(baseLayersHtml);
+		new SqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlsSqsMenu());
+
+		let dataLayersHtml = "<div class='result-map-map-control-item-container'>";
+		dataLayersHtml += "<div id='result-map-datalayer-controls-menu' class='result-map-map-control-item'>Data layers</div>";
+		dataLayersHtml += "<div id='result-map-datalayer-controls-menu-anchor'></div>";
+		dataLayersHtml += "</div>";
+		$("#result-map-controls-container").append(dataLayersHtml);
+		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
+
+
 		/*
 		d3.select(this.renderMapIntoNode)
 			.append("div")
@@ -510,13 +531,14 @@ class ResultMap extends ResultModule {
 		d3.select("#result-map-controls-container")
 			.append("div")
 			.attr("id", "result-map-baselayer-controls-menu");
-		new sqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlssqsMenu());
+		new SqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlssqsMenu());
 
 		d3.select("#result-map-controls-container")
 			.append("div")
 			.attr("id", "result-map-datalayer-controls-menu");
-		new sqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlssqsMenu());
-		*/
+		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlssqsMenu());
+		
+		
 
 		$(this.renderMapIntoNode).append($("<div></div>").attr("id", "result-map-controls-container"));
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-baselayer-controls-menu"));
@@ -524,6 +546,8 @@ class ResultMap extends ResultModule {
 
 		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-datalayer-controls-menu"));
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
+
+		*/
 
 		if(this.sqs.config.showResultExportButton) {
 			this.renderExportButton();
@@ -561,19 +585,6 @@ class ResultMap extends ResultModule {
 		});
 	}
 
-	/* THIS SEEMS TO BE OBSOLETE
-	renderDataLayer(dataLayerId) {
-		this.clearSelections();
-		this.dataLayers.forEach((layer, index, array) => {
-			if(layer.getProperties().layerId == dataLayerId) {
-				this.removeLayer(layer.getProperties().layerId);
-				layer.setVisible(true);
-				layer.getProperties().renderCallback(this);
-			}
-		});
-	}
-	*/
-
 	/*
 	* Function: clearSelections
 	*/
@@ -592,9 +603,14 @@ class ResultMap extends ResultModule {
 	* Function: renderClusteredPointsLayer
 	*/
 	renderClusteredPointsLayer() {
+		console.time("getSelectedSites")
 		let timeFilteredData = this.timeline.getSelectedSites();
+		console.timeEnd("getSelectedSites")
+		console.time("getDataAsGeoJSON")
 		var geojson = this.getDataAsGeoJSON(timeFilteredData);
+		console.timeEnd("getDataAsGeoJSON")
 
+		console.time("readFeatures")
 		var gf = new GeoJSON({
 			featureProjection: "EPSG:3857"
 		});
@@ -602,7 +618,9 @@ class ResultMap extends ResultModule {
 		var pointsSource = new VectorSource({
 			features: featurePoints
 		});
+		console.timeEnd("readFeatures")
 		
+		console.time("getClusterPointStyle")
 		var clusterSource = new ClusterSource({
 			distance: 35,
 			source: pointsSource
@@ -621,8 +639,10 @@ class ResultMap extends ResultModule {
 			"layerId": "clusterPoints",
 			"type": "dataLayer"
 		});
-		
+		console.timeEnd("getClusterPointStyle")
+		console.time("addLayer")
 		this.olMap.addLayer(clusterLayer);
+		console.timeEnd("addLayer")
 	}
 
 	renderHeatmapLayer() {
@@ -1138,7 +1158,7 @@ class ResultMap extends ResultModule {
 			title: "<i class=\"fa fa-globe result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Baselayer</span>", //The name of the menu as it will be displayed in the UI
 			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
 			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
-			anchor: "#result-map-baselayer-controls-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
+			anchor: "#result-map-baselayer-controls-menu-anchor", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
 			staticSelection: true, //whether a selected item remains highlighted or not, purely visual
 			visible: true, //show this menu by default
 			style: {
@@ -1146,7 +1166,11 @@ class ResultMap extends ResultModule {
 				l1TitleClass: "result-map-control-item-title"
 			},
 			items: [ //The menu items contained in this menu
-			]
+			],
+			triggers: [{
+				selector: "#result-map-baselayer-controls-menu",
+				on: "click"
+			}]
 		};
 
 		for(var key in this.baseLayers) {
@@ -1170,7 +1194,7 @@ class ResultMap extends ResultModule {
 			title: "<i class=\"fa fa-map-marker result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Datalayer</span>", //The name of the menu as it will be displayed in the UI
 			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
 			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
-			anchor: "#result-map-datalayer-controls-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
+			anchor: "#result-map-datalayer-controls-menu-anchor", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
 			staticSelection: true, //whether a selected item remains highlighted or not, purely visual
 			visible: true, //show this menu by default
 			style: {
@@ -1178,7 +1202,11 @@ class ResultMap extends ResultModule {
 				l1TitleClass: "result-map-control-item-title"
 			},
 			items: [ //The menu items contained in this menu
-			]
+			],
+			triggers: [{
+				selector: "#result-map-datalayer-controls-menu",
+				on: "click"
+			}]
 		};
 
 		for(var key in this.dataLayers) {

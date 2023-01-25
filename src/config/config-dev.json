@@ -13,7 +13,7 @@
 	"defaultResultModule":"mosaic",
 	"resultMapDataLayers": ["clusterPoints", "points", "heatmap"],
 	"maxAllowedSitesInAnExport": 20,
-	"facetSectionDefaultWidth":20,
+	"facetSectionDefaultWidth":30,
 	"facetBodyHeight":268,
 	"discreteFacetRowHeight":20,
 	"discreteFacetTextSize":10,
@@ -151,28 +151,23 @@
 			"enabled": true,
 			"title": "General",
 			"icon":"<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>",
-			"color":"#888",
+			"color":"#333",
 			"result_grid_layout": [2, 2],
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",
 					"grid_row": "1",
-					"grid_column": "1"
+					"grid_column": "span 2"
 				},
 				{
 					"module_name": "mosaic-sample-methods",
-					"grid_row": "1",
+					"grid_row": "2",
 					"grid_column": "2"
 				},
 				{
 					"module_name": "mosaic-analysis-methods",
 					"grid_row": "2",
 					"grid_column": "1"
-				},
-				{
-					"module_name": "mosaic-feature-types",
-					"grid_row": "2",
-					"grid_column": "2"
 				}
 			]
 		},
@@ -206,7 +201,7 @@
 		"enabled": true,
 		"title": "Palaeoentomology",
 		"icon":"<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
-		"color":"#d00",
+		"color":"#a00",
 		"result_grid_layout": [1, 1],
 		"result_grid_modules": [
 				{
@@ -221,28 +216,23 @@
 		"enabled": true,
 		"title": "Archaeobotany",
 		"icon":"<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i>",
-		"color":"#a0a",
+		"color":"#9c591b",
 		"result_grid_layout": [2, 2],
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",
 					"grid_row": "1",
-					"grid_column": "1"
+					"grid_column": "span 2"
 				},
 				{
 					"module_name": "mosaic-sample-methods",
-					"grid_row": "1",
+					"grid_row": "2",
 					"grid_column": "2"
 				},
 				{
 					"module_name": "mosaic-analysis-methods",
 					"grid_row": "2",
 					"grid_column": "1"
-				},
-				{
-					"module_name": "mosaic-feature-types",
-					"grid_row": "2",
-					"grid_column": "2"
 				}
 			]
 		},
@@ -251,7 +241,7 @@
 		"enabled": true,
 		"title": "Pollen",
 		"icon":"<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i>",
-		"color":"#888",
+		"color":"#216600",
 		"result_grid_layout": [1, 1],
 		"result_grid_modules": [
 				{
@@ -281,7 +271,7 @@
 		"enabled": true,
 		"title": "Isotope",
 		"icon":"<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i>",
-		"color":"#990",
+		"color":"#690",
 		"result_grid_layout": [1, 1],
 		"result_grid_modules": [
 				{

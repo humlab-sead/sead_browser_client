@@ -49,10 +49,6 @@ class sqsLayoutManager {
 				}
 			}
 		});
-
-		//TODO: Check if we need to re-implement these events:
-		//this.sqs.sqsEventDispatch("layoutChange", this.mode);
-		//this.sqs.sqsEventDispatch("layoutResize");
 	}
 
 	createView(anchor, name, leftSize = 70, rightSize = 30, options = {}) {
@@ -61,6 +57,14 @@ class sqsLayoutManager {
 	}
 
 	setActiveView(viewName) {
+		console.log("Activated view:", viewName);
+		/*
+		if(false) {
+			var stateObj = {};
+			history.pushState(stateObj, "", "/site/"+siteId);
+		}
+		*/
+
 		let oldView = this.getActiveView();
 		if(oldView !== false) {
 			oldView.cleanup();

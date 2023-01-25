@@ -21,6 +21,7 @@ class Facet {
 		this.type = template.type;
 		this.title = template.title;
 		this.color = template.color;
+		this.description = template.description;
 		this.rendered = false;
 		this.isBeingDragged = false;
 		this.data = [];
@@ -37,6 +38,9 @@ class Facet {
 		$(facetDomObj).attr("id", "facet-"+this.id);
 		$(facetDomObj).attr("facet-id", this.id);
 		$(facetDomObj).find(".facet-title").html(this.title);
+		
+		this.sqs.tooltipManager.registerTooltip($(".facet-title", facetDomObj), this.description);
+
 		$(facetDomObj).find(".facet-header-divider").css("background-color", this.color);
 		$("#facet-section").append(facetDomObj);
 		
@@ -53,7 +57,7 @@ class Facet {
 		$("#section-left").on("resize", () => {
 			clearTimeout(this.resizeTicker);
 			this.resizeTicker = setTimeout(() => {
-				this.adaptToNewWidth($("#section-left").width());
+				this.adaptToNewWidth($(".section-left").width());
 			}, 10);
 		});
 
@@ -66,7 +70,7 @@ class Facet {
 			}
 		})
 
-		$(facetDomObj).find(".facet-size-btn").bind("click", () => {
+		$(facetDomObj).find(".facet-size-btn").on("click", () => {
 			if(this.minimized) {
 				this.maximize();
 			}
@@ -176,22 +180,25 @@ class Facet {
 	* 
 	* Collapses the facet to reduce the vertical space it occupies. In a discrete facet the selections will still be shown.
 	*/
-	minimize() {
+	minimize(changeFacetSize = false) {
 		$("#facet-"+this.id+" .facet-size-btn")
 			.switchClass("facet-minimize-btn", "facet-maximize-btn")
 			.addClass("facet-control-active");
-		$("#facet-"+this.id+" > .facet-body").css("height", "0px");
-		
-		$(this.domObj).find(".facet-body").show();
-		var headerHeight = $(".facet-header", this.domObj).height();
-		headerHeight += 12;
-		
-		var selectionsHeight = 0;
-		var facetHeight = headerHeight + selectionsHeight;
-		if(facetHeight > Config.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
-			facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
+
+		if(changeFacetSize) {
+			$("#facet-"+this.id+" > .facet-body").css("height", "0px");
+			var headerHeight = $(".facet-header", this.domObj).height();
+			headerHeight += 12;
+			var selectionsHeight = 0;
+			var facetHeight = headerHeight + selectionsHeight;
+
+			$(this.domObj).find(".facet-body").show();
+			
+			if(facetHeight > Config.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
+				facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
+			}
+			$(this.domObj).css("height", facetHeight+"px");
 		}
-		$(this.domObj).css("height", facetHeight+"px");
 		
 		this.minimized = true;
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
@@ -263,13 +270,16 @@ class Facet {
 		* Except for when a facet was deleted - this should not count as the trigger in that instance. Yeah it's confusing and I hate it.
 		*/
 		var triggerCode = this.sqs.facetManager.getLastTriggeringFacet().name;
+		let targetCode = this.name;
 		
 		var fs = this.sqs.facetManager.getFacetState();
+		console.log(fs);
 		var fc = this.sqs.facetManager.facetStateToDEF(fs, {
 			requestType: requestType,
-			targetCode: this.name,
+			targetCode: targetCode,
 			triggerCode: triggerCode
 		});
+		console.log(fc);
 
 		let domainCode = this.sqs.domainManager.getActiveDomain().name;
 		domainCode = domainCode == "general" ? "" : domainCode;
@@ -277,11 +287,12 @@ class Facet {
 		var reqData = {
 			requestId: ++this.requestId,
 			requestType: requestType,
-			targetCode: this.name,
+			targetCode: targetCode,
 			triggerCode: triggerCode,
 			domainCode: domainCode,
 			facetConfigs: fc
 		};
+		console.log(reqData);
 
 		return $.ajax(config.serverAddress+"/api/facets/load", {
 			data: JSON.stringify(reqData),

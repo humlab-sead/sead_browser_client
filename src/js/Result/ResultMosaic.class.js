@@ -14,6 +14,7 @@ import MosaicDendroBuildingTypesModule from "./MosaicTileModules/MosaicDendroBui
 import MosaicDendroDatingHistogramModule from "./MosaicTileModules/MosaicDendroDatingHistogramModule.class";
 import MosaicDendroTreeSpeciesChartModule from "./MosaicTileModules/MosaicDendroTreeSpeciesChartModule.class";
 import { nanoid } from 'nanoid';
+import * as Plotly from "plotly.js";
 
 class ResultMosaic extends ResultModule {
 	constructor(resultManager) {
@@ -59,13 +60,13 @@ class ResultMosaic extends ResultModule {
 			module: null
 		});
 		this.modules.push({
-			title: "Sample methods",
+			title: "Sampling methods by sample groups",
 			className: "MosaicSampleMethodsModule",
 			classTemplate: MosaicSampleMethodsModule,
 			module: null
 		});
 		this.modules.push({
-			title: "Analysis methods",
+			title: "Analysis methods by datasets",
 			className: "MosaicAnalysisMethodsModule",
 			classTemplate: MosaicAnalysisMethodsModule,
 			module: null
@@ -569,9 +570,9 @@ class ResultMosaic extends ResultModule {
 			if(promiseData.requestId < resultMosaic.requestBatchId) {
 				return false;
 			}
-			//console.log(promiseData.data);
+			console.log(promiseData.data);
 			let chartSeries = resultMosaic.prepareChartData("method_id", "method_name", promiseData.data);
-
+			console.log(chartSeries);
 			resultMosaic.renderPieChart(renderIntoNode, chartSeries, "Sampling methods");
 		});
 	}
@@ -932,6 +933,38 @@ class ResultMosaic extends ResultModule {
 		$(".result-mosaic-no-data-msg", renderIntoNode).remove();
 	}
 	*/
+
+	renderPieChartPlotly(renderIntoNode, chartData, layoutConfig = {}) {
+		if(typeof renderIntoNode == "object") {
+			console.warn("target node is an object, we need to convert this to an id");
+			return;
+		}
+
+		let layout = {
+      		paper_bgcolor: this.sqs.color.colors.paneBgColor,
+			showlegend: true,
+			title: {
+				text:'',
+				font: {
+				  family: 'Didact Gothic, sans-serif',
+				  size: 22
+				},
+			},
+		};
+
+		Object.assign(layout, layoutConfig);
+		let anchorNodeId = renderIntoNode.substring(1);
+
+		let config = {
+			responsive: true
+		}
+
+		Plotly.newPlot(anchorNodeId, chartData, layout, config);
+
+		this.sqs.sqsEventListen("layoutResize", () => {
+			Plotly.relayout(anchorNodeId, layout);
+		});
+	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {
 

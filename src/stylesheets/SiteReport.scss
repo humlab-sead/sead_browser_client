@@ -4,25 +4,23 @@
 }
 
 #site-report-exit-menu {
-  display:none;
+  display: block;
+  background-color: $base-color;
+  width: auto;
+  font-size: 4em;
+  padding: .25em;
+  padding-left: .5em;
+  padding-right: .5em;
 }
 
-.site-report-exit-menu {
-  /*Why is there a class version of this? I don't remember...*/
+#site-report-exit-menu:hover {
+  background-color: lighten($base-color, 10%);
+  cursor: pointer;
 }
 
 .site-report-level-content > h3 {
   margin-top: 0px;
   color: $inactive-color;
-}
-
-.site-report-container {
-  position:relative;
-  top: 0px;
-  padding: 20px;
-  margin: 0px;
-  margin-bottom: 20px;
-  background-color: #fff;
 }
 
 .site-report-level-container {
@@ -94,11 +92,11 @@
 
 }
 
-.site-report-container > h1 {
+.site-report-grid-container > h1 {
   margin-bottom: 5px;
 }
 
-.site-report-container > h2 {
+.site-report-grid-container > h2 {
   background-color: #fff;
   font-weight:normal;
   margin-top: 0px;

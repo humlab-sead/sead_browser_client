@@ -102,7 +102,7 @@ class SqsView {
 		*/
 		
 		//Bind actions for clicking on the panel toggle button
-		$(".section-toggle-button", this.anchor).bind("click", () => {
+		$(".section-toggle-button", this.anchor).on("click", () => {
 			//Just toggles which section is shown based on which one is currently shown/hidden
 			if($(this.anchor+" > .section-right").css("display") == "none") {
 				this.switchSection("right");
@@ -137,8 +137,9 @@ class SqsView {
     
     apply() {
 		//FIXME: When site report is being exited then setView(Fitlers) is being called, which takes us back - not to the fitlers btu to the reuslt section (in mobile mode), which is not techincally wrong, but the rules for this view doesnt account for this
-		console.log(this.name, "apply", this.layoutManager.getMode());
-        $(this.anchor).css("display", "flex");
+		console.log("View "+this.name, "applying", this.layoutManager.getMode());
+        $(this.anchor).css("display", "flex"); //used to be 'flex'
+		$(this.anchor).css("visibility", "visible");
 
         if(this.layoutManager.getMode() == "mobileMode") {
             if(this.options.collapseIntoVertial === true) {
@@ -170,7 +171,7 @@ class SqsView {
 				this.switchSection("both");
 			}
             $(".ui-resizable-handle").show();
-            this.setSectionSizes(this.leftInitSize, this.rightInitSize, false);
+            this.setSectionSizes(this.leftInitSize, this.rightInitSize, true);
 		}
 		
 		for(let key in this.options.rules) {
@@ -224,11 +225,9 @@ class SqsView {
 	**/
 	switchSection(section) {
 		this.setVisibleSection(section);
-		//this.apply();
+		this.apply();
 
 		console.log("switchSection", section);
-
-		
 		
 		$(".ui-resizable-handle").hide();
 
@@ -283,6 +282,10 @@ class SqsView {
 
 		this.leftLastSize = leftSize;
 		this.righLastSize = rightSize;
+
+		console.log(this.anchor+" > .section-left")
+		console.log(animate)
+		console.log(leftSize, rightSize);
 
 		if(animate) {
 			$(this.anchor+" > .section-left").animate(
@@ -349,21 +352,16 @@ class SqsView {
 			handles: "e",
 			resize: (event, ui) => {
 				//Slave right section to being the inverse size of the left section
-				/*
-				var totalWidth = $(document).width();
-				var rightSectionWidth = totalWidth - ui.size.width;
-				var rightWidthPercent = (rightSectionWidth / totalWidth) * 100;
-				var leftWidthPercent = 100 - rightWidthPercent;
-				*/
 				var wp = this.calculateWidthsAsPercentage();
 				$(this.anchor+" > .section-left").css("width", wp.left+"vw");
 				$(this.anchor+" > .section-right").css("width", wp.right+"vw");
 			}
 		}).on("resize", (e) => {
+			console.log("evt: layoutResize")
 			this.sqs.sqsEventDispatch("layoutResize", e);
+			
 			//This was to prevent an issue with section-resize events being propagated as window-resize events
 			e.stopPropagation();
-
 			var wp = this.calculateWidthsAsPercentage();
 			this.leftLastSize = wp.left;
 			this.rightLastSize = wp.right;
@@ -391,6 +389,12 @@ class SqsView {
 
 	setActive(active) {
 		this.active = active;
+		if(this.active) {
+			$(this.anchor).css("visibility", "visible");
+		}
+		else {
+			$(this.anchor).css("visibility", "hidden");
+		}
 	}
 
 	getActive() {

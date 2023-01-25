@@ -68,6 +68,12 @@ class DomainManager {
                 "SEAD",
                 "/"+domainPath);
         }
+
+		let menu = this.sqs.menuManager.getMenuByAnchor("#domains-menu-anchor-point");
+		if(menu !== false) {
+			menu.setSelected(domainName);
+		}
+
         this.sqs.sqsEventDispatch("domainChanged", domainName);
     }
     
@@ -85,7 +91,59 @@ class DomainManager {
             subTextContainerStyle: "background:"+this.activeDomain.color+";",
             layout: "vertical",
             collapsed: true,
-            anchor: "#domain-menu",
+            anchor: "#domains-menu-anchor-point",
+            triggers: [{
+				selector: "#domain-menu",
+				on: "click"
+			},
+            {
+				selector: "#filter-menu-domain-area",
+				on: "click"
+			}],
+            callbacks: [{
+                selector: "#domain-menu",
+                on: "mouseover",
+                callback: () => {
+                    this.sqs.svgSetFill($("#domain-menu")[0], "#666");
+                    $("#filter-menu-domain-area").css("background", "#666");
+                }
+            },
+            {
+                selector: "#filter-menu-domain-area",
+                on: "mouseover",
+                callback: () => {
+                    this.sqs.svgSetFill($("#domain-menu")[0], "#666");
+                    $("#filter-menu-domain-area").css("background", "#666");
+                }
+            },
+            {
+                selector: "#domain-menu",
+                on: "mouseout",
+                callback: () => {
+                    let domain = this.getActiveDomain();
+                    this.sqs.svgSetFill($("#domain-menu")[0], domain.color);
+                    $("#filter-menu-domain-area").css("background", domain.color);
+                }
+            },
+            {
+                selector: "#filter-menu-domain-area",
+                on: "mouseout",
+                callback: () => {
+                    let domain = this.getActiveDomain();
+                    this.sqs.svgSetFill($("#domain-menu")[0], domain.color);
+                    $("#filter-menu-domain-area").css("background", domain.color);
+                }
+            },
+            {
+                selector: "#domain-menu",
+                on: "selectionchange",
+                callback: () => {
+                    let domain = this.getActiveDomain();
+                    $("#domain-text .selected-domain-text").text(domain.title);
+                    this.sqs.svgSetFill($("#domain-menu")[0], domain.color);
+                    $("#filter-menu-domain-area").css("background", domain.color);
+                }
+            }],
             customStyleClasses: "sqs-menu-block-vertical-flexible",
             weight: 1,
             staticSelection: true,
@@ -97,16 +155,15 @@ class DomainManager {
         for(let key in this.config.domains) {
             let domain = config.domains[key];
             if(domain.enabled !== false) {
-                let specialText = "";
-                if(domain.name == "dendrochronology") {
-                    specialText = "<div class='very-special-dendro-text'>Experimental!</div>";
-                }
                 menu.items.push({
                     name: domain.name,
-                    title: domain.icon+" "+domain.title+specialText,
+                    title: "<span style='color:"+domain.color+";'>"+domain.icon+"</span> "+domain.title,
                     staticSelection: domain.name == selectedDomain.name,
                     callback: () => {
                         this.setActiveDomain(domain.name);
+                        $("#domain-text > .selected-domain-text").text(domain.title);
+                        $("#domain-menu").css("fill", domain.color);
+                        $("#filter-menu-domain-area").css("background", domain.color);
                     }
                 });
             }

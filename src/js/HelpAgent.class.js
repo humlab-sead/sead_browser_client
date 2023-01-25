@@ -88,6 +88,7 @@ class HelpAgent {
 			layout: "vertical",
 			collapsed: true,
 			anchor: "#help-menu",
+			triggers: [],
 			weight: -1,
 			items: [
 				/*

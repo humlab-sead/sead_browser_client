@@ -428,11 +428,20 @@ class Analysis {
 	* Function: getMethodMetaDataById
 	*/
 	getMethodMetaDataById(methodId) {
+		let siteData = this.sqs.siteReportManager.siteReport.siteData;
+
+		for(let key in siteData.lookup_tables.analysis_methods) {
+			if(siteData.lookup_tables.analysis_methods[key].method_id == methodId) {
+				return siteData.lookup_tables.analysis_methods[key];
+			}
+		}
+		/*
 		for(let key in this.meta.methods) {
 			if(this.meta.methods[key].methodId == methodId) {
 				return this.meta.methods[key];
 			}
 		}
+		*/
 		//console.warn("Couldn't find method with ID", methodId, "in method db (db has "+this.meta.methods.length+" entries)", this.meta.methods);
 		return false;
 	}

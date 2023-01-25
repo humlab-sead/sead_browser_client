@@ -362,7 +362,7 @@ class Timeline {
 	}
 
 	async fetchTimeData(dataset) {
-		console.log(dataset);
+		//console.log(dataset);
 		dataset.forEach(site => {
 			site.time = {
 				max: -2500,
@@ -570,6 +570,10 @@ class Timeline {
 	* sites - All the sites in a list which in some way touches the current selection.
 	*/
 	getSelectedSites() {
+		//FIXME: This function is (noticably) slow. About 1500 ms, can we make it more efficient?
+
+		//We can just ignore the binning for now to improve performance, since we don't currently have a time aspect anyway
+		return this.map.data;
 		
 		this.binSitesByTimeSpan(this.map.data);
 		let timeSelection = this.getSelection();
@@ -580,7 +584,9 @@ class Timeline {
 			];
 		}
 
+		//this is the slow part
 		let sites = [];
+		
 		this.siteBins.map((bin) => {
 			let refBin = {
 				min: timeSelection[0],

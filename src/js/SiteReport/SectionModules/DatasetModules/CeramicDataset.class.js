@@ -19,10 +19,12 @@ class CeramicDataset extends DatasetModule {
 		this.buildIsComplete = false;
 		this.methodIds = [171, 172];
 
+		/*
 		this.metaDataFetchingPromises = [];
 		this.methodIds.map((methodId) => {
 			this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(methodId));
 		});
+		*/
 	}
 	
 	offerAnalyses(datasets) {
@@ -39,8 +41,8 @@ class CeramicDataset extends DatasetModule {
 				this.datasetFetchPromises.push(this.fetchDataset(this.datasets[key]));
 			}
 			
-			let promises = this.datasetFetchPromises.concat(this.metaDataFetchingPromises);
-			Promise.all(promises).then(() => {
+			//let promises = this.datasetFetchPromises.concat(this.metaDataFetchingPromises);
+			Promise.all(this.datasetFetchPromises).then(() => {
 
 				this.dsGroups = this.groupDatasetsBySample(this.datasets);
 
@@ -191,7 +193,7 @@ class CeramicDataset extends DatasetModule {
 		//console.log(datasets);
 	}
 
-	buildSection(dsGroups) {
+	buildSectionOLD(dsGroups) {
 		let analysis = dsGroups[0].datasets[0];
 		var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
 		

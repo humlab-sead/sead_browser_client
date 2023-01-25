@@ -20,10 +20,11 @@ class RadioMetricDatingDataset extends DatasetModule {
 		this.datasetFetchPromises = [];
 		this.datasets = [];
 		this.buildIsComplete = false;
-		this.methodMetaDataFetchingComplete = false;
+		this.methodMetaDataFetchingComplete = true;
 		this.datingUncertainty = [];
 
 		this.methodGroupId = 3;
+		/*
 		this.metaDataFetchingPromises = [];
 		this.metaDataFetchingPromises.push(this.analysis.fetchMethodGroupMetaData(this.methodGroupId));
 		this.metaDataFetchingPromises.push(this.analysis.fetchMethodsInGroup(this.methodGroupId));
@@ -32,6 +33,7 @@ class RadioMetricDatingDataset extends DatasetModule {
 		Promise.all(this.metaDataFetchingPromises).then(() => {
 			this.methodMetaDataFetchingComplete = true;
 		});
+		*/
 	}
 
 	async fetchDatingUncertaintySpecification() {
@@ -292,7 +294,7 @@ class RadioMetricDatingDataset extends DatasetModule {
     
     /* Function: buildContentItem
 	*/
-	buildContentItem(datasetGroup) {
+	buildContentItemOLD(datasetGroup) {
 		//Defining columns
 		var columns = [
 			{
@@ -365,7 +367,7 @@ class RadioMetricDatingDataset extends DatasetModule {
 					{
 						"type": "cell",
 						"tooltip": method.description,
-						"value": method.name
+						"value": method.method_name
 					},
 					{
 						"type": "cell",
@@ -414,47 +416,6 @@ class RadioMetricDatingDataset extends DatasetModule {
 		//console.log(siteData, sections);
 		let datasets = this.claimDatasets(siteData);
 		//console.log(datasets);
-	}
-
-	/* Function: buildSection
-	*/
-	buildSection(dsGroups) {
-		if(dsGroups.length == 0) {
-			console.warn("Tried to build a section with 0 DatasetGroups");
-			return;
-		}
-		console.log("buildSection", dsGroups);
-
-		let methodGroup = this.analysis.getMethodGroupMetaDataById(this.methodGroupId);
-
-		/*
-		let analysisMethodDescription = "";
-		if(analysisMethod) {
-			analysisMethodDescription = "<h4 class='tooltip-header'>"+analysisMethod.method_name+"</h4>"+analysisMethod.method_abbrev_or_alt_name+"<hr>"+analysisMethod.description;
-		}
-		*/
-
-		//let method = this.analysis.getMethodMetaDataById(dsGroups[0].methodId);
-		let sectionName = "method-group-"+methodGroup.methodGroupId;
-		var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", sectionName);
-		if(sectionKey === false) {
-			var sectionsLength = this.section.sections.push({
-				"name": sectionName,
-				"title": methodGroup.name,
-				"methodDescription": methodGroup.description,
-				"collapsed": true,
-				"contentItems": []
-			});
-			sectionKey = sectionsLength - 1;
-		}
-
-		dsGroups.map((dsg) => {
-			let ci = this.buildContentItem(dsg);
-			this.section.sections[sectionKey].contentItems.push(ci);
-		});
-		
-		this.buildIsComplete = true;
-		this.sqs.sqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this event is relevant anymore...
 	}
 	
 	/* Function: destroy

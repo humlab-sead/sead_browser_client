@@ -118,9 +118,6 @@ class SeadQuerySystem {
 	}
 
 	bootstrapSystem() {
-		$("#sead-logo").on("click", () => {
-			window.location = "/";
-		});
 
 		$("#preload-loading-indicator").remove();
 		$("#header-container").css("display", "flex");
@@ -136,11 +133,11 @@ class SeadQuerySystem {
 		this.stateManager = new StateManager(this);
 		var viewstate = this.stateManager.getViewstateIdFromUrl();
 		this.layoutManager = new SqsLayoutManager(this);
-		this.layoutManager.createView("#facet-result-panel", "filters", this.config.facetSectionDefaultWidth, 100-this.config.facetSectionDefaultWidth, {
+		this.layoutManager.createView("#filter-view-main-container", "filters", this.config.facetSectionDefaultWidth, 100-this.config.facetSectionDefaultWidth, {
 			rules: [
 				{
 					type: "show",
-					selector: "#domain-menu, #aux-menu",
+					selector: "#domain-menu, #aux-menu-button",
 					evaluator: () => {
 						return this.layoutManager.getMode() == "desktopMode";
 					}
@@ -163,19 +160,43 @@ class SeadQuerySystem {
 				}
 			]
 		});
-		this.layoutManager.createView("#site-report-panel", "siteReport", 80, 20, {
+		this.layoutManager.createView("#site-report-main-container", "siteReport", 80, 20, {
 			collapseIntoVertial: true,
 			rules: [
+				/*
 				{
-					selector: "#site-report-panel, #site-report-exit-menu"
+					selector: "#site-report-main-container, #site-report-exit-menu"
 				},
 				{
 					type: "show",
-					selector: "#domain-menu, #aux-menu, #facet-menu",
+					selector: "#domain-menu, #aux-menu-button, #facet-menu",
 					evaluator: false
 				}
+				*/
 			]
 		});
+
+		//let domainBox = document.querySelector("#filter-menu-svg").getElementById("domain-menu");
+		//let filterBox = document.querySelector("#filter-menu-svg").getElementById("facet-menu");
+		
+		/*
+		$(domainBox).on("mouseover", () => {
+			this.svgSetFill(domainBox, "#2d5e8d");
+		});
+		$(domainBox).on("mouseout", () => {
+			this.svgSetFill(domainBox, "#444");
+		});
+		*/
+		/*
+		$(filterBox).on("mouseover", () => {
+			this.svgSetFill(filterBox, "#3978b4");
+		});
+		$(filterBox).on("mouseout", () => {
+			this.svgSetFill(filterBox, "#2d5e8d");
+		});
+		*/
+		
+		
 
 		//this.layoutManager.setActiveView("filters");
 
@@ -216,6 +237,7 @@ class SeadQuerySystem {
 			});
 		}
 
+		this.menuManager.createMenu(this.resultManager.sqsMenu());
 
 		var renderDefaultResult = viewstate === false;
 		if(siteId == false) { //Don't bother firing up the result section if a direct request has been made towards a site report
@@ -244,19 +266,18 @@ class SeadQuerySystem {
 	  	this.help = new HelpAgent();
 	  	this.help.setState(true);
 		this.userManager = new UserManager(this);
-		
-
-		this.menuManager.createMenu(this.resultManager.sqsMenu());
 
 		var auxMenuDef = {
-			title: "<i class=\"fa fa-bars\" style='font-size: 1.5em' aria-hidden=\"true\"></i>",
-			anchor: "#aux-menu"
+			anchor: "#aux-menu",
+			triggers: [{
+				selector: "#aux-menu-button",
+				on: "click"
+			}]
 		};
 		
 		var auxMenu = this.menuManager.combineMenus(auxMenuDef, [
 			this.stateManager.sqsMenu(),
 			this.dialogManager.sqsMenu(),
-			//this.userManager.sqsMenu(),
 			this.help.sqsMenu()
 		]);
 
@@ -344,13 +365,23 @@ class SeadQuerySystem {
 		}
 	}
 	*/
-	
-	getHtmlSafeIdFromString(str) {
-		console.log(str)
-		str = str.toString();
-		console.log(typeof str)
-		
-		return str.replace(/ /g, "_");
+
+	svgSetFill(element, color) {
+		let style = element.getAttribute("style");
+		let styleAttrs = style.split(";");
+		let newStyleString = "";
+		styleAttrs.forEach(styleAttr => {
+			if(styleAttr.length > 0) {
+				let attrParts = styleAttr.split(":");
+				let name = attrParts[0];
+				let value = attrParts[1];
+				if(name == "fill") {
+					value = color;
+				}
+				newStyleString += name+":"+value+";";
+			}
+		});
+		element.setAttribute("style", newStyleString);
 	}
 
 	/*
@@ -484,6 +515,12 @@ class SeadQuerySystem {
 			}
 
 			if(filter.IsApplicable) {
+
+				if(filter.FacetCode == "ecocode") { //SPECIAL SPECIAL SPECIAL
+					filter.FacetTypeKey = "multistage";
+					filter.stagedFilters = ["ecocode_system", "ecocode"];
+				}
+
 				filterGroup.items.push({
 					"facetCode": filter.FacetCode,
 					"displayTitle": filter.DisplayTitle,
@@ -492,6 +529,7 @@ class SeadQuerySystem {
 					"aggregateTitle": filter.AggregateTitle,
 					"dependencies": [],
 					"description": filter.Description,
+					"stagedFilters": filter.stagedFilters,
 					"enabled": true
 				});
 			}
@@ -685,6 +723,9 @@ class SeadQuerySystem {
 		this.activeView = viewName;
 		if(this.layoutManager instanceof SqsLayoutManager) {
 			this.layoutManager.setActiveView(viewName);
+		}
+		else {
+			console.warn("Ignoring request to setActiveView because there's no LayoutManager.");
 		}
 	}
 
@@ -1141,6 +1182,10 @@ class SeadQuerySystem {
 	}
 
 	parseStringValueMarkup(value, ttOptions = { drawSymbol: true }) {
+		if(typeof value == "undefined") {
+			console.warn("An undefined value was passed into parseStringValueMarkup");
+			return undefined;
+		}
 		value = value.toString();
 		if(typeof value != "string") {
 			return "";
