@@ -21,9 +21,7 @@
 	
 	overflow-x: hidden;
 	overflow-y: auto;
-
-	height: 100vh;
-  	width: 100%;
+	height: calc(100vh - 108px);
 }
 
 .section-right {
@@ -36,7 +34,7 @@
 	border-left-color: rgba(6, 6, 9, 0.1);
 
 	overflow: auto;
-	height: 100%;
+	height: auto;
   	width: 100%;
 }
 

@@ -70,7 +70,7 @@ class Facet {
 			}
 		})
 
-		$(facetDomObj).find(".facet-size-btn").bind("click", () => {
+		$(facetDomObj).find(".facet-size-btn").on("click", () => {
 			if(this.minimized) {
 				this.maximize();
 			}
@@ -180,22 +180,25 @@ class Facet {
 	* 
 	* Collapses the facet to reduce the vertical space it occupies. In a discrete facet the selections will still be shown.
 	*/
-	minimize() {
+	minimize(changeFacetSize = false) {
 		$("#facet-"+this.id+" .facet-size-btn")
 			.switchClass("facet-minimize-btn", "facet-maximize-btn")
 			.addClass("facet-control-active");
-		$("#facet-"+this.id+" > .facet-body").css("height", "0px");
-		
-		$(this.domObj).find(".facet-body").show();
-		var headerHeight = $(".facet-header", this.domObj).height();
-		headerHeight += 12;
-		
-		var selectionsHeight = 0;
-		var facetHeight = headerHeight + selectionsHeight;
-		if(facetHeight > Config.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
-			facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
+
+		if(changeFacetSize) {
+			$("#facet-"+this.id+" > .facet-body").css("height", "0px");
+			var headerHeight = $(".facet-header", this.domObj).height();
+			headerHeight += 12;
+			var selectionsHeight = 0;
+			var facetHeight = headerHeight + selectionsHeight;
+
+			$(this.domObj).find(".facet-body").show();
+			
+			if(facetHeight > Config.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
+				facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
+			}
+			$(this.domObj).css("height", facetHeight+"px");
 		}
-		$(this.domObj).css("height", facetHeight+"px");
 		
 		this.minimized = true;
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);

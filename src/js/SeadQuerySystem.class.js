@@ -176,8 +176,8 @@ class SeadQuerySystem {
 			]
 		});
 
-		let domainBox = document.querySelector("#filter-menu-svg").getElementById("domain-menu");
-		let filterBox = document.querySelector("#filter-menu-svg").getElementById("facet-menu");
+		//let domainBox = document.querySelector("#filter-menu-svg").getElementById("domain-menu");
+		//let filterBox = document.querySelector("#filter-menu-svg").getElementById("facet-menu");
 		
 		/*
 		$(domainBox).on("mouseover", () => {
@@ -1182,6 +1182,10 @@ class SeadQuerySystem {
 	}
 
 	parseStringValueMarkup(value, ttOptions = { drawSymbol: true }) {
+		if(typeof value == "undefined") {
+			console.warn("An undefined value was passed into parseStringValueMarkup");
+			return undefined;
+		}
 		value = value.toString();
 		if(typeof value != "string") {
 			return "";

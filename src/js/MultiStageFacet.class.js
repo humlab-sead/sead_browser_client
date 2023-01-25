@@ -234,7 +234,6 @@ class MultiStageFacet extends Facet {
 			.append(bottomBlankSpace)
 			.show();
 
-
 		$(".facet-row[facet-row-id='collapsed-facet-info-row']").on("click", () => {
 			this.maximize();
 		});

@@ -203,10 +203,12 @@ class DiscreteFacet extends Facet {
 
 	renderMinimizedView(renderData = []) {
 
+		/*
 		let topBlankSpaceHeight = 0;
 		let bottomBlankSpaceHeight = 0;
 		var topBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", topBlankSpaceHeight);
 		var bottomBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", bottomBlankSpaceHeight);
+		*/
 
 		let displayTitle = "";
 		if(renderData.length == 1) {
@@ -216,6 +218,9 @@ class DiscreteFacet extends Facet {
 			displayTitle = renderData.length+ " selections";
 		}
 
+		this.renderData(renderData);
+
+		/*
 		let out = "<div class='facet-row facet-row-selected' facet-row-id='collapsed-facet-info-row'><div class='facet-row-checkbox-container'><div class='facet-row-checkbox'>"+this.checkMark+"</div></div><div class='facet-row-text'>"+displayTitle+"</div><div class='facet-row-count'></div></div>";
 		
 		$(".list-container", this.getDomRef())
@@ -225,7 +230,18 @@ class DiscreteFacet extends Facet {
 			.append(bottomBlankSpace)
 			.show();
 
+		let tooltipText = "";
+		this.selections.forEach(selectionId => {
+			for(let key in this.data) {
+				if(parseInt(this.data[key].id) == selectionId) {
+					tooltipText += this.data[key].title+", ";
+				}
+			}
+		});
+		tooltipText = tooltipText.substring(0, tooltipText.length-2);
 
+		this.sqs.tooltipManager.registerTooltip($("#facet-"+this.id+" .facet-row[facet-row-id='collapsed-facet-info-row']"), tooltipText, { placement: 'right' });
+		*/
 		$(".facet-row[facet-row-id='collapsed-facet-info-row']").on("click", () => {
 			this.maximize();
 		});
@@ -402,30 +418,33 @@ class DiscreteFacet extends Facet {
 	/*
 	* Function: minimize
 	*/
-	minimize() {
+	minimize(changeFacetSize = false) {
 		this.scrollPosition = this.getScrollPos();
 		super.minimize();
-		
+
 		$(".facet-text-search-input", this.getDomRef()).hide();
 		$(".facet-text-search-btn", this.getDomRef()).hide();
 		
 		$(this.domObj).find(".facet-body").show(); //Un-do hide of facet-body which is done in the super
-		var headerHeight = $(".facet-header", this.domObj).height();
-		headerHeight += 12;
-
-		//var selectionsHeight = this.selections.length * this.rowHeight;
-		let selectionsHeight = this.rowHeight; //Collapse down to just 1 row
-
-		var facetHeight = headerHeight + selectionsHeight;
-		if(facetHeight > Config.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
-			facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
-		}
-		$(this.domObj).css("height", facetHeight+"px");
-		if(selectionsHeight < facetHeight) {
-			$("#facet-"+this.id+" > .facet-body").css("height", selectionsHeight+"px");
-		}
-		else {
-			$("#facet-"+this.id+" > .facet-body").css("height", facetHeight+"px");
+		
+		if(changeFacetSize) {
+			var headerHeight = $(".facet-header", this.domObj).height();
+			headerHeight += 12;
+	
+			//var selectionsHeight = this.selections.length * this.rowHeight;
+			let selectionsHeight = this.rowHeight; //Collapse down to just 1 row
+	
+			var facetHeight = headerHeight + selectionsHeight;
+			if(facetHeight > Config.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
+				facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
+			}
+			$(this.domObj).css("height", facetHeight+"px");
+			if(selectionsHeight < facetHeight) {
+				$("#facet-"+this.id+" > .facet-body").css("height", selectionsHeight+"px");
+			}
+			else {
+				$("#facet-"+this.id+" > .facet-body").css("height", facetHeight+"px");
+			}
 		}
 		
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);

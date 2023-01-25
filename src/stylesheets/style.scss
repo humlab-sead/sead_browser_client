@@ -297,8 +297,6 @@ h1.main-header {
 	border-bottom-style:solid;
 	border-bottom-width: 1px;
 	border-bottom-color: $pane-bg-color;
-
-  grid-area: header;
 }
 
 .header-compressed {
@@ -336,6 +334,24 @@ h1.main-header {
 
 .facet-loading-indicator-error {
 	background-image: url('../assets/ajax-loader-error.png') !important;
+}
+
+
+.mini-loading-indicator {
+	display: inline-block;
+	width: 15px;
+	height: 15px;
+	align-self: center;
+  position:relative;
+  top: 2px;
+	background-image: url('../assets/loading-indicator5.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+	background-size: 100%;
+	margin-right:5px;
+	margin-left: 5px;
+	background-color: transparent;
 }
 
 #result-section {
@@ -2438,4 +2454,30 @@ svg text {
 .filter-special-function-link:hover {
   color: $aux-color;
   cursor: zoom-in;
+}
+
+.result-map-map-control-item-container {
+}
+
+#result-map-controls-container {
+  box-shadow: -5px 5px 1em .25em rgba(0, 0, 0, 0.15);
+}
+
+.result-map-map-control-item {
+  background: $base-color;
+  position: relative;
+  top: 0;
+  padding: 1em;
+  color: $white;
+  font-size: 1.2em;
+}
+
+.result-map-map-control-item:hover {
+  background: lighten($base-color, 10%);
+  cursor: pointer;
+}
+
+.content-item-chart-rendering-message {
+  font-size: 1.2em;
+  margin: 1em;
 }

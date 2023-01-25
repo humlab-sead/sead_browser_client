@@ -22,17 +22,19 @@ class AbundanceDataset extends DatasetModule {
 
 		this.methodGroupId = 1;
 		this.methodIds = [3, 6, 8, 14, 15, 40, 111]; //These are the analysis method IDs that this module will take responsibility for. So all analyses performed using any of these methods will be fetched and rendered by this module. The rest can go to hell (as far as this module is concerned).
-		this.methodMetaDataFetchingComplete = false;
+		this.methodMetaDataFetchingComplete = true;
 
+		/*
 		this.metaDataFetchingPromises = [];
 		this.metaDataFetchingPromises.push(this.analysis.fetchMethodGroupMetaData(this.methodGroupId));
 		this.methodIds.map((methodId) => {
 			this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(methodId));
 		});
-
+		
 		Promise.all(this.metaDataFetchingPromises).then((data) => {
 			this.methodMetaDataFetchingComplete = true;
 		});
+		*/
 	}
 
 	getSectionByMethodId(methodId, sections) {
@@ -878,13 +880,14 @@ class AbundanceDataset extends DatasetModule {
 	/*
 	* Function: buildSection
 	*/
-	buildSection(datasets) {
+	buildSectionOLD(datasets) {
 
 		//Create sections
 		//We want to create as many sections as there are different types of methods in our datasets (usually just one though)
 		datasets.map((dataset) => {
 			let section = this.analysis.getSectionByMethodId(dataset.methodId);
 			if(section === false) {
+				console.log(this, dataset.methodId);
 				let method = this.analysis.getMethodMetaDataById(dataset.methodId);
 				var sectionsLength = this.sectionsList.push({
 					"name": dataset.methodId,

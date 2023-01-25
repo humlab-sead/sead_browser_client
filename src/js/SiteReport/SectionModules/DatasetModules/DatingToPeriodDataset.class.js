@@ -19,32 +19,9 @@ class DatingToPeriodDataset extends DatasetModule {
 		this.section = analysis.section;
 
 		this.methodIds = [];
-		this.methodGroupIds = [19, 20]
-		this.methodMetaDataFetchingComplete = false;
-
-		this.metaDataFetchingPromises = [];
-		for(let key in this.methodGroupIds) {
-			this.metaDataFetchingPromises.push(this.analysis.fetchMethodGroupMetaData(this.methodGroupIds[key]));
-        	this.metaDataFetchingPromises.push(this.analysis.fetchMethodsInGroup(this.methodGroupIds[key]));
-		}
-
-		Promise.all(this.metaDataFetchingPromises).then(() => {
-			this.methodMetaDataFetchingComplete = true;
-		});
+		this.methodGroupIds = [3, 19, 20]
+		this.methodMetaDataFetchingComplete = true;
 	}
-
-	/*
-	getSection(sectionData) {
-		let sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", sectionData.name);
-		if(sectionKey === false) {
-			let sectionsLength = this.section.sections.push(sectionData);
-
-			sectionKey = sectionsLength - 1;
-		}
-
-		return this.section.sections[sectionKey];
-	}
-	*/
 
 	getSection(sectionName) {
 		let sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", sectionName);
@@ -84,14 +61,30 @@ class DatingToPeriodDataset extends DatasetModule {
 	}
 
 	async makeSection(siteData, sections) {
-		this.claimDatasets(siteData);
-		let dataGroups = siteData.data_groups.filter(dataGroup => {
-			if(this.methodGroupIds.includes(dataGroup.method_group_id)) {
-				return true;
-			}
-			return false;
-		});
+		let datasets = this.claimDatasets(siteData);
+		
+		//we make our own 'data groups' here despite this exact data structure already existing in the siteData from the server
+		//this is because we need to do this based on the datasets we claim, otherwise we break the whole claiming system
+		let dataGroups = [];
 	
+		datasets.forEach(ds => {
+			let dataGroupFound = false;
+			dataGroups.forEach(dg => {
+				if(dg.method_id == ds.method_id) {
+					dataGroupFound = true;
+					dg.data_points = dg.data_points.concat(ds.analysis_entities);
+				}
+			});
+			if(!dataGroupFound) {
+				dataGroups.push({
+					method_id: ds.method_id,
+					method_group_id: ds.method_group_id,
+					type: "dating_values",
+					data_points: ds.analysis_entities
+				});
+			}
+		});
+
 		dataGroups.forEach(dataGroup => {
 			let section = this.getSectionByMethodId(dataGroup.method_id, sections);			
 			if(!section) {
@@ -221,7 +214,7 @@ class DatingToPeriodDataset extends DatasetModule {
 
 			let contentItem = {
 				"name": nanoid(), //Normally: analysis.datasetId
-				"title": method.name, //Normally this would be: analysis.datasetName
+				"title": method.method_name, //Normally this would be: analysis.datasetName
 				"data": {
 					"columns": columns,
 					"rows": rows
@@ -236,11 +229,16 @@ class DatingToPeriodDataset extends DatasetModule {
 			};
 
 			section.contentItems.push(contentItem);
-		});	
+		});
+
+		
 
 	}
 
 	formatAge(older, younger) {
+		if(!older && !younger) {
+			return "No data";
+		}
 		if(younger && older) {
 			return parseFloat(older)+" - "+parseFloat(younger)+" BP";
 		}
@@ -251,69 +249,15 @@ class DatingToPeriodDataset extends DatasetModule {
 			return "> "+parseFloat(older)+" BP"
 		}
 	}
-
-    /**  
-    * Function: buildSection
-	*/
-	buildSection(datasets) {
-		console.log("buildSection", datasets);
-
-		//Group datasets by method - which will become their own sections with ONE contentItem in each where each dataset is a row
-
-		let datasetGroups = this.groupDatasetsByMethod(datasets);
-		console.log(datasetGroups)
-
-		for(let key in datasetGroups) {
-			let section = this.getSection("section-method-group-"+datasetGroups[key].methodId);
-			if(section === false) {
-				let method = this.analysis.getMethodMetaDataById(datasetGroups[key].methodId);
-				section = this.createSection({
-					"name": "section-method-group-"+datasetGroups[key].methodId,
-					"title": method.name,
-					"methodDescription": method.description == null ? "" : method.description,
-					"collapsed": true,
-					"contentItems": []
-				});
-			}
-			let ci = this.buildContentItem(datasetGroups[key]);
-			section.contentItems.push(ci);
-		}
-
-		/*
-		for(let key in datasets) {
-			let methodGroup = this.analysis.getMethodGroupMetaDataById(datasets[key].method.method_group_id);
-
-			//let section = this.getSection("section-method-group-"+datasets[key].method.method_group_id);
-			let section = this.getSection("section-method-group-"+datasets[key].method.method_id);
-
-			console.log(datasets[key].method)
-
-			if(section === false) {
-				section = this.createSection({
-					"name": "section-method-group-"+datasets[key].method.method_id,
-					"title": datasets[key].method.method_name,
-					"methodDescription": methodGroup == null ? "" : methodGroup.description,
-					"collapsed": true,
-					"contentItems": []
-				});
-			}
-
-			let ci = this.buildContentItem(datasets[key]);
-			section.contentItems.push(ci);
-		}
-		*/
-	}
 	
 
-	buildContentItem(datasetGroup) {
+	buildContentItemOLD(datasetGroup) {
 		let method = this.analysis.getMethodMetaDataById(datasetGroup.methodId);
 
 		let analysisEntities = [];
 		for(let key in datasetGroup.datasets) {
 			analysisEntities = analysisEntities.concat(datasetGroup.datasets[key].analysis_entities)
 		}
-
-		console.log(analysisEntities)
 
 		//Defining columns
 		var columns = [

@@ -105,7 +105,7 @@ class C14Dataset extends DatasetModule {
 
 			let contentItem = {
 				"name": nanoid(), //Normally: analysis.datasetId
-				"title": method.name, //Normally this would be: analysis.datasetName
+				"title": method.method_name, //Normally this would be: analysis.datasetName
 				"data": {
 					"columns": columns,
 					"rows": rows

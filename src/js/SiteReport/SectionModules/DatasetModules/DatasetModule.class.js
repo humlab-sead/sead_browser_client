@@ -5,16 +5,22 @@ class DatasetModule {
 
     claimDatasets(site) {
 		let methodDatasets = [];
-		if(this.methodIds.length == 0 && typeof this.methodGroupIds != "undefined" && this.methodGroupIds.length > 0) {
-			methodDatasets = site.datasets.filter(dataset => {
+		let methodDatasetsSelectedByGroup = [];
+		let methodDatasetsSelectedById = [];
+		if(typeof this.methodGroupIds != "undefined" && this.methodGroupIds.length > 0) {
+			methodDatasetsSelectedByGroup = site.datasets.filter(dataset => {
 				return this.methodGroupIds.includes(dataset.method_group_id);
 			});
+			//console.log(this.constructor.name+" claimed datasets (by group):", methodDatasets);
 		}
-		else {
-			methodDatasets = site.datasets.filter(dataset => {
+		if(typeof this.methodIds != "undefined") {
+			methodDatasetsSelectedById = site.datasets.filter(dataset => {
 				return this.methodIds.includes(dataset.method_id);
 			});
+			//console.log(this.constructor.name+" claimed datasets (by id):", methodDatasets);
 		}
+
+		methodDatasets = methodDatasetsSelectedByGroup.concat(methodDatasetsSelectedById);
 
 		let unclaimedDatasets = [];
 		site.datasets.forEach(dataset => {
