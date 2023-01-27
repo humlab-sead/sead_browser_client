@@ -174,11 +174,13 @@ class sqsMenu {
 			console.warn("Multiple menu items were selected.");
 		}
 
-		let menuAnchorNode = $(this.menuDef.anchor);
-		$(".first-level-item", menuAnchorNode).removeClass("sqs-menu-selected");
-		$(".second-level-item", menuAnchorNode).removeClass("sqs-menu-selected");
-		$("[menu-item='"+itemName+"']", menuAnchorNode).addClass("sqs-menu-selected");
-
+		if(this.menuDef.staticSelection) {
+			let menuAnchorNode = $(this.menuDef.anchor);
+			$(".first-level-item", menuAnchorNode).removeClass("sqs-menu-selected");
+			$(".second-level-item", menuAnchorNode).removeClass("sqs-menu-selected");
+			$("[menu-item='"+itemName+"']", menuAnchorNode).addClass("sqs-menu-selected");
+		}
+		
 		//this.menuDef.triggers
 
 		$("#domain-menu")[0].dispatchEvent(new CustomEvent("selectionchange"));
