@@ -199,7 +199,7 @@ class StateManager {
 
 	renderViewStates(viewstates) {
 		$("#viewstate-load-list").html("");
-		let header = "<div class='viewstate-load-item-header'><div>ID</div><div>Name</div><div>Created</div><div>Version</div><div id='vs-del-header'>Del</div></div>";
+		let header = "<div class='viewstate-load-item-header'><div>ID</div><div>Name</div><div>Created</div><div>Release</div><div id='vs-del-header'>Del</div></div>";
 		$("#viewstate-load-list").append(header);
 
 		viewstates.map((state) => {
@@ -360,6 +360,7 @@ class StateManager {
 			id: stateId,
 			name: name,
 			apiVersion: this.sqs.apiVersion,
+			clientVersion: this.sqs.config.version,
 			saved: Date.now(),
 			layout: {
 				left: this.sqs.layoutManager.leftLastSize
