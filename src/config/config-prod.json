@@ -1,5 +1,6 @@
 {
 	"build": "production",
+	"version": "2023-01",
 	"dataLicense": {
 		"name":"Creative Commons Attribution 4.0 International",
 		"shortName":"CC-BY-4.0",

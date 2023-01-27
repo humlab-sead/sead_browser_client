@@ -1,15 +1,16 @@
 {
 	"build": "staging",
+	"version": "2023-01-dev",
 	"dataLicense": {
 		"name":"Creative Commons Attribution 4.0 International",
 		"shortName":"CC-BY-4.0",
 		"url":"https://creativecommons.org/licenses/by/4.0/"
 	},
-	"serverRoot":"https://browser.sead.se",
+	"serverRoot":"https://supersead.humlab.umu.se",
 	"serverAddress":"https://browser.sead.se/query",
-	"viewStateServerAddress":"https://browser.sead.se/vsapi",
-	"siteReportServerAddress":"https://browser.sead.se/postgrest",
-	"dataServerAddress": "https://browser.sead.se/jsonapi",
+	"viewStateServerAddress":"https://supersead.humlab.umu.se/vsapi",
+	"siteReportServerAddress":"https://supersead.humlab.umu.se/postgrest",
+	"dataServerAddress": "https://supersead.humlab.umu.se/jsonapi",
 	"defaultResultModule":"mosaic",
 	"resultMapDataLayers": ["clusterPoints", "points", "heatmap"],
 	"maxAllowedSitesInAnExport": 20,
