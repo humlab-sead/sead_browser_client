@@ -603,14 +603,9 @@ class ResultMap extends ResultModule {
 	* Function: renderClusteredPointsLayer
 	*/
 	renderClusteredPointsLayer() {
-		console.time("getSelectedSites")
 		let timeFilteredData = this.timeline.getSelectedSites();
-		console.timeEnd("getSelectedSites")
-		console.time("getDataAsGeoJSON")
 		var geojson = this.getDataAsGeoJSON(timeFilteredData);
-		console.timeEnd("getDataAsGeoJSON")
 
-		console.time("readFeatures")
 		var gf = new GeoJSON({
 			featureProjection: "EPSG:3857"
 		});
@@ -618,9 +613,7 @@ class ResultMap extends ResultModule {
 		var pointsSource = new VectorSource({
 			features: featurePoints
 		});
-		console.timeEnd("readFeatures")
 		
-		console.time("getClusterPointStyle")
 		var clusterSource = new ClusterSource({
 			distance: 35,
 			source: pointsSource
@@ -639,10 +632,8 @@ class ResultMap extends ResultModule {
 			"layerId": "clusterPoints",
 			"type": "dataLayer"
 		});
-		console.timeEnd("getClusterPointStyle")
-		console.time("addLayer")
+		
 		this.olMap.addLayer(clusterLayer);
-		console.timeEnd("addLayer")
 	}
 
 	renderHeatmapLayer() {
