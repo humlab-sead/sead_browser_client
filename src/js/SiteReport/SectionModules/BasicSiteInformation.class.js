@@ -85,6 +85,13 @@ class BasicSiteInformation {
 		let datasetReferencesHtml = this.renderReferences(siteData.bibliographicDatasetReferences);
 		*/
 
+		let datasetReferencesHtml = "";
+		// DISABLED - because of how dataset references are done for dendro sites, just have a look and you'll see what I'm talking about
+		siteData.datasets.forEach(dataset => {
+			datasetReferencesHtml += this.renderDatasetReference(dataset);
+		});
+		
+
 		let siteReferencesHtml = "";
 
 		siteData.biblio.forEach(siteRef => {
@@ -106,7 +113,7 @@ class BasicSiteInformation {
 			siteReferencesHtml += "</div>";
 		});
 
-		let datasetReferencesHtml = "";
+		
 
 		var node = $(".site-report-aux-info-container");
 		node
@@ -152,6 +159,85 @@ class BasicSiteInformation {
 		});
 		
 		this.renderMiniMap(siteData);
+	}
+
+	renderDatasetReference(dataset) {
+		
+		//NOTE: This is a temporary hack
+		//if the method is 10 (dendro), we don't render dataset referenes, since they end up being far too many
+		//we need a proper fix for this further on
+		if(dataset.method_id == 10) {
+			return "";
+		}
+
+		let siteData = this.data;
+		let out = "";
+		dataset.contacts.forEach(dsc => {
+			dataset.dataset_name;
+			dataset.method_id;
+			dsc.contact_id;
+			dsc.contact_type_id
+
+			let dsAnalysisMethodName = "Unknown";
+			siteData.lookup_tables.analysis_methods.forEach(method => {
+				if(method.method_id == dataset.method_id) {
+					dsAnalysisMethodName = method.method_name;
+				}
+			});
+
+
+			let contactTypeData = null;
+			siteData.lookup_tables.dataset_contact_types.forEach(datasetContactType => {
+				if(datasetContactType.contact_type_id == dsc.contact_type_id) {
+					contactTypeData = datasetContactType;
+				}
+			});
+
+			let contactData = null;
+			siteData.lookup_tables.dataset_contacts.forEach(datasetContact => {
+				if(datasetContact.contact_id == dsc.contact_id) {
+					contactData = datasetContact;
+				}
+			});
+
+
+			out += "<div class='site-reference-box'>";
+			out += "<h5 class='site-report-reference-title'>"+dsAnalysisMethodName+" dataset "+dataset.dataset_name+"</h5>";
+
+			//contactTypeData.contact_type_name; //e.g. "dataset imported by"
+			//contactTypeData.description; //should be used as tt for above
+
+			let personName = "";
+			if(contactData.first_name && contactData.last_name) {
+				personName = contactData.first_name+" "+contactData.last_name;
+			}
+			if(!contactData.first_name && contactData.last_name) {
+				personName = contactData.last_name;
+			}
+
+			let contactTypeName = "";
+			if(contactTypeData.contact_type_name) {
+				contactTypeName = contactTypeData.contact_type_name.trim();
+			}
+
+			let ttId = nanoid();
+			out += "<div><span id='"+ttId+"'>"+contactTypeName+"</span> "+personName+"</div>";
+			if(contactData.email || contactData.address_1 || contactData.address_2) {
+				out += "<hr/>";
+			}
+			out += contactData.address_1 ? "<div>"+contactData.address_1+"</div>" : "";
+			out += contactData.address_2 ? "<div>"+contactData.address_2+"</div>" : "";
+			if(contactData.email || contactData.url) {
+				out += "<br/>";
+			}
+			out += contactData.email ? "<div>"+contactData.email+"</div>" : "";
+			out += contactData.url ? "<div><a target='_blank' href='"+contactData.url+"'>"+contactData.url+"</a></div>" : "";
+			out += "</div>";
+
+			this.sqs.tooltipManager.registerTooltip("#"+ttId, contactTypeData.description);
+		});
+
+		return out;
 	}
 	
 	exportSite() {
