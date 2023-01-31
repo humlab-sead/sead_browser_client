@@ -290,6 +290,7 @@ class MultiStageFacet extends Facet {
 				
 			}
 		}
+		
         
         $(".staging-container", this.getDomRef()).html("<div class='staging-container-text'>Ecocode system (1/2)</div><hr/>");
 

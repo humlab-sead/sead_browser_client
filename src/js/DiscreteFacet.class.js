@@ -310,8 +310,11 @@ class DiscreteFacet extends Facet {
 				}
 				out += "<div class='facet-row "+selectedClass+"' facet-row-id='"+dataElement.id+"'><div class='facet-row-checkbox-container'><div class='facet-row-checkbox'>"+checkMark+"</div></div><div class='facet-row-text'>"+specialFunctionLinks+displayTitle+"</div><div class='facet-row-count'>"+dataElement.count+"</div></div>";
 				
+				//Disabled this becuase I'm paranoid about performance - probably not good to register this many tooltips, there has to be a better way...
+				//this.sqs.tooltipManager.registerTooltip("[facet-row-id='"+dataElement.id+"'] .facet-row-count", "Analysis entities");
 			}
 		}
+		
 		
 		$(".list-container", this.getDomRef())
 			.html("")
