@@ -19,15 +19,16 @@ class CeramicDataset extends DatasetModule {
 		this.buildIsComplete = false;
 		this.methodIds = [171, 172];
 
-		/*
 		this.metaDataFetchingPromises = [];
 		this.methodIds.map((methodId) => {
 			this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(methodId));
 		});
-		*/
+
+		console.log("CeramicDataset");
 	}
 	
 	offerAnalyses(datasets) {
+		console.log("offerAnalyses", datasets);
 		for(let key = datasets.length - 1; key >= 0; key--) {
 			if(this.methodIds.includes(datasets[key].methodId)) {
 				let dataset = datasets.splice(key, 1)[0];
@@ -41,8 +42,8 @@ class CeramicDataset extends DatasetModule {
 				this.datasetFetchPromises.push(this.fetchDataset(this.datasets[key]));
 			}
 			
-			//let promises = this.datasetFetchPromises.concat(this.metaDataFetchingPromises);
-			Promise.all(this.datasetFetchPromises).then(() => {
+			let promises = this.datasetFetchPromises.concat(this.metaDataFetchingPromises);
+			Promise.all(promises).then(() => {
 
 				this.dsGroups = this.groupDatasetsBySample(this.datasets);
 
@@ -189,112 +190,185 @@ class CeramicDataset extends DatasetModule {
 	}
 
 	async makeSection(siteData, sections) {
-		let datasets = this.claimDatasets(siteData);
-		//console.log(datasets);
-	}
+		let methodDatasets = this.claimDatasets(siteData);
 
-	buildSectionOLD(dsGroups) {
-		let analysis = dsGroups[0].datasets[0];
-		var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
-		
-		if(sectionKey === false) {
-			let method = this.analysis.getMethodMetaDataById(analysis.methodId);
-			var sectionsLength = this.section.sections.push({
-				"name": analysis.methodId,
-				"title": analysis.methodName,
-				"methodId": method.method_id,
-				"methodDescription": method == null ? "" : method.description,
-				"collapsed": true,
-				"contentItems": []
+		//These datasets needs to be grouped by physical_sample_id in order to make sense
+		let uniquePhysicalSampleIds = new Set();
+
+		methodDatasets.forEach(ds => {
+			ds.analysis_entities.forEach(ae => {
+				uniquePhysicalSampleIds.add(ae.physical_sample_id);
 			});
-			sectionKey = sectionsLength - 1;
-		}
-
-		dsGroups.map((dsg) => {
-			let ci = this.buildContentItem(dsg);
-			this.section.sections[sectionKey].contentItems.push(ci);
 		});
-		
-		this.buildIsComplete = true;
-		this.sqs.sqsEventDispatch("siteAnalysisBuildComplete"); //Don't think this event is relevant anymore...
+
+		let sampleDatasets = [];
+		uniquePhysicalSampleIds.forEach(physicalSampleId => {
+			let sampleDatasetObject = {
+				physicalSampleId: physicalSampleId,
+				datasets: []
+			};
+			
+			methodDatasets.forEach(ds => {
+				ds.analysis_entities.forEach(ae => {
+					if(ae.physical_sample_id == sampleDatasetObject.physicalSampleId) {
+						sampleDatasetObject.datasets.push(...ae.ceramic_values)
+					}
+				});
+			});
+
+			sampleDatasets.push(sampleDatasetObject);
+		});
+
+		console.log(sampleDatasets);
+
+		//var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
+
+		if(sampleDatasets.length > 0) {
+			let datasetSections = this.buildSections();
+
+			let ci = this.buildContentItem(sampleDatasets);
+			datasetSections[0].contentItems.push(ci);
+		}
 	}
 
-	buildContentItem(datasetGroup) {
-		//Defining columns
-		var columns = [
+	buildSections() {
+		let siteData = this.sqs.siteReportManager.siteReport.siteData;
+		
+		let builtSections = [];
+
+		this.methodIds.forEach(methodId => {
+			siteData.lookup_tables.analysis_methods.forEach(method => {
+				if(method.method_id == methodId) {
+					let sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", method.method_id);
+					if(sectionKey === false) {
+						var sectionsLength = this.section.sections.push({
+							"name": methodId,
+							"title": method.method_name,
+							"methodId": method.method_id,
+							"methodDescription": method == null ? "" : method.description,
+							"collapsed": false,
+							"contentItems": []
+						});
+						sectionKey = sectionsLength - 1;
+						builtSections.push(this.section.sections[sectionKey]);
+					}
+				}
+			})
+		});
+
+		return builtSections;
+	}
+
+	buildContentItem(datasetGroups) {
+		let siteData = this.sqs.siteReportManager.siteReport.siteData;
+
+		let columns = [
+			{
+				"dataType": "subtable",
+				"pkey": false
+			},
 			{
 				"dataType": "number",
 				"pkey": true,
-				"title": "Analysis entitiy id",
+				"title": "Dataset group",
 				"hidden": true
-			},/*
-			{
-				"dataType": "string",
-				"pkey": false,
-				"title": "Data type name"
 			},
 			{
 				"dataType": "string",
 				"pkey": false,
-				"title": "Dataset name"
-			},*/
-			{
-				"dataType": "string",
-				"pkey": false,
-				"title": "Value type"
+				"title": "Sample name"
 			},
-			{
-				"dataType": "string",
-				"pkey": false,
-				"title": "Measurement value"
-			}
 		];
 
-		//Filling up the rows - all dataset's data goes in the same table for ceramics
-		var rows = [];
-		for(let dk in datasetGroup.datasets) {
-			
-			let dataset = datasetGroup.datasets[dk];
-
-			for(let key in dataset.ceramics) {
-				let valueType = this.getCeramicsValueType(dataset.ceramics[key].ceramics_lookup_id);
-				
-				let valueTypeName = dataset.ceramics[key].ceramics_lookup_id;
-				let valueTypeDescription = "Unknown ceramicschronological data type";
-				
-				if(valueType !== false) {
-					valueTypeName = valueType.name;
-					valueTypeDescription = valueType.description;
+		let rows = [];
+		
+		datasetGroups.forEach(dsg => {
+			//Defining columns
+			var subTableColumns = [
+				{
+					"dataType": "number",
+					"pkey": true,
+					"title": "Analysis entitiy id",
+					"hidden": true
+				},
+				{
+					"dataType": "string",
+					"pkey": false,
+					"title": "Value type"
+				},
+				{
+					"dataType": "string",
+					"pkey": false,
+					"title": "Measurement value"
 				}
-				let valueMeasurement = dataset.ceramics[key].measurement_value;
+			];
 
-				var row = [
+			//Filling up the rows - all dataset's data goes in the same table for ceramics
+			var subTableRows = [];
+			dsg.datasets.forEach(ds => {
+				let dataset = ds;
+
+				var subTableRow = [
 					{
 						"type": "cell",
 						"tooltip": "",
-						"value": dataset.ceramics[key].analysis_entity_id
+						"value": dataset.analysis_entity_id
 					},
 					{
 						"type": "cell",
-						"tooltip": valueTypeDescription,
-						"value": valueTypeName
+						"tooltip": dataset.description,
+						"value": dataset.name
 					},
 					{
 						"type": "cell",
 						"tooltip": "",
-						"value": valueMeasurement
+						"value": dataset.measurement_value
 					}
 				];
 
-				rows.push(row);
-			}
-		}
+				subTableRows.push(subTableRow);
+			});
 
-		datasetGroup.sample.sample_name
+			let subTable = {
+				"columns": subTableColumns,
+				"rows": subTableRows
+			};
+
+			let physicalSample = null;
+			siteData.sample_groups.forEach(sg => {
+				sg.physical_samples.forEach(ps => {
+					if(ps.physical_sample_id == dsg.physicalSampleId) {
+						physicalSample = ps;
+					}
+				});
+			});
+
+			let row = [
+				{
+					"type": "subtable",
+					"value": subTable
+				},
+				{
+					"type": "cell",
+					"tooltip": "",
+					"value": "Dataset group"
+				},
+				{
+					"type": "cell",
+					"tooltip": "",
+					"value": physicalSample.sample_name
+				}
+			];
+
+			rows.push(row);
+	
+		});
+
+		
+
 		let ci = {
-			"name": datasetGroup.physical_sample_id, //Normally: analysis.datasetId
-			"title": "Sample "+datasetGroup.sample.sample_name, //Normally this would be: analysis.datasetName
-			"datasetId": datasetGroup.physical_sample_id, //Normally: analysis.datasetId
+			"name": "Ceramics", //Normally: analysis.datasetId
+			"title": "Ceramics", //Normally this would be: analysis.datasetName
 			"data": {
 				"columns": columns,
 				"rows": rows
