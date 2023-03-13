@@ -515,7 +515,6 @@ class SeadQuerySystem {
 			}
 
 			if(filter.IsApplicable) {
-
 				if(filter.FacetCode == "ecocode") { //SPECIAL SPECIAL SPECIAL
 					filter.FacetTypeKey = "multistage";
 					filter.stagedFilters = ["ecocode_system", "ecocode"];

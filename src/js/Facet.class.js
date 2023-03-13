@@ -1,5 +1,3 @@
-//import Config from '../config/config.js';
-import _ from 'underscore';
 /* 
 Class: Facet
 This is the generic Facet class which the type specific facets (Discrete, Range, Map) inherits. So all functionality/attributes which is common for all types of facets goes here.
@@ -96,6 +94,7 @@ class Facet {
 				$(facet.getDomRef()).css("width", "100%"); //reset width to what we want since jQuery will change this to an absolute value after dragstop
 			}
 		});
+		
 	}
 
 	setHeight(height = Config.facetBodyHeight) {
@@ -181,6 +180,7 @@ class Facet {
 	* Collapses the facet to reduce the vertical space it occupies. In a discrete facet the selections will still be shown.
 	*/
 	minimize(changeFacetSize = false) {
+		console.log("minimize", changeFacetSize);
 		$("#facet-"+this.id+" .facet-size-btn")
 			.switchClass("facet-minimize-btn", "facet-maximize-btn")
 			.addClass("facet-control-active");
@@ -262,7 +262,6 @@ class Facet {
 	* render - Whether to render the data or not after the fetch is complete. Default: true.
 	*/
 	fetchData(render = true) {
-
 		this.showLoadingIndicator(true);
 		
 		var requestType = "populate";
@@ -270,16 +269,20 @@ class Facet {
 		* Except for when a facet was deleted - this should not count as the trigger in that instance. Yeah it's confusing and I hate it.
 		*/
 		var triggerCode = this.sqs.facetManager.getLastTriggeringFacet().name;
+
 		let targetCode = this.name;
 		
+		if(typeof this.filters != "undefined") {
+			//this is a multistage facet
+			targetCode = this.getCurrentFilter().name;
+		}
+		
 		var fs = this.sqs.facetManager.getFacetState();
-		console.log(fs);
 		var fc = this.sqs.facetManager.facetStateToDEF(fs, {
 			requestType: requestType,
 			targetCode: targetCode,
 			triggerCode: triggerCode
 		});
-		console.log(fc);
 
 		let domainCode = this.sqs.domainManager.getActiveDomain().name;
 		domainCode = domainCode == "general" ? "" : domainCode;
@@ -292,7 +295,6 @@ class Facet {
 			domainCode: domainCode,
 			facetConfigs: fc
 		};
-		console.log(reqData);
 
 		return $.ajax(config.serverAddress+"/api/facets/load", {
 			data: JSON.stringify(reqData),
@@ -301,7 +303,6 @@ class Facet {
 			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
-				
 				if(this.deleted == false && respData.FacetsConfig.RequestId == this.requestId) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 					this.importData(respData);
 					if(render && this.minimized == false) {
@@ -310,7 +311,7 @@ class Facet {
 					this.showLoadingIndicator(false);
 				}
 				else {
-					console.log("WARN: Not importing facet data since this facet is either deleted or "+respData.FacetsConfig.RequestId+" != "+this.requestId);
+					console.warn("WARN: Not importing facet data since this facet is either deleted or "+respData.FacetsConfig.RequestId+" != "+this.requestId);
 				}
 
 				for(var key in this.sqs.facetManager.pendingDataFetchQueue) {
@@ -350,9 +351,10 @@ class Facet {
 	* 
 	* This should be called whenever something is selected or deselected in a facet. Broadcasts an event letting other components respond to this action.
 	*/
-	broadcastSelection() {
+	broadcastSelection(filter = null) {
 		$.event.trigger("seadFacetSelection", {
-			facet: this
+			facet: this,
+			filter: filter
 		});
 	}
 	
@@ -424,7 +426,17 @@ class Facet {
 		if(this.selections.length > 0) {
 			return true;
 		}
-		return false;
+
+		let multistageSelectionsExists = false;
+		if(typeof this.filters != "undefined") {
+			this.filters.forEach(filter => {
+				if(filter.selections.length > 0) {
+					multistageSelectionsExists = true;
+				}
+			});
+		}
+
+		return multistageSelectionsExists;
 	}
 
 	lock(locked = true) {

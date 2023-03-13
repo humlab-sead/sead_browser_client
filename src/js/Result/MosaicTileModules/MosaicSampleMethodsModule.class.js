@@ -72,7 +72,7 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         });
 
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, "Sampling methods counted by sample groups");
+        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false });
 
 
         /*

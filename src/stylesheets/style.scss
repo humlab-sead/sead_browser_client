@@ -436,6 +436,20 @@ h1.main-header {
   white-space: nowrap;
 }
 
+.facet-title-back-button {
+  display: none;
+  margin:5px;
+	margin-left:8px;
+	margin-top:8px;
+  margin-right:0px;
+	padding:0px;
+	line-height:14px;
+}
+
+.facet-title-back-button:hover {
+  cursor: pointer;
+}
+
 .facet-portal-indicator {
   flex: 2;
 	font-weight:bold;
@@ -619,6 +633,28 @@ h1.main-header {
   position:relative;
   top: -2px;
   left: -1px;
+}
+
+.facet-row-arrow-mark {
+  position:relative;
+  top: 0px;
+  left: 0px;
+  background: url('../assets/triangle-black.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  width: 1em;
+  height: 1em;
+}
+
+.facet-row-arrow-mark-selected {
+  position:relative;
+  top: 0px;
+  left: 0px;
+  background: url('../assets/triangle.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  width: 1em;
+  height: 1em;
 }
 
 .slot {
@@ -1033,6 +1069,24 @@ h1.main-header {
 	/*background-color:rgba(0, 0, 255, 0.5);*/
 }
 
+.multistage-container {
+  display:none;
+	position:relative;
+	height: 100%;
+  width: 100%;
+  grid-template-columns: 100% 100%;
+  grid-template-rows: 1fr;
+  overflow-x: hidden;
+}
+
+.filter-container {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  //overflow-x: hidden;
+}
+
+/*
 .staging-container {
   margin:0;
   padding:0;
@@ -1043,15 +1097,15 @@ h1.main-header {
   padding:0;
   border: none;
   height: 1px;
-  color: rgba(0, 0, 0, 0.2); /* old IE */
-  background-color: rgba(0, 0, 0, 0.2); /* Modern Browsers */
+  color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 .staging-container-text {
   margin-left: 0.5em;
   margin-right: 0.5em;
 }
-
+*/
 .scroll-selection-indicator {
   background-color: $aux-color;
   height: 100%;

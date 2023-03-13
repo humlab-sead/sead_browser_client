@@ -1,6 +1,5 @@
 import 'notifyjs-browser/dist/styles/metro/notify-metro.css';
 import 'notifyjs-browser/dist/styles/metro/notify-metro.js';
-import tippy from 'tippy.js';
 
 /*
 * Class: HelpAgent

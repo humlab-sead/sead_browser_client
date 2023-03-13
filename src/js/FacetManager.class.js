@@ -35,10 +35,17 @@ class FacetManager {
 		});
 		
 		$(window).on("seadFacetSelection", (event, data) => {
-			var facet = this.getNextFacetFromFacet(data.facet);
-			if(facet !== false) {
-				this.chainQueueFacetDataFetch(facet);
+
+			if(typeof data.filter != "undefined" && data.filter != null) {
+				this.chainQueueFacetDataFetch(data.facet);
 			}
+			else {
+				let facet = this.getNextFacetFromFacet(data.facet);
+				if(facet !== false) {
+					this.chainQueueFacetDataFetch(facet);
+				}
+			}
+			
 		});
 		
 		$(window).on("seadFacetDeletion", (event, data) => {
@@ -172,6 +179,10 @@ class FacetManager {
 		$(this.demoSlot.getDomRef()).addClass("slot-visible");
 		
 		$("#facet-section").append("<div class='filter-demo-arrow'>⤷</div>");
+
+		$(".jslink-alt").on("click", () => {
+			console.warn("FIXME");
+		});
 	}
 	
 	/*
@@ -301,7 +312,6 @@ class FacetManager {
 	* Queue is a funny word. Anyway, this is basically what you want to use for getting data for a facet. Think of it as "fetchFacetData" if you like, but it's really more of a queue-thingy going on here so...
 	*/
 	queueFacetDataFetch(facet) {
-		console.log("queueFacetDataFetch", facet);
 		if(!facet.enabled) {
 			return;
 		}
@@ -971,20 +981,27 @@ class FacetManager {
 	getFacetState(inDataExchangeFormat = false, excludeDeletedFacets = true) {
 		this.facetState = [];
 
-		let virtualSlotNumber = 0;
 		this.facets.sort((facetA, facetB) => {
-			return this.getSlotIdByFacetId(facetA.id) > this.getSlotIdByFacetId(facetB.id);
+			if(this.getSlotIdByFacetId(facetA.id) > this.getSlotIdByFacetId(facetB.id)) {
+				return 1;
+			}
+			else {
+				return -1;
+			}
 		});
-		
+
+		let currentFilterPosition = 1;
 		for(var key in this.facets) {
 			if((excludeDeletedFacets === true && this.facets[key].deleted === false) || excludeDeletedFacets === false) {
 				
 				if(typeof this.facets[key].filters != "undefined" && this.facets[key].filters.length > 1) {
 					for(let filterKey in this.facets[key].filters) {
 						let filter = this.facets[key].filters[filterKey];
+						
 						this.facetState.push({
 							name: filter.name,
-							position: this.getSlotIdByFacetId(this.facets[key].id) + filterKey,
+							//position: this.getSlotIdByFacetId(this.facets[key].id) + parseInt(filterKey),
+							position: currentFilterPosition++,
 							selections: filter.selections,
 							type: this.facets[key].type,
 							minimized: this.facets[key].minimized
@@ -994,7 +1011,8 @@ class FacetManager {
 				else {
 					this.facetState.push({
 						name: this.facets[key].name,
-						position: this.getSlotIdByFacetId(this.facets[key].id),
+						//position: this.getSlotIdByFacetId(this.facets[key].id),
+						position: currentFilterPosition++,
 						selections: this.facets[key].getSelections(),
 						type: this.facets[key].type,
 						minimized: this.facets[key].minimized
@@ -1007,6 +1025,7 @@ class FacetManager {
 		if(inDataExchangeFormat) {
 			return this.facetStateToDEF(this.facetState);
 		}
+
 		return this.facetState;
 	}
 
@@ -1049,7 +1068,7 @@ class FacetManager {
 		for(var key in facetState) {
 
 			var picks = [];
-			if(facetState[key].type == "discrete") {
+			if(facetState[key].type == "discrete" || facetState[key].type == "multistage") {
 				for(var sk in facetState[key].selections) {
 					
 					if(facetState[key].selections[sk] != null) { //I got this once - an empty selection, but I can reproduce it and thus can't find the original cause so I'm just gonna defend against it here for now.
@@ -1060,8 +1079,8 @@ class FacetManager {
 						});
 					}
 					else {
-						console.log("Oops! Error number 2398725 (I totally just made that up) occured.");
-						console.log(facetState[key].selections);
+						console.error("Oops! Error number 2398725 (I totally just made that up) occured. But seriously though, there was an error, you should probably look into it. Glad I'm not you.");
+						console.error(facetState[key].selections);
 					}
 				}
 			}
@@ -1422,6 +1441,7 @@ class FacetManager {
 	 * This is a shorthand function for making and adding a facet.
 	 */
 	spawnFacet(facetId, selections = [], triggerResultLoad = true) {
+		console.log("spawnFacet");
 		let found = false;
 		this.facets.forEach((facet) => {
 			if(facet.name == facetId) {
@@ -1442,7 +1462,7 @@ class FacetManager {
 		facet.setSelections(selections);
 		this.addFacet(facet); //This will trigger a facet load request
 		if(triggerResultLoad) {
-			this.sqs.resultManager.getActiveModule().unrender(); //FIXME: This causes an error
+			this.sqs.resultManager.getActiveModule().unrender();
 			this.sqs.resultManager.fetchData();
 			this.sqs.resultManager.setResultDataFetchingSuspended(false);
 		}

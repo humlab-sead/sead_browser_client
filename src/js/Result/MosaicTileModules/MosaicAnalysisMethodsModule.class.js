@@ -70,7 +70,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         });
 
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, "Analysis methods counted by datasets");
+        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false });
     }
 
     async update() {

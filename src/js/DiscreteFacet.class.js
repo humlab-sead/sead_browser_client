@@ -143,6 +143,10 @@ class DiscreteFacet extends Facet {
 	* Function: clearSelections
 	*/
 	clearSelections() {
+		this.selections.forEach(selectionId => {
+			$("[facet-row-id='"+selectionId+"']").removeClass("facet-row-selected");
+		});
+		
 		this.selections = [];
 	}
 	
@@ -203,13 +207,6 @@ class DiscreteFacet extends Facet {
 
 	renderMinimizedView(renderData = []) {
 
-		/*
-		let topBlankSpaceHeight = 0;
-		let bottomBlankSpaceHeight = 0;
-		var topBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", topBlankSpaceHeight);
-		var bottomBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", bottomBlankSpaceHeight);
-		*/
-
 		let displayTitle = "";
 		if(renderData.length == 1) {
 			displayTitle = renderData.length+ " selection";
@@ -220,28 +217,6 @@ class DiscreteFacet extends Facet {
 
 		this.renderData(renderData);
 
-		/*
-		let out = "<div class='facet-row facet-row-selected' facet-row-id='collapsed-facet-info-row'><div class='facet-row-checkbox-container'><div class='facet-row-checkbox'>"+this.checkMark+"</div></div><div class='facet-row-text'>"+displayTitle+"</div><div class='facet-row-count'></div></div>";
-		
-		$(".list-container", this.getDomRef())
-			.html("")
-			.append(topBlankSpace)
-			.append(out)
-			.append(bottomBlankSpace)
-			.show();
-
-		let tooltipText = "";
-		this.selections.forEach(selectionId => {
-			for(let key in this.data) {
-				if(parseInt(this.data[key].id) == selectionId) {
-					tooltipText += this.data[key].title+", ";
-				}
-			}
-		});
-		tooltipText = tooltipText.substring(0, tooltipText.length-2);
-
-		this.sqs.tooltipManager.registerTooltip($("#facet-"+this.id+" .facet-row[facet-row-id='collapsed-facet-info-row']"), tooltipText, { placement: 'right' });
-		*/
 		$(".facet-row[facet-row-id='collapsed-facet-info-row']").on("click", () => {
 			this.maximize();
 		});
@@ -308,7 +283,14 @@ class DiscreteFacet extends Facet {
 				if(specialFunctionLinks.length > 0) {
 					specialFunctionLinks += " ";
 				}
-				out += "<div class='facet-row "+selectedClass+"' facet-row-id='"+dataElement.id+"'><div class='facet-row-checkbox-container'><div class='facet-row-checkbox'>"+checkMark+"</div></div><div class='facet-row-text'>"+specialFunctionLinks+displayTitle+"</div><div class='facet-row-count'>"+dataElement.count+"</div></div>";
+				out += `
+				<div class='facet-row `+selectedClass+`' facet-row-id='`+dataElement.id+`'>
+					<div class='facet-row-checkbox-container'>
+						<div class='facet-row-checkbox'>`+checkMark+`</div>
+					</div>
+					<div class='facet-row-text'>`+specialFunctionLinks+displayTitle+`</div>
+					<div class='facet-row-count'>`+dataElement.count+`</div>
+				</div>`;
 				
 				//Disabled this becuase I'm paranoid about performance - probably not good to register this many tooltips, there has to be a better way...
 				//this.sqs.tooltipManager.registerTooltip("[facet-row-id='"+dataElement.id+"'] .facet-row-count", "Analysis entities");

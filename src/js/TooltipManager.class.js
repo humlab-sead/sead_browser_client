@@ -1,5 +1,10 @@
-import Popper from "popper.js";
-import shortid from "shortid";
+//import Popper from "@popperjs/core";
+import { createPopper } from "@popperjs/core";
+import preventOverflow from '@popperjs/core/lib/modifiers/preventOverflow.js';
+import flip from '@popperjs/core/lib/modifiers/flip.js';
+import hide from '@popperjs/core/lib/modifiers/hide.js';
+import offset from '@popperjs/core/lib/modifiers/offset.js';
+import { nanoid } from "nanoid";
 /*
 * Class: TooltipManager
 *
@@ -31,6 +36,8 @@ class TooltipManager {
 			html: true,
 			placement: "top",
 			highlightAnchor: false,
+			modifiers: [preventOverflow, flip],
+			/*
 			modifiers: {
 				offset: {
 					enabled: false,
@@ -47,6 +54,7 @@ class TooltipManager {
 					enabled: false
 				}
 			}
+			*/
 		};
 		
 		/*
@@ -74,7 +82,7 @@ class TooltipManager {
 	*  options - Extra Popper.js options + the option of specifying drawSymbol:true which will then draw and attach the tooltip to a little question mark instead of the anchor.
 	 */
 	registerTooltip(anchor, msg, options = {}) {
-		var tooltipId = "tooltip-"+shortid.generate();
+		var tooltipId = "tooltip-"+nanoid();
 
 		let found = false;
 		let foundKey;
@@ -176,8 +184,8 @@ class TooltipManager {
 	createTooltip(tooltip) {
 		
 		$(tooltip.anchor).attr("tooltip-anchor-id", tooltip.id);
-		
-		tooltip.tooltipNode = $("<div class='popper' style='display:none;'>"+tooltip.msg+"</div>");
+
+		tooltip.tooltipNode = $("<div class='popper' style='display:none;'>"+tooltip.msg+"</div>")[0];
 		$("body").append(tooltip.tooltipNode);
 		//new Popper(tooltip.anchor, tooltip.tooltipNode, tooltip.options);
 		
@@ -193,10 +201,9 @@ class TooltipManager {
 			if(tooltip.options.anchorPoint == "symbol") {
 				anchor = symbol;
 			}
-			
 		}
 
-		new Popper(tooltip.anchor, tooltip.tooltipNode, tooltip.options);
+		//new Popper(tooltip.anchor, tooltip.tooltipNode, tooltip.options);
 		
 		$(anchor).on("mouseover", (evt) => {
 			var tooltip = this.getTooltipById($(evt.currentTarget).attr("tooltip-anchor-id"));
@@ -224,7 +231,8 @@ class TooltipManager {
 		if(tooltip.options.highlightAnchor) {
 			$(tooltip.anchor).addClass("tooltip-anchor-highlight");
 		}
-		var popper = new Popper($(tooltip.anchor)[0], tooltip.tooltipNode, tooltip.options);
+		//var popper = new Popper($(tooltip.anchor)[0], tooltip.tooltipNode, tooltip.options);
+		var popper = createPopper($(tooltip.anchor)[0], tooltip.tooltipNode, tooltip.options);
 		tooltip.sticky = sticky;
 		tooltip.popper = popper;
 		tooltip.rendered = true;

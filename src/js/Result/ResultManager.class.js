@@ -141,7 +141,7 @@ class ResultManager {
                 type: "discrete"
             }];
 		}
-		else{
+		else {
 			//If you think this is stupid then I agree with you.
 			targetCode = this.sqs.facetManager.getLastFacet().name;
 			triggerCode = targetCode;
