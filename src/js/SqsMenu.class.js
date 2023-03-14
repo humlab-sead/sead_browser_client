@@ -249,20 +249,7 @@ class sqsMenu {
 			$(menu.anchor).append(firstLevelItem);
 		});
 
-		menu.triggers.forEach(trigger => {
-			$(trigger.selector).off(trigger.on); //turn the trigger OFF to begin with, just to make sure it doesn't get double-registrered
-			$(trigger.selector).on(trigger.on, (evt) => {
-				this.closeAllMenus(); //this is to prevent multiple menus being open at once
-
-				evt.stopPropagation(); //To prevent the event reaching the body, which could cause an immediate close of the menu
-				if(menuAnchorNode.css("display") == "none") {
-					menuAnchorNode.css("display", "block");
-				}
-				else {
-					menuAnchorNode.css("display", "none");
-				}
-			});
-		});
+		this.rebindTriggers();
 
 		//This is a very generic callback system where each menu can register any number of callback events
 		//the events can be any type of DOM events and the functions executed are also entirely up to the menu to define
@@ -396,6 +383,25 @@ class sqsMenu {
 		}
 		
 		return menuDef;
+	}
+
+	rebindTriggers() {
+		let menuAnchorNode = $(this.menuDef.anchor);
+
+		this.menuDef.triggers.forEach(trigger => {
+			$(trigger.selector).off(trigger.on); //turn the trigger OFF to begin with, just to make sure it doesn't get double-registrered
+			$(trigger.selector).on(trigger.on, (evt) => {
+				this.closeAllMenus(); //this is to prevent multiple menus being open at once
+
+				evt.stopPropagation(); //To prevent the event reaching the body, which could cause an immediate close of the menu
+				if(menuAnchorNode.css("display") == "none") {
+					menuAnchorNode.css("display", "block");
+				}
+				else {
+					menuAnchorNode.css("display", "none");
+				}
+			});
+		});
 	}
 }
 

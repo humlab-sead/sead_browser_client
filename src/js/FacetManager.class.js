@@ -174,15 +174,18 @@ class FacetManager {
 	 */
 	renderDemoSlot() {
 		this.demoSlot = this.addSlot();
-		let filterText = "<span><span class='jslink-alt'>Add filters</span> here to reduce the result data (shown on the right) down to what you are interested in seeing</span>";
+		let filterText = "<span><span id='demo-slot-menu-link' class='jslink-alt'>Add filters</span> here to reduce the result data (shown on the right) down to what you are interested in seeing</span>";
 		$(this.demoSlot.getDomRef()).html(filterText);
 		$(this.demoSlot.getDomRef()).addClass("slot-visible");
 		
 		$("#facet-section").append("<div class='filter-demo-arrow'>⤷</div>");
 
-		$(".jslink-alt").on("click", () => {
-			console.warn("FIXME");
-		});
+		let filterMenu = this.sqs.menuManager.getMenuByAnchor("#filters-menu-anchor-point");
+		if(filterMenu) {
+			setTimeout(() => {
+				filterMenu.rebindTriggers();
+			}, 100);
+		}
 	}
 	
 	/*
@@ -1139,7 +1142,7 @@ class FacetManager {
 				on: "click"
 			},
 			{
-				selector: ".slot-visible .jslink-alt",
+				selector: "#demo-slot-menu-link",
 				on: "click"
 			}],
 			callbacks: [
