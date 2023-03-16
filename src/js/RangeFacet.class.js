@@ -47,7 +47,7 @@ class RangeFacet extends Facet {
 		this.sliderElement = null;
 		this.minDataValue = null;
 		this.maxDataValue = null;
-		this.numberOfCategories = 50; //Number of categories (bars) we want to abstract dataset
+		this.numberOfCategories = 20; //Number of categories (bars) we want to abstract dataset
 		$(".facet-text-search-btn", this.getDomRef()).hide(); //range facets do not have text searching...
 
 		Chart.register(CategoryScale);
@@ -121,20 +121,102 @@ class RangeFacet extends Facet {
 			targetSection = this.datasets.unfiltered;
 		}
 
+		//let bins = importData.Items;
+		let bins = this.roundBins(importData.Items);
 		//Create internal format
-		for(let itemKey in importData.Items) {
+		for(let itemKey in bins) {
 			targetSection.push({
 				//Value spans:
-				min: importData.Items[itemKey].Extent[0], //Greater Than - except for the first item which should be >=
-				max: importData.Items[itemKey].Extent[1], //Lesser Than - except for the last item which should be <=
-				value: importData.Items[itemKey].Count //value/count for this category/span
+				min: bins[itemKey].Extent[0], //Greater Than - except for the first item which should be >=
+				max: bins[itemKey].Extent[1], //Lesser Than - except for the last item which should be <=
+				value: bins[itemKey].Count //value/count for this category/span
 			});
 		}
 
 	}
 
+	//Warning: this function was written by chatgpt-3
+	roundBins(dataset) {
+		let newBins = [];
+		let currBin = dataset[0];
+		currBin.Extent[0] = Math.floor(currBin.Extent[0] / 1000) * 1000;
+		currBin.Extent[1] = Math.ceil(currBin.Extent[1] / 1000) * 1000;
+		currBin.DisplayName = `${currBin.Extent[0]} to ${currBin.Extent[1]}`;
+		let newCount = currBin.Count;
+		for (let i = 1; i < dataset.length; i++) {
+		  let nextBin = dataset[i];
+		  let nextBinStart = Math.floor(nextBin.Extent[0] / 1000) * 1000;
+		  let nextBinEnd = Math.ceil(nextBin.Extent[1] / 1000) * 1000;
+		  if (nextBinStart == currBin.Extent[1]) {
+			currBin.Extent[1] = nextBinEnd;
+			currBin.DisplayName = `${currBin.Extent[0]} to ${currBin.Extent[1]}`;
+			newCount += nextBin.Count;
+		  } else {
+			currBin.Count = newCount;
+			newBins.push(currBin);
+			currBin = nextBin;
+			currBin.Extent[0] = nextBinStart;
+			currBin.Extent[1] = nextBinEnd;
+			currBin.DisplayName = `${currBin.Extent[0]} to ${currBin.Extent[1]}`;
+			currBin.Category = currBin.Extent[0]+" => "+currBin.Extent[1];
+			newCount = currBin.Count;
+		  }
+		}
+		currBin.Count = newCount;
+		newBins.push(currBin);
+		return newBins;
+	  }
+
+
+
+	  reduceResolutionOfDatasetAI(dataset, selections = [], resolution = 100, roundingFactor = 1000) {
+		if (dataset.length <= resolution) {
+			return dataset;
+		}
+	
+		let totalMin = null;
+		let totalMax = null;
+	
+		if (selections.length == 2) {
+			totalMin = selections[0];
+			totalMax = selections[1];
+		} else {
+			let endpoints = this.getDataEndpoints(dataset);
+			totalMin = endpoints.min;
+			totalMax = endpoints.max;
+		}
+	
+		let fullSpan = totalMax - totalMin;
+		let binSize = fullSpan / resolution;
+	
+		let binMin = totalMin;
+		let binMax = binMin + binSize;
+	
+		let bins = [];
+	
+		for (let i = 0; i < resolution; i++) {
+			let bin = {
+				min: Math.round(binMin / roundingFactor) * roundingFactor,
+				max: Math.round(binMax / roundingFactor) * roundingFactor,
+				sites: []
+			};
+	
+			bins.push(bin);
+	
+			binMin += binSize;
+			binMax += binSize;
+		}
+	
+		for (let bin of bins) {
+			bin.sites = dataset.filter(site => this.rangeSpanOverlap(site, bin));
+			let binTotal = bin.sites.reduce((total, site) => total + site.value, 0);
+			bin.value = Math.round(binTotal / bin.sites.length);
+		}
+		return bins;
+	}
 
 	reduceResolutionOfDataset(dataset, selections = [], resolution = 100) {
+
 		if(dataset.length <= this.numberOfCategories) { //Nothing to do, we can't upscale data resolution, only downscale
 			return dataset;
 		}
@@ -304,7 +386,9 @@ class RangeFacet extends Facet {
 			this.data = this.sqs.copyObject(this.datasets.unfiltered);
 		}
 		
+		//let categories = this.data;
 		let categories = this.reduceResolutionOfDataset(this.data, selections, this.numberOfCategories);
+		
 		
 		$(".facet-body > .chart-container", this.getDomRef()).show();
 		if(this.chart == null) {
@@ -346,7 +430,6 @@ class RangeFacet extends Facet {
 	 * Renders the chart and only the chart-part of the range facet. Will render whatever is currently in this.data (within selections).
 	 */
 	renderChart(categories, selections) {
-		console.log("renderChart", categories);
 		var chartContainerNode = $(".chart-canvas-container", this.getDomRef());
 		$(".range-chart-canvas", chartContainerNode).remove();
 		chartContainerNode.append($("<canvas></canvas>").attr("id", "facet_"+this.id+"_canvas").addClass("range-chart-canvas"));
@@ -529,6 +612,7 @@ class RangeFacet extends Facet {
 		$(".noUi-handle-lower .range-facet-manual-input", this.getDomRef()).val(this.getSelections()[0]);
 		$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(this.getSelections()[1]);
 
+		//let categories = this.data;
 		let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());
 		this.updateChart(categories, this.getSelections());
 	}
@@ -562,12 +646,23 @@ class RangeFacet extends Facet {
 		}
 
 		for(let catKey in categories) {
+
 			let labelLow = categories[catKey].min;
 			let labelHigh = categories[catKey].max;
+			/*
+			if(categories[catKey].min % 1000 == 0) {
+				labelLow = categories[catKey].min / 1000+"k";
+			}
+			if(categories[catKey].max % 1000 == 0) {
+				labelHigh = categories[catKey].max / 1000+"k";
+			}
+			*/
+			
 			if(Config.rangeFilterFuzzyLabels) {
 				labelLow = Math.round(labelLow);
 				labelHigh = Math.round(labelHigh);
 			}
+			
 			labels.push(labelLow+" - "+labelHigh);
 		}
 
@@ -620,6 +715,7 @@ class RangeFacet extends Facet {
 			this.data = this.sqs.copyObject(this.datasets.unfiltered);
 		}
 		
+		//let categories = this.data;
 		let categories = this.reduceResolutionOfDataset(this.data, this.getSelections(), this.numberOfCategories);
 
 		this.renderChart(categories, this.getSelections());

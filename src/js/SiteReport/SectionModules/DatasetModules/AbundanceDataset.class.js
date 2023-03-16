@@ -21,7 +21,7 @@ class AbundanceDataset extends DatasetModule {
 		this.buildIsComplete = false;
 
 		this.methodGroupId = 1;
-		this.methodIds = [3, 6, 8, 14, 15, 40, 111]; //These are the analysis method IDs that this module will take responsibility for. So all analyses performed using any of these methods will be fetched and rendered by this module. The rest can go to hell (as far as this module is concerned).
+		this.methodIds = [3, 6, 8, 15, 40, 111]; //These are the analysis method IDs that this module will take responsibility for. So all analyses performed using any of these methods will be fetched and rendered by this module. The rest can go to hell (as far as this module is concerned).
 		this.methodMetaDataFetchingComplete = true;
 
 		/*

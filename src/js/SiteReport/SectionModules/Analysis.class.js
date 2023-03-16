@@ -318,6 +318,7 @@ class Analysis {
 	* methodId - The id of the method to fetch.
 	 */
 	async fetchMethodMetaData(methodId) {
+		return;
 		if(this.getMethodMetaDataById(methodId) === false) {
 			await $.ajax(this.sqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
 				method: "get",
@@ -428,6 +429,10 @@ class Analysis {
 	* Function: getMethodMetaDataById
 	*/
 	getMethodMetaDataById(methodId) {
+		if(!this.sqs.siteReportManager.siteReport) {
+			console.warn("Tried to get method metadata (for method "+methodId+") before having a site report ready!");
+			return false;
+		}
 		let siteData = this.sqs.siteReportManager.siteReport.siteData;
 
 		for(let key in siteData.lookup_tables.analysis_methods) {
@@ -435,14 +440,6 @@ class Analysis {
 				return siteData.lookup_tables.analysis_methods[key];
 			}
 		}
-		/*
-		for(let key in this.meta.methods) {
-			if(this.meta.methods[key].methodId == methodId) {
-				return this.meta.methods[key];
-			}
-		}
-		*/
-		//console.warn("Couldn't find method with ID", methodId, "in method db (db has "+this.meta.methods.length+" entries)", this.meta.methods);
 		return false;
 	}
 
