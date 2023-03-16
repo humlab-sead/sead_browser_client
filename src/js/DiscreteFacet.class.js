@@ -508,6 +508,24 @@ class DiscreteFacet extends Facet {
 				extent: data.Items[key].Extent
 			});
 		}
+
+		const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+		if(this.name == "activeseason") {
+			this.data.sort((a, b) => {
+				return months.indexOf(a.title)- months.indexOf(b.title);
+			});
+		}
+		else {
+			this.data.sort((a, b) => {
+				if(a.title > b.title) {
+					return 1;
+				}
+				else {
+					return -1;
+				}
+			});
+		}
+		
 		
 		//check how this new data matches up with the current selections
 		for(var sk in this.selections) {
