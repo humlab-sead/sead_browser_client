@@ -346,6 +346,7 @@ class RangeFacet extends Facet {
 	 * Renders the chart and only the chart-part of the range facet. Will render whatever is currently in this.data (within selections).
 	 */
 	renderChart(categories, selections) {
+		console.log("renderChart", categories);
 		var chartContainerNode = $(".chart-canvas-container", this.getDomRef());
 		$(".range-chart-canvas", chartContainerNode).remove();
 		chartContainerNode.append($("<canvas></canvas>").attr("id", "facet_"+this.id+"_canvas").addClass("range-chart-canvas"));
@@ -619,7 +620,7 @@ class RangeFacet extends Facet {
 			this.data = this.sqs.copyObject(this.datasets.unfiltered);
 		}
 		
-		let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());
+		let categories = this.reduceResolutionOfDataset(this.data, this.getSelections(), this.numberOfCategories);
 
 		this.renderChart(categories, this.getSelections());
 	}
