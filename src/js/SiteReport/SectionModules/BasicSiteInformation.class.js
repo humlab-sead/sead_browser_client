@@ -163,10 +163,11 @@ class BasicSiteInformation {
 		
 		this.renderMiniMap(siteData);
 
+		/*
 		setTimeout(() => { //FIXME: this is obviously terrible, but we need to wait for the DatingToPeriodDataset module to do its thing
 			this.renderTimeOverview("site-report-time-overview");
 		}, 500);
-		
+		*/
 	}
 
 
