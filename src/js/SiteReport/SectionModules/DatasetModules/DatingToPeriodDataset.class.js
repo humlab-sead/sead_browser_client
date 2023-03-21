@@ -17,6 +17,7 @@ class DatingToPeriodDataset extends DatasetModule {
 		this.datasets = [];
 		this.buildIsComplete = false;
 		this.section = analysis.section;
+		this.summary = null;
 
 		this.methodIds = [14];
 		this.methodGroupIds = [3, 19, 20]
@@ -63,6 +64,8 @@ class DatingToPeriodDataset extends DatasetModule {
 	async makeSection(siteData, sections) {
 		let datasets = this.claimDatasets(siteData);
 		
+		let summary = [];
+
 		//we make our own 'data groups' here despite this exact data structure already existing in the siteData from the server
 		//this is because we need to do this based on the datasets we claim, otherwise we break the whole claiming system
 		let dataGroups = [];
@@ -89,6 +92,7 @@ class DatingToPeriodDataset extends DatasetModule {
 			let section = this.getSectionByMethodId(dataGroup.method_id, sections);			
 			if(!section) {
 				let method = this.getAnalysisMethodMetaById(siteData, dataGroup.method_id);
+
 				section = {
 					"name": method.method_id,
 					"title": method.method_name,
@@ -135,6 +139,13 @@ class DatingToPeriodDataset extends DatasetModule {
 				}
 			});
 
+			let foundSingularAgeData = false;
+			dataGroup.data_points.forEach(point => {
+				if(parseInt(point.dating_values.age)) {
+					foundSingularAgeData = true;
+				}
+			});
+
 			if(foundAgeData) {
 				columns.push({
 					"dataType": "string",
@@ -146,6 +157,13 @@ class DatingToPeriodDataset extends DatasetModule {
 				columns.push({
 					"dataType": "string",
 					"title": "C14 age"
+				});
+			}
+
+			if(foundSingularAgeData) {
+				columns.push({
+					"dataType": "string",
+					"title": "Age"
 				});
 			}
 
@@ -163,9 +181,17 @@ class DatingToPeriodDataset extends DatasetModule {
 					ageLocationTooltip = "<h4 class='tooltip-header'>"+point.dating_values.age_location_type+"</h4>";
 				}
 
-				let ageTooltip = ageTooltip = "<h4 class='tooltip-header'>"+point.dating_values.age_type+"</h4><hr/>"+point.dating_values.age_description+"<br/><br/>"+point.dating_values.rel_age_desc;
-				if(!point.dating_values.rel_age_desc) {
-					ageTooltip = "<h4 class='tooltip-header'>"+point.dating_values.age_type+"</h4><hr/>"+point.dating_values.age_description;
+				
+				
+				let ageTooltip = "";
+				if(point.dating_values.age_type) {
+					ageTooltip = "<h4 class='tooltip-header'>"+point.dating_values.age_type+"</h4>";
+				}
+				if(point.dating_values.age_description) {
+					ageTooltip += "<hr/>"+point.dating_values.age_description+"<br/>";
+				}
+				if(point.dating_values.rel_age_desc) {
+					ageTooltip += "<br/>"+point.dating_values.rel_age_desc;
 				}
 
 				let row = [
@@ -182,7 +208,7 @@ class DatingToPeriodDataset extends DatasetModule {
 					{
 						"type": "cell",
 						"tooltip": ageTooltip,
-						"value": point.dating_values.relative_age_name
+						"value": point.dating_values.relative_age_name != null ? point.dating_values.relative_age_name : "No data"
 					},
 					{
 						"type": "cell",
@@ -191,12 +217,19 @@ class DatingToPeriodDataset extends DatasetModule {
 					},
 				];
 
+				let stdAge = new StandardAge();
+				stdAge.ageType = point.dating_values.age_type;
+				stdAge.sample = sample.sample_name;
+				stdAge.ageLocation = point.dating_values.age_location_name;
+
 				if(foundAgeData) {
 					row.push({
 						"type": "cell",
 						"tooltip": "",
 						"value": this.formatAge(point.dating_values.cal_age_older, point.dating_values.cal_age_younger)
 					});
+					stdAge.ageOlder = parseInt(point.dating_values.cal_age_older);
+					stdAge.ageYounger = parseInt(point.dating_values.cal_age_younger);
 				}
 
 				if(foundC14Data) {
@@ -205,7 +238,25 @@ class DatingToPeriodDataset extends DatasetModule {
 						"tooltip": "",
 						"value": this.formatAge(point.dating_values.c14_age_older, point.dating_values.c14_age_younger)
 					});
+					stdAge.ageOlder = parseInt(point.dating_values.c14_age_older);
+					stdAge.ageYounger = parseInt(point.dating_values.c14_age_younger);
 				}
+
+				if(foundSingularAgeData) {
+					let from = parseInt(point.dating_values.age) + parseInt(point.dating_values.error_older);
+					let to = parseInt(point.dating_values.age) - parseInt(point.dating_values.error_younger);
+
+					row.push({
+						"type": "cell",
+						"tooltip": "",
+						"value": this.formatAge(from, to)
+					});
+
+					stdAge.ageOlder = from;
+					stdAge.ageYounger = to;
+				}
+
+				summary.push(stdAge);
 
 				rows.push(row);
 			});
@@ -231,8 +282,11 @@ class DatingToPeriodDataset extends DatasetModule {
 			section.contentItems.push(contentItem);
 		});
 
-		
+		this.summary = summary;
+	}
 
+	getDatingSummary() {
+		return this.summary;
 	}
 
 	formatAge(older, younger) {
@@ -386,6 +440,16 @@ class DatingToPeriodDataset extends DatasetModule {
 	* Function: destroy
 	*/
 	destroy() {
+	}
+}
+
+class StandardAge {
+	constructor() {
+		this.ageType = "";
+		this.ageLocation = "";
+		this.ageOlder = 0;
+		this.ageYounger = 0;
+		this.sample = null;
 	}
 }
 

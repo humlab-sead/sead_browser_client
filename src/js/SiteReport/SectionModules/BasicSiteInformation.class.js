@@ -11,6 +11,8 @@ import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style.js';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import css from '../../../stylesheets/style.scss';
+import * as Plotly from "plotly.js";
+import DatingToPeriodDataset from './DatasetModules/DatingToPeriodDataset.class';
 
 /*
 * Class: BasicSiteInformation
@@ -132,6 +134,7 @@ class BasicSiteInformation {
 			.append("<div class='site-report-aux-header-container'><h4>Description</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>"+siteDecription+"</div>")
+			.append("<div id='site-report-time-overview'></div>")
 			.append("<div class='site-report-aux-header-container'><h4>Dataset references</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+datasetReferencesHtml+"</div>")
@@ -159,6 +162,174 @@ class BasicSiteInformation {
 		});
 		
 		this.renderMiniMap(siteData);
+
+		setTimeout(() => { //FIXME: this is obviously terrible, but we need to wait for the DatingToPeriodDataset module to do its thing
+			this.renderTimeOverview("site-report-time-overview");
+		}, 500);
+		
+	}
+
+
+	renderTimeOverview2(targetAnchorQuery) {
+		// Define the geochronology and c14 dating ranges
+		var geochronologyData = [
+			{range: [100, 200], color: 'rgb(0, 0, 255)'},
+			{range: [300, 400], color: 'rgb(0, 0, 255)'},
+			{range: [600, 800], color: 'rgb(0, 0, 255)'}
+		];
+		
+		var c14Data = [
+			{range: [50, 80], color: 'rgb(255, 0, 0)'},
+			{range: [200, 250], color: 'rgb(255, 0, 0)'},
+			{range: [400, 500], color: 'rgb(255, 0, 0)'},
+			{range: [700, 750], color: 'rgb(255, 0, 0)'}
+		];
+		
+		// Create the trace for the geochronology bars
+		var geoTrace = {
+			x: geochronologyData.map(d => d.range),
+			y: geochronologyData.map((d, i) => i),
+			type: 'bar',
+			orientation: 'h',
+			marker: {
+			color: geochronologyData.map(d => d.color)
+			},
+			hovertemplate: 'Range: %{x[0]} - %{x[1]}<extra></extra>'
+		};
+		
+		// Create the trace for the c14 bars
+		var c14Trace = {
+			x: c14Data.map(d => d.range),
+			y: c14Data.map((d, i) => i + geochronologyData.length),
+			type: 'bar',
+			orientation: 'h',
+			marker: {
+			color: c14Data.map(d => d.color)
+			},
+			hovertemplate: 'Range: %{x[0]} - %{x[1]}<extra></extra>'
+		};
+		
+		// Set the layout of the chart
+		var layout = {
+			title: 'Dating Ranges',
+			xaxis: {
+			title: 'Years',
+			range: [0, 1000]
+			},
+			yaxis: {
+			title: 'Dating Type',
+			tickvals: geochronologyData.map((d, i) => i + 0.5).concat(c14Data.map((d, i) => i + geochronologyData.length + 0.5)),
+			ticktext: geochronologyData.map(d => 'Geochronology').concat(c14Data.map(d => 'C14'))
+			},
+			barmode: 'overlay'
+		};
+		
+		// Create the chart
+		var data = [geoTrace, c14Trace];
+		Plotly.newPlot(targetAnchorQuery, data, layout);
+	}
+
+	//using the an array of the standardAge format, create a timeline chart using plotly where each ageType is represented as lines along the x axis with different colors
+	renderTimeOverview(targetAnchorQuery) {
+		let siteDatingSummary = null;
+		this.sqs.siteReportManager.siteReport.modules.forEach(m => {
+			if(m.name == "analysis") {
+				m.module.datasetModules.forEach(dsm => {
+					if(dsm.instance instanceof DatingToPeriodDataset) {
+						siteDatingSummary = dsm.instance.getDatingSummary();
+					}
+				})
+			}
+		})
+
+		const standardAges = siteDatingSummary;
+
+		console.log(standardAges);
+
+		let traces = [];
+
+		standardAges.forEach(standardAge => {
+			let found = false;
+			traces.forEach(trace => {
+				if(trace.ageType == standardAge.ageType) {
+					trace.standardAges.push(standardAge);
+					found = true;
+				}
+			});
+
+			if(!found) {
+				traces.push({
+					ageType: standardAge.ageType,
+					standardAges: [standardAge]
+				});
+			}
+		});
+
+		let colors = this.sqs.color.getColorScheme(traces.length);
+
+		let plotlyTraces = [];
+		traces.forEach(trace => {
+			let plotlyTrace = {
+				x: [],
+				y: [],
+				base: [],
+				type: 'bar',
+				orientation: 'h',
+				marker: {
+				  color: colors[traces.indexOf(trace)],
+				  opacity: 0.5
+				},
+				name: trace.ageType
+			};
+
+			trace.standardAges.forEach(standardAge => {
+				plotlyTrace.x.push(standardAge.ageOlder - standardAge.ageYounger);
+				plotlyTrace.y.push(standardAge.ageType);
+				plotlyTrace.base.push(standardAge.ageOlder);
+			});
+
+			plotlyTraces.push(plotlyTrace);
+		});
+
+
+		console.log(plotlyTraces)
+
+		var layout = {
+			title: 'Timeline Chart',
+			//barmode: 'overlay',
+			xaxis: {
+			  type: 'linear'
+			},
+			yaxis: {
+			  showticklabels: false
+			},
+			showlegend: true
+		  };
+		  
+		  Plotly.newPlot(targetAnchorQuery, plotlyTraces, layout);
+	}
+
+	/**
+	 * Checks if two number ranges overlap and returns the type of overlap.
+	 *
+	 * @param {Array} range1 - The first range, represented as an array of two numbers.
+	 * @param {Array} range2 - The second range, represented as an array of two numbers.
+	 * @returns {Object} An object with two properties: `overlap`, which is a boolean indicating whether the two ranges overlap or not, and `type`, which is a string indicating the type of overlap. The possible values for `type` are `"inner"`, `"left"`, `"right"`, and `"outer"`.
+	 */
+	rangesOverlap(range1, range2) {
+		if (range1[0] > range2[1]) {
+		  return { overlap: false, type: "outer" };
+		} else if (range1[1] < range2[0]) {
+		  return { overlap: false, type: "outer" };
+		} else if (range1[0] < range2[0] && range1[1] > range2[1]) {
+		  return { overlap: true, type: "inner" };
+		} else if (range1[0] >= range2[0] && range1[1] <= range2[1]) {
+		  return { overlap: true, type: "inner" };
+		} else if (range1[0] < range2[0] && range1[1] >= range2[0]) {
+		  return { overlap: true, type: "left" };
+		} else if (range1[0] <= range2[1] && range1[1] > range2[1]) {
+		  return { overlap: true, type: "right" };
+		}
 	}
 
 	renderDatasetReference(dataset) {

@@ -359,7 +359,7 @@ h1.main-header {
 	background-color: $pane-bg-color-dark;
   padding:20px;
   //height: calc(100vh - 129px);
-  height: 100vh;
+  height: calc(100vh - 40px);
   grid-area: "result-section";
 }
 
@@ -796,19 +796,6 @@ h1.main-header {
             "d e h h"
             "f f i g";
 }
-
-/*
-#result-taxon-image-container {
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: auto;
-  gap: 2%;
-  overflow: auto;
-  max-height: 100%;
-  max-width: 100%;
-  background: red;
-}
-*/
 
 #result-taxon-image-container {
   display: flex;

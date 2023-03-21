@@ -10,6 +10,13 @@
 	padding: 0px;
 }
 
+#site-report-main-container .section-left {
+	height: calc(100vh - 87px - 21px);
+}
+
+#site-report-main-container .section-right {
+	height: calc(100vh - 87px - 21px);
+}
 
 .section-left {
 	border-top: 0px solid $inactive-color;
@@ -21,7 +28,7 @@
 	
 	overflow-x: hidden;
 	overflow-y: auto;
-	height: 100vh
+	height: calc(100vh - 0px);
 }
 
 .section-right {
@@ -33,7 +40,9 @@
 	border-left-width: 1px;
 	border-left-color: rgba(6, 6, 9, 0.1);
 
-	overflow: auto;
+	overflow-x: hidden;
+	overflow-y: auto;
+	height: calc(100vh - 0px);
 	//height: calc(100vh - 108px);
 	//height: 100vh;
   	width: 100%;

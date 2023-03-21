@@ -318,7 +318,6 @@ class Analysis {
 	* methodId - The id of the method to fetch.
 	 */
 	async fetchMethodMetaData(methodId) {
-		return;
 		if(this.getMethodMetaDataById(methodId) === false) {
 			await $.ajax(this.sqs.config.siteReportServerAddress+"/methods?method_id=eq."+methodId, {
 				method: "get",
