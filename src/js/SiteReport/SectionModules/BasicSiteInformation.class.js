@@ -141,9 +141,26 @@ class BasicSiteInformation {
 			.append("<div class='site-report-aux-header-container'><h4>Site references</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+siteReferencesHtml+"</div>");
+			
 		
 		$("#site-report-locations-container").append("<div id='site-report-map-container'></div>");
-		
+
+		let bugsDataFound = false;
+		siteData.datasets.forEach(dataset => {
+			if(dataset.method_id == 3) {
+				bugsDataFound = true;
+			}
+		});
+
+		if(bugsDataFound) {
+			let ecocodeArtUrl = "https://demo.humlab.umu.se/seadecovis/?site="+siteData.site_id;
+			$(".site-report-aux-info-container")
+			.append("<div class='site-report-aux-header-container'><h4>Eco code artistic visualization</h4></div>")
+			.append("<div class='site-report-aux-header-underline'></div>")
+			.append("<div class='site-report-site-description site-report-aux-info-text-container'><a target='_blank' href='"+ecocodeArtUrl+"'>"+ecocodeArtUrl+"</a></div>");
+		}
+
+
 		var locationsContainer = $("#site-report-locations-container");
 		for(var i = 0; i < siteData.location.length; i++) {
 			var el = $("<span>" + siteData.location[i].location_name + "</span>");
