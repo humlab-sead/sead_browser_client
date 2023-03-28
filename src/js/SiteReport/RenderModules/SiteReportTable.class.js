@@ -59,6 +59,44 @@ class SiteReportTable {
 	 */
 	render(anchorNodeSelector) {
 		this.anchorNodeSelector = anchorNodeSelector;
+
+		let node = null;
+		this.contentItem.renderOptions.forEach((ro, i) => {
+			if(ro.selected) {
+				switch(ro.type) {
+					case "table":
+						node = this.renderTable();
+						break;
+					case "external_link":
+						node = this.renderExternalLink();
+						break;
+				}
+			}
+		});
+		
+		return this;
+	}
+
+	renderExternalLink() {
+		let linkRo = null;
+		this.contentItem.renderOptions.forEach((ro) => {
+			if(ro.type == "external_link") {
+				linkRo = ro;
+			}
+		});
+		
+		var url = linkRo.url;
+		let html = `
+					<div class='site-report-external-link-container'>
+						<i class='fa fa-external-link' aria-hidden='true'></i>
+						<a href='`+url+`' target='_blank'>`+url+`</a>
+					</div>
+					`
+		var link = $(html);
+		$(this.anchorNodeSelector).append(link);
+	}
+
+	renderTable() {
 		//Make table node
 		this.tableNodeId = "table-"+nanoid();
 		this.tableNode = $("<table id='"+this.tableNodeId+"' class='site-report-table'><thead><tr></tr></thead><tbody></tbody></table>");
@@ -73,7 +111,7 @@ class SiteReportTable {
 		}
 
 		//Attach table to DOM
-		$(anchorNodeSelector).append(this.tableNode);
+		$(this.anchorNodeSelector).append(this.tableNode);
 		
 		//Bind callbacks to any cell-buttons that might have been rendered - I apologize to future me for this nesting, it's not as bad as it looks
 		for(let rk in this.rows) {
@@ -142,8 +180,6 @@ class SiteReportTable {
 			
 			this.makeSubTableAggregationBarBindings();
 		}
-		
-		return this;
 	}
 
 	updateData(contentItem) {
@@ -167,8 +203,12 @@ class SiteReportTable {
 			this.siteReport.sqs.tooltipManager.unRegisterTooltip(ttId);
 		});
 
-		this.dt.destroy();
-		$("#"+this.tableNodeId).remove();
+		if(this.dt) {
+			this.dt.destroy();
+		}
+		if(this.tableNodeId) {
+			$("#"+this.tableNodeId).remove();
+		}
 	}
 
 	expandSubTablesForRows(rows) {

@@ -118,6 +118,12 @@ class AbundanceDataset extends DatasetModule {
 					"type": "table"
 				},
 				{
+					"selected": false,
+					"type": "external_link",
+					"url": "https://demo.humlab.umu.se/seadecovis?site="+siteData.site_id,
+					"name": "Artistic",
+				},
+				{
 					"name": "Bar chart",
 					"selected": true,
 					"type": "ecocode",

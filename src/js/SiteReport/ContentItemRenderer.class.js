@@ -159,6 +159,7 @@ class ContentItemRenderer {
 						this.addRenderInstance(this.contentItem.name, renderInstance);
 						break;
 					case "table":
+					case "external_link":
 						renderInstance = new SiteReportTable(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);
 						renderInstance.renderContentDisplayOptionsPanel(this.section, this.contentItem);
