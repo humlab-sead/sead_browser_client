@@ -262,7 +262,7 @@ class ContentItemRenderer {
 		let html = "";
 		for(let key in selectedRo.options) {
 			let option = selectedRo.options[key];
-			if(option.enabled !== false) {
+			if(option.enabled !== false && option.showControls !== false) {
 				html += "<label class='site-report-view-selector-label' for=''>"+option.title+":</label>";
                 if(option.type == "select") {
                     html += "<select renderOptionExtraKey='"+key+"' class='site-report-view-selector-control site-report-render-mode-selector sqs'>";
