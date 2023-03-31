@@ -504,9 +504,11 @@ class ResultMap extends ResultModule {
 	*/
 	renderInterfaceControls() {
 
-		console.log("renderInterfaceControls");
-
-		$(this.renderMapIntoNode).append("<div id='result-map-controls-container'></div>");
+		if($("#result-map-controls-container").length == 0) {
+			$(this.renderMapIntoNode).append("<div id='result-map-controls-container'></div>");
+		}
+		
+		$("#result-map-controls-container").html("");
 
 		let baseLayersHtml = "<div class='result-map-map-control-item-container'>";
 		baseLayersHtml += "<div id='result-map-baselayer-controls-menu' class='result-map-map-control-item'>Base layers</div>";
