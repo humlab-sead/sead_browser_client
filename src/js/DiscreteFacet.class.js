@@ -240,8 +240,8 @@ class DiscreteFacet extends Facet {
 		}
 		
 		if(renderData.length == 0) {
-			//this.renderNoDataMsg(true);
-			//return;
+			this.renderNoDataMsg(true);
+			return;
 		}
 		else {
 			this.renderNoDataMsg(false);

@@ -237,10 +237,21 @@ class Facet {
 	*/
 	renderNoDataMsg(on = true) {
 		if(on) {
+			//$(this.getDomRef()).find(".facet-no-data-msg").show();
+			const noDataBoxFrag = document.getElementById("no-data-box");
+			const noDataBox = document.importNode(noDataBoxFrag.content, true);
+			let containerNode = $(this.getDomRef()).find(".facet-no-data-msg");
+			$(containerNode).html("");
+			$(containerNode).append(noDataBox);
+			$(".list-container", this.getDomRef()).hide();
 			$(this.getDomRef()).find(".facet-no-data-msg").show();
+			$(this.getDomRef()).find(".facet-body").css("overflow", "hidden");
 		}
 		else {
+			//$(this.getDomRef()).find(".facet-no-data-msg").hide();
 			$(this.getDomRef()).find(".facet-no-data-msg").hide();
+			$(this.getDomRef()).find(".facet-no-data-msg").html("");
+			$(this.getDomRef()).find(".facet-body").css("overflow", "auto");
 		}
 	}
 

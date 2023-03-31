@@ -478,6 +478,7 @@ h1.main-header {
 
 .facet-body {
   /*height: 268px;*/ /* needs to have fixed height because of range/diagram filters, but this is set in js facet init - to let this value be specified in Config*/
+  position: relative;
   padding: 5px;
   padding-top: 0px;
   padding-bottom: 0px;
@@ -1285,10 +1286,12 @@ h1.main-header {
 .facet-no-data-msg {
 	display:none;
 	position:absolute;
-	font-size: 50px;
+  top: 0;
+  left: 0;
+	font-size: 1.0em;
 	color: #aaa;
 	text-align:center;
-	padding-top:80px;
+	padding-top:0px;
 	height:100%;
 	width:100%;
 }
@@ -2467,6 +2470,7 @@ svg text {
   font-size: 2em;
   color: rgba(0, 0, 0, 0.5);
   text-align: center;
+  margin-bottom: .3em;
 }
 
 .site-reference-box {
