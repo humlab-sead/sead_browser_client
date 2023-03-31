@@ -100,8 +100,24 @@ class RangeFacet extends Facet {
 	importData(importData, overwrite = true) {
 		super.importData();
 
-		this.totalLower = importData.IntervalInfo.FullExtent.Lower;
-		this.totalUpper = importData.IntervalInfo.FullExtent.Upper;
+		//these doesn't currently work because of a bug in the server which returns the wrong values, we do it manually below
+		//this.totalLower = importData.IntervalInfo.FullExtent.Lower;
+		//this.totalUpper = importData.IntervalInfo.FullExtent.Upper;
+
+		//find out what the max/min values are for the data
+		let min = null;
+		let max = null;
+		for(let itemKey in importData.Items) {
+			if(min == null || importData.Items[itemKey].Extent[0] < min) {
+				min = importData.Items[itemKey].Extent[0];
+			}
+			if(max == null || importData.Items[itemKey].Extent[1] > max) {
+				max = importData.Items[itemKey].Extent[1];
+			}
+		}
+
+		this.totalLower = min;
+		this.totalUpper = max;
 
 		let filteredData = false;
 		for(let k in importData.Picks) {
@@ -121,9 +137,8 @@ class RangeFacet extends Facet {
 			targetSection = this.datasets.unfiltered;
 		}
 
-		//let bins = importData.Items;
-		let bins = this.roundBins(importData.Items);
 		//Create internal format
+		let bins = importData.Items;
 		for(let itemKey in bins) {
 			targetSection.push({
 				//Value spans:
@@ -133,86 +148,6 @@ class RangeFacet extends Facet {
 			});
 		}
 
-	}
-
-	//Warning: this function was written by chatgpt-3
-	roundBins(dataset) {
-		let newBins = [];
-		let currBin = dataset[0];
-		currBin.Extent[0] = Math.floor(currBin.Extent[0] / 1000) * 1000;
-		currBin.Extent[1] = Math.ceil(currBin.Extent[1] / 1000) * 1000;
-		currBin.DisplayName = `${currBin.Extent[0]} to ${currBin.Extent[1]}`;
-		let newCount = currBin.Count;
-		for (let i = 1; i < dataset.length; i++) {
-		  let nextBin = dataset[i];
-		  let nextBinStart = Math.floor(nextBin.Extent[0] / 1000) * 1000;
-		  let nextBinEnd = Math.ceil(nextBin.Extent[1] / 1000) * 1000;
-		  if (nextBinStart == currBin.Extent[1]) {
-			currBin.Extent[1] = nextBinEnd;
-			currBin.DisplayName = `${currBin.Extent[0]} to ${currBin.Extent[1]}`;
-			newCount += nextBin.Count;
-		  } else {
-			currBin.Count = newCount;
-			newBins.push(currBin);
-			currBin = nextBin;
-			currBin.Extent[0] = nextBinStart;
-			currBin.Extent[1] = nextBinEnd;
-			currBin.DisplayName = `${currBin.Extent[0]} to ${currBin.Extent[1]}`;
-			currBin.Category = currBin.Extent[0]+" => "+currBin.Extent[1];
-			newCount = currBin.Count;
-		  }
-		}
-		currBin.Count = newCount;
-		newBins.push(currBin);
-		return newBins;
-	  }
-
-
-
-	  reduceResolutionOfDatasetAI(dataset, selections = [], resolution = 100, roundingFactor = 1000) {
-		if (dataset.length <= resolution) {
-			return dataset;
-		}
-	
-		let totalMin = null;
-		let totalMax = null;
-	
-		if (selections.length == 2) {
-			totalMin = selections[0];
-			totalMax = selections[1];
-		} else {
-			let endpoints = this.getDataEndpoints(dataset);
-			totalMin = endpoints.min;
-			totalMax = endpoints.max;
-		}
-	
-		let fullSpan = totalMax - totalMin;
-		let binSize = fullSpan / resolution;
-	
-		let binMin = totalMin;
-		let binMax = binMin + binSize;
-	
-		let bins = [];
-	
-		for (let i = 0; i < resolution; i++) {
-			let bin = {
-				min: Math.round(binMin / roundingFactor) * roundingFactor,
-				max: Math.round(binMax / roundingFactor) * roundingFactor,
-				sites: []
-			};
-	
-			bins.push(bin);
-	
-			binMin += binSize;
-			binMax += binSize;
-		}
-	
-		for (let bin of bins) {
-			bin.sites = dataset.filter(site => this.rangeSpanOverlap(site, bin));
-			let binTotal = bin.sites.reduce((total, site) => total + site.value, 0);
-			bin.value = Math.round(binTotal / bin.sites.length);
-		}
-		return bins;
 	}
 
 	reduceResolutionOfDataset(dataset, selections = [], resolution = 100) {
@@ -279,7 +214,7 @@ class RangeFacet extends Facet {
 			});
 			bins[bk].value = Math.round((binTotal / bins[bk].sites.length) * 10) / 10;
 		}
-
+		
 		return bins;
 	}
 
