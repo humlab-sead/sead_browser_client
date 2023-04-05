@@ -1,27 +1,19 @@
 import { nanoid } from "nanoid";
 import Color from "../Color.class";
 import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
-import ResultModule from './ResultModule.class.js'
 import Config from '../../config/config.json';
 import "../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";
 import { default as Tabulator } from "tabulator-tables";
 
 /*
-import '../../assets/taxa-images/figure1.png';
-import '../../assets/taxa-images/figure2.png';
-import '../../assets/taxa-images/figure3.png';
+* Class: TaxaModule
 */
-/*
-* Class: ResultTaxon
-*/
-class ResultTaxon extends ResultModule {
+class TaxaModule {
 	/*
 	* Function: constructor
 	*/
-	constructor(resultManager) {
-		super(resultManager);
-		this.resultManager = resultManager;
-		this.sqs = resultManager.sqs;
+	constructor(sqs) {
+		this.sqs = sqs;
 		this.name = "taxon";
 		this.prettyName = "Species";
 		this.icon = "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>";
@@ -92,9 +84,9 @@ class ResultTaxon extends ResultModule {
 			return false;
 		}
 
-		var reqData = this.resultManager.getRequestData(++this.requestId, "tabular");
+		var reqData = this.sqs.resultManager.getRequestData(++this.requestId, "tabular");
 
-		this.resultManager.showLoadingIndicator(true);
+		this.sqs.resultManager.showLoadingIndicator(true);
 		return $.ajax(Config.serverAddress+"/api/result/load", {
 			data: JSON.stringify(reqData),
 			dataType: "json",
@@ -104,11 +96,11 @@ class ResultTaxon extends ResultModule {
 			success: async (respData, textStatus, jqXHR) => {
 				//Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 				//Also drop the data if the result module has switched since it was requested.
-				if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) {
+				if(respData.RequestId == this.requestId && this.sqs.resultManager.getActiveModule().name == this.name) {
 					this.data = this.importResultData(respData);
 					this.taxaData = await this.fetchTaxaData(this.data);
 					if(this.active) {
-						this.resultManager.showLoadingIndicator(false);
+						this.sqs.resultManager.showLoadingIndicator(false);
 						this.renderData(this.taxaData);
 					}
 				}
@@ -117,7 +109,7 @@ class ResultTaxon extends ResultModule {
 				}
 			},
 			error: (respData, textStatus, jqXHR) => {
-				this.resultManager.showLoadingIndicator(false, true);
+				this.sqs.resultManager.showLoadingIndicator(false, true);
 			},
 			complete: (xhr, textStatus) => {
 			}
@@ -143,7 +135,7 @@ class ResultTaxon extends ResultModule {
 		
 		if(rowsCount > this.maxRenderCount) {
 			this.unrender();
-			this.resultManager.renderMsg(true, {
+			this.sqs.resultManager.renderMsg(true, {
 				title: "Too much data",
 				body: "This dataset contains "+rowsCount+" rows of data. Please narrow down you search to fall within "+this.maxRenderCount+" rows of data by applying more filters."
 			});
@@ -286,10 +278,11 @@ class ResultTaxon extends ResultModule {
 	}
 
 	renderSpecies(container, taxonData) {
+		let imageMetaData = [];
 		let taxonSpecString = this.sqs.formatTaxon(taxonData);
 		this.fetchEolImages(taxonData).then(eolResponse => {
 			if(typeof eolResponse.taxonConcept.dataObjects != "undefined") {
-				this.renderSpeciesImages(eolResponse.taxonConcept.dataObjects);
+				imageMetaData = this.renderSpeciesImages(eolResponse.taxonConcept.dataObjects);
 			}
 		});
 		$("#rcb-species-value", container).html(taxonSpecString);
@@ -297,23 +290,34 @@ class ResultTaxon extends ResultModule {
 
 	renderSpeciesImages(images) {
 		let imageNodes = [];
+		let renderedImages = [];
 		images.forEach(image => {
-			let imageNode = $("<img class='result-taxon-image-thumb' src='"+image.eolThumbnailURL+"' />");
-			imageNode.on("click", (evt) => {
-				evt.stopPropagation();
-				let imageInfo = "©"+image.rightsHolder+"<br />";
-				imageInfo += "Provider: <a href='https://eol.org/' target='_blank'>Encyclopedia of Life</a><br />"
-				imageInfo += "License: "+image.license+"<br />";
-				imageInfo += "Description: "+image.description;
-				this.sqs.dialogManager.showPopOver("", "<div class='result-taxon-image-box'><img class='result-taxon-image' src='"+image.eolMediaURL+"' /><div class='result-taxon-image-info'>"+imageInfo+"</div></div>");
+			let imageId = "taxa-image-"+nanoid();
+			
+			renderedImages.push({
+				id: imageId,
+				image: image,
+				rightsHolder: image.rightsHolder,
+				provider: "Encyclopedia of Life",
+				license: image.license,
+				description: image.description
 			});
+
+			let imageMetaData = `Provider: Encyclopedia of Life
+Rights holder: ${image.rightsHolder}
+License: ${image.license}
+Description: ${image.description}`;
+
+			let imageNode = $("<a href='"+image.eolMediaURL+"' target='_blank'><img id='"+imageId+"' class='result-taxon-image-thumb' title='"+imageMetaData+"' src='"+image.eolThumbnailURL+"' /></a>");
+			
 			imageNodes.push(imageNode);
 		});
-		$("#result-taxon-image-container").html("");
+		$("#result-taxon-image-container").html("Image results from&nbsp;<a target='_blank' href='https://eol.org/'>Encyclopedia of Life</a><hr />");
 		$("#result-taxon-image-container").append(imageNodes);
 
 		this.sqs.tooltipManager.registerTooltip("#result-taxon-image-container-warning", "The images are fetched from external providers using search strings based on genus and species name, because of this, reuslts may be returned that represent different species than the intended one.")
 		
+		return renderedImages;
 	}
 
 	getSelectedSpecies() {
@@ -334,20 +338,35 @@ class ResultTaxon extends ResultModule {
 
 	renderSpeciesAssociation(container, taxonData) {
 		let html = "<ul>";
+		let assocLinks = [];
 		taxonData.species_associations.forEach(assoc => {
 			let assocTypeName = assoc.association_type_name.charAt(0).toUpperCase() + assoc.association_type_name.slice(1);
-			html += "<li>"+assocTypeName+" species <span id='assoc-species-"+assoc.associated_taxon_id+"'>"+assoc.associated_taxon_id+"</span></li>";
+
+			let assocSpeciesLinkId = "assoc-species-link-"+nanoid();
+			assocLinks.push(assocSpeciesLinkId);
+			let assocSpeciesRender = "<span id='"+assocSpeciesLinkId+"' class='species-link' assoc-taxon-id='"+assoc.taxon_id+"'>"+this.sqs.formatTaxon(assoc, null, true)+"</span>";
+
+			html += "<li>"+assocTypeName+" species <span>"+assocSpeciesRender+"</span></li>";
 		});
 		html += "</ul>";
 
-		fetch(Config.dataServerAddress+'/taxon/'+taxonData.taxon_id)
-			.then((response) => response.json())
-			.then((taxon) => {
-				let formattedSpecies = this.sqs.formatTaxon(taxon, null, true);
-				$("#assoc-species-"+taxon.taxon_id).html(formattedSpecies);
-			});
-
 		$("#rcb-species-association", container).append(html);
+
+		assocLinks.forEach(assocLink => {
+			$("#"+assocLink, container).on("click", (evt) => {
+				let assocTaxonId = $(evt.target).attr("assoc-taxon-id");
+				if(typeof assocTaxonId == "undefined") {
+					assocTaxonId = $(evt.target).parent().attr("assoc-taxon-id");
+				}
+				this.renderTaxon(assocTaxonId);
+			});
+		});
+
+		if(taxonData.species_associations.length == 0) {
+			this.sqs.setNoDataMsg($("#rcb-species-association", container));
+		}
+
+		return assocLinks.length;
 	}
 
 	renderEcologySummary(container, taxonData) {
@@ -423,6 +442,10 @@ class ResultTaxon extends ResultModule {
 		});
 		measurableAttributesHtml += "</ul>";
 		$("#rcb-measurable-attributes", container).html(measurableAttributesHtml);
+
+		if(taxonData.measured_attributes.length == 0) {
+			this.sqs.setNoDataMsg($("#rcb-measurable-attributes", container));
+		}
 	}
 
 	renderTaxonomicNotes(container, taxonData) {
@@ -442,6 +465,10 @@ class ResultTaxon extends ResultModule {
 			//this.sqs.tooltipManager.registerTooltip("#rcb-taxonomic-notes", "Hello!");
 		});
 		$("#rcb-taxonomic-notes", container).html(taxaNotesHtml);
+
+		if(taxonData.taxonomy_notes.length == 0) {
+			this.sqs.setNoDataMsg($("#rcb-taxonomic-notes", container));
+		}
 	}
 
 	/*
@@ -484,8 +511,31 @@ class ResultTaxon extends ResultModule {
 			});
 			
 	}
-	async renderTaxon() {
-		let taxonId = this.getSelectedSpecies();
+
+	renderRdb(container, taxonData) {
+		let out = "<ul>";
+		taxonData.rdb.forEach(rdb => {
+			let rowId = "rdb-system-"+nanoid();
+			out += "<li>";
+			out += rdb.rdb_definition+" (<span id='"+rowId+"'>"+rdb.rdb_system+"</span>) in ";
+			out += rdb.location_name;
+			if(rdb.location_type != "Country") {
+				out += " ("+rdb.location_type+")";
+			}
+			//out += " using the "+rdb.rdb_system+" system";
+			out += "</li>";
+
+			this.sqs.tooltipManager.registerTooltip("#"+rowId, rdb.biblio_full_reference, {drawSymbol:true});
+		});
+		out += "</ul>";
+
+		$("#rcb-rdb", container).html(out);
+
+		
+	}
+
+	async renderTaxon(taxonId = null) {
+		//let taxonId = this.getSelectedSpecies();
 		if(taxonId != null) {
 			this.taxonId = taxonId;
 		}
@@ -508,17 +558,21 @@ class ResultTaxon extends ResultModule {
 			//return;
 		}
 
-		this.resultManager.renderMsg(false);
+		//this.taxonId = 29709;
+
+		this.sqs.resultManager.renderMsg(false);
 
 		const fragment = document.getElementById("result-taxon-container-content-template");
 		const instance = document.importNode(fragment.content, true);
-		
+
 		let taxonData = await fetch(Config.dataServerAddress+'/taxon/'+this.taxonId).then(response => response.json());
+
 		this.renderSpecies(instance, taxonData);
-		this.renderSpeciesAssociation(instance, taxonData);		
+		this.renderSpeciesAssociation(instance, taxonData);
 		this.renderEcologySummary(instance, taxonData);
 		this.renderMeasurableAttributes(instance, taxonData);
 		this.renderTaxonomicNotes(instance, taxonData);
+		this.renderRdb(instance, taxonData);
 
 		console.log(taxonData)
 		
@@ -571,10 +625,13 @@ class ResultTaxon extends ResultModule {
 			this.sqs.tooltipManager.registerTooltip("#"+seasonalityGroupTooltipId, tooltipText, { drawSymbol: true });
 		});
 
+		this.sqs.dialogManager.showPopOver("Taxa", instance);
+
+		/*
 		$('#result-taxon-container').html("");
 		$('#result-taxon-container').append(instance);
 		$('#result-taxon-container').show();
-
+		*/
 
 		/*
 		if(!Config.useExternalTaxonApis) {
@@ -609,7 +666,7 @@ class ResultTaxon extends ResultModule {
 			this.sqs.setNoDataMsg("#rcb-seasonlity-year-wheels");
 		}
 
-		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
+		this.sqs.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 
 		return true;
 	}
@@ -788,4 +845,4 @@ class ResultTaxon extends ResultModule {
 
 }
 
-export { ResultTaxon as default }
+export { TaxaModule as default }

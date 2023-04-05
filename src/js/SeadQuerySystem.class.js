@@ -8,7 +8,7 @@ import ResultManager from './Result/ResultManager.class.js';
 import ResultMap from './Result/ResultMap.class.js'
 import ResultTable from './Result/ResultTable.class.js'
 import ResultMosaic from './Result/ResultMosaic.class.js'
-import ResultTaxon from './Result/ResultTaxon.class.js'
+import TaxaModule from './Common/TaxaModule.class.js'
 import StateManager from './StateManager.class.js';
 import DialogManager from './DialogManager.class.js';
 import TooltipManager from './TooltipManager.class.js';
@@ -230,12 +230,16 @@ class SeadQuerySystem {
 			}
 		]);
 
+		/*
 		if(this.config.resultTaxonModuleEnabled) {
 			this.resultManager.addModule({
 				name: "taxon",
-				module: new ResultTaxon(this.resultManager)
+				module: new TaxaModule(this)
 			});
 		}
+		*/
+
+		this.taxaModule = new TaxaModule(this);
 
 		this.menuManager.createMenu(this.resultManager.sqsMenu());
 

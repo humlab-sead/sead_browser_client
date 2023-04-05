@@ -24,11 +24,14 @@ class DialogManager {
 			$(".overlay-dialog").hide();
 		});
 		*/
+		/*
 		$("body").on("click", (evt) => {
+			console.log("Closing popup due to a click on body");
 			//evt.stopPropagation();
 			this.closeDialog();
 			this.hidePopOver();
 		});
+		*/
 
 		$("#popover-dialog-frame").on("click", (evt) => {
 			evt.stopPropagation();
@@ -54,13 +57,21 @@ class DialogManager {
 		
 	}
 	
-	showPopOver(title, content) {
+	showPopOver(title, content, options = {}) {
+
+		if(options.width) {
+			$("#popover-dialog-frame").css("width", options.width);
+		}
+		if(options.height) {
+			$("#popover-dialog-frame").css("height", options.height);
+		}
+
 		$("#popover-dialog-frame > h1").text(title);
 		$("#popover-dialog-frame > .popover-content").html(content);
-		$("#popover-dialog").css("display", "grid").hide();
-		$("#popover-dialog-frame").hide();
+		$("#popover-dialog").css("display", "grid");
+		//$("#popover-dialog-frame").hide();
 		$("#popover-dialog").show();
-		$("#popover-dialog-frame").slideDown(100);
+		//$("#popover-dialog-frame").slideDown(100);
 		this.sqs.sqsEventDispatch("popOverOpened", {
 			title: title,
 			content: content

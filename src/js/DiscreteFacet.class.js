@@ -1,6 +1,7 @@
 //import Config from '../config/config.js'
 import Facet from './Facet.class.js'
 import _ from 'underscore';
+import { nanoid } from 'nanoid';
 /*
 * Class: DiscreteFacet
 * Subclass of Facet. Renders data in a list.
@@ -20,16 +21,22 @@ class DiscreteFacet extends Facet {
 		this.visibleData = [];
 		this.checkMark = "<div class='fa fa-check facet-row-checkbox-mark' aria-hidden='true'></div>";
 		this.specialFunctionLinks = [];
-		/*
+		
 		if(this.name == "species") {
 			this.specialFunctionLinks.push({
+				id: nanoid(),
 				icon: '<i class="fa fa-bug" aria-hidden="true"></i>',
-				callback: () => {
-					console.log(this);
+				callback: (rowId) => {
+					//open species dialog
+					this.sqs.dialogManager.showPopOver("Taxa", "<div id='taxa-loading-indicator' class='loading-indicator' style='display: block;'></div>", {
+						width: "100%",
+						height: "100%",
+					});
+					this.sqs.taxaModule.renderTaxon(rowId);
 				}
 			});
 		}
-		*/
+		
 		
 
 		this.updateMaxRowTitleLength();
@@ -256,6 +263,8 @@ class DiscreteFacet extends Facet {
 		var out = "";
 		var dataPos = Math.ceil(scrollPos / this.rowHeight); //Changed this from floor to ceil, which fixes the last item not being rendered
 		
+		let specialFunctionLinkIds = [];
+
 		for(var i = 0; i < this.viewportItemCapacity; i++) {
 
 			if(dataPos+i < renderData.length) {
@@ -271,13 +280,13 @@ class DiscreteFacet extends Facet {
 
 				let specialFunctionLinks = "";
 				this.specialFunctionLinks.forEach(funcLink => {
-					let onClickFunc = (evt) => {
-						evt.stopPropagation();
-						evt.stopImmediatePropagation();
-						evt.preventDefault();
-						funcLink.callback();
-					};
-					let link = "<span class='filter-special-function-link' onclick='"+onClickFunc+"'>"+funcLink.icon+"</span>";
+					let specialFunctionLinkId = nanoid();
+					specialFunctionLinkIds.push({
+						id: specialFunctionLinkId,
+						rowId: dataElement.id,
+					});
+
+					let link = "<span id='"+specialFunctionLinkId+"' class='filter-special-function-link'>"+funcLink.icon+"</span>";
 					specialFunctionLinks += link;
 				});
 				if(specialFunctionLinks.length > 0) {
@@ -311,6 +320,16 @@ class DiscreteFacet extends Facet {
 				return;
 			}
 			this.toggleRowSelection(evt.currentTarget);
+		});
+
+		specialFunctionLinkIds.forEach(linkNodeIds => {
+			$("#"+linkNodeIds.id).on("click", (evt) => {
+				evt.stopPropagation();
+				evt.stopImmediatePropagation();
+				evt.preventDefault();
+				let funcLink = this.specialFunctionLinks.find(funcLink => funcLink.icon == evt.currentTarget.innerHTML);
+				funcLink.callback(linkNodeIds.rowId);
+			});
 		});
 
 		$(this.getDomRef()).find(".facet-row-shortened-text").bind("hover", (obj) => {

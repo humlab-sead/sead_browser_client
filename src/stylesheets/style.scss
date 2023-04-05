@@ -787,11 +787,10 @@ h1.main-header {
   position:relative;
   height: 100%;
   width: 100%;
-  overflow-y:auto;
   gap: 1em;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  grid-template-rows: 1fr 1fr 1.5fr;
+  grid-template-rows: 27vh 27vh 26vh;
   grid-template-areas: 
             "a b c c"
             "d e h h"
@@ -853,6 +852,13 @@ h1.main-header {
   cursor: zoom-in;
 }
 
+.result-taxon-image-thumb-container {
+  min-width: 2em;
+  min-height: 2em;
+  max-height: 4em;
+  max-width: 4em;
+}
+
 .popover-content {
   display: block;
 }
@@ -890,9 +896,6 @@ h1.main-header {
   position:relative;
   display: flex;
   flex-direction: column;
-  min-height: 30em;
-  height: 100%;
-  width: 100%;
   background: #eee;
 }
 
@@ -1949,8 +1952,8 @@ polyline{
 
 #popover-dialog {
   display:none; /* Will be set to "grid" by the code */
-  grid-template-columns: 10% 1fr 10%;
-  grid-template-rows: 10% 1fr 10%;
+  grid-template-columns: 5% 1fr 5%;
+  grid-template-rows: 5% 1fr 5%;
   justify-items: center;
   align-items: center;
   width: 100vw;
@@ -1968,10 +1971,10 @@ polyline{
   grid-row: 2;
   background-color: #fff;
   box-shadow: 0px 0px 20px #666;
-  padding: 30px;
+  padding: 2em;
   overflow: auto;
-  max-height: 90%;
-  max-width: 90%;
+  max-height: 90vh;
+  max-width: 90vw;
   border-width: 1px;
   border-style: solid;
   border-color: $pane-bg-color-dark;
@@ -2534,4 +2537,22 @@ svg text {
   border-radius: .5em;
   border: 1px solid #ccc;
   width: 90%;
+}
+
+#image-info-container {
+  position: relative;
+  right: 0;
+  left: 0;
+  z-index: 101;
+  background: red;
+}
+
+.zoomWindowMetaData {
+  width: 100%;
+}
+
+.species-link {
+  color: blue;
+  text-decoration: underline;
+  cursor: pointer;
 }

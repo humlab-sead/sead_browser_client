@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@popperjs/core": "^2.11.6",
+    "@webevt/elevatezoom": "^3.0.81",
     "ajv": "^6.12.6",
     "ajv-keywords": "^3.5.2",
     "buffer": "^6.0.3",
