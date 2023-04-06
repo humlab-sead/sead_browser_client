@@ -2459,9 +2459,9 @@ svg text {
 }
 
 .no-data-box {
-  width: 80%;
-  height: 80%;
-  margin: 10%;
+  width: calc(100% - 2em);
+  height: calc(100% - 2em) !important;
+  margin: 1em;
   display: flex;
   align-items: center;
   justify-content: center;
