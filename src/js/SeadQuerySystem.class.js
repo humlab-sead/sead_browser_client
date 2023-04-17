@@ -39,6 +39,8 @@ class SeadQuerySystem {
 		this.taxa = []; //Local taxonomy db
 		this.systemReady = false;
 
+		$("#sead-release-version").text(this.config.version);
+
 		this.storeUserSettings(this.config);
 
 		this.preload().then(() => {
