@@ -560,6 +560,10 @@ class ResultMap extends ResultModule {
 	* Function: setMapBaseLayer
 	*/
 	setMapBaseLayer(baseLayerId) {
+		if(baseLayerId == "arcticDem") {
+			this.sqs.notificationManager.notify("ArcticDEM is a partial map only covering the northern arctic region.", "info", 5000);
+		}
+
 		this.baseLayers.forEach((layer, index, array) => {
 			if(layer.getProperties().layerId == baseLayerId) {
 				layer.setVisible(true);

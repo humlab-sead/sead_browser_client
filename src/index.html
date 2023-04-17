@@ -244,6 +244,18 @@
 
     <div id="templates">
 
+      <template id="notification-box">
+        <div class="notification">
+          <div class="notification-message-box">
+            <div class="notification-icon">
+              <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+            </div>
+            <div class="notification-text"></div>
+            <button class="dismiss-btn"><i class="fa fa-times" aria-hidden="true"></i></button>
+          </div>
+        </div>
+      </template>
+
       <template>
         <div class="result-export-button">Export</div>
       </template>
@@ -252,8 +264,11 @@
         <div class="no-data-box overlay-msg-box">
           <svg width="100%" height="100%" viewBox="0,0,100,100" preserveAspectRatio="xMidYMid">
             <rect x="0" y="0" width="100" height="100" fill="transparent" stroke-width="0" />
-            <line x1="0" y1="0" x2="100" y2="100" stroke="grey" stroke-opacity="0.1" stroke-linecap="round" />
-            <line x1="100" y1="0" x2="0" y2="100" stroke="grey" stroke-opacity="0.1" stroke-linecap="round" />
+            <line x1="70" y1="70" x2="100" y2="100" stroke="grey" stroke-opacity="0.1" stroke-linecap="round" />
+            <line x1="0" y1="0" x2="30" y2="30" stroke="grey" stroke-opacity="0.1" stroke-linecap="round" />
+
+            <line x1="100" y1="0" x2="70" y2="30" stroke="grey" stroke-opacity="0.1" stroke-linecap="round" />
+            <line x1="0" y1="100" x2="30" y2="70" stroke="grey" stroke-opacity="0.1" stroke-linecap="round" />
           </svg>
           <label>No data</label>
         </div>
@@ -266,6 +281,13 @@
       </template>
 
       <template id="result-taxon-container-content-template">
+        <div class="taxon-link-container">
+          <div class="label">Link to this datasheet</div>
+          <div class="link"></div>
+        </div>
+
+
+
         <div class="result-taxon-grid-container">
           <div class="result-content-box" style="grid-area: a;">
 
@@ -304,14 +326,7 @@
                 Seasonality
               </div>
             </h3>
-
             <div id="rcb-seasonlity-year-wheels"></div>
-
-            <!--
-            <h4 class="centered-label">Adult organisms are active</h4>
-            <div id="rcb-year-wheel"></div>
-            -->
-
           </div>
 
           <div class="result-content-box" style="grid-area: d;">
@@ -348,7 +363,18 @@
                 Distribution
               </div>
             </h3>
-            <div id="rcb-distribution" class="text"></div>
+            <div id="rcb-distribution" class="text">
+              <div class="tab-container">
+                <div class="tab-buttons">
+                  <button class="tab-button active" data-tab="tab1"><i class="fa fa-globe" aria-hidden="true"></i>&nbsp;Map</button>
+                  <button class="tab-button" data-tab="tab2"><i class="fa fa-book" aria-hidden="true"></i>&nbsp;References</button>
+                </div>
+                <div class="tab-content">
+                  <div id="rcb-distribution-map" class="tab-panel"></div>
+                  <div id="rcb-distribution-biblio" class="tab-panel"></div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="result-content-box" style="grid-area: f;">

@@ -535,6 +535,7 @@ class DiscreteFacet extends Facet {
 			});
 		}
 		else {
+			/*
 			this.data.sort((a, b) => {
 				if(a.title > b.title) {
 					return 1;
@@ -543,6 +544,8 @@ class DiscreteFacet extends Facet {
 					return -1;
 				}
 			});
+			*/
+			this.data.sort((a, b) => a.title.trimStart().localeCompare(b.title.trimStart(), "en"))
 		}
 		
 		

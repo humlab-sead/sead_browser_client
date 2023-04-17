@@ -19,7 +19,7 @@ class Samples {
 	}
 
 	includeSampleDimensionsColumn(sampleGroup) {
-		for(var k in sampleGroup.physical_samples) {
+		for(let k in sampleGroup.physical_samples) {
 			var sample = sampleGroup.physical_samples[k];
 			if(sample.dimensions.length > 0) {
 				return true;
@@ -35,7 +35,7 @@ class Samples {
 
 	insertSampleDimensionsIntoTable(subTable, sampleGroup, siteData = null) {
 		let insertSampleDimensionColumn = false;
-		for(var k in sampleGroup.physical_samples) {
+		for(let k in sampleGroup.physical_samples) {
 			var sample = sampleGroup.physical_samples[k];
 			if(sample.dimensions.length > 0) {
 				insertSampleDimensionColumn = true;
@@ -47,7 +47,7 @@ class Samples {
 				"title": "Sample dimensions"
 			});
 
-			for(var k in sampleGroup.physical_samples) {
+			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
 				subTable.rows.forEach(row => {
 					if(row[0].value == sample.sample_name) {
@@ -117,7 +117,7 @@ class Samples {
 
 	insertSampleDescriptionsIntoTable(subTable, sampleGroup) {
 		let insertSampleDescriptionsColumn = false;
-		for(var k in sampleGroup.physical_samples) {
+		for(let k in sampleGroup.physical_samples) {
 			var sample = sampleGroup.physical_samples[k];
 			if(sample.descriptions.length > 0) {
 				insertSampleDescriptionsColumn = true;
@@ -129,7 +129,7 @@ class Samples {
 				"title": "Sample descriptions"
 			});
 
-			for(var k in sampleGroup.physical_samples) {
+			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
 				let descriptionValue = "";
 				sample.descriptions.forEach(desc => {
@@ -153,7 +153,7 @@ class Samples {
 
 	insertSampleLocationsIntoTable(subTable, sampleGroup) {
 		let insertSampleLocationsColumn = false;
-		for(var k in sampleGroup.physical_samples) {
+		for(let k in sampleGroup.physical_samples) {
 			var sample = sampleGroup.physical_samples[k];
 			if(sample.locations.length > 0) {
 				insertSampleLocationsColumn = true;
@@ -165,7 +165,7 @@ class Samples {
 				"title": "Sample locations"
 			});
 
-			for(var k in sampleGroup.physical_samples) {
+			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
 				let cellValue = "";
 				sample.locations.forEach(data => {
@@ -190,7 +190,7 @@ class Samples {
 
 	insertSampleAltRefsIntoTable(subTable, sampleGroup) {
 		let insertColumn = false;
-		for(var k in sampleGroup.physical_samples) {
+		for(let k in sampleGroup.physical_samples) {
 			var sample = sampleGroup.physical_samples[k];
 			if(sample.alt_refs.length > 0) {
 				insertColumn = true;
@@ -202,7 +202,7 @@ class Samples {
 				"title": "Alternative identifiers"
 			});
 
-			for(var k in sampleGroup.physical_samples) {
+			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
 				let cellValue = "";
 				sample.alt_refs.forEach(data => {
@@ -383,7 +383,7 @@ class Samples {
 		];
 
 		let siteHasSampleGroupDescriptions = false;
-		for(var key in siteData.sample_groups) {
+		for(let key in siteData.sample_groups) {
 			if(siteData.sample_groups[key].descriptions.length > 0) {
 				siteHasSampleGroupDescriptions = true;
 			}
@@ -403,7 +403,7 @@ class Samples {
 			rows: sampleGroupRows
 		}
 		
-		for(var key in siteData.sample_groups) {
+		for(let key in siteData.sample_groups) {
 			var sampleGroup = siteData.sample_groups[key];
 			
 			
@@ -423,7 +423,7 @@ class Samples {
 				"rows": []
 			};
 			
-			for(var k in sampleGroup.physical_samples) {
+			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
 
 				subTable.rows.push([
@@ -562,7 +562,7 @@ class Samples {
 	}
 	
 	getSampleGroupById(sampleGroupId) {
-		for(var key in this.data.sampleGroups) {
+		for(let key in this.data.sampleGroups) {
 			if(this.data.sampleGroups[key].sampleGroupId == sampleGroupId) {
 				return this.data.sampleGroups[key];
 			}

@@ -4,6 +4,9 @@ import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
 import Config from '../../config/config.json';
 import "../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";
 import { default as Tabulator } from "tabulator-tables";
+import OpenLayersMap from "./OpenLayersMap.class";
+import TabContainer from "./TabContainer.class";
+
 
 /*
 * Class: TaxaModule
@@ -285,6 +288,12 @@ class TaxaModule {
 				imageMetaData = this.renderSpeciesImages(eolResponse.taxonConcept.dataObjects);
 			}
 		});
+
+		let taxonUrl = window.location.protocol+"//"+window.location.host+"/taxon/"+taxonData.taxon_id;
+		let taxonLink = "<a target='_blank' href='"+taxonUrl+"'>"+taxonUrl+"</a>";
+		console.log(taxonLink);
+		$(".taxon-link-container .link", container).html(taxonLink);
+
 		$("#rcb-species-value", container).html(taxonSpecString);
 	}
 
@@ -512,6 +521,38 @@ Description: ${image.description}`;
 			
 	}
 
+	renderDistribution(container, taxonData) {
+		let distHtml = "";
+		
+		taxonData.distribution.forEach(dist => {
+			let tooltipId = nanoid();
+			distHtml += "<h4 id='"+tooltipId+"'>"+dist.biblio.authors+"</h4>";
+			distHtml += "<div>"+dist.distribution_text+"</div><br />";
+
+			let tooltipText = dist.biblio.full_reference ? dist.biblio.full_reference : dist.biblio.authors+" "+dist.biblio.title
+			tooltipText = "<h3 class='tooltip-header'>Reference</h3>"+tooltipText;
+			this.sqs.tooltipManager.registerTooltip("#"+tooltipId, tooltipText, { drawSymbol: true });
+		});
+
+		$("#rcb-distribution-biblio", container).html(distHtml);
+
+		let sqsMap = new OpenLayersMap(this.sqs);
+
+		//fetch taxon distribution data from the json server
+		fetch(Config.dataServerAddress+"/taxon_distribution/"+taxonData.taxon_id)
+			.then(response => response.json())
+			.then(data => {
+				sqsMap.setData(data);
+				sqsMap.render("#rcb-distribution-map");
+				sqsMap.addTextOverlay("This is a heatmap depiction of sites containing samples with this taxon");
+			})
+			.catch(error => {
+				console.error(error);
+			});
+		
+		let tabCon = new TabContainer("#rcb-distribution .tab-container", container);
+	}
+
 	renderRdb(container, taxonData) {
 		let out = "<ul>";
 		taxonData.rdb.forEach(rdb => {
@@ -573,21 +614,9 @@ Description: ${image.description}`;
 		this.renderMeasurableAttributes(instance, taxonData);
 		this.renderTaxonomicNotes(instance, taxonData);
 		this.renderRdb(instance, taxonData);
+		this.renderDistribution(instance, taxonData);
 
 		console.log(taxonData)
-		
-
-		let distHtml = "";
-		taxonData.distribution.forEach(dist => {
-			let tooltipId = nanoid();
-			distHtml += "<h4 id='"+tooltipId+"'>"+dist.biblio.authors+"</h4>";
-			distHtml += "<div>"+dist.distribution_text+"</div><br />";
-
-			let tooltipText = dist.biblio.full_reference ? dist.biblio.full_reference : dist.biblio.authors+" "+dist.biblio.title
-			tooltipText = "<h3 class='tooltip-header'>Reference</h3>"+tooltipText;
-			this.sqs.tooltipManager.registerTooltip("#"+tooltipId, tooltipText, { drawSymbol: true });
-		});
-		$("#rcb-distribution", instance).html(distHtml);
 
 
 		let bioHtml = "";

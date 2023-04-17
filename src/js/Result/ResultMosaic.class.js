@@ -14,7 +14,7 @@ import MosaicDendroBuildingTypesModule from "./MosaicTileModules/MosaicDendroBui
 import MosaicDendroDatingHistogramModule from "./MosaicTileModules/MosaicDendroDatingHistogramModule.class";
 import MosaicDendroTreeSpeciesChartModule from "./MosaicTileModules/MosaicDendroTreeSpeciesChartModule.class";
 import { nanoid } from 'nanoid';
-import * as Plotly from "plotly.js";
+import * as Plotly from "plotly.js-dist";
 
 class ResultMosaic extends ResultModule {
 	constructor(resultManager) {

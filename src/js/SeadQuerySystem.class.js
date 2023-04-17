@@ -16,6 +16,7 @@ import SiteReportManager from './SiteReportManager.class';
 import HelpAgent from './HelpAgent.class.js';
 import UserManager from './UserManager.class.js';
 import DomainManager from './DomainManager.class.js';
+import NotificationManager from './NotificationManager.class.js';
 import Router from './Router.class.js';
 import { nanoid } from 'nanoid';
 //import css from '../stylesheets/style.scss';
@@ -202,6 +203,7 @@ class SeadQuerySystem {
 
 		//this.siteReportLayoutManager = new SqsLayoutManager(this, "#site-report-panel", 80, 20);
 
+		this.notificationManager = new NotificationManager(this);
 		this.menuManager = new SqsMenuManager(this);
 		this.dialogManager = new DialogManager(this);
 	  	this.tooltipManager = new TooltipManager(this);

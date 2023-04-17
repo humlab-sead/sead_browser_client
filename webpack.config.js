@@ -17,6 +17,11 @@ module.exports = (env, config) => {
       assetModuleFilename: '[name][ext][query]'
     },
     plugins: [
+      new webpack.DefinePlugin({
+        'process.env': {
+          DEBUG: false,
+        },
+      }),
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, './src/index.html'), // template file
         filename: 'index.html', // output file

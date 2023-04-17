@@ -39,8 +39,9 @@ class Router {
                 this.sqs.layoutManager.setActiveView("filters");
             break;
             case "species":
-                let taxonId = pathComponents[2];
-                this.sqs.taxaModule.renderTaxon(taxonId);
+            case "taxon":
+                this.sqs.layoutManager.setActiveView("filters");
+                this.sqs.taxaModule.renderTaxon(pathComponents[2]);
             break;
             default:
                 if(this.domainExists(pathComponents[1])) {
