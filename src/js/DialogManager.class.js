@@ -59,11 +59,18 @@ class DialogManager {
 	
 	showPopOver(title, content, options = {}) {
 
+		$("#popover-dialog").css("grid-template-columns", "5% 1fr 5%");
+		$("#popover-dialog").css("grid-template-rows", "5% 1fr 5%");
+
 		if(options.width) {
 			$("#popover-dialog-frame").css("width", options.width);
 		}
 		if(options.height) {
 			$("#popover-dialog-frame").css("height", options.height);
+		}
+		if(options.margin) {
+			$("#popover-dialog").css("grid-template-columns", options.margin+" 1fr "+options.margin);
+			$("#popover-dialog").css("grid-template-rows", options.margin+" 1fr "+options.margin);
 		}
 
 		$("#popover-dialog-frame > h1").text(title);

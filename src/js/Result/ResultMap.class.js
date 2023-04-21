@@ -16,6 +16,7 @@ import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
 import {fromLonLat, toLonLat} from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
+import { Attribution } from 'ol/control';
 
 
 /*
@@ -384,9 +385,16 @@ class ResultMap extends ResultModule {
 		if(this.olMap == null) {
 			$(this.renderMapIntoNode).html("");
 
+			//create attribution and set its position to bottom left
+			const attribution = new Attribution({
+				collapsible: false,
+				collapsed: false,
+			});
+
 			this.olMap = new Map({
 				target: this.renderMapIntoNode,
-				controls: [], //Override default controls and set NO controls
+				attribution: false,
+				controls: [attribution], //Override default controls and set NO controls
 				layers: new GroupLayer({
 					layers: this.baseLayers
 				}),
@@ -399,6 +407,10 @@ class ResultMap extends ResultModule {
 				loadTilesWhileInteracting: true,
 				loadTilesWhileAnimating: true
 			});
+
+			// Add CSS styling to position the attribution control
+			var attributionElement = this.olMap.getTargetElement().getElementsByClassName('ol-attribution')[0];
+			attributionElement.getElementsByTagName("button")[0].style.display = "none";
 
 			this.olMap.on("moveend", () => {
 				var newZoomLevel = this.olMap.getView().getZoom();

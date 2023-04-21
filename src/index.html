@@ -316,7 +316,7 @@
                 Measureable attributes
               </div>
             </h3>
-            <div id="rcb-measurable-attributes" class="text">
+            <div id="rcb-measurable-attributes" class="rcb-text-panel">
             </div>
           </div>
 
@@ -335,7 +335,7 @@
                 Taxonomic notes
               </div>
             </h3>
-            <div id="rcb-taxonomic-notes" class="text">
+            <div id="rcb-taxonomic-notes" class="rcb-text-panel">
             </div>
           </div>
 
@@ -345,7 +345,7 @@
                 Rarity
               </div>
             </h3>
-            <div id="rcb-rdb" class="text"></div>
+            <div id="rcb-rdb" class="rcb-text-panel"></div>
           </div>
 
           <div class="result-content-box" style="grid-area: c;">
@@ -354,26 +354,22 @@
                 Biology
               </div>
             </h3>
-            <div id="rcb-biology" class="text"></div>            
+            <div id="rcb-biology" class="rcb-text-panel"></div>            
           </div>
 
-          <div class="result-content-box" style="grid-area: h;">
+          <div id="rcb-distribution-container" class="result-content-box tab-container" style="grid-area: h;">
             <h3 class="header">
               <div>
                 Distribution
               </div>
-            </h3>
-            <div id="rcb-distribution" class="text">
-              <div class="tab-container">
-                <div class="tab-buttons">
-                  <button class="tab-button active" data-tab="tab1"><i class="fa fa-globe" aria-hidden="true"></i>&nbsp;Map</button>
-                  <button class="tab-button" data-tab="tab2"><i class="fa fa-book" aria-hidden="true"></i>&nbsp;References</button>
-                </div>
-                <div class="tab-content">
-                  <div id="rcb-distribution-map" class="tab-panel"></div>
-                  <div id="rcb-distribution-biblio" class="tab-panel"></div>
-                </div>
+              <div class="tab-buttons">
+                <button class="tab-button active" data-tab="tab1"><i class="fa fa-globe" aria-hidden="true"></i>&nbsp;Map</button>
+                <button class="tab-button" data-tab="tab2"><i class="fa fa-book" aria-hidden="true"></i>&nbsp;References</button>
               </div>
+            </h3>
+            <div class="tab-content">
+              <div id="rcb-distribution-map" class="tab-panel"></div>
+              <div id="rcb-distribution-biblio" class="tab-panel rcb-text-panel"></div>
             </div>
           </div>
 
@@ -383,7 +379,7 @@
                 Ecology Summary
               </div>
             </h3>
-            <div id="rcb-ecology-summary" class="text"></div>
+            <div id="rcb-ecology-summary" class="rcb-text-panel"></div>
           </div>
 
           <div class="result-content-box" style="grid-area: g;">
@@ -392,7 +388,7 @@
                 Species Association
               </div>
             </h3>
-            <div id="rcb-species-association" class="text"></div>
+            <div id="rcb-species-association" class="rcb-text-panel"></div>
           </div>
 
         </div>
@@ -642,7 +638,7 @@
       </p>
 
       <p>
-        This is release <span id="sead-release-version"></span> of SEAD.
+        This is release <span id="sead-release-version"></span> of the SEAD browser.
       </p>
 
         <div id="logo-section">

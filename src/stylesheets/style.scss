@@ -785,16 +785,16 @@ h1.main-header {
 
 .result-taxon-grid-container {
   position:relative;
-  height: 100%;
+  height: calc(100% - 2em);
   width: 100%;
   gap: 1em;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  grid-template-rows: 25vh 25vh 25vh;
+  grid-template-rows: 32% 33% 32%;
   grid-template-areas: 
             "a b c c"
-            "d e h h"
-            "f f i g";
+            "d i h h"
+            "f f e g";
 }
 
 .taxon-link-container {
@@ -891,6 +891,10 @@ h1.main-header {
 
 .popover-content {
   display: block;
+  margin:0;
+  padding:0;
+  width: 100%;
+  height: calc(100% - 3.7em);
 }
 
 #result-taxon-image-container i {
@@ -923,10 +927,12 @@ h1.main-header {
 }
 
 .result-content-box {
-  position:relative;
+  position: relative;
   display: flex;
   flex-direction: column;
   background: #eee;
+  height: 100%;
+  width: 100%;
 }
 
 .result-content-box hr {
@@ -940,11 +946,23 @@ h1.main-header {
   text-align: center;
 }
 
-.result-content-box .text {
-  margin-left: 1em;
-  margin-right: 1em;
+.result-content-box .header {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0;
+}
+
+.result-content-box .header div {
+  padding: .5em;
+}
+
+.rcb-text-panel {
+  position: relative;
+  padding-top: 1em;
+  padding-left: 1em;
+  padding-right: 1em;
   overflow: auto;
-  height: calc(100% - 4em);
+  height: calc(100% - 1em);
 }
 
 #rcb-species-value {
@@ -954,7 +972,7 @@ h1.main-header {
 #rcb-seasonlity-year-wheels {
   display: flex;
   justify-content: center;
-  height: calc(100% - 4em);
+  height: calc(100% - 2.8em);
   width: 100%;
   padding:0;
   margin:0;
@@ -963,6 +981,10 @@ h1.main-header {
 .rcb-seasonlity-year-wheel {
   width: 100%;
   height: calc(100% - 2em);
+}
+
+.rcb-seasonlity-year-wheel .centered-label {
+  margin-top: 1em;
 }
 
 .rcb-year-wheel {
@@ -2667,31 +2689,34 @@ svg text {
 }
 
 .tab-container {
-  padding: 10px;
-  height: calc(100% - 2em);
 }
 
-.tab-container .tab-content {
-  height: calc(100% - 3em);
+.tab-content {
+  position: relative;
+  height: calc(100% - 2.5em);
 }
 
 .tab-buttons {
   display: flex;
   justify-content: flex-start;
-  margin-bottom: 10px;
+  margin:0;
+  padding:0 !important;
 }
 
 .tab-button {
   border: none;
-  background-color: $pane-bg-color-dark;
+  background-color: $base-color;
+  color: #fff;
   cursor: pointer;
-  font-size: 16px;
-  padding: 10px;
+  font-size: 1em;
+  padding: .5em;
+  margin: 0;
 }
 
 .tab-button.active {
-  background-color: $base-color;
-  color: #fff;
+  //background-color: $base-color;
+  background-color: $pane-bg-color;
+  color: #000;
 }
 
 .tab-panel {
@@ -2700,4 +2725,17 @@ svg text {
 
 .tab-panel.active {
   display: block;
+}
+
+.taxon-link {
+  color: $base-color;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ol-attribution {
+  position: absolute;
+	bottom: 0em;
+	right: .5em;
+	font-size: 0.7em;
 }

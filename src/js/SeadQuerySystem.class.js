@@ -882,7 +882,7 @@ class SeadQuerySystem {
 	 * @param {*} taxon - taxon in the sead data server format 
 	 * @param {*} identificationLevels - idenfication levels in the sead data server format
 	 */
-	 formatTaxon(taxon, identificationLevels = null, html = true) {
+	 formatTaxon(taxon, identificationLevels = null, html = true, asLink = false) {
 
 		let familyName = taxon.family.family_name;
 		let genusName = taxon.genus.genus_name;
@@ -924,6 +924,11 @@ class SeadQuerySystem {
 		if(typeof(taxon.author) != "undefined" && taxon.author != null) {
 			tf += " ";
 			tf += taxon.author.author_name;
+		}
+
+		if(asLink) {
+			let linkId = "taxon-link-"+taxon.taxon_id;
+			tf = "<span id='"+linkId+"' class='taxon-link' onclick='window.sqs.taxaModule.renderTaxon("+taxon.taxon_id+")'>"+tf+"</span>";
 		}
 
 		return tf;

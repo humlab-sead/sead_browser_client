@@ -267,15 +267,23 @@ class TaxaModule {
 					eolResponse.results.forEach(eolSpecies => {
 						fetch("https://eol.org/api/pages/1.0/"+eolSpecies.id+".json?details=true&images_per_page=10").then(response => response.json()).then(eolSpeciesResponse => {
 							resolve(eolSpeciesResponse);
+						}).catch(err => {
+							console.warn(err);
+							this.sqs.notificationManager.notify("Error fetching images from EOL.", "warning");
+							reject(err);
 						});
 					});
 				}
 				else {
 					let msg = "EOL returned too many hits in species search ("+eolResponse.results.length+"), not going to fetch images.";
 					console.warn(msg);
+					this.sqs.notificationManager.notify(msg, "warning");
 					reject(msg);
 				}
 				
+			}).catch(err => {
+				console.warn(err);
+				reject(err);
 			});
 		});
 	}
@@ -535,7 +543,7 @@ Description: ${image.description}`;
 		});
 
 		$("#rcb-distribution-biblio", container).html(distHtml);
-
+		
 		let sqsMap = new OpenLayersMap(this.sqs);
 
 		//fetch taxon distribution data from the json server
@@ -544,13 +552,13 @@ Description: ${image.description}`;
 			.then(data => {
 				sqsMap.setData(data);
 				sqsMap.render("#rcb-distribution-map");
-				sqsMap.addTextOverlay("This is a heatmap depiction of sites containing samples with this taxon");
+				sqsMap.addTextOverlay("Known archeological distribution of the taxon. Number of individuals.");
 			})
 			.catch(error => {
 				console.error(error);
 			});
 		
-		let tabCon = new TabContainer("#rcb-distribution .tab-container", container);
+		let tabCon = new TabContainer("#rcb-distribution-container", container, 0);
 	}
 
 	renderRdb(container, taxonData) {
@@ -576,30 +584,14 @@ Description: ${image.description}`;
 	}
 
 	async renderTaxon(taxonId = null) {
-		//let taxonId = this.getSelectedSpecies();
 		if(taxonId != null) {
 			this.taxonId = taxonId;
 		}
 
-		console.log("taxon - renderData", this.taxonId);
-
-		if(this.taxonId == null) {
-			this.taxonId = 31907
-			this.taxonId = 18054;
-			//this.taxonId = 350;
-			this.taxonId = 39708;
-			this.taxonId = 30652;
-			this.taxonId = 34877;
-			//this.taxonId = 33465;
-			this.taxonId = 30124;
-			this.taxonId = 34145;
-			this.taxonId = 32092;
-			this.taxonId = 29234;
-			this.taxonId = 29992;
-			//return;
-		}
-
-		//this.taxonId = 29709;
+		this.sqs.dialogManager.showPopOver("Taxa", "<div id='taxa-loading-indicator' class='loading-indicator' style='display: block;'></div>", {
+			width: "100%",
+			height: "100%",
+		});
 
 		this.sqs.resultManager.renderMsg(false);
 
@@ -654,7 +646,11 @@ Description: ${image.description}`;
 			this.sqs.tooltipManager.registerTooltip("#"+seasonalityGroupTooltipId, tooltipText, { drawSymbol: true });
 		});
 
-		this.sqs.dialogManager.showPopOver("Taxa", instance);
+		this.sqs.dialogManager.showPopOver("Taxa", instance, {
+			width: "100vw",
+			height: "100vh",
+			margin: "0px"
+		});
 
 		/*
 		$('#result-taxon-container').html("");

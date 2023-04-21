@@ -595,7 +595,7 @@ class AbundanceDataset extends DatasetModule {
 					},
 					{
 						"type": "cell",
-						"value": this.sqs.formatTaxon(taxon, data_point.value.identification_levels),
+						"value": this.sqs.formatTaxon(taxon, data_point.value.identification_levels, true, true),
 						"tooltip": commonNames
 					},
 					{
@@ -1017,11 +1017,11 @@ class AbundanceDataset extends DatasetModule {
 				}
 				modValue = modValue.substr(0, modValue.length-2);
 
-				let taxa = this.sqs.getTaxaById(ab.taxonId);
+				let taxon = this.sqs.getTaxaById(ab.taxonId);
 				
 				let taxonFormatted = "notaxa";
-				if(typeof(taxa != false)) {
-					taxonFormatted = this.sqs.formatTaxon(taxa, true, ab.abundanceId, ab.taxon_identification_levels);
+				if(typeof(taxon != false)) {
+					taxonFormatted = this.sqs.formatTaxon(taxon, ab.taxon_identification_levels, true, false);
 				}
 
 				let elementDescription = typeof ab.element == "undefined" ? "" : ab.element.element_description;

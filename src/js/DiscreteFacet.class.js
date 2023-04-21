@@ -28,10 +28,7 @@ class DiscreteFacet extends Facet {
 				icon: '<i class="fa fa-bug" aria-hidden="true"></i>',
 				callback: (rowId) => {
 					//open species dialog
-					this.sqs.dialogManager.showPopOver("Taxa", "<div id='taxa-loading-indicator' class='loading-indicator' style='display: block;'></div>", {
-						width: "100%",
-						height: "100%",
-					});
+					
 					this.sqs.taxaModule.renderTaxon(rowId);
 				}
 			});

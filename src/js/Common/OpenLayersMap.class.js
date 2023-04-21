@@ -119,21 +119,31 @@ class OpenLayersMap {
         this.dataLayers.push(dataLayer);
 
 		dataLayer = new VectorLayer();
-			dataLayer.setProperties({
-				layerId: "points",
-				title: "Individual",
-				type: "dataLayer",
-				renderCallback: () => {
-					this.renderPointsLayer();
-				},
-				visible: false
-			});
-			this.dataLayers.push(dataLayer);
+		dataLayer.setProperties({
+			layerId: "points",
+			title: "Individual",
+			type: "dataLayer",
+			renderCallback: () => {
+				this.renderPointsLayer();
+			},
+			visible: false
+		});
+		this.dataLayers.push(dataLayer);
+
+		dataLayer = new VectorLayer();
+		dataLayer.setProperties({
+			layerId: "abundancePoints",
+			title: "Individual",
+			type: "dataLayer",
+			renderCallback: () => {
+				this.renderAbundancePointsLayer();
+			},
+			visible: false
+		});
+		this.dataLayers.push(dataLayer);
 		
 		//Heatmap
-        dataLayer = new HeatmapLayer({
-            opacity: 0.5
-        });
+        dataLayer = new HeatmapLayer({});
         dataLayer.setProperties({
             layerId: "heatmap",
             title: "Heatmap",
@@ -144,7 +154,6 @@ class OpenLayersMap {
             visible: false
         });
         this.dataLayers.push(dataLayer);
-
     }
 
     setData(data = []) {
@@ -217,7 +226,6 @@ class OpenLayersMap {
 	* Function: renderClusteredPointsLayer
 	*/
 	renderClusteredPointsLayer() {
-        console.log("renderClusteredPointsLayer")
 		var geojson = this.getDataAsGeoJSON(this.data);
 
 		var gf = new GeoJSON({
@@ -261,15 +269,18 @@ class OpenLayersMap {
 		var pointsSource = new VectorSource({
 			features: featurePoints
 		});
-
+		
 		var layer = new HeatmapLayer({
 			source: pointsSource,
-			weight: function(feature) {
-				return 1.0;
-			},
+			opacity: 0.6,
 			radius: 10,
-			blur: 30,
-			zIndex: 1
+			blur: 20,
+			zIndex: 1,
+			weight: function(feature) {
+				return 1;
+				//console.log(feature.get('abundance_normalized'));
+				//return feature.get('abundance_normalized') != NaN ? feature.get('abundance_normalized') : 1;
+			}
 		});
 		
 		layer.setProperties({
@@ -284,7 +295,6 @@ class OpenLayersMap {
 	* Function: renderPointsLayer
 	*/
 	renderPointsLayer() {
-        console.log("renderPointsLayer")
 		var geojson = this.getDataAsGeoJSON(this.data);
 
 		var gf = new GeoJSON({
@@ -317,6 +327,39 @@ class OpenLayersMap {
 		this.olMap.addLayer(clusterLayer);
 	}
 
+	renderAbundancePointsLayer() {
+		var geojson = this.getDataAsGeoJSON(this.data);
+
+		var gf = new GeoJSON({
+			featureProjection: "EPSG:3857"
+		});
+		var featurePoints = gf.readFeatures(geojson);
+		var pointsSource = new VectorSource({
+			features: featurePoints
+		});
+		
+		var clusterSource = new ClusterSource({
+			distance: 0,
+			source: pointsSource
+		});
+		
+		var clusterLayer = new VectorLayer({
+			source: clusterSource,
+			style: (feature, resolution) => {
+				var style = this.getAbundancePointStyle(feature);
+				return style;
+			},
+			zIndex: 1
+		});
+		
+		clusterLayer.setProperties({
+			"layerId": "points",
+			"type": "dataLayer"
+		});
+		
+		this.olMap.addLayer(clusterLayer);
+	}
+
     getDataAsGeoJSON(data) {
 		var geojson = {
 			"type": "FeatureCollection",
@@ -324,7 +367,19 @@ class OpenLayersMap {
 			]
 		};
 
+		let maxAbundance = 0;
+
 		for(var key in data) {
+			if(data[key].abundance > maxAbundance) {
+				maxAbundance = data[key].abundance;
+			}
+		}
+
+		for(var key in data) {
+
+			//this should be a value between 0.0 and 1.0
+			let abundanceNormalized = data[key].abundance / maxAbundance;
+
 			var feature = {
 				"type": "Feature",
 				"geometry": {
@@ -333,11 +388,41 @@ class OpenLayersMap {
 				},
 				"properties": {
 					id: data[key].id,
-					name: data[key].title
+					name: data[key].title,
+					abundance: data[key].abundance,
+					abundance_normalized: abundanceNormalized 
 				}
 			};
 			geojson.features.push(feature);
 		}
+
+
+		/*
+		//create another geojson struct where each count of abundance is a feature
+		//this is used for the heatmap
+		let geojsonAbundance = {
+			"type": "FeatureCollection",
+			"features": [
+			]
+		};
+
+		for(var key in data) {
+
+			for(let i = 0; i < data[key].abundance; i++) {
+				var feature = {
+					"type": "Feature",
+					"geometry": {
+						"type": "Point",
+						"coordinates": [data[key].lng, data[key].lat]
+					},
+					"properties": {
+					}
+				};
+				geojsonAbundance.features.push(feature);
+			}
+		}
+		*/
+
 		return geojson;
 	}
 
@@ -406,12 +491,81 @@ class OpenLayersMap {
 		return styles;
 	}
 
+	/*
+	* Function: getSingularPointStyle
+	*/
+	getAbundancePointStyle(feature, options = { selected: false, highlighted: false }) {
+		//this can be multiple features if they overlap
+		let features = feature.get('features');
+		var pointsNum = features.length;
+
+		let pointTotalAbundance = 0;
+		for(let key in features) {
+			let f = features[key];
+			let abundance = f.get('abundance');
+			pointTotalAbundance += abundance;
+		}
+
+		var clusterSizeText = pointsNum.toString();
+		if(pointsNum > 999) {
+			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
+		}
+		let pointSize = 10;
+
+		var zIndex = 0;
+		
+		//default values if point is not selected and not highlighted
+		var fillColor = "rgba(0,81,120,0.5)";
+		var strokeColor = this.style.default.strokeColor;
+		var textColor = "#fff";
+		
+		//if point is highlighted (its a hit when doing a search)
+		if(options.highlighted) {
+			fillColor = this.style.highlighted.fillColor;
+			strokeColor = this.style.highlighted.strokeColor;
+			textColor = this.style.highlighted.textColor;
+			zIndex = 10;
+		}
+		//if point is selected (clicked on)
+		if(options.selected) {
+			fillColor = this.style.selected.fillColor;
+			strokeColor = this.style.selected.strokeColor;
+			textColor = this.style.selected.textColor;
+			zIndex = 10;
+		}
+
+		var styles = [];
+		styles.push(new Style({
+			image: new CircleStyle({
+				radius: pointSize,
+				stroke: new Stroke({
+					color: strokeColor
+				}),
+				fill: new Fill({
+					color: fillColor
+				})
+			}),
+			zIndex: zIndex,
+			text: new Text({
+				//text: clusterSizeText == 1 ? "" : clusterSizeText,
+				text: pointTotalAbundance.toString(),
+				offsetY: 1,
+				fill: new Fill({
+					color: textColor
+				})
+			})
+		}));
+		
+		return styles;
+	}
+
     fitToExtent() {
         let data = this.data;
-        let latHigh = this.sqs.getExtremePropertyInList(data, "lat", "high");
-		let latLow = this.sqs.getExtremePropertyInList(data, "lat", "low");
-		let lngHigh = this.sqs.getExtremePropertyInList(data, "lng", "high");
-		let lngLow = this.sqs.getExtremePropertyInList(data, "lng", "low");
+		
+		let lngLow = Math.min(...data.map(point => point.lng));
+		let lngHigh = Math.max(...data.map(point => point.lng));
+		let latLow = Math.min(...data.map(point => point.lat));
+		let latHigh = Math.max(...data.map(point => point.lat));
 
 		let extentNW = null;
 		let extentSE = null;
@@ -420,15 +574,15 @@ class OpenLayersMap {
 			extent = this.defaultExtent;
 		}
 		else {
-			extentNW = fromLonLat([lngLow.lng, latLow.lat]);
-			extentSE = fromLonLat([lngHigh.lng, latHigh.lat]);
+			extentNW = fromLonLat([lngLow, latLow]);
+			extentSE = fromLonLat([lngHigh, latHigh]);
 
 			extent = extentNW.concat(extentSE);
 		}
-		//let extent = extentNW.concat(extentSE);
 
+		let padding = 30;
 		this.olMap.getView().fit(extent, {
-			padding: [20, 20, 20, 20],
+			padding: [padding, padding, padding, padding],
 			maxZoom: 10,
 			duration: 500
 		});
@@ -436,10 +590,23 @@ class OpenLayersMap {
 
     render(renderTargetSelector) {
         let renderTarget = document.querySelector(renderTargetSelector);
+		
+		//get height of parent element
+		//let parentHeight = renderTarget.parentElement.clientHeight;
+		//renderTarget.style.height = parentHeight+"px";
+
         renderTarget.innerHTML = "";
+
+		//create attribution and set its position to bottom left
+		const attribution = new Attribution({
+			collapsible: false,
+			collapsed: false,
+		});
+
         this.olMap = new Map({
             target: renderTarget,
-            controls: [], //Override default controls and set NO controls
+			attribution: false,
+            controls: [attribution], //Override default controls and set NO controls
             layers: new GroupLayer({
                 layers: this.baseLayers
             }),
@@ -453,7 +620,11 @@ class OpenLayersMap {
             loadTilesWhileAnimating: true
         });
 
-        this.setMapDataLayer("heatmap");
+		// Add CSS styling to position the attribution control
+		var attributionElement = this.olMap.getTargetElement().getElementsByClassName('ol-attribution')[0];
+		attributionElement.getElementsByTagName("button")[0].style.display = "none";
+
+        this.setMapDataLayer("abundancePoints");
 
         this.fitToExtent();
     }

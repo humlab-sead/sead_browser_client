@@ -1,5 +1,5 @@
 class TabContainer {
-    constructor(selector, container = null) {
+    constructor(selector, container = null, defaultTab = 0) {
         let tabContainer = container;
         if(tabContainer == null) {
           tabContainer = document;
@@ -14,7 +14,7 @@ class TabContainer {
             });
         });
 
-        this.showTab(0);
+        this.showTab(defaultTab);
     }
 
     showTab(tabIndex) {
