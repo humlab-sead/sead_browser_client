@@ -7,13 +7,13 @@ import SqsMenu from '../SqsMenu.class';
 /*OpenLayers imports*/
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer } from 'ol/layer';
-import { Stamen, BingMaps, TileArcGISRest } from 'ol/source';
+import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Image as ImageLayer } from 'ol/layer';
+import { Stamen, BingMaps, ImageArcGISRest } from 'ol/source';
 import { Group as GroupLayer } from 'ol/layer';
 import Overlay from 'ol/Overlay';
 import GeoJSON from 'ol/format/GeoJSON';
 import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
-import {fromLonLat, toLonLat} from 'ol/proj.js';
+import { fromLonLat } from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
 import { Attribution } from 'ol/control';
@@ -133,15 +133,28 @@ class ResultMap extends ResultModule {
 			"title": "Bing Aerial + Labels",
 			"type": "baseLayer"
 		});
-		
-		let arcticDemLayer = new TileLayer({
-			source: new TileArcGISRest({
-				url: "http://elevation2.arcgis.com/arcgis/rest/services/Polar/ArcticDEM/ImageServer",
+
+		var arcticDemLayer = new ImageLayer({
+			source: new ImageArcGISRest({
 				attributions: "<a target='_blank' href='https://www.pgc.umn.edu/data/arcticdem/'>NSF PGC ArcticDEM</a>",
-				wrapX: true
+			  	url: 'https://di-pgc.img.arcgis.com/arcgis/rest/services/arcticdem_rel2210/ImageServer',
+			  	params: {
+					'format': 'jpgpng',
+					'renderingRule': JSON.stringify({
+						'rasterFunction': 'Hillshade Gray',
+						'rasterFunctionArguments': {
+							'ZFactor': 10.0
+						}
+					}),
+					'mosaicRule': JSON.stringify({
+						'where': 'acqdate1 IS NULL',
+						'ascending': false
+					})
+			  	},
 			}),
 			visible: false
 		});
+
 		arcticDemLayer.setProperties({
 			"layerId": "arcticDem",
 			"title": "PGC ArcticDEM",

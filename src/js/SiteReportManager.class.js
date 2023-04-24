@@ -84,7 +84,6 @@ class SiteReportManager {
 	}
 	
 	renderSiteReport(siteId, updateHistory = true) {
-		console.log("Rendering siteReport for site:", siteId);
 		if(updateHistory) {
 			var stateObj = {};
 			history.pushState(stateObj, "", "/site/"+siteId);
@@ -115,6 +114,8 @@ class SiteReportManager {
 				this.sqs.popXhr(xhr1);
 			}
 		});
+
+		this.sqs.matomoTrackPageView("Site report");
 	}
 
 	unrenderSiteReport() {
@@ -140,6 +141,8 @@ class SiteReportManager {
 		this.sqs.sqsEventDispatch("siteReportClosed");
 		this.sqs.setActiveView("filters");
 		this.sqs.sqsEventDispatch("layoutResize");
+
+		this.sqs.matomoTrackPageView("Filter view");
 	}
 	
 	/*

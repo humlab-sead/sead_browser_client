@@ -354,8 +354,6 @@ class SeadQuerySystem {
 					});
 				}
 			});
-
-			
 		}
 
 		this.systemReady = true;
@@ -1212,6 +1210,14 @@ class SeadQuerySystem {
 		});
 
 		return result;
+	}
+
+	matomoTrackPageView(pageTitle = "Unknown page") {
+		if(this.config.pageTrackingEnabled) {
+			_paq.push(['setCustomUrl', '/' + window.location.hash.substr(1)]);
+			_paq.push(['setDocumentTitle', pageTitle]);
+			_paq.push(['trackPageView']);
+		}
 	}
 	
 }

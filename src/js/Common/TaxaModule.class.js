@@ -693,6 +693,8 @@ Description: ${image.description}`;
 
 		this.sqs.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 
+		this.sqs.matomoTrackPageView("Taxon datasheet");
+
 		return true;
 	}
 
