@@ -4,17 +4,20 @@
 
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer } from 'ol/layer';
-import { Stamen, BingMaps, TileArcGISRest } from 'ol/source';
+import { Tile as TileLayer, Vector as VectorLayer, VectorTile as VectorTileLayer, Heatmap as HeatmapLayer } from 'ol/layer';
+import { Stamen, BingMaps, TileArcGISRest, XYZ } from 'ol/source';
 import { Group as GroupLayer } from 'ol/layer';
 import Overlay from 'ol/Overlay';
 import GeoJSON from 'ol/format/GeoJSON';
-import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
-import {fromLonLat, toLonLat} from 'ol/proj.js';
+import MVT from 'ol/format/MVT';
+import { Cluster as ClusterSource, Vector as VectorSource, VectorTile as VectorTileSource } from 'ol/source';
+import { fromLonLat, toLonLat, get as getProjection } from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
 import { Attribution } from 'ol/control';
 import { getTopLeft } from 'ol/extent';
+import { createXYZ } from 'ol/tilegrid';
+import TileGrid from 'ol/tilegrid/TileGrid.js';
 
 class OpenLayersMap {
     constructor(sqs) {
@@ -24,6 +27,7 @@ class OpenLayersMap {
 		this.dataLayers = [];
         this.currentZoomLevel = 4;
         this.data = [];
+		this.defaultExtent = [-16163068.253070222, -2582960.0598126827, 5596413.462927474, 12053813.61245915]
 
         //These attributes are used to set the style of map points
 		this.style = {
@@ -156,6 +160,89 @@ class OpenLayersMap {
         this.dataLayers.push(dataLayer);
     }
 
+	addGbifLayer(url) {
+		const gbifLayer = new TileLayer({
+			source: new XYZ({
+			  url: url,
+			  attributions: "© <a target='_blank' href='https://www.gbif.org/'>GBIF</a>"
+			})
+		});
+
+		gbifLayer.setProperties({
+            layerId: "gbif",
+            title: "GBIF Occurrences",
+            type: "baseLayer"
+        });
+
+
+		this.baseLayers.push(gbifLayer);
+	}
+	
+	addGbifLayerVector(url) {
+		const gbifLayer = new VectorTileLayer({
+			source: new XYZ({
+				url: url,
+			}),
+			renderCallback: () => {
+				this.renderGbifDataLayer(url);
+			}
+		});
+
+		gbifLayer.setProperties({
+			layerId: "gbif",
+			title: "GBIF Occurrences",
+			type: "dataLayer"
+		});
+
+		this.dataLayers.push(gbifLayer);
+	}
+
+	renderGbifDataLayer(url) {
+		const resolutions = [
+			156543.03392804097,
+			78271.51696402048,
+			39135.75848201024,
+			19567.87924100512,
+			9783.93962050256,
+			4891.96981025128
+		];
+
+		const gbifSource = new VectorTileSource({
+			format: new MVT(),
+			tileGrid: new TileGrid({
+				extent: getProjection('EPSG:3857').getExtent(),
+				resolutions: resolutions,
+				tileSize: 256,
+			  }),
+			  url: url,
+			attributions: '© GBIF',
+		})
+
+		const gbifLayer = new VectorTileLayer({
+			source: gbifSource,
+			style: new Style({
+				image: new CircleStyle({
+					radius: 5,
+					fill: new Fill({
+						color: 'rgba(255, 255, 255, 0.4)'
+					}),
+					stroke: new Stroke({
+						color: '#ff99CC',
+						width: 2.25
+					})
+				})
+			})
+		});
+		
+		gbifLayer.setProperties({
+			layerId: "gbif",
+			title: "GBIF Occurrences",
+			type: "dataLayer"
+		});
+		
+		this.olMap.addLayer(gbifLayer);
+	}
+
     setData(data = []) {
         //data is assumed to be an array with (at least) the properties: lng, lat, id, title
         this.data = data;
@@ -164,7 +251,7 @@ class OpenLayersMap {
     /*
 	* Function: setMapBaseLayer
 	*/
-	setMapBaseLayer(baseLayerId) {
+	setMapBaseLayer(baseLayerId, hideAllOthers = true) {
 		if(baseLayerId == "arcticDem") {
 			this.sqs.notificationManager.notify("ArcticDEM is a partial map only covering the northern arctic region.", "info", 5000);
 		}
@@ -173,7 +260,7 @@ class OpenLayersMap {
 			if(layer.getProperties().layerId == baseLayerId) {
 				layer.setVisible(true);
 			}
-			else {
+			else if(hideAllOthers){
 				layer.setVisible(false);
 			}
 		});
@@ -183,7 +270,7 @@ class OpenLayersMap {
 		let el = document.createElement('div');
 		el.innerHTML = text;
 		el.style.position = 'absolute';
-		el.style.top = '0';
+		el.style.bottom = '0';
 		el.style.left = '0';
 		el.style.backgroundColor = 'rgba(255,255,255,0.5)';
 		el.style.padding = '5px';
@@ -256,6 +343,22 @@ class OpenLayersMap {
 		});
 		
 		this.olMap.addLayer(clusterLayer);
+	}
+
+	renderGbifLayer(url) {
+		const gbifLayer = new TileLayer({
+			source: new XYZ({
+			  url: url,
+			  attributions: '© GBIF'
+			})
+		});
+		
+		gbifLayer.setProperties({
+			"layerId": "gbif",
+			"type": "baseLayer"
+		});
+		
+		this.olMap.addLayer(gbifLayer);
 	}
 
 	renderHeatmapLayer() {
@@ -561,11 +664,20 @@ class OpenLayersMap {
 
     fitToExtent() {
         let data = this.data;
-		
-		let lngLow = Math.min(...data.map(point => point.lng));
-		let lngHigh = Math.max(...data.map(point => point.lng));
-		let latLow = Math.min(...data.map(point => point.lat));
-		let latHigh = Math.max(...data.map(point => point.lat));
+
+		let lngLow, lngHigh, latLow, latHigh;
+		if(data.length > 0) {
+			lngLow = Math.min(...data.map(point => point.lng));
+			lngHigh = Math.max(...data.map(point => point.lng));
+			latLow = Math.min(...data.map(point => point.lat));
+			latHigh = Math.max(...data.map(point => point.lat));
+		}
+		else {
+			latHigh = false;
+			latLow = false;
+			lngHigh = false;
+			lngLow = false;
+		}
 
 		let extentNW = null;
 		let extentSE = null;
@@ -579,7 +691,7 @@ class OpenLayersMap {
 
 			extent = extentNW.concat(extentSE);
 		}
-
+		
 		let padding = 30;
 		this.olMap.getView().fit(extent, {
 			padding: [padding, padding, padding, padding],
@@ -626,8 +738,89 @@ class OpenLayersMap {
 
         this.setMapDataLayer("abundancePoints");
 
-        this.fitToExtent();
+		this.fitToExtent();
     }
+
+	/*
+	* Function: getClusterPointStyle
+	*/
+	getClusterPointStyle(feature, options = { selected: false, highlighted: false }) {
+		var pointsNum = feature.get('features').length;
+		var clusterSizeText = pointsNum.toString();
+		if(pointsNum > 999) {
+			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
+		}
+		var pointSize = 8+(Math.log10(feature.getProperties().features.length)*15);
+		
+		var zIndex = 0;
+		
+		//default values if point is not selected and not highlighted
+		var fillColor = this.style.default.fillColor;
+		var strokeColor = this.style.default.strokeColor;
+		var textColor = "#fff";
+		
+		//if point is highlighted (its a hit when doing a search)
+		if(options.highlighted) {
+			fillColor = this.style.highlighted.fillColor;
+			strokeColor = this.style.highlighted.strokeColor;
+			textColor = this.style.highlighted.textColor;
+			zIndex = 10;
+		}
+		//if point is selected (clicked on)
+		if(options.selected) {
+			fillColor = this.style.selected.fillColor;
+			strokeColor = this.style.selected.strokeColor;
+			textColor = this.style.selected.textColor;
+			zIndex = 10;
+		}
+
+		var styles = [];
+		styles.push(new Style({
+			image: new CircleStyle({
+				radius: pointSize,
+				stroke: new Stroke({
+					color: strokeColor
+				}),
+				fill: new Fill({
+					color: fillColor
+				})
+			}),
+			zIndex: zIndex,
+			text: new Text({
+				text: clusterSizeText,
+				offsetY: 1,
+				fill: new Fill({
+					color: textColor
+				})
+			})
+		}));
+		
+		
+		if(pointsNum == 1) {
+			var pointName = feature.get('features')[0].getProperties().name;
+			if(pointName != null) {
+				styles.push(new Style({
+					zIndex: zIndex,
+					text: new Text({
+						text: pointName,
+						offsetX: 15,
+						textAlign: 'left',
+						fill: new Fill({
+							color: '#fff'
+						}),
+						stroke: new Stroke({
+							color: '#000',
+							width: 2
+						}),
+						scale: 1.2
+					})
+				}));
+			}
+			
+		}
+		
+		return styles;
+	}
 
 }
 

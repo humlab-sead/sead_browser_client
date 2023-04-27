@@ -419,8 +419,16 @@ Description: ${image.description}`;
 
 		ecologyHtml += "<div class='koch-ecocodes'>";
 		ecologyHtml += "<h4>Koch EcoCodes</h4>";
+		
 		kochEcocodes.forEach(kochCode => {
-			let codeName = kochCode.definition.name.charAt(0).toUpperCase() + kochCode.definition.name.slice(1);
+			let codeName;
+			if(kochCode.definition.name != null) {
+				codeName = kochCode.definition.name.charAt(0).toUpperCase() + kochCode.definition.name.slice(1);
+			}
+			else {
+				codeName = kochCode.definition.abbreviation+" (no name)";
+			}
+			
 			let codeColor = "#000";
 			let ttId = "tt-"+nanoid();
 			ecologyHtml += "<div id='"+ttId+"'>";
@@ -544,19 +552,34 @@ Description: ${image.description}`;
 
 		$("#rcb-distribution-biblio", container).html(distHtml);
 		
-		let sqsMap = new OpenLayersMap(this.sqs);
+		//let archeoDistMap = new OpenLayersMap(this.sqs);
+		let modernDistMap = new OpenLayersMap(this.sqs);
 
+		fetch("https://api.gbif.org/v1/species/match?name="+taxonData.genus.genus_name+"%20"+taxonData.species+"%20"+taxonData.family.family_name)
+		.then(response => response.json())
+		.then(data => {
+			let url = "https://api.gbif.org/v2/map/occurrence/density/{z}/{x}/{y}@2x.png?taxonKey="+data.speciesKey+"&bin=hex&hexPerTile=30&style=purpleYellow.poly";
+			modernDistMap.addGbifLayer(url);
+			//let url = "https://api.gbif.org/v2/map/occurrence/density/{z}/{x}/{y}.mvt?srs=EPSG:3857&taxonKey="+data.speciesKey;
+			//modernDistMap.addGbifLayerVector(url);
+			modernDistMap.render("#rcb-distribution-map");
+			modernDistMap.setMapDataLayer("gbif", false);
+			modernDistMap.addTextOverlay("Data sourced from <a target='_blank' href='https://www.gbif.org/'>GBIF</a>.");
+		});
+
+		/* this is disabled because it would show archeological distribution, and this is modern taxon data. also: in order for it to make much sense to show the archeological distribution, there should be a time aspect to it
 		//fetch taxon distribution data from the json server
 		fetch(Config.dataServerAddress+"/taxon_distribution/"+taxonData.taxon_id)
 			.then(response => response.json())
 			.then(data => {
-				sqsMap.setData(data);
-				sqsMap.render("#rcb-distribution-map");
-				sqsMap.addTextOverlay("Known archeological distribution of the taxon. Number of individuals.");
+				archeoDistMap.setData(data);
+				archeoDistMap.render("#rcb-distribution-map");
+				archeoDistMap.addTextOverlay("Known archeological distribution of the taxon. Number of individuals.");
 			})
 			.catch(error => {
 				console.error(error);
 			});
+		*/
 		
 		let tabCon = new TabContainer("#rcb-distribution-container", container, 0);
 	}

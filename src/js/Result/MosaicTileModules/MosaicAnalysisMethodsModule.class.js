@@ -82,6 +82,8 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
     }
 
     async unrender() {
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        resultMosaic.unrenderPlotlyChart(this.renderIntoNode.substring(1));
         this.pendingRequestPromise = null;
         this.active = false;
     }

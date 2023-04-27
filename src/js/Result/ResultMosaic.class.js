@@ -963,7 +963,13 @@ class ResultMosaic extends ResultModule {
 
 		this.sqs.sqsEventListen("layoutResize", () => {
 			Plotly.relayout(anchorNodeId, layout);
-		});
+		}, this);
+
+	}
+
+	unrenderPlotlyChart(node) {
+		this.sqs.sqsEventUnlisten("layoutResize", this)
+		Plotly.purge(node);
 	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {
@@ -1164,6 +1170,12 @@ class ResultMosaic extends ResultModule {
 	}
 	
 	unrender() {
+		this.modules.forEach(module => {
+			if(module.module != null && typeof module.module.unrender == "function") {
+				module.module.unrender();
+			}
+		});
+
 		$("#result-mosaic-container").html("");
 	}
 

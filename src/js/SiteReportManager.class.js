@@ -119,7 +119,8 @@ class SiteReportManager {
 	}
 
 	unrenderSiteReport() {
-		$("#site-report-panel").hide();
+		$("#site-report-main-container").hide();
+		$("#site-report-main-container").css("display", "none");
 
 		//$("#filter-view-main-container").css("display", "flex");
 		$("#filter-view-main-container").animate({
