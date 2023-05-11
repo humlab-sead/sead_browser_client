@@ -997,6 +997,22 @@ h1.main-header {
   height: 100%;
 }
 
+.rcb-reference-data {
+  border-collapse: collapse;
+  border: 1px solid #ccc;
+}
+
+.rcb-reference-data td {
+  border: 1px solid #ccc;
+  padding: 5px;
+  vertical-align: top;
+}
+
+
+.rcb-reference-data h4 {
+  white-space: nowrap;
+}
+
 #occurrences {
   polygon-fill: #FF0000;
 }
@@ -1779,9 +1795,9 @@ polyline{
 
 #map-popup-container {
   display: none;
+  border: 1px solid rgb(102, 102, 102);
   position: relative;
   background: rgba(255, 255, 255, 1.0);
-  border: 2px solid #000000;
   border-radius: 3px;
   padding: 10px;
   box-shadow: 0px 0px 20px 0px $shadow-color;
@@ -1790,25 +1806,25 @@ polyline{
 #map-popup-container:after, #map-popup-container:before {
 	top: 100%;
 	left: 50%;
-	border: solid transparent;
+	border: solid;
 	content: " ";
-	height: 0;
-	width: 0;
 	position: absolute;
 	pointer-events: none;
 }
 
-#map-popup-container:after {
-	border-color: rgba(255, 255, 255, 0);
-	border-top-color: #ffffff;
-	border-width: 7px;
-	margin-left: -7px;
-}
 #map-popup-container:before {
 	border-color: rgba(0, 0, 0, 0);
-	border-top-color: #000000;
+	border-top-color: rgb(102, 102, 102);
 	border-width: 10px;
 	margin-left: -10px;
+}
+
+#map-popup-container:after {
+	border-color: transparent;
+	border-top-color: #ffffff;
+	border-width: 9px;
+	margin-left: -9px;
+  top: calc(100% - 1px);
 }
 
 #map-popup-title {
@@ -2743,3 +2759,130 @@ svg text {
 	right: .5em;
 	font-size: 0.7em;
 }
+
+#tutorial-question {
+  display: none;
+  width: 20em;
+  position: fixed;
+  top: 2em;
+  right: -100%;
+  z-index: 100;
+  background: #fff;
+  padding: 1em;
+  animation-name: slide-in;
+  animation-duration: 0.5s;
+  animation-delay: 2s;
+  animation-fill-mode: forwards;
+  box-shadow: 0px 0px 10px 10px $shadow-color;
+  border-radius: 3px;
+  border-left: .5em solid $aux-color;
+}
+
+/* animation which creates a slide-in from the right */
+@keyframes slide-in {
+  0% {
+    right: -100%;
+  }
+  100% {
+    right: 1em;
+  }
+}
+
+#tutorial-question button:hover {
+  cursor: pointer;
+  background: lighten($base-color, 10%);
+}
+
+#tutorial-question .yes-button {
+  background: $base-color;
+  color: #fff;
+  border: none;
+  padding: .5em;
+  margin: .5em;
+  cursor: pointer;
+}
+
+#tutorial-question .no-button {
+  background: $inactive-color;
+  color: #fff;
+  border: none;
+  padding: .5em;
+  margin: .5em;
+  cursor: pointer;
+}
+
+.tutorial-container {
+  border-radius: 0 !important;
+  box-shadow: 0px 0px 10px 10px $shadow-color !important;
+}
+
+.shepherd-footer button.yes-button {
+  background: $base-color !important;
+  color: #fff !important;
+  border: none !important;
+  padding: .5em !important;
+  margin: .5em !important;
+  cursor: pointer !important;
+}
+
+.shepherd-footer button.no-button {
+  background: $inactive-color !important;
+  color: #fff !important;
+  border: none !important;
+  padding: .5em !important;
+  margin: .5em !important;
+  cursor: pointer !important;
+}
+
+.tutorial-container .shepherd-header {
+  background: $base-color !important;
+  border-radius: 0 !important;
+}
+
+.tutorial-container .shepherd-header h3 {
+  color: #fff !important;
+}
+
+.tutorial-jiggle {
+  animation: jiggle 0.25s ease-in-out 2;
+  animation-delay: 2s;
+}
+
+@keyframes jiggle {
+  0% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(0deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.tutorial-container .shepherd-button {
+  background: $base-color !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: .5em !important;
+  font-size: 1.2em !important;
+}
+
+.tutorial-container .shepherd-title {
+  font-size: 1.4em;
+  font-weight: 600;
+}
+
+.tutorial-start {
+  position: fixed !important;
+  top: 10em !important;
+  left: 80vw !important;
+}
+

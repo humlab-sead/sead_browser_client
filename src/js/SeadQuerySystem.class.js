@@ -18,7 +18,9 @@ import UserManager from './UserManager.class.js';
 import DomainManager from './DomainManager.class.js';
 import NotificationManager from './NotificationManager.class.js';
 import Router from './Router.class.js';
+import Tutorial from './Tutorial.class.js';
 import { nanoid } from 'nanoid';
+
 //import css from '../stylesheets/style.scss';
 
 /* 
@@ -38,6 +40,7 @@ class SeadQuerySystem {
 		this.filterDefinitions = [];
 		this.taxa = []; //Local taxonomy db
 		this.systemReady = false;
+		this.requestUrl = null;
 
 		$("#sead-release-version").text(this.config.version);
 
@@ -211,6 +214,7 @@ class SeadQuerySystem {
 	  	this.tooltipManager = new TooltipManager(this);
 		this.facetManager = new FacetManager(this, this.filterDefinitions);
 		this.mainMenu = new MainMenu();
+		this.tutorial = new Tutorial(this);
 		
 		this.siteReportManager = new SiteReportManager(this);
 		var siteId = this.siteReportManager.getSiteIdFromUrl();
@@ -286,7 +290,8 @@ class SeadQuerySystem {
 		var auxMenu = this.menuManager.combineMenus(auxMenuDef, [
 			this.stateManager.sqsMenu(),
 			this.dialogManager.sqsMenu(),
-			this.help.sqsMenu()
+			this.help.sqsMenu(),
+			this.tutorial.sqsMenu(),
 		]);
 
 		this.menuManager.createMenu(auxMenu);
@@ -359,6 +364,7 @@ class SeadQuerySystem {
 		this.systemReady = true;
 		this.sqsEventDispatch("sqsInitComplete");
 		this.router.route();
+		this.tutorial.init();
 	}
 
 	/*
@@ -724,7 +730,6 @@ class SeadQuerySystem {
 	}
 	
 	setActiveView(viewName) {
-		console.log("setActiveView", viewName);
 		this.activeView = viewName;
 		if(this.layoutManager instanceof SqsLayoutManager) {
 			this.layoutManager.setActiveView(viewName);
@@ -732,6 +737,12 @@ class SeadQuerySystem {
 		else {
 			console.warn("Ignoring request to setActiveView because there's no LayoutManager.");
 		}
+	
+		//dispatch view change event
+		this.sqsEventDispatch("viewChange", {
+			viewName: viewName
+		});
+
 	}
 
 	getActiveView() {

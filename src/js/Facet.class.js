@@ -318,6 +318,10 @@ class Facet {
 					this.importData(respData);
 					if(render && this.minimized == false) {
 						this.renderData();
+						//dispatch event that this facet has been rendered
+						this.sqs.sqsEventDispatch("facetDataRendered", {
+							facet: this
+						});
 					}
 					this.showLoadingIndicator(false);
 				}

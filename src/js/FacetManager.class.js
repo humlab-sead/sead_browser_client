@@ -1444,7 +1444,6 @@ class FacetManager {
 	 * This is a shorthand function for making and adding a facet.
 	 */
 	spawnFacet(facetId, selections = [], triggerResultLoad = true) {
-		console.log("spawnFacet");
 		let found = false;
 		this.facets.forEach((facet) => {
 			if(facet.name == facetId) {

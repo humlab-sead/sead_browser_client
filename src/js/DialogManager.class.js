@@ -19,20 +19,6 @@ class DialogManager {
 			this.hidePopOver();
 		});
 
-		/*
-		$(".overlay-dialog-close-btn").bind("click", function() {
-			$(".overlay-dialog").hide();
-		});
-		*/
-		/*
-		$("body").on("click", (evt) => {
-			console.log("Closing popup due to a click on body");
-			//evt.stopPropagation();
-			this.closeDialog();
-			this.hidePopOver();
-		});
-		*/
-
 		$("#popover-dialog-frame").on("click", (evt) => {
 			evt.stopPropagation();
 		});

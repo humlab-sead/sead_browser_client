@@ -75,7 +75,6 @@ class SiteReport {
 
 		this.fetchSite().then(siteData => {
 			this.siteData = siteData;
-			console.log(this.siteData);
 			this.fetchComplete = true;
 			this.hideLoadingIndicator();
 			this.enableExportButton();
@@ -297,6 +296,7 @@ class SiteReport {
 		$(".site-report-level-title", sectionNode)
 			.html("<i class=\"site-report-sections-expand-button fa fa-plus-circle\" aria-hidden=\"true\">&nbsp;</i><span class='title-text'>"+sectionTitle+"</span><span class='section-warning'></span>")
 			.on("click", (evt) => {
+				console.log("Clicked section title");
 				var parent = $(evt.currentTarget).parent();
 				var collapsed = parent.children(".site-report-level-content").attr("collapsed") == "true";
 				collapsed = !collapsed;
