@@ -47,9 +47,9 @@ class Tutorial {
               action: this.tour.next
             },
             {
-              text: 'Abort tour',
+              text: 'Exit tour',
               classes: 'no-button',
-              action: this.tour.hide,
+              action: this.tour.complete,
             }
           ]
       });
@@ -58,6 +58,7 @@ class Tutorial {
           id: this.stepCounter++,
           title: 'Domains',
           text: `Each domain has its own set of filters associated with it, which can be selected via this menu. Filters are used to narrow down the amount of sites shown in the result section.
+	  <br /><br />
           Click on the Filters menu to open it and continue the tour.
           `,
           classes: 'tutorial-container',
@@ -65,9 +66,9 @@ class Tutorial {
           advanceOn: { selector: '#filter-menu-filter-area', event: 'click' },
           buttons: [
             {
-              text: 'Abort tour',
+              text: 'Exit tour',
               classes: 'no-button',
-              action: this.tour.hide,
+              action: this.tour.complete,
             }
           ]
       });
@@ -82,9 +83,9 @@ class Tutorial {
           advanceOn: { selector: '#filters-menu-anchor-point [menu-item=space_time]', event: 'click' },
           buttons: [
             {
-              text: 'Abort tour',
+              text: 'Exit tour',
               classes: 'no-button',
-              action: this.tour.hide,
+              action: this.tour.complete,
             }
           ]
       });
@@ -99,9 +100,9 @@ class Tutorial {
           advanceOn: { selector: '#filters-menu-anchor-point [menu-item=sites]', event: 'click' },
           buttons: [
             {
-              text: 'Abort tour',
+              text: 'Exit tour',
               classes: 'no-button',
-              action: this.tour.hide,
+              action: this.tour.complete,
             }
           ]
       });
@@ -123,9 +124,9 @@ class Tutorial {
           advanceOn: { selector: '#facet-1 .tutorial-target', event: 'click' },
           buttons: [
             {
-              text: 'Abort tour',
+              text: 'Exit tour',
               classes: 'no-button',
-              action: this.tour.hide,
+              action: this.tour.complete,
             }
           ]
       });
@@ -134,6 +135,7 @@ class Tutorial {
           id: this.stepCounter++,
           title: 'Result section',
           text: `This is the result section. Here you will see all the archeological sites that contains data matching your selected filters. Currently we are only seeing the site we selected in the filter.
+          <br /><br />
           Go ahead and click on the site on the map, this will take you to the landing page for this site.
           `,
           classes: 'tutorial-container',
@@ -143,9 +145,9 @@ class Tutorial {
           },
           buttons: [
             {
-              text: 'Abort tour',
+              text: 'Exit tour',
               classes: 'no-button',
-              action: this.tour.hide,
+              action: this.tour.complete,
             }
           ]
       });
@@ -154,8 +156,7 @@ class Tutorial {
       this.tour.addStep({
           id: this.stepCounter++,
           title: 'Site reports',
-          text: `Good job!<br /><br />
-          You are now on the site report page. This page contains all the data associated with the site you clicked on.
+          text: `You are now on the site report page. This page contains all the data associated with the site you clicked on.
           Here you can see the individual samples taken at the site, as well as the analyses performed on those samples.
           <br /><br />
           Let's briefly go over it in more detail.
@@ -168,9 +169,9 @@ class Tutorial {
               action: this.tour.next
             },
             {
-              text: 'Abort tour',
+              text: 'Exit tour',
               classes: 'no-button',
-              action: this.tour.hide,
+              action: this.tour.complete,
             }
           ]
       });
@@ -188,9 +189,9 @@ class Tutorial {
               action: this.tour.next
             },
             {
-              text: 'Abort tour',
+              text: 'Exit tour',
               classes: 'no-button',
-              action: this.tour.hide,
+              action: this.tour.complete,
             }
           ]
       });
@@ -211,9 +212,9 @@ class Tutorial {
               action: this.tour.next
             },
             {
-              text: 'Abort tour',
+              text: 'Exit tour',
               classes: 'no-button',
-              action: this.tour.hide,
+              action: this.tour.complete,
             }
           ]
       });
@@ -223,15 +224,17 @@ class Tutorial {
           title: 'Analyses',
           text: `This section shows the various analyses performed on the samples. Clicking on an analysis will show you the results.
           Sometimes several ways of viewing the results are available.
-          This site only has one analysis associated with it. Go ahead and click on it to expand it.`,
+          This site only has one analysis associated with it. 
+          <br /><br />
+          Go ahead and click on it to expand it.`,
           attachTo: { element: '#site-report-section-analyses', on: 'right' },
           classes: 'tutorial-container',
           advanceOn: { selector: '#site-report-section-3 > h3.site-report-level-title', event: 'click' },
           buttons: [
             {
-              text: 'Abort tour',
+              text: 'Exit tour',
               classes: 'no-button',
-              action: this.tour.hide,
+              action: this.tour.complete,
             }
           ]
       });
@@ -252,9 +255,9 @@ class Tutorial {
             action: this.tour.next
           },
           {
-            text: 'Abort tour',
+            text: 'Exit tour',
             classes: 'no-button',
-            action: this.tour.hide,
+            action: this.tour.complete,
           }
         ]
       });
@@ -273,9 +276,9 @@ class Tutorial {
             action: this.tour.next
           },
           {
-            text: 'Abort tour',
+            text: 'Exit tour',
             classes: 'no-button',
-            action: this.tour.hide,
+            action: this.tour.complete,
           }
         ]
       });
@@ -289,9 +292,9 @@ class Tutorial {
         classes: 'tutorial-container',
         buttons: [
           {
-            text: 'Abort tour',
+            text: 'Exit tour',
             classes: 'no-button',
-            action: this.tour.hide,
+            action: this.tour.complete,
           }
         ]
       });
