@@ -367,6 +367,14 @@ class SeadQuerySystem {
 		this.tutorial.init();
 	}
 
+	//resets the UI to the initial state, removes any filters and so on
+	reset() {
+		this.layoutManager.setActiveView("filters");
+		this.domainManager.setActiveDomain("general");
+		this.resultManager.setActiveModule(this.config.defaultResultModule, true);
+		this.facetManager.reset();
+	}
+
 	/*
 	renderUI() {
 		let renderMode = this.layoutManager.getMode(); //"mobileMode" or "desktopMode"
@@ -1230,6 +1238,7 @@ class SeadQuerySystem {
 			_paq.push(['trackPageView']);
 		}
 	}
+	
 	
 }
 

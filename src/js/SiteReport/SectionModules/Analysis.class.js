@@ -222,6 +222,14 @@ class Analysis {
 		});
 	}
 
+
+	/**
+	 * @description Delegates the building of a section to all the dataset modules. This is done by calling the makeSection() method on each module.
+	 * 
+	 * @param {*} siteData 
+	 * @param {*} section 
+	 * @returns 
+	 */
 	async delegateBuildSection(siteData, section) {
 		let siteDataCopy = JSON.parse(JSON.stringify(siteData));
 		//The dataset modules will actually grab/delete datasets from the siteData struct as they claim them,
@@ -232,6 +240,9 @@ class Analysis {
 			buildSectionPromises.push(p);
 		}
 		await Promise.all(buildSectionPromises);
+
+		this.sqs.sqsEventDispatch("analysisSectionsBuilt");
+
 		return section;
 	}
 

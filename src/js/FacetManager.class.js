@@ -1472,6 +1472,16 @@ class FacetManager {
 		return facet;
 	}
 
+	reset() {
+		//remove all facets
+		this.facets.forEach((facet) => {
+			this.removeFacet(facet);
+		});
+
+		//and trigger a result load
+		this.sqs.resultManager.fetchData();
+	}
+
 }
 
 export { FacetManager as default }

@@ -21,6 +21,7 @@ class Tutorial {
       });
 
       $("#tutorial-question .yes-button").on("click", () => {
+        this.sqs.reset();
         this.tour.start();
         $("#tutorial-question").hide();
       });
@@ -57,7 +58,7 @@ class Tutorial {
           id: this.stepCounter++,
           title: 'Domains',
           text: `Each domain has its own set of filters associated with it, which can be selected via this menu. Filters are used to narrow down the amount of sites shown in the result section.
-          Click on the Filters menu to open it.
+          Click on the Filters menu to open it and continue the tour.
           `,
           classes: 'tutorial-container',
           attachTo: { element: '#filter-menu-container', on: 'right' },
@@ -316,7 +317,7 @@ class Tutorial {
         }
       });
 
-      if(this.sqs.config.tutorialEnabled && this.sqs.layoutManager.getActiveView().name == "filters" && (this.userHasCookie() == false || true)) {
+      if(this.sqs.config.tutorialEnabled && this.sqs.layoutManager.getActiveView().name == "filters" && this.userHasCookie() == false) {
         if(this.sqs.requestUrl.split("/").length < 3) {
           $("#tutorial-question").show();
         }
@@ -346,8 +347,16 @@ class Tutorial {
           name: "tutorial",
           title: `<i class="fa fa-question-circle" aria-hidden="true"></i> Tutorial`,
           callback: () => {
-            //FIXME: here we need to reset the view of the system in order for the tutorial to work
-            this.tour.start();
+            if(this.sqs.facetManager.facets.length > 0) {
+              if(window.confirm("Starting the tutorial will reset the view and clear any filters you may have chosen. Do you still wish to do this?")) {
+                this.sqs.reset();
+                this.tour.start();
+              }
+            }
+            else {
+              this.sqs.reset();
+              this.tour.start();
+            }
           }
         });
       }

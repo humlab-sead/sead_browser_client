@@ -219,6 +219,10 @@ class DatingToPeriodDataset extends DatasetModule {
 
 				let stdAge = new StandardAge();
 				stdAge.ageType = point.dating_values.age_type;
+				if(typeof stdAge.ageType == "undefined") {
+					let method = this.getAnalysisMethodMetaById(siteData, dataGroup.method_id);
+					stdAge.ageType = method.method_name;
+				}
 				stdAge.sample = sample.sample_name;
 				stdAge.ageLocation = point.dating_values.age_location_name;
 

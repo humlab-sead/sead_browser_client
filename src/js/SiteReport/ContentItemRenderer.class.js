@@ -373,6 +373,7 @@ class ContentItemRenderer {
 			});
 			
 			let exportFormats = ["json", "xlsx"];
+			//let exportFormats = ["json", "xlsx", "pdf"];
 			
 			if(selectedRoType != "table" && selectedRoType != "dendrochart" && selectedRoType != "ecocodes-samples" && selectedRoType != "ecocode") {
 				exportFormats.push("png");

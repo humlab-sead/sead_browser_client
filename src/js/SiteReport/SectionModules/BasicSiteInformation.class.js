@@ -13,6 +13,7 @@ import Point from 'ol/geom/Point';
 import css from '../../../stylesheets/style.scss';
 import * as Plotly from "plotly.js-dist";
 import DatingToPeriodDataset from './DatasetModules/DatingToPeriodDataset.class';
+import { Chart, CategoryScale, LinearScale, BarController, BarElement } from "chart.js";
 
 /*
 * Class: BasicSiteInformation
@@ -134,7 +135,11 @@ class BasicSiteInformation {
 			.append("<div class='site-report-aux-header-container'><h4>Description</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>"+siteDecription+"</div>")
-			.append("<div id='site-report-time-overview'></div>")
+			.append("<div class='site-report-aux-header-underline'></div>")
+			.append(`<div id='site-report-time-overview-container'>
+				<div class='site-report-aux-header-container'><h4>Dated samples overview</h4></div>
+				<div id="site-report-time-overview"></div>
+			</div>`)
 			.append("<div class='site-report-aux-header-container'><h4>Dataset references</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+datasetReferencesHtml+"</div>")
@@ -164,74 +169,12 @@ class BasicSiteInformation {
 		
 		this.renderMiniMap(siteData);
 
-		/*
-		setTimeout(() => { //FIXME: this is obviously terrible, but we need to wait for the DatingToPeriodDataset module to do its thing
+		this.sqs.sqsEventListen("analysisSectionsBuilt", () => {
 			this.renderTimeOverview("site-report-time-overview");
-		}, 500);
-		*/
+		});
 	}
 
 
-	renderTimeOverview2(targetAnchorQuery) {
-		// Define the geochronology and c14 dating ranges
-		var geochronologyData = [
-			{range: [100, 200], color: 'rgb(0, 0, 255)'},
-			{range: [300, 400], color: 'rgb(0, 0, 255)'},
-			{range: [600, 800], color: 'rgb(0, 0, 255)'}
-		];
-		
-		var c14Data = [
-			{range: [50, 80], color: 'rgb(255, 0, 0)'},
-			{range: [200, 250], color: 'rgb(255, 0, 0)'},
-			{range: [400, 500], color: 'rgb(255, 0, 0)'},
-			{range: [700, 750], color: 'rgb(255, 0, 0)'}
-		];
-		
-		// Create the trace for the geochronology bars
-		var geoTrace = {
-			x: geochronologyData.map(d => d.range),
-			y: geochronologyData.map((d, i) => i),
-			type: 'bar',
-			orientation: 'h',
-			marker: {
-			color: geochronologyData.map(d => d.color)
-			},
-			hovertemplate: 'Range: %{x[0]} - %{x[1]}<extra></extra>'
-		};
-		
-		// Create the trace for the c14 bars
-		var c14Trace = {
-			x: c14Data.map(d => d.range),
-			y: c14Data.map((d, i) => i + geochronologyData.length),
-			type: 'bar',
-			orientation: 'h',
-			marker: {
-			color: c14Data.map(d => d.color)
-			},
-			hovertemplate: 'Range: %{x[0]} - %{x[1]}<extra></extra>'
-		};
-		
-		// Set the layout of the chart
-		var layout = {
-			title: 'Dating Ranges',
-			xaxis: {
-			title: 'Years',
-			range: [0, 1000]
-			},
-			yaxis: {
-			title: 'Dating Type',
-			tickvals: geochronologyData.map((d, i) => i + 0.5).concat(c14Data.map((d, i) => i + geochronologyData.length + 0.5)),
-			ticktext: geochronologyData.map(d => 'Geochronology').concat(c14Data.map(d => 'C14'))
-			},
-			barmode: 'overlay'
-		};
-		
-		// Create the chart
-		var data = [geoTrace, c14Trace];
-		Plotly.newPlot(targetAnchorQuery, data, layout);
-	}
-
-	//using the an array of the standardAge format, create a timeline chart using plotly where each ageType is represented as lines along the x axis with different colors
 	renderTimeOverview(targetAnchorQuery) {
 		let siteDatingSummary = null;
 		this.sqs.siteReportManager.siteReport.modules.forEach(m => {
@@ -246,69 +189,111 @@ class BasicSiteInformation {
 
 		const standardAges = siteDatingSummary;
 
-		console.log(standardAges);
+		if(standardAges.length == 0) {
+			document.getElementById(targetAnchorQuery).innerHTML = "No data";
+			return;
+		}
 
-		let traces = [];
 
+		let compoundAges = [];
 		standardAges.forEach(standardAge => {
+			//try to find in compoundAges
 			let found = false;
-			traces.forEach(trace => {
-				if(trace.ageType == standardAge.ageType) {
-					trace.standardAges.push(standardAge);
+			compoundAges.forEach(compoundAge => {
+				if(compoundAge.ageType == standardAge.ageType) {
 					found = true;
+					compoundAge.ages.push(standardAge);
+					if(standardAge.ageOlder > compoundAge.older) {
+						compoundAge.older = standardAge.ageOlder;
+					}
+					if(standardAge.ageYounger < compoundAge.younger) {
+						compoundAge.younger = standardAge.ageYounger;
+					}
 				}
 			});
-
 			if(!found) {
-				traces.push({
+				compoundAges.push({
 					ageType: standardAge.ageType,
-					standardAges: [standardAge]
+					ages: [standardAge],
+					older: standardAge.ageOlder,
+					younger: standardAge.ageYounger
 				});
 			}
 		});
 
-		let colors = this.sqs.color.getColorScheme(traces.length);
+		//labels should be the ageType
+		let labels = [];
+		for(let key in compoundAges) {
+			labels.push(compoundAges[key].ageType);
+		}
 
-		let plotlyTraces = [];
-		traces.forEach(trace => {
-			let plotlyTrace = {
-				x: [],
-				y: [],
-				base: [],
-				type: 'bar',
-				orientation: 'h',
-				marker: {
-				  color: colors[traces.indexOf(trace)],
-				  opacity: 0.5
+		let colors = this.sqs.color.getColorScheme(labels.length);
+
+		let datasets = [{
+			label: "",
+			data: [],
+			backgroundColor: colors,
+		}];
+		for(let key in compoundAges) {
+			let age = compoundAges[key];
+			datasets[0].data.push([age.older, age.younger])
+		}
+
+		const data = {
+			labels: labels,
+			datasets: datasets
+		};
+
+		const config = {
+			type: 'bar',
+			data: data,
+			options: {
+				scales: {
+					x: {
+						reverse: true,
+						ticks: {
+							callback: function (value, index, values) {
+								if (value >= 1000) {
+									return value / 1000 + "k BP";
+								} else {
+									return value+" BP";
+								}
+							},
+					  	},
+					},
 				},
-				name: trace.ageType
-			};
+				indexAxis: 'y',
+				responsive: true,
+				plugins: {
+					tooltip: {
+						callbacks: {
+							title: (tooltipItems) => {
+								let older = tooltipItems[0].raw[0];
+								let younger = tooltipItems[0].raw[1];
+								return older+" BP - "+younger+" BP";
+							},
+							label: (data) => {
+								return "Dating by "+data.label;
+							}
+						}
+					},
+					legend: {
+						display: false
+					},
+					title: {
+						display: true,
+						text: 'Timeline Chart'
+					}
+				}
+			}
+		};
 
-			trace.standardAges.forEach(standardAge => {
-				plotlyTrace.x.push(standardAge.ageOlder - standardAge.ageYounger);
-				plotlyTrace.y.push(standardAge.ageType);
-				plotlyTrace.base.push(standardAge.ageOlder);
-			});
+		
+		let chartId = nanoid();
+		document.getElementById(targetAnchorQuery).innerHTML = '<canvas id="'+chartId+'"></canvas>';
 
-			plotlyTraces.push(plotlyTrace);
-		});
-
-
-		console.log(plotlyTraces)
-
-		var layout = {
-			title: 'Timeline Chart',
-			//barmode: 'overlay',
-			xaxis: {
-			  type: 'linear'
-			},
-			yaxis: {
-			  showticklabels: false
-			},
-			showlegend: true
-		  };
-		  
-		  Plotly.newPlot(targetAnchorQuery, plotlyTraces, layout);
+		const ctx = document.getElementById(chartId).getContext("2d");
+        const myChart = new Chart(ctx, config);
 	}
 
 	/**
@@ -415,12 +400,14 @@ class BasicSiteInformation {
 	
 	exportSite() {
 		let jsonBtn = this.sqs.siteReportManager.siteReport.getExportButton("json", this.sqs.siteReportManager.siteReport.siteData);
+		//let pdfBtn = this.sqs.siteReportManager.siteReport.getExportButton("pdf", this.sqs.siteReportManager.siteReport.siteData);
 
 		let dialogNodeId = nanoid();
 		let dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");
 		this.sqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
 
 		$("#node-"+dialogNodeId).append(jsonBtn);
+		//$("#node-"+dialogNodeId).append(pdfBtn);
 	}
 
 	/*
