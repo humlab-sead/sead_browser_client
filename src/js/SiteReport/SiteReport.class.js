@@ -7,7 +7,9 @@ import BasicSiteInformation from './SectionModules/BasicSiteInformation.class';
 import Samples from './SectionModules/Samples.class';
 import Analysis from './SectionModules/Analysis.class';
 import EcoCodes from './SectionModules/EcoCodes.class';
-
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
 /*
 * Class: SiteReport
 *
@@ -75,7 +77,6 @@ class SiteReport {
 
 		this.fetchSite().then(siteData => {
 			this.siteData = siteData;
-			console.log(this.siteData);
 			this.fetchComplete = true;
 			this.hideLoadingIndicator();
 			this.enableExportButton();
@@ -297,6 +298,7 @@ class SiteReport {
 		$(".site-report-level-title", sectionNode)
 			.html("<i class=\"site-report-sections-expand-button fa fa-plus-circle\" aria-hidden=\"true\">&nbsp;</i><span class='title-text'>"+sectionTitle+"</span><span class='section-warning'></span>")
 			.on("click", (evt) => {
+				console.log("Clicked section title");
 				var parent = $(evt.currentTarget).parent();
 				var collapsed = parent.children(".site-report-level-content").attr("collapsed") == "true";
 				collapsed = !collapsed;
@@ -595,7 +597,150 @@ class SiteReport {
 			});
 		}
 		
+		if(exportFormat == "pdf") {
+			node = $("<a id='site-report-png-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download PDF</a>");
+			$(node).on("click", (evt) => {
+				this.renderDataAsPdf(exportStruct);
+			});
+		}
+		
 		return node;
+	}
+
+	renderDataAsPdf(exportStruct) {
+		console.log(this.siteData, exportStruct);
+
+		let includedColumns = [
+			'Sample name',
+			'Abundance count',
+			'Taxon',
+			'Identification levels',
+			'Element type',
+			'Modification'
+		];
+
+		let pdfDoc = {
+			content: [
+				{
+					text: "SEAD Dataset Export\n\n",
+					style: "header"
+				},
+				{
+					text: exportStruct.meta.section+"\n\n",
+				},
+				{
+					text: exportStruct.meta.description+"\n\n",
+				},
+				{
+					text: "This dataset and more information available at",
+				},
+				{
+					text: exportStruct.meta.url+"\n\n",
+				},
+				{
+					text: "SEAD version",
+					style: "subheader2"
+				},
+				{
+					text: this.sqs.config.version+"\n\n",
+				},
+				{
+					text: "Reference",
+					style: "subheader2"
+				},
+				{
+					text: exportStruct.meta.attribution+"\n\n",
+				},
+				{
+					text: "Site name",
+					style: "subheader2"
+				},
+				{
+					text: this.siteData.site_name+"\n\n",
+				},
+				{
+					text: "Dataset",
+					style: "subheader2"
+				},
+				{
+					text: exportStruct.meta.content+"\n\n",
+				},
+			],
+			styles: {
+				header: {
+					fontSize: 18,
+					bold: true
+				},
+				subheader: {
+					fontSize: 15,
+					bold: true
+				},
+				subheader2: {
+					fontSize: 12,
+					bold: true
+				},
+				quote: {
+					italics: true
+				},
+				small: {
+					fontSize: 8
+				}
+			}
+		};
+
+		
+		let headerRow = [];
+		let taxonColKey = null;
+		let colKeys = [];
+		for(let colKey in exportStruct.datatable.columns) {
+			let col = exportStruct.datatable.columns[colKey];
+			if(col.exclude_from_export) {
+				continue;
+			}
+			if(col.title == "Taxon") {
+				taxonColKey = col.key;
+			}
+			if(includedColumns.includes(col.title)) {
+				headerRow.push(col.title);
+				colKeys.push(colKey);
+			}
+		}
+
+		let tableRows = [];
+
+		for(let rowKey in exportStruct.datatable.rows) {
+			let row = exportStruct.datatable.rows[rowKey];
+			let tableRow = [];
+			
+
+			for(let cellKey in row) {
+				if(colKeys.includes(cellKey)) {
+					let cell = row[cellKey];
+					if(typeof cell.rawValue != "undefined") {
+						tableRow.push(this.sqs.formatTaxon(cell.rawValue, null, false));
+					}
+					else {
+						tableRow.push(cell.value);
+					}
+				}
+			}
+			
+			tableRows.push(tableRow);
+		}
+
+		console.log(headerRow, tableRows);
+
+		tableRows.unshift(headerRow)
+		
+		pdfDoc.content.push({
+			table: {
+				body: tableRows
+			}
+		});
+		
+	
+
+		pdfMake.createPdf(pdfDoc).open();
 	}
 
 	pushDownload(filename, text) {
@@ -608,7 +753,7 @@ class SiteReport {
 		document.body.removeChild(element);
 	}
 	
-	async renderExportDialog(formats = ["json", "xlsx", "png"], section = "all", contentItem = "all") {
+	async renderExportDialog(formats = ["json", "xlsx", "png", "pdf"], section = "all", contentItem = "all") {
 		
 		let exportData = this.sqs.copyObject(this.data);
 		this.prepareExportStructure(exportData.sections);
@@ -678,6 +823,10 @@ class SiteReport {
 		if(formats.indexOf("png") != -1) {
 			var pngBtn = this.getExportButton("png", exportStruct);
 			$("#node-"+dialogNodeId).append(pngBtn);
+		}
+		if(formats.indexOf("pdf") != -1) {
+			var pdfBtn = this.getExportButton("pdf", exportStruct);
+			$("#node-"+dialogNodeId).append(pdfBtn);
 		}
 	}
 

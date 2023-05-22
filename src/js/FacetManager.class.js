@@ -1444,7 +1444,6 @@ class FacetManager {
 	 * This is a shorthand function for making and adding a facet.
 	 */
 	spawnFacet(facetId, selections = [], triggerResultLoad = true) {
-		console.log("spawnFacet");
 		let found = false;
 		this.facets.forEach((facet) => {
 			if(facet.name == facetId) {
@@ -1471,6 +1470,16 @@ class FacetManager {
 		}
 		
 		return facet;
+	}
+
+	reset() {
+		//remove all facets
+		this.facets.forEach((facet) => {
+			this.removeFacet(facet);
+		});
+
+		//and trigger a result load
+		this.sqs.resultManager.fetchData();
 	}
 
 }

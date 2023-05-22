@@ -13,6 +13,7 @@ import MosaicDendroBuildingTypesModule from "./MosaicTileModules/MosaicDendroBui
 //import MosaicDendroTreeSpeciesModule from "./MosaicTileModules/OLD-MosaicDendroTreeSpeciesModule.class";
 import MosaicDendroDatingHistogramModule from "./MosaicTileModules/MosaicDendroDatingHistogramModule.class";
 import MosaicDendroTreeSpeciesChartModule from "./MosaicTileModules/MosaicDendroTreeSpeciesChartModule.class";
+import MosaicTemporalDistributionModule from "./MosaicTileModules/MosaicTemporalDistributionModule.class";
 import { nanoid } from 'nanoid';
 import * as Plotly from "plotly.js-dist";
 
@@ -111,6 +112,12 @@ class ResultMosaic extends ResultModule {
 			title: "Tree species",
 			className: "MosaicDendroTreeSpeciesChartModule",
 			classTemplate: MosaicDendroTreeSpeciesChartModule,
+			module: null
+		});
+		this.modules.push({
+			title: "Temporal distribution of datasets",
+			className: "MosaicTemporalDistributionModule",
+			classTemplate: MosaicTemporalDistributionModule,
 			module: null
 		});
 
@@ -967,9 +974,14 @@ class ResultMosaic extends ResultModule {
 
 	}
 
-	unrenderPlotlyChart(node) {
-		this.sqs.sqsEventUnlisten("layoutResize", this)
-		Plotly.purge(node);
+	unrenderPlotlyChart(selector) {
+		this.sqs.sqsEventUnlisten("layoutResize", this);
+		let node = $(selector);
+		if(node.length == 0) {
+			console.warn("Bailing on unrenderPlotlyChart because node was not found");
+			return;
+		}
+		Plotly.purge(node[0]);
 	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {

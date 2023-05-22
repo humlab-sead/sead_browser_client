@@ -596,6 +596,7 @@ class AbundanceDataset extends DatasetModule {
 					{
 						"type": "cell",
 						"value": this.sqs.formatTaxon(taxon, data_point.value.identification_levels, true, true),
+						"rawValue": taxon,
 						"tooltip": commonNames
 					},
 					{

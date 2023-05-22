@@ -538,17 +538,20 @@ Description: ${image.description}`;
 	}
 
 	renderDistribution(container, taxonData) {
-		let distHtml = "";
-		
+
+		let distHtml = "<table class='rcb-reference-data'>";
 		taxonData.distribution.forEach(dist => {
 			let tooltipId = nanoid();
-			distHtml += "<h4 id='"+tooltipId+"'>"+dist.biblio.authors+"</h4>";
-			distHtml += "<div>"+dist.distribution_text+"</div><br />";
+			distHtml += "<tr>";
+			distHtml += "<td><h4 id='"+tooltipId+"'>"+dist.biblio.bugs_reference+"</h4></td>";
+			distHtml += "<td>"+dist.distribution_text+"</td>";
+			distHtml += "</tr>";
 
 			let tooltipText = dist.biblio.full_reference ? dist.biblio.full_reference : dist.biblio.authors+" "+dist.biblio.title
 			tooltipText = "<h3 class='tooltip-header'>Reference</h3>"+tooltipText;
 			this.sqs.tooltipManager.registerTooltip("#"+tooltipId, tooltipText, { drawSymbol: true });
 		});
+		distHtml += "</table>";
 
 		$("#rcb-distribution-biblio", container).html(distHtml);
 		
@@ -602,8 +605,23 @@ Description: ${image.description}`;
 		out += "</ul>";
 
 		$("#rcb-rdb", container).html(out);
+	}
 
-		
+	renderTaxaBiology(instance, taxonData) {
+		let bioHtml = "<table class='rcb-reference-data'>";
+		taxonData.biology.forEach(bio => {
+			let tooltipId = nanoid();
+			bioHtml += "<tr>";
+			bioHtml += "<td><h4 id='"+tooltipId+"'>"+bio.biblio.bugs_reference+"</h4></td>";
+			bioHtml += "<td>"+bio.biology_text+"</td>";
+			bioHtml += "</tr>";
+
+			let tooltipText = bio.biblio.full_reference ? bio.biblio.full_reference : bio.biblio.authors+" "+bio.biblio.title
+			tooltipText = "<h3 class='tooltip-header'>Reference</h3>"+tooltipText;
+			this.sqs.tooltipManager.registerTooltip("#"+tooltipId, tooltipText, { drawSymbol: true });
+		});
+		bioHtml += "</table>";
+		$("#rcb-biology", instance).html(bioHtml);
 	}
 
 	async renderTaxon(taxonId = null) {
@@ -630,21 +648,9 @@ Description: ${image.description}`;
 		this.renderTaxonomicNotes(instance, taxonData);
 		this.renderRdb(instance, taxonData);
 		this.renderDistribution(instance, taxonData);
+		this.renderTaxaBiology(instance, taxonData);
 
 		console.log(taxonData)
-
-
-		let bioHtml = "";
-		taxonData.biology.forEach(bio => {
-			let tooltipId = nanoid();
-			bioHtml += "<h4 id='"+tooltipId+"'>"+bio.biblio.authors+"</h4>";
-			bioHtml += "<div>"+bio.biology_text+"</div><br />";
-
-			let tooltipText = bio.biblio.full_reference ? bio.biblio.full_reference : bio.biblio.authors+" "+bio.biblio.title
-			tooltipText = "<h3 class='tooltip-header'>Reference</h3>"+tooltipText;
-			this.sqs.tooltipManager.registerTooltip("#"+tooltipId, tooltipText, { drawSymbol: true });
-		});
-		$("#rcb-biology", instance).html(bioHtml);
 
 		let seasonalityGroups = this.groupByAttribute(taxonData.taxa_seasonality, ["activity_type_id", "location_id"]);
 

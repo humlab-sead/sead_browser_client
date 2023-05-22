@@ -55,6 +55,9 @@ class DomainManager {
     }
 
     setActiveDomain(domainName, updateUrl = true) {
+        if(domainName == this.activeDomain.name) {
+            return;
+        }
         this.activeDomain = this.getDomain(domainName);
         this.updateMenu();
         

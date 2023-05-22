@@ -260,6 +260,10 @@ class sqsMenu {
 		});
 
 		$("body").on("click", (evt) => {
+			if(this.sqs.tutorial.tour.isActive()) {
+				//if tutorial is active, ignore body clicks
+				return;
+			}
 			evt.stopImmediatePropagation();
 			this.closeAllMenus();
 		})

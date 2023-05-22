@@ -19,6 +19,7 @@ class Router {
             path = window.location.pathname;
         }
         let pathComponents = path.split("/");
+        this.sqs.requestUrl = path;
         switch(pathComponents[1]) {
             case "":
                 this.sqs.layoutManager.setActiveView("filters");
