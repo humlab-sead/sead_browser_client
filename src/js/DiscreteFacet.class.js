@@ -300,12 +300,9 @@ class DiscreteFacet extends Facet {
 					<div class='facet-row-checkbox-container'>
 						<div class='facet-row-checkbox'>`+checkMark+`</div>
 					</div>
-					<div class='facet-row-text'>`+specialFunctionLinks+displayTitle+`</div>
-					<div class='facet-row-count'>`+dataElement.count+`</div>
+					<div class='facet-row-text' title='`+displayTitle+`'>`+specialFunctionLinks+displayTitle+`</div>
+					<div class='facet-row-count' title="This is the number of 'analysis entities', which is an indication of how much data we have related to this entry">`+dataElement.count+`</div>
 				</div>`;
-				
-				//Disabled this becuase I'm paranoid about performance - probably not good to register this many tooltips, there has to be a better way...
-				//this.sqs.tooltipManager.registerTooltip("[facet-row-id='"+dataElement.id+"'] .facet-row-count", "Analysis entities");
 			}
 		}
 		
