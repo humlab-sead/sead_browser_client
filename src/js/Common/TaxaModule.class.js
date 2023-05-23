@@ -387,63 +387,76 @@ Description: ${image.description}`;
 	}
 
 	renderEcologySummary(container, taxonData) {
-
-		let bugsEcocodes = taxonData.ecocodes.filter(ecocode =>  {
-			return typeof ecocode.definition != "undefined" && ecocode.definition.ecocode_group_id == 2;
-		});
-		let kochEcocodes = taxonData.ecocodes.filter(ecocode =>  {
-			return typeof ecocode.definition != "undefined" && ecocode.definition.ecocode_group_id == 3;
+		let bugsEcocodes = [];
+		let kochEcocodes = [];
+		taxonData.ecocodes.systems.forEach(system => {
+			if(system.ecocode_system_id == 2) { // "Bugs Ecocodes"
+				//groups can be ignored since they are not being used
+				system.groups[0].codes.forEach(ecocode => {
+					bugsEcocodes.push(ecocode);
+				});
+			}
+			if(system.ecocode_system_id == 3) { // "Koch Ecology Codes"
+				//groups can be ignored since they are not being used
+				system.groups[0].codes.forEach(ecocode => {
+					kochEcocodes.push(ecocode);
+				});
+			}
 		});
 
 		let ecologyHtml = "<div class='rcb-ecocodes-container'>";
 		ecologyHtml += "<div class='bugs-ecocodes'>";
-		ecologyHtml += "<h4>Bugs EcoCodes</h4>";
+		let bugsEcocodesNodeId = nanoid();
+		ecologyHtml += "<h4 id='"+bugsEcocodesNodeId+"'>Bugs EcoCodes</h4>";
+
+		this.sqs.tooltipManager.registerTooltip("#"+bugsEcocodesNodeId, "A specially developed habitat classification system that allows for semi-quantitative environmental reconstructions.", {drawSymbol:true});
+
 		bugsEcocodes.forEach(bugsCode => {
 			let codeColor = "#000";
 			for(let key in Config.ecocodeColors) {
-				if(bugsCode.definition.ecocode_definition_id == Config.ecocodeColors[key].ecocode_definition_id) {
+				if(bugsCode.ecocode_definition_id == Config.ecocodeColors[key].ecocode_definition_id) {
 					codeColor = Config.ecocodeColors[key].color;
 				}
 			}
 			let ttId = "tt-"+nanoid();
 			ecologyHtml += "<div id='"+ttId+"'>";
 			ecologyHtml += "<div class='ecocode-color-box' style='background-color:"+codeColor+";'></div>";
-			ecologyHtml += bugsCode.definition.name+" ("+bugsCode.definition.abbreviation+")";
+			ecologyHtml += bugsCode.name+" ("+bugsCode.abbreviation+")";
 			ecologyHtml += "</div>";
 
-			let tooltipContent = "<h4 class='tooltip-header'>Bugs EcoCode - "+bugsCode.definition.name+"</h4><hr/>";
-			tooltipContent += "Definition: "+bugsCode.definition.definition+"<br/>Abbreviation: "+bugsCode.definition.abbreviation+"<br/><br/>Notes:<br/>"+bugsCode.definition.notes;
+			let tooltipContent = "<h4 class='tooltip-header'>Bugs EcoCode - "+bugsCode.name+"</h4><hr/>";
+			tooltipContent += "Definition: "+bugsCode.definition+"<br/>Abbreviation: "+bugsCode.abbreviation+"<br/><br/>Notes:<br/>"+bugsCode.notes;
 			this.sqs.tooltipManager.registerTooltip("#"+ttId, tooltipContent, {drawSymbol:true});
 		});
 		ecologyHtml += "</div>";
 
 		ecologyHtml += "<div class='koch-ecocodes'>";
-		ecologyHtml += "<h4>Koch EcoCodes</h4>";
+		ecologyHtml += "<h4>Koch Ecology Codes</h4>";
 		
 		kochEcocodes.forEach(kochCode => {
 			let codeName;
-			if(kochCode.definition.name != null) {
-				codeName = kochCode.definition.name.charAt(0).toUpperCase() + kochCode.definition.name.slice(1);
+			if(kochCode.name != null) {
+				codeName = kochCode.name.charAt(0).toUpperCase() + kochCode.name.slice(1);
 			}
 			else {
-				codeName = kochCode.definition.abbreviation+" (no name)";
+				codeName = kochCode.abbreviation+" (no name)";
 			}
 			
 			let codeColor = "#000";
 			let ttId = "tt-"+nanoid();
 			ecologyHtml += "<div id='"+ttId+"'>";
 			ecologyHtml += "<div class='ecocode-color-box' style='background-color:"+codeColor+";'></div>";
-			ecologyHtml += codeName+" ("+kochCode.definition.abbreviation+")";
+			ecologyHtml += codeName+" ("+kochCode.abbreviation+")";
 			ecologyHtml += "</div>";
 
-			//let tooltipContent = codeName+" "+kochCode.definition.abbreviation;
 			let tooltipContent = "<h4 class='tooltip-header'>Koch EcoCode - "+codeName+"</h4><hr/>";
-			tooltipContent += "Abbreviation: "+kochCode.definition.abbreviation;
+			tooltipContent += "Abbreviation: "+kochCode.abbreviation;
 			this.sqs.tooltipManager.registerTooltip("#"+ttId, tooltipContent, {drawSymbol:true});
 		});
 		ecologyHtml += "</div>";
-
 		ecologyHtml += "</div>";
+
+		this.sqs.tooltipManager.registerTooltip("#rcb-ecology-summary-header > div", "This is an overview of the ecological environments this taxon is known to reside in.", {drawSymbol:true});
 
 		$("#rcb-ecology-summary", container).append(ecologyHtml);
 	}
@@ -621,6 +634,9 @@ Description: ${image.description}`;
 			this.sqs.tooltipManager.registerTooltip("#"+tooltipId, tooltipText, { drawSymbol: true });
 		});
 		bioHtml += "</table>";
+
+		this.sqs.tooltipManager.registerTooltip("#rcb-biology-header > div", "Biological references describing the taxon or its habitat.", { drawSymbol: true });
+
 		$("#rcb-biology", instance).html(bioHtml);
 	}
 
@@ -650,8 +666,6 @@ Description: ${image.description}`;
 		this.renderDistribution(instance, taxonData);
 		this.renderTaxaBiology(instance, taxonData);
 
-		console.log(taxonData)
-
 		let seasonalityGroups = this.groupByAttribute(taxonData.taxa_seasonality, ["activity_type_id", "location_id"]);
 
 		seasonalityGroups.forEach(group => {
@@ -662,12 +676,15 @@ Description: ${image.description}`;
 			group.domId = "rcb-year-wheel-"+nanoid();
 			let seasonalityGroupTooltipId = "tt-"+nanoid();
 			let html = "<div class='rcb-seasonlity-year-wheel'>";
-			html += "<h4 id='"+seasonalityGroupTooltipId+"' class='centered-label'>"+header+"</h4>";
+			//html += "<h4 id='"+seasonalityGroupTooltipId+"' class='centered-label'>"+header+"</h4>";
 			html += "<div id='"+group.domId+"' class='rcb-year-wheel'></div>";
 			html += "</div>";
 			$("#rcb-seasonlity-year-wheels", instance).append(html);
 
+			this.sqs.tooltipManager.registerTooltip("#rcb-seasonlity-year-wheels-header > div", "Months in which this taxon has been observed as active.", { drawSymbol: true });
+
 			let tooltipText = "The activity: '"+activityName+"' is known for this species in the location: '"+locationName+"'";
+
 			if(group.items[0].activity_type.description) {
 				tooltipText += "<br />Activity description: '"+group.items[0].activity_type.description+"'";
 			}
@@ -824,7 +841,6 @@ Description: ${image.description}`;
 			shortName: "Dec"
 		});
 
-
 		const color = new Color();
 		let selectionColor = color.getColorScheme(1);
 
@@ -849,7 +865,7 @@ Description: ${image.description}`;
 					backgroundColor: "#000"
 				},
 				text: month.shortName,
-				description: activeMonth ? "Active in "+month.name : "Not active in "+month.name,
+				description: activeMonth ? "Observed as active in "+month.name : "Not observed as active in "+month.name,
 			});
 		});
 
