@@ -1432,6 +1432,11 @@ class FacetManager {
 					if(facetGroupItems[k1].facetCode == filterList[k2]) {
 						facetGroupItems[k1].enabled = true;
 					}
+					//manually disabling the ecocode_system filter here since it's part of the 2-stage ecocode filter
+					if(facetGroupItems[k1].facetCode == "ecocode_system") {
+						facetGroupItems[k1].enabled = false;
+					}
+					
 				}
 			}
 		}
@@ -1474,12 +1479,20 @@ class FacetManager {
 
 	reset() {
 		//remove all facets
+		this.sqs.resultManager.setResultDataFetchingSuspended(true);
+		
+		//this is a little silly, but we need to avoid manipulating the array we're iterating over so we make a copy
+		let facetsToDestroy = [];
+
 		this.facets.forEach((facet) => {
-			this.removeFacet(facet);
+			facetsToDestroy.push(facet);
 		});
 
-		//and trigger a result load
-		this.sqs.resultManager.fetchData();
+		facetsToDestroy.forEach(facet => {
+			facet.destroy();
+		});
+
+		this.sqs.resultManager.setResultDataFetchingSuspended(false);
 	}
 
 }

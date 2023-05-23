@@ -116,12 +116,12 @@ class Tutorial {
           beforeShowPromise: () => {
               return new Promise((resolve) => {
                   this.sqs.sqsEventListen("facetDataRendered", () => {
-                      resolve();
+                    resolve();
                   });
               });
           },
-          attachTo: { element: '#facet-1 .tutorial-target', on: 'right' },
-          advanceOn: { selector: '#facet-1 .tutorial-target', event: 'click' },
+          attachTo: { element: '#facet-section .facet:first-of-type .tutorial-target', on: 'right' },
+          advanceOn: { selector: '#facet-section .facet:first-of-type .tutorial-target', event: 'click' },
           buttons: [
             {
               text: 'Exit tour',

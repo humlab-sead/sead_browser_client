@@ -129,6 +129,12 @@ class SqsMenuManager {
 		
 		return masterMenu;
 	}
+
+	resetAll() {
+		for(var key in this.menus) {
+			this.menus[key].reset();
+		}
+	}
 }
 
 export { SqsMenuManager as default }

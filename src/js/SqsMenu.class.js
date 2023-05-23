@@ -407,6 +407,19 @@ class sqsMenu {
 			});
 		});
 	}
+
+	reset() {
+		this.menuDef.items.forEach(item => {
+			item.selected = false;
+			item.children.forEach(child => {
+				child.selected = false;
+			});
+		});
+
+		//remove the class sqs-menu-block-expanded from all menu items
+		$(".first-level-item", this.menuDef.anchor).removeClass("first-level-item-expanded");
+		$(".second-level-item", this.menuDef.anchor).css("display", "none");
+	}
 }
 
 export { sqsMenu as default }

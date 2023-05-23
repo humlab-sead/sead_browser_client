@@ -373,6 +373,7 @@ class SeadQuerySystem {
 		this.domainManager.setActiveDomain("general");
 		this.resultManager.setActiveModule(this.config.defaultResultModule, true);
 		this.facetManager.reset();
+		this.menuManager.resetAll();
 	}
 
 	/*
