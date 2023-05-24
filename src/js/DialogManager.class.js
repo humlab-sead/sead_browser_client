@@ -75,6 +75,8 @@ class DialogManager {
 
 	hidePopOver() {
 		$("#popover-dialog").fadeOut(100);
+		$("#popover-dialog-frame").css("width", "");
+		$("#popover-dialog-frame").css("height", "");
 		this.sqs.sqsEventDispatch("popOverClosed", {});
 	}
 
@@ -232,6 +234,7 @@ class DialogManager {
 						window.sqs.dialogManager.showPopOver("About", content);
 					}
 				},
+				/*
 				{
 					name: "team",
 					title: "<i class=\"fa fa-user-circle\" aria-hidden=\"true\"></i> Team",
@@ -240,6 +243,7 @@ class DialogManager {
 						window.sqs.dialogManager.showPopOver("Team", content);
 					}
 				},
+				*/
 				{
 					name: "legal",
 					title: "<i class=\"fa fa-file-text-o\" aria-hidden=\"true\"></i> Legal",

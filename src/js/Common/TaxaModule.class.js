@@ -6,6 +6,7 @@ import "../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";
 import { default as Tabulator } from "tabulator-tables";
 import OpenLayersMap from "./OpenLayersMap.class";
 import TabContainer from "./TabContainer.class";
+import * as d3 from "d3";
 
 
 /*
@@ -320,10 +321,10 @@ class TaxaModule {
 				description: image.description
 			});
 
-			let imageMetaData = `Provider: Encyclopedia of Life
-Rights holder: ${image.rightsHolder}
-License: ${image.license}
-Description: ${image.description}`;
+			let imageMetaData = `Provider: Encyclopedia of Life \
+			Rights holder: ${image.rightsHolder} \
+			License: ${image.license} \
+			Description: ${image.description}`;
 
 			let imageNode = $("<a href='"+image.eolMediaURL+"' target='_blank'><img id='"+imageId+"' class='result-taxon-image-thumb' title='"+imageMetaData+"' src='"+image.eolThumbnailURL+"' /></a>");
 			
@@ -484,7 +485,9 @@ Description: ${image.description}`;
 		if(taxonData.measured_attributes.length == 0) {
 			this.sqs.setNoDataMsg($("#rcb-measurable-attributes", container));
 		}
+
 	}
+
 
 	renderTaxonomicNotes(container, taxonData) {
 		let taxaNotesHtml = "";
@@ -618,6 +621,10 @@ Description: ${image.description}`;
 		out += "</ul>";
 
 		$("#rcb-rdb", container).html(out);
+
+		if(taxonData.rdb.length == 0) {
+			this.sqs.setNoDataMsg($("#rcb-rdb", container));
+		}
 	}
 
 	renderTaxaBiology(instance, taxonData) {
@@ -729,9 +736,11 @@ Description: ${image.description}`;
 		}
 		*/
 
+		
 		seasonalityGroups.forEach(group => {
 			this.renderYearWheel(group.domId, group.items);
-		})
+		});
+		
 
 		if(seasonalityGroups.length == 0) {
 			this.sqs.setNoDataMsg("#rcb-seasonlity-year-wheels");
@@ -769,20 +778,20 @@ Description: ${image.description}`;
 			borderWidth : '1px',
 			borderColor : '#888',
 			borderAlpha : 1.0,
-			slice : '40%',
+			slice : '50%',
 			//pieTransform : 'flow=5',
 			hoverState : {
-			visible : false
+				visible : false
 			},
 			tooltip : {
-			text : '%plot-description'
+				text : '%plot-description'
 			},
 			valueBox : {
-			placement : 'fixed=50%;60%',
-			fontSize : '11px',
-			fontColor: "#000",
-			fontWeight: "light",
-			text : '%t'
+				placement : 'fixed=50%;50%',
+				fontSize : '11px',
+				fontColor: "#000",
+				fontWeight: "light",
+				text : '%t'
 			}
 		},
 		plotarea : {
