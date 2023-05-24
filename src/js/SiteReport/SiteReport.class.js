@@ -783,7 +783,7 @@ class SiteReport {
 			};
 		}
 
-		exportStruct.meta.attribution = Config.siteReportExportAttributionString;
+		exportStruct.meta.attribution = Config.dataAttributionString;
 		
 		let dialogNodeId = nanoid();
 		var dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");

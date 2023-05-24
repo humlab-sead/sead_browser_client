@@ -188,9 +188,6 @@ class MagneticSusceptibilityDataset extends DatasetModule {
                 return ae1.physical_sample_id > ae2.physical_sample_id;
             });
 
-            //console.log(burnedAnalysisEntities);
-            //console.log(unburnedAnalysisEntities);
-
             for(let key in unburnedAnalysisEntities) {
                 unburnedSeries.push([
                     unburnedAnalysisEntities[key].physical_sample_id,

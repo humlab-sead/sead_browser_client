@@ -35,6 +35,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
             body: JSON.stringify(resultMosaic.sites)
         });
         let data = await response.json();
+        this.data = data.analysis_methods_datasets;
 
         let colors = this.sqs.color.getColorScheme(data.analysis_methods_datasets.length);
 
@@ -86,6 +87,23 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         resultMosaic.unrenderPlotlyChart(this.renderIntoNode.substring(1));
         this.pendingRequestPromise = null;
         this.active = false;
+    }
+
+    formatDataForExport(data, format = "json") {
+        if(format == "csv") {
+            let includeColumns = ["description","method_abbrev_or_alt_name","method_name","dataset_count"];
+
+            //remove columns that we don't want to include
+            data = data.map((item) => {
+                let newItem = {};
+                includeColumns.forEach((column) => {
+                    newItem[column] = item[column];
+                });
+                return newItem;
+            });
+        }
+
+        return data;
     }
 }
 

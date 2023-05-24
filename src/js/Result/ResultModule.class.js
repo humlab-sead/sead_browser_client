@@ -54,11 +54,6 @@ class ResultModule {
 
 	bindExportModuleDataToButton(button, module = null) {
 
-		/*
-		console.log(button, module, this.data);
-		return;
-		*/
-
 		let sitesExportCallback = () => {
 			let jsonDownloadButtonId = "json-dl-"+nanoid();
 			let csvDownloadButtonId = "csv-dl-"+nanoid();
@@ -95,7 +90,7 @@ class ResultModule {
 				dataRows.push(["Content", "List of sites"]);
 				dataRows.push(["Description", "Data export from the SEAD project. Visit https://www.sead.se for more information."]);
 				dataRows.push(["url", Config.serverRoot]);
-				dataRows.push(["Attribution", Config.siteReportExportAttributionString]);
+				dataRows.push(["Attribution", Config.dataAttributionString]);
 				dataRows.push([]);
 				dataRows.push([
 					"Site Id",

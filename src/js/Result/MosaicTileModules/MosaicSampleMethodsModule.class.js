@@ -33,7 +33,7 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
             body: JSON.stringify(resultMosaic.sites)
         });
         let data = await response.json();
-        console.log(data)
+        this.data = data.sample_methods_sample_groups;
 
         let colors = this.sqs.color.getColorScheme(data.sample_methods_sample_groups.length);
 
@@ -105,6 +105,25 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         this.active = false;
         $(".result-export-button-mosaic", this.renderIntoNode).remove();
     }
+
+    
+    formatDataForExport(data, format = "json") {
+        if(format == "csv") {
+            let includeColumns = ["description","method_abbrev_or_alt_name","method_name","sample_groups_count"];
+
+            //remove columns that we don't want to include
+            data = data.map((item) => {
+                let newItem = {};
+                includeColumns.forEach((column) => {
+                    newItem[column] = item[column];
+                });
+                return newItem;
+            });
+        }
+
+        return data;
+    }
+    
 }
 
 export default MosaicSampleMethodsModule;
