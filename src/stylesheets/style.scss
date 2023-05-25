@@ -746,41 +746,45 @@ h1.main-header {
 
 .result-export-button {
   display: flex;
-  width: 6em;
-  height: 2em;
-  background: $base-color;
-  color: #fff;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  padding: .15em;
+  padding-left: .5em;
+  padding-right: .5em;
+  background: $pane-bg-color;
+  color: #333;
   align-items: center;
   justify-content: center;
-  box-shadow: 0px 0px 10px 2px $shadow-color;
   font-family: Rajdhani;
-  font-size: 1.4em;
-  margin-bottom: 1em;
+  font-size: 1.2em;
+  z-index: 2;
+}
+
+.result-export-button:hover {
+  cursor:pointer;
+  background: darken($pane-bg-color, 10%);
 }
 
 .result-export-button-mosaic {
   display: flex;
   position: absolute;
-  top: 2em;
+  bottom: 0em;
   left: 0em;
-  width: 6em;
-  height: 1.8em;
-  background: $base-color;
-  color: #fff;
+  padding: .15em;
+  padding-left: .5em;
+  padding-right: .5em;
+  background: $pane-bg-color;
+  color: #333;
   align-items: center;
   justify-content: center;
   font-family: Rajdhani;
   font-size: 1.2em;
 }
 
-.result-export-button:hover {
-  cursor:pointer;
-  background: lighten($base-color, 10%);
-}
-
 .result-export-button-mosaic:hover {
   cursor:pointer;
-  background: lighten($base-color, 10%);
+  background: darken($pane-bg-color, 10%);
 }
 
 .result-taxon-grid-container {
@@ -2884,4 +2888,15 @@ svg text {
   position: fixed !important;
   top: 10em !important;
   left: 80vw !important;
+}
+
+#tutorial-map-targeting-box {
+  position: absolute;
+  left: 42%;
+  top: 20.5%;
+  //background: rgba(255, 0, 0, 0.5);
+  background: transparent;
+  z-index: -1;
+  width: 170px;
+  height: 120px;
 }

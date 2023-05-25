@@ -230,10 +230,7 @@ class ResultMap extends ResultModule {
 		if($("#result-map-container .result-export-button").length > 0) {
 			return;
 		}
-		let exportButton = $("<div></div>").addClass("result-export-button").html("Export");
-		exportButton.css("position", "absolute");
-		exportButton.css("top", "1em");
-		exportButton.css("left", "1em");
+		let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
 		
 		$("#result-map-container").append(exportButton);
 		this.bindExportModuleDataToButton(exportButton);
@@ -1028,7 +1025,6 @@ class ResultMap extends ResultModule {
 		});
 		
 		selectInteraction.on("select", (evt) => {
-			console.log(evt);
 
 			if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == false) {
 				$("#map-popup-container").show();
@@ -1045,8 +1041,6 @@ class ResultMap extends ResultModule {
 				$("#map-popup-sites-table tbody").html(tableRows);
 
 				this.selectPopupOverlay.setPosition(coords);
-
-				console.log(prop)
 			}
 			else if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == true) {
 				$("#map-popup-container").show();
@@ -1078,10 +1072,12 @@ class ResultMap extends ResultModule {
 				this.selectPopupOverlay.setPosition(coords);
 
 				//if only one site in cluster, render site report
+				/*
 				if(prop.features.length == 1) {
 					let siteId = prop.features[0].getProperties().id;
 					this.sqs.siteReportManager.renderSiteReport(siteId);
 				}
+				*/
 			}
 			else {
 				$("#map-popup-container").hide();

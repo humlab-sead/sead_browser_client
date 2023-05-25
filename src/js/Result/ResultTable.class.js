@@ -152,7 +152,7 @@ class ResultTable extends ResultModule {
 		if($("#result-table-container .result-export-button").length > 0) {
 			return;
 		}
-		let exportButton = $("<div></div>").addClass("result-export-button").html("Export");
+		let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
 		$("#result-table-container").append(exportButton);
 		this.bindExportModuleDataToButton(exportButton);
 	}

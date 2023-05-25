@@ -29,10 +29,29 @@ class Tutorial {
       this.stepCounter = 1;
 
       this.tour.addStep({
+        id: this.stepCounter++,
+        title: 'Tutorial',
+        text: `Welcome to SEAD! Or the Strategic Environmental Archeology Database. This is a brief tutorial to help you get started. Click on 'Next' to continue.`,
+        classes: 'tutorial-container',
+        buttons: [
+          {
+            text: 'Next',
+            classes: 'yes-button',
+            action: this.tour.next
+          },
+          {
+            text: 'Exit tour',
+            classes: 'no-button',
+            action: this.tour.complete,
+          }
+        ]
+    });
+
+      this.tour.addStep({
           id: this.stepCounter++,
-          title: 'Overview',
+          title: 'Domains of data',
           text: `The SEAD system contains many types of data from archeological excavations and investigations.
-          The data is organized into different domains, which can be selected via this menu.
+          The data is organized into different 'domains', which can be selected via this menu.
           <br /><br />
           Selecting a domain narrows down the available filters to those relevant to the selected domain.
           It also filters the results to only show those that are relevant.
@@ -56,7 +75,7 @@ class Tutorial {
 
       this.tour.addStep({
           id: this.stepCounter++,
-          title: 'Domains',
+          title: 'Filters',
           text: `Each domain has its own set of filters associated with it, which can be selected via this menu. Filters are used to narrow down the amount of sites shown in the result section.
 	  <br /><br />
           Click on the Filters menu to open it and continue the tour.
@@ -93,7 +112,7 @@ class Tutorial {
       this.tour.addStep({
           id: this.stepCounter++,
           title: 'Sites',
-          text: `Select the Site filter.
+          text: `Select the Site filter to add it.
           `,
           classes: 'tutorial-container',
           attachTo: { element: '#filters-menu-anchor-point [menu-item=sites]', on: 'right' },
@@ -110,7 +129,7 @@ class Tutorial {
       this.tour.addStep({
           id: this.stepCounter++,
           title: 'Select site',
-          text: `Click on the site 'Abercynafon'.
+          text: `Click on the site name 'Abercynafon' to filter out all other data and only show this site.
           `,
           classes: 'tutorial-container',
           beforeShowPromise: () => {
@@ -132,14 +151,36 @@ class Tutorial {
       });
 
       this.tour.addStep({
+        id: this.stepCounter++,
+        title: 'Result section',
+        text: `This is the result section. Altering the filters will update what you see in the result section, which is a summary of the data currently selected.
+        <br /><br />
+        Here you will see all the archeological sites that contains data matching your selected filters. Currently we are only seeing the site we selected in the filter since we have filtered everything else out.
+        `,
+        classes: 'tutorial-container',
+        attachTo: { element: '#result-section', on: 'left' },
+        buttons: [
+          {
+            text: 'Next',
+            classes: 'yes-button',
+            action: this.tour.next
+          },
+          {
+            text: 'Exit tour',
+            classes: 'no-button',
+            action: this.tour.complete,
+          }
+        ]
+    });
+
+      this.tour.addStep({
           id: this.stepCounter++,
           title: 'Result section',
-          text: `This is the result section. Here you will see all the archeological sites that contains data matching your selected filters. Currently we are only seeing the site we selected in the filter.
-          <br /><br />
-          Go ahead and click on the site on the map, this will take you to the landing page for this site.
+          text: `
+          Go ahead and click on the site on the map, this will open a small popup with the site name, click on that as well and it will take you to the landing page for this site.
           `,
           classes: 'tutorial-container',
-          attachTo: { element: '#result-section', on: 'left' },
+          attachTo: { element: '#tutorial-map-targeting-box', on: 'bottom' },
           advanceOn: {
               event: 'viewChange'
           },
@@ -178,7 +219,7 @@ class Tutorial {
 
       this.tour.addStep({
           id: this.stepCounter++,
-          title: 'Samples',
+          title: 'Site information',
           text: `This section shows general site information, such as location, description and data source references.`,
           attachTo: { element: '#site-report-right-container', on: 'right' },
           classes: 'tutorial-container',
@@ -244,7 +285,7 @@ class Tutorial {
         id: this.stepCounter++,
         title: 'Analyses',
         text: `Here you can see the results of the analysis, in this case an abundance count of fossilized insects, displayed as number of individuals per sample.
-        This data is then used to perform an environment reconstruction.`,
+        This data can then be used to perform an environment reconstruction.`,
         attachTo: { element: '#cic-34772', on: 'right' },
         classes: 'tutorial-container',
         scrollTo: true,
@@ -340,7 +381,14 @@ class Tutorial {
     }
 
     start() {
-        this.tour.start();
+      this.tour.start();
+
+      setTimeout(() => {
+        //add tutorial target boxes, but only if it doesn't exist
+        if($("#tutorial-map-targeting-box").length == 0) {
+          $("#result-mosaic-container").append("<div id='tutorial-map-targeting-box'></div>");
+        }
+      }, 500);
     }
 
     sqsMenu() {
@@ -353,12 +401,12 @@ class Tutorial {
             if(this.sqs.facetManager.facets.length > 0) {
               if(window.confirm("Starting the tutorial will reset the view and clear any filters you may have chosen. Do you still wish to do this?")) {
                 this.sqs.reset();
-                this.tour.start();
+                this.start();
               }
             }
             else {
               this.sqs.reset();
-              this.tour.start();
+              this.start();
             }
           }
         });
