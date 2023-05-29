@@ -190,7 +190,7 @@ class BasicSiteInformation {
 		const standardAges = siteDatingSummary;
 
 		if(standardAges.length == 0) {
-			document.getElementById(targetAnchorQuery).innerHTML = "No data";
+			document.getElementById(targetAnchorQuery).innerHTML = "No data<br /><br />";
 			return;
 		}
 

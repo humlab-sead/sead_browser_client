@@ -48,22 +48,6 @@ class TaxaModule {
 			}
 		});
 
-		/*
-		this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
-			console.log(this.sqs.config);
-			if(newDomainName == "palaeoentomology" && this.sqs.config.resultTaxonModuleEnabled) {
-				$("#menu-item-taxon").show(500);
-			}
-			else {
-				$("#menu-item-taxon").hide(500);
-				//If this result module was selected, select something else
-				if(this.resultManager.getActiveModule().name == this.name) {
-					this.resultManager.setActiveModule("mosaic");
-				}
-			}
-        });
-		*/
-
 	}
 	
 	isVisible() {
@@ -704,38 +688,6 @@ class TaxaModule {
 			height: "100vh",
 			margin: "0px"
 		});
-
-		/*
-		$('#result-taxon-container').html("");
-		$('#result-taxon-container').append(instance);
-		$('#result-taxon-container').show();
-		*/
-
-		/*
-		if(!Config.useExternalTaxonApis) {
-			$("#result-taxon-image-container").html("");
-			$("#result-taxon-image-container").addClass("result-taxon-image-container-2-col");
-			
-			//$("#result-taxon-image-container").append("<div><img src='/figure1.png' /></div>");
-			//$("#result-taxon-image-container").append("<div><img src='/figure2.png' /></div>");
-			//$("#result-taxon-image-container").append("<div><img src='/figure3.png' /></div>");
-			
-		}
-		else {
-			this.fetchGbifImages(taxonData).then(gbifMedia => {
-				$("#result-taxon-image-container").html("");
-	
-				if(gbifMedia.results.length > 1) {
-					$("#result-taxon-image-container").addClass("result-taxon-image-container-2-col");
-				}
-	
-				gbifMedia.results.forEach(gbifImage => {
-					$("#result-taxon-image-container").append("<div><img src='"+gbifImage.identifier+"' /><div class='attribution'>GBIF</div></div>");
-				});
-			});
-		}
-		*/
-
 		
 		seasonalityGroups.forEach(group => {
 			this.renderYearWheel(group.domId, group.items);

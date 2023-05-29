@@ -238,15 +238,6 @@ class SeadQuerySystem {
 			}
 		]);
 
-		/*
-		if(this.config.resultTaxonModuleEnabled) {
-			this.resultManager.addModule({
-				name: "taxon",
-				module: new TaxaModule(this)
-			});
-		}
-		*/
-
 		this.taxaModule = new TaxaModule(this);
 
 		this.menuManager.createMenu(this.resultManager.sqsMenu());

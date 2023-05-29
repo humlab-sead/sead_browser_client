@@ -1,6 +1,6 @@
 {
 	"build": "staging",
-	"version": "2023-04.0",
+	"version": "2023-05.0",
 	"dataLicense": {
 		"name":"Creative Commons Attribution 4.0 International",
 		"shortName":"CC-BY-4.0",
@@ -26,8 +26,6 @@
 	"dataAttributionString": "Buckland P.I., Sjölander M., Eriksson E.J. (2018) Strategic Environmental Archaeology Database (SEAD). In: Smith C. (eds) Encyclopedia of Global Archaeology. Springer, Cham. DOI:10.1007/978-3-319-51726-1_833-2",
 	"timelineEnabled": false,
 	"preloadTimeout": 20000,
-	"useExternalTaxonApis": false,
-	"resultTaxonModuleEnabled": false,
 	"dendroSiteReportSectionEnabled": true,
 	"showResultExportButton": true,
 	"showMosaicExportButtons": true,
@@ -59,7 +57,7 @@
 		{
 			"ecocode_definition_id": 287,
 			"name": "pasture/dung",
-			"color": "#653332"
+			"color": "#6a315b"
 		},
 		{
 			"ecocode_definition_id": 288,
@@ -109,7 +107,7 @@
 		{
 			"ecocode_definition_id": 298,
 			"name": "indicators: dung",
-			"color": "#653332"
+			"color": "#996533"
 		},
 		{
 			"ecocode_definition_id": 299,
@@ -139,7 +137,7 @@
 		{
 			"ecocode_definition_id": 304,
 			"name": "halotolerant",
-			"color": "#996533"
+			"color": "#CC6699"
 		},
 		{
 			"ecocode_definition_id": 305,
