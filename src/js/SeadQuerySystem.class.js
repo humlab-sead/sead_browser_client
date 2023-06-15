@@ -981,8 +981,8 @@ class SeadQuerySystem {
 	 */
 	 formatTaxon(taxon, identificationLevels = null, html = true, asLink = false) {
 
-		let familyName = taxon.family.family_name;
-		let genusName = taxon.genus.genus_name;
+		let familyName = taxon.family.family_name ? taxon.family.family_name : taxon.family;
+		let genusName = taxon.genus.genus_name ? taxon.genus.genus_name : taxon.genus;
 		let species = taxon.species;
 
 		let modified = false;

@@ -66,9 +66,9 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         });
 
         data.sample_methods_sample_groups.forEach(method => {
-            chartData[0].labels.push(method.method_abbrev_or_alt_name);
+            chartData[0].labels.push(method.method_meta.method_abbrev_or_alt_name);
             chartData[0].values.push(method.sample_groups_count);
-            chartData[0].customdata.push(method.method_name);
+            chartData[0].customdata.push(method.method_meta.method_name);
         });
 
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);

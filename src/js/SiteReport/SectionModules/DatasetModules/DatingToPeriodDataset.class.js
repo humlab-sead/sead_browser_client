@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import DatasetModule from "./DatasetModule.class";
+import StandardAge from "../../../Common/StandardAge.class";
 /*
 * Class: DatingToPeriodDataset
 *
@@ -444,16 +445,6 @@ class DatingToPeriodDataset extends DatasetModule {
 	* Function: destroy
 	*/
 	destroy() {
-	}
-}
-
-class StandardAge {
-	constructor() {
-		this.ageType = "";
-		this.ageLocation = "";
-		this.ageOlder = 0;
-		this.ageYounger = 0;
-		this.sample = null;
 	}
 }
 

@@ -10,7 +10,6 @@ import "datatables.net-buttons/js/buttons.print.js";
 import "datatables.net-colreorder-dt";
 import "datatables.net-fixedheader-dt";
 import "datatables.net-responsive-dt";
-import sha1 from "js-sha1";
 
 /*
 * Class: SiteReportTable

@@ -14,6 +14,7 @@ import css from '../../../stylesheets/style.scss';
 import * as Plotly from "plotly.js-dist";
 import DatingToPeriodDataset from './DatasetModules/DatingToPeriodDataset.class';
 import { Chart, CategoryScale, LinearScale, BarController, BarElement } from "chart.js";
+import DendrochronologyDataset from './DatasetModules/DendrochronologyDataset.class';
 
 /*
 * Class: BasicSiteInformation
@@ -28,7 +29,6 @@ class BasicSiteInformation {
 		this.buildComplete = false;
 		this.exportTryInterval = null;
 		this.auxiliaryDataFetched = true; //There is currently no auxiliary data to fetch
-
 		/*
 		this.sqs.sqsEventListen("fetchBasicSiteInformation", () => {
             this.buildComplete = true;
@@ -135,9 +135,9 @@ class BasicSiteInformation {
 			.append("<div class='site-report-aux-header-container'><h4>Description</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>"+siteDecription+"</div>")
-			.append("<div class='site-report-aux-header-underline'></div>")
 			.append(`<div id='site-report-time-overview-container'>
 				<div class='site-report-aux-header-container'><h4>Dated samples overview</h4></div>
+				<div class='site-report-aux-header-underline'></div>
 				<div id="site-report-time-overview"></div>
 			</div>`)
 			.append("<div class='site-report-aux-header-container'><h4>Dataset references</h4></div>")
@@ -148,6 +148,8 @@ class BasicSiteInformation {
 			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+siteReferencesHtml+"</div>");
 			
 		
+		this.sqs.tooltipManager.registerTooltip("#site-report-time-overview-container .site-report-aux-header-container h4", "This chart shows the extremes (oldest and youngest) of all dated samples in this site, categorized by type of dating. Dating is shown as years before present (BP), which in SEAD is defined as the year "+this.sqs.config.constants.BP+".", {placement: "top", drawSymbol: true});
+
 		$("#site-report-locations-container").append("<div id='site-report-map-container'></div>");
 
 		var locationsContainer = $("#site-report-locations-container");
@@ -185,9 +187,24 @@ class BasicSiteInformation {
 					}
 				})
 			}
-		})
+		});
 
 		const standardAges = siteDatingSummary;
+
+		//now also get the standard ages for any dendro datasets
+		let dendrodDatingSummary = null;
+		this.sqs.siteReportManager.siteReport.modules.forEach(m => {
+			if(m.name == "analysis") {
+				m.module.datasetModules.forEach(dsm => {
+					if(dsm.instance instanceof DendrochronologyDataset) {
+						dendrodDatingSummary = dsm.instance.getDatingSummary();
+					}
+				});
+			}
+		});
+
+		standardAges.push(...dendrodDatingSummary);
+		
 
 		if(standardAges.length == 0) {
 			document.getElementById(targetAnchorQuery).innerHTML = "No data<br /><br />";

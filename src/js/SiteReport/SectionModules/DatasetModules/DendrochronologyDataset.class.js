@@ -5,6 +5,7 @@ import moment from "moment";
 import { nanoid } from 'nanoid'
 import * as d3 from 'd3';
 import config from '../../../../config/config.json';
+import StandardAge from "../../../Common/StandardAge.class";
 
 /*
 * Class: DendrochronologyDataset
@@ -28,6 +29,8 @@ class DendrochronologyDataset extends DatasetModule {
 		this.datasets = [];
 		this.buildIsComplete = false;
 		this.methodMetaDataFetchingComplete = false;
+		this.extentMin = null;
+		this.extentMax = null
 
 		this.methodIds = [10];
 		this.metaDataFetchingPromises = [];
@@ -36,6 +39,29 @@ class DendrochronologyDataset extends DatasetModule {
 			this.methodMetaDataFetchingComplete = true;
 		});
 		
+	}
+
+	getDatingSummary() {
+		let summary = [];
+
+		if(this.extentMin == null || this.extentMax == null) {
+			return summary;
+		}
+
+		//extentMin and extentMax is in years, we need to convert them to BP (before present)
+		let extentMinBP = config.constants.BP - this.extentMin;
+		let extentMaxBP = config.constants.BP - this.extentMax;
+
+		let stdAge = new StandardAge();
+		stdAge.ageType = "Dendrochronological";
+		stdAge.ageLocation = "";
+		stdAge.ageOlder = extentMinBP;
+		stdAge.ageYounger = extentMaxBP;
+		stdAge.sample = null;
+
+		summary.push(stdAge);
+
+		return summary;
 	}
 	
 
@@ -561,6 +587,9 @@ class DendrochronologyDataset extends DatasetModule {
             return fellingYear;
         });
 
+		this.extentMin = extentMin;
+		this.extentMax = extentMax;
+
 		let defaultDisplayOption = "graph";
         //If we couldn't find a single viable dating for any sample, then we can't calculate a range span at all and thus can't draw anything
         if(!extentMin || !extentMax) {
@@ -843,6 +872,7 @@ class DendrochronologyDataset extends DatasetModule {
 		}
 
 		let datingRows = this.getDatingRowsFromDatasetGroup(datasetGroup);
+		console.log(datingRows)
 		rows = rows.concat(datingRows);
 		
 		//datasetGroup.sample.sample_name

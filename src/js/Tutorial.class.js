@@ -269,6 +269,15 @@ class Tutorial {
           <br /><br />
           Go ahead and click on it to expand it.`,
           attachTo: { element: '#site-report-section-analyses', on: 'right' },
+          /* TODO: we should add a listerner here which waits until the analyses section has been rendered, since this is otherwise a race condition
+          beforeShowPromise: () => {
+            return new Promise((resolve) => {
+                this.sqs.sqsEventListen("facetDataRendered", () => {
+                  resolve();
+                });
+            });
+          },
+          */
           classes: 'tutorial-container',
           advanceOn: { selector: '#site-report-section-3 > h3.site-report-level-title', event: 'click' },
           buttons: [
@@ -306,7 +315,7 @@ class Tutorial {
       this.tour.addStep({
         id: this.stepCounter++,
         title: 'Analyses',
-        text: `This is the climate reconstruction. It shows the most prevalent environment types at the site, based on the abundance count of fossilized insects.`,
+        text: `This is the environment reconstruction. It shows the most prevalent environment types at the site, based on the abundance count of fossilized insects.`,
         attachTo: { element: '#site-report-section-analyses .content-item-container:nth-of-type(2)', on: 'right' },
         classes: 'tutorial-container',
         scrollTo: true,
@@ -343,7 +352,7 @@ class Tutorial {
       this.tour.addStep({
         id: this.stepCounter++,
         title: "That's all!",
-        text: `This concludes the tutorial. Please see our non-existant manual for further help, or send an email into the void of cyberspace because we don't have any support address. Good luck!`,
+        text: `This concludes the tutorial. You can always restart it by clicking on the 'Tutorial' option in the auxiliary menu.`,
         classes: 'tutorial-container',
         buttons: [
           {

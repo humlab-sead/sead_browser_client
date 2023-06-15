@@ -230,7 +230,7 @@ class ResultTable extends ResultModule {
 		});
 
 		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
-
+		
 	}
 
 	update() {

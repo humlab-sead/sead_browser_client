@@ -2900,3 +2900,35 @@ svg text {
   width: 170px;
   height: 120px;
 }
+
+.mosaic-top-taxa-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: calc(100% - 4em);
+  height: calc(100% - 5em);
+  overflow: auto;
+  padding: 2em;
+  padding-top: 3em;
+}
+
+.taxa-table {
+  border-collapse: collapse;
+  margin: 0;
+  padding-top: 2em;
+}
+.taxa-table th {
+  top: 0;
+  padding: .5em;
+  text-align: left;
+  background: $pane-bg-color;
+}
+
+.taxa-table td {
+  border: 1px solid $pane-bg-color-dark;
+  border-right-width: 0;
+  border-left-width: 0;
+  padding: .5em;
+  text-align: left;
+}

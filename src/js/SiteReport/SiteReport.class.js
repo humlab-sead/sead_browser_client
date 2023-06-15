@@ -76,6 +76,7 @@ class SiteReport {
 		
 
 		this.fetchSite().then(siteData => {
+			console.log(siteData);
 			this.siteData = siteData;
 			this.fetchComplete = true;
 			this.hideLoadingIndicator();

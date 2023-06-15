@@ -247,22 +247,31 @@ class TaxaModule {
 		let species = taxonData.species.toLowerCase();
 
 		return new Promise((resolve, reject) => {
-			fetch("https://eol.org/api/search/1.0.json?q="+genus+"%20"+species+"&page=1&key=").then(response => response.json()).then(eolResponse => {
-				if(eolResponse.results.length < 50) {
+			let queryUrl = "https://eol.org/api/search/1.0.json?q=";
+			queryUrl += genus;
+			
+			if(!this.sqs.config.indicatorStringsForUnknownSpecies.includes(taxonData.species.toLowerCase())) {
+				queryUrl += "%20"+species;
+			}
+			queryUrl += "&page=1&key=";
+
+			let promises = [];
+
+			fetch(queryUrl).then(response => response.json()).then(eolResponse => {
+				if(eolResponse.results.length < this.sqs.config.maxEolImageResults) {
 					eolResponse.results.forEach(eolSpecies => {
-						fetch("https://eol.org/api/pages/1.0/"+eolSpecies.id+".json?details=true&images_per_page=10").then(response => response.json()).then(eolSpeciesResponse => {
-							resolve(eolSpeciesResponse);
-						}).catch(err => {
-							console.warn(err);
-							this.sqs.notificationManager.notify("Error fetching images from EOL.", "warning");
-							reject(err);
-						});
+						let p = fetch("https://eol.org/api/pages/1.0/"+eolSpecies.id+".json?details=true&images_per_page=10").then(response => response.json());
+						promises.push(p);
+					});
+
+					Promise.all(promises).then(values => {
+						resolve(values)
 					});
 				}
 				else {
 					let msg = "EOL returned too many hits in species search ("+eolResponse.results.length+"), not going to fetch images.";
 					console.warn(msg);
-					this.sqs.notificationManager.notify(msg, "warning");
+					//this.sqs.notificationManager.notify(msg, "warning");
 					reject(msg);
 				}
 				
@@ -277,14 +286,19 @@ class TaxaModule {
 		let imageMetaData = [];
 		let taxonSpecString = this.sqs.formatTaxon(taxonData);
 		this.fetchEolImages(taxonData).then(eolResponse => {
-			if(typeof eolResponse.taxonConcept.dataObjects != "undefined") {
-				imageMetaData = this.renderSpeciesImages(eolResponse.taxonConcept.dataObjects);
+			let images = [];
+			eolResponse.forEach(eolResponseItem => {
+				if(typeof eolResponseItem.taxonConcept.dataObjects != "undefined") {
+					images.push(...eolResponseItem.taxonConcept.dataObjects)
+				}
+			});
+			if(images.length > 0) {
+				imageMetaData = this.renderSpeciesImages(images);
 			}
 		});
 
 		let taxonUrl = window.location.protocol+"//"+window.location.host+"/taxon/"+taxonData.taxon_id;
 		let taxonLink = "<a target='_blank' href='"+taxonUrl+"'>"+taxonUrl+"</a>";
-		console.log(taxonLink);
 		$(".taxon-link-container .link", container).html(taxonLink);
 
 		$("#rcb-species-value", container).html(taxonSpecString);
