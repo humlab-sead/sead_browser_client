@@ -839,6 +839,11 @@ class FacetManager {
 							dependencies : group.items[fk].dependencies,
 							description: group.items[fk].description
 						}
+
+						if(this.sqs.config.filterBlacklist.includes(filter.name)) {
+							continue;
+						}
+
 						filter.callback = this.makeFacetMenuCallback(filter);
 						this.sqs.facetDef[groupKey].filters.push(filter);
 					}

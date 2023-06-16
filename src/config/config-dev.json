@@ -34,6 +34,7 @@
 	"legalNoticeMsg":"The SEAD system is using cookies to enhance functionality and track usage statistics. If you choose to utilize our viewstate functionality you are also agreeing to us storing a pseudonymized version of your email address for identification purposes. For more information please read our <span id='privacy-policy-link' class='jslink'>full policy regarding cookies & GDPR</span>. By continuing to use the site you are agreeing to this policy.",
 	"indicatorStringsForUnknownSpecies": ["indet.", "indet", "sp.", "spp.", "sp"],
 	"maxEolImageResults": 100,
+	"filterBlacklist": ["construction_type"],
 	"keyColors":[
 		"5B83AD",
 		"A02000",
