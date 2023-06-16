@@ -324,14 +324,20 @@
             <div id="rcb-species-value" class="centered-label">
             </div>
             <br />
-            <div id="result-taxon-image-container">
-              <div class="no-images-message-box">
-                <i class="fa fa-picture-o" aria-hidden="true"></i>
-                <br/>
-                <h4>No images available</h4>
+            <div id="result-taxon-image-info"></div>
+            <div id="taxon-images-message-box">
+              <div id="no-images-msg" style="display:none;">No images found for this taxon.</div>
+              <div id="result-taxon-image-container-eol-loading-indicator">
+                Fetching images from EOL&nbsp;
+                <div class="dots-loading-animation">
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </div>
               </div>
             </div>
-
+            <div id="result-taxon-image-container">
+            </div>
           </div>
 
           <div class="result-content-box">
@@ -487,7 +493,7 @@
       <div id="facet-template" class="facet" facet-id="-1">
         <div class="facet-header">
           <h3 class="facet-title">Facet title</h3>
-          <div class="facet-loading-indicator"></div>
+          <div class="small-loading-indicator"></div>
 
           <input class="facet-text-search-input" type="text" />
           <div class="fa fa-search facet-text-search-btn facet-head-btn" aria-hidden="true"></div>

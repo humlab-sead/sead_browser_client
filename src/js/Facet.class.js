@@ -139,15 +139,15 @@ class Facet {
 	*/
 	showLoadingIndicator(on = true, error = false) {
 		if(on) {
-			$(this.domObj).find(".facet-loading-indicator").fadeIn(100);
+			$(this.domObj).find(".small-loading-indicator").fadeIn(100);
 		}
 		else {
 			if(error) {
-				//$(this.domObj).find(".facet-loading-indicator").toggle("explode");
-				$(this.domObj).find(".facet-loading-indicator").addClass(".facet-loading-indicator-error");
+				//$(this.domObj).find(".small-loading-indicator").toggle("explode");
+				$(this.domObj).find(".small-loading-indicator").addClass(".small-loading-indicator-error");
 			}
 			else {
-				$(this.domObj).find(".facet-loading-indicator").fadeOut(100);
+				$(this.domObj).find(".small-loading-indicator").fadeOut(100);
 			}
 		}
 	}

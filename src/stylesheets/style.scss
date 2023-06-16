@@ -319,7 +319,7 @@ h1.main-header {
   width: calc(100% - 40px);
 }
 
-.facet-loading-indicator {
+.small-loading-indicator {
 	display:none;
 	background-color:#000;
 	width: 15px;
@@ -333,7 +333,7 @@ h1.main-header {
 	background-color: transparent;
 }
 
-.facet-loading-indicator-error {
+.small-loading-indicator-error {
 	background-image: url('../assets/ajax-loader-error.png') !important;
 }
 
@@ -831,66 +831,85 @@ h1.main-header {
   margin-left: 0;
 }
 
+#result-taxon-image-info {
+  position: relative;
+  padding-left: 1em;
+  padding-right: 1em;
+  color: #000;
+  margin-right: 1.5em;
+  margin-left: 1.5em;
+  font-size: 0.8em;
+  text-align: center;
+}
+
+#result-taxon-image-info span {
+  font-style: italic;
+}
+
 #result-taxon-image-container {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(50px, 1fr));
+  grid-auto-rows: minmax(50px, auto);
+  gap: 10px;
+  overflow: auto;
+  padding-left: 1em;
+  padding-right: 1em;
+  padding-bottom: 1em;
+}
+
+#taxon-images-message-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 1.5em;
+  padding: 1em;
+}
+
+.flex-container {
   display: flex;
   flex-wrap: wrap;
-  overflow: auto;
   height: 100%;
   min-width: 100%;
   justify-content: center;
 }
 
-#result-taxon-image-container .no-images-message-box {
-  display: flex;
-  margin-top:2em;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
-
-#result-taxon-image-container div {
+.result-taxon-image-thumb-container {
+  display: inline-block;
   position: relative;
-  max-width: 8em;
-}
-
-#result-taxon-image-container .attribution {
-  position: absolute;
-  bottom: 1em;
-  background: rgba(0, 0, 0, 0.8);
-  color: #fff;
-  padding: 0.2em;
-  width: 100%;
-}
-
-#result-taxon-image-container img {
-  display: block;
+  padding: 0;
   border: 1px solid #ccc;
-  width: auto;
-  height: 6em;
-  object-fit: contain;
-  margin: .5em;
-}
-
-.result-taxon-image-box {
-}
-
-.result-taxon-image {
-  object-fit: contain;
-}
-
-.result-taxon-image-info {
+  overflow: hidden;
+  box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.8);
+  background: #fff;
 }
 
 .result-taxon-image-thumb {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.result-taxon-image-thumb :hover {
+  filter: brightness(105%);
   cursor: zoom-in;
 }
 
-.result-taxon-image-thumb-container {
-  min-width: 2em;
-  min-height: 2em;
-  max-height: 4em;
-  max-width: 4em;
+.result-taxon-image-thumb img {
+  display: block;
+  object-fit: cover;
+}
+
+.result-taxon-image-thumb-attribution {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  padding: 0.2em;
+  font-size: 0.7em;
 }
 
 .popover-content {
@@ -901,26 +920,6 @@ h1.main-header {
   height: calc(100% - 3.7em);
 }
 
-#result-taxon-image-container i {
-  font-size: 5vw;
-}
-
-/*
-#result-taxon-image-container-warning {
-  position: absolute;
-  display: flex;
-  width: 100%;
-  justify-content: center;
-  top: 5.5em;
-}
-
-#result-taxon-image-container-warning div {
-  color: #fff;
-  background: rgba(0, 0, 0, 0.5);
-  padding: .35em;
-  border-radius: .35em;
-}
-*/
 
 .result-module-container {
   display:none;
@@ -970,7 +969,10 @@ h1.main-header {
 }
 
 #rcb-species-value {
-  font-size: 1.1em;
+  font-size: 1.2em;
+  font-weight: bold;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
 }
 
 #rcb-seasonlity-year-wheels {
@@ -2931,4 +2933,46 @@ svg text {
   border-left-width: 0;
   padding: .5em;
   text-align: left;
+}
+
+#result-taxon-image-container-eol-loading-indicator {
+  display: flex;
+  align-items: center;
+  font-size: 1.2rem;
+}
+
+
+
+.dots-loading-animation {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.dot {
+  display: inline-block;
+  width: 0.25em;
+  height: 0.25em;
+  border-radius: 50%;
+  background-color: #666;
+  margin-right: 5px;
+  animation: bounce 1s infinite;
+  margin-top: 0.5em;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+  }
+  40% {
+    transform: scale(1.4);
+  }
 }

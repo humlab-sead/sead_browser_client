@@ -283,6 +283,10 @@ class TaxaModule {
 	}
 
 	renderSpecies(container, taxonData) {
+		$("#no-images-msg").hide();
+		$("#taxon-images-message-box").show();
+		$("#result-taxon-image-container-eol-loading-indicator").show();
+
 		let imageMetaData = [];
 		let taxonSpecString = this.sqs.formatTaxon(taxonData);
 		this.fetchEolImages(taxonData).then(eolResponse => {
@@ -295,6 +299,10 @@ class TaxaModule {
 			if(images.length > 0) {
 				imageMetaData = this.renderSpeciesImages(images);
 			}
+			else {
+				$("#no-images-msg").show();
+				$("#result-taxon-image-container-eol-loading-indicator").hide();
+			}
 		});
 
 		let taxonUrl = window.location.protocol+"//"+window.location.host+"/taxon/"+taxonData.taxon_id;
@@ -305,6 +313,8 @@ class TaxaModule {
 	}
 
 	renderSpeciesImages(images) {
+		$("#taxon-images-message-box").hide();
+
 		let imageNodes = [];
 		let renderedImages = [];
 		images.forEach(image => {
@@ -324,14 +334,31 @@ class TaxaModule {
 			License: ${image.license} \
 			Description: ${image.description}`;
 
-			let imageNode = $("<a href='"+image.eolMediaURL+"' target='_blank'><img id='"+imageId+"' class='result-taxon-image-thumb' title='"+imageMetaData+"' src='"+image.eolThumbnailURL+"' /></a>");
+			let imageNodeHtml = `<div class='result-taxon-image-thumb-container'>
+			<div class='result-taxon-image-thumb'>
+				<a href='`+image.eolMediaURL+`' target='_blank'>
+					<img id='`+imageId+`' title='`+imageMetaData+`' src='`+image.eolThumbnailURL+`' />
+				</a>
+			</div>
+			<div class='result-taxon-image-thumb-attribution' title='Image fetched from Encyclopedia Of Life'>© EOL</div>
+			</div>`;
+
+			let imageNode = $(imageNodeHtml);
 			
 			imageNodes.push(imageNode);
 		});
-		$("#result-taxon-image-container").html("Image results from&nbsp;<a target='_blank' href='https://eol.org/'>Encyclopedia of Life</a><hr />");
-		$("#result-taxon-image-container").append(imageNodes);
 
-		this.sqs.tooltipManager.registerTooltip("#result-taxon-image-container-warning", "The images are fetched from external providers using search strings based on genus and species name, because of this, reuslts may be returned that represent different species than the intended one.")
+		let ttId = "tt-"+nanoid();
+		
+		$("#result-taxon-image-info").html(`<div class='taxa-image-info'>
+		<span id='`+ttId+`'>Fuzzy search results</span>
+		</div>
+		<hr />`);
+		$("#result-taxon-image-info").show();
+
+		this.sqs.tooltipManager.registerTooltip("#"+ttId, "Images are acquired through a fuzzy search, using search strings based on family, genus and species depending on what is available. Because of this, the image results may not represent the actual taxon.", { drawSymbol:true });
+
+		$("#result-taxon-image-container").html(imageNodes);
 		
 		return renderedImages;
 	}
