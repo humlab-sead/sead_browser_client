@@ -1,6 +1,6 @@
 {
 	"build": "production",
-	"version": "2023-05.0",
+	"version": "2023-06.0",
 	"dataLicense": {
 		"name":"Creative Commons Attribution 4.0 International",
 		"shortName":"CC-BY-4.0",
@@ -217,8 +217,8 @@
 		"enabled": true,
 		"title": "Palaeoentomology",
 		"icon":"<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
-		"color":"#d00",
-		"result_grid_layout": [1, 1],
+		"color":"#a00",
+		"result_grid_layout": [2, 2],
 		"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",
@@ -228,7 +228,12 @@
 				{
 					"module_name": "mosaic-taxa-list",
 					"grid_row": "2",
-					"grid_column": "span 2"
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-ecocodes",
+					"grid_row": "2",
+					"grid_column": "2"
 				}
 			]
 		},
