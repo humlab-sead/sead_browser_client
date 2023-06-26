@@ -593,11 +593,6 @@ class SeadQuerySystem {
 			}
 		];
 
-		const filterBlacklist = [
-			"abundance_classification", //500 error
-			"dataset_methods" //returns zero rows of data
-		];
-
 		for(let key in data) {
 			let filter = data[key];
 
@@ -617,7 +612,7 @@ class SeadQuerySystem {
 					filter.stagedFilters = ["ecocode_system", "ecocode"];
 				}
 
-				if(!filterBlacklist.includes(filter.FacetCode)) {
+				if(!this.config.filterBlacklist.includes(filter.FacetCode)) {
 					let customDesc = customDescriptions.find((item) => item.facetCode == filter.FacetCode);
 					filterGroup.items.push({
 						"facetCode": filter.FacetCode,

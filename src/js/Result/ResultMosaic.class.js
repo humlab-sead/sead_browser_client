@@ -15,6 +15,7 @@ import MosaicDendroDatingHistogramModule from "./MosaicTileModules/MosaicDendroD
 import MosaicDendroTreeSpeciesChartModule from "./MosaicTileModules/MosaicDendroTreeSpeciesChartModule.class";
 import MosaicTemporalDistributionModule from "./MosaicTileModules/MosaicTemporalDistributionModule.class";
 import MosaicTaxaListModule from "./MosaicTileModules/MosaicTaxaListModule.class";
+import MosaicEcoCodesModule from './MosaicTileModules/MosaicEcoCodesModule.class.js';
 import { nanoid } from 'nanoid';
 import * as Plotly from "plotly.js-dist";
 
@@ -125,6 +126,12 @@ class ResultMosaic extends ResultModule {
 			title: "Top taxa",
 			className: "MosaicTaxaListModule",
 			classTemplate: MosaicTaxaListModule,
+			module: null
+		});
+		this.modules.push({
+			title: "BUGS eco codes",
+			className: "MosaicEcoCodesModule",
+			classTemplate: MosaicEcoCodesModule,
 			module: null
 		});
 		

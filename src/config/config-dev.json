@@ -34,7 +34,7 @@
 	"legalNoticeMsg":"The SEAD system is using cookies to enhance functionality and track usage statistics. If you choose to utilize our viewstate functionality you are also agreeing to us storing a pseudonymized version of your email address for identification purposes. For more information please read our <span id='privacy-policy-link' class='jslink'>full policy regarding cookies & GDPR</span>. By continuing to use the site you are agreeing to this policy.",
 	"indicatorStringsForUnknownSpecies": ["indet.", "indet", "sp.", "spp.", "sp"],
 	"maxEolImageResults": 100,
-	"filterBlacklist": ["construction_type"],
+	"filterBlacklist": ["construction_type", "abundance_classification", "dataset_methods"],
 	"keyColors":[
 		"5B83AD",
 		"A02000",
@@ -223,7 +223,12 @@
 				{
 					"module_name": "mosaic-taxa-list",
 					"grid_row": "2",
-					"grid_column": "span 2"
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-ecocodes",
+					"grid_row": "2",
+					"grid_column": "2"
 				}
 			]
 		},

@@ -82,7 +82,7 @@ class Visualizations {
 					}
 				}
 			}
-		  };
+		};
 		
 		  
 		this.chartId = "chart-"+nanoid();
