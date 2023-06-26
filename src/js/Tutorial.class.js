@@ -390,6 +390,7 @@ class Tutorial {
     }
 
     start() {
+      $("#tutorial-question").hide();
       this.tour.start();
 
       setTimeout(() => {
