@@ -136,7 +136,7 @@ class BasicSiteInformation {
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>"+siteDecription+"</div>")
 			.append(`<div id='site-report-time-overview-container'>
-				<div class='site-report-aux-header-container'><h4>Dated samples overview</h4></div>
+				<div class='site-report-aux-header-container'><h4>Site dating overview</h4></div>
 				<div class='site-report-aux-header-underline'></div>
 				<div id="site-report-time-overview"></div>
 			</div>`)
