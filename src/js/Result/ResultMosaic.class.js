@@ -75,7 +75,7 @@ class ResultMosaic extends ResultModule {
 			module: null
 		});
 		this.modules.push({
-			title: "Feature types",
+			title: "Top feature types",
 			className: "MosaicFeatureTypesModule",
 			classTemplate: MosaicFeatureTypesModule,
 			module: null
@@ -744,6 +744,66 @@ class ResultMosaic extends ResultModule {
 
 	async renderCeramicsTypeCount(renderIntoNode) {
 		return await this.preparePieChart(renderIntoNode, "qse_ceramics_type_count", "type_name", "count");
+	}
+
+	renderBarChartPlotly(renderIntoNode, chartSeries, chartTitle) {
+		if(chartSeries.length == 0) {
+			this.sqs.setNoDataMsg(renderIntoNode);
+			return;
+		}
+		else {
+			this.sqs.setNoDataMsg(renderIntoNode, false);
+		}
+
+		chartSeries.sort((a, b) => {
+			return a.value - b.value;
+		});
+
+		let data = [{
+			y: chartSeries.map((obj) => { return obj.label; }),
+			x: chartSeries.map((obj) => { return obj.value; }),
+			type: 'bar',
+			orientation: 'h',
+			hovertemplate: '%{y}<extra>%{x} samples</extra>',
+			text: chartSeries.map((obj) => { return obj.label; }),
+			textposition: 'auto',
+			marker: {
+				color: this.sqs.color.colors.baseColor,
+			}
+		}];
+
+		let layout = {
+			title: {
+				text: chartTitle,
+				font: {
+					family: 'Didact Gothic, sans-serif',
+					size: 22
+				},
+			},
+			plot_bgcolor: this.sqs.color.colors.paneBgColor,
+			paper_bgcolor: this.sqs.color.colors.paneBgColor,
+			autosize: true,
+			showlegend: false,
+			margin: {
+				l: 50,
+				r: 50,
+				b: 50,
+				t: 50,
+				pad: 4
+			},
+			font: {
+				family: 'Didact Gothic, sans-serif',
+				size: 14,
+				color: '#333'
+			},
+			yaxis: {
+				showticklabels: false,
+				automargin: true,
+			},
+			responsive: true
+		};
+
+		Plotly.newPlot($(renderIntoNode)[0], data, layout, {responsive: true});
 	}
 
 	renderBarChart(renderIntoNode, chartSeries, chartTitle) {

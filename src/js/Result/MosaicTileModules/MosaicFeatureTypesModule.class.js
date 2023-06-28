@@ -4,7 +4,7 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
     constructor(sqs) {
         super();
         this.sqs = sqs;
-        this.title = "Feature types";
+        this.title = "Top feature types";
 		this.name = "mosaic-feature-types";
 		this.domains = ["general", "palaeo", "archaeobotany", "isotopes"];
         this.pendingRequestPromise = null;
@@ -26,7 +26,7 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         this.sqs.setLoadingIndicator(this.renderIntoNode, true);
         
-        /*
+        
         let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/feature_types", {
             method: "POST",
             mode: "cors",
@@ -36,24 +36,26 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
             body: JSON.stringify(resultMosaic.sites)
         });
         let data = await response.json();
-        */
+        
+        data.feature_types.sort((a, b) => {
+            return b.feature_count - a.feature_count;
+        });
 
-        /*
-        const promiseData = await resultMosaic.fetchSiteData(resultMosaic.sites, "qse_feature_types", ++this.requestId);
-        if(!this.active) {
-            return false;
-        }
-        if(promiseData.requestId < this.requestId) {
-            console.log(this.name+" dropped old request data with id "+this.requestId);
-            return false;
-        }
+        let chartSeries = [];
+        data.feature_types.forEach((featureType) => {
+            chartSeries.push({
+                label: featureType.name,
+                value: featureType.feature_count
+            });
+        });
 
-        this.data = promiseData.data;
-        */
+        //only keep top 20
+        chartSeries = chartSeries.slice(0, 20);
 
-        //let chartSeries = resultMosaic.prepareChartData("feature_type_id", "feature_type_name", this.data);
+        this.data = chartSeries;
+        
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-        //this.chart = resultMosaic.renderBarChart(this.renderIntoNode, chartSeries);
+        this.chart = resultMosaic.renderBarChartPlotly(this.renderIntoNode, chartSeries);
     }
     
     async update() {
