@@ -315,7 +315,13 @@ class TaxaModule {
 			});
 		});
 
-		$("#rcb-species-value", container).html(taxonSpecString);
+		let authorString = "<span class='rcb-taxon-authors'>";
+		taxonData.taxa_tree_authors.forEach(author => {
+			authorString += author.author_name+", ";
+		});
+		authorString = authorString.slice(0, -2);
+		authorString += "</span>";
+		$("#rcb-species-value", container).html(taxonSpecString+authorString);
 	}
 
 	renderSpeciesImages(images) {
