@@ -309,6 +309,12 @@ class TaxaModule {
 		let taxonLink = "<a target='_blank' href='"+taxonUrl+"'>"+taxonUrl+"</a>";
 		$(".taxon-link-container .link", container).html(taxonLink);
 
+		$(".taxon-link-container .link-copy", container).on("click", (evt) => {
+			navigator.clipboard.writeText(taxonUrl).then(() => {
+				this.sqs.notificationManager.notify("Copied link to clipboard", "info", 2000);
+			});
+		});
+
 		$("#rcb-species-value", container).html(taxonSpecString);
 	}
 
@@ -380,6 +386,9 @@ class TaxaModule {
 	}
 
 	renderSpeciesAssociation(container, taxonData) {
+		//this.sqs.setCustomMsg($("#rcb-species-association", container), true, "Unavailable");
+		//return;
+
 		let html = "<ul>";
 		let assocLinks = [];
 		taxonData.species_associations.forEach(assoc => {
@@ -602,7 +611,7 @@ class TaxaModule {
 		fetch("https://api.gbif.org/v1/species/match?name="+taxonData.genus.genus_name+"%20"+taxonData.species+"%20"+taxonData.family.family_name)
 		.then(response => response.json())
 		.then(data => {
-			let url = "https://api.gbif.org/v2/map/occurrence/density/{z}/{x}/{y}@2x.png?taxonKey="+data.speciesKey+"&bin=hex&hexPerTile=30&style=purpleYellow.poly";
+			let url = "https://api.gbif.org/v2/map/occurrence/density/{z}/{x}/{y}@2x.png?taxonKey="+data.speciesKey+"&bin=hex&hexPerTile=30&style=classic.poly";
 			modernDistMap.addGbifLayer(url);
 			//let url = "https://api.gbif.org/v2/map/occurrence/density/{z}/{x}/{y}.mvt?srs=EPSG:3857&taxonKey="+data.speciesKey;
 			//modernDistMap.addGbifLayerVector(url);
@@ -677,7 +686,8 @@ class TaxaModule {
 			this.taxonId = taxonId;
 		}
 
-		this.sqs.dialogManager.showPopOver("Taxa", "<div id='taxa-loading-indicator' class='loading-indicator' style='display: block;'></div>", {
+		//this is just for loading
+		this.sqs.dialogManager.showPopOver("Taxon", "<div id='taxa-loading-indicator' class='loading-indicator' style='display: block;'></div>", {
 			width: "100%",
 			height: "100%",
 		});
@@ -690,7 +700,7 @@ class TaxaModule {
 		let taxonData = await fetch(Config.dataServerAddress+'/taxon/'+this.taxonId).then(response => response.json());
 
 		this.renderSpecies(instance, taxonData);
-		this.renderSpeciesAssociation(instance, taxonData);
+		//this.renderSpeciesAssociation(instance, taxonData);
 		this.renderEcologySummary(instance, taxonData);
 		this.renderMeasurableAttributes(instance, taxonData);
 		this.renderTaxonomicNotes(instance, taxonData);
@@ -724,7 +734,7 @@ class TaxaModule {
 			this.sqs.tooltipManager.registerTooltip("#"+seasonalityGroupTooltipId, tooltipText, { drawSymbol: true });
 		});
 
-		this.sqs.dialogManager.showPopOver("Taxa", instance, {
+		this.sqs.dialogManager.showPopOver("", instance, {
 			width: "100vw",
 			height: "100vh",
 			margin: "0px"

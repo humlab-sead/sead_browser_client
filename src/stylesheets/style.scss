@@ -789,19 +789,20 @@ h1.main-header {
 
 .result-taxon-grid-container {
   position:relative;
-  height: calc(100% - 2em);
+  height: 100%;
   width: 100%;
   gap: 1em;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
   grid-template-rows: 32% 33% 32%;
   grid-template-areas: 
-            "a b c c"
+            "a a c c"
             "d i h h"
             "f f e g";
 }
 
 .taxon-link-container {
+  position: relative;
   margin-bottom: .5rem;
   display: inline-block;
   font-size: 0;
@@ -809,26 +810,32 @@ h1.main-header {
 
 .taxon-link-container .label {
   display: inline-block;
+  display: none;
   font-size: 1.0rem;
-  background: $inactive-color;
+  background: lighten($inactive-color, 60%);
   text-decoration: none;
   width: auto;
-  border-top-left-radius: .5rem;
-  border-bottom-left-radius: .5rem;
-  padding: .5rem;
-  color: #fff;
+  padding: .25rem;
+  color: #000;
   margin-right: 0;
+  margin-left: 1em;
 }
 
 .taxon-link-container .link {
   display: inline-block;
   font-size: 1.0rem;
-  background: $pane-bg-color;
   width: auto;
-  border-top-right-radius: .5rem;
-  border-bottom-right-radius: .5rem;
-  padding: .5rem;
-  margin-left: 0;
+  padding: .25rem;
+  margin-left: 1em;
+}
+
+.taxon-link-container .link-copy {
+  display: inline-block;
+  position: relative;
+  font-size: 1.0rem;
+  width: auto;
+  padding: .25rem;
+  cursor: pointer;
 }
 
 #result-taxon-image-info {
@@ -849,8 +856,8 @@ h1.main-header {
 #result-taxon-image-container {
   display: grid;
   grid-template-columns: repeat(4, minmax(50px, 1fr));
-  grid-auto-rows: minmax(50px, auto);
-  gap: 10px;
+  grid-auto-rows: minmax(60px, auto);
+  gap: .5em;
   overflow: auto;
   padding-left: 1em;
   padding-right: 1em;
@@ -1006,6 +1013,7 @@ h1.main-header {
 .rcb-reference-data {
   border-collapse: collapse;
   border: 1px solid #ccc;
+  margin-bottom: 1em;
 }
 
 .rcb-reference-data td {
@@ -2058,10 +2066,10 @@ polyline{
   grid-row: 2;
   background-color: #fff;
   box-shadow: 0px 0px 20px #666;
-  padding: 2em;
-  overflow: auto;
-  max-height: 90vh;
-  max-width: 90vw;
+  padding: 1em;
+  //overflow: auto;
+  max-height: 95vh;
+  max-width: 95vw;
   border-width: 1px;
   border-style: solid;
   border-color: $pane-bg-color-dark;
@@ -2074,9 +2082,17 @@ polyline{
 
 .popover-close-btn {
   position:absolute;
-  top: .25em;
-  right: .25em;
+  top: -0.25em;
+  right: -0.25em;
   font-size: 2em !important;
+  background: #fff;
+  border-radius: 50%;
+  padding: 0.25em;
+  width: 1em;
+  height: 1em;
+  text-align: center;
+  border: 1px solid #ccc;
+  box-shadow: 0px 0px 10px rgba(0,0,0,0.5);  
 }
 
 .popover-close-btn:hover {
@@ -2648,39 +2664,49 @@ svg text {
 }
 
 .notification {
-  position: absolute;
+  position: fixed;
   top: 0;
   right: 0;
   width: auto;
-  height: 2em;
-  padding: 1em;
+  height: 4em;
   color: #fff;
   z-index: 150;
   margin-right: 1em;
   margin-top: 1em;
   font-size: 1.2em;
   box-shadow: 0px 0px 10px 2px $shadow-color;
-  animation: slide-in 0.5s ease-in-out;
+  animation: slide-in 0.25s ease-in-out;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #fff;
 }
 
 .notification-message-box {
-  color: #fff;
+  color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.0em;
   font-weight: 600;
+  padding: 1em;
+  height: 4em;
+}
+
+.notification-type-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.0em;
+  font-weight: 600;
+  width: 2em;
+  height: 2em;
 }
 
 .notification-icon {
   display: block;
   width: 1em;
   height: 1em;
-  margin-right: .5em;
-  color: rgba(255, 255, 255, 0.8);
 }
 
 .notification-level-info {
@@ -2701,7 +2727,8 @@ svg text {
   padding-left: .5em;
   background: transparent;
   cursor: pointer;
-  color: #fff;
+  color: #000;
+  font-size: 1.5em;
 }
 
 //animate .notification to slide in from the right
@@ -2894,13 +2921,14 @@ svg text {
 
 #tutorial-map-targeting-box {
   position: absolute;
-  left: 42%;
-  top: 20.5%;
+  left: calc(50% - 5em);
+  top: calc(25% - 5em);
+  height: 10em;
+  width: 10em;
+
   //background: rgba(255, 0, 0, 0.5);
   background: transparent;
   z-index: -1;
-  width: 170px;
-  height: 120px;
 }
 
 .mosaic-top-taxa-container {

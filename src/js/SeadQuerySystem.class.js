@@ -73,6 +73,22 @@ class SeadQuerySystem {
 		}
 	}
 
+	setCustomMsg(containerNode, set = true, msg = "") {
+		//Remove any overlay box that might already exist in this container (effectively overwriting that msg)
+		$(".overlay-msg-box", containerNode).remove();
+		
+		if(set) {
+			const noDataBoxFrag = document.getElementById("no-data-box");
+			const noDataBox = document.importNode(noDataBoxFrag.content, true);
+			$("label", noDataBox).text(msg);
+			$(containerNode).html("");
+			$(containerNode).append(noDataBox);
+		}
+		else {
+			$(containerNode).html("");
+		}
+	}
+
 	setLoadingIndicator(containerNode, set = true) {
 		//Remove any overlay box that might already exist in this container (effectively overwriting that msg)
 		$(".overlay-msg-box", containerNode).remove();

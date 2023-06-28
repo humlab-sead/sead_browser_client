@@ -59,7 +59,14 @@ class DialogManager {
 			$("#popover-dialog").css("grid-template-rows", options.margin+" 1fr "+options.margin);
 		}
 
-		$("#popover-dialog-frame > h1").text(title);
+		if(title == "") {
+			$("#popover-dialog-frame > h1").hide();
+		}
+		else {
+			$("#popover-dialog-frame > h1").text(title);
+			$("#popover-dialog-frame > h1").show();
+		}
+
 		$("#popover-dialog-frame > .popover-content").html(content);
 		$("#popover-dialog").css("display", "grid");
 		//$("#popover-dialog-frame").hide();

@@ -140,10 +140,10 @@ class BasicSiteInformation {
 				<div class='site-report-aux-header-underline'></div>
 				<div id="site-report-time-overview"></div>
 			</div>`)
-			.append("<div class='site-report-aux-header-container'><h4>Dataset references</h4></div>")
+			.append("<div class='site-report-aux-header-container'><h4>Other site metadata</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+datasetReferencesHtml+"</div>")
-			.append("<div class='site-report-aux-header-container'><h4>Site references</h4></div>")
+			.append("<div class='site-report-aux-header-container'><h4>Dataset reference</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+siteReferencesHtml+"</div>");
 			

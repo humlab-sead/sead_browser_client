@@ -19,7 +19,7 @@ class NotificationManager {
         //fade out notification and delete on completion
         $("#"+notificationId).animate({
             opacity: 0
-        }, 100, () => {
+        }, 200, () => {
             $("#"+notificationId).remove();
         });
         
@@ -54,21 +54,25 @@ class NotificationManager {
         switch (status) {
             case "info":
                 $(".notification-icon", notificationFragment).html("<i class=\"fa fa-info-circle\" aria-hidden=\"true\"></i>");
-                $(".notification", notificationFragment).addClass("notification-level-info");
+                $(".notification-type-box", notificationFragment).addClass("notification-level-info");
                 break;
             case "warning":
                 $(".notification-icon", notificationFragment).html("<i class=\"fa fa-exclamation-circle\" aria-hidden=\"true\"></i>");
-                $(".notification", notificationFragment).addClass("notification-level-warning");
+                $(".notification-type-box", notificationFragment).addClass("notification-level-warning");
                 break;
             case "error":
                 $(".notification-icon", notificationFragment).html("<i class=\"fa fa-exclamation-triangle\" aria-hidden=\"true\"></i>");
-                $(".notification", notificationFragment).addClass("notification-level-error");
+                $(".notification-type-box", notificationFragment).addClass("notification-level-error");
                 break;
         }
 
 
         document.body.appendChild(notificationFragment);
         this.addNotification(notificationId);
+
+        setTimeout(() => {
+            this.removeNotification(notificationId);
+        }, timeout);
     }
 }
 

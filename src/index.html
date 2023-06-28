@@ -262,10 +262,12 @@
 
       <template id="notification-box">
         <div class="notification">
-          <div class="notification-message-box">
+          <div class="notification-type-box">
             <div class="notification-icon">
               <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
             </div>
+          </div>
+          <div class="notification-message-box">
             <div class="notification-text"></div>
             <button class="dismiss-btn"><i class="fa fa-times" aria-hidden="true"></i></button>
           </div>
@@ -305,12 +307,15 @@
       </template>
 
       <template id="result-taxon-container-content-template">
+        <h1 style="display:inline-block;">Taxon datasheet</h1>
         <div class="taxon-link-container">
-          <div class="label">Link to this datasheet</div>
+          <div class="label">Direct link</div>
           <div class="link"></div>
+          <div class="link-copy">
+            <i class="fa fa-clone" aria-hidden="true"></i>
+            <!--<div class="copy-notification">Copied!</div>-->
+          </div>
         </div>
-
-
 
         <div class="result-taxon-grid-container">
           <div class="result-content-box" style="grid-area: a;">
@@ -340,7 +345,7 @@
             </div>
           </div>
 
-          <div class="result-content-box">
+          <div class="result-content-box" style="grid-area: g;">
             <h3 class="header">
               <div>
                 Measureable attributes
@@ -350,7 +355,7 @@
             </div>
           </div>
 
-          <div class="result-content-box" style="grid-area: b;">
+          <div class="result-content-box" style="grid-area: d;">
             <h3 class="header" id="rcb-seasonlity-year-wheels-header">
               <div>
                 Observed seasonality
@@ -359,7 +364,7 @@
             <div id="rcb-seasonlity-year-wheels"></div>
           </div>
 
-          <div class="result-content-box" style="grid-area: d;">
+          <div class="result-content-box" style="grid-area: i;">
             <h3 class="header">
               <div>
                 Taxonomic notes
@@ -412,6 +417,7 @@
             <div id="rcb-ecology-summary" class="rcb-text-panel"></div>
           </div>
 
+          <!--
           <div class="result-content-box" style="grid-area: g;">
             <h3 class="header">
               <div>
@@ -420,6 +426,7 @@
             </h3>
             <div id="rcb-species-association" class="rcb-text-panel"></div>
           </div>
+          -->
 
         </div>
       </template>

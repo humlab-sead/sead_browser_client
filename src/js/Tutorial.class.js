@@ -50,12 +50,9 @@ class Tutorial {
       this.tour.addStep({
           id: this.stepCounter++,
           title: 'Domains of data',
-          text: `The SEAD system contains many types of data from archeological excavations and investigations.
-          The data is organized into different 'domains', which can be selected via this menu.
+          text: `The SEAD system contains many types of data from archeological excavations and palaeoecological investigations. The data are organized into different 'domains', which can be selected via this menu.
           <br /><br />
-          Selecting a domain narrows down the available filters to those relevant to the selected domain.
-          It also filters the results to only show those that are relevant.
-          Let's keep it on the "General" domain for now, which shows all filters and all data in the system.
+          Selecting a domain narrows the available data and filters to those most relevant to a research field. Let's keep it on the "General" domain for now, which shows all filters and all data in the system.
           `,
           classes: 'tutorial-container',
           attachTo: { element: '#filter-menu-domain-area', on: 'right' },
@@ -76,8 +73,8 @@ class Tutorial {
       this.tour.addStep({
           id: this.stepCounter++,
           title: 'Filters',
-          text: `Each domain has its own set of filters associated with it, which can be selected via this menu. Filters are used to narrow down the amount of sites shown in the result section.
-	  <br /><br />
+          text: `Filters limit the sites shown in the result section.
+	        <br /><br />
           Click on the Filters menu to open it and continue the tour.
           `,
           classes: 'tutorial-container',
@@ -153,9 +150,9 @@ class Tutorial {
       this.tour.addStep({
         id: this.stepCounter++,
         title: 'Result section',
-        text: `This is the result section. Altering the filters will update what you see in the result section, which is a summary of the data currently selected.
+        text: `This is the results section. Altering the filters will update what you see here, which is a summary of the data currently selected.
         <br /><br />
-        Here you will see all the archeological sites that contains data matching your selected filters. Currently we are only seeing the site we selected in the filter since we have filtered everything else out.
+        Here you will see all the sites that contains data matching your selected filters. Currently we are only seeing the site we selected in the site filter since we have filtered everything else out.
         `,
         classes: 'tutorial-container',
         attachTo: { element: '#result-section', on: 'left' },
@@ -197,8 +194,7 @@ class Tutorial {
       this.tour.addStep({
           id: this.stepCounter++,
           title: 'Site reports',
-          text: `You are now on the site report page. This page contains all the data associated with the site you clicked on.
-          Here you can see the individual samples taken at the site, as well as the analyses performed on those samples.
+          text: `You are now on the landing page. This page contains all the data associated with the site you clicked on. Here you can see the individual samples taken at the site, as well as the analyses performed on those samples.
           <br /><br />
           Let's briefly go over it in more detail.
           `,
@@ -220,7 +216,7 @@ class Tutorial {
       this.tour.addStep({
           id: this.stepCounter++,
           title: 'Site information',
-          text: `This section shows general site information, such as location, description and data source references.`,
+          text: `This section shows general site information and metadata, such as location, description and data source references.`,
           attachTo: { element: '#site-report-right-container', on: 'right' },
           classes: 'tutorial-container',
           buttons: [
@@ -240,10 +236,9 @@ class Tutorial {
       this.tour.addStep({
           id: this.stepCounter++,
           title: 'Samples',
-          text: `This section shows the samples taken. These can be soil samples, wood samples, ceramic shards, or other types of samples.
-          The samples are divided into sample groups, which is what you see in this table. Clicking on a group expands it to show the individual samples.
-          You can go ahead and do that now if you like.
-          How the context of a group is defined is up to the archeologist who entered the data.`,
+          text: `This section shows the samples at this site. These can be of various types, such as soil samples, wood samples and ceramic shards. These samples are organised into sample groups, which is what you see in this table.
+          <br /><br />
+          Clicking on a group expands it to show details of the individual samples. You can go ahead and do that now if you like. How the context of a group is defined is up to the scientist who entered the data.`,
           attachTo: { element: '#site-report-section-samples', on: 'right' },
           classes: 'tutorial-container',
           buttons: [
@@ -293,8 +288,7 @@ class Tutorial {
       this.tour.addStep({
         id: this.stepCounter++,
         title: 'Analyses',
-        text: `Here you can see the results of the analysis, in this case an abundance count of fossilized insects, displayed as number of individuals per sample.
-        This data can then be used to perform an environment reconstruction.`,
+        text: `Here you can see the results of the analysis, in this case an abundance count of fossilized insects, displayed as number of individuals per taxon in each sample. These data can then be used to perform an environmental reconstruction.`,
         attachTo: { element: '#cic-34772', on: 'right' },
         classes: 'tutorial-container',
         scrollTo: true,
@@ -315,7 +309,9 @@ class Tutorial {
       this.tour.addStep({
         id: this.stepCounter++,
         title: 'Analyses',
-        text: `This is the environment reconstruction. It shows the most prevalent environment types at the site, based on the abundance count of fossilized insects.`,
+        text: `This is the environmental reconstruction. It shows the most prevalent environment types at the site, based on the abundance of fossilized insects.
+        <br /><br />
+        Below this you can see a detailed reconstruction of the environments represented by each sample.`,
         attachTo: { element: '#site-report-section-analyses .content-item-container:nth-of-type(2)', on: 'right' },
         classes: 'tutorial-container',
         scrollTo: true,
