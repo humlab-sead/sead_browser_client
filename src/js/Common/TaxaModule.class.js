@@ -333,6 +333,9 @@ class TaxaModule {
 			});
 			authorString = authorString.slice(0, -2);
 		}
+		else {
+			authorString += "Unknown author";
+		}
 		
 		authorString += "</span>";
 		$("#rcb-species-value", container).html(taxonSpecString+authorString);
