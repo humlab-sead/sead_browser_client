@@ -801,6 +801,114 @@ h1.main-header {
             "f f e g";
 }
 
+@media print {
+
+  #main-container {
+    position: absolute !important;
+  }
+  #filter-view-main-container {
+    display: none !important;
+  }
+
+  #popover-dialog {
+    position: absolute !important;
+    top: 0px !important;
+    left: 0px !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
+    padding:0 !important;
+    margin:0 !important;
+  }
+
+  #popover-dialog-frame {
+    position: absolute !important;
+    top: 0px !important;
+    left: 0px !important;
+    margin: 0 !important;
+    width: 100vw !important;
+    height: auto !important;
+    box-shadow: none !important;
+    max-height: auto !important;
+    max-width: 100vw !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+
+  .popover-close-btn {
+    display: none !important;
+  }
+
+  .result-taxon-grid-container {
+    display: block !important;
+    grid-template-areas:
+            "a"
+            "c"
+            "d"
+            "i"
+            "h"
+            "f"
+            "e"
+            "g";
+
+  }
+  body {
+    overflow: scroll !important;
+  }
+
+  .result-content-box {
+    page-break-inside: avoid;
+  }
+
+  #rcb-distribution-biblio {
+    height: auto !important;
+  }
+
+  .no-data-box svg {
+    display: none !important;
+  }
+
+  .no-data-box label {
+    position: absolute !important;
+    left: 1em !important;
+    font-size: 1.2em !important;
+    color: #000 !important;
+  }
+
+  .hidden-tooltip {
+    display: block !important;
+  }
+
+  .result-content-box .header {
+    font-size: 2em !important;
+    color: #000 !important;
+  }
+
+  .tab-buttons {
+    display: none !important;
+  }
+
+  .rcb-text-panel {
+    overflow: hidden !important;
+  }
+
+  .result-taxon-image-thumb-container {
+    box-shadow: none !important;
+  }
+
+  .taxon-link-container {
+    float: right !important;
+  }
+
+  .link-copy {
+    display: none !important;
+  }
+
+}
+
+.hidden-tooltip {
+  display: none;
+}
+
 .taxon-link-container {
   position: relative;
   margin-bottom: .5rem;
@@ -835,6 +943,14 @@ h1.main-header {
   font-size: 1.0rem;
   width: auto;
   padding: .25rem;
+  cursor: pointer;
+}
+
+#taxon-print-button {
+  position: relative;
+  display: inline-block;
+  font-size: 1rem;
+  margin-left: .5em;
   cursor: pointer;
 }
 
@@ -2080,6 +2196,7 @@ polyline{
   border-width: 1px;
   border-style: solid;
   border-color: $pane-bg-color-dark;
+  height: 100vh;
 }
 
 

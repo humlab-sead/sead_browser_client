@@ -48,6 +48,17 @@ class TaxaModule {
 			}
 		});
 
+		$(window).on("beforeprint", (event) => {
+			console.log("beforeprint");
+			//select the distribution table tab
+			this.distriTabCont.showTab(1);
+		});
+	}
+
+	registerPrintButton() {
+		$("#taxon-print-button").on("click", (evt) => {
+			window.print();
+		});
 	}
 	
 	isVisible() {
@@ -316,10 +327,13 @@ class TaxaModule {
 		});
 
 		let authorString = "<span class='rcb-taxon-authors'>";
-		taxonData.taxa_tree_authors.forEach(author => {
-			authorString += author.author_name+", ";
-		});
-		authorString = authorString.slice(0, -2);
+		if(typeof taxonData.taxa_tree_authors != "undefined") {
+			taxonData.taxa_tree_authors.forEach(author => {
+				authorString += author.author_name+", ";
+			});
+			authorString = authorString.slice(0, -2);
+		}
+		
 		authorString += "</span>";
 		$("#rcb-species-value", container).html(taxonSpecString+authorString);
 	}
@@ -598,14 +612,15 @@ class TaxaModule {
 		let distHtml = "<table class='rcb-reference-data'>";
 		taxonData.distribution.forEach(dist => {
 			let tooltipId = nanoid();
-			distHtml += "<tr>";
-			distHtml += "<td><h4 id='"+tooltipId+"'>"+dist.biblio.bugs_reference+"</h4></td>";
-			distHtml += "<td>"+dist.distribution_text+"</td>";
-			distHtml += "</tr>";
 
 			let tooltipText = dist.biblio.full_reference ? dist.biblio.full_reference : dist.biblio.authors+" "+dist.biblio.title
-			tooltipText = "<h3 class='tooltip-header'>Reference</h3>"+tooltipText;
-			this.sqs.tooltipManager.registerTooltip("#"+tooltipId, tooltipText, { drawSymbol: true });
+			this.sqs.tooltipManager.registerTooltip("#"+tooltipId, "<h3 class='tooltip-header'>Reference</h3>"+tooltipText, { drawSymbol: true });
+
+			distHtml += "<tr>";
+			distHtml += "<td><h4 id='"+tooltipId+"'>"+dist.biblio.bugs_reference+"</h4><span class='hidden-tooltip'>"+tooltipText+"</span></td>";
+			distHtml += "<td>"+dist.distribution_text+"</td>";
+			distHtml += "</tr>";
+			
 		});
 		distHtml += "</table>";
 
@@ -640,7 +655,7 @@ class TaxaModule {
 			});
 		*/
 		
-		let tabCon = new TabContainer("#rcb-distribution-container", container, 0);
+		this.distriTabCont = new TabContainer("#rcb-distribution-container", container, 0);
 	}
 
 	renderRdb(container, taxonData) {
@@ -671,14 +686,14 @@ class TaxaModule {
 		let bioHtml = "<table class='rcb-reference-data'>";
 		taxonData.biology.forEach(bio => {
 			let tooltipId = nanoid();
-			bioHtml += "<tr>";
-			bioHtml += "<td><h4 id='"+tooltipId+"'>"+bio.biblio.bugs_reference+"</h4></td>";
-			bioHtml += "<td>"+bio.biology_text+"</td>";
-			bioHtml += "</tr>";
 
 			let tooltipText = bio.biblio.full_reference ? bio.biblio.full_reference : bio.biblio.authors+" "+bio.biblio.title
-			tooltipText = "<h3 class='tooltip-header'>Reference</h3>"+tooltipText;
-			this.sqs.tooltipManager.registerTooltip("#"+tooltipId, tooltipText, { drawSymbol: true });
+			this.sqs.tooltipManager.registerTooltip("#"+tooltipId, "<h3 class='tooltip-header'>Reference</h3>"+tooltipText, { drawSymbol: true });
+
+			bioHtml += "<tr>";
+			bioHtml += "<td><h4 id='"+tooltipId+"'>"+bio.biblio.bugs_reference+"</h4><span class='hidden-tooltip'>"+tooltipText+"</span></td>";
+			bioHtml += "<td>"+bio.biology_text+"</td>";
+			bioHtml += "</tr>";
 		});
 		bioHtml += "</table>";
 
@@ -758,6 +773,8 @@ class TaxaModule {
 		this.sqs.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 
 		this.sqs.matomoTrackPageView("Taxon datasheet");
+
+		this.registerPrintButton();
 
 		return true;
 	}
