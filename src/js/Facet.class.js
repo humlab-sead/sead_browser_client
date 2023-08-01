@@ -37,7 +37,7 @@ class Facet {
 		$(facetDomObj).attr("facet-id", this.id);
 		$(facetDomObj).find(".facet-title").html(this.title);
 		
-		this.sqs.tooltipManager.registerTooltip($(".facet-title", facetDomObj), this.description);
+		this.sqs.tooltipManager.registerTooltip($(".facet-title", facetDomObj), this.description, { drawSymbol: true, anchorPoint: "symbol" });
 
 		$(facetDomObj).find(".facet-header-divider").css("background-color", this.color);
 		$("#facet-section").append(facetDomObj);

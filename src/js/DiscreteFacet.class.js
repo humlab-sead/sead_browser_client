@@ -14,7 +14,8 @@ class DiscreteFacet extends Facet {
 		super(sqs, id, template);
 		this.contentWindow = [];
 		this.rowHeight = Config.discreteFacetRowHeight;
-		this.viewportItemCapacity = Math.floor(Config.facetBodyHeight / this.rowHeight);
+		//this.viewportItemCapacity = Math.floor(Config.facetBodyHeight / this.rowHeight);
+		this.viewportItemCapacity = 0;
 		this.textSize = Config.discreteFacetTextSize;
 		this.scrollPosition = 0;
 		this.textFilterString = "";
@@ -22,7 +23,13 @@ class DiscreteFacet extends Facet {
 		this.checkMark = "<div class='fa fa-check facet-row-checkbox-mark' aria-hidden='true'></div>";
 		this.specialFunctionLinks = [];
 		this.sortMode = "title";
+		this.sortDirection = "asc";
+
+		//$(".facet-sort-alpha-btn > span", this.getDomRef()).text(this.title);
 		
+		this.sqs.tooltipManager.registerTooltip($(".facet-sort-alpha-btn", this.getDomRef()), "Sort by name");
+		this.sqs.tooltipManager.registerTooltip($(".facet-sort-num-btn", this.getDomRef()), "Sort by number of analysis entities, which is an indication of how much data we have related to this entry");
+
 		if(this.name == "species") {
 			this.specialFunctionLinks.push({
 				id: nanoid(),
@@ -57,7 +64,47 @@ class DiscreteFacet extends Facet {
 	}
 	
 	registerSortEvents() {
-		$(this.getDomRef()).find(".facet-sort-btn").on("click", () => {
+		$(this.getDomRef()).find(".facet-sort-alpha-btn").on("click", (evt) => {
+			if(this.sortMode == "title") { //If already sorting by title, toggle direction
+				if(this.sortDirection == "asc") {
+					this.sortDirection = "desc";
+				}
+				else {
+					this.sortDirection = "asc";
+				}
+			}
+
+			if(this.sortDirection == "asc") {
+				$(".sort-symbol", evt.currentTarget).removeClass("fa-sort-alpha-desc");
+				$(".sort-symbol", evt.currentTarget).addClass("fa-sort-alpha-asc");
+			}
+			else {
+				$(".sort-symbol", evt.currentTarget).removeClass("fa-sort-alpha-asc");
+				$(".sort-symbol", evt.currentTarget).addClass("fa-sort-alpha-desc");
+			}
+
+			this.sortMode = "title";
+			this.renderData(this.data);
+		});
+		$(this.getDomRef()).find(".facet-sort-num-btn").on("click", (evt) => {
+			if(this.sortMode == "count") { //If already sorting by title, toggle direction
+				if(this.sortDirection == "asc") {
+					this.sortDirection = "desc";
+				}
+				else {
+					this.sortDirection = "asc";
+				}
+			}
+
+			if(this.sortDirection == "asc") {
+				$(".sort-symbol", evt.currentTarget).removeClass("fa-sort-numeric-desc");
+				$(".sort-symbol", evt.currentTarget).addClass("fa-sort-numeric-asc");
+			}
+			else {
+				$(".sort-symbol", evt.currentTarget).removeClass("fa-sort-numeric-asc");
+				$(".sort-symbol", evt.currentTarget).addClass("fa-sort-numeric-desc");
+			}
+
 			this.sortMode = "count";
 			this.renderData(this.data);
 		});
@@ -235,12 +282,16 @@ class DiscreteFacet extends Facet {
 		});
 	}
 
-	sortData(column = "title") {
+	sortData(column = "title", sortDirection = "asc") {
 		if(column == "title") {
 			this.data.sort((a, b) => a.title.trimStart().localeCompare(b.title.trimStart(), "en"));
 		}
 		if(column == "count") {
 			this.data.sort((a, b) => a.count - b.count);
+		}
+
+		if(sortDirection == "desc") {
+			this.data.reverse();
 		}
 	}
 
@@ -269,9 +320,13 @@ class DiscreteFacet extends Facet {
 			this.renderNoDataMsg(false);
 		}
 
-		//this.sortData(this.sortMode);
+		this.sortData(this.sortMode, this.sortDirection);
 
 		var scrollPos = this.getScrollPos();
+		if(this.viewportItemCapacity == 0) {
+			this.viewportItemCapacity = Math.floor($(".list-container", this.getDomRef()).height() / this.rowHeight);
+		}
+		
 		var viewPortHeight = this.viewportItemCapacity*this.rowHeight;
 		var topBlankSpaceHeight = scrollPos;
 		var bottomBlankSpaceHeight = (renderData.length*this.rowHeight) - scrollPos - viewPortHeight;
@@ -326,7 +381,8 @@ class DiscreteFacet extends Facet {
 			}
 		}
 		
-		
+		$(".list-container-header", this.getDomRef()).css("display", "block");
+
 		$(".list-container", this.getDomRef())
 			.html("")
 			.append(topBlankSpace)

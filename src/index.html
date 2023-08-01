@@ -521,15 +521,28 @@
 
           <input class="facet-text-search-input" type="text" />
           <div class="fa fa-search facet-text-search-btn facet-head-btn" aria-hidden="true"></div>
-          <!--<div class="fa fa-sort-amount-asc facet-sort-btn facet-head-btn" aria-hidden="true"></div>-->
           <div class="facet-minimize-btn fa fa-check facet-head-btn facet-size-btn" aria-hidden="true"></div>
           <!--<div class="facet-maximize-btn fa fa-window-maximize facet-head-btn facet-size-btn" aria-hidden="true"></div>-->
           <div class="facet-delete-btn fa fa-times facet-head-btn" aria-hidden="true"></div>
 
         </div>
-        <hr class="facet-header-divider" />
+        <!--<hr class="facet-header-divider" />-->
         <div class="facet-body">
           <div class="facet-no-data-msg">No Data</div>
+          <div class="list-container-header">
+            <div class="list-container-header-content">
+              <div class="list-container-header-item facet-sort-alpha-btn">
+                <div class="fa fa-sort-alpha-asc sort-symbol" aria-hidden="true"></div>
+                <span>Name</span>
+              </div>
+              <div class="list-container-header-item facet-sort-num-btn">
+                <div class="fa fa-sort-numeric-asc sort-symbol" aria-hidden="true"></div>
+                <span>AE count</span>
+              </div>
+            </div>
+            <hr class="facet-header-divider" />
+          </div>
+          
           <div class="list-container"></div>
           <div class="multistage-container"></div>
           <div class="chart-container">

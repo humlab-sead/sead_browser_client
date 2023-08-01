@@ -420,18 +420,25 @@ h1.main-header {
 .facet-header {
 	display:flex;
 	cursor:move;
+  background: $sead-brown;
+  color: #fff;
+}
+
+.facet-header > div {
+  font-weight: normal !important;
+  
 }
 
 .facet-title {
 	flex: 1;
-	font-weight:bold;
-	font-size:14px;
+	font-weight: normal;
+	font-size:1.3em;
 	margin:5px;
 	margin-left:8px;
-	margin-top:8px;
+	margin-top:4px;
+  margin-bottom: 4px;
 	padding:0px;
-	line-height:14px;
-
+	line-height:1.2em;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
@@ -468,11 +475,11 @@ h1.main-header {
   color: $aux-color;
 }
 
+
 .facet-header-divider {
 	margin-top:1px;
 	margin-bottom:0px;
 	width:97%;
-	height:1px;
 	background-color: $aux-color;
 }
 
@@ -545,13 +552,12 @@ h1.main-header {
   padding-bottom: 0px;
 
   margin-right: 2px;
-  color: $inactive-color;
   z-index: 2;
   width: 12px;
 }
 
 .facet-head-btn:hover {
-	background-color: #fff;
+	background-color: lighten($sead-brown, 10%);
 }
 
 .facet-minimize-btn {
@@ -1268,12 +1274,39 @@ h1.main-header {
 	width: 100%;
 }
 
+.list-container-header {
+  display: none;
+  position: sticky;
+  top: 0px;
+  height: 10%;
+  color: #444;
+  z-index: 2;
+}
+
+.list-container-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #444;
+  padding: .2em;
+}
+
+.list-container-header-item {
+  font-weight: bold;
+  padding-left:0;
+  cursor:pointer;
+}
+
+.list-container-header-item:hover {
+  color: lighten(#444, 10%);
+}
+
 .list-container {
 	display:none;
 	position:relative;
-	height: 100%;
+	height: 90%;
   width: 100%;
-	/*background-color:rgba(0, 0, 255, 0.5);*/
+	//background-color:rgba(0, 0, 255, 0.5);
 }
 
 .multistage-container {
