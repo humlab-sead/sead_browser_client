@@ -22,8 +22,7 @@ class Tutorial {
 
       $("#tutorial-question .yes-button").on("click", () => {
         this.sqs.reset();
-        this.tour.start();
-        $("#tutorial-question").hide();
+        this.start();
       });
 
       this.stepCounter = 1;
