@@ -453,8 +453,8 @@ class ResultMosaic extends ResultModule {
 		let activeDomain = this.sqs.domainManager.getActiveDomain();
 		
 		activeDomain.result_grid_modules.forEach(moduleConf => {
-			console.log("Updating grid module "+moduleConf.module.name);
 			if(typeof moduleConf.module != "undefined" && moduleConf.module != null) {
+				console.log("Updating grid module "+moduleConf.module.name);
 				moduleConf.module.update();
 			}
 		});

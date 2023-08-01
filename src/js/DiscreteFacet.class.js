@@ -21,6 +21,7 @@ class DiscreteFacet extends Facet {
 		this.visibleData = [];
 		this.checkMark = "<div class='fa fa-check facet-row-checkbox-mark' aria-hidden='true'></div>";
 		this.specialFunctionLinks = [];
+		this.sortMode = "title";
 		
 		if(this.name == "species") {
 			this.specialFunctionLinks.push({
@@ -49,11 +50,19 @@ class DiscreteFacet extends Facet {
 		});
 
 		this.registerTextSearchEvents();
+		this.registerSortEvents();
 		
 		this.sqs.tooltipManager.registerTooltip($(".facet-size-btn", this.getDomRef()), "Show only selections");
 		this.sqs.tooltipManager.registerTooltip($(".facet-text-search-btn", this.getDomRef()), "Filter list by text");
 	}
 	
+	registerSortEvents() {
+		$(this.getDomRef()).find(".facet-sort-btn").on("click", () => {
+			this.sortMode = "count";
+			this.renderData(this.data);
+		});
+	}
+
 	/*
 	 * Function: registerTextSearchEvents
 	 */
@@ -226,6 +235,15 @@ class DiscreteFacet extends Facet {
 		});
 	}
 
+	sortData(column = "title") {
+		if(column == "title") {
+			this.data.sort((a, b) => a.title.trimStart().localeCompare(b.title.trimStart(), "en"));
+		}
+		if(column == "count") {
+			this.data.sort((a, b) => a.count - b.count);
+		}
+	}
+
 	/*
 	* Function: renderData
 	* 
@@ -250,6 +268,8 @@ class DiscreteFacet extends Facet {
 		else {
 			this.renderNoDataMsg(false);
 		}
+
+		//this.sortData(this.sortMode);
 
 		var scrollPos = this.getScrollPos();
 		var viewPortHeight = this.viewportItemCapacity*this.rowHeight;
@@ -535,19 +555,8 @@ class DiscreteFacet extends Facet {
 			});
 		}
 		else {
-			/*
-			this.data.sort((a, b) => {
-				if(a.title > b.title) {
-					return 1;
-				}
-				else {
-					return -1;
-				}
-			});
-			*/
-			this.data.sort((a, b) => a.title.trimStart().localeCompare(b.title.trimStart(), "en"))
+			this.sortData("title");
 		}
-		
 		
 		//check how this new data matches up with the current selections
 		for(var sk in this.selections) {

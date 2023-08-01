@@ -783,6 +783,12 @@ class TaxaModule {
 	}
 
 	renderYearWheel(anchor, seasonalityItems = []) {
+		//Reduce this data to only contain data points for active adults in the uk
+		//this is because we only have data of this type currently, but if we receive other seasonality data in the future
+		//we don't want it to get mixed up here and presented as if it were showing adults active in the uk when it is not
+		seasonalityItems = seasonalityItems.filter(item => {
+			return item.location.location_id == 224 && item.activity_type.activity_type_id == 3;
+		});
 
 		let selectedMonths = [];
 		seasonalityItems.forEach(item => {
@@ -800,7 +806,7 @@ class TaxaModule {
 		},
 		backgroundColor: 'rgba(0, 0, 0, 0)',
 		title : {
-			text : '',
+			text : 'Adults active in the UK',
 			fontSize : '12px'
 		},
 		plot : {
