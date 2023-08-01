@@ -54,8 +54,9 @@ class SeadQuerySystem {
 			$("#preload-failed-indicator").css("display", "block");
 			$(".seadlogo-loading-indicator-bg").hide();
 		});
-
-		$("body").show();
+		
+		$("#system-preload-message").hide();
+		$("#main-container").show();
 	}
 
 	setNoDataMsg(containerNode, set = true) {

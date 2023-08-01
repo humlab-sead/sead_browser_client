@@ -28,43 +28,11 @@ import "../assets/filter-menu.svg";
 window.Config = config;
 window.config = config;
 
+
 $(function() {
     window.sqs = new SeadQuerySystem();
     window.sqs.init();
-})
-/*
-$(document).ready(() => {
-    window.sqs = new SeadQuerySystem();
-    window.sqs.init();
 });
-*/
-
-/*
-fetch('/config.json')
-    .then(response => {
-        if(response.ok === false) {
-            alert('Could not load configuration!');
-            return false;
-        }
-        return response.json();
-    })
-    .then((Config) => {
-    //Set some globals
-    window.Config = Config;
-    window.$ = $;
-    window.jQuery = jQuery;
-    window.sqs = null;
-    window.config = Config;
-
-    //When document ready...
-    $(document).ready(() => {
-        window.sqs = new SeadQuerySystem();
-        window.sqs.init();
-    });
-});
-*/
-
-
 
 
 function debugSize() {
