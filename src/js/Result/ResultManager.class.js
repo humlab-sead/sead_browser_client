@@ -35,7 +35,7 @@ class ResultManager {
 			
 			$(window).on("seadFacetDeletion", (event, data) => {
 				//If this deleted facet had any selections... otherwise we don't care
-				if (data.facet.selections.length > 0) {
+				if(data.facet.getSelections().length > 0) {
 					this.updateResultView(data.facet);
 				}
 			});
