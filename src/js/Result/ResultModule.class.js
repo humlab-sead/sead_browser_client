@@ -95,8 +95,7 @@ class ResultModule {
 				dataRows.push([
 					"Site Id",
 					"Site name",
-					"Latitude",
-					"Longitude"
+					"Record type"
 				]);
 
 				resultDataRows.forEach(site => {
@@ -109,9 +108,8 @@ class ResultModule {
 					}
 					dataRows.push([
 						siteId,
-						site.title,
-						site.lat,
-						site.lng
+						site.sitename,
+						site.record_type
 					]);
 				});
 				
