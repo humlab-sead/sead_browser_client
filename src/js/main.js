@@ -23,6 +23,13 @@ import "../../node_modules/jquery-ui-dist/jquery-ui.min.js"
 import "../assets/SEAD-logo-with-subtext.png";
 import "../assets/filter-menu.svg";
 
+import "../assets/logo-loading-indicator.webp";
+import "../assets/su_logo.jpg";
+import "../assets/riksbanken-logo.png";
+import "../assets/umu-logo-en.png";
+import "../assets/mal-logo.png";
+import "../assets/lu-logo.png";
+
 "use strict";
 
 window.Config = config;

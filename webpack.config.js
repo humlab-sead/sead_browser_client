@@ -47,7 +47,7 @@ module.exports = (env, config) => {
       rules: [
         {
           test: /\.ejs$/, 
-          use: {
+          use: [{
             loader: 'ejs-compiled-loader',
             options: {
               htmlmin: true,
@@ -56,6 +56,7 @@ module.exports = (env, config) => {
               }
             }
           }
+        ]
         },
         {
           test: /\.(?:html)$/i,
@@ -79,7 +80,7 @@ module.exports = (env, config) => {
         },
         // Images
         {
-          test: /\.(?:ico|gif|png|jpg|jpeg|svg)$/i,
+          test: /\.(?:ico|gif|png|jpg|jpeg|svg|webp)$/i,
           type: 'asset/resource',
         },
         // Fonts and SVGs
