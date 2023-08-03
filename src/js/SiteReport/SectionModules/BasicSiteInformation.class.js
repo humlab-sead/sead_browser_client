@@ -11,7 +11,6 @@ import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style.js';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import css from '../../../stylesheets/style.scss';
-import * as Plotly from "plotly.js-dist";
 import DatingToPeriodDataset from './DatasetModules/DatingToPeriodDataset.class';
 import { Chart, CategoryScale, LinearScale, BarController, BarElement } from "chart.js";
 import DendrochronologyDataset from './DatasetModules/DendrochronologyDataset.class';

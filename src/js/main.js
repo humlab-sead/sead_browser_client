@@ -1,6 +1,6 @@
 import 'babel-polyfill';
 import config from '../config/config.json';
-import html from "../index.html";
+import html from "../index.ejs";
 import 'notifyjs-browser';
 import 'zingtouch';
 import 'cookieconsent';

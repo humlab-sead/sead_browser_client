@@ -10,8 +10,7 @@ import {
 	Tooltip
  } from "chart.js";
 import 'zingchart/es6';
-import * as d3 from 'd3';
-import * as Plotly from "plotly.js-dist";
+import Plotly from "plotly.js-dist";
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {

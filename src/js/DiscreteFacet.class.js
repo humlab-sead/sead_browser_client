@@ -1,6 +1,4 @@
-//import Config from '../config/config.js'
 import Facet from './Facet.class.js'
-import _ from 'underscore';
 import { nanoid } from 'nanoid';
 /*
 * Class: DiscreteFacet
@@ -41,8 +39,6 @@ class DiscreteFacet extends Facet {
 				}
 			});
 		}
-		
-		
 
 		this.updateMaxRowTitleLength();
 		this.renderSelections();
@@ -163,7 +159,7 @@ class DiscreteFacet extends Facet {
 	* append
 	*/
 	setSelections(selections, append = true) {
-		if(!_.isEqual(this.selections, selections)) {
+		if(!this.selectionsAreEqual(this.selections, selections)) {
 			if(append) {
 				this.selections = this.selections.concat(selections);
 			}
@@ -174,6 +170,19 @@ class DiscreteFacet extends Facet {
 			this.broadcastSelection();
 		}
 	}
+
+	selectionsAreEqual(selectionsA, selectionsB) {
+		if(selectionsA.length != selectionsB.length) {
+			return false;
+		}
+		for(var key in selectionsA) {
+			if(selectionsA[key] != selectionsB[key]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	
 	/*
 	* Function: addSelection
@@ -312,7 +321,8 @@ class DiscreteFacet extends Facet {
 			renderData = this.data;
 		}
 		
-		if(renderData.length == 0) {
+		if(renderData.length == 0 && this.minimized == false) {
+			console.log("No data to render")
 			this.renderNoDataMsg(true);
 			return;
 		}
@@ -323,18 +333,28 @@ class DiscreteFacet extends Facet {
 		this.sortData(this.sortMode, this.sortDirection);
 
 		var scrollPos = this.getScrollPos();
+		
 		if(this.viewportItemCapacity == 0) {
-			this.viewportItemCapacity = Math.floor($(".list-container", this.getDomRef()).height() / this.rowHeight);
+			this.viewportItemCapacity = Math.floor($(".list-container", this.domObj).height() / this.rowHeight) - 1; //why -1? Who knows! But it works!
 		}
 		
-		var viewPortHeight = this.viewportItemCapacity*this.rowHeight;
+		var viewPortHeight = this.viewportItemCapacity * this.rowHeight;
 		var topBlankSpaceHeight = scrollPos;
-		var bottomBlankSpaceHeight = (renderData.length*this.rowHeight) - scrollPos - viewPortHeight;
+		var bottomBlankSpaceHeight = (renderData.length * this.rowHeight) - scrollPos - viewPortHeight;
 		var topBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", topBlankSpaceHeight);
 		var bottomBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", bottomBlankSpaceHeight);
 		var out = "";
 		var dataPos = Math.ceil(scrollPos / this.rowHeight); //Changed this from floor to ceil, which fixes the last item not being rendered
-		
+		/*
+		console.log("scrollPos: "+scrollPos);
+		console.log("viewPortHeight: "+viewPortHeight);
+		console.log("topBlankSpaceHeight: "+topBlankSpaceHeight);
+		console.log((renderData.length * this.rowHeight))
+		console.log("bottomBlankSpaceHeight: "+bottomBlankSpaceHeight);
+		console.log("dataPos: "+dataPos);
+		console.log("this.viewportItemCapacity: "+this.viewportItemCapacity);
+		console.log("renderData.length: "+renderData.length);
+		*/
 		let specialFunctionLinkIds = [];
 
 		for(var i = 0; i < this.viewportItemCapacity; i++) {
@@ -381,9 +401,24 @@ class DiscreteFacet extends Facet {
 			}
 		}
 		
-		$(".list-container-header", this.getDomRef()).css("display", "block");
+		if(this.minimized == false) {
+			$(".list-container-header", this.domObj).css("display", "block");
+		}
 
-		$(".list-container", this.getDomRef())
+		/*
+		let listContainer = $(".list-container", this.getDomRef());
+		listContainer.html("");
+		if(!this.minimized) {
+			listContainer.append(topBlankSpace);
+		}
+		listContainer.append(out);
+		if(!this.minimized) {
+			listContainer.append(bottomBlankSpace);
+		}
+		listContainer.show();
+		*/
+		
+		$(".list-container", this.domObj)
 			.html("")
 			.append(topBlankSpace)
 			.append(out)
@@ -391,7 +426,7 @@ class DiscreteFacet extends Facet {
 			.show();
 		
 		
-		$(this.getDomRef()).find(".facet-row").on("click", (evt) => {
+		$(".facet-row", this.domObj).on("click", (evt) => {
 			if(this.locked) {
 				return;
 			}
@@ -408,7 +443,7 @@ class DiscreteFacet extends Facet {
 			});
 		});
 
-		$(this.getDomRef()).find(".facet-row-shortened-text").bind("hover", (obj) => {
+		$(".facet-row-shortened-text", this.domObj).on("hover", (obj) => {
 			var target = obj.target;
 			if($(obj.target).hasClass("facet-row-text")) {
 				target = $(obj.target).parent();
@@ -492,15 +527,15 @@ class DiscreteFacet extends Facet {
 	* 
 	*/
 	getScrollPos() {
-		return $(this.domObj).find(".facet-body").scrollTop();
+		return $(".facet-body", this.domObj).scrollTop();
 	}
 
 	/*
 	* Function: minimize
 	*/
-	minimize(changeFacetSize = false) {
+	minimize(changeFacetSize = true) {
 		this.scrollPosition = this.getScrollPos();
-		super.minimize();
+		super.minimize(changeFacetSize);
 
 		$(".facet-text-search-input", this.getDomRef()).hide();
 		$(".facet-text-search-btn", this.getDomRef()).hide();
@@ -508,30 +543,62 @@ class DiscreteFacet extends Facet {
 		$(this.domObj).find(".facet-body").show(); //Un-do hide of facet-body which is done in the super
 		
 		if(changeFacetSize) {
-			var headerHeight = $(".facet-header", this.domObj).height();
-			headerHeight += 12;
-	
-			//var selectionsHeight = this.selections.length * this.rowHeight;
-			let selectionsHeight = this.rowHeight; //Collapse down to just 1 row
-	
-			var facetHeight = headerHeight + selectionsHeight;
-			if(facetHeight > Config.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
-				facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
+
+			var headerHeight = $(".facet-header", this.domObj).height(); //should 29.828
+			let subHeaderHeight = $(".list-container-header", this.domObj).height(); //should be 24.688
+			let facetHeight = headerHeight + subHeaderHeight + this.selections.length * this.rowHeight;
+			let facetBodyHeight = subHeaderHeight + this.selections.length * this.rowHeight + 2;
+			
+			if(facetHeight > Config.facetBodyHeight+headerHeight) {
+				facetHeight = Config.facetBodyHeight+headerHeight;
 			}
+
+			//$(".facet-body", this.domObj).css("height", selectionsHeight+"px");
 			$(this.domObj).css("height", facetHeight+"px");
+			$(".facet-body", this.domObj).css("height", facetBodyHeight+"px");
+
+			/*
+			//$(".list-container-header", this.domObj).css("display", "none");
+			var headerHeight = $(".facet-header", this.domObj).height(); //should 29.828
+			let subHeaderHeight = $(".list-container-header", this.domObj).height(); //should be 24.688
+			console.log("headerHeight: "+headerHeight);
+			console.log("subHeaderHeight: "+subHeaderHeight);
+			//headerHeight += 12; //was 12
+	
+			let selectionsHeight = this.selections.length * this.rowHeight;
+			console.log("selectionsHeight: "+selectionsHeight);
+			//let selectionsHeight = this.rowHeight; //Collapse down to just 1 row
+	
+			let facetHeight = headerHeight + subHeaderHeight + selectionsHeight;
+			const facetBodyHeight = subHeaderHeight + selectionsHeight;
+			console.log("facetBodyHeight: "+facetBodyHeight);
+
+			//if the total computed facet height would be larger than a standard facet height, set it to the standard height (thus making it scrollable since the facet body will be larger than the facet height)
+			if(facetHeight > Config.facetBodyHeight+headerHeight) {
+				console.log("setting (max) facet height: "+facetHeight);
+				facetHeight = Config.facetBodyHeight+headerHeight;
+			}
+
+			$(this.domObj).css("height", (facetHeight)+"px");
+
+			$(".facet-body", this.getDomRef()).css("height", facetBodyHeight+"px");
+			*/
+			/*
 			if(selectionsHeight < facetHeight) {
-				$("#facet-"+this.id+" > .facet-body").css("height", selectionsHeight+"px");
+				console.log("setting facet body height (1): "+selectionsHeight);
+				$(".facet-body", this.getDomRef()).css("height", selectionsHeight+"px");
 			}
 			else {
-				$("#facet-"+this.id+" > .facet-body").css("height", facetHeight+"px");
+				console.log("setting facet body height (2): "+facetHeight);
+				$(".facet-body", this.getDomRef()).css("height", facetHeight+"px");
 			}
+			*/
 		}
 		
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
 		this.sqs.facetManager.updateSlotSize(slotId);
 		this.sqs.facetManager.updateAllFacetPositions();
 		
-		$(".discrete-facet-blank-space", this.getDomRef()).hide();
 		this.updateRenderData();
 	}
 

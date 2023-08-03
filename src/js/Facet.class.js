@@ -33,6 +33,7 @@ class Facet {
 		this.enabled = true; //If this facet is not applicable within the current domain, this will be false.
 
 		var facetDomObj = $("#facet-template")[0].cloneNode(true);
+		this.domObj = facetDomObj;
 		$(facetDomObj).attr("id", "facet-"+this.id);
 		$(facetDomObj).attr("facet-id", this.id);
 		$(facetDomObj).find(".facet-title").html(this.title);
@@ -46,7 +47,7 @@ class Facet {
 
 		this.setHeight(Config.facetBodyHeight);
 		this.defaultHeight = $(facetDomObj).css("height");
-		this.domObj = facetDomObj;
+		
 
 		$(facetDomObj).find(".facet-delete-btn").bind("click", () => {
 			this.destroy();
@@ -98,9 +99,8 @@ class Facet {
 	}
 
 	setHeight(height = Config.facetBodyHeight) {
-		console.log("setHeight", height)
+		console.log("setHeight", this.domObj, height)
 		$(".facet-body", this.domObj).css("height", height+"px");
-		//$(".facet-body", this.domObj).css("height", height);
 		this.bodyHeight = $(".facet-body", this.domObj).css("height");
 		/*
 		let slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
@@ -180,11 +180,11 @@ class Facet {
 	* Collapses the facet to reduce the vertical space it occupies. In a discrete facet the selections will still be shown.
 	*/
 	minimize(changeFacetSize = false) {
-		console.log("minimize", changeFacetSize);
 		$("#facet-"+this.id+" .facet-size-btn")
 			.switchClass("facet-minimize-btn", "facet-maximize-btn")
 			.addClass("facet-control-active");
 
+		/*
 		if(changeFacetSize) {
 			$("#facet-"+this.id+" > .facet-body").css("height", "0px");
 			var headerHeight = $(".facet-header", this.domObj).height();
@@ -199,6 +199,7 @@ class Facet {
 			}
 			$(this.domObj).css("height", facetHeight+"px");
 		}
+		*/
 		
 		this.minimized = true;
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);

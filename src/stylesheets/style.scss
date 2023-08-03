@@ -325,7 +325,7 @@ h1.main-header {
 	width: 15px;
 	height: 15px;
 	align-self: center;
-	background-image: url('../assets/ajax-loader.gif');
+	background-image: url('../assets/loading-indicator6.svg');
 	background-repeat: no-repeat;
 	background-size: 100%;
 	margin-right:5px;
@@ -420,7 +420,7 @@ h1.main-header {
 .facet-header {
 	display:flex;
 	cursor:move;
-  background: $sead-brown;
+  background: $inactive-color;
   color: #fff;
 }
 
@@ -485,11 +485,14 @@ h1.main-header {
 
 .facet-body {
   /*height: 268px;*/ /* needs to have fixed height because of range/diagram filters, but this is set in js facet init - to let this value be specified in Config*/
+  display: flex;
+  flex-direction: column;
   position: relative;
   padding: 5px;
   padding-top: 0px;
   padding-bottom: 0px;
   overflow: auto;
+  //background: lighten(rgb(45, 94, 141), 55%);
 }
 
 .facet-body-disabled {
@@ -557,7 +560,7 @@ h1.main-header {
 }
 
 .facet-head-btn:hover {
-	background-color: lighten($sead-brown, 10%);
+	background-color: lighten($inactive-color, 10%);
 }
 
 .facet-minimize-btn {
@@ -597,7 +600,7 @@ h1.main-header {
 }
 
 .facet-row-selected {
-	background-color: $inactive-color;
+	background-color: #666;
 	color: #fff;
 }
 
@@ -635,6 +638,10 @@ h1.main-header {
   border-color: #aaa;
   width: 12px;
   height: 12px;
+}
+
+.facet-row-checkbox-multistage {
+  border-width: 0px !important;
 }
 
 .facet-row-checkbox-mark {
@@ -1278,7 +1285,7 @@ h1.main-header {
   display: none;
   position: sticky;
   top: 0px;
-  height: 10%;
+  height: 2em;
   color: #444;
   z-index: 2;
 }
@@ -1304,8 +1311,9 @@ h1.main-header {
 .list-container {
 	display:none;
 	position:relative;
-	height: 90%;
+	height: 100%;
   width: 100%;
+  margin-top: 0.2em;
 	//background-color:rgba(0, 0, 255, 0.5);
 }
 
@@ -1955,10 +1963,6 @@ polyline{
   vertical-align: super;
   cursor:help;
   margin-left:4px;
-}
-
-.help-icon:hover {
-  color: $inactive-color;
 }
 
 .small-link {

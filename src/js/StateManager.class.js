@@ -1,6 +1,5 @@
 //import Config from '../config/config.js';
 import shortid from 'shortid'
-import _ from 'underscore';
 
 /* 
 Class: StateManager

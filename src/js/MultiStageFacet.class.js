@@ -1,5 +1,4 @@
 import Facet from './Facet.class.js'
-import _ from 'underscore';
 import { nanoid } from 'nanoid';
 /*
 * Class: MultiStageFacet
@@ -38,7 +37,7 @@ class MultiStageFacet extends Facet {
 
 		this.checkMarks = {
 			uncheckedBox: "<div class='facet-row-checkbox'></div>",
-			checkedBox: "<div class='fa fa-check facet-row-checkbox-mark' aria-hidden='true'></div>",
+			checkedBox: "<div class='facet-row-checkbox'><div class='fa fa-check facet-row-checkbox-mark' aria-hidden='true'></div></div>",
 			uncheckedArrow: "<div class='facet-row-arrow-mark'></div>",
 			checkedArrow: "<div class='facet-row-arrow-mark-selected'></div>"
 		}
@@ -188,7 +187,7 @@ class MultiStageFacet extends Facet {
 	* append
 	*/
 	setSelections(selections, append = true) {
-		if(!_.isEqual(this.selections, selections)) {
+		if(!this.selectionsAreEqual(this.selections, selections)) {
 			if(append) {
 				this.selections = this.selections.concat(selections);
 			}
@@ -198,6 +197,18 @@ class MultiStageFacet extends Facet {
 			
 			this.broadcastSelection();
 		}
+	}
+
+	selectionsAreEqual(selectionsA, selectionsB) {
+		if(selectionsA.length != selectionsB.length) {
+			return false;
+		}
+		for(var key in selectionsA) {
+			if(selectionsA[key] != selectionsB[key]) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	/*
@@ -372,7 +383,7 @@ class MultiStageFacet extends Facet {
 				out += `
 				<div class='facet-row `+selectedClass+`' facet-row-id='`+dataElement.id+`'>
 					<div class='facet-row-checkbox-container'>
-						`+checkMark+`
+					`+checkMark+`
 					</div>
 					<div class='facet-row-text'>`+displayTitle+`</div>
 					<div class='facet-row-count'>`+dataElement.count+`</div>
