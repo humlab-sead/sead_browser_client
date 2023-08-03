@@ -17,7 +17,7 @@ import MosaicTemporalDistributionModule from "./MosaicTileModules/MosaicTemporal
 import MosaicTaxaListModule from "./MosaicTileModules/MosaicTaxaListModule.class";
 import MosaicEcoCodesModule from './MosaicTileModules/MosaicEcoCodesModule.class.js';
 import { nanoid } from 'nanoid';
-import * as Plotly from "plotly.js-dist";
+import Plotly from "plotly.js-dist";
 
 class ResultMosaic extends ResultModule {
 	constructor(resultManager) {

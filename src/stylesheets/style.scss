@@ -325,7 +325,7 @@ h1.main-header {
 	width: 15px;
 	height: 15px;
 	align-self: center;
-	background-image: url('../assets/ajax-loader.gif');
+	background-image: url('../assets/loading-indicator6.svg');
 	background-repeat: no-repeat;
 	background-size: 100%;
 	margin-right:5px;
@@ -420,18 +420,25 @@ h1.main-header {
 .facet-header {
 	display:flex;
 	cursor:move;
+  background: $inactive-color;
+  color: #fff;
+}
+
+.facet-header > div {
+  font-weight: normal !important;
+  
 }
 
 .facet-title {
 	flex: 1;
-	font-weight:bold;
-	font-size:14px;
+	font-weight: normal;
+	font-size:1.3em;
 	margin:5px;
 	margin-left:8px;
-	margin-top:8px;
+	margin-top:4px;
+  margin-bottom: 4px;
 	padding:0px;
-	line-height:14px;
-
+	line-height:1.2em;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
@@ -468,21 +475,24 @@ h1.main-header {
   color: $aux-color;
 }
 
+
 .facet-header-divider {
 	margin-top:1px;
 	margin-bottom:0px;
 	width:97%;
-	height:1px;
 	background-color: $aux-color;
 }
 
 .facet-body {
   /*height: 268px;*/ /* needs to have fixed height because of range/diagram filters, but this is set in js facet init - to let this value be specified in Config*/
+  display: flex;
+  flex-direction: column;
   position: relative;
   padding: 5px;
   padding-top: 0px;
   padding-bottom: 0px;
   overflow: auto;
+  //background: lighten(rgb(45, 94, 141), 55%);
 }
 
 .facet-body-disabled {
@@ -545,13 +555,12 @@ h1.main-header {
   padding-bottom: 0px;
 
   margin-right: 2px;
-  color: $inactive-color;
   z-index: 2;
   width: 12px;
 }
 
 .facet-head-btn:hover {
-	background-color: #fff;
+	background-color: lighten($inactive-color, 10%);
 }
 
 .facet-minimize-btn {
@@ -591,7 +600,7 @@ h1.main-header {
 }
 
 .facet-row-selected {
-	background-color: $inactive-color;
+	background-color: #666;
 	color: #fff;
 }
 
@@ -629,6 +638,10 @@ h1.main-header {
   border-color: #aaa;
   width: 12px;
   height: 12px;
+}
+
+.facet-row-checkbox-multistage {
+  border-width: 0px !important;
 }
 
 .facet-row-checkbox-mark {
@@ -1268,12 +1281,40 @@ h1.main-header {
 	width: 100%;
 }
 
+.list-container-header {
+  display: none;
+  position: sticky;
+  top: 0px;
+  height: 2em;
+  color: #444;
+  z-index: 2;
+}
+
+.list-container-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #444;
+  padding: .2em;
+}
+
+.list-container-header-item {
+  font-weight: bold;
+  padding-left:0;
+  cursor:pointer;
+}
+
+.list-container-header-item:hover {
+  color: lighten(#444, 10%);
+}
+
 .list-container {
 	display:none;
 	position:relative;
 	height: 100%;
   width: 100%;
-	/*background-color:rgba(0, 0, 255, 0.5);*/
+  margin-top: 0.2em;
+	//background-color:rgba(0, 0, 255, 0.5);
 }
 
 .multistage-container {
@@ -1922,10 +1963,6 @@ polyline{
   vertical-align: super;
   cursor:help;
   margin-left:4px;
-}
-
-.help-icon:hover {
-  color: $inactive-color;
 }
 
 .small-link {

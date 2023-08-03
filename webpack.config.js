@@ -1,7 +1,10 @@
+const seadConfig = require('./src/config/config.json');
 const webpack = require('webpack');
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const { CleanWebpackPlugin } = require('clean-webpack-plugin')
+require("ejs-compiled-loader");
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 
 module.exports = (env, config) => {
@@ -23,19 +26,40 @@ module.exports = (env, config) => {
         },
       }),
       new HtmlWebpackPlugin({
-        template: path.resolve(__dirname, './src/index.html'), // template file
+        template: path.resolve(__dirname, './src/index.ejs'), // template file
         filename: 'index.html', // output file
+        templateParameters: {
+          //'baseUrl': 'https://example.com',
+          'baseUrl': seadConfig.serverRoot,
+        }
       }),
       new CleanWebpackPlugin(),
       new webpack.ProvidePlugin({
         $: 'jquery',
         jQuery: 'jquery',
       }),
+      new BundleAnalyzerPlugin({
+        analyzerMode: 'static',
+        reportFilename: 'bundle-report.html',
+      }),
     ],
     module: {
       rules: [
         {
-          test: /\.html$/,
+          test: /\.ejs$/, 
+          use: [{
+            loader: 'ejs-compiled-loader',
+            options: {
+              htmlmin: true,
+              htmlminOptions: {
+                removeComments: true
+              }
+            }
+          }
+        ]
+        },
+        {
+          test: /\.(?:html)$/i,
           use: ['html-loader']
         },
         {
@@ -56,7 +80,7 @@ module.exports = (env, config) => {
         },
         // Images
         {
-          test: /\.(?:ico|gif|png|jpg|jpeg|svg)$/i,
+          test: /\.(?:ico|gif|png|jpg|jpeg|svg|webp)$/i,
           type: 'asset/resource',
         },
         // Fonts and SVGs
