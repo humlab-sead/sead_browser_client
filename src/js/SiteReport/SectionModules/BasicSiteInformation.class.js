@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
-import { OSM as OSMSource } from 'ol/source';
+import { Stamen } from 'ol/source';
 import { Group as GroupLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import {fromLonLat, transform} from 'ol/proj.js';
@@ -12,7 +12,7 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import css from '../../../stylesheets/style.scss';
 import DatingToPeriodDataset from './DatasetModules/DatingToPeriodDataset.class';
-import { Chart, CategoryScale, LinearScale, BarController, BarElement } from "chart.js";
+import { Chart } from "chart.js";
 import DendrochronologyDataset from './DatasetModules/DendrochronologyDataset.class';
 
 /*
@@ -155,7 +155,7 @@ class BasicSiteInformation {
 		for(var i = 0; i < siteData.location.length; i++) {
 			var el = $("<span>" + siteData.location[i].location_name + "</span>");
 			locationsContainer.append(el);
-			this.sqs.tooltipManager.registerTooltip(el, "<div style='font-weight:bold'>"+siteData.location[i].location_type+"</div><div>"+siteData.location[i].location_description+"</div>", {highlightAnchor: true});
+			this.sqs.tooltipManager.registerTooltip(el, "<div style='font-weight:bold'>"+siteData.location[i].location_type+"</div><div>"+siteData.location[i].location_description+"</div>", {drawSymbol: true});
 			
 			if (i+1 < siteData.location.length) {
 				locationsContainer.append(", ");
@@ -440,7 +440,9 @@ class BasicSiteInformation {
 			layers: new GroupLayer({
 				layers: [
 					new TileLayer({
-						source: new OSMSource(),
+						source: new Stamen({
+							layer: 'terrain-background'
+						}),
 						visible: true
 					})
 				]
@@ -466,9 +468,8 @@ class BasicSiteInformation {
 		});
 		
 		
-		var strokeColor = "#000000";
-		//var fillColor = css.auxColor;
-		let fillColor = "#ff6600";
+		var strokeColor = "#666";
+		let fillColor = css.auxColor;
 		var iconStyle = new Style({
 			image: new CircleStyle({
 				radius: 5,
