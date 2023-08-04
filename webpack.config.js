@@ -78,9 +78,9 @@ module.exports = (env, config) => {
           exclude: /node_modules/,
           use: ['babel-loader', 'source-map-loader'],
         },
-        // Images
+        // Generic resources
         {
-          test: /\.(?:ico|gif|png|jpg|jpeg|svg|webp)$/i,
+          test: /\.(?:ico|gif|png|jpg|jpeg|svg|webp|xml)$/i,
           type: 'asset/resource',
         },
         // Fonts and SVGs

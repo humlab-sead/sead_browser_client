@@ -159,6 +159,7 @@
 			"title": "General",
 			"icon":"<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>",
 			"color":"#333",
+			"filterBlacklist": [],
 			"result_grid_layout": [2, 2],
 			"result_grid_modules": [
 				{
@@ -193,6 +194,7 @@
 		"title": "Dendrochronology",
 		"icon":"<i class=\"fa fa-tree\" aria-hidden=\"true\"></i>",
 		"color":"#0a0",
+		"filterBlacklist": [],
 		"result_grid_layout": [2, 2],
 		"result_grid_modules": [
 				{
@@ -222,6 +224,7 @@
 		"title": "Palaeoentomology",
 		"icon":"<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
 		"color":"#a00",
+		"filterBlacklist": [],
 		"result_grid_layout": [2, 2],
 		"result_grid_modules": [
 				{
@@ -247,6 +250,7 @@
 		"title": "Archaeobotany",
 		"icon":"<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i>",
 		"color":"#9c591b",
+		"filterBlacklist": [],
 		"result_grid_layout": [2, 2],
 			"result_grid_modules": [
 				{
@@ -276,6 +280,7 @@
 		"title": "Pollen",
 		"icon":"<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i>",
 		"color":"#216600",
+		"filterBlacklist": [],
 		"result_grid_layout": [2, 2],
 		"result_grid_modules": [
 				{
@@ -301,6 +306,7 @@
 		"title": "Geoarchaeology",
 		"icon":"<i class=\"fa fa-map\" aria-hidden=\"true\"></i>",
 		"color":"#909",
+		"filterBlacklist": [],
 		"result_grid_layout": [1, 1],
 		"result_grid_modules": [
 				{
@@ -316,6 +322,7 @@
 		"title": "Isotope",
 		"icon":"<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i>",
 		"color":"#690",
+		"filterBlacklist": [],
 		"result_grid_layout": [1, 1],
 		"result_grid_modules": [
 				{
@@ -331,6 +338,7 @@
 		"title": "Ceramic",
 		"icon":"<i class=\"fa fa-beer\" aria-hidden=\"true\"></i>",
 		"color":"#099",
+		"filterBlacklist": ["geochronology", "tbl_biblio_modern"],
 		"result_grid_layout": [2, 2],
 		"result_grid_modules": [
 			{

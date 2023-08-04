@@ -30,6 +30,13 @@ import "../assets/umu-logo-en.png";
 import "../assets/mal-logo.png";
 import "../assets/lu-logo.png";
 
+import "../assets/icons/apple-touch-icon.png";
+import "../assets/icons/favicon.ico";
+import "../assets/icons/safari-pinned-tab.svg";
+import "../assets/icons/browserconfig.xml";
+import "../assets/icons/apple-touch-icon.png";
+
+
 "use strict";
 
 window.Config = config;

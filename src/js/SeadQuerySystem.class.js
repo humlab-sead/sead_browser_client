@@ -703,6 +703,12 @@ class SeadQuerySystem {
 				if(domainConfigObject != null) {
 					domainConfigObject.title = domain.DisplayTitle;
 					domainConfigObject.filters = domainFacetCodes;
+
+					//yo dawg, I heard you like filters so let's filter the filters
+					domainConfigObject.filters = domainConfigObject.filters.filter((facet) => {
+						return !domainConfigObject.filterBlacklist.includes(facet);
+					});
+
 				}
 			});
 		});

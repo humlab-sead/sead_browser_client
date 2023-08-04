@@ -13,13 +13,16 @@ class MultiStageFacet extends Facet {
 		this.contentWindow = [];
 		this.rowHeight = Config.discreteFacetRowHeight;
         this.facetBodyHeight = Config.facetBodyHeight - this.rowHeight;
-		this.viewportItemCapacity = Math.floor(this.facetBodyHeight / this.rowHeight) + 1; //why +1 here? what's the difference against a discrete facet?
+		//this.viewportItemCapacity = Math.floor(this.facetBodyHeight / this.rowHeight) + 1; //why +1 here? what's the difference against a discrete facet?
+		this.viewportItemCapacity = 0;
 		this.textSize = Config.discreteFacetTextSize;
 		this.scrollPosition = 0;
 		this.textFilterString = "";
 		this.visibleData = [];
 		this.checkMark = "<div class='facet-row-arrow-mark'></div>";
 		this.checkMarkSelected = "<div class='facet-row-arrow-mark-selected'></div>";
+		this.sortMode = "title";
+		this.sortDirection = "asc";
 		this.currentFilterStage = 0;
 		this.filters = []; //this facet can have multiple filters
 		template.stagedFilters.forEach(filterName => {
@@ -55,6 +58,7 @@ class MultiStageFacet extends Facet {
 		});
 
 		this.registerTextSearchEvents();
+		this.registerSortEvents();
 		
 		this.sqs.tooltipManager.registerTooltip($(".facet-size-btn", this.getDomRef()), "Show only selections");
 		this.sqs.tooltipManager.registerTooltip($(".facet-text-search-btn", this.getDomRef()), "Filter list by text");
@@ -65,6 +69,53 @@ class MultiStageFacet extends Facet {
 			this.selectPreviousFilterStage();
 		});
 		this.sqs.tooltipManager.registerTooltip(backButtonNode, "Go back to parent selection");
+	}
+
+	registerSortEvents() {
+		$(this.getDomRef()).find(".facet-sort-alpha-btn").on("click", (evt) => {
+			if(this.sortMode == "title") { //If already sorting by title, toggle direction
+				if(this.sortDirection == "asc") {
+					this.sortDirection = "desc";
+				}
+				else {
+					this.sortDirection = "asc";
+				}
+			}
+
+			if(this.sortDirection == "asc") {
+				$(".sort-symbol", evt.currentTarget).removeClass("fa-sort-alpha-desc");
+				$(".sort-symbol", evt.currentTarget).addClass("fa-sort-alpha-asc");
+			}
+			else {
+				$(".sort-symbol", evt.currentTarget).removeClass("fa-sort-alpha-asc");
+				$(".sort-symbol", evt.currentTarget).addClass("fa-sort-alpha-desc");
+			}
+
+			this.sortMode = "title";
+			this.renderData(this.getCurrentFilter().data);
+		});
+		$(this.getDomRef()).find(".facet-sort-num-btn").on("click", (evt) => {
+			if(this.sortMode == "count") { //If already sorting by title, toggle direction
+				if(this.sortDirection == "asc") {
+					this.sortDirection = "desc";
+				}
+				else {
+					this.sortDirection = "asc";
+				}
+			}
+
+			if(this.sortDirection == "asc") {
+				$(".sort-symbol", evt.currentTarget).removeClass("fa-sort-numeric-desc");
+				$(".sort-symbol", evt.currentTarget).addClass("fa-sort-numeric-asc");
+			}
+			else {
+				$(".sort-symbol", evt.currentTarget).removeClass("fa-sort-numeric-asc");
+				$(".sort-symbol", evt.currentTarget).addClass("fa-sort-numeric-desc");
+			}
+
+			this.sortMode = "count";
+			this.renderData(this.getCurrentFilter().data);
+		});
 	}
 
 	getCurrentFilter() {
@@ -314,6 +365,19 @@ class MultiStageFacet extends Facet {
 		});
 	}
 
+	sortData(renderData, column = "title", sortDirection = "asc") {
+		if(column == "title") {
+			renderData.sort((a, b) => a.title.trimStart().localeCompare(b.title.trimStart(), "en"));
+		}
+		if(column == "count") {
+			renderData.sort((a, b) => a.count - b.count);
+		}
+
+		if(sortDirection == "desc") {
+			renderData.reverse();
+		}
+	}
+
 	/*
 	* Function: renderData
 	* 
@@ -340,10 +404,17 @@ class MultiStageFacet extends Facet {
 			this.renderNoDataMsg(false);
 		}
 
+		this.sortData(renderData, this.sortMode, this.sortDirection);
+
 		var scrollPos = this.getScrollPos();
-		var viewPortHeight = this.viewportItemCapacity*this.rowHeight;
+
+		if(this.viewportItemCapacity == 0) {
+			this.viewportItemCapacity = Math.floor($(".list-container", this.domObj).height() / this.rowHeight);
+		}
+		
+		var viewPortHeight = this.viewportItemCapacity * this.rowHeight;
 		var topBlankSpaceHeight = scrollPos;
-		var bottomBlankSpaceHeight = (renderData.length*this.rowHeight) - scrollPos - viewPortHeight;
+		var bottomBlankSpaceHeight = (renderData.length * this.rowHeight) - scrollPos - viewPortHeight;
 		var topBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", topBlankSpaceHeight);
 		var bottomBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", bottomBlankSpaceHeight);
 		var out = "";
@@ -390,6 +461,8 @@ class MultiStageFacet extends Facet {
 				</div>`;
 			}
 		}
+
+		$(".list-container-header", this.domObj).css("display", "block");
 		
         
         //$(".staging-container", this.getDomRef()).html("<div class='staging-container-text'>Ecocode system (1/2)</div><hr/>");
@@ -545,9 +618,9 @@ class MultiStageFacet extends Facet {
 	/*
 	* Function: minimize
 	*/
-	minimize(changeFacetSize = false) {
+	minimize(changeFacetSize = true) {
 		this.scrollPosition = this.getScrollPos();
-		super.minimize();
+		super.minimize(changeFacetSize);
 
 		$(".facet-text-search-input", this.getDomRef()).hide();
 		$(".facet-text-search-btn", this.getDomRef()).hide();
@@ -556,29 +629,23 @@ class MultiStageFacet extends Facet {
 		
 		if(changeFacetSize) {
 			var headerHeight = $(".facet-header", this.domObj).height();
-			headerHeight += 12;
-	
-			//var selectionsHeight = this.selections.length * this.rowHeight;
-			let selectionsHeight = this.rowHeight; //Collapse down to just 1 row
-	
-			var facetHeight = headerHeight + selectionsHeight;
-			if(facetHeight > Config.facetBodyHeight+headerHeight-7) { //FIXME: kinda arbitrary, no?
-				facetHeight = Config.facetBodyHeight+headerHeight-7; //FIXME: kinda arbitrary, no?
+			let subHeaderHeight = $(".list-container-header", this.domObj).height();
+			const selectionsNum = this.getCurrentFilter().selections.length;
+			let facetHeight = headerHeight + subHeaderHeight + selectionsNum * this.rowHeight + 6;
+			let facetBodyHeight = subHeaderHeight + selectionsNum * this.rowHeight + 6;
+			
+			if(facetHeight > Config.facetBodyHeight+headerHeight) {
+				facetHeight = Config.facetBodyHeight+headerHeight;
 			}
+
 			$(this.domObj).css("height", facetHeight+"px");
-			if(selectionsHeight < facetHeight) {
-				$("#facet-"+this.id+" > .facet-body").css("height", selectionsHeight+"px");
-			}
-			else {
-				$("#facet-"+this.id+" > .facet-body").css("height", facetHeight+"px");
-			}
+			$(".facet-body", this.domObj).css("height", facetBodyHeight+"px");
 		}
 		
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
 		this.sqs.facetManager.updateSlotSize(slotId);
 		this.sqs.facetManager.updateAllFacetPositions();
 		
-		$(".discrete-facet-blank-space", this.getDomRef()).hide();
 		this.updateRenderData();
 	}
 

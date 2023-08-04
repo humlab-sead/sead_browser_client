@@ -10,7 +10,7 @@ import {
 	Tooltip
  } from "chart.js";
 import 'zingchart/es6';
-import Plotly from "plotly.js-dist";
+import Plotly from "plotly.js-dist-min";
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {

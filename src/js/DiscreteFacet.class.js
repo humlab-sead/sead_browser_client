@@ -34,7 +34,6 @@ class DiscreteFacet extends Facet {
 				icon: '<i class="fa fa-bug" aria-hidden="true"></i>',
 				callback: (rowId) => {
 					//open species dialog
-					
 					this.sqs.taxaModule.renderTaxon(rowId);
 				}
 			});
@@ -401,9 +400,7 @@ class DiscreteFacet extends Facet {
 			}
 		}
 		
-		if(this.minimized == false) {
-			$(".list-container-header", this.domObj).css("display", "block");
-		}
+		$(".list-container-header", this.domObj).css("display", "block");
 
 		/*
 		let listContainer = $(".list-container", this.getDomRef());
@@ -543,56 +540,17 @@ class DiscreteFacet extends Facet {
 		$(this.domObj).find(".facet-body").show(); //Un-do hide of facet-body which is done in the super
 		
 		if(changeFacetSize) {
-
-			var headerHeight = $(".facet-header", this.domObj).height(); //should 29.828
-			let subHeaderHeight = $(".list-container-header", this.domObj).height(); //should be 24.688
-			let facetHeight = headerHeight + subHeaderHeight + this.selections.length * this.rowHeight;
-			let facetBodyHeight = subHeaderHeight + this.selections.length * this.rowHeight + 2;
+			var headerHeight = $(".facet-header", this.domObj).height();
+			let subHeaderHeight = $(".list-container-header", this.domObj).height();
+			let facetHeight = headerHeight + subHeaderHeight + this.selections.length * this.rowHeight + 6;
+			let facetBodyHeight = subHeaderHeight + this.selections.length * this.rowHeight + 6;
 			
 			if(facetHeight > Config.facetBodyHeight+headerHeight) {
 				facetHeight = Config.facetBodyHeight+headerHeight;
 			}
 
-			//$(".facet-body", this.domObj).css("height", selectionsHeight+"px");
 			$(this.domObj).css("height", facetHeight+"px");
 			$(".facet-body", this.domObj).css("height", facetBodyHeight+"px");
-
-			/*
-			//$(".list-container-header", this.domObj).css("display", "none");
-			var headerHeight = $(".facet-header", this.domObj).height(); //should 29.828
-			let subHeaderHeight = $(".list-container-header", this.domObj).height(); //should be 24.688
-			console.log("headerHeight: "+headerHeight);
-			console.log("subHeaderHeight: "+subHeaderHeight);
-			//headerHeight += 12; //was 12
-	
-			let selectionsHeight = this.selections.length * this.rowHeight;
-			console.log("selectionsHeight: "+selectionsHeight);
-			//let selectionsHeight = this.rowHeight; //Collapse down to just 1 row
-	
-			let facetHeight = headerHeight + subHeaderHeight + selectionsHeight;
-			const facetBodyHeight = subHeaderHeight + selectionsHeight;
-			console.log("facetBodyHeight: "+facetBodyHeight);
-
-			//if the total computed facet height would be larger than a standard facet height, set it to the standard height (thus making it scrollable since the facet body will be larger than the facet height)
-			if(facetHeight > Config.facetBodyHeight+headerHeight) {
-				console.log("setting (max) facet height: "+facetHeight);
-				facetHeight = Config.facetBodyHeight+headerHeight;
-			}
-
-			$(this.domObj).css("height", (facetHeight)+"px");
-
-			$(".facet-body", this.getDomRef()).css("height", facetBodyHeight+"px");
-			*/
-			/*
-			if(selectionsHeight < facetHeight) {
-				console.log("setting facet body height (1): "+selectionsHeight);
-				$(".facet-body", this.getDomRef()).css("height", selectionsHeight+"px");
-			}
-			else {
-				console.log("setting facet body height (2): "+facetHeight);
-				$(".facet-body", this.getDomRef()).css("height", facetHeight+"px");
-			}
-			*/
 		}
 		
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);

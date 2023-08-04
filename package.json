@@ -57,7 +57,7 @@
     "oidc-client": "^1.9.1",
     "ol": "^6.15.1",
     "pdfmake": "^0.2.7",
-    "plotly.js-dist": "^2.20.0",
+    "plotly.js-dist-min": "^2.25.1",
     "postcss": "^8.4.14",
     "shepherd.js": "^11.1.1",
     "shortid": "^2.2.16",
