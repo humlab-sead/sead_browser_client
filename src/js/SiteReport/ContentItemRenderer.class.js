@@ -214,10 +214,17 @@ class ContentItemRenderer {
 		if(typeof(selectedRo.options) == "undefined") {
 			selectedRo.options = []; //Just normalizing this...
 		}
-		
-		if(contentItem.renderOptions.length == 1 && Object.keys(selectedRo.options).length == 0) {
+
+		let numActiveRoOpts = 0;
+		selectedRo.options.forEach((roOpt) => {
+			if(roOpt.showControls != false) {
+				numActiveRoOpts++;
+			}
+		});
+
+		if(contentItem.renderOptions.length == 1 && numActiveRoOpts == 0) {
 			//If there's just 1 renderOption and it has no options, then there's no point to this dialog...
-			return;
+			return false;
 		}
 		
 		//Make DOM node

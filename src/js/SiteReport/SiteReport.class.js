@@ -503,6 +503,18 @@ class SiteReport {
 	}
 	
 	prepareJsonExport(exportStruct) {
+		//traverse through exportStruct and strip all html from every value
+		for(let key in exportStruct) {
+			if(typeof exportStruct[key] == "object") {
+				exportStruct[key] = this.prepareJsonExport(exportStruct[key]);
+			}
+			else {
+				if(typeof exportStruct[key] == "string") {
+					exportStruct[key] = exportStruct[key].replace(/<[^>]*>?/gm, '');
+				}
+			}
+		}
+
 		return exportStruct;
 	}
 
@@ -525,15 +537,10 @@ class SiteReport {
 			let exportData = Buffer.from(json).toString('base64');
 			$(node).attr("href", "data:application/octet-stream;charset=utf-8;base64,"+exportData);
 			$(node).attr("download", filename+".json");
-			$(node).on("click", (evt) => {
-				$(evt.currentTarget).effect("pulsate", 2);
-			});
-			
 		}
 		if(exportFormat == "xlsx") {
 			node = $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
 			$(node).on("click", (evt) => {
-				$(evt.currentTarget).effect("pulsate", 2);
 
 				//Remove columns from table which are flagged for exclusion
 				for(let key in exportStruct.datatable.columns) {
@@ -609,7 +616,6 @@ class SiteReport {
 	}
 
 	renderDataAsPdf(exportStruct) {
-		console.log(this.siteData, exportStruct);
 
 		let includedColumns = [
 			'Sample name',
@@ -729,8 +735,6 @@ class SiteReport {
 			tableRows.push(tableRow);
 		}
 
-		console.log(headerRow, tableRows);
-
 		tableRows.unshift(headerRow)
 		
 		pdfDoc.content.push({
@@ -791,6 +795,7 @@ class SiteReport {
 		this.siteReportManager.sqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
 		
 
+		/*
 		if(section == "all" || section.name == "samples") {
 			// Need to check here that all the data loading is complete, including the auxiliary data in the samples module
 			this.showLoadingIndicator();
@@ -812,6 +817,7 @@ class SiteReport {
 
 			this.hideLoadingIndicator();
 		}
+		*/
 
 		if(formats.indexOf("json") != -1) {
 			var jsonBtn = this.getExportButton("json", exportStruct);

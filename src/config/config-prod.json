@@ -338,7 +338,7 @@
 		"title": "Ceramic",
 		"icon":"<i class=\"fa fa-beer\" aria-hidden=\"true\"></i>",
 		"color":"#099",
-		"filterBlacklist": ["geochronology", "tbl_biblio_modern"],
+		"filterBlacklist": ["geochronology", "tbl_biblio_modern", "sample_group_sampling_contexts"],
 		"result_grid_layout": [2, 2],
 		"result_grid_modules": [
 			{
