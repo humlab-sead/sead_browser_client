@@ -31,10 +31,6 @@
   color: orange;
 }
 
-.site-report-section-highlighted > .site-report-level-title {
-  background: #eee;
-}
-
 .site-report-level-title {
   cursor: pointer;
   background-color: $inactive-color;
@@ -749,6 +745,7 @@ tr.site-report-table-row-with-subtable:hover td {
   text-align: center;
   border-radius: 0.2em;
   margin-left: 0.2em;
+  cursor: pointer;
 }
 
 .sample-group-analysis-tag:hover {

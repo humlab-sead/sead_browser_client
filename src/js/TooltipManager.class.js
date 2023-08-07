@@ -98,7 +98,8 @@ class TooltipManager {
 			"anchor": anchor,
 			"msg": msg,
 			"options": Object.assign(JSON.parse(JSON.stringify(this.defaultOptions)), options),
-			"attached": false
+			"attached": false,
+			"attachmentAttemtps": 0,
 		};
 
 		if(found) {
@@ -126,7 +127,7 @@ class TooltipManager {
 			}
 		}
 		if(!found) {
-			console.log("Failed to de-register tooltip", anchor, "- not found");
+			console.log("Failed to unregister tooltip", anchor, "- not found");
 		}
 	}
 	
@@ -142,34 +143,45 @@ class TooltipManager {
 		var allTooltipsAttached = true;
 		
 		for(var key in this.tooltips) {
-			if(this.tooltips[key].attached === false) {
-				var found = $(this.tooltips[key].anchor).length;
+			let tt = this.tooltips[key];
+			if(tt.attached === false) {
+				var found = $(tt.anchor).length;
 				if(found > 1) {
 					console.log("WARN: Multiple anchor targets found when attaching tooltip.");
 				}
-				
+
 				if(found == 1) { 
-					if(this.tooltips[key].msg != null && typeof this.tooltips[key].msg == "function") {
+					if(tt.msg != null && typeof tt.msg == "function") {
 						//This is a bit of a hack - if you pass in a function as the tooltip "msg" then it will execute it as a regular custom callback
 						//so basically we're hijacking the tooltip manager to do something similar but different from just showing tooltips
-						$(this.tooltips[key].anchor).on("mouseover", null, this.tooltips[key], (evt) => {
-							evt.data.msg();
+
+						let eventType = "mouseover";
+						if(typeof tt.options.eventType != "undefined") {
+							eventType = tt.options.eventType;
+						}
+						$(tt.anchor).on(eventType, null, tt, (evt) => {
+							evt.data.msg(evt);
 						});
-						if(typeof this.tooltips[key].options.mouseout == "function") { //If a mouseout property/callback was provided...
-							$(this.tooltips[key].anchor).on("mouseout", null, this.tooltips[key], (evt) => {
+						if(typeof tt.options.mouseout == "function") { //If a mouseout property/callback was provided...
+							$(tt.anchor).on("mouseout", null, tt, (evt) => {
 								evt.data.options.mouseout();
 							});
 						}
 					}
 					else {
-						this.tooltips[key].tooltipNode = this.createTooltip(this.tooltips[key]);
+						tt.tooltipNode = this.createTooltip(tt);
 					}
-					this.tooltips[key].attached = true;
+					tt.attached = true;
 				}
 				
 				if(found == 0) {
 					//Try again later
 					allTooltipsAttached = false;
+					tt.attachmentAttemtps++;
+					if(tt.attachmentAttemtps > 10) {
+						console.warn("WARN: Tooltip with anchor "+tt.anchor+" not found after 10 attempts, giving up.");
+						tt.attached = true;
+					}
 				}
 			}
 		}

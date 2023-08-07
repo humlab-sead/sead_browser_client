@@ -289,23 +289,32 @@ class Samples {
 	getAnalysisTag(site, method) {
 		let analysisTagId = "analysis-tag-"+nanoid();
 
-		this.sqs.tooltipManager.registerTooltip("#"+analysisTagId, () => {
+		this.sqs.tooltipManager.registerTooltip("#"+analysisTagId, (evt) => {
+			evt.preventDefault();
+			evt.stopPropagation();
 			let siteReport = this.sqs.siteReportManager.siteReport;
 			for(let key in siteReport.data.sections) {
 				let section = siteReport.data.sections[key];
 				if(section.name == "analyses") {
 					section.sections.forEach(l2Section => {
 						if(method.method_id == l2Section.name) {
-							$("#site-report-section-"+l2Section.name).addClass("site-report-section-highlighted");
+							l2Section.collapsed = false;
+							this.sqs.siteReportManager.siteReport.setSectionCollapsedState($("#site-report-section-"+l2Section.name)[0], l2Section);
+
+							setTimeout(() => {
+								$("#site-report-section-"+l2Section.name)[0].scrollIntoView({
+									behavior: "smooth",
+								});
+							}, 1000);
+							
 						}
 					});
 				}
 			}
 		}, {
-			mouseout: () => {
-				$(".site-report-level-container").removeClass("site-report-section-highlighted");
-			}
+			eventType: "click"
 		});
+
 		return "<div id='"+analysisTagId+"' class='sample-group-analysis-tag'>"+method.method_abbrev_or_alt_name+"</div>";
 	}
 
