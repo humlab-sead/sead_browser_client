@@ -800,10 +800,16 @@ class ResultMosaic extends ResultModule {
 				showticklabels: false,
 				automargin: true,
 			},
-			responsive: true
+			responsive: true,
+			displayModeBar: false
 		};
 
-		Plotly.newPlot($(renderIntoNode)[0], data, layout, {responsive: true});
+		let config = {
+			responsive: true,
+			displayModeBar: false
+		}
+
+		Plotly.newPlot($(renderIntoNode)[0], data, layout, config);
 	}
 
 	renderBarChart(renderIntoNode, chartSeries, chartTitle) {
@@ -1050,13 +1056,15 @@ class ResultMosaic extends ResultModule {
 				  size: 22
 				},
 			},
+			displayModeBar: false
 		};
 
 		Object.assign(layout, layoutConfig);
 		let anchorNodeId = renderIntoNode.substring(1);
 
 		let config = {
-			responsive: true
+			responsive: true,
+			displayModeBar: false
 		}
 
 		Plotly.newPlot(anchorNodeId, chartData, layout, config);

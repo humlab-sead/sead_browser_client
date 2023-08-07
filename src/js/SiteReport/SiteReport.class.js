@@ -7,6 +7,7 @@ import BasicSiteInformation from './SectionModules/BasicSiteInformation.class';
 import Samples from './SectionModules/Samples.class';
 import Analysis from './SectionModules/Analysis.class';
 import EcoCodes from './SectionModules/EcoCodes.class';
+import Plotly from "plotly.js-dist-min";
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
@@ -590,13 +591,21 @@ class SiteReport {
 								let ci = this.modules[k].module.section.sections[sk].contentItems[cik];
 								if(ci.name == exportStruct.meta.dataset) {
 									let chartId = $("#contentItem-"+ci.datasetId+" .site-report-chart-container").attr("id");
+									
+									console.log(chartId, $("#"+chartId));
+
+									Plotly.downloadImage(chartId, {
+										format: 'png', // You can use 'jpeg', 'png', 'webp', 'svg', or 'pdf'
+										filename: "site_"+exportStruct.meta.site+"-"+exportStruct.meta.section,
+									});
+									/*
 									zingchart.exec(chartId, 'getimagedata', {
 										filetype: 'png',
 										callback : (imagedata) => {
 											this.pushDownload("SEAD-"+ci.title+"-chart.png", imagedata);
 										}
 									});
-
+									*/
 								}
 							}
 						}
@@ -614,7 +623,7 @@ class SiteReport {
 		
 		return node;
 	}
-
+	
 	renderDataAsPdf(exportStruct) {
 
 		let includedColumns = [
@@ -758,7 +767,7 @@ class SiteReport {
 		document.body.removeChild(element);
 	}
 	
-	async renderExportDialog(formats = ["json", "xlsx", "png", "pdf"], section = "all", contentItem = "all") {
+	async renderExportDialog(formats = ["json", "xlsx", "pdf"], section = "all", contentItem = "all") {
 		
 		let exportData = this.sqs.copyObject(this.data);
 		this.prepareExportStructure(exportData.sections);
@@ -827,10 +836,12 @@ class SiteReport {
 			var xlsxBtn = this.getExportButton("xlsx", exportStruct);
 			$("#node-"+dialogNodeId).append(xlsxBtn);
 		}
+		/*
 		if(formats.indexOf("png") != -1) {
 			var pngBtn = this.getExportButton("png", exportStruct);
 			$("#node-"+dialogNodeId).append(pngBtn);
 		}
+		*/
 		if(formats.indexOf("pdf") != -1) {
 			var pdfBtn = this.getExportButton("pdf", exportStruct);
 			$("#node-"+dialogNodeId).append(pdfBtn);

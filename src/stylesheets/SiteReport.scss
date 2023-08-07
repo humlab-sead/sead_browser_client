@@ -5,7 +5,7 @@
 
 #site-report-exit-menu {
   display: block;
-  background-color: $base-color;
+  background-color: $sead-brown;
   width: auto;
   font-size: 4em;
   padding: .25em;
@@ -65,8 +65,9 @@
   font-size: 1.8rem;
   border-radius: 0px;
   border-bottom: 0px solid #ccc;
-  background-color: #a00;
-  background: linear-gradient(to right, $aux-color, transparent);
+  //background-color: #a00;
+  //background: linear-gradient(to right, $aux-color, transparent);
+  background: $base-color;
 }
 
 .site-report-level-title-static:hover {

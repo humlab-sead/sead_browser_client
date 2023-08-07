@@ -53,7 +53,7 @@ class SiteReportChart {
 			if(ro.selected) {
 				switch(ro.type) {
 					case "bar":
-						node = this.renderBarChartZing();
+						node = this.renderBarChartPlotly();
 						break;
 					case "ecocode":
 						node = this.renderEcoCodeChart();
@@ -90,8 +90,9 @@ class SiteReportChart {
 	}
 	
 	renderBarChart() {
-		this.renderBarChartZing();
+		//this.renderBarChartZing();
 		//this.renderBarChartCJS();
+		this.renderBarChartPlotly();
 	}
 	
 
@@ -320,8 +321,6 @@ class SiteReportChart {
 		
 		let traces = [];
 
-		console.log(taxaTraces)
-
 		var trace1 = {
 			x: ['giraffes', 'orangutans', 'monkeys'],
 			y: [20, 14, 23],
@@ -338,13 +337,15 @@ class SiteReportChart {
 			
 		//var data = [trace1, trace2];
 		let data = taxaTraces;
-		var layout = {barmode: 'stack'};
+		var layout = {
+			barmode: 'stack'
+		};
 
 		this.chartId = "chart-"+shortid.generate();
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
-		Plotly.newPlot(this.chartId, data, layout);
+		Plotly.newPlot(this.chartId, data, layout, {responsive: true, displayModeBar: false});
 
 	}
 
@@ -548,13 +549,6 @@ class SiteReportChart {
 	*/
 	renderBarChartZing() {
 		var contentItem = this.contentItem;
-		/*
-		//cri.getSelectedRenderOption();
-		console.log(this.siteReport.contentItemRendererRepository);
-		var ro = this.siteReport.getSelectedRenderOption(contentItem);
-		let xAxisKey = ro.options[this.sqs.findObjectPropInArray(ro.options, "title", "X axis")].selected;
-		let yAxisKey = ro.options[this.sqs.findObjectPropInArray(ro.options, "title", "Y axis")].selected;
-		*/
 		
 		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
 		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
@@ -637,6 +631,99 @@ class SiteReportChart {
 			defaults: this.chartTheme
 		});
 	}
+
+	renderBarChartPlotly() {
+		var contentItem = this.contentItem;
+	  
+		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
+		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
+		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
+	  
+		var xUnitSymbol = "";
+		var yUnitSymbol = "";
+	  
+		if (contentItem.data.columns[xAxisKey].hasOwnProperty("unit")) {
+		  xUnitSymbol = contentItem.data.columns[xAxisKey].unit;
+		}
+		if (contentItem.data.columns[yAxisKey].hasOwnProperty("unit")) {
+		  yUnitSymbol = contentItem.data.columns[yAxisKey].unit;
+		}
+	  
+		contentItem.data.rows.sort((a, b) => {
+		  if (a[sortCol].value > b[sortCol].value) {
+			return 1;
+		  } else {
+			return -1;
+		  }
+		});
+	  
+		let xValues = [];
+		let yValues = [];
+		for (var key in contentItem.data.rows) {
+		  xValues.push(contentItem.data.rows[key][xAxisKey].value);
+		  yValues.push(contentItem.data.rows[key][yAxisKey].value);
+		}
+
+		let graphType = "bar";
+		if(contentItem.data.rows.length > 100) {
+			graphType = "scatter";
+		}
+	  
+		let data = [
+		  {
+			x: xValues,
+			y: yValues,
+			type: graphType,
+			text: yValues.map((val) => `${val}${yUnitSymbol}`),
+			hoverinfo: "x+text",
+			hovertemplate: '%{y}<extra>Sample name %{x}</extra>',
+			textposition: 'auto',
+			marker: {
+				color: this.sqs.color.colors.baseColor,
+			}
+		  },
+		];
+
+		let layout = {
+			title: {
+				text: contentItem.data.columns[yAxisKey].title+" by "+contentItem.data.columns[xAxisKey].title,
+				font: {
+					family: 'Didact Gothic, sans-serif',
+					size: 22
+				},
+			},
+			plot_bgcolor: "#fff",
+			paper_bgcolor: "#fff",
+			autosize: true,
+			showlegend: false,
+			margin: {
+				l: 50,
+				r: 50,
+				b: 50,
+				t: 50,
+				pad: 4
+			},
+			font: {
+				family: 'Didact Gothic, sans-serif',
+				size: 14,
+				color: '#333'
+			},
+			xaxis: {
+				type: "category", //to get distinct and not linear/range values
+			},
+			yaxis: {
+				showticklabels: false,
+				automargin: true,
+			}
+		};
+	  
+		this.chartId = "chart-" + shortid.generate();
+		var chartContainer = $("<div id='" + this.chartId + "' class='site-report-chart-container'></div>");
+		$(this.anchorNodeSelector).append(chartContainer);
+	  
+		Plotly.newPlot(this.chartId, data, layout, {responsive: true, displayModeBar: false});
+	}
+	  
 	
 	
 	/*
