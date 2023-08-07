@@ -194,7 +194,7 @@
 		"title": "Dendrochronology",
 		"icon":"<i class=\"fa fa-tree\" aria-hidden=\"true\"></i>",
 		"color":"#0a0",
-		"filterBlacklist": [],
+		"filterBlacklist": ["species", "family", "species_author", "tbl_biblio_modern", "geochronology"],
 		"result_grid_layout": [2, 2],
 		"result_grid_modules": [
 				{
