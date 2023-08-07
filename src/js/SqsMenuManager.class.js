@@ -39,7 +39,6 @@ class SqsMenuManager {
 	*
 	*/
 	createMenu(menuDef) {
-		console.log(menuDef)
 		if(typeof(menuDef.title) == "undefined") {
 			menuDef.title = "NONAME";
 		}

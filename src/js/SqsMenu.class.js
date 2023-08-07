@@ -409,6 +409,7 @@ class sqsMenu {
 	}
 
 	reset() {
+		this.closeAllMenus();
 		this.menuDef.items.forEach(item => {
 			item.selected = false;
 			item.children.forEach(child => {
