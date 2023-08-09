@@ -31,6 +31,7 @@ class Facet {
 		this.deleted = false;
 		this.locked = false;
 		this.enabled = true; //If this facet is not applicable within the current domain, this will be false.
+		this.dataFetchingEnabled = true;
 
 		var facetDomObj = $("#facet-template")[0].cloneNode(true);
 		this.domObj = facetDomObj;
@@ -49,7 +50,7 @@ class Facet {
 		this.defaultHeight = $(facetDomObj).css("height");
 		
 
-		$(facetDomObj).find(".facet-delete-btn").bind("click", () => {
+		$(facetDomObj).find(".facet-delete-btn").on("click", () => {
 			this.destroy();
 		});
 
@@ -274,6 +275,9 @@ class Facet {
 	* render - Whether to render the data or not after the fetch is complete. Default: true.
 	*/
 	fetchData(render = true) {
+		if(!this.dataFetchingEnabled) {
+			return;
+		}
 		this.showLoadingIndicator(true);
 		
 		var requestType = "populate";

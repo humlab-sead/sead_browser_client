@@ -526,6 +526,8 @@ class SiteReport {
 			node = $("<a id='site-report-json-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download JSON</a>");
 			
 			let jsonData = this.prepareJsonExport(exportStruct);
+			
+			jsonData.license = this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")";
 
 			let json = JSON.stringify(jsonData, (key, value) => {
 				if(key == "renderInstance") {
@@ -568,12 +570,15 @@ class SiteReport {
 				data.unshift([""]);
 				data.unshift(["Content: "+exportStruct.meta.content]);
 				data.unshift(["Section: "+exportStruct.meta.section]);
+				data.unshift(["Data distributed by SEAD under the license "+this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")"]);
 				data.unshift(["Reference: "+exportStruct.meta.attribution]);
-				data.unshift([exportStruct.meta.url]);
+				data.unshift(["Source url: "+exportStruct.meta.url]);
+				data.unshift(["Site name: "+exportStruct.meta.siteName]);
 				data.unshift([exportStruct.meta.description]);
 
 				var ws_name = "SEAD Data";
 				var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(data);
+
 				//add worksheet to workbook
 				XLSX.utils.book_append_sheet(wb, ws, ws_name);
 				//write workbook
@@ -774,7 +779,7 @@ class SiteReport {
 
 		var exportStruct = {
 			info: {
-				description: "Data export from the SEAD project. Visit https://www.sead.se for more information.",
+				description: this.sqs.config.dataExportDescription,
 				url: ""
 			},
 			site: this.siteId,
@@ -790,14 +795,16 @@ class SiteReport {
 					section: section.title,
 					dataset: contentItem.datasetId,
 					content: contentItem.title,
-					description: "Data export from the SEAD project. Visit https://www.sead.se for more information.",
-					url: Config.serverRoot+"/site/"+this.siteId,
+					description: this.sqs.config.dataExportDescription,
+					siteName: this.siteData.site_name,
+					url: this.sqs.config.serverRoot+"/site/"+this.siteId,
 				},
 				datatable: contentItem.data
 			};
 		}
 
-		exportStruct.meta.attribution = Config.dataAttributionString;
+		exportStruct.meta.attribution = this.sqs.config.dataAttributionString;
+		exportStruct.meta.license = this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")";
 		
 		let dialogNodeId = nanoid();
 		var dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");

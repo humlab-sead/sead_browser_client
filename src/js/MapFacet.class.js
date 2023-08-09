@@ -1,5 +1,16 @@
-import 'ol';
-//import Config from '../config/config.js'
+import Map from 'ol/Map';
+import View from 'ol/View';
+import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Image as ImageLayer } from 'ol/layer';
+import { Stamen, BingMaps, ImageArcGISRest } from 'ol/source';
+import { Group as GroupLayer } from 'ol/layer';
+import Overlay from 'ol/Overlay';
+import GeoJSON from 'ol/format/GeoJSON';
+import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
+import { fromLonLat } from 'ol/proj.js';
+import { Select as SelectInteraction, Draw as DrawInteraction } from 'ol/interaction';
+import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
+import { Attribution } from 'ol/control';
+
 import Facet from './Facet.class.js'
 /*
 * Class: MapFacet
@@ -11,6 +22,10 @@ class MapFacet extends Facet {
 	constructor(sqs, id = null, template = {}) {
 		super(sqs, id, template);
 		this.olMap = null;
+		this.domObj = this.getDomRef();
+		this.dataFetchingEnabled = false;
+
+		$(".facet-text-search-btn", this.domObj).hide();
 
 		this.render();
 		this.initMapSelection();
@@ -35,19 +50,31 @@ class MapFacet extends Facet {
 	* Function: render
 	*/
 	render() {
-		this.olMap = new ol.Map({
+
+		$(".facet-body", this.domObj).css("padding", "0px");
+
+		const attribution = new Attribution({
+			collapsible: false,
+			collapsed: false,
+		});
+
+		this.olMap = new Map({
 			//target: 'chart-container',
+			attribution: false,
+			controls: [attribution],
 			layers: [
-			  new ol.layer.Tile({
-	            source: new ol.source.Stamen({
+			  new TileLayer({
+	            source: new Stamen({
 	              layer: 'terrain-background'
 	            })
 	          })
 			],
-			view: new ol.View({
-			  center: ol.proj.fromLonLat([12.41, 48.82]),
-			  zoom: 4
-			})
+			view: new View({
+			  center: fromLonLat([12.41, 48.82]),
+			  zoom: 3
+			}),
+			loadTilesWhileInteracting: true,
+			loadTilesWhileAnimating: true
 		});
 
 		$("#facet-"+this.id).find(".map-container").show();
@@ -79,43 +106,36 @@ class MapFacet extends Facet {
 	* Function: initMapSelection
 	*/
 	initMapSelection() {
-		/* //////////// ADD SELECTION */
-
-		/* add ol.collection to hold all selected features */
-		this.mapSelect = new ol.interaction.Select({
-			/*
-			style: new ol.style.Style({
-				fill: new ol.style.Fill({
+		this.mapSelect = new SelectInteraction({
+			style: new Style({
+				fill: new Fill({
 					color: [33, 68, 102, 0.2]
 				}),
-				stroke: new ol.style.Stroke({
+				stroke: new Stroke({
 					color: [33, 68, 102, 1.0],
 					width: 2
 				})
 			})
-			*/
 		});
+
 		this.olMap.addInteraction(this.mapSelect);
-		//var selectedFeatures = this.mapSelect.getFeatures();
+		var selectedFeatures = this.mapSelect.getFeatures();
 
-		/* //////////// ADD DRAWING */
-
-		/* The current drawing */
 		var sketch;
 
 		/* Add drawing vector source */
-		var drawingSource = new ol.source.Vector({
+		var drawingSource = new VectorSource({
 			useSpatialIndex : false
 		});
 
 		/* Add drawing layer */
-		var drawingLayer = new ol.layer.Vector({
+		var drawingLayer = new VectorLayer({
 			source: drawingSource,
-			style: new ol.style.Style({
-				fill: new ol.style.Fill({
+			style: new Style({
+				fill: new Fill({
 					color: [33, 68, 102, 0.2]
 				}),
-				stroke: new ol.style.Stroke({
+				stroke: new Stroke({
 					color: [33, 68, 102, 1.0],
 					width: 2
 				})
@@ -123,37 +143,31 @@ class MapFacet extends Facet {
 		});
 		this.olMap.addLayer(drawingLayer);
 
-		/* Declare interactions and listener globally so we 
-			can attach listeners to them later. */
-		var draw;
-		var modify;
-		var listener;
-
 		// Drawing interaction
-		this.drawInteraction = new ol.interaction.Draw({
+		this.drawInteraction = new DrawInteraction({
 			source : drawingSource,
 			type : 'Polygon',
 			//only draw when Ctrl is pressed.
-			condition : ol.events.condition.platformModifierKeyOnly,
+			//condition : ol.events.condition.platformModifierKeyOnly,
 			style: function(feature, r) {
 				var styles = {
-					Point: new ol.style.Style({
-						image: new ol.style.Circle({
+					Point: new Style({
+						image: new CircleStyle({
 							radius: 5,
-							stroke: new ol.style.Stroke({
+							stroke: new Stroke({
 								color: [33, 68, 102, 1.0],
 								width: 2
 							})
 						})
 					}),
-					LineString: new ol.style.Style({
-						stroke: new ol.style.Stroke({
+					LineString: new Style({
+						stroke: new Stroke({
 							color: [33, 68, 102, 1.0],
 							width: 2
 						})
 					}),
-					Polygon: new ol.style.Style({
-						fill: new ol.style.Fill({
+					Polygon: new Style({
+						fill: new Fill({
 							color: [255, 255, 255, 0.3]
 						})
 					})
@@ -171,7 +185,12 @@ class MapFacet extends Facet {
 			this.selections = [];
 			drawingSource.clear();
 			//selectedFeatures.clear();
-			this.mapSelect.setActive(false);
+			if(typeof this.mapSelect != "undefined") {
+				this.mapSelect.setActive(false);
+			}
+			else {
+				console.warn("WARN: Map select interaction not defined.");
+			}
 			
 			sketch = event.feature;
 			
@@ -188,7 +207,7 @@ class MapFacet extends Facet {
 				}
 			});
 			*/
-		},this);
+		}, this);
 
 
 		/* Reactivate select after 300ms (to avoid single click trigger)
@@ -199,19 +218,22 @@ class MapFacet extends Facet {
 			//selectedFeatures.clear();
 
 			var polygon = event.feature.getGeometry();
-			this.selections = polygon.getCoordinates();
+			this.selections = polygon.getCoordinates()[0];
+			this.selections.pop();
 			
-			this.broadcastSelection();
+
+			//this.broadcastSelection(); //uncomment me when server supports this!
 			
-			//polygon.getCoordinates();
+			console.log(JSON.stringify(this.selections, null, 2));
+
 			/*
 			var features = pointsLayer.getSource().getFeatures();
-
 			for (var i = 0 ; i < features.length; i++){
 				if(polygon.intersectsExtent(features[i].getGeometry().getExtent())){
 					selectedFeatures.push(features[i]);
 				}
 			}
+			console.log(selectedFeatures);
 			*/
 			
 		});
@@ -263,6 +285,85 @@ class MapFacet extends Facet {
 	*/
 	importData(data) {
 		super.importData();
+		
+	}
+
+	/*
+	* Function: minimize
+	*/
+	minimize(changeFacetSize = true) {
+		super.minimize(changeFacetSize);
+
+
+		let headerHeight = $(".facet-header", this.domObj).height();
+		let facetHeight = headerHeight;
+		$(this.domObj).css("height", facetHeight+"px");
+		$(".facet-body", this.domObj).css("height", "2em");
+
+		$(".map-filter-selection-info", this.domObj).css("display", "flex");
+		if(this.selections.length > 0) {
+			$(".map-filter-selection-info", this.domObj).text("Area selection");
+		}
+		else {
+			$(".map-filter-selection-info", this.domObj).text("Nothing selected");
+		}
+		
+
+		/*
+		$(".facet-text-search-input", this.getDomRef()).hide();
+		$(".facet-text-search-btn", this.getDomRef()).hide();
+		
+
+		$(this.domObj).find(".facet-body").show(); //Un-do hide of facet-body which is done in the super
+		
+		if(changeFacetSize) {
+			var headerHeight = $(".facet-header", this.domObj).height();
+			let subHeaderHeight = $(".list-container-header", this.domObj).height();
+			let facetHeight = headerHeight + subHeaderHeight + this.selections.length * this.rowHeight + 6;
+			let facetBodyHeight = subHeaderHeight + this.selections.length * this.rowHeight + 6;
+			
+			if(facetHeight > Config.facetBodyHeight+headerHeight) {
+				facetHeight = Config.facetBodyHeight+headerHeight;
+			}
+
+			$(this.domObj).css("height", facetHeight+"px");
+			$(".facet-body", this.domObj).css("height", facetBodyHeight+"px");
+		}
+		
+		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+		this.sqs.facetManager.updateSlotSize(slotId);
+		this.sqs.facetManager.updateAllFacetPositions();
+		
+		this.updateRenderData();
+		*/
+	}
+
+	/*
+	* Function: maximize
+	*/
+	maximize() {
+		super.maximize();
+
+		$(".map-filter-selection-info", this.domObj).hide();
+		/*
+		//$(".facet-text-search-input", this.getDomRef()).show();
+		$(".facet-text-search-btn", this.getDomRef()).show();
+		
+		$(".discrete-facet-blank-space", this.getDomRef()).show();
+		$("#facet-"+this.id).css("height", this.defaultHeight);
+		$("#facet-"+this.id).find(".facet-body").css("height", this.bodyHeight);
+		//this.renderData(this.visibleData);
+		this.updateRenderData();
+		
+		$(this.domObj).find(".facet-body").scrollTop(this.scrollPosition);
+
+		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+		this.sqs.facetManager.updateSlotSize(slotId);
+		this.sqs.facetManager.updateAllFacetPositions();
+		*/
+	}
+
+	updateRenderData() {
 		
 	}
 

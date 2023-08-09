@@ -199,7 +199,7 @@ class ResultMosaic extends ResultModule {
 				return respData;
 			},
 			error: (respData, textStatus, jqXHR) => {
-				sead.resultManager.showLoadingIndicator(false, true);
+				this.sqs.resultManager.showLoadingIndicator(false, true);
 			},
 			complete: (xhr, textStatus) => {
 			}

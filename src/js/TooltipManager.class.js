@@ -64,7 +64,7 @@ class TooltipManager {
 		 */
 		setInterval(() => {
 			this.attachTooltips();
-		}, 500);
+		}, 1000);
 	}
 	
 	registerCallback(anchor, eventType, callback) {
@@ -178,10 +178,12 @@ class TooltipManager {
 					//Try again later
 					allTooltipsAttached = false;
 					tt.attachmentAttemtps++;
+					/*
 					if(tt.attachmentAttemtps > 10) {
 						console.warn("WARN: Tooltip with anchor "+tt.anchor+" not found after 10 attempts, giving up.");
 						tt.attached = true;
 					}
+					*/
 				}
 			}
 		}

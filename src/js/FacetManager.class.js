@@ -94,26 +94,10 @@ class FacetManager {
 		});
 
 		this.sqs.sqsEventListen("domainChanged", (evt, domainName) => {
-			//Disable/destroy all deployed facets which are not applicable in the current domain
-			let domain = this.sqs.domainManager.getDomain(domainName);
-
-			//Workaround for issue https://github.com/humlab-sead/seadbrowserclient/issues/121
 			for(let i = this.facets.length - 1; i > -1; i--) {
 				let facet = this.facets[i];
 				facet.destroy();
 			}
-
-			/*
-			this.facets.forEach((facet) => {
-				if(!domain.filters.includes(facet.name)) {
-					console.log(facet.name+" doesn't exist in the current domain, deleting.");
-					facet.destroy();
-				}
-			});
-
-			//Refresh all facets
-			this.chainQueueFacetDataFetch();
-			*/
 
 			this.buildFilterStructure(domainName);
 		});

@@ -190,6 +190,7 @@ class BasicSiteInformation {
 
 		const standardAges = siteDatingSummary;
 
+		/* dendro is not quite compatible since it's not BP
 		//now also get the standard ages for any dendro datasets
 		let dendrodDatingSummary = null;
 		this.sqs.siteReportManager.siteReport.modules.forEach(m => {
@@ -203,7 +204,7 @@ class BasicSiteInformation {
 		});
 
 		standardAges.push(...dendrodDatingSummary);
-		
+		*/
 
 		if(standardAges.length == 0) {
 			document.getElementById(targetAnchorQuery).innerHTML = "No data<br /><br />";

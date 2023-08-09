@@ -88,7 +88,7 @@ class ResultModule {
 				let dataRows = [];
 
 				dataRows.push(["Content", "List of sites"]);
-				dataRows.push(["Description", "Data export from the SEAD project. Visit https://www.sead.se for more information."]);
+				dataRows.push(["Description", this.sqs.config.dataExportDescription]);
 				dataRows.push(["url", Config.serverRoot]);
 				dataRows.push(["Attribution", Config.dataAttributionString]);
 				dataRows.push([]);

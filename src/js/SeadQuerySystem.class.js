@@ -42,6 +42,21 @@ class SeadQuerySystem {
 		this.systemReady = false;
 		this.requestUrl = null;
 
+		this.experimentalFilters = [{
+			AggregateTitle: "count of x",
+			AggregateType: "count",
+			Description: "Geographic",
+			DisplayTitle: "Geographic",
+			FacetCode: "geographic_polygon",
+			FacetGroup: {FacetGroupKey: 'others', DisplayTitle: 'Others', Description: 'Others'},
+			FacetGroupKey: "others",
+			FacetId: 200,
+			FacetTypeKey: "map",
+			IsApplicable: true,
+			IsDefault: false,
+			enabled: false,
+		}];
+
 		$("#sead-release-version").text(this.config.version);
 
 		this.storeUserSettings(this.config);
@@ -531,7 +546,42 @@ class SeadQuerySystem {
 
 	importFilters(data) {
 
+		
+		this.experimentalFilters.forEach(filter => {
+			if(filter.enabled) {
+				data.push(filter);
+			}
+		});
+
+		
+		
+		/*
+		data.push({
+			"FacetId": 200, //made up
+			"FacetCode": "geographic_polygon",
+			"DisplayTitle": "Geographic polygon",
+			"Description": "Geographic polygon",
+			"FacetGroupKey": "others",
+			"FacetTypeKey": "map",
+			"IsApplicable": true,
+			"IsDefault": false,
+			"AggregateType": "count",
+			"AggregateTitle": "",
+			"FacetGroup": {
+				"FacetGroupKey": "others",
+				"DisplayTitle": "Others",
+				"Description": "Others"
+			}
+		});
+		*/
+		
+
+
 		const customDescriptions = [
+			{
+				facetCode: "geographic_polygon",
+				description: "Geographic polygon"
+			},
 			{
 				facetCode: "tbl_denormalized_measured_values_33_0",
 				description: "Measure of the degree to which a material can be magnetized in the presence of an external magnetic field.",
@@ -631,6 +681,7 @@ class SeadQuerySystem {
 
 				if(!this.config.filterBlacklist.includes(filter.FacetCode)) {
 					let customDesc = customDescriptions.find((item) => item.facetCode == filter.FacetCode);
+					
 					filterGroup.items.push({
 						"facetCode": filter.FacetCode,
 						"displayTitle": filter.DisplayTitle,
@@ -676,6 +727,30 @@ class SeadQuerySystem {
 					dataType: "json",
 					success: (data) => {
 						domain.Facets = data;
+						
+						this.experimentalFilters.forEach(filter => {
+							if(filter.enabled) {
+								domain.Facets.push(filter);
+							}
+						});
+
+						//this is a manual insert of an experimental facet
+						/*
+						domain.Facets.push({
+							AggregateTitle: "count of x",
+							AggregateType: "count",
+							Description: "Geographic",
+							DisplayTitle: "Geographic",
+							FacetCode: "geographic_polygon",
+							FacetGroup: {FacetGroupKey: 'others', DisplayTitle: 'Others', Description: 'Others'},
+							FacetGroupKey: "others",
+							FacetId: 200,
+							FacetTypeKey: "unknown",
+							IsApplicable: true,
+							IsDefault: false
+						});
+						*/
+						
 						resolve(data);
 					},
 					error: (e) => {
@@ -708,7 +783,6 @@ class SeadQuerySystem {
 					domainConfigObject.filters = domainConfigObject.filters.filter((facet) => {
 						return !domainConfigObject.filterBlacklist.includes(facet);
 					});
-
 				}
 			});
 		});

@@ -40,7 +40,7 @@ class MosaicTileModule {
         this.sqs.dialogManager.showPopOver("Export chart data", html);
 
         let exportData = {
-            description: "Data export from the SEAD project. Visit https://www.sead.se for more information.",
+            description: this.sqs.config.dataExportDescription,
             reference: Config.dataAttributionString,
             license: "https://creativecommons.org/licenses/by/4.0/",
             sead_version: Config.version,
