@@ -225,7 +225,7 @@
 		"title": "Palaeoentomology",
 		"icon":"<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
 		"color":"#a00",
-		"filterBlacklist": [],
+		"filterBlacklist": ["geochronology", "relative_age_name", "feature_type"],
 		"result_grid_layout": [2, 2],
 		"result_grid_modules": [
 				{
