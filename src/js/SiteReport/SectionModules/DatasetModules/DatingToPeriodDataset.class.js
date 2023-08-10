@@ -21,7 +21,7 @@ class DatingToPeriodDataset extends DatasetModule {
 		this.summary = null;
 
 		this.methodIds = [14];
-		this.methodGroupIds = [3, 19, 20]
+		this.methodGroupIds = [3, 19, 20, 22];
 		this.methodMetaDataFetchingComplete = true;
 	}
 

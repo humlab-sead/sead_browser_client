@@ -173,20 +173,6 @@ class SiteReportManager {
 		return state;
 	}
 	
-	sqsMenu() {
-		return {};
-		/*
-		return {
-			title: "<i class=\"fa fa-arrow-circle-o-left\" style='font-size: 1.5em' aria-hidden=\"true\"></i>",
-			anchor: "#site-report-exit-menu",
-			visible: true,
-			customStyleClasses: "site-report-exit-menu",
-			callback: () => {
-				this.unrenderSiteReport();
-			}
-		};
-		*/
-	}
 }
 
 export { SiteReportManager as default }

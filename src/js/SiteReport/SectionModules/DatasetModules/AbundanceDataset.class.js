@@ -407,8 +407,14 @@ class AbundanceDataset extends DatasetModule {
 			return;
 		}
 		
-		let siteEcoCodeContentItem = await this.getSiteEcoCodeContentItem(siteData);
-		let siteSamplesEcoCodeContentItem = await this.getSamplesEcoCodeContentItem(siteData);
+
+		//if this is palaeontomoly, generate eco code charts as well, but don't if not
+		let palaeontomolyDatasetFound = false;
+		dataGroups.forEach(dataGroup => {
+			if(dataGroup.method_id == 3) {
+				palaeontomolyDatasetFound = true;
+			}
+		})
 
 		dataGroups.forEach(dataGroup => {
 			let analysisMethod = null;
@@ -626,15 +632,19 @@ class AbundanceDataset extends DatasetModule {
 			section.contentItems.push(contentItem);
 		});
 
-		let ecoCodeSection = this.getSectionByMethodId(3, sections);
-		if(ecoCodeSection) {
-			ecoCodeSection.contentItems.push(siteEcoCodeContentItem);
-			ecoCodeSection.contentItems.push(siteSamplesEcoCodeContentItem);
+		if(palaeontomolyDatasetFound) {
+			let siteEcoCodeContentItem = await this.getSiteEcoCodeContentItem(siteData);
+			let siteSamplesEcoCodeContentItem = await this.getSamplesEcoCodeContentItem(siteData);
+			
+			let ecoCodeSection = this.getSectionByMethodId(3, sections);
+			if(ecoCodeSection) {
+				ecoCodeSection.contentItems.push(siteEcoCodeContentItem);
+				ecoCodeSection.contentItems.push(siteSamplesEcoCodeContentItem);
+			}
+			else {
+				console.warn("Tried to insert a contentItem into a section that couldn't be found.");
+			}
 		}
-		else {
-			console.warn("Tried to insert a contentItem into a section that couldn't be found.");
-		}
-		
 	}
 	
 	/*

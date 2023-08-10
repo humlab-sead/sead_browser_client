@@ -9,7 +9,6 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         this.requestId = 0;
         this.active = true;
         this.data = null;
-        console.log(this.name, "init");
     }
 
     async fetch(renderIntoNode = null) {

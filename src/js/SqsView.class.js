@@ -278,14 +278,10 @@ class SqsView {
     * Function: setSectionSizes
     */
 	setSectionSizes(leftSize, rightSize, animate = true) {
-		console.log("setSectionSizes", leftSize, rightSize);
+		//console.log("setSectionSizes", leftSize, rightSize);
 
 		this.leftLastSize = leftSize;
 		this.righLastSize = rightSize;
-
-		console.log(this.anchor+" > .section-left")
-		console.log(animate)
-		console.log(leftSize, rightSize);
 
 		if(animate) {
 			$(this.anchor+" > .section-left").animate(
@@ -307,14 +303,6 @@ class SqsView {
 		else {
 			$(this.anchor+" > .section-left").css("width", leftSize+"vw");
 			$(this.anchor+" > .section-right").css("width", rightSize+"vw");
-
-			/*
-			$(this.anchor+" > .section-left").css("max-width", leftSize+"vw");
-			$(this.anchor+" > .section-left").css("min-width", 10+"vw");
-
-			$(this.anchor+" > .section-right").css("max-width", rightSize+"vw");
-			$(this.anchor+" > .section-right").css("min-width", 10+"vw");
-			*/
 		}
 		
 		if(rightSize == 0) {

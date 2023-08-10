@@ -50,32 +50,6 @@ class SiteReport {
 			this.hideLoadingIndicator();
 		});
 
-		const bsi = new BasicSiteInformation(this.sqs, this.siteId);
-		const samples = new Samples(this.sqs, this.site);
-		const ecoCodes = new EcoCodes(this.sqs, this.site);
-		const analysis = new Analysis(this.sqs, this.siteId);
-
-		this.modules.push({
-			"name": "basicSiteInformation",
-			"module": bsi
-		});
-		this.modules.push({
-			"name": "samples",
-			"module": samples,
-			"weight": -1
-		});
-		this.modules.push({
-			"name": "analysis",
-			"module": analysis,
-			"weight": 1
-		});
-		this.modules.push({
-			"name": "ecocodes",
-			"module": ecoCodes,
-			"weight": 0
-		});
-		
-
 		this.fetchSite().then(siteData => {
 			console.log(siteData);
 			this.siteData = siteData;
@@ -83,46 +57,36 @@ class SiteReport {
 			this.hideLoadingIndicator();
 			this.enableExportButton();
 
-			/*
-			bsi.fetch(siteData).then(() => {
-				bsi.render(siteData);
-			});
+			const bsi = new BasicSiteInformation(this.sqs, this.siteId);
+			const samples = new Samples(this.sqs, this.site);
+			const ecoCodes = new EcoCodes(this.sqs, this.site);
+			const analysis = new Analysis(this.sqs, this.siteId);
 
-			samples.fetch(siteData).then(() => {
-				samples.render(siteData);
+			this.modules.push({
+				"name": "basicSiteInformation",
+				"module": bsi
 			});
-
-			analysis.fetch(siteData).then(() => {
-				analysis.render(siteData);
+			this.modules.push({
+				"name": "samples",
+				"module": samples,
+				"weight": -1
 			});
-			*/
+			this.modules.push({
+				"name": "analysis",
+				"module": analysis,
+				"weight": 1
+			});
+			this.modules.push({
+				"name": "ecocodes",
+				"module": ecoCodes,
+				"weight": 0
+			});
 
 			bsi.render(siteData);
 			samples.render(siteData);
 			analysis.render(siteData);
-			//ecoCodes.render(siteData);
 		});
-
 		
-
-		/*
-		Promise.all([bsi.fetch(), samples.fetch(), analysis.fetch()]).then(() => {
-			this.fetchComplete = true;
-			this.hideLoadingIndicator();
-			this.enableExportButton();
-		});
-		*/
-
-		
-
-		this.backMenu = this.siteReportManager.sqs.menuManager.createMenu(this.siteReportManager.sqs.siteReportManager.sqsMenu());
-		/*
-		$("#site-report-exit-menu").css("position", "relative").css("left", "-100px").show();
-		$("#site-report-exit-menu").animate({
-			left: "0px"
-		}, 250);
-		*/
-
 		this.sqs.tooltipManager.registerTooltip("#site-report-exit-menu", "Back to site finder", {
 			placement: "right"
 		});

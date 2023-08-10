@@ -39,6 +39,10 @@ class SqsMenuManager {
 	*
 	*/
 	createMenu(menuDef) {
+		if(typeof(menuDef.anchor) == "undefined") {
+			menuDef.anchor = "";
+			console.warn("WARN: Anchor attribute empty when creating menu, this is not allowed!");
+		}
 		if(typeof(menuDef.title) == "undefined") {
 			menuDef.title = "NONAME";
 		}
@@ -51,10 +55,7 @@ class SqsMenuManager {
 		if(typeof(menuDef.weight) == "undefined") {
 			menuDef.weight = 0;
 		}
-		if(typeof(menuDef.anchor) == "undefined") {
-			menuDef.anchor = "";
-			console.log("WARN: Anchor attribute empty when creating menu, this is not allowed!");
-		}
+		
 		var menu = new SqsMenu(this.sqs, menuDef);
 		this.menus.push(menu);
 		return menu;
