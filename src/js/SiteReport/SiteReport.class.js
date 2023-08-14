@@ -10,6 +10,7 @@ import EcoCodes from './SectionModules/EcoCodes.class';
 import Plotly from "plotly.js-dist-min";
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import ExcelJS from 'exceljs/dist/exceljs.min.js';
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 /*
 * Class: SiteReport
@@ -506,48 +507,100 @@ class SiteReport {
 			$(node).attr("download", filename+".json");
 		}
 		if(exportFormat == "xlsx") {
-			node = $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
-			$(node).on("click", (evt) => {
+			//Remove columns from table which are flagged for exclusion
+			for(let key in exportStruct.datatable.columns) {
+				if(exportStruct.datatable.columns[key].exclude_from_export) {
+					exportStruct.datatable.columns.splice(key, 1);
+					exportStruct.datatable.rows.forEach((row) => {
+						row.splice(key, 1);
+					});
+				}
+			}
 
-				//Remove columns from table which are flagged for exclusion
-				for(let key in exportStruct.datatable.columns) {
-					if(exportStruct.datatable.columns[key].exclude_from_export) {
-						exportStruct.datatable.columns.splice(key, 1);
-						exportStruct.datatable.rows.forEach((row) => {
-							row.splice(key, 1);
-						});
+			//Strip html from values
+			exportStruct.datatable.rows.forEach((row) => {
+				row.forEach((column) => {
+					if(typeof column.value == "string") {
+						column.value = this.sqs.parseStringValueMarkup(column.value, { drawSymbol: false });
+						column.value = column.value.replace(/<[^>]*>?/gm, '');
 					}
+				});
+			});
+
+			const ws_name = "SEAD Data";
+			const wb = new ExcelJS.Workbook();
+			const ws = wb.addWorksheet(ws_name);
+			
+			var data = this.getDataForXlsx(exportStruct.datatable);
+			
+			data.unshift([""]);
+			data.unshift(["Content: "+exportStruct.meta.content]);
+			data.unshift(["Section: "+exportStruct.meta.section]);
+			data.unshift(["Data distributed by SEAD under the license "+this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")"]);
+			data.unshift(["Reference: "+exportStruct.meta.attribution]);
+			data.unshift(["Source url: "+exportStruct.meta.url]);
+			data.unshift(["Site name: "+exportStruct.meta.siteName]);
+			data.unshift([exportStruct.meta.description]);
+
+			/*
+			var ws_name = "SEAD Data";
+			var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(data);
+			//add worksheet to workbook
+			XLSX.utils.book_append_sheet(wb, ws, ws_name);
+			//write workbook
+			XLSX.writeFile(wb, filename+".xlsx");
+			*/
+
+			
+
+			// Add data to the worksheet
+
+			let styles = {
+				header1: { size: 14, bold: true },
+				header2: { size: 12, bold: true },
+			}
+
+			data.forEach(row => {
+				let addStyle = null;
+				if(typeof row[0] == 'object') {
+					if(row[0].style == 'header2') {
+						addStyle = styles.header2;
+					}
+					row.splice(0, 1);
 				}
 
-				//Strip html from values
-				exportStruct.datatable.rows.forEach((row) => {
-					row.forEach((column) => {
-						if(typeof column.value == "string") {
-							column.value = this.sqs.parseStringValueMarkup(column.value, { drawSymbol: false });
-							column.value = column.value.replace(/<[^>]*>?/gm, '');
-						}
-					});
-				});
-
-				var data = this.getDataForXlsx(exportStruct.datatable);
+				ws.addRow(row);
 				
-				data.unshift([""]);
-				data.unshift(["Content: "+exportStruct.meta.content]);
-				data.unshift(["Section: "+exportStruct.meta.section]);
-				data.unshift(["Data distributed by SEAD under the license "+this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")"]);
-				data.unshift(["Reference: "+exportStruct.meta.attribution]);
-				data.unshift(["Source url: "+exportStruct.meta.url]);
-				data.unshift(["Site name: "+exportStruct.meta.siteName]);
-				data.unshift([exportStruct.meta.description]);
-
-				var ws_name = "SEAD Data";
-				var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(data);
-
-				//add worksheet to workbook
-				XLSX.utils.book_append_sheet(wb, ws, ws_name);
-				//write workbook
-				XLSX.writeFile(wb, filename+".xlsx");
+				if(addStyle != null) {
+					ws.lastRow.font = addStyle;
+				}
 			});
+			
+			wb.xlsx.writeBuffer().then(buffer => {
+				const blob = new Blob([buffer], { type: 'application/octet-stream' });
+				const blobUrl = URL.createObjectURL(blob);
+
+				$("#site-report-xlsx-export-download-btn").attr("href", blobUrl);
+				$("#site-report-xlsx-export-download-btn").attr("download", filename+".xlsx");
+			});
+
+			/*
+			wb.xlsx.writeFile(filename + '.xlsx')
+			.then(() => {
+				console.log("Workbook created!");
+			})
+			.catch(error => {
+				console.error("Error creating workbook:", error);
+			});
+			*/
+
+			
+			
+			node = $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
+			/*
+			$(node).on("click", (evt) => {
+			});
+			*/
 		}
 		if(exportFormat == "png") {
 			node = $("<a id='site-report-png-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download PNG</a>");
@@ -736,10 +789,64 @@ class SiteReport {
 		document.body.removeChild(element);
 	}
 	
+
+	stripExcludedColumnsFromExportData(exportData) {
+		exportData.sections.forEach(section => {
+			section.contentItems.forEach(ci => {
+				ci = this.stripExcludedColumnsFromContentItem(ci);
+			});
+			if(section.hasOwnProperty("sections")) {
+				section.sections.forEach(subSection => {
+					subSection.contentItems.forEach(ci => {
+						ci = this.stripExcludedColumnsFromContentItem(ci);
+					});
+				});
+			}
+		});
+
+		return exportData;
+	}
+
+	stripExcludedColumnsFromContentItem(ci) {
+		let subTableKey = null;
+		ci.data.columns.forEach((col, key) => {
+			if(col.dataType == "subtable") {
+				subTableKey = key;
+			}
+		});
+
+		ci.data.rows.forEach(row => {
+			if(subTableKey != null) {
+				let subTable = row[subTableKey].value;
+				
+				let excludeKeys = [];
+				subTable.columns.forEach((col, key) => {
+					if(col.hasOwnProperty("exclude_from_export")) {
+						excludeKeys.push(key);
+					}
+				});
+
+				subTable.rows.forEach((subTableRow, key) => {
+					excludeKeys.forEach(excludeKey => {
+						subTableRow.splice(excludeKey, 1);
+					});
+				});
+
+				subTable.columns.forEach((subTableCol, key) => {
+					if(subTableCol.exclude_from_export)	{
+						subTable.columns.splice(key, 1);
+					}
+				});	
+			}
+		});
+
+		return ci;
+	}
+	
 	async renderExportDialog(formats = ["json", "xlsx", "pdf"], section = "all", contentItem = "all") {
-		
 		let exportData = this.sqs.copyObject(this.data);
 		this.prepareExportStructure(exportData.sections);
+		exportData = this.stripExcludedColumnsFromExportData(exportData);
 
 		var exportStruct = {
 			info: {
@@ -763,7 +870,7 @@ class SiteReport {
 					siteName: this.siteData.site_name,
 					url: this.sqs.config.serverRoot+"/site/"+this.siteId,
 				},
-				datatable: contentItem.data
+				datatable: this.stripExcludedColumnsFromContentItem(contentItem).data
 			};
 		}
 
@@ -774,30 +881,6 @@ class SiteReport {
 		var dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");
 		this.siteReportManager.sqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
 		
-
-		/*
-		if(section == "all" || section.name == "samples") {
-			// Need to check here that all the data loading is complete, including the auxiliary data in the samples module
-			this.showLoadingIndicator();
-
-			await new Promise((resolve, reject) => {
-				let interval = setInterval(() => {
-					let allFetched = true;
-					this.modules.forEach((m) => {
-						if(!m.module.auxiliaryDataFetched) {
-							allFetched = false;
-						}
-					});
-					if(allFetched) {
-						clearInterval(interval);
-						resolve();
-					}
-				});
-			});
-
-			this.hideLoadingIndicator();
-		}
-		*/
 
 		if(formats.indexOf("json") != -1) {
 			var jsonBtn = this.getExportButton("json", exportStruct);
@@ -867,9 +950,49 @@ class SiteReport {
 	*
 	* Formats a data table for XLSX-export. Doesn't actually make it into XLSX, it just created a JSON data structure that is appropriate for feeding into the XLSX library.
 	 */
+	
+	getDataForXlsx2(dataTable) {
+		let rows = [];
+		let headerRow = [];
+		let hiddenIndices = [];
+		dataTable.columns.forEach((col, i) => {
+			if(!col.hidden) {
+				headerRow.push(col.title);
+			}
+			else {
+				hiddenIndices.push(i);
+			}
+		});
+		rows.push({
+			style: "header",
+			cells: headerRow
+		});
+
+		dataTable.rows.forEach((row) => {
+			let cells = [];
+			row.forEach((cell, i) => {
+				if(hiddenIndices.includes(i)) {
+					return;
+				}
+				else {
+					cells.push(cell.value);
+				}
+					
+			});
+
+			rows.push({
+				style: "default",
+				cells: cells
+			});
+		});
+
+		return rows;
+	}
+
 	getDataForXlsx(dataTable) {
 		var data = [];
 		var row = [];
+		let rowIsHeader = false;
 		
 		for(var key in dataTable.columns) {
 			var col = dataTable.columns[key];
@@ -885,14 +1008,18 @@ class SiteReport {
 				}
 			}
 		}
+
+		row.unshift({ style: 'header2' });
+
 		data.push(row);
-		
 		for(var key in dataTable.rows) {
 			row = [];
 			var subTable = [];
 			for(var cellKey in dataTable.rows[key]) {
 				var cell = dataTable.rows[key][cellKey];
+				
 				if(cell.type == "subtable") {
+					rowIsHeader = true;
 					subTable = this.getDataForXlsx(cell.value);
 				}
 				else {
@@ -901,9 +1028,12 @@ class SiteReport {
 					}
 				}
 			}
+			if(rowIsHeader) {
+				row.unshift({ style: 'header2' });
+			}
 			data.push(row);
 			for(var k in subTable) {
-				subTable[k].unshift("SubTable:");
+				//subTable[k].unshift("SubTable:");
 				data.push(subTable[k]);
 			}
 		}

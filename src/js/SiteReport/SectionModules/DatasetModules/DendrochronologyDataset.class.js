@@ -502,7 +502,8 @@ class DendrochronologyDataset extends DatasetModule {
 				},
 				{
 					title: "data",
-					hidden: true
+					hidden: true,
+					exclude_from_export: true
 				}
 			];
 

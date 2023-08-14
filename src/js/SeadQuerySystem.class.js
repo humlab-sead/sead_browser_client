@@ -17,6 +17,7 @@ import HelpAgent from './HelpAgent.class.js';
 import UserManager from './UserManager.class.js';
 import DomainManager from './DomainManager.class.js';
 import NotificationManager from './NotificationManager.class.js';
+import ExportManager from './ExportManager.class.js';
 import Router from './Router.class.js';
 import Tutorial from './Tutorial.class.js';
 import { nanoid } from 'nanoid';
@@ -244,6 +245,7 @@ class SeadQuerySystem {
 		this.menuManager = new SqsMenuManager(this);
 		this.dialogManager = new DialogManager(this);
 	  	this.tooltipManager = new TooltipManager(this);
+		this.exportManager = new ExportManager(this);
 		this.facetManager = new FacetManager(this, this.filterDefinitions);
 		this.mainMenu = new MainMenu();
 		this.tutorial = new Tutorial(this);

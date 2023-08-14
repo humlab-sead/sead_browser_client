@@ -3,11 +3,12 @@ import { nanoid } from 'nanoid';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
-import { Stamen } from 'ol/source';
+import { OSM } from 'ol/source';
 import { Group as GroupLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import {fromLonLat, transform} from 'ol/proj.js';
 import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style.js';
+import { defaults as defaultControls } from 'ol/control.js';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import css from '../../../stylesheets/style.scss';
@@ -436,14 +437,13 @@ class BasicSiteInformation {
 		$("#site-report-map-container").html("");
 
 		this.olMap = new Map({
-			controls: [],
+			//controls: [],
+			controls: defaultControls({ zoom: true, rotate: false }),
 			target: 'site-report-map-container',
 			layers: new GroupLayer({
 				layers: [
 					new TileLayer({
-						source: new Stamen({
-							layer: 'terrain-background'
-						}),
+						source: new OSM(),
 						visible: true
 					})
 				]
@@ -451,7 +451,7 @@ class BasicSiteInformation {
 			view: new View({
 				center: fromLonLat([parseFloat(siteData.longitude_dd), parseFloat(siteData.latitude_dd)]),
 				zoom: 4
-			})
+			}),
 		});
 		
 		var iconFeatures = [];
@@ -469,11 +469,11 @@ class BasicSiteInformation {
 		});
 		
 		
-		var strokeColor = "#666";
+		var strokeColor = "#333";
 		let fillColor = css.auxColor;
 		var iconStyle = new Style({
 			image: new CircleStyle({
-				radius: 5,
+				radius: 8,
 				stroke: new Stroke({
 					color: strokeColor
 				}),

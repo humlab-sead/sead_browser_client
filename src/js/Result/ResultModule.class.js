@@ -4,6 +4,7 @@ import "../../assets/loading-indicator5.svg";
 import Config from "../../config/config.json";
 import { saveAs } from "file-saver";
 import XLSX from 'xlsx';
+import ExcelJS from 'exceljs/dist/exceljs.min.js';
 
 /*
 * Class: ResultModule
@@ -112,6 +113,42 @@ class ResultModule {
 						site.record_type
 					]);
 				});
+
+				/*
+				const ws_name = "SEAD Data";
+				const wb = new ExcelJS.Workbook();
+				const ws = wb.addWorksheet(ws_name);
+
+				dataRows.forEach(row => {
+					let addStyle = null;
+					if(typeof row[0] == 'object') {
+						if(row[0].style == 'header2') {
+							addStyle = styles.header2;
+						}
+						row.splice(0, 1);
+					}
+	
+					ws.addRow(row);
+					
+					if(addStyle != null) {
+						ws.lastRow.font = addStyle;
+					}
+				});
+
+				
+				wb.xlsx.writeBuffer().then(buffer => {
+					const blob = new Blob([buffer], { type: 'application/octet-stream' });
+					const blobUrl = URL.createObjectURL(blob);
+
+					//$("#site-report-xlsx-export-download-btn").attr("href", blobUrl);
+					//$("#site-report-xlsx-export-download-btn").attr("download", filename+".xlsx");
+
+					console.log(buffer);
+					console.log(blob);
+
+					//URL.revokeObjectURL(blobUrl);
+				});
+				*/
 				
 				var ws_name = "SEAD Data";
 				var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(dataRows);
@@ -119,6 +156,7 @@ class ResultModule {
 				XLSX.utils.book_append_sheet(wb, ws, ws_name);
 				//write workbook
 				XLSX.writeFile(wb, "sead_sites_export.xlsx");
+				
 				
 			});
 

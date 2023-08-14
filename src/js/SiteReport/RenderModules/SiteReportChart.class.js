@@ -511,11 +511,19 @@ class SiteReportChart {
 	}
 
 	getSelectedRenderOptionExtra(extraOptionTitle = "Sort") {
+
         let renderOption = null;
         this.contentItem.renderOptions.forEach(ro => {
-            if(ro.name == "Bar chart") {
+            /*
+			if(ro.type == "bar") {
                 renderOption = ro;
             }
+			*/
+			
+			if(ro.name == "Bar chart") {
+                renderOption = ro;
+            }
+			
         });
 
         let sortOptionSelect = null;
@@ -632,23 +640,107 @@ class SiteReportChart {
 		});
 	}
 
+	/**
+	 * dataTransform
+	 * 
+	 * Purpose of this method is to transform the data into a format that is easier to work with for charts
+	 * 
+	 * @param {*} contentItem 
+	 */
+	dataTransform(contentItem) {
+		let xValues = [];
+		let yValues = [];
+
+		let xAxisRo = this.getSelectedRenderOptionExtra("X axis");
+		let yAxisRo = this.getSelectedRenderOptionExtra("Y axis");
+
+		var xUnitSymbol = "";
+		var yUnitSymbol = "";
+
+		if(xAxisRo.location == "subtable") {
+			contentItem.data.rows.forEach(row => {
+				row.forEach(cell => {
+					if(cell.type == "subtable") {
+						cell.value.rows.forEach(subTableRow => {
+							if(subTableRow[1].value == xAxisRo.title) {
+								xValues.push(subTableRow[xAxisRo.value].value);
+							}
+						});
+					}
+				});
+			});
+		}
+		else {
+			contentItem.data.rows.forEach(row => {
+				xValues.push(row[xAxisRo.value].value);
+			});
+			if (contentItem.data.columns[xAxisRo.value].hasOwnProperty("unit")) {
+				xUnitSymbol = contentItem.data.columns[xAxisRo.value].unit;
+			}
+		}
+
+		if(yAxisRo.location == "subtable") {
+			contentItem.data.rows.forEach(row => {
+				row.forEach(cell => {
+					if(cell.type == "subtable") {
+						cell.value.rows.forEach(subTableRow => {
+
+							if(subTableRow[1].value == yAxisRo.title) {
+								yValues.push(subTableRow[yAxisRo.value].value);
+							}
+
+						});
+					}
+				});
+			});
+		}
+		else {
+			contentItem.data.rows.forEach(row => {
+				yValues.push(row[yAxisRo.value].value);
+			});
+			if (contentItem.data.columns[yAxisRo.value].hasOwnProperty("unit")) {
+				yUnitSymbol = contentItem.data.columns[yAxisRo.value].unit;
+			}
+		}
+		
+		return {
+			x: {
+				title: xAxisRo.title,
+				values: xValues,
+				unit: xUnitSymbol
+			},
+			y: {
+				title: yAxisRo.title,
+				values: yValues,
+				unit: yUnitSymbol
+			}
+		}
+	}
+
 	renderBarChartPlotly() {
 		var contentItem = this.contentItem;
 	  
-		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
-		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
-		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
-	  
-		var xUnitSymbol = "";
-		var yUnitSymbol = "";
-	  
-		if (contentItem.data.columns[xAxisKey].hasOwnProperty("unit")) {
-		  xUnitSymbol = contentItem.data.columns[xAxisKey].unit;
-		}
-		if (contentItem.data.columns[yAxisKey].hasOwnProperty("unit")) {
-		  yUnitSymbol = contentItem.data.columns[yAxisKey].unit;
-		}
-	  
+		let chartData = this.dataTransform(contentItem);
+
+		//let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
+		//let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
+		//let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
+
+		// Combine the arrays and sort them based on values
+		let keysArray = chartData.x.values;
+		let valuesArray = chartData.y.values;
+
+		let combinedArrays = keysArray.map((key, index) => ({ key, value: valuesArray[index] }));
+		combinedArrays.sort((a, b) => a.value - b.value);
+
+		// Extract sorted keys and values
+		let sortedKeys = combinedArrays.map(item => item.key);
+		let sortedValues = combinedArrays.map(item => item.value);
+
+		chartData.y.values = sortedValues;
+		chartData.x.values = sortedKeys;
+
+		/*
 		contentItem.data.rows.sort((a, b) => {
 		  if (a[sortCol].value > b[sortCol].value) {
 			return 1;
@@ -656,25 +748,20 @@ class SiteReportChart {
 			return -1;
 		  }
 		});
-	  
-		let xValues = [];
-		let yValues = [];
-		for (var key in contentItem.data.rows) {
-		  xValues.push(contentItem.data.rows[key][xAxisKey].value);
-		  yValues.push(contentItem.data.rows[key][yAxisKey].value);
-		}
+		*/
 
 		let graphType = "bar";
 		if(contentItem.data.rows.length > 100) {
 			graphType = "scatter";
 		}
-	  
+		
 		let data = [
 		  {
-			x: xValues,
-			y: yValues,
+			x: chartData.x.values,
+			y: chartData.y.values,
 			type: graphType,
-			text: yValues.map((val) => `${val}${yUnitSymbol}`),
+			mode: "markers",
+			text: chartData.y.values.map((val) => `${val}${chartData.y.unit}`),
 			hoverinfo: "x+text",
 			hovertemplate: '%{y}<extra>Sample name %{x}</extra>',
 			textposition: 'auto',
@@ -686,7 +773,7 @@ class SiteReportChart {
 
 		let layout = {
 			title: {
-				text: contentItem.data.columns[yAxisKey].title+" by "+contentItem.data.columns[xAxisKey].title,
+				//text: contentItem.data.columns[yAxisKey].title+" by "+contentItem.data.columns[xAxisKey].title,
 				font: {
 					family: 'Didact Gothic, sans-serif',
 					size: 22
@@ -699,7 +786,7 @@ class SiteReportChart {
 			margin: {
 				l: 50,
 				r: 50,
-				b: 50,
+				b: 70,
 				t: 50,
 				pad: 4
 			},

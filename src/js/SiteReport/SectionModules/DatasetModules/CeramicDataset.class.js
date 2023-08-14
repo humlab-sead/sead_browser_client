@@ -20,59 +20,11 @@ class CeramicDataset extends DatasetModule {
 		this.methodIds = [171, 172];
 
 		this.metaDataFetchingPromises = [];
+		/*
 		this.methodIds.map((methodId) => {
 			this.metaDataFetchingPromises.push(this.analysis.fetchMethodMetaData(methodId));
 		});
-
-		console.log("CeramicDataset");
-	}
-	
-	offerAnalyses(datasets) {
-		console.log("offerAnalyses", datasets);
-		for(let key = datasets.length - 1; key >= 0; key--) {
-			if(this.methodIds.includes(datasets[key].methodId)) {
-				let dataset = datasets.splice(key, 1)[0];
-				this.datasets.push(dataset);
-			}
-		}
-
-		return new Promise((resolve, reject) => {
-			for(let key in this.datasets) {
-				this.datasetFetchPromises.push(this.analysis.fetchAnalysis(this.datasets[key]));
-				this.datasetFetchPromises.push(this.fetchDataset(this.datasets[key]));
-			}
-			
-			let promises = this.datasetFetchPromises.concat(this.metaDataFetchingPromises);
-			Promise.all(promises).then(() => {
-
-				this.dsGroups = this.groupDatasetsBySample(this.datasets);
-
-				let fetchSampleDataPromises = [];
-				this.dsGroups.map((dsg) => {
-					fetchSampleDataPromises.push(this.fetchSampleData(dsg));
-				});
-
-				Promise.all(fetchSampleDataPromises).then(() => {
-					if(this.datasets.length > 0) {
-						this.buildSection(this.dsGroups);
-					}
-					resolve();
-				});
-
-				
-			});
-		});
-	}
-
-	async fetchSampleData(datasetGroup) {
-		await $.ajax(this.sqs.config.siteReportServerAddress+"/physical_samples?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
-			method: "get",
-			dataType: "json",
-			success: async (sampleData, textStatus, xhr) => {
-				datasetGroup.sample = sampleData[0];
-				//resolve();
-			}
-		});
+		*/
 	}
 
 	groupDatasetsBySample(datasets) {
@@ -96,77 +48,6 @@ class CeramicDataset extends DatasetModule {
 		});
 		
 		return datasetGroups;
-	}
-
-	/*
-	* Function: fetchDataset
-	*
-	* Parameters:
-	* datasetId
-	 */
-	async fetchDataset(dataset) {
-		let p = await new Promise((resolve, reject) => {
-			let promises = [];
-
-			promises.push(new Promise((resolve, reject) => {
-				$.ajax(this.sqs.config.siteReportServerAddress+"/qse_dataset?dataset_id=eq."+dataset.datasetId, {
-					method: "get",
-					dataType: "json",
-					success: async (datasetInfo, textStatus, xhr) => {
-						dataset.physical_sample_id = datasetInfo[0].physical_sample_id;
-
-						resolve();
-					}
-				});
-			}));
-
-			if(typeof this.analysis.ceramicsDataTypes == "undefined") {
-				promises.push(new Promise((resolve, reject) => {
-					$.ajax(this.sqs.config.siteReportServerAddress+"/ceramics_lookup", {
-						method: "get",
-						dataType: "json",
-						success: async (ceramicsDataTypes, textStatus, xhr) => {
-							this.analysis.ceramicsDataTypes = ceramicsDataTypes;
-							//dataset.ceramicsDataTypes = ceramicsDataTypes; //Maybe this shouldn't be dataset-specific
-							resolve();
-						}
-					});
-				}));
-			}
-			
-			promises.push(new Promise((resolve, reject) => {
-				$.ajax(this.sqs.config.siteReportServerAddress+"/analysis_entities?dataset_id=eq."+dataset.datasetId, {
-					method: "get",
-					dataType: "json",
-					success: async (analysisEntities, textStatus, xhr) => {
-						dataset.analysisEntities = analysisEntities;
-
-						for(let key in analysisEntities) {
-							await this.fetchCeramicsData(dataset, analysisEntities[key].analysis_entity_id);
-						}
-						resolve();
-					}
-				});
-			}));
-
-			Promise.all(promises).then(() => {
-				resolve();
-			});
-		});
-
-		return p;
-	}
-
-
-	async fetchCeramicsData(dataset, analysisEntityId) {
-		await $.ajax(this.sqs.config.siteReportServerAddress+"/ceramics?analysis_entity_id=eq."+analysisEntityId, {
-			method: "get",
-			dataType: "json",
-			success: (data, textStatus, xhr) => {
-				dataset.ceramics = data;
-				return data;
-			}
-		});
 	}
 
 
@@ -262,6 +143,8 @@ class CeramicDataset extends DatasetModule {
 	buildContentItem(datasetGroups) {
 		let siteData = this.sqs.siteReportManager.siteReport.siteData;
 
+		let chartAxes = [];
+
 		let columns = [
 			{
 				"dataType": "subtable",
@@ -281,6 +164,7 @@ class CeramicDataset extends DatasetModule {
 		];
 
 		let rows = [];
+		
 		
 		datasetGroups.forEach(dsg => {
 			//Defining columns
@@ -305,8 +189,30 @@ class CeramicDataset extends DatasetModule {
 
 			//Filling up the rows - all dataset's data goes in the same table for ceramics
 			var subTableRows = [];
-			dsg.datasets.forEach(ds => {
+			dsg.datasets.forEach((ds, i) => {
 				let dataset = ds;
+
+				if(!Number.isNaN(parseFloat(dataset.measurement_value))) {
+					dataset.measurement_value = parseFloat(dataset.measurement_value);
+
+					//check that it's unique
+					let found = false;
+					chartAxes.forEach(ca => {
+						if(ca.title == dataset.name) {
+							found = true;
+						}
+					});
+
+					if(!found) {
+						chartAxes.push({
+							"title": dataset.name,
+							"value": 2, //because our data (measurement_value) is in subtable column 2
+							"selected": false,
+							"location": "subtable"
+						});
+					}
+					
+				}
 
 				var subTableRow = [
 					{
@@ -361,10 +267,7 @@ class CeramicDataset extends DatasetModule {
 			];
 
 			rows.push(row);
-	
 		});
-
-		
 
 		let ci = {
 			"name": "Ceramics", //Normally: analysis.datasetId
@@ -385,6 +288,40 @@ class CeramicDataset extends DatasetModule {
 								3
 							],
 							"showControls": false
+						}
+					]
+				},
+				{
+					"name": "Bar chart",
+					"selected": false,
+					"type": "bar",
+					"options": [
+						{
+							"enabled": true,
+							"title": "X axis",
+							"type": "select",
+							"selected": 0,
+							"options": [
+								{
+									"title": "Sample name",
+									"value": 2,
+									"selected": true
+								}
+							]
+						},
+						{
+							"enabled": true,
+							"title": "Y axis",
+							"type": "select",
+							"selected": 1,
+							"options": chartAxes
+						},
+						{
+							"enabled": false,
+							"title": "Sort",
+							"type": "select",
+							"options": [
+							]
 						}
 					]
 				}

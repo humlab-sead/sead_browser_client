@@ -201,6 +201,7 @@ class ContentItemRenderer {
 
 		let controlsId = "view-selector-"+this.contentItem.name;
 		let node = $("#"+controlsId);
+
 		this.renderDataVisualization();
 		this.renderContentDisplayOptionsPanelExtras(node);
 	}
