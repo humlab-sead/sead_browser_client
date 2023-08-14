@@ -326,8 +326,10 @@ li.l1-container:hover {
 
 .sqs-menu-facet-type-icon {
   display:inline-block;
-  background-color: $inactive-color;
-  color: #eee;
+  //background-color: $inactive-color;
+  background: transparent;
+  //color: #eee;
+  color: #333;
   width: 15px;
   height: 15px;
   border-radius: 3px;

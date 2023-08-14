@@ -181,8 +181,8 @@ class MapFacet extends Facet {
 
 		/* Deactivate select and delete any existing polygons.
 			Only one polygon drawn at a time. */
-		this.drawInteraction.on('drawstart',function(event){
-			this.selections = [];
+		this.drawInteraction.on('drawstart', (event) => {
+			this.setSelections([]);
 			drawingSource.clear();
 			//selectedFeatures.clear();
 			if(typeof this.mapSelect != "undefined") {

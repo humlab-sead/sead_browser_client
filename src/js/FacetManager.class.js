@@ -1195,13 +1195,16 @@ class FacetManager {
 
 				let icon = "";
 				if(facetDef[gk].filters[fk].type == "discrete") {
-					icon = "<span class='sqs-menu-facet-type-icon'>L</span>";
+					icon = "<span class='sqs-menu-facet-type-icon'><i class=\"fa fa-list-ul\" aria-hidden=\"true\"></i></span>";
 				}
 				if(facetDef[gk].filters[fk].type == "range") {
-					icon = "<span class='sqs-menu-facet-type-icon'>R</span>";
+					icon = "<span class='sqs-menu-facet-type-icon'><i class=\"fa fa-bar-chart\" aria-hidden=\"true\"></i></span>";
 				}
 				if(facetDef[gk].filters[fk].type == "multistage") {
-					icon = "<span class='sqs-menu-facet-type-icon'>M</span>";
+					icon = "<span class='sqs-menu-facet-type-icon'><i class=\"fa fa-list-ul\" aria-hidden=\"true\"></i></span>";
+				}
+				if(facetDef[gk].filters[fk].type == "map") {
+					icon = "<span class='sqs-menu-facet-type-icon'><i class=\"fa fa-map-marker\" aria-hidden=\"true\"></i></span>";
 				}
 
 

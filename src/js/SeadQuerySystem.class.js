@@ -49,13 +49,13 @@ class SeadQuerySystem {
 			Description: "Geographic",
 			DisplayTitle: "Geographic",
 			FacetCode: "geographic_polygon",
-			FacetGroup: {FacetGroupKey: 'others', DisplayTitle: 'Others', Description: 'Others'},
-			FacetGroupKey: "others",
+			FacetGroup: {FacetGroupKey: 'space_time', DisplayTitle: 'Space/Time', Description: 'Space/Time'},
+			FacetGroupKey: "space_time",
 			FacetId: 200,
 			FacetTypeKey: "map",
 			IsApplicable: true,
 			IsDefault: false,
-			enabled: false,
+			enabled: true,
 		}];
 
 		$("#sead-release-version").text(this.config.version);
