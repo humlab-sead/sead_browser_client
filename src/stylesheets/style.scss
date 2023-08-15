@@ -3122,9 +3122,21 @@ svg text {
   align-items: flex-start;
   width: calc(100% - 4em);
   height: calc(100% - 5em);
-  overflow: auto;
+  overflow: hidden;
   padding: 2em;
   padding-top: 3em;
+}
+
+.mosaic-top-taxa-table-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+  width: 100%;
+  height: 100%;
+  padding: 2em;
+  padding-top: 0;
 }
 
 .taxa-table {
@@ -3132,7 +3144,6 @@ svg text {
   border-collapse: collapse;
   margin: 0;
   padding-top: 1em;
-  width: 100%;
   height: 100%;
   overflow: auto;
 }
@@ -3150,6 +3161,17 @@ svg text {
   padding: .5em;
   text-align: left;
 }
+
+.taxa-table thead {
+  position: relative;
+  width: 100%;
+}
+
+.taxa-table body {
+  position: relative;
+  width: 100%;
+}
+
 
 #result-taxon-image-container-eol-loading-indicator {
   display: flex;

@@ -46,7 +46,7 @@ class MosaicTaxaListModule extends MosaicTileModule {
         //render the data as a table
         let out = "";
         out += "<div class='mosaic-top-taxa-container'>";
-        out += "<div class='mosaic-top-taxa-table-container'></div>";
+        out += "<div class='mosaic-top-taxa-table-container'>";
         out += "<table class='taxa-table'>";
         out += "<thead>";
         out += "<tr>";
@@ -70,6 +70,7 @@ class MosaicTaxaListModule extends MosaicTileModule {
         });
         out += "</tbody>";
         out += "</table>";
+        out += "</div>";
         out += "</div>";
         out += "</div>";
 
