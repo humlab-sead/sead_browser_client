@@ -41,6 +41,8 @@ class MosaicTaxaListModule extends MosaicTileModule {
             return false;
         }
 
+        let renderMaxCount = 15;
+
         //render the data as a table
         let out = "";
         out += "<div class='mosaic-top-taxa-container'>";
@@ -53,6 +55,9 @@ class MosaicTaxaListModule extends MosaicTileModule {
         out += "</thead>";
         out += "<tbody>";
         data.forEach((item) => {
+            if(renderMaxCount-- <= 0) {
+                return;
+            }
             out += "<tr>";
             if(item.family && item.genus && item.species) {
                 out += "<td>"+this.sqs.formatTaxon(item, null, true, true)+"</td>";
