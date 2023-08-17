@@ -426,46 +426,9 @@ class SiteReport {
 	Function: renderContentItem
 	 */
 	async renderContentItem(section, contentItem, forceReRender = false) {
-
 		let cir = new ContentItemRenderer(this, section, contentItem);
 		this.contentItemRendererRepository.push(cir);
 		cir.render();
-		/*
-		var datasetId = "";
-		if(contentItem.hasOwnProperty("datasetId")) {
-			datasetId = "<span class='dataset-id'>("+contentItem.name+")</span>";
-		}
-		
-		var headerNode = $("<div class='content-item-header-container'><h4><span class='contentitem-title'>"+contentItem.title+"</span>"+datasetId+"</h4></div>");
-		
-		let cicId = "cic-"+contentItem.name; //content-item-container id
-		//$("#site-report-section-"+section.name+" > .site-report-level-content").append(headerNode);
-		$("#site-report-section-"+section.name+" > .site-report-level-content").append("<div id='"+cicId+"' class='content-item-container'></div>");
-		$("#site-report-section-"+section.name+" > .site-report-level-content > #cic-"+contentItem.name).append(headerNode);
-
-		//This (partially) replaces the above - we leave it up to the dataset modules to define their own tooltips here, which makes more sense anyway
-		if(typeof contentItem.titleTooltip != "undefined" && contentItem.titleTooltip != "") {
-			this.sqs.tooltipManager.registerTooltip($(".contentitem-title", headerNode), contentItem.titleTooltip, { drawSymbol: true });
-		}
-
-		$(headerNode).append("<div class='content-item-header-divider'></div>");
-		
-		var renderModeSelectorNode = this.renderContentDisplayOptionsPanel(section, contentItem);
-		if(renderModeSelectorNode !== false) {
-			$(headerNode).append(renderModeSelectorNode);
-			$(headerNode).append("<div class='content-item-header-divider'></div>");
-		}
-		
-		
-		var exportNode = this.getContentItemExportControl(section, contentItem);
-		$(headerNode).append(exportNode);
-		
-		
-		var dataVisContainerNode = $("<div id='contentItem-"+contentItem.name+"' class='data-vis-container'><span class='siteReportContentItemLoadingMsg'>Rendering...</span></div>");
-		$("#site-report-section-"+section.name+" > .site-report-level-content > #"+cicId).append(dataVisContainerNode);
-		
-		this.renderDataVisualization(section, contentItem);
-		*/
 	}
 	
 	prepareJsonExport(exportStruct) {

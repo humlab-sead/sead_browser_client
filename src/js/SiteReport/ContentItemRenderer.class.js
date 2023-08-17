@@ -150,6 +150,7 @@ class ContentItemRenderer {
 					case "multistack":
 					case "ecocode":
 					case "ecocodes-samples":
+					case "coordinate-map":
 						renderInstance = new SiteReportChart(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);
 						this.addRenderInstance(this.contentItem.name, renderInstance);
@@ -268,6 +269,8 @@ class ContentItemRenderer {
 	renderContentDisplayOptionsPanelExtras(node) {
 		let selectedRo = this.getSelectedRenderOption(this.contentItem);
 		let optionsContainerNode = $(".site-report-render-options-container-extras", node);
+
+		console.log(selectedRo);
 
 		let html = "";
 		for(let key in selectedRo.options) {

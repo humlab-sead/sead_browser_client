@@ -188,6 +188,95 @@ class Samples {
 		}
 	}
 
+	insertSampleCoordinatesIntoTable(subTable, sampleGroup) {
+		let siteData = this.sqs.siteReportManager.siteReport.siteData;
+
+		let insertSampleCoordinatesColumn = false;
+		for(let k in sampleGroup.physical_samples) {
+			var sample = sampleGroup.physical_samples[k];
+			if(sample.coordinates.length > 0) {
+				insertSampleCoordinatesColumn = true;
+			}
+		}
+
+		if(insertSampleCoordinatesColumn) {
+			subTable.columns.push({
+				"title": "Coordinates"
+			});
+
+			for(let k in sampleGroup.physical_samples) {
+				var sample = sampleGroup.physical_samples[k];
+
+				if(typeof sample.coordinates == "undefined") {
+					continue;
+				}
+
+				sample.coordinates.forEach(coord => {
+					coord.accuracy;
+					coord.coordinate_method_id;
+					coord.dimension_id;
+					coord.measurement;
+	
+					siteData.lookup_tables.coordinate_methods.forEach(cm => {
+						if(cm.method_id == coord.coordinate_method_id) {
+							coord.coordinate_method = cm;
+						}
+					});
+	
+					siteData.lookup_tables.dimensions.forEach(dim => {
+						if(dim.dimension_id == coord.dimension_id) {
+							coord.dimension = dim;
+						}
+					});
+				});
+
+				sample.coordinates.sort((a, b) => {
+					//sort on coordinate.dimension.dimension_abbrev
+					if(a.dimension.dimension_abbrev < b.dimension.dimension_abbrev) {
+						return -1;
+					}
+				});
+
+				let cellValue = "";
+				sample.coordinates.forEach(data => {
+					let ttId = "tt-"+nanoid();
+
+					if(typeof data.dimension == "undefined" || typeof data.dimension.dimension_name == "undefined") {
+						console.warn("WARN: Dimension not found for coordinate: ", data);
+						return;
+					}
+
+					if(typeof data.coordinate_method == "undefined" || typeof data.coordinate_method.method_name == "undefined") {
+						console.warn("WARN: Coordinate method not found for coordinate: ", data);
+						return;
+					}
+
+					if(data.accuracy != null) {
+						cellValue += "<span id='"+ttId+"'>"+data.dimension.dimension_name+" "+data.measurement+" ("+data.accuracy+")</span>, ";
+					}
+					else {
+						cellValue += "<span id='"+ttId+"'>"+data.dimension.dimension_name+" "+data.measurement+"</span>, ";
+					}
+					
+					let ttContent = "<h4 class='tooltip-header'>Coordinate system</h4>"+data.coordinate_method.method_name+"<hr/>"+data.coordinate_method.description;
+					ttContent += "<br/><br/><span>Coordinates are specified in "+data.coordinate_method.unit.unit_name+".</span>";
+					this.sqs.tooltipManager.registerTooltip("#"+ttId, ttContent, { drawSymbol: true });
+				});
+				cellValue = cellValue.substring(0, cellValue.length-2);
+				subTable.rows.forEach(row => {
+					if(row[0].value == sample.sample_name) {
+						row.push({
+							"value": cellValue,
+							"type": "cell",
+							"tooltip": "",
+							"data": sample.coordinates
+						});
+					}
+				});
+			}
+		}
+	}
+
 	insertSampleAltRefsIntoTable(subTable, sampleGroup) {
 		let insertColumn = false;
 		for(let k in sampleGroup.physical_samples) {
@@ -201,6 +290,7 @@ class Samples {
 			subTable.columns.push({
 				"title": "Alternative identifiers"
 			});
+			
 
 			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
@@ -415,8 +505,6 @@ class Samples {
 		for(let key in siteData.sample_groups) {
 			var sampleGroup = siteData.sample_groups[key];
 			
-			
-			
 			var subTableColumns = [
 				{
 					"pkey": true,
@@ -431,11 +519,11 @@ class Samples {
 				"columns": subTableColumns,
 				"rows": []
 			};
-			
+
 			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
-
-				subTable.rows.push([
+				
+				let subTableRow = [
 					{
 						"type": "cell",
 						"value": sample.sample_name,
@@ -446,14 +534,16 @@ class Samples {
 						"value": sample.sample_type_name,
 						"tooltip": sample.sample_type_description == null ? "" : sample.sample_type_description
 					}
-				]);
-				
+				];
+
+				subTable.rows.push(subTableRow);
 			}
 
 			this.insertSampleDimensionsIntoTable(subTable, sampleGroup, siteData);
 			this.insertSampleDescriptionsIntoTable(subTable, sampleGroup);
 			this.insertSampleLocationsIntoTable(subTable, sampleGroup);
 			this.insertSampleAltRefsIntoTable(subTable, sampleGroup);
+			this.insertSampleCoordinatesIntoTable(subTable, sampleGroup);
 
 			let samplingContextValue = "";
 			sampleGroup.sampling_context.forEach(samplingContext => {
@@ -545,6 +635,50 @@ class Samples {
 				}]
 			}]
 		};
+
+		//Only include the sample groups with coordinates as coordinate chart options
+		let sampleGroupsWithCoordinates = [];
+		siteData.sample_groups.forEach(sampleGroup => {
+			let sampleGroupHasSampleWithCoordinates = false;
+			sampleGroup.physical_samples.forEach(sample => {
+				if(typeof sample.coordinates != "undefined" && sample.coordinates.length > 0) {
+					sampleGroupHasSampleWithCoordinates = true;
+				}
+			});
+			if(sampleGroupHasSampleWithCoordinates) {
+				sampleGroupsWithCoordinates.push(sampleGroup);
+			}
+		});
+
+
+		if(sampleGroupsWithCoordinates.length > 0) {
+			let roOptions = sampleGroupsWithCoordinates.map(sg => { return { title: sg.sample_group_name, selected: false, value: sg.sample_group_id }; });
+			roOptions[0].selected = true;
+	
+			let sampleCoordinatesContentItem = {
+				"name": "sampleCoordinatesMap",
+				"title": "Sample coordinates",
+				"collapsed": false,
+				"data": {
+					"columns": sampleGroupColumns,
+					"rows": sampleGroupRows
+				},
+				"renderOptions": [{
+					"selected": true,
+					"enabled": true,
+					"type": "coordinate-map",
+					"name": "Map",
+					"options": [{
+						"name": "sampleGroup",
+						"title": "Sample group",
+						"type": "select",
+						"options": roOptions
+					}]
+				}]
+			}
+
+			section.contentItems.push(sampleCoordinatesContentItem);
+		}
 
 		return section;
 	}

@@ -11,6 +11,27 @@ import {
  } from "chart.js";
 import 'zingchart/es6';
 import Plotly from "plotly.js-dist-min";
+import proj4 from "proj4";
+
+import Map from 'ol/Map';
+import View from 'ol/View';
+import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Image as ImageLayer } from 'ol/layer';
+import { Stamen, BingMaps, ImageArcGISRest, OSM } from 'ol/source';
+import { Group as GroupLayer } from 'ol/layer';
+import Overlay from 'ol/Overlay';
+import GeoJSON from 'ol/format/GeoJSON';
+import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
+import { fromLonLat } from 'ol/proj.js';
+import { Select as SelectInteraction, Draw as DrawInteraction } from 'ol/interaction';
+import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
+import { Attribution } from 'ol/control';
+import { Feature } from 'ol';
+import { Point } from 'ol/geom';
+import { createEmpty, extend } from 'ol/extent';
+import { transform } from 'ol/proj';
+import { boundingExtent } from 'ol/extent';
+import { Overlay as OlOverlay } from 'ol';
+import { map } from "jquery";
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {
@@ -76,6 +97,9 @@ class SiteReportChart {
 					case "dendrochart":
 						node = this.renderDendroChart();
 						break;
+					case "coordinate-map":
+						this.renderCoordinateMap();
+						break;
 				}
 			}
 		});
@@ -93,6 +117,399 @@ class SiteReportChart {
 		//this.renderBarChartZing();
 		//this.renderBarChartCJS();
 		this.renderBarChartPlotly();
+	}
+
+	getCoordinateSystem(coordinates) {
+		let coordinateSystem = null;
+		coordinates.forEach(coordinate => {
+			if(coordinate.dimension.dimension_id == 7) { //"X/North"
+				coordinateSystem = coordinate.coordinate_method;
+			}
+		});
+
+		if(coordinateSystem == null) {
+			return null;
+		}
+
+		coordinates.forEach(coordinate => {
+			//check that all coordinates are of the same type
+			if(coordinate.dimension.dimension_id == 15) { //"Y/East"
+				if(coordinateSystem.method_id != coordinate.coordinate_method.method_id) {
+					console.warn("WARN: Y coordinate system does not match X coordinate system.");
+					return null;
+				}
+			}
+		});
+
+		return coordinateSystem;
+	}
+
+	renderCoordinateMap() {
+		var contentItem = this.contentItem;
+		console.log(contentItem);
+		//let cir = this.siteReport.getContentItemRenderer(contentItem);
+		//var ro = cir.getSelectedRenderOption(contentItem);
+
+		let selectedSampleGroupId = this.getSelectedRenderOptionExtra("Sample group").value;
+		let sampleGroupIdColumnKey = this.getTableColumnKeyByTitle("Sample group id");
+
+		let chartData = {
+			x: {
+				key: "Longitude",
+				values: [],
+				unit: "",
+				sampleNames: []
+			},
+			y: {
+				key: "Latitude",
+				values: [],
+				unit: "",
+				sampleNames: []
+			},
+			z: {
+				key: "Altitude",
+				values: [],
+				unit: "",
+				sampleNames: []
+			}
+		};
+
+		let coordinateSystem = null;
+		let renderMap = true;
+		let renderBaseLayer = true;
+
+		contentItem.data.rows.forEach(row => {
+			if(row[sampleGroupIdColumnKey].value == selectedSampleGroupId) {
+				row.forEach(cell => {
+					if(cell.type == "subtable") {
+						let subTableCoordinateColumnKey = null;
+						cell.value.columns.forEach((sc, k) => {
+							if(sc.title == "Coordinates") {
+								subTableCoordinateColumnKey = k;
+							}
+						});
+
+						cell.value.rows.forEach(subTableRow => {
+							let coordinates = subTableRow[subTableCoordinateColumnKey].data;
+							if(coordinates.length > 0) {
+								let coordSys = this.getCoordinateSystem(coordinates);
+								if(coordinateSystem == null) {
+									coordinateSystem = coordSys;
+								}
+								if(coordinateSystem != null && coordSys.method_id != coordinateSystem.method_id) {
+									console.warn("WARN: Coordinate system mismatch between samples. Cannot render map.");
+									renderMap = false;
+								}
+								let transformed = this.transformCoordinatesToWGS84(coordinates);
+								if(transformed != null) {
+									chartData.x.values.push(transformed[0]);
+									chartData.x.sampleNames.push(subTableRow[0].value);
+									chartData.y.values.push(transformed[1]);
+									chartData.y.sampleNames.push(subTableRow[0].value);
+
+									//look for altitude data
+									coordinates.forEach(coordinate => {
+										if(coordinate.coordinate_method_id == 76) { //method_id 76 is "Altitude above sea level" (in meters)
+											chartData.z.values.push(coordinate.measurement);
+											chartData.z.sampleNames.push(subTableRow[0].value);
+										}
+									});
+
+								}
+							}
+						});
+					}
+				});
+			}
+		});
+
+		if(coordinateSystem.method_id == 105) {
+			renderBaseLayer = false;
+		}
+
+		if(chartData.x.values.length == 0) {
+			console.warn("WARN: No usable coordinates found for sample group "+selectedSampleGroupId);
+			return false;
+		}
+
+		if(!renderMap) {
+			return false;
+		}
+
+		/*
+		// Combine the arrays and sort them based on values
+		let keysArray = chartData.x.values;
+		let valuesArray = chartData.y.values;
+
+		let combinedArrays = keysArray.map((key, index) => ({ key, value: valuesArray[index] }));
+		combinedArrays.sort((a, b) => a.value - b.value);
+
+		// Extract sorted keys and values
+		let sortedKeys = combinedArrays.map(item => item.key);
+		let sortedValues = combinedArrays.map(item => item.value);
+
+		chartData.y.values = sortedValues;
+		chartData.x.values = sortedKeys;
+		*/
+		/*
+		let data = [
+		  {
+			x: chartData.x.values,
+			y: chartData.y.values,
+			type: "scatter",
+			mode: "markers",
+			text: chartData.y.values.map((val) => `${val}${chartData.y.unit}`),
+			hoverinfo: "x+text",
+			hovertemplate: '%{y}<extra>Sample name %{x}</extra>',
+			textposition: 'auto',
+			marker: {
+				color: this.sqs.color.colors.baseColor,
+			}
+		  },
+		];
+
+		let layout = {
+			title: {
+				//text: contentItem.data.columns[yAxisKey].title+" by "+contentItem.data.columns[xAxisKey].title,
+				font: {
+					family: 'Didact Gothic, sans-serif',
+					size: 22
+				},
+			},
+			plot_bgcolor: "#fff",
+			paper_bgcolor: "#fff",
+			autosize: true,
+			showlegend: false,
+			margin: {
+				l: 50,
+				r: 50,
+				b: 70,
+				t: 50,
+				pad: 4
+			},
+			font: {
+				family: 'Didact Gothic, sans-serif',
+				size: 14,
+				color: '#333'
+			},
+			xaxis: {
+				type: "category", //to get distinct and not linear/range values
+			},
+			yaxis: {
+				showticklabels: false,
+				automargin: true,
+			}
+		};
+		*/
+	  
+		this.chartId = "chart-" + shortid.generate();
+		var chartContainer = $("<div id='" + this.chartId + "' class='sample-coordinates-map-container'></div>");
+		$(this.anchorNodeSelector).append(chartContainer);
+	  
+		//Plotly.newPlot(this.chartId, data, layout, {responsive: true, displayModeBar: false});
+
+
+		var wgs84Coordinates = [];
+
+		let mapFeatures = [];
+		chartData.x.values.forEach((x, i) => {
+			wgs84Coordinates.push([x, chartData.y.values[i]]);
+
+			mapFeatures.push(new Feature({
+				geometry: new Point(fromLonLat([x, chartData.y.values[i]])),
+				name: chartData.x.sampleNames[i],
+				altitude: chartData.z.values.length > 0 && typeof chartData.z.values[i] != "undefined" ? chartData.z.values[i] : null
+			}));
+		});
+	  
+		var vectorSource = new VectorSource({
+			features: mapFeatures
+		});
+	  
+		
+		chartData.z.max = null;
+		chartData.z.min = null;
+		chartData.z.values.forEach((z, i) => {
+			if(chartData.z.max == null || z > chartData.z.max) {
+				chartData.z.max = z;
+			}
+			if(chartData.z.min == null || z < chartData.z.min) {
+				chartData.z.min = z;
+			}
+		});
+
+
+		var vectorLayer = new VectorLayer({
+			source: vectorSource,
+			style: (feature) => {
+				let altitude = feature.getProperties().altitude;
+				
+				let fillColor = 'rgba(255, 0, 0, 0.5)';
+				//define a color scale based on altitude
+
+				if(altitude != null) {
+					let altitudeScale = altitude / chartData.z.max;
+					console.log(altitudeScale);
+
+					let red = 255 * altitudeScale;
+					let blue = 255 * (1-altitudeScale);
+
+					fillColor = 'rgba('+red+', 0, '+blue+', 0.8)';
+
+					console.log(fillColor)
+				}
+
+				return new Style({
+					image: new CircleStyle({
+					  radius: 6,
+					  fill: new Fill({
+						color: fillColor
+					  }),
+					  stroke: new Stroke({
+						color: 'white',
+						width: 1
+					  })
+					})
+				});
+			}
+		});
+
+		
+		var extent = vectorLayer.getSource().getExtent();
+
+		const attribution = new Attribution({
+			collapsible: false,
+			collapsed: false,
+		});
+
+		let mapLayers = [];
+		if(renderBaseLayer) {
+			mapLayers.push(new TileLayer({
+	            source: new OSM()
+	          }));
+		}
+		mapLayers.push(vectorLayer);
+
+		this.olMap = new Map({
+			target: this.chartId,
+			attribution: false,
+			controls: [attribution],
+			layers: mapLayers,
+			view: new View({
+				center: fromLonLat([12.41, 48.82]),
+				zoom: 3
+			}),
+			loadTilesWhileInteracting: true,
+			loadTilesWhileAnimating: true
+		});
+
+		this.olMap.getView().fit(extent, {
+			padding: [60, 60, 60, 60]
+		});
+
+		$("#"+this.chartId).css("cursor", "default");
+
+
+		if(!renderBaseLayer) {
+			$("#"+this.chartId).append("<div class='sample-coordinates-map-info-text'>Basemap is not shown since this is a local coordinate system.</div>");
+		}
+		
+
+		var tooltipOverlay = new OlOverlay({
+			element: document.createElement('div'),
+			offset: [10, 0],
+			positioning: 'top-right'
+		});
+
+		this.olMap.addOverlay(tooltipOverlay);
+
+		this.olMap.on('click', (event) => {
+			var feature = this.olMap.forEachFeatureAtPixel(event.pixel, function(feature) {
+				return feature;
+			});
+		
+			if (feature) {
+				var content = '<div class="sample-coordinate-map-tooltip">Sample ' + feature.getProperties().name + '</div>';
+				let featureCoords = feature.getGeometry().getCoordinates();
+				tooltipOverlay.setPosition(featureCoords);
+				tooltipOverlay.getElement().innerHTML = content;
+			} else {
+				tooltipOverlay.setPosition(undefined);
+				tooltipOverlay.getElement().innerHTML = '';
+			}
+		});
+
+	}
+
+	transformCoordinatesToWGS84(coordinates) {
+		//Define projections
+		proj4.defs("EPSG:3006", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
+		proj4.defs("EPSG:3018", "+proj=tmerc +lat_0=0 +lon_0=14.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
+		proj4.defs("EPSG:3019", "+proj=tmerc +lat_0=0 +lon_0=15.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
+		proj4.defs("EPSG:3021", "+proj=tmerc +lat_0=0 +lon_0=18.05827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
+		proj4.defs("EPSG:3024", "+proj=tmerc +lat_0=0 +lon_0=20.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
+
+		let coordinateTrio = {
+			x: null,
+			y: null,
+			z: null
+		}
+
+		coordinates.forEach(coordinate => {
+			if(coordinate.dimension.dimension_name == "X/North") {
+				coordinateTrio.y = coordinate;
+			}
+			if(coordinate.dimension.dimension_name == "Y/East") {
+				coordinateTrio.x = coordinate;
+			}
+			if(coordinate.dimension.dimension_name == "Z/Altitude") {
+				coordinateTrio.z = coordinate;
+			}
+		});
+
+		if(coordinateTrio.x == null || coordinateTrio.y == null) {
+			console.warn("WARN: Missing X/Y coordinates in coordinate trio");
+			return null;
+		}
+
+		switch(coordinateTrio.x.coordinate_method.method_name) {
+			case "Local grid":
+				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", [coordinateTrio.x.measurement, coordinateTrio.y.measurement]);
+				return wgs84Coords;
+			case "RT90 7.5 gon V":
+				let rt9075Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				var sweref99Coords = proj4("EPSG:3018", "EPSG:3006", rt9075Coords);
+				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				return wgs84Coords;
+			case "RT90 5 gon V":
+				let rt90Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				var sweref99Coords = proj4("EPSG:3019", "EPSG:3006", rt90Coords);
+				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				return wgs84Coords;
+			case "RT90 2.5 gon V":
+				let rt9025Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				var sweref99Coords = proj4("EPSG:3021", "EPSG:3006", rt9025Coords);
+				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				return wgs84Coords;
+			case "RT90 0 gon":
+				let rt900Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				var sweref99Coords = proj4("EPSG:3024", "EPSG:3006", rt900Coords);
+				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				return wgs84Coords;
+			case "RT90 2.5 gon O":
+				let rt9025oCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				var sweref99Coords = proj4("EPSG:3018", "EPSG:3006", rt9025oCoords);
+				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				return wgs84Coords;
+			case "RT90 5 gon O":
+				let rt905oCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				var sweref99Coords = proj4("EPSG:3019", "EPSG:3006", rt905oCoords);
+				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				return wgs84Coords;
+			default:
+				console.warn("WARN: Support for coordinate method not implemented: "+coordinateTrio.x.coordinate_method.method_name);
+				return null;
+		}
 	}
 	
 
@@ -520,7 +937,7 @@ class SiteReportChart {
             }
 			*/
 			
-			if(ro.name == "Bar chart") {
+			if(ro.name == "Bar chart" || ro.type == "coordinate-map") {
                 renderOption = ro;
             }
 			
@@ -534,13 +951,16 @@ class SiteReportChart {
         });
 
         let selectedOption = null;
-        sortOptionSelect.options.forEach(selectOption => {
-            if(selectOption.selected === true) {
-                selectedOption = selectOption;
-            }
-        });
+		if(sortOptionSelect != null) {
+			sortOptionSelect.options.forEach(selectOption => {
+				if(selectOption.selected === true) {
+					selectedOption = selectOption;
+				}
+			});
+		}
+        
 
-        if(selectedOption == null && sortOptionSelect.options.length > 0) {
+        if(selectedOption == null && sortOptionSelect != null && sortOptionSelect.options.length > 0) {
             selectedOption = sortOptionSelect.options[0];
         }
         else if(selectedOption == null) {

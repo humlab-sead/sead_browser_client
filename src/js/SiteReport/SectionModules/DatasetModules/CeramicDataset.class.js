@@ -100,8 +100,6 @@ class CeramicDataset extends DatasetModule {
 			sampleDatasets.push(sampleDatasetObject);
 		});
 
-		console.log(sampleDatasets);
-
 		//var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
 
 		if(sampleDatasets.length > 0) {
@@ -127,7 +125,7 @@ class CeramicDataset extends DatasetModule {
 							"title": method.method_name,
 							"methodId": method.method_id,
 							"methodDescription": method == null ? "" : method.description,
-							"collapsed": false,
+							"collapsed": true,
 							"contentItems": []
 						});
 						sectionKey = sectionsLength - 1;

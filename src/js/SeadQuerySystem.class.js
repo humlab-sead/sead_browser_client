@@ -687,7 +687,7 @@ class SeadQuerySystem {
 					filterGroup.items.push({
 						"facetCode": filter.FacetCode,
 						"displayTitle": filter.DisplayTitle,
-						"facetTypeKey": filter.FacetTypeKey, //"discrete" or "range"
+						"facetTypeKey": filter.FacetTypeKey, //"discrete" or "range" or "map" or "multistage"
 						"aggregateType": filter.AggregateType,
 						"aggregateTitle": filter.AggregateTitle,
 						"dependencies": [],

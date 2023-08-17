@@ -1236,6 +1236,40 @@ h1.main-header {
 	font-weight: bold;
 }
 
+.sample-coordinates-map-container {
+  position:relative;
+  width:100%;
+  height:400px;
+}
+
+.sample-coordinates-map-info-text {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #000;
+  padding: 0em;
+  font-size: 1.0em;
+  color: #fff;
+  padding: 0.2em;
+  z-index: 1;
+}
+
+.sample-coordinate-map-tooltip {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: auto;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0em;
+  font-size: 1.0em;
+  color: #fff;
+  padding: 0.2em;
+  z-index: 1;
+  white-space: nowrap;
+}
+
 .result-map-control-container {
   position: absolute;
   top: 0px;
