@@ -338,25 +338,38 @@ class SiteReportChart {
 			}
 		});
 
+		chartData.z.values.sort((a, b) => a - b);
+		console.log(chartData.z.values);
 
 		var vectorLayer = new VectorLayer({
 			source: vectorSource,
 			style: (feature) => {
 				let altitude = feature.getProperties().altitude;
 				
-				let fillColor = 'rgba(255, 0, 0, 0.5)';
+				let fillColor = 'rgba(128, 128, 128, 0.8)';
 				//define a color scale based on altitude
 
 				if(altitude != null) {
-					let altitudeScale = altitude / chartData.z.max;
-					console.log(altitudeScale);
+					//let altitudeScale = altitude / chartData.z.max;
+
+					let altitudeScale = this.mapValue(altitude, chartData.z.min, chartData.z.max, 0, 1);
 
 					let red = 255 * altitudeScale;
 					let blue = 255 * (1-altitudeScale);
 
+				
+
 					fillColor = 'rgba('+red+', 0, '+blue+', 0.8)';
 
-					console.log(fillColor)
+					//fillColor = 'rgba('+(altitudeScale*255)+', '+(altitudeScale*255)+', '+(altitudeScale*255)+', 0.8)';
+
+					if(altitude == chartData.z.max) {
+						fillColor = 'rgba(255, 255, 0, 1.0)';
+					}
+					if(altitude == chartData.z.min) {
+						fillColor = 'rgba(0, 255, 0, 1.0)';
+					}
+					//console.log(altitude)
 				}
 
 				return new Style({
@@ -429,6 +442,7 @@ class SiteReportChart {
 			});
 		
 			if (feature) {
+				console.log(feature.getProperties());
 				var content = '<div class="sample-coordinate-map-tooltip">Sample ' + feature.getProperties().name + '</div>';
 				let featureCoords = feature.getGeometry().getCoordinates();
 				tooltipOverlay.setPosition(featureCoords);
@@ -439,6 +453,27 @@ class SiteReportChart {
 			}
 		});
 
+		$("#"+this.chartId).append("<div id='gradient-legend'><div class='gradient-legend-max'></div><div class='gradient-legend-min'></div></div>");
+		this.renderAltitudeLegend(chartData.z.min, chartData.z.max);
+	}
+	
+	mapValue(x, xMin, xMax, yMin, yMax) {
+		return ((x - xMin) / (xMax - xMin)) * (yMax - yMin) + yMin;
+	}
+
+	renderAltitudeLegend(minAltitude, maxAltitude) {
+		const gradientLegend = document.getElementById('gradient-legend');
+		
+		// Calculate the color scale based on the altitude range
+		const gradient = `linear-gradient(to bottom, 
+			rgb(${255 * (1 - maxAltitude / 255)}, 0, ${255 * (maxAltitude / 255)}),
+			rgb(${255 * (minAltitude / 255)}, 0, ${255 * (1 - minAltitude / 255)})
+			)`;
+		
+		gradientLegend.style.background = gradient;
+
+		$(".gradient-legend-max").html(maxAltitude+" m");
+		$(".gradient-legend-min").html(minAltitude+" m");
 	}
 
 	transformCoordinatesToWGS84(coordinates) {

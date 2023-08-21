@@ -1236,6 +1236,39 @@ h1.main-header {
 	font-weight: bold;
 }
 
+#gradient-legend {
+  position: absolute;
+  top: 25%;
+  left: 0px;
+  width: 1em;
+  height: 50%;
+  background: transparent;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+}
+
+.gradient-legend-max {
+  position: absolute;
+  top: -1px;
+  left: 1em;
+  white-space: nowrap;
+  font-size: 0.8em;
+  padding: .2em;
+  padding-left: 1em;
+  border-top: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.gradient-legend-min {
+  position: absolute;
+  left: 1em;
+  white-space: nowrap;
+  font-size: 0.8em;
+  padding: .2em;
+  padding-left: 1em;
+  bottom: -1px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+}
+
 .sample-coordinates-map-container {
   position:relative;
   width:100%;
