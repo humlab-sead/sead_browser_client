@@ -60,7 +60,7 @@ class SeadQuerySystem {
 
 		$("#sead-release-version").text(this.config.version);
 
-		this.storeUserSettings(this.config);
+		this.storeUserSettings(this.config, false);
 
 		this.preload().then(() => {
 			console.log("SQS preload complete");
@@ -1355,7 +1355,7 @@ class SeadQuerySystem {
 		});
 	}
 
-	storeUserSettings(settings) {
+	storeUserSettings(settings, overwrite = true) {
 		let userSettingsJson = window.localStorage.getItem("sqsUserSettings");
 		let userSettings;
 		if(!userSettingsJson) {
@@ -1366,7 +1366,12 @@ class SeadQuerySystem {
 		}
 		
 		Object.keys(settings).forEach((key) => {
-			userSettings[key] = settings[key]
+			if(!overwrite && typeof userSettings[key] == "undefined") {
+				userSettings[key] = settings[key];
+			}
+			else if(overwrite) {
+				userSettings[key] = settings[key];
+			}
 		});
 		window.localStorage.setItem("sqsUserSettings", JSON.stringify(userSettings));
 	}

@@ -121,8 +121,21 @@ class SiteReportChart {
 
 	getCoordinateSystem(coordinates) {
 		let coordinateSystem = null;
+
+
+		let xCoord = null;
+		let yCoord = null;
+		let zCoord = null;
+
+		let horizontalCoord = null;
+		let verticalCoord = null;
+
 		coordinates.forEach(coordinate => {
-			if(coordinate.dimension.dimension_id == 7) { //"X/North"
+
+			coordinate.coordinate_method;
+
+			if(coordinate.dimension.dimension_id == 7 || coordinate.dimension.dimension_id == 9) { //"X/North"
+				xCoord = coordinate;
 				coordinateSystem = coordinate.coordinate_method;
 			}
 		});
@@ -222,6 +235,11 @@ class SiteReportChart {
 				});
 			}
 		});
+
+		if(coordinateSystem == null) {
+			console.warn("WARN: No coordinate system found for sample group "+selectedSampleGroupId);
+			return false;
+		}
 
 		if(coordinateSystem.method_id == 105) {
 			renderBaseLayer = false;
@@ -443,7 +461,11 @@ class SiteReportChart {
 		
 			if (feature) {
 				console.log(feature.getProperties());
-				var content = '<div class="sample-coordinate-map-tooltip">Sample ' + feature.getProperties().name + '</div>';
+				console.log(feature.getGeometry());
+				console.log(feature.getGeometry().getCoordinates());
+				var content = '<div class="sample-coordinate-map-tooltip">Sample ' + feature.getProperties().name;
+				content += '<br>Altitude: ' + feature.getProperties().altitude;
+				content += '</div>';
 				let featureCoords = feature.getGeometry().getCoordinates();
 				tooltipOverlay.setPosition(featureCoords);
 				tooltipOverlay.getElement().innerHTML = content;
@@ -483,6 +505,13 @@ class SiteReportChart {
 		proj4.defs("EPSG:3019", "+proj=tmerc +lat_0=0 +lon_0=15.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
 		proj4.defs("EPSG:3021", "+proj=tmerc +lat_0=0 +lon_0=18.05827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
 		proj4.defs("EPSG:3024", "+proj=tmerc +lat_0=0 +lon_0=20.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
+		proj4.defs("malmo-local-legacy", "+proj=tmerc +lat_0=0 +lon_0=13.0 +k=1 +x_0=0 +y_0=0 +ellps=intl +towgs84=413,85,396,0,0,0,0 +units=m +no_defs");
+		proj4.defs("EPSG:3007","+proj=tmerc +lat_0=0 +lon_0=12 +k=1 +x_0=150000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs");
+		//proj4.defs("gothenburg-local", "+proj=pipeline +step +proj=latlong +ellps=GRS80 +step +inv +proj=utm +zone=12 +ellps=GRS80 +units=m +no_defs");
+		proj4.defs("SWEREF99_LAT_LONG_TO_1200", "+proj=pipeline +step +proj=latlong +ellps=GRS80 +step +inv +proj=utm +zone=12 +ellps=GRS80 +units=m +no_defs");
+		proj4.defs("SWEREF99_LAT_LONG_TO_3006", "+proj=pipeline +step +proj=latlong +ellps=GRS80 +step +inv +proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
+		proj4.defs("gothenburg-local", "+proj=tmerc +lat_0=0 +lon_0=11.304996 +k=1.00000867 +x_0=-6370680.1969 +y_0=-80.0124 +ellps=GRS80 +units=m +no_defs");
+		proj4.defs("EPSG:3021", '+proj=tmerc +lat_0=0 +lon_0=12 +k=1 +x_0=150000 +y_0=0 +ellps=GRS80 +units=m +no_defs');
 
 		let coordinateTrio = {
 			x: null,
@@ -507,44 +536,94 @@ class SiteReportChart {
 			return null;
 		}
 
-		switch(coordinateTrio.x.coordinate_method.method_name) {
-			case "Local grid":
-				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", [coordinateTrio.x.measurement, coordinateTrio.y.measurement]);
-				return wgs84Coords;
-			case "RT90 7.5 gon V":
-				let rt9075Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-				var sweref99Coords = proj4("EPSG:3018", "EPSG:3006", rt9075Coords);
-				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-				return wgs84Coords;
-			case "RT90 5 gon V":
+		let wgs84Coords = null;
+		let sweref99Coords = null;
+
+		switch(coordinateTrio.x.coordinate_method.method_id) {
+			case 113: //"Malmö stads koordinatnät"
+				let malmoCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				wgs84Coords = proj4("malmo-local-legacy", "EPSG:4326", malmoCoords);
+				break;
+			case 105: //"Local grid" 
+			case 108: //"Göteborgs kommuns koordinatsystem" - we treat this as a local grid, for now
+				wgs84Coords = proj4("EPSG:3006", "EPSG:4326", [coordinateTrio.x.measurement, coordinateTrio.y.measurement]);
+				break;
+			case 103: //"RT90 5 gon V"
 				let rt90Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-				var sweref99Coords = proj4("EPSG:3019", "EPSG:3006", rt90Coords);
-				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-				return wgs84Coords;
-			case "RT90 2.5 gon V":
+				sweref99Coords = proj4("EPSG:3019", "EPSG:3006", rt90Coords);
+				wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				break;
+			case 69: //"RT90 2.5 gon V"
 				let rt9025Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-				var sweref99Coords = proj4("EPSG:3021", "EPSG:3006", rt9025Coords);
-				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-				return wgs84Coords;
-			case "RT90 0 gon":
-				let rt900Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-				var sweref99Coords = proj4("EPSG:3024", "EPSG:3006", rt900Coords);
-				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-				return wgs84Coords;
-			case "RT90 2.5 gon O":
-				let rt9025oCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-				var sweref99Coords = proj4("EPSG:3018", "EPSG:3006", rt9025oCoords);
-				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-				return wgs84Coords;
-			case "RT90 5 gon O":
-				let rt905oCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-				var sweref99Coords = proj4("EPSG:3019", "EPSG:3006", rt905oCoords);
-				var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-				return wgs84Coords;
+				sweref99Coords = proj4("EPSG:3021", "EPSG:3006", rt9025Coords);
+				wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				break;
+			case 78: //"Height from datum"
+				break;
+			case 80: //"Height from surface"
+				break;
+			case 77: //"Depth from reference level"
+				break;
+			case 76: //"Altitude above sea level"
+				break;
+			case 79: //"Depth from surface"
+				break;
+			case 72: //"WGS84"
+				wgs84Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				break;
+			case 70: //"SWEREF 99 TM (Swedish)"
+				sweref99Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				break;
+			case 121: //"Rikets höjdsystem 1900"
+				break;
+			case 102: //"RH70"
+				break;
+			case 114: //"WGS84 UTM zone 32"
+				break;
+			case 115: //"Depth from surface lower sample boundary"
+				break;
+			case 116: //"Depth from surface upper sample boundry "
+				break;
+			case 122: //"Depth from surface lower sample boundary "
+				break;
+			case 123: //"UTM U32 euref89"
+				break;
+			case 125: //"Upper sample boundary"
+				break;
+			case 126: //"Lower sample boundary depth"
+				break;
+			case 120: //"WGS84 UTM zone 33N"
+				break;
 			default:
 				console.warn("WARN: Support for coordinate method not implemented: "+coordinateTrio.x.coordinate_method.method_name);
-				return null;
 		}
+
+		//These don't actually (currently) exist in the database, but here they are for reference
+		/*
+		case "RT90 7.5 gon V":
+			let rt9075Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+			var sweref99Coords = proj4("EPSG:3018", "EPSG:3006", rt9075Coords);
+			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+			return wgs84Coords;
+		case "RT90 0 gon":
+			let rt900Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+			var sweref99Coords = proj4("EPSG:3024", "EPSG:3006", rt900Coords);
+			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+			return wgs84Coords;
+		case "RT90 2.5 gon O":
+			let rt9025oCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+			var sweref99Coords = proj4("EPSG:3018", "EPSG:3006", rt9025oCoords);
+			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+			return wgs84Coords;
+		case "RT90 5 gon O":
+			let rt905oCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+			var sweref99Coords = proj4("EPSG:3019", "EPSG:3006", rt905oCoords);
+			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+			return wgs84Coords;
+		*/
+
+		return wgs84Coords;
 	}
 	
 

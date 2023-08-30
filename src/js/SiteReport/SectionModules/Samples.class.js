@@ -211,12 +211,8 @@ class Samples {
 					continue;
 				}
 
+				//link up coordinate methods and dimensions to each coordinate
 				sample.coordinates.forEach(coord => {
-					coord.accuracy;
-					coord.coordinate_method_id;
-					coord.dimension_id;
-					coord.measurement;
-	
 					siteData.lookup_tables.coordinate_methods.forEach(cm => {
 						if(cm.method_id == coord.coordinate_method_id) {
 							coord.coordinate_method = cm;
@@ -230,38 +226,41 @@ class Samples {
 					});
 				});
 
+				//sort coordinates by dimension name
 				sample.coordinates.sort((a, b) => {
-					//sort on coordinate.dimension.dimension_abbrev
-					if(a.dimension.dimension_abbrev < b.dimension.dimension_abbrev) {
+					if(a.dimension.dimension_name < b.dimension.dimension_name) {
 						return -1;
 					}
 				});
 
 				let cellValue = "";
-				sample.coordinates.forEach(data => {
+				sample.coordinates.forEach(coord => {
 					let ttId = "tt-"+nanoid();
 
-					if(typeof data.dimension == "undefined" || typeof data.dimension.dimension_name == "undefined") {
-						console.warn("WARN: Dimension not found for coordinate: ", data);
+					if(typeof coord.dimension == "undefined" || typeof coord.dimension.dimension_name == "undefined") {
+						console.warn("WARN: Dimension not found for coordinate: ", coord);
 						return;
 					}
 
-					if(typeof data.coordinate_method == "undefined" || typeof data.coordinate_method.method_name == "undefined") {
-						console.warn("WARN: Coordinate method not found for coordinate: ", data);
+					if(typeof coord.coordinate_method == "undefined" || typeof coord.coordinate_method.method_name == "undefined") {
+						console.warn("WARN: Coordinate method not found for coordinate: ", coord);
 						return;
 					}
 
-					if(data.accuracy != null) {
-						cellValue += "<span id='"+ttId+"'>"+data.dimension.dimension_name+" "+data.measurement+" ("+data.accuracy+")</span>, ";
+					if(coord.accuracy != null) {
+						cellValue += "<span id='"+ttId+"'>"+coord.dimension.dimension_name+" "+coord.measurement+" ("+coord.accuracy+")</span>, ";
 					}
 					else {
-						cellValue += "<span id='"+ttId+"'>"+data.dimension.dimension_name+" "+data.measurement+"</span>, ";
+						cellValue += "<span id='"+ttId+"'>"+coord.dimension.dimension_name+" "+coord.measurement+"</span>, ";
 					}
 					
-					let ttContent = "<h4 class='tooltip-header'>Coordinate system</h4>"+data.coordinate_method.method_name+"<hr/>"+data.coordinate_method.description;
-					ttContent += "<br/><br/><span>Coordinates are specified in "+data.coordinate_method.unit.unit_name+".</span>";
+					let ttContent = "<h4 class='tooltip-header'>Coordinate system</h4>"+coord.coordinate_method.method_name+"<hr/>"+coord.coordinate_method.description;
+					if(typeof coord.coordinate_method.unit != "undefined") {
+						ttContent += "<br/><br/><span>Coordinates are specified in "+coord.coordinate_method.unit.unit_name+".</span>";
+					}
 					this.sqs.tooltipManager.registerTooltip("#"+ttId, ttContent, { drawSymbol: true });
 				});
+
 				cellValue = cellValue.substring(0, cellValue.length-2);
 				subTable.rows.forEach(row => {
 					if(row[0].value == sample.sample_name) {
