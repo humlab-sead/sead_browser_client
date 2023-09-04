@@ -162,8 +162,35 @@ class CeramicDataset extends DatasetModule {
 		];
 
 		let rows = [];
-		
-		
+		let biblioIds = [];
+		let datasetIds = [];
+		let datasetContactIds = [];
+
+		let analysisEntityIds = [];
+		datasetGroups.forEach(dsg => {
+			dsg.datasets.forEach(dsgDataset => {
+				analysisEntityIds.push(dsgDataset.analysis_entity_id)
+			});
+		});
+
+		siteData.datasets.forEach(ds => {
+			ds.analysis_entities.forEach(ae => {
+				ae.analysis_entity_id;
+				if(analysisEntityIds.includes(ae.analysis_entity_id)) {
+					datasetIds.push(ae.dataset_id);
+				}
+			});
+		});
+
+		siteData.datasets.forEach(ds => {
+			datasetContactIds = datasetContactIds.concat(ds.contacts);
+			if(datasetIds.includes(ds.dataset_id)) {
+				if(ds.biblio_id && !biblioIds.includes(ds.biblio_id)) {
+					biblioIds.push(ds.biblio_id);
+				}
+			}
+		});
+
 		datasetGroups.forEach(dsg => {
 			//Defining columns
 			var subTableColumns = [
@@ -266,10 +293,13 @@ class CeramicDataset extends DatasetModule {
 
 			rows.push(row);
 		});
+		
 
 		let ci = {
 			"name": "Ceramics", //Normally: analysis.datasetId
 			"title": "Ceramics", //Normally this would be: analysis.datasetName
+			"datasetReference": this.renderDatasetReference(siteData, biblioIds),
+			"datasetContacts": this.renderDatasetContacts(siteData, datasetContactIds),
 			"data": {
 				"columns": columns,
 				"rows": rows

@@ -81,7 +81,7 @@ class DialogManager {
 	}
 
 	hidePopOver() {
-		$("#popover-dialog").fadeOut(100);
+		$("#popover-dialog").hide();
 		$("#popover-dialog-frame").css("width", "");
 		$("#popover-dialog-frame").css("height", "");
 		this.sqs.sqsEventDispatch("popOverClosed", {});

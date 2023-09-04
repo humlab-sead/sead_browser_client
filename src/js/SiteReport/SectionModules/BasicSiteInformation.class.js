@@ -88,11 +88,7 @@ class BasicSiteInformation {
 		let datasetReferencesHtml = this.renderReferences(siteData.bibliographicDatasetReferences);
 		*/
 
-		let datasetReferencesHtml = "";
-		// DISABLED - because of how dataset references are done for dendro sites, just have a look and you'll see what I'm talking about
-		siteData.datasets.forEach(dataset => {
-			datasetReferencesHtml += this.renderDatasetReference(dataset);
-		});
+		let datasetReferencesHtml = this.renderDatasetReferences(siteData);
 		
 
 		let siteReferencesHtml = "";
@@ -140,12 +136,15 @@ class BasicSiteInformation {
 				<div class='site-report-aux-header-underline'></div>
 				<div id="site-report-time-overview"></div>
 			</div>`)
-			.append("<div class='site-report-aux-header-container'><h4>Other site metadata</h4></div>")
+			.append("<div class='site-report-aux-header-container'><h4>Dataset reference (actually site references)</h4></div>")
+			.append("<div class='site-report-aux-header-underline'></div>")
+			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+siteReferencesHtml+"</div>")
+			.append("<div class='site-report-aux-header-container'><h4>Other site metadata (actually dataset references)</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+datasetReferencesHtml+"</div>")
-			.append("<div class='site-report-aux-header-container'><h4>Dataset reference</h4></div>")
+			.append("<div class='site-report-aux-header-container'><h4>Dataset contacts summary</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+siteReferencesHtml+"</div>");
+			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+this.renderDatasetContacts(siteData)+"</div>");
 			
 		
 		this.sqs.tooltipManager.registerTooltip("#site-report-time-overview-container .site-report-aux-header-container h4", "This chart shows the extremes (oldest and youngest) of all dated samples in this site, categorized by type of dating. Dating is shown as years before present (BP), which in SEAD is defined as the year "+this.sqs.config.constants.BP+".", {placement: "top", drawSymbol: true});
@@ -337,17 +336,102 @@ class BasicSiteInformation {
 		}
 	}
 
-	renderDatasetReference(dataset) {
-		
-		//NOTE: This is a temporary hack
-		//if the method is 10 (dendro), we don't render dataset referenes, since they end up being far too many
-		//we need a proper fix for this further on
-		if(dataset.method_id == 10) {
-			return "";
-		}
-
-		let siteData = this.data;
+	renderDatasetContacts(siteData) {
+		let datasetContactIds = [];
 		let out = "";
+		for(let key in siteData.datasets) {
+			let dataset = siteData.datasets[key];
+			dataset.contacts.forEach(contact_id => {
+				if(datasetContactIds.indexOf(contact_id) == -1) {
+					datasetContactIds.push(contact_id);
+					siteData.lookup_tables.dataset_contacts.forEach(datasetContact => {
+
+						out += "<div class='site-reference-box'>";
+						if(datasetContact.contact_type) {
+							out += datasetContact.contact_type+" ";
+						}
+						if(datasetContact.contact_first_name) {
+							out += datasetContact.contact_first_name+" ";
+						}
+						if(datasetContact.contact_last_name) {
+							out += datasetContact.contact_last_name+" ";
+						}
+						if(datasetContact.contact_address_1) {
+							out += "<br />"+datasetContact.contact_address_1;
+						}
+						if(datasetContact.contact_address_2) {
+							out += "<br />"+datasetContact.contact_address_2;
+						}
+						if(datasetContact.contact_email) {
+							out += "<br />"+datasetContact.contact_email;
+						}
+						if(datasetContact.contact_url) {
+							out += "<br /><a target='_blank' href='"+datasetContact.contact_url+"'>"+datasetContact.contact_url+"</a>";
+						}
+						if(datasetContact.contact_location_name) {
+							out += "<br />"+datasetContact.contact_location_name;
+						}
+
+						out += "</div>";
+					});
+				}
+			});
+		}
+		return out;
+	}
+
+	renderDatasetReferences(siteData) {
+		let out = "";
+
+		//only print a dataset reference once
+		let datasetBiblioIds = [];
+		siteData.datasets.forEach(dataset => {
+			if(dataset.biblio_id != null) {
+				siteData.lookup_tables.biblio.forEach(biblio => {
+					if(biblio.biblio_id == dataset.biblio_id && datasetBiblioIds.indexOf(biblio.biblio_id) == -1) {
+						datasetBiblioIds.push(biblio.biblio_id);
+						console.log(biblio.biblio_id, datasetBiblioIds, datasetBiblioIds.indexOf(biblio.biblio_id));
+						out += "<div class='site-reference-box'>";
+	
+						if(biblio.full_reference) {
+							out += biblio.full_reference;
+						}
+						else {
+							if(biblio.authors) {
+								out += biblio.authors+", ";
+							}
+							if(biblio.year) {
+								out += biblio.year+", ";
+							}
+							if(biblio.title) {
+								out += "<span style='font-style:italic;'>"+biblio.title+"</span>, ";
+							}
+							if(biblio.isbn) {
+								out += "<br />ISBN "+biblio.isbn;
+							}
+							if(biblio.bugs_reference) {
+								out += "<br />BugsCEP reference: "+biblio.bugs_reference;
+							}
+							if(biblio.doi) {
+								out += "<br />DOI: "+biblio.doi;
+							}
+							if(biblio.url) {
+								out += "<br />URL: <a target='_blank' href='"+biblio.url+"'>"+biblio.url+"</a>";
+							}
+							if(biblio.notes) {
+								out += "<br />Notes: "+biblio.notes;
+							}
+						}
+						
+						out += "</div>";
+					}
+				});
+			}
+		});
+
+		
+
+		/*
 		dataset.contacts.forEach(dsc => {
 			dataset.dataset_name;
 			dataset.method_id;
@@ -412,7 +496,7 @@ class BasicSiteInformation {
 
 			this.sqs.tooltipManager.registerTooltip("#"+ttId, contactTypeData.description);
 		});
-
+		*/
 		return out;
 	}
 	

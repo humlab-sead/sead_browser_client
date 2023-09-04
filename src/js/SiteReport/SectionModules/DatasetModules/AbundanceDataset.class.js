@@ -406,7 +406,6 @@ class AbundanceDataset extends DatasetModule {
 		if(methodDatasets.length == 0) {
 			return;
 		}
-		
 
 		//if this is palaeontomoly, generate eco code charts as well, but don't if not
 		let palaeontomolyDatasetFound = false;
@@ -442,11 +441,21 @@ class AbundanceDataset extends DatasetModule {
 				sections.push(section);
 			}
 
+			let biblioIds = [];
+			siteData.datasets.forEach(dataset => {
+				if(dataset.biblio_id) {
+					if(!biblioIds.includes(dataset.biblio_id)) {
+						biblioIds.push(dataset.biblio_id);
+					}
+				}
+			});
+
 			let contentItem = {
 				"name": dataGroup.id,
 				"title": dataGroup.dataset_name,
 				"titleTooltip": "Name of the dataset",
-				"datasetId": dataGroup.id,
+				"datasetId": dataGroup.dataset_id,
+				"datasetReference": this.renderDatasetReference(siteData, biblioIds),
 				"data": {
 					"columns": [],
 					"rows": []
@@ -500,7 +509,6 @@ class AbundanceDataset extends DatasetModule {
 							}
 						]
 					}
-					
 				]
 			};
 
@@ -892,45 +900,6 @@ class AbundanceDataset extends DatasetModule {
 			}
 		}
 		return this.taxaComplete;
-	}
-
-	/*
-	* Function: buildSection
-	*/
-	buildSectionOLD(datasets) {
-
-		//Create sections
-		//We want to create as many sections as there are different types of methods in our datasets (usually just one though)
-		datasets.map((dataset) => {
-			let section = this.analysis.getSectionByMethodId(dataset.methodId);
-			if(section === false) {
-				console.log(this, dataset.methodId);
-				let method = this.analysis.getMethodMetaDataById(dataset.methodId);
-				var sectionsLength = this.sectionsList.push({
-					"name": dataset.methodId,
-					"title": dataset.methodName,
-					"methodDescription": method.description,
-					"collapsed": true,
-					"contentItems": []
-				});
-				section = this.sectionsList[sectionsLength-1];
-				/*
-				var sectionsLength = this.section.sections.push({
-					"name": dataset.methodId,
-					"title": dataset.methodName,
-					"methodDescription": "",
-					"collapsed": true,
-					"contentItems": []
-				});
-				
-				section = this.section.sections[sectionsLength-1];
-				*/
-			}
-			this.appendDatasetToSection(section, dataset);
-		});
-		
-		this.buildIsComplete = true;
-		this.sqs.sqsEventDispatch("siteAnalysisBuildComplete");
 	}
 
 	/*

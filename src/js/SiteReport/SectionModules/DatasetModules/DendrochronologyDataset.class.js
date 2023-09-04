@@ -611,11 +611,20 @@ class DendrochronologyDataset extends DatasetModule {
 			selected: true
 		});
 
+		let biblioIds = [];
+		dendroDatasets.forEach(ds => {
+			//push if unique
+			if(biblioIds.indexOf(ds.biblio_id) == -1) {
+				biblioIds.push(ds.biblio_id);
+			}
+		});
+
 		let contentItem = {
 			"name": "dendro",
 			"title": "Dendrochronology",
 			"titleTooltip": "Name of the dataset",
 			"datasetId": 0,
+			"datasetReference": this.renderDatasetReference(siteData, biblioIds),
 			"data": {
 				"columns": columns,
 				"rows": rows,

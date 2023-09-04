@@ -490,6 +490,10 @@ tr.site-report-table-row-with-subtable:hover td {
 
 }
 
+.dataset-biblio {
+  margin-bottom: 0.5em;
+  margin-top: 0.5em
+}
 
 #site-report-right-container {
   background-color:#fff;
@@ -500,7 +504,7 @@ tr.site-report-table-row-with-subtable:hover td {
   padding:0px;
 }
 
-.site-report-display-settings-btn {
+.site-report-toolbar-btn {
   margin-left: 0px;
   background-color: $inactive-color;
   background-color: transparent;
@@ -508,12 +512,12 @@ tr.site-report-table-row-with-subtable:hover td {
   padding: 2px;
 }
 
-.site-report-display-settings-btn > span {
+.site-report-toolbar-btn > span {
   font-family: $special-font;
 }
 
 
-.site-report-display-settings-btn:hover {
+.site-report-toolbar-btn:hover {
   cursor: pointer;
   background-color: $pane-bg-color;
   transition: background-color 0.2s;
@@ -529,7 +533,7 @@ tr.site-report-table-row-with-subtable:hover td {
   margin: 5px;
 }
 
-.site-report-display-options-main {
+.site-report-toolbar-main {
   border-style: solid;
   padding:0px;
   border-width: 0px;
