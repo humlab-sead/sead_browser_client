@@ -1,6 +1,6 @@
 {
 	"build": "staging",
-	"version": "2023-08.0-alpha",
+	"version": "2023-09.0-alpha",
 	"dataLicense": {
 		"name":"Creative Commons Attribution 4.0 International",
 		"shortName":"CC-BY-4.0",
