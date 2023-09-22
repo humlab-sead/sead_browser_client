@@ -406,7 +406,6 @@ class AbundanceDataset extends DatasetModule {
 		if(methodDatasets.length == 0) {
 			return;
 		}
-		
 
 		//if this is palaeontomoly, generate eco code charts as well, but don't if not
 		let palaeontomolyDatasetFound = false;
@@ -417,6 +416,9 @@ class AbundanceDataset extends DatasetModule {
 		})
 
 		dataGroups.forEach(dataGroup => {
+			let datasetBiblioIds = this.getUniqueDatasetBiblioIdsFromDataGroup(methodDatasets, dataGroup);
+			let datasetContacts = this.getUniqueDatasetContactsFromDataGroup(methodDatasets, dataGroup);
+
 			let analysisMethod = null;
 			for(let key in siteData.lookup_tables.analysis_methods) {
 				if(siteData.lookup_tables.analysis_methods[key].method_id == dataGroup.method_id) {
@@ -447,6 +449,8 @@ class AbundanceDataset extends DatasetModule {
 				"title": dataGroup.dataset_name,
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataGroup.id,
+				"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
+				"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
 				"data": {
 					"columns": [],
 					"rows": []

@@ -611,9 +611,34 @@ class DendrochronologyDataset extends DatasetModule {
 			selected: true
 		});
 
+		
+		let datasetBiblioIds = [];
+		siteData.datasets.forEach(ds => {
+			if(ds.biblio_id != null) {
+				//push if unique
+				if(!datasetBiblioIds.includes(ds.biblio_id)) {
+					datasetBiblioIds.push(ds.biblio_id);
+				}
+			}
+		});
+
+		let datasetContacts = [];
+		siteData.datasets.forEach(ds => {
+			if(ds.contacts != null) {
+				//push if unique
+				ds.contacts.forEach(contact => {
+					if(!datasetContacts.includes(contact)) {
+						datasetContacts.push(contact);
+					}
+				});
+			}
+		});
+
 		let contentItem = {
 			"name": "dendro",
 			"title": "Dendrochronology",
+			"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
+			"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
 			"titleTooltip": "Name of the dataset",
 			"datasetId": 0,
 			"data": {

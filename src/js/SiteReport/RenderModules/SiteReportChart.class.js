@@ -1,4 +1,3 @@
-import shortid from "shortid";
 import { nanoid } from "nanoid";
 import { 
 	Chart, 
@@ -341,7 +340,7 @@ class SiteReportChart {
 			barmode: 'stack'
 		};
 
-		this.chartId = "chart-"+shortid.generate();
+		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
@@ -486,7 +485,7 @@ class SiteReportChart {
 			config.scaleX.labels.push(sampleNames[k]);
 		}
 		
-		this.chartId = "chart-"+shortid.generate();
+		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
@@ -629,7 +628,7 @@ class SiteReportChart {
 			config["scale-y"].values.push(Math.max.apply(null, yValues) + 1);
 		}
 		
-		this.chartId = "chart-"+shortid.generate();
+		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
@@ -804,7 +803,7 @@ class SiteReportChart {
 			}
 		};
 	  
-		this.chartId = "chart-" + shortid.generate();
+		this.chartId = "chart-" + nanoid();
 		var chartContainer = $("<div id='" + this.chartId + "' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 	  
@@ -905,7 +904,7 @@ class SiteReportChart {
 			}
 		};
 
-		var chartId = "chart-"+shortid.generate();
+		var chartId = "chart-"+nanoid();
 		var chartContainer = $("<div class='site-report-chart-container'></div>");
 		this.chartNode = $("<canvas id='"+chartId+"' class='site-report-chart'></canvas>");
 		chartContainer.append(this.chartNode);
@@ -997,7 +996,7 @@ class SiteReportChart {
 		  };
 		
 		  
-		this.chartId = "chart-"+shortid.generate();
+		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
@@ -1343,7 +1342,7 @@ class SiteReportChart {
 		  };
 		
 		  
-		this.chartId = "chart-"+shortid.generate();
+		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
@@ -1432,7 +1431,7 @@ class SiteReportChart {
 			});
 		}
 		
-		var chartId = "chart-"+shortid.generate();
+		var chartId = "chart-"+nanoid();
 		var chartContainer = $("<div id='"+chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 		

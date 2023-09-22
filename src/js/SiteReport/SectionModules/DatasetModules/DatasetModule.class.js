@@ -3,7 +3,7 @@ class DatasetModule {
         this.methodIds = [];
     }
 
-    claimDatasets(site) {
+    claimDatasetsOLD(site) {
 		let methodDatasets = [];
 		let methodDatasetsSelectedByGroup = [];
 		let methodDatasetsSelectedById = [];
@@ -44,6 +44,79 @@ class DatasetModule {
 		*/
 
 		return methodDatasets;
+	}
+
+
+	claimDatasets(site) {
+		let methodDatasets = [];
+		let methodDatasetsSelectedByGroup = [];
+		let methodDatasetsSelectedById = [];
+		if(typeof this.methodGroupIds != "undefined" && this.methodGroupIds.length > 0) {
+			methodDatasetsSelectedByGroup = site.unclaimedDatasets.filter(dataset => {
+				return this.methodGroupIds.includes(dataset.method_group_id);
+			});
+			//console.log(this.constructor.name+" claimed datasets (by group):", methodDatasets);
+		}
+		if(typeof this.methodIds != "undefined") {
+			methodDatasetsSelectedById = site.unclaimedDatasets.filter(dataset => {
+				return this.methodIds.includes(dataset.method_id);
+			});
+			//console.log(this.constructor.name+" claimed datasets (by id):", methodDatasets);
+		}
+
+		methodDatasets = methodDatasetsSelectedByGroup.concat(methodDatasetsSelectedById);
+
+		let unclaimedDatasets = [];
+		site.unclaimedDatasets.forEach(dataset => {
+			let isClaimed = false;
+			methodDatasets.forEach(methodDataset => {
+				if(methodDataset.dataset_id == dataset.dataset_id) {
+					isClaimed = true;
+				}
+			});
+			if(!isClaimed) {
+				unclaimedDatasets.push(dataset);
+			}
+		});
+		
+		//site.datasets = unclaimedDatasets;
+		site.unclaimedDatasets = unclaimedDatasets;
+		
+		/* this is much more elegant method for finding the unclaimed datasets, but it doesn't work with method groups...
+		site.datasets = site.datasets.filter(dataset => {
+			return !this.methodIds.includes(dataset.method_id);
+		});
+		*/
+
+		return methodDatasets;
+	}
+
+	getUniqueDatasetBiblioIdsFromDataGroup(datasets, dataGroup) {
+		let datasetBiblioIds = [];
+		datasets.forEach(ds => {
+			if(ds.dataset_id == dataGroup.dataset_id && ds.biblio_id != null) {
+				//push if unique
+				if(!datasetBiblioIds.includes(ds.biblio_id)) {
+					datasetBiblioIds.push(ds.biblio_id);
+				}
+			}
+		});
+		return datasetBiblioIds;
+	}
+	
+	getUniqueDatasetContactsFromDataGroup(datasets, dataGroup) {
+		let datasetContacts = [];
+		datasets.forEach(ds => {
+			if(ds.dataset_id == dataGroup.dataset_id && ds.contacts != null) {
+				//push if unique
+				ds.contacts.forEach(contact => {
+					if(!datasetContacts.includes(contact)) {
+						datasetContacts.push(contact);
+					}
+				});
+			}
+		});
+		return datasetContacts;
 	}
 
     /**

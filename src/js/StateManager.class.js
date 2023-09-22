@@ -1,6 +1,4 @@
-//import Config from '../config/config.js';
-import shortid from 'shortid'
-
+import { nanoid } from 'nanoid'
 /* 
 Class: StateManager
 StateManager handles saving and loading of states. A state is basically a "savegame". It records the current facets used, their positions, selections and all other relevent data for restoring a certain viewstate at a later time.
@@ -353,7 +351,7 @@ class StateManager {
 			name = "Unnamed";
 		}
 
-		var stateId = shortid.generate();
+		let stateId = nanoid();
 
 		var state = {
 			id: stateId,

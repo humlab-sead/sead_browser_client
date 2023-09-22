@@ -8,6 +8,25 @@ class Tutorial {
         this.tour = null;
     }
 
+    setCookie() {
+        //set a cookie to remember that this user has seen the tutorial
+        var d = new Date();
+        d.setTime(d.getTime() + (365*24*60*60*1000));
+        var expires = "expires="+ d.toUTCString();
+        document.cookie = "tutorial_status=dismiss; " + expires + "; path=/";
+    }
+
+    userHasCookie() {
+      var cookieConsent = document.cookie.indexOf('tutorial_status');
+
+      if(cookieConsent == -1) {
+          return false;
+      }
+      else {
+          return true;
+      }
+    }
+
     init() {
       this.tour = new Shepherd.Tour({
         useModalOverlay: true,
@@ -18,9 +37,11 @@ class Tutorial {
 
       $("#tutorial-question .no-button").on("click", () => {
         $("#tutorial-question").hide();
+        this.setCookie();
       });
 
       $("#tutorial-question .yes-button").on("click", () => {
+        this.setCookie();
         this.sqs.reset();
         this.start();
       });
@@ -370,18 +391,6 @@ class Tutorial {
           $("#tutorial-question").show();
         }
       }
-    }
-
-    userHasCookie() {
-        //use the cookie-consent cookie to see if this user has visited us before
-        var cookieConsent = document.cookie.indexOf('cookieconsent_status');
-
-        if(cookieConsent == -1) {
-            return false;
-        }
-        else {
-            return true;
-        }
     }
 
     start() {

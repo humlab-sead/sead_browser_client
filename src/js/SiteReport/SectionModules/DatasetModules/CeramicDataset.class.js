@@ -86,6 +86,7 @@ class CeramicDataset extends DatasetModule {
 		uniquePhysicalSampleIds.forEach(physicalSampleId => {
 			let sampleDatasetObject = {
 				physicalSampleId: physicalSampleId,
+				datasetId: null,
 				datasets: []
 			};
 			
@@ -99,8 +100,6 @@ class CeramicDataset extends DatasetModule {
 
 			sampleDatasets.push(sampleDatasetObject);
 		});
-
-		console.log(sampleDatasets);
 
 		//var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
 
@@ -167,6 +166,7 @@ class CeramicDataset extends DatasetModule {
 		
 		
 		datasetGroups.forEach(dsg => {
+
 			//Defining columns
 			var subTableColumns = [
 				{
@@ -269,9 +269,36 @@ class CeramicDataset extends DatasetModule {
 			rows.push(row);
 		});
 
+		console.log(datasetGroups);
+		
+
+		let datasetBiblioIds = [];
+		siteData.datasets.forEach(ds => {
+			if(ds.biblio_id != null) {
+				//push if unique
+				if(!datasetBiblioIds.includes(ds.biblio_id)) {
+					datasetBiblioIds.push(ds.biblio_id);
+				}
+			}
+		});
+
+		let datasetContacts = [];
+		siteData.datasets.forEach(ds => {
+			if(ds.contacts != null) {
+				//push if unique
+				ds.contacts.forEach(contact => {
+					if(!datasetContacts.includes(contact)) {
+						datasetContacts.push(contact);
+					}
+				});
+			}
+		});
+
 		let ci = {
 			"name": "Ceramics", //Normally: analysis.datasetId
 			"title": "Ceramics", //Normally this would be: analysis.datasetName
+			"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
+			"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
 			"data": {
 				"columns": columns,
 				"rows": rows

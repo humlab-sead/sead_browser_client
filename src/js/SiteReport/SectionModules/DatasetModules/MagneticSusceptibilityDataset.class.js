@@ -5,9 +5,10 @@ import DatasetModule from "./DatasetModule.class";
  */
 
 class MagneticSusceptibilityDataset extends DatasetModule {
-	constructor() {
-		super();
+	constructor(analysis) {
+		super(analysis);
         this.methodIds = [33];
+		this.sqs = analysis.sqs;
 	}
 
 	destroy() {
@@ -59,6 +60,8 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 			let contentItem = {
 				"name": dataset.dataset_id,
 				"title": dataset.dataset_name,
+				"datasetReference": this.sqs.renderBiblioReference(site, dataset.biblio_id == null ? [] : [dataset.biblio_id]),
+				"datasetContacts": this.sqs.renderContacts(site, dataset.contacts),
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataset.dataset_id,
 				"data": {

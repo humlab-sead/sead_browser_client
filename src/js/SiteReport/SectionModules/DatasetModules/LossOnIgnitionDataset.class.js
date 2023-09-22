@@ -5,9 +5,10 @@ import DatasetModule from "./DatasetModule.class";
  */
 
 class LossOnIgnitionDataset extends DatasetModule {
-	constructor() {
-		super();
+	constructor(analysis) {
+		super(analysis);
         this.methodIds = [32];
+		this.sqs = analysis.sqs;
 	}
 
 	destroy() {
@@ -57,9 +58,13 @@ class LossOnIgnitionDataset extends DatasetModule {
 				sections.push(section);
 			}
 
+			let siteData = site;
+
 			let contentItem = {
 				"name": dataset.dataset_id,
 				"title": dataset.dataset_name,
+				"datasetReference": this.sqs.renderBiblioReference(siteData, dataset.biblio_id == null ? [] : [dataset.biblio_id]),
+				"datasetContacts": this.sqs.renderContacts(siteData, dataset.contacts),
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataset.dataset_id,
 				"data": {

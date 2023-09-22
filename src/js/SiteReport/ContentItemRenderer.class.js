@@ -1,4 +1,3 @@
-import shortid from 'shortid';
 import { nanoid } from 'nanoid';
 import SiteReportTable from './RenderModules/SiteReportTable.class';
 import SiteReportChart from './RenderModules/SiteReportChart.class';
@@ -40,22 +39,44 @@ class ContentItemRenderer {
 		
 		var exportNode = this.getContentItemExportControl(this.section, this.contentItem);
 		$(headerNode).append(exportNode);
+
+		let contactData = "<ul style='list-style-type: none;'><li>No contact information available</li></ul>";
+		if(typeof this.contentItem.datasetContacts != "undefined" && this.contentItem.datasetContacts.length > 0) {
+			contactData = this.contentItem.datasetContacts;
+		}
+
+		let referenceData = "<ul style='list-style-type: none;'><li>No references available</li></ul>";
+		if(typeof this.contentItem.datasetReference != "undefined" && this.contentItem.datasetReference.length > 0) {
+			referenceData = this.contentItem.datasetReference;
+		}
+
+		headerNode.append("<div class='content-item-header-divider'></div>");
+		let refAndContacts = "<h4 class='header-with-underline'>References</h4>";
+		refAndContacts += referenceData;
+		refAndContacts += "<h4 class='header-with-underline'>Contacts</h4>";
+		refAndContacts += contactData;
+		headerNode.append(this.renderDatasetReferences(refAndContacts));
 		
 		
 		var dataVisContainerNode = $("<div id='contentItem-"+this.contentItem.name+"' class='data-vis-container'><span class='siteReportContentItemLoadingMsg'>Rendering...</span></div>");
 		$("#site-report-section-"+this.section.name+" > .site-report-level-content > #"+cicId).append(dataVisContainerNode);
 
-		/* DISABLED THIS BECAUSE IT MESSES WITH ADDING AUXILIARY DATA AFTER RENDER IS COMPLETE
-		await new Promise((resolve, reject) => {
-			setTimeout(() => { //This might seem strange, but it's really just because we need a delay here so that the "Rendering..." message can be pushed out to the DOM before the whole browser locks up while rendering the content-items(s), yeah it's a non-ideal "solution"...
-				this.renderDataVisualization(section, this.contentItem);
-				resolve();
-			}, 200);
-		});
-		*/
-
         this.renderDataVisualization();
     }
+
+	renderDatasetReferences(datasetReference) {
+		var controlsId = "content-item-export-"+nanoid();
+		var node = $("#site-report-content-item-reference-template")[0].cloneNode(true);
+		$(node).attr("id", controlsId);
+
+		$(node).on("click", (evt) => {
+			this.sqs.dialogManager.showPopOver("Reference & contact", datasetReference, {
+				width: "500px"
+			});
+		});
+
+		return node;
+	}
 
     renderContentItemTooltip(headerNode) {
         if(typeof this.contentItem.titleTooltip != "undefined" && this.contentItem.titleTooltip != "") {
@@ -245,7 +266,7 @@ class ContentItemRenderer {
 		}
 
 		//Display options button callback
-		$(".site-report-display-settings-btn", node).on("click", () => {
+		$(".site-report-toolbar-btn", node).on("click", () => {
 			this.toggleContentDisplayOptionsPanel(contentItem);
 		});
 
@@ -367,7 +388,7 @@ class ContentItemRenderer {
 	}
 
     getContentItemExportControl(section, contentItem) {
-		var controlsId = "content-item-export-"+shortid.generate();
+		var controlsId = "content-item-export-"+nanoid();
 		var node = $("#site-report-content-item-export-template")[0].cloneNode(true);
 		$(node).attr("id", controlsId);
 		

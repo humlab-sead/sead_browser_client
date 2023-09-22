@@ -2245,7 +2245,7 @@ polyline{
   grid-column: 2;
   grid-row: 2;
   background-color: #fff;
-  box-shadow: 0px 0px 20px #666;
+  box-shadow: 0px 0px 20px 5px $shadow-color;
   padding: 1em;
   //overflow: auto;
   max-height: 95vh;
@@ -2280,6 +2280,30 @@ polyline{
   color: #a00;
 }
 
+.popup-dialog {
+  position: fixed;
+  z-index: 100;
+  border: 1px solid $pane-bg-color-dark;
+  padding: 1em;
+  max-width: 500px;
+  max-height: 500px;
+  overflow: auto;
+  box-shadow: 0px .5em .5em .25em $shadow-color;
+  border-radius: .0em;
+  background: #fff;
+}
+
+.popup-dialog h4 {
+  margin-top: .5em;
+  font-weight: bold;
+}
+
+.header-with-underline {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: .5em;
+  margin-left: .5em;
+  margin-right: .5em;
+}
 
 .dialog-centered-content-container {
   width:100%;
@@ -3179,7 +3203,10 @@ svg text {
   font-size: 1.2rem;
 }
 
-
+.dataset-biblio {
+  margin-bottom: 0.5em;
+  margin-top: 0.5em
+}
 
 .dots-loading-animation {
   display: flex;

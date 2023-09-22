@@ -38,10 +38,12 @@ module.exports = (env, config) => {
         $: 'jquery',
         jQuery: 'jquery',
       }),
+      /*
       new BundleAnalyzerPlugin({
         analyzerMode: 'static',
         reportFilename: 'bundle-report.html',
       }),
+      */
     ],
     module: {
       rules: [

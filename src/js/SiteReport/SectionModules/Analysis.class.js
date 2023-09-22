@@ -231,6 +231,7 @@ class Analysis {
 	 * @returns 
 	 */
 	async delegateBuildSection(siteData, section) {
+		siteData.unclaimedDatasets = siteData.datasets;
 		let siteDataCopy = JSON.parse(JSON.stringify(siteData));
 		//The dataset modules will actually grab/delete datasets from the siteData struct as they claim them,
 		//so we feed them a copy instead of the original so that the original siteData struct remains complete

@@ -83,40 +83,23 @@ class BasicSiteInformation {
 			siteDecription = "No data";
 		}
 
-		/*
-		let siteReferencesHtml = this.renderReferences(siteData.bibliographicSiteReferences);
-		let datasetReferencesHtml = this.renderReferences(siteData.bibliographicDatasetReferences);
-		*/
-
-		let datasetReferencesHtml = "";
-		// DISABLED - because of how dataset references are done for dendro sites, just have a look and you'll see what I'm talking about
+		//only get unique biblio ids
+		let datasetBiblioIds = [];
 		siteData.datasets.forEach(dataset => {
-			datasetReferencesHtml += this.renderDatasetReference(dataset);
-		});
-		
-
-		let siteReferencesHtml = "";
-
-		siteData.biblio.forEach(siteRef => {
-			siteReferencesHtml += "<div class='site-reference-box'>";
-
-			if(siteRef.authors) {
-				siteReferencesHtml += siteRef.authors+", ";
+			if(dataset.biblio_id) {
+				if(!datasetBiblioIds.includes(dataset.biblio_id)) {
+					datasetBiblioIds.push(dataset.biblio_id);
+				}
 			}
-			if(siteRef.title) {
-				siteReferencesHtml += "<span style='font-style:italic;'>"+siteRef.title+"</span>, ";
-			}
-			if(siteRef.year) {
-				siteReferencesHtml += siteRef.year+", ";
-			}
-			if(siteRef.isbn) {
-				siteReferencesHtml += "<br />ISBN "+siteRef.isbn;
-			}
-
-			siteReferencesHtml += "</div>";
 		});
 
-		
+		let datasetReferencesHtml = this.sqs.renderBiblioReference(siteData, datasetBiblioIds);
+
+		let biblioIds = siteData.biblio.map(siteRef => { return siteRef.biblio_id; });
+		let siteReferencesHtml = this.sqs.renderBiblioReference(siteData, biblioIds);
+		if(siteReferencesHtml == "") {
+			siteReferencesHtml = "No data";
+		}
 
 		var node = $(".site-report-aux-info-container");
 		node
@@ -135,17 +118,17 @@ class BasicSiteInformation {
 			.append("<div class='site-report-aux-header-container'><h4>Description</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>"+siteDecription+"</div>")
-			.append(`<div id='site-report-time-overview-container'>
+			.append(`<div id='site-report-time-overview-container' class='site-report-aux-info-text-container'>
 				<div class='site-report-aux-header-container'><h4>Site dating overview</h4></div>
 				<div class='site-report-aux-header-underline'></div>
 				<div id="site-report-time-overview"></div>
 			</div>`)
+			.append("<div class='site-report-aux-header-container'><h4>Site reference</h4></div>")
+			.append("<div class='site-report-aux-header-underline'></div>")
+			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+siteReferencesHtml+"</div>")
 			.append("<div class='site-report-aux-header-container'><h4>Other site metadata</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+datasetReferencesHtml+"</div>")
-			.append("<div class='site-report-aux-header-container'><h4>Dataset reference</h4></div>")
-			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+siteReferencesHtml+"</div>");
+			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+datasetReferencesHtml+"</div>");
 			
 		
 		this.sqs.tooltipManager.registerTooltip("#site-report-time-overview-container .site-report-aux-header-container h4", "This chart shows the extremes (oldest and youngest) of all dated samples in this site, categorized by type of dating. Dating is shown as years before present (BP), which in SEAD is defined as the year "+this.sqs.config.constants.BP+".", {placement: "top", drawSymbol: true});
@@ -208,7 +191,7 @@ class BasicSiteInformation {
 		*/
 
 		if(standardAges.length == 0) {
-			document.getElementById(targetAnchorQuery).innerHTML = "No data<br /><br />";
+			document.getElementById(targetAnchorQuery).innerHTML = "No data";
 			return;
 		}
 
@@ -335,85 +318,6 @@ class BasicSiteInformation {
 		} else if (range1[0] <= range2[1] && range1[1] > range2[1]) {
 		  return { overlap: true, type: "right" };
 		}
-	}
-
-	renderDatasetReference(dataset) {
-		
-		//NOTE: This is a temporary hack
-		//if the method is 10 (dendro), we don't render dataset referenes, since they end up being far too many
-		//we need a proper fix for this further on
-		if(dataset.method_id == 10) {
-			return "";
-		}
-
-		let siteData = this.data;
-		let out = "";
-		dataset.contacts.forEach(dsc => {
-			dataset.dataset_name;
-			dataset.method_id;
-			dsc.contact_id;
-			dsc.contact_type_id
-
-			let dsAnalysisMethodName = "Unknown";
-			siteData.lookup_tables.analysis_methods.forEach(method => {
-				if(method.method_id == dataset.method_id) {
-					dsAnalysisMethodName = method.method_name;
-				}
-			});
-
-
-			let contactTypeData = null;
-			siteData.lookup_tables.dataset_contact_types.forEach(datasetContactType => {
-				if(datasetContactType.contact_type_id == dsc.contact_type_id) {
-					contactTypeData = datasetContactType;
-				}
-			});
-
-			let contactData = null;
-			siteData.lookup_tables.dataset_contacts.forEach(datasetContact => {
-				if(datasetContact.contact_id == dsc.contact_id) {
-					contactData = datasetContact;
-				}
-			});
-
-
-			out += "<div class='site-reference-box'>";
-			out += "<h5 class='site-report-reference-title'>"+dsAnalysisMethodName+" dataset "+dataset.dataset_name+"</h5>";
-
-			//contactTypeData.contact_type_name; //e.g. "dataset imported by"
-			//contactTypeData.description; //should be used as tt for above
-
-			let personName = "";
-			if(contactData.first_name && contactData.last_name) {
-				personName = contactData.first_name+" "+contactData.last_name;
-			}
-			if(!contactData.first_name && contactData.last_name) {
-				personName = contactData.last_name;
-			}
-
-			let contactTypeName = "";
-			if(contactTypeData.contact_type_name) {
-				contactTypeName = contactTypeData.contact_type_name.trim();
-			}
-
-			let ttId = nanoid();
-			out += "<div><span id='"+ttId+"'>"+contactTypeName+"</span> "+personName+"</div>";
-			if(contactData.email || contactData.address_1 || contactData.address_2) {
-				out += "<hr/>";
-			}
-			out += contactData.address_1 ? "<div>"+contactData.address_1+"</div>" : "";
-			out += contactData.address_2 ? "<div>"+contactData.address_2+"</div>" : "";
-			if(contactData.email || contactData.url) {
-				out += "<br/>";
-			}
-			out += contactData.email ? "<div>"+contactData.email+"</div>" : "";
-			out += contactData.url ? "<div><a target='_blank' href='"+contactData.url+"'>"+contactData.url+"</a></div>" : "";
-			out += "</div>";
-
-			this.sqs.tooltipManager.registerTooltip("#"+ttId, contactTypeData.description);
-		});
-
-		return out;
 	}
 	
 	exportSite() {

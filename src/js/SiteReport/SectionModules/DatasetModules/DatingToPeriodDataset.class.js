@@ -126,6 +126,12 @@ class DatingToPeriodDataset extends DatasetModule {
 				},
 			];
 
+			dataGroup.data_points.forEach(point => {
+				if(point.dating_values == null) {
+					point.dating_values = {};
+				}
+			});
+
 			let foundAgeData = false;
 			dataGroup.data_points.forEach(point => {
 				if(point.dating_values.cal_age_younger || point.dating_values.cal_age_older) {
@@ -268,9 +274,14 @@ class DatingToPeriodDataset extends DatasetModule {
 
 			let method = this.analysis.getMethodMetaDataById(dataGroup.method_id);
 
+			let datasetBiblioIds = this.getUniqueDatasetBiblioIdsFromDataGroup(datasets, dataGroup);
+			let datasetContacts = this.getUniqueDatasetContactsFromDataGroup(datasets, dataGroup);
+			
 			let contentItem = {
 				"name": nanoid(), //Normally: analysis.datasetId
 				"title": method.method_name, //Normally this would be: analysis.datasetName
+				"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
+				"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
 				"data": {
 					"columns": columns,
 					"rows": rows

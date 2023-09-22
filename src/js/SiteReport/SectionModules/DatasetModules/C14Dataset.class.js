@@ -16,7 +16,7 @@ class C14Dataset extends DatasetModule {
     }
 
     async makeSection(siteData, sections) {
-		this.claimDatasets(siteData);
+		let methodDatasets = this.claimDatasets(siteData);
 		let dataGroups = siteData.data_groups.filter(dataGroup => {
 			if(this.methodIds.includes(dataGroup.method_id)) {
 				return true;
@@ -103,9 +103,14 @@ class C14Dataset extends DatasetModule {
 
 			let method = this.analysis.getMethodMetaDataById(dataGroup.method_id);
 
+			let datasetBiblioIds = this.getUniqueDatasetBiblioIdsFromDataGroup(methodDatasets, dataGroup);
+			let datasetContacts = this.getUniqueDatasetContactsFromDataGroup(methodDatasets, dataGroup);
+			
 			let contentItem = {
 				"name": nanoid(), //Normally: analysis.datasetId
 				"title": method.method_name, //Normally this would be: analysis.datasetName
+				"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
+				"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
 				"data": {
 					"columns": columns,
 					"rows": rows
