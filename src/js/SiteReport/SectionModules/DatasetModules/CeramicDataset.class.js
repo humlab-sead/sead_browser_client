@@ -298,7 +298,7 @@ class CeramicDataset extends DatasetModule {
 		let ci = {
 			"name": "Ceramics", //Normally: analysis.datasetId
 			"title": "Ceramics", //Normally this would be: analysis.datasetName
-			"datasetReference": this.renderDatasetReference(siteData, biblioIds),
+			"datasetReference": this.sqs.renderBiblioReference(siteData, biblioIds),
 			"datasetContacts": this.renderDatasetContacts(siteData, datasetContactIds),
 			"data": {
 				"columns": columns,

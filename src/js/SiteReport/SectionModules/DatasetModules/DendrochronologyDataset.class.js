@@ -624,7 +624,7 @@ class DendrochronologyDataset extends DatasetModule {
 			"title": "Dendrochronology",
 			"titleTooltip": "Name of the dataset",
 			"datasetId": 0,
-			"datasetReference": this.renderDatasetReference(siteData, biblioIds),
+			"datasetReference": this.sqs.renderBiblioReference(siteData, biblioIds),
 			"data": {
 				"columns": columns,
 				"rows": rows,

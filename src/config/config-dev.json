@@ -36,6 +36,9 @@
 	"indicatorStringsForUnknownSpecies": ["indet.", "indet", "sp.", "spp.", "sp"],
 	"maxEolImageResults": 100,
 	"filterBlacklist": ["construction_type", "abundance_classification", "dataset_methods", "region"],
+	"keys": {
+		"bingMaps": "At_1FuTga4p88618KkMhqxYZE71lCvBhzEx7ccisF9rShHoLsDLv-5zzGh3l25X5"
+	},
 	"keyColors":[
 		"5B83AD",
 		"A02000",

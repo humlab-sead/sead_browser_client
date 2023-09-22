@@ -486,7 +486,7 @@ li.l1-container:hover {
 }
 
 .sqs-menu-selected {
-  background-color: $base-color !important;
+  background-color: lighten($base-color, 10%) !important;
   color: #fff !important;
 }
 
@@ -508,4 +508,29 @@ li.l1-container:hover {
 .menu-button:hover {
   background: rgba(0, 0, 0, 0.1);
   cursor: pointer;
+}
+
+
+
+.toggle-slider {
+  width: 3em;
+  height: 1.5em;
+  background-color: #ccc;
+  border-radius: .5em;
+  position: relative;
+}
+
+.toggle-button {
+  width: 1.5em;
+  height: 1.5em;
+  background-color: #fff;
+  border-radius: 20%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: transform 0.3s;
+}
+
+.toggle-button.active {
+  transform: translateX(30px); /* Move the button to the right */
 }

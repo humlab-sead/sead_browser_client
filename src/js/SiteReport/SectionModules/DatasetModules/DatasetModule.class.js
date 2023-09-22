@@ -67,7 +67,7 @@ class DatasetModule {
 		return html;
 	}
 
-	renderDatasetReference(siteData, biblioIds) {
+	renderDatasetReference_DEPRECATED(siteData, biblioIds) { //use this.sqs.renderBiblioReference instead
 		let datasetBiblio = [];
 		for(let k in biblioIds) {
 			let biblioId = biblioIds[k];

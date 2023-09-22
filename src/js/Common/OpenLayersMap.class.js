@@ -18,6 +18,8 @@ import { Attribution } from 'ol/control';
 import { getTopLeft } from 'ol/extent';
 import { createXYZ } from 'ol/tilegrid';
 import TileGrid from 'ol/tilegrid/TileGrid.js';
+import SqsMenu from '../SqsMenu.class.js';
+import { nanoid } from 'nanoid';
 
 class OpenLayersMap {
     constructor(sqs) {
@@ -26,18 +28,22 @@ class OpenLayersMap {
         this.baseLayers = [];
 		this.dataLayers = [];
         this.currentZoomLevel = 4;
-        this.data = [];
+        this.setData(null); //this sets the data to be an empty geojson object
 		this.defaultExtent = [-16163068.253070222, -2582960.0598126827, 5596413.462927474, 12053813.61245915]
+		this.handleMapPopupClickCallback = null;
+		this.selectedStyleType = null;
+		this.featureStyleCallback = null;
+		this.defaultColorScheme = this.sqs.color.getColorScheme(20, false);
 
         //These attributes are used to set the style of map points
 		this.style = {
 			default: {
-				fillColor: this.sqs.color.getColorScheme(20, 0.5)[13],
+				fillColor: this.sqs.color.hexToRgba(this.defaultColorScheme[13], 0.5),
 				strokeColor: "#fff",
 				textColor: "#fff",
 			},
 			selected: {
-				fillColor: this.sqs.color.getColorScheme(20, 1.0)[14],
+				fillColor: this.defaultColorScheme[14],
 				strokeColor: "#fff",
 				textColor: "#fff",
 			},
@@ -58,7 +64,7 @@ class OpenLayersMap {
 		});
 		stamenLayer.setProperties({
 			"layerId": "stamen",
-			"title": "Stamen",
+			"title": "Terrain",
 			"type": "baseLayer"
 		});
 		
@@ -78,7 +84,7 @@ class OpenLayersMap {
 		
 		let bingAerialLabelsLayer = new TileLayer({
 			source: new BingMaps({
-				key: 'At_1FuTga4p88618KkMhqxYZE71lCvBhzEx7ccisF9rShHoLsDLv-5zzGh3l25X5',
+				key: this.sqs.config.keys.bingMaps,
 				imagerySet: "AerialWithLabels",
 				wrapX: true
 			}),
@@ -103,11 +109,27 @@ class OpenLayersMap {
 			"title": "PGC ArcticDEM",
 			"type": "baseLayer"
 		});
+
+
+		let osmLayer = new TileLayer({
+			source: new XYZ({
+				url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+				wrapX: true
+			}),
+			visible: false
+		});
+		osmLayer.setProperties({
+			"layerId": "osm",
+			"title": "OpenStreetMap",
+			"type": "baseLayer"
+		});
+
 		
 		this.baseLayers.push(stamenLayer);
 		this.baseLayers.push(bingAerialLayer);
 		this.baseLayers.push(bingAerialLabelsLayer);
 		this.baseLayers.push(arcticDemLayer);
+		this.baseLayers.push(osmLayer);
 		
 		//Define data layers
         let dataLayer = new VectorLayer();
@@ -116,9 +138,9 @@ class OpenLayersMap {
             title: "Clustered",
             type: "dataLayer",
             renderCallback: () => {
-                this.renderClusteredPointsLayer();
+                this.renderClusteredPointsLayer(this.data, 5, false, true);
             },
-            visible: true
+            visible: false
         });
         this.dataLayers.push(dataLayer);
 
@@ -128,7 +150,7 @@ class OpenLayersMap {
 			title: "Individual",
 			type: "dataLayer",
 			renderCallback: () => {
-				this.renderPointsLayer();
+				this.renderPointsLayer(this.data, this.selectedStyleType);
 			},
 			visible: false
 		});
@@ -140,7 +162,7 @@ class OpenLayersMap {
 			title: "Individual",
 			type: "dataLayer",
 			renderCallback: () => {
-				this.renderAbundancePointsLayer();
+				this.renderAbundancePointsLayer(this.data);
 			},
 			visible: false
 		});
@@ -153,11 +175,15 @@ class OpenLayersMap {
             title: "Heatmap",
             type: "dataLayer",
             renderCallback: () => {
-                this.renderHeatmapLayer();
+                this.renderHeatmapLayer(this.data);
             },
             visible: false
         });
         this.dataLayers.push(dataLayer);
+
+		document.addEventListener('mapPopupClick', (event) => {
+			console.log(event);
+		});
     }
 
 	addGbifLayer(url) {
@@ -195,6 +221,16 @@ class OpenLayersMap {
 		});
 
 		this.dataLayers.push(gbifLayer);
+	}
+
+	getLayerByName(layerName) {
+		let layer = null;
+		this.olMap.getLayers().forEach((l, index, array) => {
+			if(l.getProperties().layerId == layerName) {
+				layer = l;
+			}
+		});
+		return layer;
 	}
 
 	renderGbifDataLayer(url) {
@@ -243,8 +279,13 @@ class OpenLayersMap {
 		this.olMap.addLayer(gbifLayer);
 	}
 
-    setData(data = []) {
-        //data is assumed to be an array with (at least) the properties: lng, lat, id, title
+    setData(data = null) {
+		if(data == null) { //if data is null, set it to an empty geojson object
+			data = {
+				"type": "FeatureCollection",
+				"features": []
+			  };
+		}
         this.data = data;
     }
 
@@ -266,6 +307,80 @@ class OpenLayersMap {
 		});
 	}
 
+	baseLayerMenu(anchorSelector) {
+		var menu = {
+			title: "<i class=\"fa fa-globe result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Baselayer</span>", //The name of the menu as it will be displayed in the UI
+			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
+			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
+			anchor: anchorSelector+" .map-base-layer-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
+			staticSelection: true, //whether a selected item remains highlighted or not, purely visual
+			visible: true, //show this menu by default
+			style: {
+				menuTitleClass: "result-map-control-menu-title",
+				l1TitleClass: "result-map-control-item-title"
+			},
+			items: [ //The menu items contained in this menu
+			],
+			triggers: [{
+				selector: anchorSelector,
+				on: "click"
+			}]
+		};
+
+		for(var key in this.baseLayers) {
+			var prop = this.baseLayers[key].getProperties();
+			menu.items.push({
+				name: prop.layerId, //identifier of this item, should be unique within this menu
+				title: prop.title, //displayed in the UI
+				tooltip: "",
+				staticSelection: prop.visible, //For tabs - highlighting the currently selected
+				selected: prop.visible,
+				callback: this.makeMapControlMenuCallback(prop)
+			});
+		}
+		return menu;
+	}
+
+
+	makeMapControlMenuCallback(layerProperties) {
+		return () => {
+			switch(layerProperties.type) {
+				case "dataLayer":
+					this.setMapDataLayer(layerProperties.layerId);
+					break;
+				case "baseLayer":
+					this.setMapBaseLayer(layerProperties.layerId);
+					break;
+			}
+		}
+	}
+
+	renderBaseLayerMenu(anchorSelector) {
+		new SqsMenu(this.sqs, this.baseLayerMenu(anchorSelector));
+
+		/*
+		let baseLayerMenu = document.createElement('div');
+		baseLayerMenu.classList.add('base-layer-menu');
+
+		let baseLayerMenuTitle = document.createElement('div');
+		baseLayerMenuTitle.classList.add('base-layer-menu-title');
+		baseLayerMenuTitle.innerHTML = "Base Layer";
+		baseLayerMenu.appendChild(baseLayerMenuTitle);
+
+		this.baseLayers.forEach((layer, index, array) => {
+			let baseLayerMenuItem = document.createElement('div');
+			baseLayerMenuItem.classList.add('base-layer-menu-item');
+			baseLayerMenuItem.innerHTML = layer.getProperties().title;
+			baseLayerMenuItem.addEventListener('click', () => {
+				this.setMapBaseLayer(layer.getProperties().layerId);
+			});
+			baseLayerMenu.appendChild(baseLayerMenuItem);
+		});
+		*/
+
+		//return baseLayerMenu;
+	}
+
 	addTextOverlay(text = "") {
 		let el = document.createElement('div');
 		el.innerHTML = text;
@@ -276,7 +391,7 @@ class OpenLayersMap {
 		el.style.padding = '5px';
 		el.style.borderRadius = '5px';
 		this.olMap.getViewport().appendChild(el);
-	  }
+	}
 
 	/*
 	* Function: setMapDataLayer
@@ -291,6 +406,16 @@ class OpenLayersMap {
 			if(layer.getProperties().layerId != dataLayerId && layer.getVisible() == true) {
 				this.removeLayer(layer.getProperties().layerId);
 				layer.setVisible(false);
+			}
+		});
+	}
+
+	setMapDataLayerStyleType(styleType = null) {
+		this.selectedStyleType = styleType;
+		this.dataLayers.forEach((layer, index, array) => {
+			if(layer.getVisible() == true) {
+				this.removeLayer(layer.getProperties().layerId);
+				layer.getProperties().renderCallback(this);
 			}
 		});
 	}
@@ -312,11 +437,9 @@ class OpenLayersMap {
 	/*
 	* Function: renderClusteredPointsLayer
 	*/
-	renderClusteredPointsLayer() {
-		var geojson = this.getDataAsGeoJSON(this.data);
-
+	renderClusteredPointsLayer(geojson, clusterDistance = 35, printLabels = true, fixedPointSize = false) {
 		var gf = new GeoJSON({
-			featureProjection: "EPSG:3857"
+			//featureProjection: "EPSG:3857"
 		});
 		var featurePoints = gf.readFeatures(geojson);
 		var pointsSource = new VectorSource({
@@ -324,16 +447,21 @@ class OpenLayersMap {
 		});
 		
 		var clusterSource = new ClusterSource({
-			distance: 35,
+			distance: clusterDistance,
 			source: pointsSource
 		});
-		
+
+		let defaultStyleCallback = (feature, resolution) => {
+			var style = this.getClusterPointStyle(feature, {
+				labels: printLabels,
+				fixedPointSize: fixedPointSize
+			});
+			return style;
+		}
+
 		var clusterLayer = new VectorLayer({
 			source: clusterSource,
-			style: (feature, resolution) => {
-				var style = this.getClusterPointStyle(feature);
-				return style;
-			},
+			style: this.featureStyleCallback != null ? this.featureStyleCallback : defaultStyleCallback,
 			zIndex: 1
 		});
 		
@@ -361,11 +489,9 @@ class OpenLayersMap {
 		this.olMap.addLayer(gbifLayer);
 	}
 
-	renderHeatmapLayer() {
-		var geojson = this.getDataAsGeoJSON(this.data);
-
+	renderHeatmapLayer(geojson) {
 		var gf = new GeoJSON({
-			featureProjection: "EPSG:3857"
+			//featureProjection: "EPSG:3857"
 		});
 		var featurePoints = gf.readFeatures(geojson);
 
@@ -397,13 +523,11 @@ class OpenLayersMap {
 	/*
 	* Function: renderPointsLayer
 	*/
-	renderPointsLayer() {
-		var geojson = this.getDataAsGeoJSON(this.data);
-
+	renderPointsLayer(geoJsonData, styleType = null) {
 		var gf = new GeoJSON({
-			featureProjection: "EPSG:3857"
+			//featureProjection: "EPSG:3857"
 		});
-		var featurePoints = gf.readFeatures(geojson);
+		var featurePoints = gf.readFeatures(geoJsonData);
 		var pointsSource = new VectorSource({
 			features: featurePoints
 		});
@@ -412,13 +536,18 @@ class OpenLayersMap {
 			distance: 0,
 			source: pointsSource
 		});
+
+		let defaultStyleCallback = (feature, resolution) => {
+			var style = this.getSingularPointStyle(feature, {
+				labels: printLabels,
+				fixedPointSize: fixedPointSize
+			});
+			return style;
+		}
 		
 		var clusterLayer = new VectorLayer({
 			source: clusterSource,
-			style: (feature, resolution) => {
-				var style = this.getSingularPointStyle(feature);
-				return style;
-			},
+			style: this.featureStyleCallback != null ? this.featureStyleCallback : defaultStyleCallback,
 			zIndex: 1
 		});
 		
@@ -430,11 +559,9 @@ class OpenLayersMap {
 		this.olMap.addLayer(clusterLayer);
 	}
 
-	renderAbundancePointsLayer() {
-		var geojson = this.getDataAsGeoJSON(this.data);
-
+	renderAbundancePointsLayer(geojson) {
 		var gf = new GeoJSON({
-			featureProjection: "EPSG:3857"
+			//featureProjection: "EPSG:3857"
 		});
 		var featurePoints = gf.readFeatures(geojson);
 		var pointsSource = new VectorSource({
@@ -498,33 +625,6 @@ class OpenLayersMap {
 			};
 			geojson.features.push(feature);
 		}
-
-
-		/*
-		//create another geojson struct where each count of abundance is a feature
-		//this is used for the heatmap
-		let geojsonAbundance = {
-			"type": "FeatureCollection",
-			"features": [
-			]
-		};
-
-		for(var key in data) {
-
-			for(let i = 0; i < data[key].abundance; i++) {
-				var feature = {
-					"type": "Feature",
-					"geometry": {
-						"type": "Point",
-						"coordinates": [data[key].lng, data[key].lat]
-					},
-					"properties": {
-					}
-				};
-				geojsonAbundance.features.push(feature);
-			}
-		}
-		*/
 
 		return geojson;
 	}
@@ -662,46 +762,46 @@ class OpenLayersMap {
 		return styles;
 	}
 
-    fitToExtent() {
-        let data = this.data;
-
+	fitToExtent() {
+		let data = this.data.features;
+	
 		let lngLow, lngHigh, latLow, latHigh;
-		if(data.length > 0) {
-			lngLow = Math.min(...data.map(point => point.lng));
-			lngHigh = Math.max(...data.map(point => point.lng));
-			latLow = Math.min(...data.map(point => point.lat));
-			latHigh = Math.max(...data.map(point => point.lat));
-		}
-		else {
+		if (data.length > 0) {
+			lngLow = Math.min(...data.map(feature => feature.geometry.coordinates[0]));
+			lngHigh = Math.max(...data.map(feature => feature.geometry.coordinates[0]));
+			latLow = Math.min(...data.map(feature => feature.geometry.coordinates[1]));
+			latHigh = Math.max(...data.map(feature => feature.geometry.coordinates[1]));
+		} else {
 			latHigh = false;
 			latLow = false;
 			lngHigh = false;
 			lngLow = false;
 		}
-
+	
 		let extentNW = null;
 		let extentSE = null;
 		let extent = null;
-		if(latHigh === false || latLow === false || lngHigh === false || lngLow === false) {
+		if (latHigh === false || latLow === false || lngHigh === false || lngLow === false) {
 			extent = this.defaultExtent;
-		}
-		else {
+		} else {
 			extentNW = fromLonLat([lngLow, latLow]);
 			extentSE = fromLonLat([lngHigh, latHigh]);
-
+	
 			extent = extentNW.concat(extentSE);
 		}
-		
+	
 		let padding = 30;
 		this.olMap.getView().fit(extent, {
 			padding: [padding, padding, padding, padding],
 			maxZoom: 10,
 			duration: 500
 		});
-    }
+	}
+	
 
     render(renderTargetSelector) {
         let renderTarget = document.querySelector(renderTargetSelector);
+		this.renderTargetSelector = renderTargetSelector;
 		
 		//get height of parent element
 		//let parentHeight = renderTarget.parentElement.clientHeight;
@@ -736,21 +836,227 @@ class OpenLayersMap {
 		var attributionElement = this.olMap.getTargetElement().getElementsByClassName('ol-attribution')[0];
 		attributionElement.getElementsByTagName("button")[0].style.display = "none";
 
-        this.setMapDataLayer("abundancePoints");
+        //this.setMapDataLayer("abundancePoints");
 
-		this.fitToExtent();
+		//this.fitToExtent();
     }
+
+	addSelectInteraction(selectStyle = null) {
+		if(this.selectInteraction != null) {
+			this.olMap.removeInteraction(this.selectInteraction);
+		}
+
+		this.selectInteraction = this.createSelectInteraction(selectStyle);
+		this.olMap.addInteraction(this.selectInteraction);
+	}
+
+	getVisibleDataLayer() {
+		for(var key in this.dataLayers) {
+			if(this.dataLayers[key].getProperties().visible) {
+				return this.dataLayers[key];
+			}
+		}
+		return false;
+	}
+
+	createSelectInteraction(selectStyle = null) {
+		let popupContainer = document.createElement('div');
+		popupContainer.id = "map-popup-container-"+nanoid();
+		popupContainer.classList.add("map-popup-container");
+		$(this.renderTargetSelector).append(popupContainer);
+
+		this.selectPopupOverlay = new Overlay({
+			element: popupContainer,
+			positioning: 'bottom-center',
+			offset: [0, -17]
+		});
+		this.olMap.addOverlay(this.selectPopupOverlay);
+
+		var selectInteraction = new SelectInteraction({
+			style: selectStyle != null ? selectStyle : (feature) => {
+				if(this.getVisibleDataLayer().getProperties().layerId == "clusterPoints") {
+					return this.getClusterPointStyle(feature, {
+						selected: true,
+						highlighted: false
+					});
+				}
+				else {
+					return this.getPointStyle(feature, {
+						selected: true,
+						highlighted: false
+					});
+				}
+			},
+		});
+
+		selectInteraction.setProperties({
+			selectInteraction: true
+		});
+		
+		selectInteraction.on("select", (evt) => {
+			if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == false) {
+				$(popupContainer).show();
+				var feature = evt.selected[0];
+				var coords = feature.getGeometry().getCoordinates();
+				var prop = feature.getProperties();
+
+				var tableRows = "<tr row-site-id='"+prop.id+"'><td>"+prop.name+"</td></tr>";
+				tableRows = sqs.sqsOffer("resultMapPopupSites", {
+					tableRows: tableRows,
+					olFeatures: prop.features
+				}).tableRows;
+				$("tbody", popupContainer).html(tableRows);
+
+				this.selectPopupOverlay.setPosition(coords);
+			}
+			else if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == true) {
+				$(popupContainer).show();
+
+				var feature = evt.selected[0];
+				var coords = feature.getGeometry().getCoordinates();
+				var prop = evt.selected[0].getProperties();
+
+				$(popupContainer).html("<table><tbody></tbody></table>")
+
+				var tableRows = "";
+
+				/*
+				let sampleGroupedBySampleGroup = [];
+				//group prop.features by sampleGroupId
+				prop.features.forEach(f => {
+					let sampleGroupId = f.get('sampleGroupId');
+					if(sampleGroupedBySampleGroup[sampleGroupId] == undefined) {
+						sampleGroupedBySampleGroup[sampleGroupId] = [];
+					}
+					sampleGroupedBySampleGroup[sampleGroupId].push(f);
+				});
+				*/
+
+				for(var fk in prop.features) {
+					let fprop = prop.features[fk].getProperties();
+					tableRows += "<tr data='"+fprop.name+"' row-id='"+fprop.id+"'>";
+					tableRows += "<td>"+fprop.tooltip+"</td>";
+					tableRows += "</tr>";
+				}
+
+				tableRows = sqs.sqsOffer("samplePositionMapPopup", {
+					tableRows: tableRows,
+					olFeatures: prop.features
+				}).tableRows;
+				
+
+				$("tbody", popupContainer).html(tableRows);
+
+				$("tr", popupContainer).on("click", (evt) => {
+					this.handleMapPopupClick($(evt.currentTarget).attr("data"));
+				});
+
+				this.selectPopupOverlay.setPosition(coords);
+			}
+			else {
+				$(popupContainer).hide();
+				this.selectPopupOverlay.setPosition();
+			}
+			sqs.sqsEventDispatch("resultMapPopupRender");
+		});
+		
+		return selectInteraction;
+	}
+
+	handleMapPopupClick(data) {
+		if(this.handleMapPopupClickCallback != null) {
+			this.handleMapPopupClickCallback(data);
+		}
+		else {
+			console.warn("No callback specified for map popup click");
+		}
+	}
+
+	setMapPopupClickCallback(callback) {
+		this.handleMapPopupClickCallback = callback;
+	}
+
+	getPointStyle(feature, options = { selected: false, highlighted: false }) {
+		
+		var pointSize = 8;
+		var zIndex = 0;
+		var text = "";
+		
+		//default values if point is not selected and not highlighted
+		var fillColor = this.style.default.fillColor;
+		var strokeColor = this.style.default.strokeColor;
+		
+		//if point is highlighted (its a hit when doing a search)
+		if(options.highlighted) {
+			fillColor = this.style.highlighted.fillColor;
+			strokeColor = this.style.highlighted.strokeColor;
+			zIndex = 10;
+		}
+		//if point is selected (clicked on)
+		if(options.selected) {
+			fillColor = this.style.selected.fillColor;
+			strokeColor = this.style.selected.strokeColor;
+			zIndex = 10;
+		}
+
+		var styles = [];
+		
+		styles.push(new Style({
+			image: new CircleStyle({
+				radius: pointSize,
+				stroke: new Stroke({
+					color: strokeColor
+				}),
+				fill: new Fill({
+					color: fillColor
+				})
+			}),
+			zIndex: zIndex,
+			text: new Text({
+				text: text,
+				offsetX: 15,
+				textAlign: 'left',
+				fill: new Fill({
+					color: '#fff'
+				}),
+				stroke: new Stroke({
+					color: '#000',
+					width: 2
+				}),
+				scale: 1.2
+			})
+			
+		}));
+		
+		return styles;
+	}
+
+	setFeatureStyleCallback(callback) {
+		this.featureStyleCallback = callback;
+	}
 
 	/*
 	* Function: getClusterPointStyle
 	*/
-	getClusterPointStyle(feature, options = { selected: false, highlighted: false }) {
+	getClusterPointStyle(feature, options = { selected: false, highlighted: false, labels: true, fixedPointSize: false, showOnlySampleGroups: [] }) {
 		var pointsNum = feature.get('features').length;
 		var clusterSizeText = pointsNum.toString();
 		if(pointsNum > 999) {
 			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
 		}
-		var pointSize = 8+(Math.log10(feature.getProperties().features.length)*15);
+
+		let pointSize = 8;
+		if(!options.fixedPointSize) {
+			pointSize = 8+(Math.log10(feature.getProperties().features.length)*15);
+		}
+		
+		feature.getProperties().features.forEach(f => {
+			if(options.showOnlySampleGroups && options.showOnlySampleGroups.length > 0) {
+				if(options.showOnlySampleGroups.indexOf(f.get('sampleGroupId')) == -1) {
+					pointSize = 0;
+				}
+			}
+		});
 		
 		var zIndex = 0;
 		
@@ -798,7 +1104,7 @@ class OpenLayersMap {
 		
 		if(pointsNum == 1) {
 			var pointName = feature.get('features')[0].getProperties().name;
-			if(pointName != null) {
+			if(pointName != null && options.labels) {
 				styles.push(new Style({
 					zIndex: zIndex,
 					text: new Text({

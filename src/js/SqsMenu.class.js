@@ -245,6 +245,10 @@ class sqsMenu {
 				//This "expands" (displays) all of the children items
 				$(".second-level-item", firstLevelItem).css("display", "block");
 			});
+			
+			if(item.selected) {
+				firstLevelItem.addClass("sqs-menu-selected");
+			}
 
 			$(menu.anchor).append(firstLevelItem);
 		});

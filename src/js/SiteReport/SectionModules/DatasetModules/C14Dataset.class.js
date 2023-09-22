@@ -114,7 +114,7 @@ class C14Dataset extends DatasetModule {
 				"title": method.method_name, //Normally this would be: analysis.datasetName
 				//"datasetId": dataGroup.method_id,
 				"datasetIds": datasetIds,
-				"datasetReference": this.renderDatasetReference(siteData, datasetIds),
+				"datasetReference": this.sqs.renderBiblioReference(siteData, datasetIds),
 				"data": {
 					"columns": columns,
 					"rows": rows

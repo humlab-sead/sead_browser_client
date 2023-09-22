@@ -455,7 +455,7 @@ class AbundanceDataset extends DatasetModule {
 				"title": dataGroup.dataset_name,
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataGroup.dataset_id,
-				"datasetReference": this.renderDatasetReference(siteData, biblioIds),
+				"datasetReference": this.sqs.renderBiblioReference(siteData, biblioIds),
 				"data": {
 					"columns": [],
 					"rows": []

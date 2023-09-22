@@ -201,7 +201,8 @@ class Samples {
 
 		if(insertSampleCoordinatesColumn) {
 			subTable.columns.push({
-				"title": "Coordinates"
+				"title": "Coordinates",
+				"role": "coordinates"
 			});
 
 			for(let k in sampleGroup.physical_samples) {
@@ -435,8 +436,16 @@ class Samples {
 				});
 				cellDesc = cellDesc.substring(0, cellDesc.length-3);
 
+				//find table pkey (sample group id)
+				let tablePkey = null;
+				table.columns.forEach((col, key) => {
+					if(col.pkey === true) {
+						tablePkey = key;
+					}
+				});
+
 				table.rows.forEach(row => {
-					if(row[1].value == sg.sample_group_id) {
+					if(row[tablePkey].value == sg.sample_group_id) {
 						let cellValue = "!%data:"+"<i class='fa fa-book' aria-hidden='true'></i>"+":!%tooltip:"+cellDesc+":!";
 						row.push({
 							"value": cellValue,
@@ -458,6 +467,13 @@ class Samples {
 				"dataType": "subtable",
 				"pkey": false
 			},
+			/*
+			{
+				"dataType": "string",
+				"pkey": false,
+				"title": "Expand"
+			},
+			*/
 			{
 				"dataType": "number",
 				"pkey": true,
@@ -495,7 +511,7 @@ class Samples {
 		}
 
 		let sampleGroupRows = [];
-		
+
 		let sampleGroupTable = {
 			columns: sampleGroupColumns,
 			rows: sampleGroupRows
@@ -572,6 +588,13 @@ class Samples {
 					"type": "subtable",
 					"value": subTable
 				},
+				/*
+				{
+					"type": "cell",
+					"value": "<i class=\"fa fa-plus-circle subtable-expand-button\" aria-hidden=\"true\"></i>",
+					"tooltip": "Expand to view the individual samples in this sample group."
+				},
+				*/
 				{
 					"type": "cell",
 					"value": sampleGroup.sample_group_id,
@@ -600,8 +623,7 @@ class Samples {
 				});
 			}
 
-			sampleGroupRows.push(sampleGroupRow);
-			
+			sampleGroupRows.push(sampleGroupRow);	
 		}
 
 		this.insertSampleAnalysesIntoTable(sampleGroupTable, siteData);
@@ -613,7 +635,7 @@ class Samples {
 			"collapsed": false,
 			"contentItems": [{
 				"name": "sampleGroups",
-				"title": "Samples taken (groupings)",
+				"title": "Sample groups",
 				"data": {
 					"columns": sampleGroupColumns,
 					"rows": sampleGroupRows
@@ -653,10 +675,23 @@ class Samples {
 		if(sampleGroupsWithCoordinates.length > 0) {
 			let roOptions = sampleGroupsWithCoordinates.map(sg => { return { title: sg.sample_group_name, selected: false, value: sg.sample_group_id }; });
 			roOptions[0].selected = true;
+			//prepend an "all" option
+			roOptions.unshift({ title: "All", selected: false, value: "all" });
 	
+			let biblioIds = [];
+			siteData.sample_groups.forEach(sampleGroup => {
+				sampleGroup.biblio.forEach(biblio => {
+					if(biblioIds.indexOf(biblio.biblio_id) == -1) {
+						biblioIds.push(biblio.biblio_id);
+					}
+				});
+			});
+
 			let sampleCoordinatesContentItem = {
 				"name": "sampleCoordinatesMap",
 				"title": "Sample coordinates",
+				"datasetReference": this.sqs.renderBiblioReference(siteData, biblioIds),
+				"datasetContacts": "",
 				"collapsed": false,
 				"data": {
 					"columns": sampleGroupColumns,

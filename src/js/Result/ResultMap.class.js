@@ -102,13 +102,13 @@ class ResultMap extends ResultModule {
 		});
 		stamenLayer.setProperties({
 			"layerId": "stamen",
-			"title": "Stamen",
+			"title": "Terrain",
 			"type": "baseLayer"
 		});
 		
 		let bingAerialLayer = new TileLayer({
 			source: new BingMaps({
-				key: 'At_1FuTga4p88618KkMhqxYZE71lCvBhzEx7ccisF9rShHoLsDLv-5zzGh3l25X5',
+				key: this.sqs.config.keys.bingMaps,
 				imagerySet: "Aerial",
 				wrapX: true
 			}),
@@ -122,7 +122,7 @@ class ResultMap extends ResultModule {
 		
 		let bingAerialLabelsLayer = new TileLayer({
 			source: new BingMaps({
-				key: 'At_1FuTga4p88618KkMhqxYZE71lCvBhzEx7ccisF9rShHoLsDLv-5zzGh3l25X5',
+				key: this.sqs.config.keys.bingMaps,
 				imagerySet: "AerialWithLabels",
 				wrapX: true
 			}),
@@ -1208,6 +1208,7 @@ class ResultMap extends ResultModule {
 				title: prop.title, //displayed in the UI
 				tooltip: "",
 				staticSelection: prop.visible, //For tabs - highlighting the currently selected
+				selected: prop.visible,
 				callback: this.makeMapControlMenuCallback(prop)
 			});
 		}
@@ -1245,6 +1246,7 @@ class ResultMap extends ResultModule {
 				title: prop.title, //displayed in the UI
 				tooltip: "",
 				staticSelection: prop.visible, //For tabs - highlighting the currently selected
+				selected: prop.visible,
 				callback: this.makeMapControlMenuCallback(prop)
 			});
 		}
