@@ -79,7 +79,11 @@ class DiscreteFacet extends Facet {
 			}
 
 			this.sortMode = "title";
-			this.renderData(this.data);
+			let renderData = this.data;
+			if(this.minimized) {
+				renderData = this.getSelectionsAsDataItems();
+			}
+			this.renderData(renderData);
 		});
 		$(this.getDomRef()).find(".facet-sort-num-btn").on("click", (evt) => {
 			if(this.sortMode == "count") { //If already sorting by title, toggle direction
@@ -101,7 +105,11 @@ class DiscreteFacet extends Facet {
 			}
 
 			this.sortMode = "count";
-			this.renderData(this.data);
+			let renderData = this.data;
+			if(this.minimized) {
+				renderData = this.getSelectionsAsDataItems();
+			}
+			this.renderData(renderData);
 		});
 	}
 
