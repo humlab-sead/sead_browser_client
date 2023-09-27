@@ -3205,7 +3205,11 @@ svg text {
 
 .dataset-biblio {
   margin-bottom: 0.5em;
-  margin-top: 0.5em
+  margin-top: 0.5em;
+}
+
+.dataset-biblio li span {
+  margin-right: 0.25em;
 }
 
 .dots-loading-animation {

@@ -532,13 +532,14 @@ class SiteReport {
 			const ws = wb.addWorksheet(ws_name);
 			
 			var data = this.getDataForXlsx(exportStruct.datatable);
-			
+
 			data.unshift([""]);
 			data.unshift(["Content: "+exportStruct.meta.content]);
 			data.unshift(["Section: "+exportStruct.meta.section]);
 			data.unshift(["Data distributed by SEAD under the license "+this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")"]);
-			data.unshift(["Reference: "+exportStruct.meta.attribution]);
+			data.unshift(["Source attribution: "+exportStruct.meta.attribution]);
 			data.unshift(["Source url: "+exportStruct.meta.url]);
+			data.unshift(["References: "+exportStruct.meta.datasetReference]);
 			data.unshift(["Site name: "+exportStruct.meta.siteName]);
 			data.unshift([exportStruct.meta.description]);
 
@@ -860,6 +861,15 @@ class SiteReport {
 		};
 
 		if(section != "all" && contentItem != "all") {
+			
+			//Remove html from dataset references and add [] around each item
+			let plainRef = contentItem.datasetReference.replace(/<[^>]+>/g, '');
+			const lastIndex = plainRef.lastIndexOf('\n');
+			if (lastIndex !== -1) {
+				plainRef = plainRef.substring(0, lastIndex) + plainRef.substring(lastIndex + 1);
+			}
+			plainRef = "["+plainRef.replace(/\n/g, '] [')+"]";
+
 			exportStruct = {
 				meta: {
 					site: this.siteId,
@@ -869,6 +879,7 @@ class SiteReport {
 					description: this.sqs.config.dataExportDescription,
 					siteName: this.siteData.site_name,
 					url: this.sqs.config.serverRoot+"/site/"+this.siteId,
+					datasetReference: plainRef
 				},
 				datatable: this.stripExcludedColumnsFromContentItem(contentItem).data
 			};

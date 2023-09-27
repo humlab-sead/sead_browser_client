@@ -1437,15 +1437,15 @@ class SeadQuerySystem {
 		datasetBiblio.forEach(biblio => {
 			html += "<div class='dataset-biblio'>";
 			if(biblio.full_reference) {
-				html += "<li class='dataset-biblio-full-reference'>"+biblio.full_reference+"</li>";
+				html += "<li class='dataset-biblio-full-reference'>"+biblio.full_reference+"\n</li>";
 			}
 			else {
 				html += "<li>";
 				if(biblio.author) {
-					html += "<span class='dataset-biblio-author'>"+biblio.author+"</span>";
-				}
-				if(biblio.year) {
-					html += "<span class='dataset-biblio-year'>"+biblio.year+"</span>";
+					html += "<span class='dataset-biblio-author'>"+biblio.authors+"</span>";
+					if(biblio.year) {
+						html += "<span class='dataset-biblio-year'>("+biblio.year+")</span>";
+					}
 				}
 				if(biblio.title) {
 					html += "<span class='dataset-biblio-title'>"+biblio.title+"</span>";
@@ -1465,7 +1465,7 @@ class SeadQuerySystem {
 				if(biblio.bugs_reference) {
 					html += "<span class='dataset-biblio-bugs-reference'>"+biblio.bugs_reference+"</span>";
 				}
-				html += "</li>";
+				html += "\n</li>";
 			}
 			
 			html += "</div>";

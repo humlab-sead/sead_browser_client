@@ -753,6 +753,7 @@ class SiteReportChart {
 		if(contentItem.data.rows.length > 100) {
 			graphType = "scatter";
 		}
+		graphType = "scatter"; //FIXME: We should rename this method to reflect that we are now using scatter plots for bar charts
 		
 		let data = [
 		  {

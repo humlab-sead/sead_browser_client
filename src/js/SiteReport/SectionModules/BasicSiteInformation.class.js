@@ -126,7 +126,7 @@ class BasicSiteInformation {
 			.append("<div class='site-report-aux-header-container'><h4>Site reference</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+siteReferencesHtml+"</div>")
-			.append("<div class='site-report-aux-header-container'><h4>Other site metadata</h4></div>")
+			.append("<div class='site-report-aux-header-container'><h4>Dataset references</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+datasetReferencesHtml+"</div>");
 			
