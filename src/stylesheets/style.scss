@@ -151,9 +151,10 @@ div:focus {
 
 #filter-menu-container > #filter-menu-filter-area {
   position: relative;
-  width: 50%;
+  width: calc(50% + 1px);
   height: auto;
   background: #2d5e8d;
+  left: -1px;
 }
 
 #filter-menu-container > svg {
