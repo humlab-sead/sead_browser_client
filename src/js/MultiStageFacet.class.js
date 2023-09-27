@@ -92,7 +92,11 @@ class MultiStageFacet extends Facet {
 			}
 
 			this.sortMode = "title";
-			this.renderData(this.getCurrentFilter().data);
+			let renderData = this.getCurrentFilter().data;
+			if(this.minimized) {
+				renderData = this.getSelectionsAsDataItems();
+			}
+			this.renderData(renderData);
 		});
 		$(this.getDomRef()).find(".facet-sort-num-btn").on("click", (evt) => {
 			if(this.sortMode == "count") { //If already sorting by title, toggle direction
@@ -114,7 +118,11 @@ class MultiStageFacet extends Facet {
 			}
 
 			this.sortMode = "count";
-			this.renderData(this.getCurrentFilter().data);
+			let renderData = this.getCurrentFilter().data;
+			if(this.minimized) {
+				renderData = this.getSelectionsAsDataItems();
+			}
+			this.renderData(renderData);
 		});
 	}
 
