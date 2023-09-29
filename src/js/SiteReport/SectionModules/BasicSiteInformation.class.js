@@ -347,7 +347,10 @@ class BasicSiteInformation {
 			layers: new GroupLayer({
 				layers: [
 					new TileLayer({
-						source: new OSM(),
+						source: new OSM({
+							url: 'https://a.tile.opentopomap.org/{z}/{x}/{y}.png',
+							attributions: 'Map baselayer: &copy; <a href="https://www.opentopomap.org">OpenTopoMap</a>'
+						}),
 						visible: true
 					})
 				]

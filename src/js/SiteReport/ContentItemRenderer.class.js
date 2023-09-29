@@ -56,6 +56,8 @@ class ContentItemRenderer {
 		refAndContacts += "<h4 class='header-with-underline'>Contacts</h4>";
 		refAndContacts += contactData;
 		headerNode.append(this.renderDatasetReferences(refAndContacts));
+
+		//headerNode.append(this.renderPopout(this.section, this.contentItem));
 		
 		
 		var dataVisContainerNode = $("<div id='contentItem-"+this.contentItem.name+"' class='data-vis-container'><span class='siteReportContentItemLoadingMsg'>Rendering...</span></div>");
@@ -63,6 +65,39 @@ class ContentItemRenderer {
 
         this.renderDataVisualization();
     }
+
+	renderPopout(section, contentItem) {
+		console.warn("I DO NOTHING!");
+		/*
+		var controlsId = "content-item-popout-"+nanoid();
+		var node = $("#site-report-content-item-popout-template")[0].cloneNode(true);
+		$(node).attr("id", controlsId);
+		
+		$(node).on("click", (evt) => {
+			evt.preventDefault();
+			evt.stopPropagation();
+
+			console.log("hit!");
+			
+			var contentItemNode = $("#site-report-section-"+section.name+" > .site-report-level-content > #cic-"+contentItem.name+" > #contentItem-"+contentItem.name)[0].cloneNode(true);
+			//render as popover
+
+			//$("#site-report-section-"+section.name+" > .site-report-level-content > #cic-"+contentItem.name).append(contentItemNode);
+
+			console.log(contentItemNode)
+			console.log(contentItemNode.innerHTML)
+			
+			this.sqs.dialogManager.showPopOver(contentItem.title, "", {
+				width: "500px"
+			});
+			
+			$("#popover-dialog-frame > .popover-content").append(contentItemNode);
+			
+		});
+		
+		return node;
+		*/
+	}
 
 	renderDatasetReferences(datasetReference) {
 		var controlsId = "content-item-export-"+nanoid();
