@@ -674,9 +674,8 @@ class Samples {
 
 		if(sampleGroupsWithCoordinates.length > 0) {
 			let roOptions = sampleGroupsWithCoordinates.map(sg => { return { title: sg.sample_group_name, selected: false, value: sg.sample_group_id }; });
-			roOptions[0].selected = true;
 			//prepend an "all" option
-			roOptions.unshift({ title: "All", selected: false, value: "all" });
+			roOptions.unshift({ title: "All", selected: true, value: "all" });
 	
 			let biblioIds = [];
 			siteData.sample_groups.forEach(sampleGroup => {

@@ -44,7 +44,7 @@ class ContentItemRenderer {
 		if(typeof this.contentItem.datasetContacts != "undefined" && this.contentItem.datasetContacts.length > 0) {
 			contactData = this.contentItem.datasetContacts;
 		}
-
+		
 		let referenceData = "<ul style='list-style-type: none;'><li>No references available</li></ul>";
 		if(typeof this.contentItem.datasetReference != "undefined" && this.contentItem.datasetReference.length > 0) {
 			referenceData = this.contentItem.datasetReference;
@@ -412,6 +412,11 @@ class ContentItemRenderer {
 			if(selectedRoType != "table" && selectedRoType != "dendrochart" && selectedRoType != "ecocodes-samples" && selectedRoType != "ecocode") {
 				exportFormats.push("png");
 			}
+
+			if(selectedRoType == "coordinate-map") {
+				exportFormats = ["geojson"];
+			}
+
 			this.siteReport.renderExportDialog(exportFormats, section, contentItem);
 		});
 		

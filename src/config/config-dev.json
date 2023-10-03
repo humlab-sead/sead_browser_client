@@ -36,6 +36,8 @@
 	"indicatorStringsForUnknownSpecies": ["indet.", "indet", "sp.", "spp.", "sp"],
 	"maxEolImageResults": 100,
 	"filterBlacklist": ["construction_type", "abundance_classification", "dataset_methods", "region"],
+	"xyCoordinateDimensionIds": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
+	"zCoordinateDimensionIds": [2, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
 	"keys": {
 		"bingMaps": "At_1FuTga4p88618KkMhqxYZE71lCvBhzEx7ccisF9rShHoLsDLv-5zzGh3l25X5"
 	},

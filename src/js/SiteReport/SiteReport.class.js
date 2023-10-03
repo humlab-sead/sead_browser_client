@@ -469,6 +469,25 @@ class SiteReport {
 			$(node).attr("href", "data:application/octet-stream;charset=utf-8;base64,"+exportData);
 			$(node).attr("download", filename+".json");
 		}
+		if(exportFormat == "geojson") {
+			node = $("<a id='site-report-json-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download GeoJSON</a>");
+			
+			//let jsonData = this.prepareJsonExport(exportStruct);
+			let jsonData = {};
+			
+			jsonData.license = this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")";
+
+			let json = JSON.stringify(jsonData, (key, value) => {
+				if(key == "renderInstance") {
+					value = null;
+				}
+				return value;
+			}, 2);
+			
+			let exportData = Buffer.from(json).toString('base64');
+			$(node).attr("href", "data:application/octet-stream;charset=utf-8;base64,"+exportData);
+			$(node).attr("download", filename+".geojson");
+		}
 		if(exportFormat == "xlsx") {
 			//Remove columns from table which are flagged for exclusion
 			for(let key in exportStruct.datatable.columns) {
@@ -852,6 +871,10 @@ class SiteReport {
 		if(formats.indexOf("xlsx") != -1) {
 			var xlsxBtn = this.getExportButton("xlsx", exportStruct);
 			$("#node-"+dialogNodeId).append(xlsxBtn);
+		}
+		if(formats.indexOf("geojson") != -1) {
+			var btn = this.getExportButton("geojson", exportStruct);
+			$("#node-"+dialogNodeId).append(btn);
 		}
 		/*
 		if(formats.indexOf("png") != -1) {

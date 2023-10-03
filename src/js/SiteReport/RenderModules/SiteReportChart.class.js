@@ -122,75 +122,65 @@ class SiteReportChart {
 		this.renderBarChartPlotly();
 	}
 
-	getCoordinateSystem(coordinates) {
-		let coordinateSystem = null;
+	getCoordinateSystems(coordinates) {
+		let coordinateSystems = {
+			xy: null,
+			z: null
+		};
 
-
-		let xCoord = null;
-		let yCoord = null;
-		let zCoord = null;
-
-		let horizontalCoord = null;
-		let verticalCoord = null;
+		let xyCoords = [];
+		let zCoords = [];
 
 		coordinates.forEach(coordinate => {
-
-			coordinate.coordinate_method;
-
-			if(coordinate.dimension.dimension_id == 7 || coordinate.dimension.dimension_id == 9) { //"X/North"
-				xCoord = coordinate;
-				coordinateSystem = coordinate.coordinate_method;
+			if(this.sqs.config.xyCoordinateDimensionIds.includes(coordinate.dimension.dimension_id)) {
+				xyCoords.push(coordinate);
+			}
+			if(this.sqs.config.zCoordinateDimensionIds.includes(coordinate.dimension.dimension_id)) {
+				zCoords.push(coordinate);
 			}
 		});
 
-		if(coordinateSystem == null) {
-			return null;
+		//check that xyCoords are of the same type
+		let xyCoordSystemIds = [];
+		xyCoords.forEach(coordinate => {
+			xyCoordSystemIds.push(coordinate.coordinate_method.method_id);
+		});
+		xyCoordSystemIds = [...new Set(xyCoordSystemIds)];
+		if(xyCoordSystemIds.length > 1) {
+			console.warn("X/Y coordinate system mismatch.");
+			return coordinateSystems;
+		}
+		else {
+			coordinateSystems.xy = xyCoords[0].coordinate_method;
 		}
 
-		coordinates.forEach(coordinate => {
-			//check that all coordinates are of the same type
-			if(coordinate.dimension.dimension_id == 15) { //"Y/East"
-				if(coordinateSystem.method_id != coordinate.coordinate_method.method_id) {
-					console.warn("WARN: Y coordinate system does not match X coordinate system.");
-					return null;
-				}
-			}
+		let zCoordSystemIds = [];
+		zCoords.forEach(coordinate => {
+			zCoordSystemIds.push(coordinate.coordinate_method.method_id);
 		});
+		zCoordSystemIds = [...new Set(zCoordSystemIds)];
+		if(zCoordSystemIds.length > 1) {
+			console.warn("Z coordinate system mismatch.");
+			return coordinateSystems;
+		}
+		else {
+			if(zCoords.length > 0) {
+				coordinateSystems.z = zCoords[0].coordinate_method;
+			}
+		}
 
-		return coordinateSystem;
+		return coordinateSystems;
 	}
 	  
 
 	renderCoordinateMap() {
 		var contentItem = this.contentItem;
-		console.log(contentItem);
 		//let cir = this.siteReport.getContentItemRenderer(contentItem);
 		//var ro = cir.getSelectedRenderOption(contentItem);
 
 		let selectedSampleGroupId = this.getSelectedRenderOptionExtra("Sample group").value;
 		let sampleGroupIdColumnKey = this.getTableColumnKeyByTitle("Sample group id");
 		let sampleGroupNameColumnKey = this.getTableColumnKeyByTitle("Group name");
-
-		let chartData = {
-			x: {
-				key: "Longitude",
-				values: [],
-				unit: null,
-				sampleNames: []
-			},
-			y: {
-				key: "Latitude",
-				values: [],
-				unit: null,
-				sampleNames: []
-			},
-			z: {
-				key: "Altitude",
-				values: [],
-				unit: null,
-				sampleNames: []
-			}
-		};
 
 		let points = [];
 
@@ -217,73 +207,42 @@ class SiteReportChart {
 						cell.value.rows.forEach(subTableRow => {
 							let coordinates = subTableRow[subTableCoordinateColumnKey].data;
 							if(coordinates.length > 0) {
-								let coordSys = this.getCoordinateSystem(coordinates);
-								if(coordinateSystem == null) {
-									coordinateSystem = coordSys;
+								let coordSys = this.getCoordinateSystems(coordinates);
+								let zCoordinateSystem = coordSys.z;
+
+								if(coordinateSystem == null) { //if this is the first sample we are handling, determine the coordinate system
+									coordinateSystem = coordSys.xy;
 								}
-								if(coordinateSystem != null && coordSys.method_id != coordinateSystem.method_id) {
+								if(coordinateSystem != null && coordSys.xy.method_id != coordinateSystem.method_id) { //all samples must be in the same coordinate system
 									console.warn("Coordinate system mismatch between samples. Cannot render map.");
 									renderMap = false;
 								}
+								
 								let transformed = this.transformCoordinatesToWGS84(coordinates);
-								if(transformed != null) {
-									points.push({
-										x: transformed[0],
-										y: transformed[1],
-										z: transformed[2],
-										sampleName: subTableRow[0].value,
-										tooltip: "Sample "+subTableRow[0].value,
-										sampleGroupId: row[sampleGroupIdColumnKey].value,
-										sampleGroupName: row[sampleGroupNameColumnKey].value
-									});
-
-									chartData.x.values.push(transformed[0]);
-									chartData.x.sampleNames.push(subTableRow[0].value);
-									if(chartData.x.unit == null) {
-										let xcoord = this.getXCoordinateFromCoordinates(coordinates);
-										this.siteReport.siteData.lookup_tables.coordinate_methods.forEach(coordMethod => {
-											if(xcoord.dimension.unit_id == coordMethod.unit.unit_id) {
-												chartData.x.unit = coordMethod.unit;
-											}
-										});
-									}
-									
-									chartData.y.values.push(transformed[1]);
-									chartData.y.sampleNames.push(subTableRow[0].value);
-									if(chartData.y.unit == null) {
-										let ycoord = this.getYCoordinateFromCoordinates(coordinates);
-										this.siteReport.siteData.lookup_tables.coordinate_methods.forEach(coordMethod => {
-											if(ycoord.dimension.unit_id == coordMethod.unit.unit_id) {
-												chartData.y.unit = coordMethod.unit;
-											}
-										});
-									}
-
-									//look for altitude data
-									coordinates.forEach(coordinate => {
-										let heightOrDepthCoordinateSystemIds = [76, 77, 78, 79, 80, 102, 115, 116, 122, 125, 126];
-										if(heightOrDepthCoordinateSystemIds.includes(coordinate.coordinate_method_id)) {
-											chartData.z.values.push(coordinate.measurement);
-											chartData.z.sampleNames.push(subTableRow[0].value);
-											if(chartData.z.unit == null) {
-												let zcoord = this.getZCoordinateFromCoordinates(coordinates);
-												this.siteReport.siteData.lookup_tables.coordinate_methods.forEach(coordMethod => {
-													if(zcoord.dimension.unit_id == coordMethod.unit.unit_id) {
-														chartData.z.unit = coordMethod.unit;
-													}
-												});
-											}
-										}
-									});
+								if(transformed == null) {
+									console.warn("Failed to transform coordinates to WGS84 for sample group "+selectedSampleGroupId);
+									return false;
 								}
+
+								let zCoord = this.getZCoordinateFromCoordinates(coordinates);
+								let zCoordPresentation = this.getZcoordinateAsString(zCoord);
+								
+
+								points.push({
+									x: transformed[0],
+									y: transformed[1],
+									z: zCoordPresentation,
+									sampleName: subTableRow[0].value,
+									tooltip: "Sample "+subTableRow[0].value,
+									sampleGroupId: row[sampleGroupIdColumnKey].value,
+									sampleGroupName: row[sampleGroupNameColumnKey].value
+								});
 							}
 						});
 					}
 				});
 			}
 		});
-		
-		console.log(points)
 
 		if(coordinateSystem == null) {
 			console.warn("WARN: No coordinate system found for sample group "+selectedSampleGroupId);
@@ -294,7 +253,7 @@ class SiteReportChart {
 			renderBaseLayer = false;
 		}
 
-		if(chartData.x.values.length == 0) {
+		if(points.length == 0) {
 			console.warn("WARN: No usable coordinates found for sample group "+selectedSampleGroupId);
 			return false;
 		}
@@ -302,86 +261,17 @@ class SiteReportChart {
 		if(!renderMap) {
 			return false;
 		}
-
-		/*
-		// Combine the arrays and sort them based on values
-		let keysArray = chartData.x.values;
-		let valuesArray = chartData.y.values;
-
-		let combinedArrays = keysArray.map((key, index) => ({ key, value: valuesArray[index] }));
-		combinedArrays.sort((a, b) => a.value - b.value);
-
-		// Extract sorted keys and values
-		let sortedKeys = combinedArrays.map(item => item.key);
-		let sortedValues = combinedArrays.map(item => item.value);
-
-		chartData.y.values = sortedValues;
-		chartData.x.values = sortedKeys;
-		*/
-		/*
-		let data = [
-		  {
-			x: chartData.x.values,
-			y: chartData.y.values,
-			type: "scatter",
-			mode: "markers",
-			text: chartData.y.values.map((val) => `${val}${chartData.y.unit}`),
-			hoverinfo: "x+text",
-			hovertemplate: '%{y}<extra>Sample name %{x}</extra>',
-			textposition: 'auto',
-			marker: {
-				color: this.sqs.color.colors.baseColor,
-			}
-		  },
-		];
-
-		let layout = {
-			title: {
-				//text: contentItem.data.columns[yAxisKey].title+" by "+contentItem.data.columns[xAxisKey].title,
-				font: {
-					family: 'Didact Gothic, sans-serif',
-					size: 22
-				},
-			},
-			plot_bgcolor: "#fff",
-			paper_bgcolor: "#fff",
-			autosize: true,
-			showlegend: false,
-			margin: {
-				l: 50,
-				r: 50,
-				b: 70,
-				t: 50,
-				pad: 4
-			},
-			font: {
-				family: 'Didact Gothic, sans-serif',
-				size: 14,
-				color: '#333'
-			},
-			xaxis: {
-				type: "category", //to get distinct and not linear/range values
-			},
-			yaxis: {
-				showticklabels: false,
-				automargin: true,
-			}
-		};
-		*/
 	  
 		this.chartId = "chart-" + shortid.generate();
 		var chartContainer = $("<div id='" + this.chartId + "' class='sample-coordinates-map-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
-
-		var wgs84Coordinates = [];
-
 		let mapFeatures = [];
 
 		points.forEach(p => {
-			let tooltip = "Sample "+p.sampleName+" ("+p.sampleGroupName+")";
+			let tooltip = p.sampleGroupName+": Sample <strong>"+p.sampleName+"</strong>";
 			if(p.z) {
-				tooltip += ", Altitude "+p.z+" (m)";
+				tooltip += ", "+p.z;
 			}
 
 			mapFeatures.push(new Feature({
@@ -393,106 +283,17 @@ class SiteReportChart {
 				tooltip: tooltip
 			}));
 		});
-
-		/*
-		chartData.x.values.forEach((x, i) => {
-			wgs84Coordinates.push([x, chartData.y.values[i]]);
-
-			let tooltip = "Sample "+chartData.x.sampleNames[i];
-			if(chartData.z.values.length > 0 && typeof chartData.z.values[i] != "undefined") {
-				tooltip += ", Altitude "+chartData.z.values[i]+" "+chartData.z.unit.unit_abbrev;
-			}
-
-			mapFeatures.push(new Feature({
-				geometry: new Point(fromLonLat([x, chartData.y.values[i]])),
-				name: chartData.x.sampleNames[i],
-				//sampleGroup: selectedSampleGroupId,
-				altitude: chartData.z.values.length > 0 && typeof chartData.z.values[i] != "undefined" ? chartData.z.values[i] : null,
-				tooltip: tooltip
-			}));
-		});
-		*/
 	  
 		var vectorSource = new VectorSource({
 			features: mapFeatures
 		});
-		
-		chartData.z.max = null;
-		chartData.z.min = null;
-		chartData.z.values.forEach((z, i) => {
-			if(chartData.z.max == null || z > chartData.z.max) {
-				chartData.z.max = z;
-			}
-			if(chartData.z.min == null || z < chartData.z.min) {
-				chartData.z.min = z;
-			}
-		});
-
-		chartData.z.values.sort((a, b) => a - b);
-
-		this.chartData = chartData;
-
-		/*
-		var vectorLayer = new VectorLayer({
-			source: vectorSource,
-			style: (feature) => {
-				let altitude = feature.getProperties().altitude;
-				
-				let fillColor = 'rgba(128, 128, 128, 0.8)';
-				//define a color scale based on altitude
-
-				let radius = 6;
-				if(altitude != null) {
-					//let altitudeScale = altitude / chartData.z.max;
-
-					let altitudeScale = parseFloat(this.mapValue(altitude, chartData.z.min, chartData.z.max, 0, 1));
-					//console.log(altitudeScale);
-
-					let red = 255 * altitudeScale;
-					let blue = 255 * (1-altitudeScale);
-				
-
-					fillColor = 'rgba('+red+', 0, '+blue+', 0.8)';
-
-					//fillColor = 'rgba('+(altitudeScale*255)+', '+(altitudeScale*255)+', '+(altitudeScale*255)+', 0.8)';
-
-					
-					if(altitude == chartData.z.max) {
-						console.log("max altitude")
-						fillColor = 'rgba(255, 255, 0, 1.0)';
-						radius = 10;
-					}
-					if(altitude == chartData.z.min) {
-						console.log("min altitude")
-						fillColor = 'rgba(0, 255, 0, 1.0)';
-						radius = 10;
-					}
-				}
-
-				return new Style({
-					image: new CircleStyle({
-					  radius: radius,
-					  fill: new Fill({
-						color: fillColor
-					  }),
-					  stroke: new Stroke({
-						color: 'white',
-						width: 1
-					  })
-					})
-				});
-			}
-		});
-		
-		var extent = vectorLayer.getSource().getExtent();
-		*/
 
 		let samplePointsMap = new OpenLayersMap(this.sqs);
 		let geoJson = new GeoJSON().writeFeaturesObject(vectorSource.getFeatures());
 		samplePointsMap.setData(geoJson);
 
 		if(renderBaseLayer) {
-			samplePointsMap.setMapBaseLayer("osm");
+			samplePointsMap.setMapBaseLayer("topoMap");
 		}
 		else {
 			samplePointsMap.setMapBaseLayer("none");
@@ -519,7 +320,7 @@ class SiteReportChart {
 						color: samplePointsMap.style.default.strokeColor,
 					}),
 					fill: new Fill({
-						color: this.sqs.color.hexToRgba(samplePointsMap.defaultColorScheme[4], 0.5)
+						color: this.sqs.color.hexToRgba(samplePointsMap.defaultColorScheme[4], 0.8)
 					})
 				}),
 				text: new Text({
@@ -539,7 +340,7 @@ class SiteReportChart {
 				image: new CircleStyle({
 				  radius: 8,
 				  fill: new Fill({
-					color: this.sqs.color.hexToRgba(samplePointsMap.defaultColorScheme[4], 0.5)
+					color: this.sqs.color.hexToRgba(samplePointsMap.defaultColorScheme[4], 0.8)
 				  }),
 				  stroke: new Stroke({
 					color: samplePointsMap.style.selected.strokeColor,
@@ -565,12 +366,12 @@ class SiteReportChart {
 		let padding = 30;
 		samplePointsMap.olMap.getView().fit(extent, {
 			padding: [padding, padding, padding, padding],
-			maxZoom: 18,
+			maxZoom: 16,
 		});
 
 		samplePointsMap.addSelectInteraction(selectStyle);
 		samplePointsMap.setMapPopupClickCallback(sampleName => {
-			console.log(sampleName);
+			this.bringSampleIntoView(JSON.parse(sampleName));
 		});
 		
 		
@@ -580,28 +381,102 @@ class SiteReportChart {
 				<div class='menu-row-item'>Base layers</div>
 				<div class='map-base-layer-menu sqs-menu-container'></div>
 			</div>
+			<!--
 			<div class='menu-row-item-divider'></div>
 			<div class='map-aux-menu-container'>
 				<div class='menu-row-item'>Altitude</div>
 				<div class='map-aux-menu sqs-menu-container'></div>
 			</div>
+			-->
 		</div>
 		`;
 
 		$("#"+this.chartId).append(mapMenu);
 		samplePointsMap.renderBaseLayerMenu("#"+this.chartId+" .map-base-layer-menu-container");
+		
+		/*
+		var menu = {
+			title: "<i class=\"fa fa-globe result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Baselayer</span>", //The name of the menu as it will be displayed in the UI
+			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
+			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
+			anchor: "#"+this.chartId+" .map-aux-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
+			staticSelection: true, //whether a selected item remains highlighted or not, purely visual
+			visible: true, //show this menu by default
+			style: {
+				menuTitleClass: "result-map-control-menu-title",
+				l1TitleClass: "result-map-control-item-title"
+			},
+			items: [ //The menu items contained in this menu
+				{
+					name: "zOn", //identifier of this item, should be unique within this menu
+					title: "On", //displayed in the UI
+					tooltip: "",
+					staticSelection: false, //For tabs - highlighting the currently selected
+					selected: false,
+					callback: () => {
+						console.log("Altitude on callback");
+						console.log(samplePointsMap)
+					}
+				},
+				{
+					name: "zOff", //identifier of this item, should be unique within this menu
+					title: "Off", //displayed in the UI
+					tooltip: "",
+					staticSelection: false, //For tabs - highlighting the currently selected
+					selected: true,
+					callback: () => {
+						console.log("Altitude off callback");
+						console.log(samplePointsMap)
+					}
+				}
+			],
+			triggers: [{
+				selector: "#"+this.chartId+" .map-aux-menu-container",
+				on: "click"
+			}]
+		};
+		new SqsMenu(this.sqs, menu);
+		*/
 
-		if(!chartData.z.max || !chartData.z.min) {
+
+		let zMax = null;
+		let zMin = null;
+		points.forEach(p => {
+			if(p.z) {
+				if(zMax == null || p.z > zMax) {
+					zMax = p.z;
+				}
+				if(zMin == null || p.z < zMin) {
+					zMin = p.z;
+				}
+			}
+		});
+
+		if(!zMax || !zMin) {
 			$(".map-aux-menu-container", "#"+this.chartId).hide();
 		}
 
 		this.olMap = samplePointsMap.olMap;
-
 		$("#"+this.chartId).css("cursor", "default");
 
 		if(!renderBaseLayer) {
 			$("#"+this.chartId).append("<div class='sample-coordinates-map-info-text'>Basemap is not shown since this is a local coordinate system.</div>");
 		}
+	}
+
+	getZcoordinateAsString(zCoord) {
+		let zCoordPresentation = "";
+		if(zCoord && zCoord.measurement) {
+			let title = zCoord.coordinate_method.method_abbrev_or_alt_name ? zCoord.coordinate_method.method_abbrev_or_alt_name : zCoord.coordinate_method.method_name;
+			let unitString = zCoord.coordinate_method.unit.unit_abbrev ? zCoord.coordinate_method.unit.unit_abbrev : zCoord.coordinate_method.unit.unit_name;
+			zCoordPresentation = title+" "+parseFloat(zCoord.measurement)+" "+unitString;
+		}
+
+		return zCoordPresentation;
+	}
+
+	bringSampleIntoView(sampleInfo) {	
+		console.log(sampleInfo);
 	}
 
 	auxOptionsMenu(anchorSelector) {
@@ -699,13 +574,18 @@ class SiteReportChart {
 	}
 
 	getZCoordinateFromCoordinates(coordinates) {
-		let zCoord = null;
+		let zCoords = [];
 		coordinates.forEach(coordinate => {
-			if(coordinate.dimension.dimension_name == "Z/Altitude") {
-				zCoord = coordinate;
+			if(this.sqs.config.zCoordinateDimensionIds.includes(coordinate.dimension.dimension_id)) {
+				zCoords.push(coordinate);
 			}
 		});
-		return zCoord;
+
+		if(zCoords.length > 1) {
+			console.warn("Multiple Z coordinates found. Using the first one.");
+		}
+
+		return zCoords[0];
 	}
 
 	transformCoordinatesToWGS84(coordinates) {

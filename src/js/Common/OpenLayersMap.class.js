@@ -58,7 +58,8 @@ class OpenLayersMap {
 		let stamenLayer = new TileLayer({
 			source: new Stamen({
 				layer: 'terrain-background',
-				wrapX: true
+				wrapX: true,
+				attributions: "Baselayer © <a target='_blank' href='https://stamen.com'>Stamen Design</a>"
 			}),
 			visible: true
 		});
@@ -72,7 +73,8 @@ class OpenLayersMap {
 			source: new BingMaps({
 				key: 'At_1FuTga4p88618KkMhqxYZE71lCvBhzEx7ccisF9rShHoLsDLv-5zzGh3l25X5',
 				imagerySet: "Aerial",
-				wrapX: true
+				wrapX: true,
+				attributions: "Baselayer © <a target='_blank' href='https://www.microsoft.com/en-us/maps'>Microsoft Corporation</a>"
 			}),
 			visible: false
 		});
@@ -81,12 +83,13 @@ class OpenLayersMap {
 			"title": "Bing Aerial",
 			"type": "baseLayer"
 		});
-		
+
 		let bingAerialLabelsLayer = new TileLayer({
 			source: new BingMaps({
 				key: this.sqs.config.keys.bingMaps,
 				imagerySet: "AerialWithLabels",
-				wrapX: true
+				wrapX: true,
+				attributions: "Baselayer © <a target='_blank' href='https://www.microsoft.com/en-us/maps'>Microsoft Corporation</a>"
 			}),
 			visible: false
 		});
@@ -99,7 +102,7 @@ class OpenLayersMap {
 		let arcticDemLayer = new TileLayer({
 			source: new TileArcGISRest({
 				url: "http://elevation2.arcgis.com/arcgis/rest/services/Polar/ArcticDEM/ImageServer",
-				attributions: "<a target='_blank' href='https://www.pgc.umn.edu/data/arcticdem/'>NSF PGC ArcticDEM</a>",
+				attributions: "Baselayer © <a target='_blank' href='https://www.pgc.umn.edu/data/arcticdem/'>NSF PGC ArcticDEM</a>",
 				wrapX: true
 			}),
 			visible: false
@@ -110,11 +113,11 @@ class OpenLayersMap {
 			"type": "baseLayer"
 		});
 
-
 		let osmLayer = new TileLayer({
 			source: new XYZ({
 				url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-				wrapX: true
+				wrapX: true,
+				attributions: "Baselayer © <a target='_blank' href='https://www.openstreetmap.org/'>OpenStreetMap</a>"
 			}),
 			visible: false
 		});
@@ -124,12 +127,27 @@ class OpenLayersMap {
 			"type": "baseLayer"
 		});
 
+		let openTopoLayer = new TileLayer({
+			source: new XYZ({
+				url: 'https://{a-c}.tile.opentopomap.org/{z}/{x}/{y}.png',
+				wrapX: true,
+				attributions: "Baselayer © <a target='_blank' href='https://www.opentopomap.org/'>OpenTopoMap</a>"
+			}),
+			visible: false
+		});
+		openTopoLayer.setProperties({
+			"layerId": "topoMap",
+			"title": "OpenTopoMap",
+			"type": "baseLayer"
+		});
+
 		
 		this.baseLayers.push(stamenLayer);
 		this.baseLayers.push(bingAerialLayer);
 		this.baseLayers.push(bingAerialLabelsLayer);
 		this.baseLayers.push(arcticDemLayer);
 		this.baseLayers.push(osmLayer);
+		this.baseLayers.push(openTopoLayer);
 		
 		//Define data layers
         let dataLayer = new VectorLayer();
@@ -934,7 +952,12 @@ class OpenLayersMap {
 
 				for(var fk in prop.features) {
 					let fprop = prop.features[fk].getProperties();
-					tableRows += "<tr data='"+fprop.name+"' row-id='"+fprop.id+"'>";
+					let data = JSON.stringify({
+						sampleName: fprop.name,
+						sampleGroupId: fprop.sampleGroupId,
+						sampleGroupName: fprop.sampleGroupName
+					});
+					tableRows += "<tr data='"+data+"' row-id='"+fprop.id+"'>";
 					tableRows += "<td>"+fprop.tooltip+"</td>";
 					tableRows += "</tr>";
 				}
