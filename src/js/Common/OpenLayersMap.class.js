@@ -5,7 +5,7 @@
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer, VectorTile as VectorTileLayer, Heatmap as HeatmapLayer } from 'ol/layer';
-import { Stamen, BingMaps, TileArcGISRest, XYZ } from 'ol/source';
+import { StadiaMaps, BingMaps, TileArcGISRest, XYZ } from 'ol/source';
 import { Group as GroupLayer } from 'ol/layer';
 import Overlay from 'ol/Overlay';
 import GeoJSON from 'ol/format/GeoJSON';
@@ -50,9 +50,14 @@ class OpenLayersMap {
 
 		//Define base layers
 		let stamenLayer = new TileLayer({
-			source: new Stamen({
-				layer: 'terrain-background',
-				wrapX: true
+			source: new StadiaMaps({
+				layer: 'stamen_terrain_background',
+				wrapX: true,
+				url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}.png",
+				attributions: `&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>
+				&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>
+				&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>
+				&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>`
 			}),
 			visible: true
 		});
@@ -717,7 +722,7 @@ class OpenLayersMap {
 
         this.olMap = new Map({
             target: renderTarget,
-			attribution: false,
+			attribution: true,
             controls: [attribution], //Override default controls and set NO controls
             layers: new GroupLayer({
                 layers: this.baseLayers
@@ -731,11 +736,7 @@ class OpenLayersMap {
             loadTilesWhileInteracting: true,
             loadTilesWhileAnimating: true
         });
-
-		// Add CSS styling to position the attribution control
-		var attributionElement = this.olMap.getTargetElement().getElementsByClassName('ol-attribution')[0];
-		attributionElement.getElementsByTagName("button")[0].style.display = "none";
-
+		
         this.setMapDataLayer("abundancePoints");
 
 		this.fitToExtent();

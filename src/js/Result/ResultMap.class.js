@@ -8,7 +8,7 @@ import SqsMenu from '../SqsMenu.class';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Image as ImageLayer } from 'ol/layer';
-import { Stamen, BingMaps, ImageArcGISRest } from 'ol/source';
+import { StadiaMaps, BingMaps, ImageArcGISRest } from 'ol/source';
 import { Group as GroupLayer } from 'ol/layer';
 import Overlay from 'ol/Overlay';
 import GeoJSON from 'ol/format/GeoJSON';
@@ -94,9 +94,14 @@ class ResultMap extends ResultModule {
 
 		//Define base layers
 		let stamenLayer = new TileLayer({
-			source: new Stamen({
-				layer: 'terrain-background',
-				wrapX: true
+			source: new StadiaMaps({
+				layer: 'stamen_terrain_background',
+				wrapX: true,
+				url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}.png",
+				attributions: ['&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>', 
+					'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>',
+					'&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>',
+					'&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>'],
 			}),
 			visible: true
 		});
@@ -400,10 +405,10 @@ class ResultMap extends ResultModule {
 				collapsible: false,
 				collapsed: false,
 			});
-
+			
 			this.olMap = new Map({
 				target: this.renderMapIntoNode,
-				attribution: false,
+				attribution: true,
 				controls: [attribution], //Override default controls and set NO controls
 				layers: new GroupLayer({
 					layers: this.baseLayers
@@ -417,10 +422,6 @@ class ResultMap extends ResultModule {
 				loadTilesWhileInteracting: true,
 				loadTilesWhileAnimating: true
 			});
-
-			// Add CSS styling to position the attribution control
-			var attributionElement = this.olMap.getTargetElement().getElementsByClassName('ol-attribution')[0];
-			attributionElement.getElementsByTagName("button")[0].style.display = "none";
 
 			this.olMap.on("moveend", () => {
 				var newZoomLevel = this.olMap.getView().getZoom();
@@ -454,9 +455,6 @@ class ResultMap extends ResultModule {
 
 			extent = extentNW.concat(extentSE);
 		}
-
-
-		//let extent = extentNW.concat(extentSE);
 
 		this.olMap.getView().fit(extent, {
 			padding: [20, 20, 20, 20],

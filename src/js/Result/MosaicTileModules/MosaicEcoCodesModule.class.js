@@ -49,6 +49,7 @@ class MosaicEcoCodesModule extends MosaicTileModule {
             body: JSON.stringify(resultMosaic.sites)
         });
         let responseData = await response.json();
+		this.data = responseData;
 
         responseData.ecocode_groups.sort(function(a, b) {
             return b.totalAbundance - a.totalAbundance;
@@ -134,6 +135,25 @@ class MosaicEcoCodesModule extends MosaicTileModule {
     async unrender() {
         this.pendingRequestPromise = null;
         this.active = false;
+    }
+
+	formatDataForExport(data, format = "json") {
+		console.log(data);
+		
+        if(format == "csv") {
+            let includeColumns = ["abbreviation", "ecocode_definition_id", "name", "totalAbundance"];
+
+            //remove columns that we don't want to include
+            data = data.ecocode_groups.map((group) => {
+                let newItem = {};
+                includeColumns.forEach((column) => {
+                    newItem[column] = group[column];
+                });
+                return newItem;
+            });
+        }
+
+        return data;
     }
 }
 

@@ -1,7 +1,7 @@
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Image as ImageLayer } from 'ol/layer';
-import { Stamen, BingMaps, ImageArcGISRest } from 'ol/source';
+import { StadiaMaps, BingMaps, ImageArcGISRest } from 'ol/source';
 import { Group as GroupLayer } from 'ol/layer';
 import Overlay from 'ol/Overlay';
 import GeoJSON from 'ol/format/GeoJSON';
@@ -60,12 +60,17 @@ class MapFacet extends Facet {
 
 		this.olMap = new Map({
 			//target: 'chart-container',
-			attribution: false,
+			attribution: true,
 			controls: [attribution],
 			layers: [
 			  new TileLayer({
-	            source: new Stamen({
-	              layer: 'terrain-background'
+	            source: new StadiaMaps({
+	              layer: 'stamen_terrain_background',
+				  url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}.png",
+				  attributions: `&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>
+					&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>
+					&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>
+					&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>`
 	            })
 	          })
 			],

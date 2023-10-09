@@ -16,7 +16,6 @@ class MosaicTileModule {
     }
 
     async render() {
-
     }
 
     async update() {

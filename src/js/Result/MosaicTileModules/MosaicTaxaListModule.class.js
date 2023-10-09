@@ -41,6 +41,8 @@ class MosaicTaxaListModule extends MosaicTileModule {
             return false;
         }
 
+        this.data = data;
+
         let renderMaxCount = 15;
 
         //render the data as a table
@@ -92,7 +94,7 @@ class MosaicTaxaListModule extends MosaicTileModule {
 
     formatDataForExport(data, format = "json") {
         if(format == "csv") {
-            let includeColumns = ["description","method_abbrev_or_alt_name","method_name","dataset_count"];
+            let includeColumns = ["abundance", "family", "genus", "species", "taxon_id"];
 
             //remove columns that we don't want to include
             data = data.map((item) => {
