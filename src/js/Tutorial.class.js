@@ -395,6 +395,7 @@ class Tutorial {
 
     start() {
       $("#tutorial-question").hide();
+      this.sqs.dialogManager.hidePopOver();
       this.tour.start();
 
       setTimeout(() => {
