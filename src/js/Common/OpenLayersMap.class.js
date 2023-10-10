@@ -53,7 +53,7 @@ class OpenLayersMap {
 			source: new StadiaMaps({
 				layer: 'stamen_terrain_background',
 				wrapX: true,
-				url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}.png",
+				url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.png",
 				attributions: `&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>
 				&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>
 				&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>
