@@ -14,7 +14,7 @@ import proj4 from "proj4";
 
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Image as ImageLayer } from 'ol/layer';
+import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Image as ImageLayer, Graticule } from 'ol/layer';
 import { Stamen, BingMaps, ImageArcGISRest, OSM } from 'ol/source';
 import { Group as GroupLayer } from 'ol/layer';
 import Overlay from 'ol/Overlay';
@@ -477,6 +477,17 @@ class SiteReportChart {
 
 		if(!renderBaseLayer) {
 			$("#"+this.chartId).append("<div class='sample-coordinates-map-info-text'>Basemap is not shown since this is a local coordinate system.</div>");
+			// Create a Graticule control with fine grey lines
+			let graticule = new Graticule({
+				strokeStyle: new Stroke({
+					color: 'rgba(0, 0, 0, 0.5)',
+					width: 1,
+					lineDash: [0.5, 4], // Customize the line style
+				}),
+				showLabels: true, // Optionally hide labels
+			});
+			
+			samplePointsMap.olMap.addControl(graticule);
 		}
 	}
 

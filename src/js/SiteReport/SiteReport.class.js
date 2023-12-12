@@ -1113,6 +1113,10 @@ class SiteReport {
 		let rowObj = dataTable.row((idx, data) => data[0] === sampleId);
 		var rowNode = dataTable.row(rowObj.index()).node();
 		$("td", rowNode).addClass("highlighted-table-row");
+
+		$("td", rowNode)[0].addEventListener('animationend', function() {
+			$("td", rowNode).removeClass('highlighted-table-row');
+		});
 	}
 
 	/*
