@@ -3409,6 +3409,11 @@ svg text {
   margin-right: .5em;
 }
 
+.site-report-subtable td {
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+}
+
 .highlighted-table-row {
   animation: gradientAnimation .5s ease-out 5;
 }
@@ -3416,11 +3421,15 @@ svg text {
 @keyframes gradientAnimation {
   0% {
     background: #c6c6c6;
+    border-top: 2px solid $aux-color;
+    border-bottom: 2px solid $aux-color;
   }
   25%, 50%, 75% {
     background: #fff; /* Change to the color you want for the flash */
   }
   100% {
     background: #c6c6c6;
+    border-top: 2px solid transparent;
+    border-bottom: 2px solid transparent;
   }
 }
