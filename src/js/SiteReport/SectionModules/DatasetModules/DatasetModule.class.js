@@ -174,49 +174,6 @@ class DatasetModule {
 		return methodDatasets;
 	}
 
-    claimDatasetsOLD(site) {
-		let methodDatasets = [];
-		let methodDatasetsSelectedByGroup = [];
-		let methodDatasetsSelectedById = [];
-		if(typeof this.methodGroupIds != "undefined" && this.methodGroupIds.length > 0) {
-			methodDatasetsSelectedByGroup = site.datasets.filter(dataset => {
-				return this.methodGroupIds.includes(dataset.method_group_id);
-			});
-			//console.log(this.constructor.name+" claimed datasets (by group):", methodDatasets);
-		}
-		if(typeof this.methodIds != "undefined") {
-			methodDatasetsSelectedById = site.datasets.filter(dataset => {
-				return this.methodIds.includes(dataset.method_id);
-			});
-			//console.log(this.constructor.name+" claimed datasets (by id):", methodDatasets);
-		}
-
-		methodDatasets = methodDatasetsSelectedByGroup.concat(methodDatasetsSelectedById);
-
-		let unclaimedDatasets = [];
-		site.datasets.forEach(dataset => {
-			let isClaimed = false;
-			methodDatasets.forEach(methodDataset => {
-				if(methodDataset.dataset_id == dataset.dataset_id) {
-					isClaimed = true;
-				}
-			});
-			if(!isClaimed) {
-				unclaimedDatasets.push(dataset);
-			}
-		});
-		
-		site.datasets = unclaimedDatasets;
-		
-		/* this is much more elegant method for finding the unclaimed datasets, but it doesn't work with method groups...
-		site.datasets = site.datasets.filter(dataset => {
-			return !this.methodIds.includes(dataset.method_id);
-		});
-		*/
-
-		return methodDatasets;
-	}
-
     /**
      * Function: offerAnalyses
      */

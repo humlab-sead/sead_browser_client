@@ -10,7 +10,7 @@ import { Group as GroupLayer } from 'ol/layer';
 import Overlay from 'ol/Overlay';
 import GeoJSON from 'ol/format/GeoJSON';
 import MVT from 'ol/format/MVT';
-import { Cluster as ClusterSource, Vector as VectorSource, VectorTile as VectorTileSource } from 'ol/source';
+import { Cluster as ClusterSource, Vector as VectorSource, VectorTile as VectorTileSource, TileDebug as TileDebugSource } from 'ol/source';
 import { fromLonLat, toLonLat, get as getProjection } from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
@@ -34,6 +34,15 @@ class OpenLayersMap {
 		this.selectedStyleType = null;
 		this.featureStyleCallback = null;
 		this.defaultColorScheme = this.sqs.color.getColorScheme(20, false);
+		this.featureStyleCallbacks = [];
+
+		this.registerFeatureStyleCallback("default", (feature, resolution) => {
+			return this.getSingularPointStyle(feature);
+		}, true);
+
+		this.registerFeatureStyleCallback("colorCodedAltitude", (feature, resolution) => {
+			return this.getColorCodedAltitudePointStyle(feature);
+		});
 
         //These attributes are used to set the style of map points
 		this.style = {
@@ -203,6 +212,33 @@ class OpenLayersMap {
 			console.log(event);
 		});
     }
+
+	geFeatureStyle(name = null) {
+		if(name == null) {
+			name = this.selectedStyleType;
+		}
+		for(let key in this.featureStyleCallbacks) {
+			if(this.featureStyleCallbacks[key].name == name) {
+				return this.featureStyleCallbacks[key];
+			}
+		}
+		return false;
+	}
+
+	registerFeatureStyleCallback(name, featureStyleCallback, selected = false) {
+		let style = {
+			name: name,
+			selected: selected,
+			callback: featureStyleCallback
+		};
+		this.featureStyleCallbacks.push(style);
+		
+		if(selected) {
+			this.setMapDataLayerStyleType(name);
+		}
+		
+		return style;
+	}
 
 	addGbifLayer(url) {
 		const gbifLayer = new TileLayer({
@@ -429,13 +465,28 @@ class OpenLayersMap {
 	}
 
 	setMapDataLayerStyleType(styleType = null) {
-		this.selectedStyleType = styleType;
-		this.dataLayers.forEach((layer, index, array) => {
-			if(layer.getVisible() == true) {
-				this.removeLayer(layer.getProperties().layerId);
-				layer.getProperties().renderCallback(this);
+		for(let key in this.featureStyleCallbacks) {
+			if(this.featureStyleCallbacks[key].name == styleType) {
+				this.featureStyleCallbacks[key].selected = true;
+				this.featureStyleCallback = this.featureStyleCallbacks[key].callback;
 			}
-		});
+			else {
+				this.featureStyleCallbacks[key].selected = false;
+			}
+		}
+
+		let reRender = false;
+		if(this.selectedStyleType != styleType) {
+			reRender = true;
+		}
+		this.selectedStyleType = styleType;
+		if(reRender) {
+			this.dataLayers.forEach((layer, index, array) => {
+				if(layer.getVisible() == true) {
+					layer.getProperties().renderCallback(this);
+				}
+			});
+		}
 	}
 
 	/*
@@ -469,17 +520,11 @@ class OpenLayersMap {
 			source: pointsSource
 		});
 
-		let defaultStyleCallback = (feature, resolution) => {
-			var style = this.getClusterPointStyle(feature, {
-				labels: printLabels,
-				fixedPointSize: fixedPointSize
-			});
-			return style;
-		}
-
+		console.log(this.geFeatureStyle())
+		
 		var clusterLayer = new VectorLayer({
 			source: clusterSource,
-			style: this.featureStyleCallback != null ? this.featureStyleCallback : defaultStyleCallback,
+			style: this.geFeatureStyle().callback,
 			zIndex: 1
 		});
 		
@@ -487,7 +532,13 @@ class OpenLayersMap {
 			"layerId": "clusterPoints",
 			"type": "dataLayer"
 		});
-		
+
+		if(this.getLayerByName("clusterPoints") != null) {
+			console.log("removing clusterPoints layer");
+			this.removeLayer("clusterPoints");
+		}
+
+		console.log("adding clusterPoints layer");
 		this.olMap.addLayer(clusterLayer);
 	}
 
@@ -504,6 +555,9 @@ class OpenLayersMap {
 			"type": "baseLayer"
 		});
 		
+		if(this.getLayerByName("gbif") != null) {
+			this.removeLayer("gbif");
+		}
 		this.olMap.addLayer(gbifLayer);
 	}
 
@@ -535,6 +589,9 @@ class OpenLayersMap {
 			"type": "dataLayer"
 		});
 		
+		if(this.getLayerByName("heatmap") != null) {
+			this.removeLayer("heatmap");
+		}
 		this.olMap.addLayer(layer);
 	}
 
@@ -554,18 +611,10 @@ class OpenLayersMap {
 			distance: 0,
 			source: pointsSource
 		});
-
-		let defaultStyleCallback = (feature, resolution) => {
-			var style = this.getSingularPointStyle(feature, {
-				labels: printLabels,
-				fixedPointSize: fixedPointSize
-			});
-			return style;
-		}
 		
 		var clusterLayer = new VectorLayer({
 			source: clusterSource,
-			style: this.featureStyleCallback != null ? this.featureStyleCallback : defaultStyleCallback,
+			style: this.geFeatureStyle().callback,
 			zIndex: 1
 		});
 		
@@ -573,7 +622,9 @@ class OpenLayersMap {
 			"layerId": "points",
 			"type": "dataLayer"
 		});
-		
+		if(this.getLayerByName("points") != null) {
+			this.removeLayer("points");
+		}
 		this.olMap.addLayer(clusterLayer);
 	}
 
@@ -604,7 +655,9 @@ class OpenLayersMap {
 			"layerId": "points",
 			"type": "dataLayer"
 		});
-		
+		if(this.getLayerByName("points") != null) {
+			this.removeLayer("points");
+		}
 		this.olMap.addLayer(clusterLayer);
 	}
 
@@ -624,7 +677,6 @@ class OpenLayersMap {
 		}
 
 		for(var key in data) {
-
 			//this should be a value between 0.0 and 1.0
 			let abundanceNormalized = data[key].abundance / maxAbundance;
 
@@ -655,6 +707,82 @@ class OpenLayersMap {
 		});
 	}
 
+	getColorCodedAltitudePointStyle(feature, options = { selected: false, highlighted: false }) {
+		var pointsNum = feature.get('features').length;
+		var clusterSizeText = pointsNum.toString();
+		if(pointsNum > 999) {
+			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
+		}
+		let pointSize = 10;
+
+		var zIndex = 0;
+		
+		//default values if point is not selected and not highlighted
+		var fillColor = this.style.default.fillColor;
+		var strokeColor = "#00f";
+		var textColor = "#fff";
+
+		let features = feature.get('features');
+		for(let key in features) {
+			let f = features[key];
+			let zCoords = f.get('altitude');
+			let averageZValue = 0;
+			zCoords.forEach(z => {
+				if(z.coordinate_method.method_id == 76) { //76 is height above sea level
+					console.log(z.measurement);
+					averageZValue += z.measurement;
+				}
+			});
+
+			averageZValue = averageZValue / zCoords.length;
+
+			//calculate a color gradient based on the average z value between zMax and zMin¨
+			console.log(averageZValue, this.zMax);
+			let v = 255 * (averageZValue / this.zMax);
+			fillColor = "rgba("+v+", 0, 0)";
+			console.log(fillColor);
+
+		}
+		
+		//if point is highlighted (its a hit when doing a search)
+		if(options.highlighted) {
+			fillColor = this.style.highlighted.fillColor;
+			strokeColor = this.style.highlighted.strokeColor;
+			textColor = this.style.highlighted.textColor;
+			zIndex = 10;
+		}
+		//if point is selected (clicked on)
+		if(options.selected) {
+			fillColor = this.style.selected.fillColor;
+			strokeColor = this.style.selected.strokeColor;
+			textColor = this.style.selected.textColor;
+			zIndex = 10;
+		}
+
+		var styles = [];
+		styles.push(new Style({
+			image: new CircleStyle({
+				radius: pointSize,
+				stroke: new Stroke({
+					color: strokeColor
+				}),
+				fill: new Fill({
+					color: fillColor
+				})
+			}),
+			zIndex: zIndex,
+			text: new Text({
+				text: clusterSizeText == 1 ? "" : clusterSizeText,
+				offsetY: 1,
+				fill: new Fill({
+					color: textColor
+				})
+			})
+		}));
+		
+		return styles;
+	}
+
     /*
 	* Function: getSingularPointStyle
 	*/
@@ -664,7 +792,7 @@ class OpenLayersMap {
 		if(pointsNum > 999) {
 			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
 		}
-		let pointSize = 8;
+		let pointSize = 10;
 
 		var zIndex = 0;
 		
@@ -708,6 +836,99 @@ class OpenLayersMap {
 				})
 			})
 		}));
+		
+		return styles;
+	}
+
+	/*
+	* Function: getClusterPointStyle
+	*/
+	getClusterPointStyle(feature, options = { selected: false, highlighted: false, labels: true, fixedPointSize: false, showOnlySampleGroups: [] }) {
+		var pointsNum = feature.get('features').length;
+		var clusterSizeText = pointsNum.toString();
+		if(pointsNum > 999) {
+			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
+		}
+
+		let pointSize = 10;
+		if(!options.fixedPointSize) {
+			pointSize = 8+(Math.log10(feature.getProperties().features.length)*15);
+		}
+		
+		feature.getProperties().features.forEach(f => {
+			if(options.showOnlySampleGroups && options.showOnlySampleGroups.length > 0) {
+				if(options.showOnlySampleGroups.indexOf(f.get('sampleGroupId')) == -1) {
+					pointSize = 0;
+				}
+			}
+		});
+		
+		var zIndex = 0;
+		
+		//default values if point is not selected and not highlighted
+		var fillColor = this.style.default.fillColor;
+		var strokeColor = this.style.default.strokeColor;
+		var textColor = "#fff";
+		
+		//if point is highlighted (its a hit when doing a search)
+		if(options.highlighted) {
+			fillColor = this.style.highlighted.fillColor;
+			strokeColor = this.style.highlighted.strokeColor;
+			textColor = this.style.highlighted.textColor;
+			zIndex = 10;
+		}
+		//if point is selected (clicked on)
+		if(options.selected) {
+			fillColor = this.style.selected.fillColor;
+			strokeColor = this.style.selected.strokeColor;
+			textColor = this.style.selected.textColor;
+			zIndex = 10;
+		}
+
+		var styles = [];
+		styles.push(new Style({
+			image: new CircleStyle({
+				radius: pointSize,
+				stroke: new Stroke({
+					color: strokeColor
+				}),
+				fill: new Fill({
+					color: fillColor
+				})
+			}),
+			zIndex: zIndex,
+			text: new Text({
+				text: clusterSizeText,
+				offsetY: 1,
+				fill: new Fill({
+					color: textColor
+				})
+			})
+		}));
+		
+		
+		if(pointsNum == 1) {
+			var pointName = feature.get('features')[0].getProperties().name;
+			if(pointName != null && options.labels) {
+				styles.push(new Style({
+					zIndex: zIndex,
+					text: new Text({
+						text: pointName,
+						offsetX: 15,
+						textAlign: 'left',
+						fill: new Fill({
+							color: '#fff'
+						}),
+						stroke: new Stroke({
+							color: '#000',
+							width: 2
+						}),
+						scale: 1.2
+					})
+				}));
+			}
+			
+		}
 		
 		return styles;
 	}
@@ -820,10 +1041,6 @@ class OpenLayersMap {
     render(renderTargetSelector) {
         let renderTarget = document.querySelector(renderTargetSelector);
 		this.renderTargetSelector = renderTargetSelector;
-		
-		//get height of parent element
-		//let parentHeight = renderTarget.parentElement.clientHeight;
-		//renderTarget.style.height = parentHeight+"px";
 
         renderTarget.innerHTML = "";
 
@@ -853,10 +1070,6 @@ class OpenLayersMap {
 		// Add CSS styling to position the attribution control
 		var attributionElement = this.olMap.getTargetElement().getElementsByClassName('ol-attribution')[0];
 		attributionElement.getElementsByTagName("button")[0].style.display = "none";
-
-        //this.setMapDataLayer("abundancePoints");
-
-		//this.fitToExtent();
     }
 
 	addSelectInteraction(selectStyle = null) {
@@ -957,9 +1170,27 @@ class OpenLayersMap {
 						sampleGroupId: fprop.sampleGroupId,
 						sampleGroupName: fprop.sampleGroupName
 					});
+					let ttSampleId = "tt-"+nanoid();
 					tableRows += "<tr data='"+data+"' row-id='"+fprop.id+"'>";
-					tableRows += "<td>"+fprop.tooltip+"</td>";
+					tableRows += "<td><span id='"+ttSampleId+"' class='sample-map-tooltip-link'>"+fprop.tooltip+"</span></td>";
 					tableRows += "</tr>";
+
+					/*
+					this.sqs.registerDelayedCallback("#"+ttSampleId, () => {
+						console.log(data, fprop.id, fprop.sampleGroupId, fprop.tooltip);
+					});
+					*/
+					
+					this.sqs.tooltipManager.registerTooltip("#"+ttSampleId, () => {
+						let sr = this.sqs.siteReportManager.siteReport;
+						sr.focusOn({ section: "samples" });
+						sr.expandSampleGroup(fprop.sampleGroupId, fprop.name);
+						sr.pageFlipToSample(fprop.sampleGroupId, fprop.name);
+						sr.highlightSampleRow(fprop.sampleGroupId, fprop.name);
+					}, {
+						eventType: "click",
+					});
+					
 				}
 
 				tableRows = sqs.sqsOffer("samplePositionMapPopup", {
@@ -1054,102 +1285,7 @@ class OpenLayersMap {
 		return styles;
 	}
 
-	setFeatureStyleCallback(callback) {
-		this.featureStyleCallback = callback;
-	}
-
-	/*
-	* Function: getClusterPointStyle
-	*/
-	getClusterPointStyle(feature, options = { selected: false, highlighted: false, labels: true, fixedPointSize: false, showOnlySampleGroups: [] }) {
-		var pointsNum = feature.get('features').length;
-		var clusterSizeText = pointsNum.toString();
-		if(pointsNum > 999) {
-			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
-		}
-
-		let pointSize = 8;
-		if(!options.fixedPointSize) {
-			pointSize = 8+(Math.log10(feature.getProperties().features.length)*15);
-		}
-		
-		feature.getProperties().features.forEach(f => {
-			if(options.showOnlySampleGroups && options.showOnlySampleGroups.length > 0) {
-				if(options.showOnlySampleGroups.indexOf(f.get('sampleGroupId')) == -1) {
-					pointSize = 0;
-				}
-			}
-		});
-		
-		var zIndex = 0;
-		
-		//default values if point is not selected and not highlighted
-		var fillColor = this.style.default.fillColor;
-		var strokeColor = this.style.default.strokeColor;
-		var textColor = "#fff";
-		
-		//if point is highlighted (its a hit when doing a search)
-		if(options.highlighted) {
-			fillColor = this.style.highlighted.fillColor;
-			strokeColor = this.style.highlighted.strokeColor;
-			textColor = this.style.highlighted.textColor;
-			zIndex = 10;
-		}
-		//if point is selected (clicked on)
-		if(options.selected) {
-			fillColor = this.style.selected.fillColor;
-			strokeColor = this.style.selected.strokeColor;
-			textColor = this.style.selected.textColor;
-			zIndex = 10;
-		}
-
-		var styles = [];
-		styles.push(new Style({
-			image: new CircleStyle({
-				radius: pointSize,
-				stroke: new Stroke({
-					color: strokeColor
-				}),
-				fill: new Fill({
-					color: fillColor
-				})
-			}),
-			zIndex: zIndex,
-			text: new Text({
-				text: clusterSizeText,
-				offsetY: 1,
-				fill: new Fill({
-					color: textColor
-				})
-			})
-		}));
-		
-		
-		if(pointsNum == 1) {
-			var pointName = feature.get('features')[0].getProperties().name;
-			if(pointName != null && options.labels) {
-				styles.push(new Style({
-					zIndex: zIndex,
-					text: new Text({
-						text: pointName,
-						offsetX: 15,
-						textAlign: 'left',
-						fill: new Fill({
-							color: '#fff'
-						}),
-						stroke: new Stroke({
-							color: '#000',
-							width: 2
-						}),
-						scale: 1.2
-					})
-				}));
-			}
-			
-		}
-		
-		return styles;
-	}
+	
 
 }
 

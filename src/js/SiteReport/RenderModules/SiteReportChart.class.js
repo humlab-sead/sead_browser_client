@@ -1,4 +1,3 @@
-import shortid from "shortid";
 import { nanoid } from "nanoid";
 import { 
 	Chart, 
@@ -35,6 +34,7 @@ import { map } from "jquery";
 import SqsMenu from "../../SqsMenu.class.js";
 
 import OpenLayersMap from "../../Common/OpenLayersMap.class.js";
+import { local } from "d3";
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {
@@ -150,7 +150,7 @@ class SiteReportChart {
 			console.warn("X/Y coordinate system mismatch.");
 			return coordinateSystems;
 		}
-		else {
+		else if(xyCoords.length > 0){
 			coordinateSystems.xy = xyCoords[0].coordinate_method;
 		}
 
@@ -171,22 +171,12 @@ class SiteReportChart {
 
 		return coordinateSystems;
 	}
-	  
 
-	renderCoordinateMap() {
-		var contentItem = this.contentItem;
-		//let cir = this.siteReport.getContentItemRenderer(contentItem);
-		//var ro = cir.getSelectedRenderOption(contentItem);
-
+	getSampleMapPoints(contentItem) {
+		let points = [];
 		let selectedSampleGroupId = this.getSelectedRenderOptionExtra("Sample group").value;
 		let sampleGroupIdColumnKey = this.getTableColumnKeyByTitle("Sample group id");
 		let sampleGroupNameColumnKey = this.getTableColumnKeyByTitle("Group name");
-
-		let points = [];
-
-		let coordinateSystem = null;
-		let renderMap = true;
-		let renderBaseLayer = true;
 
 		contentItem.data.rows.forEach(row => {
 			if(row[sampleGroupIdColumnKey].value == selectedSampleGroupId || selectedSampleGroupId == "all") {
@@ -206,52 +196,60 @@ class SiteReportChart {
 
 						cell.value.rows.forEach(subTableRow => {
 							let coordinates = subTableRow[subTableCoordinateColumnKey].data;
-							if(coordinates.length > 0) {
-								let coordSys = this.getCoordinateSystems(coordinates);
-								let zCoordinateSystem = coordSys.z;
 
-								if(coordinateSystem == null) { //if this is the first sample we are handling, determine the coordinate system
-									coordinateSystem = coordSys.xy;
-								}
-								if(coordinateSystem != null && coordSys.xy.method_id != coordinateSystem.method_id) { //all samples must be in the same coordinate system
-									console.warn("Coordinate system mismatch between samples. Cannot render map.");
-									renderMap = false;
-								}
-								
-								let transformed = this.transformCoordinatesToWGS84(coordinates);
-								if(transformed == null) {
-									console.warn("Failed to transform coordinates to WGS84 for sample group "+selectedSampleGroupId);
-									return false;
-								}
-
-								let zCoord = this.getZCoordinateFromCoordinates(coordinates);
-								let zCoordPresentation = this.getZcoordinateAsString(zCoord);
-								
-
-								points.push({
-									x: transformed[0],
-									y: transformed[1],
-									z: zCoordPresentation,
-									sampleName: subTableRow[0].value,
-									tooltip: "Sample "+subTableRow[0].value,
-									sampleGroupId: row[sampleGroupIdColumnKey].value,
-									sampleGroupName: row[sampleGroupNameColumnKey].value
-								});
+							if(coordinates.length == 0) {
+								return;
 							}
+
+							//if we have coordinates..
+							//1. if something which can be translated to wgs84 is available, choose it
+							let planarCoordPairs = this.filterAndPairPlanarCoordinates(coordinates);
+							let coordinatePair = null;
+							if(planarCoordPairs.length > 0) {
+								//planarCoordSys = planarCoords[0].coordinate_method;
+								coordinatePair = this.preparePlanarCoordinates(planarCoordPairs);
+							}
+
+							//a sample can have multiple z-coordinates, such as in the case where we have both "Depth from surface lower sample boundary" and "Depth from surface upper sample boundary"
+							let zCoords = this.getZCoordinatesFromCoordinates(coordinates);
+							let zCoordPresentation = "";
+							zCoords.forEach(zCoord => {
+								if(zCoordPresentation != "") {
+									zCoordPresentation += ", ";
+								}
+								zCoordPresentation += this.getZcoordinateAsString(zCoord);
+							});
+
+							points.push({
+								x: coordinatePair ? coordinatePair.coordinates[0] : null,
+								y: coordinatePair ? coordinatePair.coordinates[1] : null,
+								z: zCoords,
+								zString: zCoordPresentation,
+								planarCoordSys: coordinatePair ? coordinatePair.coordinateSystem : null,
+								sampleName: subTableRow[0].value,
+								tooltip: "Sample "+subTableRow[0].value,
+								sampleGroupId: row[sampleGroupIdColumnKey].value,
+								sampleGroupName: row[sampleGroupNameColumnKey].value
+							});
+
 						});
 					}
 				});
 			}
 		});
 
-		if(coordinateSystem == null) {
-			console.warn("WARN: No coordinate system found for sample group "+selectedSampleGroupId);
-			return false;
-		}
+		return points;
+	}
+	
+	renderCoordinateMap() {
+		let contentItem = this.contentItem;
 
-		if(coordinateSystem.method_id == 105) {
-			renderBaseLayer = false;
-		}
+		let selectedSampleGroupId = this.getSelectedRenderOptionExtra("Sample group").value;
+
+		let renderMap = true;
+		let renderBaseLayer = true;
+
+		let points = this.getSampleMapPoints(contentItem);
 
 		if(points.length == 0) {
 			console.warn("WARN: No usable coordinates found for sample group "+selectedSampleGroupId);
@@ -262,16 +260,38 @@ class SiteReportChart {
 			return false;
 		}
 	  
-		this.chartId = "chart-" + shortid.generate();
+		this.chartId = "chart-" + nanoid();
 		var chartContainer = $("<div id='" + this.chartId + "' class='sample-coordinates-map-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
 		let mapFeatures = [];
 
+		//check that all points are in the EPSG:4326 coordinate system
+		let localCoordinateSystemFound = false;
+		let epsg4326CoordinateSystemFound = false;
 		points.forEach(p => {
+			if(p.planarCoordSys != "EPSG:4326") {
+				localCoordinateSystemFound = true;
+			}
+			else {
+				epsg4326CoordinateSystemFound = true;
+			}
+		});
+
+		if(localCoordinateSystemFound && !epsg4326CoordinateSystemFound) {
+			renderBaseLayer = false;
+		}
+
+		points.forEach(p => {
+			if(epsg4326CoordinateSystemFound && p.planarCoordSys != "EPSG:4326") {
+				//if we are currently rendering points in EPSG:4326, skip any points which are not in EPSG:4326
+				console.warn("WARN: Skipping point "+p.sampleName+" since it is not in EPSG:4326 coordinate system.");
+				return;
+			}
+
 			let tooltip = p.sampleGroupName+": Sample <strong>"+p.sampleName+"</strong>";
 			if(p.z) {
-				tooltip += ", "+p.z;
+				tooltip += ", "+p.zString;
 			}
 
 			mapFeatures.push(new Feature({
@@ -300,22 +320,13 @@ class SiteReportChart {
 		}
 		samplePointsMap.render("#"+this.chartId);
 
-		samplePointsMap.setFeatureStyleCallback((feature) => {
+		samplePointsMap.registerFeatureStyleCallback("sampleCoordinateStyle", (feature) => {
 			var pointsNum = feature.get('features').length;
 			var clusterSizeText = pointsNum.toString();
 
-			/*
-			let sampleGroupIds = new Set();
-			feature.get('features').forEach(f => {
-				let fprops = f.getProperties();
-				fprops.sampleGroupId;
-				sampleGroupIds.add(fprops.sampleGroupId);
-			});
-			*/
-
 			return new Style({
 				image: new CircleStyle({
-					radius: 8,
+					radius: 10,
 					stroke: new Stroke({
 						color: samplePointsMap.style.default.strokeColor,
 					}),
@@ -331,27 +342,26 @@ class SiteReportChart {
 					})
 				})
 			});
-		});
+		}, true);
 
 		let selectStyle = (feature) => {
 			var pointsNum = feature.get('features').length;
 			var clusterSizeText = pointsNum.toString();
 			return new Style({
 				image: new CircleStyle({
-				  radius: 8,
-				  fill: new Fill({
-					color: this.sqs.color.hexToRgba(samplePointsMap.defaultColorScheme[4], 0.8)
-				  }),
-				  stroke: new Stroke({
-					color: samplePointsMap.style.selected.strokeColor,
-					width: 1
-				  }),
-				  text: new Text({
+					radius: 10,
+					stroke: new Stroke({
+						color: samplePointsMap.style.default.strokeColor,
+					}),
+					fill: new Fill({
+						color: this.sqs.color.hexToRgba(samplePointsMap.defaultColorScheme[4], 0.8)
+					})
+				}),
+				text: new Text({
 					text: clusterSizeText,
 					offsetY: 1,
 					fill: new Fill({
 						color: '#fff'
-						})
 					})
 				})
 			});
@@ -363,10 +373,10 @@ class SiteReportChart {
 		this.samplePointsMap = samplePointsMap;
 		let extent = samplePointsMap.getLayerByName(layerId).getSource().getSource().getExtent();
 
-		let padding = 30;
+		let padding = 20;
 		samplePointsMap.olMap.getView().fit(extent, {
 			padding: [padding, padding, padding, padding],
-			maxZoom: 16,
+			maxZoom: renderBaseLayer ? 17 : 30,
 		});
 
 		samplePointsMap.addSelectInteraction(selectStyle);
@@ -381,20 +391,23 @@ class SiteReportChart {
 				<div class='menu-row-item'>Base layers</div>
 				<div class='map-base-layer-menu sqs-menu-container'></div>
 			</div>
-			<!--
 			<div class='menu-row-item-divider'></div>
 			<div class='map-aux-menu-container'>
 				<div class='menu-row-item'>Altitude</div>
 				<div class='map-aux-menu sqs-menu-container'></div>
 			</div>
-			-->
 		</div>
 		`;
 
 		$("#"+this.chartId).append(mapMenu);
+		if(renderBaseLayer) {
+			$("#"+this.chartId+" .map-base-layer-menu-container").show();
+		}
+		else {
+			$("#"+this.chartId+" .map-base-layer-menu-container").hide();
+		}
 		samplePointsMap.renderBaseLayerMenu("#"+this.chartId+" .map-base-layer-menu-container");
 		
-		/*
 		var menu = {
 			title: "<i class=\"fa fa-globe result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Baselayer</span>", //The name of the menu as it will be displayed in the UI
 			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
@@ -415,7 +428,7 @@ class SiteReportChart {
 					selected: false,
 					callback: () => {
 						console.log("Altitude on callback");
-						console.log(samplePointsMap)
+						samplePointsMap.setMapDataLayerStyleType("colorCodedAltitude");
 					}
 				},
 				{
@@ -426,7 +439,7 @@ class SiteReportChart {
 					selected: true,
 					callback: () => {
 						console.log("Altitude off callback");
-						console.log(samplePointsMap)
+						samplePointsMap.setMapDataLayerStyleType("sampleCoordinateStyle");
 					}
 				}
 			],
@@ -436,21 +449,24 @@ class SiteReportChart {
 			}]
 		};
 		new SqsMenu(this.sqs, menu);
-		*/
-
+		
 
 		let zMax = null;
 		let zMin = null;
 		points.forEach(p => {
-			if(p.z) {
+			let zValue = this.getZFromPoint(p);
+			if(zValue) {
 				if(zMax == null || p.z > zMax) {
-					zMax = p.z;
+					zMax = zValue;
 				}
 				if(zMin == null || p.z < zMin) {
-					zMin = p.z;
+					zMin = zValue;
 				}
 			}
 		});
+
+		this.zMax = zMax;
+		this.zMin = zMin;
 
 		if(!zMax || !zMin) {
 			$(".map-aux-menu-container", "#"+this.chartId).hide();
@@ -464,11 +480,27 @@ class SiteReportChart {
 		}
 	}
 
+	getZFromPoint(point) {
+		//this is simplistic, it only looks for altitude above sea level
+		for(let key in point.z) {
+			if(point.z[key].coordinate_method.method_id == 76 && typeof point.z[key].measurement != "undefined") {
+				return parseFloat(point.z[key].measurement);
+			}
+		}
+		return null;
+	}
+
 	getZcoordinateAsString(zCoord) {
+		if(!zCoord) {
+			return null;
+		}
 		let zCoordPresentation = "";
 		if(zCoord && zCoord.measurement) {
 			let title = zCoord.coordinate_method.method_abbrev_or_alt_name ? zCoord.coordinate_method.method_abbrev_or_alt_name : zCoord.coordinate_method.method_name;
-			let unitString = zCoord.coordinate_method.unit.unit_abbrev ? zCoord.coordinate_method.unit.unit_abbrev : zCoord.coordinate_method.unit.unit_name;
+			let unitString = "";
+			if(typeof zCoord.coordinate_method.unit != "undefined") {
+				unitString = zCoord.coordinate_method.unit.unit_abbrev ? zCoord.coordinate_method.unit.unit_abbrev : zCoord.coordinate_method.unit.unit_name;
+			}
 			zCoordPresentation = title+" "+parseFloat(zCoord.measurement)+" "+unitString;
 		}
 
@@ -573,7 +605,7 @@ class SiteReportChart {
 		return yCoord;
 	}
 
-	getZCoordinateFromCoordinates(coordinates) {
+	getZCoordinatesFromCoordinates(coordinates) {
 		let zCoords = [];
 		coordinates.forEach(coordinate => {
 			if(this.sqs.config.zCoordinateDimensionIds.includes(coordinate.dimension.dimension_id)) {
@@ -581,73 +613,124 @@ class SiteReportChart {
 			}
 		});
 
-		if(zCoords.length > 1) {
-			console.warn("Multiple Z coordinates found. Using the first one.");
-		}
-
-		return zCoords[0];
+		return zCoords;
 	}
 
-	transformCoordinatesToWGS84(coordinates) {
+	filterAndPairPlanarCoordinates(coordinates) {
+		let planarCoords = [];
+		coordinates.forEach(coordinate => {
+			if(this.sqs.config.xyCoordinateDimensionIds.includes(coordinate.dimension.dimension_id)) {
+				planarCoords.push(coordinate);
+			}
+		});
+
+		//match coordinate pairs based on their coordinate_method_id
+		let uniqueCoordinatePairs = [];
+		let coordinateMethodIds = [];
+		planarCoords.forEach(coordinate => {
+			if(!coordinateMethodIds.includes(coordinate.coordinate_method.method_id)) {
+				coordinateMethodIds.push(coordinate.coordinate_method.method_id);
+			}
+		});
+
+		coordinateMethodIds.forEach(methodId => {
+			let coordinatePair = [];
+			planarCoords.forEach(coordinate => {
+				if(coordinate.coordinate_method.method_id == methodId) {
+					coordinatePair.push(coordinate);
+				}
+			});
+			if(coordinatePair.length == 2) {
+				uniqueCoordinatePairs.push(coordinatePair);
+			}
+		});
+
+		return uniqueCoordinatePairs;
+	}
+
+	preparePlanarCoordinates(coordinatePairs) {
 		//Define projections
 		proj4.defs("EPSG:3006", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
 		proj4.defs("EPSG:3018", "+proj=tmerc +lat_0=0 +lon_0=14.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
 		proj4.defs("EPSG:3019", "+proj=tmerc +lat_0=0 +lon_0=15.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
 		proj4.defs("EPSG:3021", "+proj=tmerc +lat_0=0 +lon_0=18.05827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
 		proj4.defs("EPSG:3024", "+proj=tmerc +lat_0=0 +lon_0=20.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
-		proj4.defs("malmo-local-legacy", "+proj=tmerc +lat_0=0 +lon_0=13.0 +k=1 +x_0=0 +y_0=0 +ellps=intl +towgs84=413,85,396,0,0,0,0 +units=m +no_defs");
 		proj4.defs("EPSG:3007","+proj=tmerc +lat_0=0 +lon_0=12 +k=1 +x_0=150000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs");
-		//proj4.defs("gothenburg-local", "+proj=pipeline +step +proj=latlong +ellps=GRS80 +step +inv +proj=utm +zone=12 +ellps=GRS80 +units=m +no_defs");
 		proj4.defs("SWEREF99_LAT_LONG_TO_1200", "+proj=pipeline +step +proj=latlong +ellps=GRS80 +step +inv +proj=utm +zone=12 +ellps=GRS80 +units=m +no_defs");
 		proj4.defs("SWEREF99_LAT_LONG_TO_3006", "+proj=pipeline +step +proj=latlong +ellps=GRS80 +step +inv +proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
 		proj4.defs("gothenburg-local", "+proj=tmerc +lat_0=0 +lon_0=11.304996 +k=1.00000867 +x_0=-6370680.1969 +y_0=-80.0124 +ellps=GRS80 +units=m +no_defs");
 		proj4.defs("EPSG:3021", '+proj=tmerc +lat_0=0 +lon_0=12 +k=1 +x_0=150000 +y_0=0 +ellps=GRS80 +units=m +no_defs');
+		proj4.defs("EPSG:9999", "+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs");
 
-		let coordinateTrio = {
+		let workingCoordinates = {
 			x: null,
 			y: null,
-			z: null
+			method: null
 		}
 
-		coordinates.forEach(coordinate => {
-			if(coordinate.dimension.dimension_name == "X/North") {
-				coordinateTrio.y = coordinate;
-			}
-			if(coordinate.dimension.dimension_name == "Y/East") { //FIXME: x and y are swapped
-				coordinateTrio.x = coordinate;
-			}
-			if(coordinate.dimension.dimension_name == "Z/Altitude") {
-				coordinateTrio.z = coordinate;
+		//select a coordinate pair to use for the map
+		const coordinateSystemPriority = this.sqs.config.coordinateSystemPriority;
+
+		let selectedCoordinates = null;
+		coordinatePairs.forEach(pair => {
+			//choose the highest priority coordinate system based on pair[0].coordinate_method_id
+			if(selectedCoordinates == null || coordinateSystemPriority.indexOf(pair[0].coordinate_method.method_id) < coordinateSystemPriority.indexOf(selectedCoordinates[0].coordinate_method.method_id)) {
+				selectedCoordinates = pair;
 			}
 		});
-		//this.getXCoordinateFromCoordinates(coordinates);
+		
+		//pick out the x/y
+		selectedCoordinates.forEach(coordinate => {
+			if(coordinate.dimension.dimension_name == "X/North") {
+				workingCoordinates.y = coordinate;
+			}
+			if(coordinate.dimension.dimension_name == "Y/East") {
+				workingCoordinates.x = coordinate;
+			}
+			if(coordinate.dimension.dimension_name == "X/East") {
+				workingCoordinates.x = coordinate;
+			}
+			if(coordinate.dimension.dimension_name == "Y/North") {
+				workingCoordinates.y = coordinate;
+			}
+		});
 
-		if(coordinateTrio.x == null || coordinateTrio.y == null) {
-			console.warn("WARN: Missing X/Y coordinates in coordinate trio");
+		workingCoordinates.method = workingCoordinates.x.coordinate_method;
+
+		if(workingCoordinates.x == null || workingCoordinates.y == null) {
+			//this will trigger if we are fed z-coords only, which can absolutely happen, so don't even warn about it
 			return null;
 		}
 
-		let wgs84Coords = null;
+		let outputCoords = null;
 		let sweref99Coords = null;
+		let coordinateSystem = null;
 
-		switch(coordinateTrio.x.coordinate_method.method_id) {
+		switch(workingCoordinates.x.coordinate_method.method_id) {
 			case 113: //"Malmö stads koordinatnät"
-				let malmoCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-				wgs84Coords = proj4("malmo-local-legacy", "EPSG:4326", malmoCoords);
+				outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+				coordinateSystem = "local";
 				break;
 			case 105: //"Local grid" 
+				//outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+				outputCoords = proj4("EPSG:9999", "EPSG:4326", [workingCoordinates.x.measurement, workingCoordinates.y.measurement]);
+				coordinateSystem = "local";
+				break;
 			case 108: //"Göteborgs kommuns koordinatsystem" - we treat this as a local grid, for now
-				wgs84Coords = proj4("EPSG:3006", "EPSG:4326", [coordinateTrio.x.measurement, coordinateTrio.y.measurement]);
+				outputCoords = proj4("EPSG:3006", "EPSG:4326", [workingCoordinates.x.measurement, workingCoordinates.y.measurement]);
+				coordinateSystem = "EPSG:4326";
 				break;
 			case 103: //"RT90 5 gon V"
-				let rt90Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				let rt90Coords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
 				sweref99Coords = proj4("EPSG:3019", "EPSG:3006", rt90Coords);
-				wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				outputCoords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				coordinateSystem = "EPSG:4326";
 				break;
 			case 69: //"RT90 2.5 gon V"
-				let rt9025Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				let rt9025Coords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
 				sweref99Coords = proj4("EPSG:3021", "EPSG:3006", rt9025Coords);
-				wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				outputCoords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				coordinateSystem = "EPSG:4326";
 				break;
 			case 78: //"Height from datum"
 				break;
@@ -660,17 +743,22 @@ class SiteReportChart {
 			case 79: //"Depth from surface"
 				break;
 			case 72: //"WGS84"
-				wgs84Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+				outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+				coordinateSystem = "EPSG:4326";
 				break;
 			case 70: //"SWEREF 99 TM (Swedish)"
-				sweref99Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-				wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				sweref99Coords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+				outputCoords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				coordinateSystem = "EPSG:4326";
 				break;
 			case 121: //"Rikets höjdsystem 1900"
 				break;
 			case 102: //"RH70"
 				break;
 			case 114: //"WGS84 UTM zone 32"
+				//wgs84Coords = proj4('+proj=utm +zone=32 +ellps=WGS84', "EPSG:4326", [coordinateTrio.x.measurement, coordinateTrio.y.measurement]);
+				outputCoords = proj4('+proj=utm +zone=32 +ellps=WGS84 +datum=WGS84 +units=m +no_defs', "EPSG:4326", [workingCoordinates.x.measurement, workingCoordinates.y.measurement]);
+				coordinateSystem = "EPSG:4326";
 				break;
 			case 115: //"Depth from surface lower sample boundary"
 				break;
@@ -679,15 +767,19 @@ class SiteReportChart {
 			case 122: //"Depth from surface lower sample boundary "
 				break;
 			case 123: //"UTM U32 euref89"
+				outputCoords = proj4("+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs", "EPSG:4326", [workingCoordinates.y.measurement, workingCoordinates.x.measurement]);
+				coordinateSystem = "EPSG:4326";
 				break;
 			case 125: //"Upper sample boundary"
 				break;
 			case 126: //"Lower sample boundary depth"
 				break;
 			case 120: //"WGS84 UTM zone 33N"
+				outputCoords = proj4('+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs', "EPSG:4326", [workingCoordinates.y.measurement, workingCoordinates.x.measurement]);
+				coordinateSystem = "EPSG:4326";
 				break;
 			default:
-				console.warn("WARN: Support for coordinate method not implemented: "+coordinateTrio.x.coordinate_method.method_name);
+				console.warn("WARN: Support for coordinate method not implemented: "+workingCoordinates.x.coordinate_method.method_name);
 		}
 
 		//These don't actually (currently) exist in the database, but here they are for reference
@@ -714,7 +806,10 @@ class SiteReportChart {
 			return wgs84Coords;
 		*/
 
-		return wgs84Coords;
+		return {
+			coordinates: outputCoords,
+			coordinateSystem: coordinateSystem
+		};
 	}
 	
 
@@ -963,7 +1058,7 @@ class SiteReportChart {
 			barmode: 'stack'
 		};
 
-		this.chartId = "chart-"+shortid.generate();
+		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
@@ -1108,7 +1203,7 @@ class SiteReportChart {
 			config.scaleX.labels.push(sampleNames[k]);
 		}
 		
-		this.chartId = "chart-"+shortid.generate();
+		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
@@ -1254,7 +1349,7 @@ class SiteReportChart {
 			config["scale-y"].values.push(Math.max.apply(null, yValues) + 1);
 		}
 		
-		this.chartId = "chart-"+shortid.generate();
+		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
@@ -1429,7 +1524,7 @@ class SiteReportChart {
 			}
 		};
 	  
-		this.chartId = "chart-" + shortid.generate();
+		this.chartId = "chart-" + nanoid();
 		var chartContainer = $("<div id='" + this.chartId + "' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 	  
@@ -1530,7 +1625,7 @@ class SiteReportChart {
 			}
 		};
 
-		var chartId = "chart-"+shortid.generate();
+		var chartId = "chart-"+nanoid();
 		var chartContainer = $("<div class='site-report-chart-container'></div>");
 		this.chartNode = $("<canvas id='"+chartId+"' class='site-report-chart'></canvas>");
 		chartContainer.append(this.chartNode);
@@ -1622,7 +1717,7 @@ class SiteReportChart {
 		  };
 		
 		  
-		this.chartId = "chart-"+shortid.generate();
+		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
@@ -1968,7 +2063,7 @@ class SiteReportChart {
 		  };
 		
 		  
-		this.chartId = "chart-"+shortid.generate();
+		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
@@ -2057,7 +2152,7 @@ class SiteReportChart {
 			});
 		}
 		
-		var chartId = "chart-"+shortid.generate();
+		var chartId = "chart-"+nanoid();
 		var chartContainer = $("<div id='"+chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 		

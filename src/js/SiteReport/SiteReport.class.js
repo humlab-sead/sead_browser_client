@@ -1033,6 +1033,88 @@ class SiteReport {
 		}
 	}
 
+	getSectionByName(sectionName) {
+		for(let key in this.data.sections) {
+			let section = this.data.sections[key];
+			if(section.name == sectionName) {
+				return section;
+			}
+		}
+	}
+
+	focusOn(query) {
+		if(query.section) {
+			//find the section
+			let section = this.getSectionByName(query.section);
+			$("#site-report-section-" + section.name)[0].scrollIntoView({ behavior: 'smooth' });
+		}
+		else {
+			console.warning("focusOn: No section specified");
+		}
+	}
+
+	expandSampleGroup(sampleGroupId, sampleId) {
+		let samplesSection = this.getSectionByName("samples");
+		samplesSection.contentItems.forEach((ci) => {
+			if(ci.name == "sampleGroups") {
+				let sampleGroupIdColumnKey = null;
+				for(let key in ci.data.columns) {
+					if(ci.data.columns[key].title == "Sample group id") {
+						sampleGroupIdColumnKey = key;
+					}
+				}
+
+				if(!sampleGroupIdColumnKey) {
+					console.warn("Could not find sample group id column key");
+					return;
+				}
+
+				ci.data.rows.forEach((row) => {
+					let selectedSampleGroupId = row[sampleGroupIdColumnKey].value;
+					if(selectedSampleGroupId == sampleGroupId) {
+						//select and click
+						let selector = "#cic-sampleGroups .site-report-table-row[row-id="+selectedSampleGroupId+"]";
+
+						//only click if it's not already expanded
+						if(!$(selector).hasClass("table-row-expanded")) {
+							$(selector).trigger("click");
+						}
+					}
+				});
+			}
+		});
+	}
+
+	pageFlipToSample(sampleGroupId, sampleId) {
+		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
+		let dataTable = $("td > div > div > table", subTable).DataTable();
+		let rowObj = dataTable.row((idx, data) => data[0] === sampleId);
+
+		let sortedIndex = null;
+		let rowsSorted = dataTable.rows( { order: 'applied' } );
+		if(!rowsSorted[0]) {
+			console.warn("Could not get sorted rows");
+			return;
+		}
+		rowsSorted[0].forEach((idx, newIdx) => {
+			if(idx == rowObj.index()) {
+				sortedIndex = newIdx;
+			}
+		});
+
+		let pageNumOfSample = Math.floor(sortedIndex / dataTable.page.len());
+		dataTable.page(pageNumOfSample).draw(false); // The 'false' parameter redraws the table without triggering the 'draw' event
+	}
+
+	highlightSampleRow(sampleGroupId, sampleId) {
+		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
+		$(".highlighted-table-row", subTable).removeClass("highlighted-table-row");
+		let dataTable = $("td > div > div > table", subTable).DataTable();
+		let rowObj = dataTable.row((idx, data) => data[0] === sampleId);
+		var rowNode = dataTable.row(rowObj.index()).node();
+		$("td", rowNode).addClass("highlighted-table-row");
+	}
+
 	/*
 	Function: destroy
 	*/
