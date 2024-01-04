@@ -2024,7 +2024,7 @@ class SiteReportChart {
 			backgroundColor: "red",
 			data: []
 		});
-
+		
 		for(var key in contentItem.data.rows) {
 			let row = contentItem.data.rows[key];
 			let sampleName = row[0].value;

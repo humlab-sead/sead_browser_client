@@ -1112,6 +1112,10 @@ class SiteReport {
 		let dataTable = $("td > div > div > table", subTable).DataTable();
 		let rowObj = dataTable.row((idx, data) => data[0] === sampleId);
 		var rowNode = dataTable.row(rowObj.index()).node();
+
+		// Add 'highlighted-table-row' class to the specified row
+		$(rowNode).addClass('highlighted-table-row');
+
 		$("td", rowNode).addClass("highlighted-table-row");
 
 		$("td", rowNode)[0].addEventListener('animationend', function() {

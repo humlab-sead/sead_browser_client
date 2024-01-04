@@ -167,77 +167,77 @@ class MagneticSusceptibilityDataset extends DatasetModule {
             });
 			*/
 
-			if(dataset.dataset_id == 3) {
-				console.log(dataset.analysis_entities);
-			}
+			dataset.analysis_entities.forEach((ae) => {
+				if(ae.prepMethods.length > 0 && ae.prepMethods.includes(82)) {
+					unburnedSeries.push([
+						ae.physical_sample_id,
+						parseFloat(ae.measured_values[0].measured_value)
+					]);
+				} else {
+					burnedSeries.push([
+						ae.physical_sample_id,
+						parseFloat(ae.measured_values[0].measured_value)
+					]);
+				}
+			});
 
-			let unburnedAnalysisEntities = dataset.analysis_entities.filter((ae) => {
-                return ae.prepMethods.length > 0 && ae.prepMethods.includes(82);
-            });
+			//sort the series (by physical_sample_id)
+			unburnedSeries.sort((a, b) => {
+				return a[0] - b[0];
+			});
+			burnedSeries.sort((a, b) => {
+				return a[0] - b[0];
+			});
 
-            let burnedAnalysisEntities = dataset.analysis_entities.filter((ae) => {
-                return ae.prepMethods.length < 1 || !ae.prepMethods.includes(82);
-            });
-			//End of reversed code
+			let physicalSampleIds = new Set();
+			unburnedSeries.forEach((seriesItem) => {
+				physicalSampleIds.add(seriesItem[0]);
+			});
+			burnedSeries.forEach((seriesItem) => {
+				physicalSampleIds.add(seriesItem[0]);
+			});
 
-            unburnedAnalysisEntities.sort((ae1, ae2) => {
-                return ae1.physical_sample_id > ae2.physical_sample_id;
-            });
-
-            burnedAnalysisEntities.sort((ae1, ae2) => {
-                return ae1.physical_sample_id > ae2.physical_sample_id;
-            });
-
-            for(let key in unburnedAnalysisEntities) {
-                unburnedSeries.push([
-                    unburnedAnalysisEntities[key].physical_sample_id,
-                    parseFloat(unburnedAnalysisEntities[key].measured_values[0].measured_value)
-                ]);
-
-                let partnerValue = null;
-
-                let partnerAe = this.getAnalysisEntityByPhysicalSampleId(burnedAnalysisEntities, unburnedAnalysisEntities[key].physical_sample_id);
-                if(partnerAe) {
-                    partnerValue = parseFloat(partnerAe.measured_values[0].measured_value);
-                }
-
-                burnedSeries.push([
-                    unburnedAnalysisEntities[key].physical_sample_id,
-                    partnerValue
-                ]);
-                //console.log(unburnedAnalysisEntities[key].physical_sample_id+" - "+burnedAnalysisEntities[key].physical_sample_id);
-            }
-
-
-            //NOTE NOTE NOTE: burned and unburned seems to be swapped!! but we're gonna ignore that for now
-            for(let key in unburnedSeries) {
-                //console.log(unburnedSeries[key], burnedSeries[key]);
-
+			physicalSampleIds.forEach((physicalSampleId) => {
+				let unburnedValue = "N/A";
+				let burnedValue = "N/A";
 				let unit = analysisMethod.unit.unit_abbrev;
+				
+				//find the unburned value
+				let unburnedSeriesItem = unburnedSeries.find((seriesItem) => {
+					return seriesItem[0] == physicalSampleId;
+				});
+				if(unburnedSeriesItem) {
+					unburnedValue = unburnedSeriesItem[1];
+				}
 
-				let unburnedValue = unburnedSeries[key][1] == null ? "null" : unburnedSeries[key][1];
-				let burnedValue = burnedSeries[key][1] == null ? "null" : burnedSeries[key][1];
+				//find the burned value
+				let burnedSeriesItem = burnedSeries.find((seriesItem) => {
+					return seriesItem[0] == physicalSampleId;
+				});
+				if(burnedSeriesItem) {
+					burnedValue = burnedSeriesItem[1];
+				}
 
 				contentItem.data.rows.push([
 					{
 						"type": "cell",
 						"tooltip": "",
-						"value": unburnedSeries[key][0]
+						"value": physicalSampleId
 					},
 					{
 						"type": "cell",
 						"tooltip": "",
-						"unit": unit,
+						"unit": unburnedValue == "N/A" ? "" : unit,
 						"value": unburnedValue,
 					},
 					{
 						"type": "cell",
 						"tooltip": "",
-						"unit": unit,
+						"unit": burnedValue == "N/A" ? "" : unit,
 						"value": burnedValue,
 					},
 				]);
-            }
+			});
 			
 			section.contentItems.push(contentItem);
 		}
