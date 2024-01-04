@@ -797,7 +797,7 @@ class SiteReportTable {
 			"paging": subTable.rows.length > this.pagingRows,
 			"bInfo": false,
 			"bFilter": false,
-			"sDom": '<"top"i>rt<"bottom"flp><"clear">'
+			"sDom": '<"top"i>rt<"bottom"flp><"clear">',
 		});
 
 		$("#"+subTableId).css("width", "100%");

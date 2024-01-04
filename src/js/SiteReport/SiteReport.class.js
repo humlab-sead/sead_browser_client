@@ -426,46 +426,9 @@ class SiteReport {
 	Function: renderContentItem
 	 */
 	async renderContentItem(section, contentItem, forceReRender = false) {
-
 		let cir = new ContentItemRenderer(this, section, contentItem);
 		this.contentItemRendererRepository.push(cir);
 		cir.render();
-		/*
-		var datasetId = "";
-		if(contentItem.hasOwnProperty("datasetId")) {
-			datasetId = "<span class='dataset-id'>("+contentItem.name+")</span>";
-		}
-		
-		var headerNode = $("<div class='content-item-header-container'><h4><span class='contentitem-title'>"+contentItem.title+"</span>"+datasetId+"</h4></div>");
-		
-		let cicId = "cic-"+contentItem.name; //content-item-container id
-		//$("#site-report-section-"+section.name+" > .site-report-level-content").append(headerNode);
-		$("#site-report-section-"+section.name+" > .site-report-level-content").append("<div id='"+cicId+"' class='content-item-container'></div>");
-		$("#site-report-section-"+section.name+" > .site-report-level-content > #cic-"+contentItem.name).append(headerNode);
-
-		//This (partially) replaces the above - we leave it up to the dataset modules to define their own tooltips here, which makes more sense anyway
-		if(typeof contentItem.titleTooltip != "undefined" && contentItem.titleTooltip != "") {
-			this.sqs.tooltipManager.registerTooltip($(".contentitem-title", headerNode), contentItem.titleTooltip, { drawSymbol: true });
-		}
-
-		$(headerNode).append("<div class='content-item-header-divider'></div>");
-		
-		var renderModeSelectorNode = this.renderContentDisplayOptionsPanel(section, contentItem);
-		if(renderModeSelectorNode !== false) {
-			$(headerNode).append(renderModeSelectorNode);
-			$(headerNode).append("<div class='content-item-header-divider'></div>");
-		}
-		
-		
-		var exportNode = this.getContentItemExportControl(section, contentItem);
-		$(headerNode).append(exportNode);
-		
-		
-		var dataVisContainerNode = $("<div id='contentItem-"+contentItem.name+"' class='data-vis-container'><span class='siteReportContentItemLoadingMsg'>Rendering...</span></div>");
-		$("#site-report-section-"+section.name+" > .site-report-level-content > #"+cicId).append(dataVisContainerNode);
-		
-		this.renderDataVisualization(section, contentItem);
-		*/
 	}
 	
 	prepareJsonExport(exportStruct) {
@@ -505,6 +468,25 @@ class SiteReport {
 			let exportData = Buffer.from(json).toString('base64');
 			$(node).attr("href", "data:application/octet-stream;charset=utf-8;base64,"+exportData);
 			$(node).attr("download", filename+".json");
+		}
+		if(exportFormat == "geojson") {
+			node = $("<a id='site-report-json-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download GeoJSON</a>");
+			
+			//let jsonData = this.prepareJsonExport(exportStruct);
+			let jsonData = {};
+			
+			jsonData.license = this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")";
+
+			let json = JSON.stringify(jsonData, (key, value) => {
+				if(key == "renderInstance") {
+					value = null;
+				}
+				return value;
+			}, 2);
+			
+			let exportData = Buffer.from(json).toString('base64');
+			$(node).attr("href", "data:application/octet-stream;charset=utf-8;base64,"+exportData);
+			$(node).attr("download", filename+".geojson");
 		}
 		if(exportFormat == "xlsx") {
 			//Remove columns from table which are flagged for exclusion
@@ -901,6 +883,10 @@ class SiteReport {
 			var xlsxBtn = this.getExportButton("xlsx", exportStruct);
 			$("#node-"+dialogNodeId).append(xlsxBtn);
 		}
+		if(formats.indexOf("geojson") != -1) {
+			var btn = this.getExportButton("geojson", exportStruct);
+			$("#node-"+dialogNodeId).append(btn);
+		}
 		/*
 		if(formats.indexOf("png") != -1) {
 			var pngBtn = this.getExportButton("png", exportStruct);
@@ -1056,6 +1042,96 @@ class SiteReport {
 		for(var key in this.renderModules) {
 			this.renderModules[key].offer(contentItem, anchorSelector);
 		}
+	}
+
+	getSectionByName(sectionName) {
+		for(let key in this.data.sections) {
+			let section = this.data.sections[key];
+			if(section.name == sectionName) {
+				return section;
+			}
+		}
+	}
+
+	focusOn(query) {
+		if(query.section) {
+			//find the section
+			let section = this.getSectionByName(query.section);
+			$("#site-report-section-" + section.name)[0].scrollIntoView({ behavior: 'smooth' });
+		}
+		else {
+			console.warning("focusOn: No section specified");
+		}
+	}
+
+	expandSampleGroup(sampleGroupId, sampleId) {
+		let samplesSection = this.getSectionByName("samples");
+		samplesSection.contentItems.forEach((ci) => {
+			if(ci.name == "sampleGroups") {
+				let sampleGroupIdColumnKey = null;
+				for(let key in ci.data.columns) {
+					if(ci.data.columns[key].title == "Sample group id") {
+						sampleGroupIdColumnKey = key;
+					}
+				}
+
+				if(!sampleGroupIdColumnKey) {
+					console.warn("Could not find sample group id column key");
+					return;
+				}
+
+				ci.data.rows.forEach((row) => {
+					let selectedSampleGroupId = row[sampleGroupIdColumnKey].value;
+					if(selectedSampleGroupId == sampleGroupId) {
+						//select and click
+						let selector = "#cic-sampleGroups .site-report-table-row[row-id="+selectedSampleGroupId+"]";
+
+						//only click if it's not already expanded
+						if(!$(selector).hasClass("table-row-expanded")) {
+							$(selector).trigger("click");
+						}
+					}
+				});
+			}
+		});
+	}
+
+	pageFlipToSample(sampleGroupId, sampleId) {
+		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
+		let dataTable = $("td > div > div > table", subTable).DataTable();
+		let rowObj = dataTable.row((idx, data) => data[0] === sampleId);
+
+		let sortedIndex = null;
+		let rowsSorted = dataTable.rows( { order: 'applied' } );
+		if(!rowsSorted[0]) {
+			console.warn("Could not get sorted rows");
+			return;
+		}
+		rowsSorted[0].forEach((idx, newIdx) => {
+			if(idx == rowObj.index()) {
+				sortedIndex = newIdx;
+			}
+		});
+
+		let pageNumOfSample = Math.floor(sortedIndex / dataTable.page.len());
+		dataTable.page(pageNumOfSample).draw(false); // The 'false' parameter redraws the table without triggering the 'draw' event
+	}
+
+	highlightSampleRow(sampleGroupId, sampleId) {
+		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
+		$(".highlighted-table-row", subTable).removeClass("highlighted-table-row");
+		let dataTable = $("td > div > div > table", subTable).DataTable();
+		let rowObj = dataTable.row((idx, data) => data[0] === sampleId);
+		var rowNode = dataTable.row(rowObj.index()).node();
+
+		// Add 'highlighted-table-row' class to the specified row
+		$(rowNode).addClass('highlighted-table-row');
+
+		$("td", rowNode).addClass("highlighted-table-row");
+
+		$("td", rowNode)[0].addEventListener('animationend', function() {
+			$("td", rowNode).removeClass('highlighted-table-row');
+		});
 	}
 
 	/*

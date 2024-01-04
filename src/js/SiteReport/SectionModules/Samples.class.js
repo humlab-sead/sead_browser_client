@@ -188,6 +188,95 @@ class Samples {
 		}
 	}
 
+	insertSampleCoordinatesIntoTable(subTable, sampleGroup) {
+		let siteData = this.sqs.siteReportManager.siteReport.siteData;
+
+		let insertSampleCoordinatesColumn = false;
+		for(let k in sampleGroup.physical_samples) {
+			var sample = sampleGroup.physical_samples[k];
+			if(sample.coordinates.length > 0) {
+				insertSampleCoordinatesColumn = true;
+			}
+		}
+
+		if(insertSampleCoordinatesColumn) {
+			subTable.columns.push({
+				"title": "Coordinates",
+				"role": "coordinates"
+			});
+
+			for(let k in sampleGroup.physical_samples) {
+				var sample = sampleGroup.physical_samples[k];
+
+				if(typeof sample.coordinates == "undefined") {
+					continue;
+				}
+
+				//link up coordinate methods and dimensions to each coordinate
+				sample.coordinates.forEach(coord => {
+					siteData.lookup_tables.coordinate_methods.forEach(cm => {
+						if(cm.method_id == coord.coordinate_method_id) {
+							coord.coordinate_method = cm;
+						}
+					});
+	
+					siteData.lookup_tables.dimensions.forEach(dim => {
+						if(dim.dimension_id == coord.dimension_id) {
+							coord.dimension = dim;
+						}
+					});
+				});
+
+				//sort coordinates by dimension name
+				sample.coordinates.sort((a, b) => {
+					if(a.dimension.dimension_name < b.dimension.dimension_name) {
+						return -1;
+					}
+				});
+
+				let cellValue = "";
+				sample.coordinates.forEach(coord => {
+					let ttId = "tt-"+nanoid();
+
+					if(typeof coord.dimension == "undefined" || typeof coord.dimension.dimension_name == "undefined") {
+						console.warn("WARN: Dimension not found for coordinate: ", coord);
+						return;
+					}
+
+					if(typeof coord.coordinate_method == "undefined" || typeof coord.coordinate_method.method_name == "undefined") {
+						console.warn("WARN: Coordinate method not found for coordinate: ", coord);
+						return;
+					}
+
+					if(coord.accuracy != null) {
+						cellValue += "<span id='"+ttId+"'>"+coord.dimension.dimension_name+" "+coord.measurement+" ("+coord.accuracy+")</span>, ";
+					}
+					else {
+						cellValue += "<span id='"+ttId+"'>"+coord.dimension.dimension_name+" "+coord.measurement+"</span>, ";
+					}
+					
+					let ttContent = "<h4 class='tooltip-header'>Coordinate system</h4>"+coord.coordinate_method.method_name+"<hr/>"+coord.coordinate_method.description;
+					if(typeof coord.coordinate_method.unit != "undefined") {
+						ttContent += "<br/><br/><span>Coordinates are specified in "+coord.coordinate_method.unit.unit_name+".</span>";
+					}
+					this.sqs.tooltipManager.registerTooltip("#"+ttId, ttContent, { drawSymbol: true });
+				});
+
+				cellValue = cellValue.substring(0, cellValue.length-2);
+				subTable.rows.forEach(row => {
+					if(row[0].value == sample.sample_name) {
+						row.push({
+							"value": cellValue,
+							"type": "cell",
+							"tooltip": "",
+							"data": sample.coordinates
+						});
+					}
+				});
+			}
+		}
+	}
+
 	insertSampleAltRefsIntoTable(subTable, sampleGroup) {
 		let insertColumn = false;
 		for(let k in sampleGroup.physical_samples) {
@@ -201,6 +290,7 @@ class Samples {
 			subTable.columns.push({
 				"title": "Alternative identifiers"
 			});
+			
 
 			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
@@ -346,8 +436,16 @@ class Samples {
 				});
 				cellDesc = cellDesc.substring(0, cellDesc.length-3);
 
+				//find table pkey (sample group id)
+				let tablePkey = null;
+				table.columns.forEach((col, key) => {
+					if(col.pkey === true) {
+						tablePkey = key;
+					}
+				});
+
 				table.rows.forEach(row => {
-					if(row[1].value == sg.sample_group_id) {
+					if(row[tablePkey].value == sg.sample_group_id) {
 						let cellValue = "!%data:"+"<i class='fa fa-book' aria-hidden='true'></i>"+":!%tooltip:"+cellDesc+":!";
 						row.push({
 							"value": cellValue,
@@ -369,6 +467,13 @@ class Samples {
 				"dataType": "subtable",
 				"pkey": false
 			},
+			/*
+			{
+				"dataType": "string",
+				"pkey": false,
+				"title": "Expand"
+			},
+			*/
 			{
 				"dataType": "number",
 				"pkey": true,
@@ -406,7 +511,7 @@ class Samples {
 		}
 
 		let sampleGroupRows = [];
-		
+
 		let sampleGroupTable = {
 			columns: sampleGroupColumns,
 			rows: sampleGroupRows
@@ -414,8 +519,6 @@ class Samples {
 		
 		for(let key in siteData.sample_groups) {
 			var sampleGroup = siteData.sample_groups[key];
-			
-			
 			
 			var subTableColumns = [
 				{
@@ -431,11 +534,11 @@ class Samples {
 				"columns": subTableColumns,
 				"rows": []
 			};
-			
+
 			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
-
-				subTable.rows.push([
+				
+				let subTableRow = [
 					{
 						"type": "cell",
 						"value": sample.sample_name,
@@ -446,14 +549,16 @@ class Samples {
 						"value": sample.sample_type_name,
 						"tooltip": sample.sample_type_description == null ? "" : sample.sample_type_description
 					}
-				]);
-				
+				];
+
+				subTable.rows.push(subTableRow);
 			}
 
 			this.insertSampleDimensionsIntoTable(subTable, sampleGroup, siteData);
 			this.insertSampleDescriptionsIntoTable(subTable, sampleGroup);
 			this.insertSampleLocationsIntoTable(subTable, sampleGroup);
 			this.insertSampleAltRefsIntoTable(subTable, sampleGroup);
+			this.insertSampleCoordinatesIntoTable(subTable, sampleGroup);
 
 			let samplingContextValue = "";
 			sampleGroup.sampling_context.forEach(samplingContext => {
@@ -483,6 +588,13 @@ class Samples {
 					"type": "subtable",
 					"value": subTable
 				},
+				/*
+				{
+					"type": "cell",
+					"value": "<i class=\"fa fa-plus-circle subtable-expand-button\" aria-hidden=\"true\"></i>",
+					"tooltip": "Expand to view the individual samples in this sample group."
+				},
+				*/
 				{
 					"type": "cell",
 					"value": sampleGroup.sample_group_id,
@@ -511,8 +623,7 @@ class Samples {
 				});
 			}
 
-			sampleGroupRows.push(sampleGroupRow);
-			
+			sampleGroupRows.push(sampleGroupRow);	
 		}
 
 		this.insertSampleAnalysesIntoTable(sampleGroupTable, siteData);
@@ -524,7 +635,7 @@ class Samples {
 			"collapsed": false,
 			"contentItems": [{
 				"name": "sampleGroups",
-				"title": "Samples taken (groupings)",
+				"title": "Sample groups",
 				"data": {
 					"columns": sampleGroupColumns,
 					"rows": sampleGroupRows
@@ -545,6 +656,62 @@ class Samples {
 				}]
 			}]
 		};
+
+		//Only include the sample groups with coordinates as coordinate chart options
+		let sampleGroupsWithCoordinates = [];
+		siteData.sample_groups.forEach(sampleGroup => {
+			let sampleGroupHasSampleWithCoordinates = false;
+			sampleGroup.physical_samples.forEach(sample => {
+				if(typeof sample.coordinates != "undefined" && sample.coordinates.length > 0) {
+					sampleGroupHasSampleWithCoordinates = true;
+				}
+			});
+			if(sampleGroupHasSampleWithCoordinates) {
+				sampleGroupsWithCoordinates.push(sampleGroup);
+			}
+		});
+
+
+		if(sampleGroupsWithCoordinates.length > 0) {
+			let roOptions = sampleGroupsWithCoordinates.map(sg => { return { title: sg.sample_group_name, selected: false, value: sg.sample_group_id }; });
+			//prepend an "all" option
+			roOptions.unshift({ title: "All", selected: true, value: "all" });
+	
+			let biblioIds = [];
+			siteData.sample_groups.forEach(sampleGroup => {
+				sampleGroup.biblio.forEach(biblio => {
+					if(biblioIds.indexOf(biblio.biblio_id) == -1) {
+						biblioIds.push(biblio.biblio_id);
+					}
+				});
+			});
+
+			let sampleCoordinatesContentItem = {
+				"name": "sampleCoordinatesMap",
+				"title": "Sample coordinates",
+				"datasetReference": this.sqs.renderBiblioReference(siteData, biblioIds),
+				"datasetContacts": "",
+				"collapsed": false,
+				"data": {
+					"columns": sampleGroupColumns,
+					"rows": sampleGroupRows
+				},
+				"renderOptions": [{
+					"selected": true,
+					"enabled": true,
+					"type": "coordinate-map",
+					"name": "Map",
+					"options": [{
+						"name": "sampleGroup",
+						"title": "Sample group",
+						"type": "select",
+						"options": roOptions
+					}]
+				}]
+			}
+
+			section.contentItems.push(sampleCoordinatesContentItem);
+		}
 
 		return section;
 	}

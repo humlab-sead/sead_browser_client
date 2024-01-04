@@ -126,7 +126,7 @@ class CeramicDataset extends DatasetModule {
 							"title": method.method_name,
 							"methodId": method.method_id,
 							"methodDescription": method == null ? "" : method.description,
-							"collapsed": false,
+							"collapsed": true,
 							"contentItems": []
 						});
 						sectionKey = sectionsLength - 1;
@@ -163,8 +163,35 @@ class CeramicDataset extends DatasetModule {
 		];
 
 		let rows = [];
-		
-		
+		let biblioIds = [];
+		let datasetIds = [];
+		let datasetContactIds = [];
+
+		let analysisEntityIds = [];
+		datasetGroups.forEach(dsg => {
+			dsg.datasets.forEach(dsgDataset => {
+				analysisEntityIds.push(dsgDataset.analysis_entity_id)
+			});
+		});
+
+		siteData.datasets.forEach(ds => {
+			ds.analysis_entities.forEach(ae => {
+				ae.analysis_entity_id;
+				if(analysisEntityIds.includes(ae.analysis_entity_id)) {
+					datasetIds.push(ae.dataset_id);
+				}
+			});
+		});
+
+		siteData.datasets.forEach(ds => {
+			datasetContactIds = datasetContactIds.concat(ds.contacts);
+			if(datasetIds.includes(ds.dataset_id)) {
+				if(ds.biblio_id && !biblioIds.includes(ds.biblio_id)) {
+					biblioIds.push(ds.biblio_id);
+				}
+			}
+		});
+
 		datasetGroups.forEach(dsg => {
 
 			//Defining columns

@@ -1237,6 +1237,80 @@ h1.main-header {
 	font-weight: bold;
 }
 
+#gradient-legend {
+  position: absolute;
+  top: 25%;
+  left: 0px;
+  width: 1em;
+  height: 50%;
+  background: transparent;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+}
+
+.gradient-legend-max {
+  position: absolute;
+  top: -1px;
+  left: 1em;
+  white-space: nowrap;
+  font-size: 0.8em;
+  padding: .2em;
+  padding-left: 1em;
+  border-top: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.gradient-legend-min {
+  position: absolute;
+  left: 1em;
+  white-space: nowrap;
+  font-size: 0.8em;
+  padding: .2em;
+  padding-left: 1em;
+  bottom: -1px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.sample-coordinates-map-container {
+  position:relative;
+  width:100%;
+  height:400px;
+  /*
+  background: $pane-bg-color;
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(128, 128, 128, 0.25) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(128, 128, 128, 0.25) 1px, transparent 1px);
+  */
+}
+
+.sample-coordinates-map-info-text {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #000;
+  padding: 0em;
+  font-size: 1.0em;
+  color: #fff;
+  padding: 0.2em;
+  z-index: 1;
+}
+
+.sample-coordinate-map-tooltip {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: auto;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 0em;
+  font-size: 1.0em;
+  color: #fff;
+  padding: 0.2em;
+  z-index: 1;
+  white-space: nowrap;
+}
+
 .result-map-control-container {
   position: absolute;
   top: 0px;
@@ -1988,6 +2062,40 @@ polyline{
   font-size: 12px;
 }
 
+.map-popup-container {
+  display: none;
+  border: 1px solid rgb(102, 102, 102);
+  position: relative;
+  background: rgba(255, 255, 255, 1.0);
+  border-radius: 3px;
+  padding: 10px;
+  box-shadow: 0px 0px 20px 0px $shadow-color;
+}
+
+.map-popup-container:after, .map-popup-container:before {
+	top: 100%;
+	left: 50%;
+	border: solid;
+	content: " ";
+	position: absolute;
+	pointer-events: none;
+}
+
+.map-popup-container:before {
+	border-color: rgba(0, 0, 0, 0);
+	border-top-color: rgb(102, 102, 102);
+	border-width: 10px;
+	margin-left: -10px;
+}
+
+.map-popup-container:after {
+	border-color: transparent;
+	border-top-color: #ffffff;
+	border-width: 9px;
+	margin-left: -9px;
+  top: calc(100% - 1px);
+}
+
 #map-popup-container {
   display: none;
   border: 1px solid rgb(102, 102, 102);
@@ -2039,6 +2147,19 @@ polyline{
 	cursor:pointer;
 }
 
+.sample-map-tooltip-link {
+  position:relative;
+	top: 1px;
+	font-size: 14px;
+  color: #000;
+  text-decoration: none;
+}
+
+.sample-map-tooltip-link:hover {
+  cursor:pointer;
+  background-color: $pane-bg-color;
+}
+
 .hidden {
 	display:none;
 }
@@ -2061,6 +2182,42 @@ polyline{
   top: 10px;
   right: 10px;
   z-index: 1;
+}
+
+.menu-row-container {
+  display:flex;
+  position:absolute;
+  top: 0px;
+  right: 0px;
+  z-index: 1;
+}
+
+.menu-row-item {
+  background: $base-color;
+  position: relative;
+  top: 0;
+  padding: .5em;
+  color: $white;
+  font-size: 1.2em;
+}
+
+.menu-row-item:hover {
+  background: lighten($base-color, 10%);
+  cursor: pointer;
+}
+
+.menu-row-item-divider {
+  width: 1px;
+  height: 2.5;
+  background: $inactive-color;
+}
+
+.menu-row-item-toggle {
+  background: $base-color;
+  position: relative;
+  top: .4em;
+  color: $white;
+  font-size: 1.0em;
 }
 
 .result-map-control-icon {
@@ -2994,8 +3151,21 @@ svg text {
 .ol-attribution {
   position: absolute;
 	bottom: 0em;
-	right: .5em;
+	right: 0em;
 	font-size: 0.7em;
+}
+
+.ol-attribution ul {
+  background: rgba(255, 255, 255, 0.5);
+  padding: 0.5em;
+  margin: 0;
+}
+
+.ol-attribution li {
+  list-style-type: none;
+  color: #000;
+  padding: 0;
+  margin: 0;
 }
 
 .ol-attribution button {
@@ -3244,5 +3414,55 @@ svg text {
   }
   40% {
     transform: scale(1.4);
+  }
+}
+
+.popup-dialog {
+  position: fixed;
+  z-index: 100;
+  border: 1px solid $pane-bg-color-dark;
+  padding: 1em;
+  max-width: 500px;
+  max-height: 500px;
+  overflow: auto;
+  box-shadow: 0px .5em .5em .25em $shadow-color;
+  border-radius: .0em;
+  background: #fff;
+}
+
+.popup-dialog h4 {
+  margin-top: .5em;
+  font-weight: bold;
+}
+
+.header-with-underline {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: .5em;
+  margin-left: .5em;
+  margin-right: .5em;
+}
+
+.site-report-subtable td {
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+}
+
+.highlighted-table-row {
+  animation: gradientAnimation .5s ease-out 5;
+}
+
+@keyframes gradientAnimation {
+  0% {
+    background: #c6c6c6;
+    border-top: 2px solid $aux-color;
+    border-bottom: 2px solid $aux-color;
+  }
+  25%, 50%, 75% {
+    background: #fff; /* Change to the color you want for the flash */
+  }
+  100% {
+    background: #c6c6c6;
+    border-top: 2px solid transparent;
+    border-bottom: 2px solid transparent;
   }
 }

@@ -36,15 +36,15 @@ class ContentItemRenderer {
 			$(headerNode).append("<div class='content-item-header-divider'></div>");
 		}
 		
-		
 		var exportNode = this.getContentItemExportControl(this.section, this.contentItem);
 		$(headerNode).append(exportNode);
+
 
 		let contactData = "<ul style='list-style-type: none;'><li>No contact information available</li></ul>";
 		if(typeof this.contentItem.datasetContacts != "undefined" && this.contentItem.datasetContacts.length > 0) {
 			contactData = this.contentItem.datasetContacts;
 		}
-
+		
 		let referenceData = "<ul style='list-style-type: none;'><li>No references available</li></ul>";
 		if(typeof this.contentItem.datasetReference != "undefined" && this.contentItem.datasetReference.length > 0) {
 			referenceData = this.contentItem.datasetReference;
@@ -56,8 +56,6 @@ class ContentItemRenderer {
 		refAndContacts += "<h4 class='header-with-underline'>Contacts</h4>";
 		refAndContacts += contactData;
 		headerNode.append(this.renderDatasetReferences(refAndContacts));
-
-		//headerNode.append(this.renderPopout(this.section, this.contentItem));
 		
 		
 		var dataVisContainerNode = $("<div id='contentItem-"+this.contentItem.name+"' class='data-vis-container'><span class='siteReportContentItemLoadingMsg'>Rendering...</span></div>");
@@ -206,6 +204,7 @@ class ContentItemRenderer {
 					case "multistack":
 					case "ecocode":
 					case "ecocodes-samples":
+					case "coordinate-map":
 						renderInstance = new SiteReportChart(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);
 						this.addRenderInstance(this.contentItem.name, renderInstance);
@@ -324,6 +323,8 @@ class ContentItemRenderer {
 	renderContentDisplayOptionsPanelExtras(node) {
 		let selectedRo = this.getSelectedRenderOption(this.contentItem);
 		let optionsContainerNode = $(".site-report-render-options-container-extras", node);
+
+		console.log(selectedRo);
 
 		let html = "";
 		for(let key in selectedRo.options) {
@@ -444,6 +445,11 @@ class ContentItemRenderer {
 			if(selectedRoType != "table" && selectedRoType != "dendrochart" && selectedRoType != "ecocodes-samples" && selectedRoType != "ecocode") {
 				exportFormats.push("png");
 			}
+
+			if(selectedRoType == "coordinate-map") {
+				exportFormats = ["geojson"];
+			}
+
 			this.siteReport.renderExportDialog(exportFormats, section, contentItem);
 		});
 		

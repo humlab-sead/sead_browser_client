@@ -60,7 +60,7 @@ class SeadQuerySystem {
 
 		$("#sead-release-version").text(this.config.version);
 
-		this.storeUserSettings(this.config);
+		this.storeUserSettings(this.config, false);
 
 		this.preload().then(() => {
 			console.log("SQS preload complete");
@@ -104,6 +104,18 @@ class SeadQuerySystem {
 		else {
 			$(containerNode).html("");
 		}
+	}
+
+	handleMapPopupClick(event) {
+		console.log(event);
+		//console.log(event);
+		//this.sqsOffer("mapPopupClick", event);
+		const data = {
+			message: 'Hello, World!',
+			count: 42
+		};
+		//const event = new CustomEvent('mapPopupClick', { detail: data });
+		//window.dispatchEvent(event);
 	}
 
 	setLoadingIndicator(containerNode, set = true) {
@@ -687,7 +699,7 @@ class SeadQuerySystem {
 					filterGroup.items.push({
 						"facetCode": filter.FacetCode,
 						"displayTitle": filter.DisplayTitle,
-						"facetTypeKey": filter.FacetTypeKey, //"discrete" or "range"
+						"facetTypeKey": filter.FacetTypeKey, //"discrete" or "range" or "map" or "multistage"
 						"aggregateType": filter.AggregateType,
 						"aggregateTitle": filter.AggregateTitle,
 						"dependencies": [],
@@ -1355,7 +1367,7 @@ class SeadQuerySystem {
 		});
 	}
 
-	storeUserSettings(settings) {
+	storeUserSettings(settings, overwrite = true) {
 		let userSettingsJson = window.localStorage.getItem("sqsUserSettings");
 		let userSettings;
 		if(!userSettingsJson) {
@@ -1366,7 +1378,12 @@ class SeadQuerySystem {
 		}
 		
 		Object.keys(settings).forEach((key) => {
-			userSettings[key] = settings[key]
+			if(!overwrite && typeof userSettings[key] == "undefined") {
+				userSettings[key] = settings[key];
+			}
+			else if(overwrite) {
+				userSettings[key] = settings[key];
+			}
 		});
 		window.localStorage.setItem("sqsUserSettings", JSON.stringify(userSettings));
 	}
@@ -1437,15 +1454,15 @@ class SeadQuerySystem {
 		datasetBiblio.forEach(biblio => {
 			html += "<div class='dataset-biblio'>";
 			if(biblio.full_reference) {
-				html += "<li class='dataset-biblio-full-reference'>"+biblio.full_reference+"\n</li>";
+				html += "<li class='dataset-biblio-full-reference'>"+biblio.full_reference+"</li>";
 			}
 			else {
 				html += "<li>";
 				if(biblio.author) {
-					html += "<span class='dataset-biblio-author'>"+biblio.authors+"</span>";
-					if(biblio.year) {
-						html += "<span class='dataset-biblio-year'>("+biblio.year+")</span>";
-					}
+					html += "<span class='dataset-biblio-author'>"+biblio.author+"</span>";
+				}
+				if(biblio.year) {
+					html += "<span class='dataset-biblio-year'>"+biblio.year+"</span>";
 				}
 				if(biblio.title) {
 					html += "<span class='dataset-biblio-title'>"+biblio.title+"</span>";
@@ -1465,7 +1482,7 @@ class SeadQuerySystem {
 				if(biblio.bugs_reference) {
 					html += "<span class='dataset-biblio-bugs-reference'>"+biblio.bugs_reference+"</span>";
 				}
-				html += "\n</li>";
+				html += "</li>";
 			}
 			
 			html += "</div>";

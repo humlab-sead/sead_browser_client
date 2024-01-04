@@ -319,6 +319,170 @@ class BasicSiteInformation {
 		  return { overlap: true, type: "right" };
 		}
 	}
+
+	renderDatasetContacts(siteData) {
+		let datasetContactIds = [];
+		let out = "";
+		for(let key in siteData.datasets) {
+			let dataset = siteData.datasets[key];
+			dataset.contacts.forEach(contact_id => {
+				if(datasetContactIds.indexOf(contact_id) == -1) {
+					datasetContactIds.push(contact_id);
+					siteData.lookup_tables.dataset_contacts.forEach(datasetContact => {
+
+						out += "<div class='site-reference-box'>";
+						if(datasetContact.contact_type) {
+							out += datasetContact.contact_type+" ";
+						}
+						if(datasetContact.contact_first_name) {
+							out += datasetContact.contact_first_name+" ";
+						}
+						if(datasetContact.contact_last_name) {
+							out += datasetContact.contact_last_name+" ";
+						}
+						if(datasetContact.contact_address_1) {
+							out += "<br />"+datasetContact.contact_address_1;
+						}
+						if(datasetContact.contact_address_2) {
+							out += "<br />"+datasetContact.contact_address_2;
+						}
+						if(datasetContact.contact_email) {
+							out += "<br />"+datasetContact.contact_email;
+						}
+						if(datasetContact.contact_url) {
+							out += "<br /><a target='_blank' href='"+datasetContact.contact_url+"'>"+datasetContact.contact_url+"</a>";
+						}
+						if(datasetContact.contact_location_name) {
+							out += "<br />"+datasetContact.contact_location_name;
+						}
+
+						out += "</div>";
+					});
+				}
+			});
+		}
+		return out;
+	}
+
+	renderDatasetReferences(siteData) {
+		let out = "";
+
+		//only print a dataset reference once
+		let datasetBiblioIds = [];
+		siteData.datasets.forEach(dataset => {
+			if(dataset.biblio_id != null) {
+				siteData.lookup_tables.biblio.forEach(biblio => {
+					if(biblio.biblio_id == dataset.biblio_id && datasetBiblioIds.indexOf(biblio.biblio_id) == -1) {
+						datasetBiblioIds.push(biblio.biblio_id);
+						console.log(biblio.biblio_id, datasetBiblioIds, datasetBiblioIds.indexOf(biblio.biblio_id));
+						out += "<div class='site-reference-box'>";
+	
+						if(biblio.full_reference) {
+							out += biblio.full_reference;
+						}
+						else {
+							if(biblio.authors) {
+								out += biblio.authors+", ";
+							}
+							if(biblio.year) {
+								out += biblio.year+", ";
+							}
+							if(biblio.title) {
+								out += "<span style='font-style:italic;'>"+biblio.title+"</span>, ";
+							}
+							if(biblio.isbn) {
+								out += "<br />ISBN "+biblio.isbn;
+							}
+							if(biblio.bugs_reference) {
+								out += "<br />BugsCEP reference: "+biblio.bugs_reference;
+							}
+							if(biblio.doi) {
+								out += "<br />DOI: "+biblio.doi;
+							}
+							if(biblio.url) {
+								out += "<br />URL: <a target='_blank' href='"+biblio.url+"'>"+biblio.url+"</a>";
+							}
+							if(biblio.notes) {
+								out += "<br />Notes: "+biblio.notes;
+							}
+						}
+						
+						out += "</div>";
+					}
+				});
+			}
+		});
+
+		
+
+		/*
+		dataset.contacts.forEach(dsc => {
+			dataset.dataset_name;
+			dataset.method_id;
+			dsc.contact_id;
+			dsc.contact_type_id
+
+			let dsAnalysisMethodName = "Unknown";
+			siteData.lookup_tables.analysis_methods.forEach(method => {
+				if(method.method_id == dataset.method_id) {
+					dsAnalysisMethodName = method.method_name;
+				}
+			});
+
+
+			let contactTypeData = null;
+			siteData.lookup_tables.dataset_contact_types.forEach(datasetContactType => {
+				if(datasetContactType.contact_type_id == dsc.contact_type_id) {
+					contactTypeData = datasetContactType;
+				}
+			});
+
+			let contactData = null;
+			siteData.lookup_tables.dataset_contacts.forEach(datasetContact => {
+				if(datasetContact.contact_id == dsc.contact_id) {
+					contactData = datasetContact;
+				}
+			});
+
+
+			out += "<div class='site-reference-box'>";
+			out += "<h5 class='site-report-reference-title'>"+dsAnalysisMethodName+" dataset "+dataset.dataset_name+"</h5>";
+
+			//contactTypeData.contact_type_name; //e.g. "dataset imported by"
+			//contactTypeData.description; //should be used as tt for above
+
+			let personName = "";
+			if(contactData.first_name && contactData.last_name) {
+				personName = contactData.first_name+" "+contactData.last_name;
+			}
+			if(!contactData.first_name && contactData.last_name) {
+				personName = contactData.last_name;
+			}
+
+			let contactTypeName = "";
+			if(contactTypeData.contact_type_name) {
+				contactTypeName = contactTypeData.contact_type_name.trim();
+			}
+
+			let ttId = nanoid();
+			out += "<div><span id='"+ttId+"'>"+contactTypeName+"</span> "+personName+"</div>";
+			if(contactData.email || contactData.address_1 || contactData.address_2) {
+				out += "<hr/>";
+			}
+			out += contactData.address_1 ? "<div>"+contactData.address_1+"</div>" : "";
+			out += contactData.address_2 ? "<div>"+contactData.address_2+"</div>" : "";
+			if(contactData.email || contactData.url) {
+				out += "<br/>";
+			}
+			out += contactData.email ? "<div>"+contactData.email+"</div>" : "";
+			out += contactData.url ? "<div><a target='_blank' href='"+contactData.url+"'>"+contactData.url+"</a></div>" : "";
+			out += "</div>";
+
+			this.sqs.tooltipManager.registerTooltip("#"+ttId, contactTypeData.description);
+		});
+		*/
+		return out;
+	}
 	
 	exportSite() {
 		let jsonBtn = this.sqs.siteReportManager.siteReport.getExportButton("json", this.sqs.siteReportManager.siteReport.siteData);

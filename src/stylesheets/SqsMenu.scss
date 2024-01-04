@@ -315,8 +315,9 @@ li.l1-container:hover {
 
 .sqs-menu-container { /* main container for expanded menu */
   	display: none;
-  	position: fixed;
+  	position: absolute;
     z-index: 100;
+    overflow-x: hidden;
 }
 
 .sqs-menu-container-horizontal {
@@ -369,6 +370,7 @@ li.l1-container:hover {
 
 #aux-menu {
   box-shadow: 0px .5em .5em .25em $shadow-color;
+  position: fixed;
 }
 
 /*
@@ -486,7 +488,7 @@ li.l1-container:hover {
 }
 
 .sqs-menu-selected {
-  background-color: $base-color !important;
+  background-color: lighten($base-color, 10%) !important;
   color: #fff !important;
 }
 
@@ -508,4 +510,29 @@ li.l1-container:hover {
 .menu-button:hover {
   background: rgba(0, 0, 0, 0.1);
   cursor: pointer;
+}
+
+
+
+.toggle-slider {
+  width: 3em;
+  height: 1.5em;
+  background-color: #ccc;
+  border-radius: .5em;
+  position: relative;
+}
+
+.toggle-button {
+  width: 1.5em;
+  height: 1.5em;
+  background-color: #fff;
+  border-radius: 20%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: transform 0.3s;
+}
+
+.toggle-button.active {
+  transform: translateX(30px); /* Move the button to the right */
 }
