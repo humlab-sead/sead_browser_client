@@ -29,19 +29,19 @@ class OpenLayersMap {
 		this.dataLayers = [];
         this.currentZoomLevel = 4;
         this.setData(null); //this sets the data to be an empty geojson object
-		this.defaultExtent = [-16163068.253070222, -2582960.0598126827, 5596413.462927474, 12053813.61245915]
+		this.defaultExtent = [-16163068.253070222, -2582960.0598126827, 5596413.462927474, 12053813.61245915];
 		this.handleMapPopupClickCallback = null;
 		this.selectedStyleType = null;
 		this.featureStyleCallback = null;
 		this.defaultColorScheme = this.sqs.color.getColorScheme(20, false);
 		this.featureStyleCallbacks = [];
 
-		this.registerFeatureStyleCallback("default", (feature, resolution) => {
+		this.registerFeatureStyleCallback("default", (olMap, features, feature, resolution) => {
 			return this.getSingularPointStyle(feature);
 		}, true);
 
-		this.registerFeatureStyleCallback("colorCodedAltitude", (feature, resolution) => {
-			return this.getColorCodedAltitudePointStyle(feature);
+		this.registerFeatureStyleCallback("colorCodedAltitude", (olMap, features, feature, resolution) => {
+			return this.getColorCodedAltitudePointStyle(olMap, features, feature);
 		});
 
         //These attributes are used to set the style of map points
@@ -68,7 +68,7 @@ class OpenLayersMap {
 			source: new StadiaMaps({
 				layer: 'stamen_terrain_background',
 				wrapX: true,
-				url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.png",
+				url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}.png",
 				attributions: `&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>
 				&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>
 				&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>
@@ -523,12 +523,12 @@ class OpenLayersMap {
 			distance: clusterDistance,
 			source: pointsSource
 		});
-
-		console.log(this.geFeatureStyle())
 		
 		var clusterLayer = new VectorLayer({
 			source: clusterSource,
-			style: this.geFeatureStyle().callback,
+			style: (feature) => {
+				return this.geFeatureStyle().callback(this.olMap, featurePoints, feature);
+			},
 			zIndex: 1
 		});
 		
@@ -711,7 +711,20 @@ class OpenLayersMap {
 		});
 	}
 
-	getColorCodedAltitudePointStyle(feature, options = { selected: false, highlighted: false }) {
+	getColorCodedAltitudePointStyle(olMap, features, feature, options = { selected: false, highlighted: false }) {
+		//calcultate max z
+		let zMax = 0;
+		features.forEach(f => {
+			let zCoords = f.get('altitude');
+			zCoords.forEach(z => {
+				if(z.coordinate_method.method_id == 76) { //76 is height above sea level
+					if(z.measurement > zMax) {
+						zMax = parseFloat(z.measurement);
+					}
+				}
+			});
+		});
+
 		var pointsNum = feature.get('features').length;
 		var clusterSizeText = pointsNum.toString();
 		if(pointsNum > 999) {
@@ -726,26 +739,22 @@ class OpenLayersMap {
 		var strokeColor = "#00f";
 		var textColor = "#fff";
 
-		let features = feature.get('features');
-		for(let key in features) {
-			let f = features[key];
+		let subFeatures = feature.get('features');
+		for(let key in subFeatures) {
+			let f = subFeatures[key];
 			let zCoords = f.get('altitude');
 			let averageZValue = 0;
 			zCoords.forEach(z => {
 				if(z.coordinate_method.method_id == 76) { //76 is height above sea level
-					console.log(z.measurement);
 					averageZValue += z.measurement;
 				}
 			});
 
 			averageZValue = averageZValue / zCoords.length;
 
-			//calculate a color gradient based on the average z value between zMax and zMin¨
-			console.log(averageZValue, this.zMax);
-			let v = 255 * (averageZValue / this.zMax);
+			//calculate a color gradient based on the average z value between zMax and zMin
+			let v = 255 * (averageZValue / zMax);
 			fillColor = "rgba("+v+", 0, 0)";
-			console.log(fillColor);
-
 		}
 		
 		//if point is highlighted (its a hit when doing a search)

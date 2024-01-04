@@ -320,7 +320,7 @@ class SiteReportChart {
 		}
 		samplePointsMap.render("#"+this.chartId);
 
-		samplePointsMap.registerFeatureStyleCallback("sampleCoordinateStyle", (feature) => {
+		samplePointsMap.registerFeatureStyleCallback("sampleCoordinateStyle", (olMap, features, feature) => {
 			var pointsNum = feature.get('features').length;
 			var clusterSizeText = pointsNum.toString();
 
@@ -468,7 +468,7 @@ class SiteReportChart {
 		this.zMax = zMax;
 		this.zMin = zMin;
 
-		if(!zMax || !zMin) {
+		if(true || (!zMax || !zMin)) { //disabled this since it doesn't work so well
 			$(".map-aux-menu-container", "#"+this.chartId).hide();
 		}
 
