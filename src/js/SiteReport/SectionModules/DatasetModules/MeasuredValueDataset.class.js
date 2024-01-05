@@ -79,16 +79,16 @@ class MeasuredValueDataset extends DatasetModule {
 								"enabled": false,
 								"title": "X axis",
 								"type": "select",
-								"selected": 0,
+								"selected": 1,
 								"options": [
-									{
-										"title": 0,
-										"value": 0,
-										"selected": true
-									},
 									{
 										"title": 1,
 										"value": 1,
+										"selected": true
+									},
+									{
+										"title": 2,
+										"value": 2,
 										"selected": false
 									},
 								]
@@ -97,16 +97,16 @@ class MeasuredValueDataset extends DatasetModule {
 								"enabled": false,
 								"title": "Y axis",
 								"type": "select",
-								"selected": 1,
+								"selected": 2,
 								"options": [
-									{
-										"title": 0,
-										"value": 0,
-										"selected": false
-									},
 									{
 										"title": 1,
 										"value": 1,
+										"selected": false
+									},
+									{
+										"title": 2,
+										"value": 2,
 										"selected": true
 									},
 								]
@@ -117,12 +117,12 @@ class MeasuredValueDataset extends DatasetModule {
 								"type": "select",
 								"options": [
 									{
-										"title": 0,
-										"value": 0,
-									},
-									{
 										"title": 1,
 										"value": 1,
+									},
+									{
+										"title": 2,
+										"value": 2,
 										"selected": true
 									},
 								]
@@ -136,6 +136,11 @@ class MeasuredValueDataset extends DatasetModule {
 				{
 					"dataType": "string",
 					"pkey": true,
+					"hidden": true,
+					"title": "Sample ID"
+				},
+				{
+					"dataType": "string",
 					"title": "Sample name"
 				},
 				{
@@ -153,21 +158,23 @@ class MeasuredValueDataset extends DatasetModule {
 
 			dataset.analysis_entities.forEach(ae => {
 				
-
 				let value = null;
 				if(typeof ae.measured_values != "undefined" && ae.measured_values.length > 0) {
 					value = parseFloat(ae.measured_values[0].measured_value);
 				}
-
-				if(ae.prepMethods.length > 0) {
-
-				}
 				
+				let sample = this.getPhysicalSampleByPhysicalSampleId(site, ae.physical_sample_id);
+
 				contentItem.data.rows.push([
 					{
 						"type": "cell",
 						"tooltip": "",
 						"value": ae.physical_sample_id
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": sample.sample_name
 					},
 					{
 						"type": "cell",
@@ -179,6 +186,18 @@ class MeasuredValueDataset extends DatasetModule {
 			
 			section.contentItems.push(contentItem);
 		}
+	}
+
+	getPhysicalSampleByPhysicalSampleId(siteData, physicalSampleId) {
+		let selectedSample = null;
+		siteData.sample_groups.forEach((sg) => {
+			sg.physical_samples.forEach((sample) => {
+				if(sample.physical_sample_id == physicalSampleId) {
+					selectedSample = sample;
+				}
+			});
+		});
+		return selectedSample;
 	}
 
 	async makeSectionOLD(siteData, sections) {

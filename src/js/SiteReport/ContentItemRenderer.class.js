@@ -324,8 +324,6 @@ class ContentItemRenderer {
 		let selectedRo = this.getSelectedRenderOption(this.contentItem);
 		let optionsContainerNode = $(".site-report-render-options-container-extras", node);
 
-		console.log(selectedRo);
-
 		let html = "";
 		for(let key in selectedRo.options) {
 			let option = selectedRo.options[key];

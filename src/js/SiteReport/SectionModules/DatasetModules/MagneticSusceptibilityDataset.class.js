@@ -86,13 +86,13 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 								"selected": 0,
 								"options": [
 									{
-										"title": 0,
-										"value": 0,
+										"title": 1,
+										"value": 1,
 										"selected": true
 									},
 									{
-										"title": 1,
-										"value": 1,
+										"title": 2,
+										"value": 2,
 										"selected": false
 									},
 								]
@@ -104,13 +104,13 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 								"selected": 1,
 								"options": [
 									{
-										"title": 0,
-										"value": 0,
+										"title": 1,
+										"value": 1,
 										"selected": false
 									},
 									{
-										"title": 1,
-										"value": 1,
+										"title": 2,
+										"value": 2,
 										"selected": true
 									},
 								]
@@ -121,12 +121,12 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 								"type": "select",
 								"options": [
 									{
-										"title": 0,
-										"value": 0,
-									},
-									{
 										"title": 1,
 										"value": 1,
+									},
+									{
+										"title": 2,
+										"value": 2,
 										"selected": true
 									},
 								]
@@ -140,6 +140,12 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 				{
 					"dataType": "string",
 					"pkey": true,
+					"hidden": true,
+					"title": "Sample ID"
+				},
+				{
+					"dataType": "string",
+					"pkey": false,
 					"title": "Sample name"
 				},
 				{
@@ -203,6 +209,11 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 			physicalSampleIds.forEach((physicalSampleId) => {
 				let unburnedValue = "N/A";
 				let burnedValue = "N/A";
+
+				//find sample name based on physical_sample_id
+				let physicalSample = this.getPhysicalSampleByPhysicalSampleId(site, physicalSampleId)
+				let sampleName = physicalSample.sample_name;
+
 				let unit = analysisMethod.unit.unit_abbrev;
 				
 				//find the unburned value
@@ -230,6 +241,11 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 					{
 						"type": "cell",
 						"tooltip": "",
+						"value": sampleName
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
 						"unit": unburnedValue == "N/A" ? "" : unit,
 						"value": unburnedValue,
 					},
@@ -244,6 +260,18 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 			
 			section.contentItems.push(contentItem);
 		}
+	}
+
+	getPhysicalSampleByPhysicalSampleId(siteData, physicalSampleId) {
+		let selectedSample = null;
+		siteData.sample_groups.forEach((sg) => {
+			sg.physical_samples.forEach((sample) => {
+				if(sample.physical_sample_id == physicalSampleId) {
+					selectedSample = sample;
+				}
+			});
+		});
+		return selectedSample;
 	}
 
     getAnalysisEntityByPhysicalSampleId(analysisEntities, physicalSampleId) {

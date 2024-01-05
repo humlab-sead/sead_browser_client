@@ -1415,11 +1415,9 @@ class SiteReportChart {
 				row.forEach(cell => {
 					if(cell.type == "subtable") {
 						cell.value.rows.forEach(subTableRow => {
-
 							if(subTableRow[1].value == yAxisRo.title) {
 								yValues.push(subTableRow[yAxisRo.value].value);
 							}
-
 						});
 					}
 				});
@@ -1503,6 +1501,17 @@ class SiteReportChart {
 		  },
 		];
 
+
+		//calculate bottom margin based on lenght of sample names
+		let marginB = 50;
+		let maxSampleNameLength = 0;
+		chartData.x.values.forEach(sampleName => {
+			if(sampleName.length > maxSampleNameLength) {
+				maxSampleNameLength = sampleName.length;
+			}
+		});
+		marginB += maxSampleNameLength * 5;
+
 		let layout = {
 			title: {
 				//text: contentItem.data.columns[yAxisKey].title+" by "+contentItem.data.columns[xAxisKey].title,
@@ -1518,7 +1527,7 @@ class SiteReportChart {
 			margin: {
 				l: 50,
 				r: 50,
-				b: 70,
+				b: marginB,
 				t: 50,
 				pad: 4
 			},
@@ -1529,6 +1538,7 @@ class SiteReportChart {
 			},
 			xaxis: {
 				type: "category", //to get distinct and not linear/range values
+				tickangle: 60,
 			},
 			yaxis: {
 				showticklabels: false,
@@ -1666,7 +1676,7 @@ class SiteReportChart {
 		}
 
 		contentItem.data.rows.sort((a, b) => {
-			if(a[1].value > b[1].value) {
+			if(a[sortCol].value > b[sortCol].value) {
 				return 1;
 			}
 			else {
@@ -1682,11 +1692,19 @@ class SiteReportChart {
 			data: []
 		});
 
+		//find column named "Sample name"
+		let sampleNameColKey = null;
+		contentItem.data.columns.forEach((col, colKey) => {
+			if(col.title == "Sample name") {
+				sampleNameColKey = colKey;
+			}
+		});
+
 		for(var key in contentItem.data.rows) {
 			let row = contentItem.data.rows[key];
-			let sampleName = row[0].value;
+			let sampleName = row[sampleNameColKey].value;
 			sampleNames.push(sampleName);
-			let value = row[1].value;
+			let value = row[yAxisKey].value;
 			
 			datasets[0].data.push(value);
 		}
@@ -2005,7 +2023,7 @@ class SiteReportChart {
 		}
 
 		contentItem.data.rows.sort((a, b) => {
-			if(a[1].value > b[1].value) {
+			if(a[sortCol].value > b[sortCol].value) {
 				return 1;
 			}
 			else {
@@ -2025,13 +2043,25 @@ class SiteReportChart {
 			backgroundColor: "red",
 			data: []
 		});
+
+		//get column key for title "Unburned"
+		let unburnedColKey = null;
+		let burnedColKey = null;
+		contentItem.data.columns.forEach((col, colKey) => {
+			if(col.title == "Unburned") {
+				unburnedColKey = colKey;
+			}
+			if(col.title == "Burned") {
+				burnedColKey = colKey;
+			}
+		});
 		
 		for(var key in contentItem.data.rows) {
 			let row = contentItem.data.rows[key];
-			let sampleName = row[0].value;
+			let sampleName = row[xAxisKey].value;
 			sampleNames.push(sampleName);
-			let unburned = row[1].value;
-			let burned = row[2].value;
+			let unburned = row[unburnedColKey].value;
+			let burned = row[burnedColKey].value;
 			
 			datasets[0].data.push(unburned);
 			datasets[1].data.push(burned);

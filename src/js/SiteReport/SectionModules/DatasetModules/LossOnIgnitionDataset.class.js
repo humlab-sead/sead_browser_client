@@ -89,13 +89,13 @@ class LossOnIgnitionDataset extends DatasetModule {
 								"selected": 0,
 								"options": [
 									{
-										"title": 0,
-										"value": 0,
+										"title": 1,
+										"value": 1,
 										"selected": true
 									},
 									{
-										"title": 1,
-										"value": 1,
+										"title": 2,
+										"value": 2,
 										"selected": false
 									},
 								]
@@ -107,13 +107,13 @@ class LossOnIgnitionDataset extends DatasetModule {
 								"selected": 1,
 								"options": [
 									{
-										"title": 0,
-										"value": 0,
+										"title": 1,
+										"value": 1,
 										"selected": false
 									},
 									{
-										"title": 1,
-										"value": 1,
+										"title": 2,
+										"value": 2,
 										"selected": true
 									},
 								]
@@ -124,12 +124,12 @@ class LossOnIgnitionDataset extends DatasetModule {
 								"type": "select",
 								"options": [
 									{
-										"title": 0,
-										"value": 0,
-									},
-									{
 										"title": 1,
 										"value": 1,
+									},
+									{
+										"title": 2,
+										"value": 2,
 										"selected": true
 									},
 								]
@@ -143,11 +143,15 @@ class LossOnIgnitionDataset extends DatasetModule {
 				{
 					"dataType": "string",
 					"pkey": true,
+					"title": "Sample ID",
+					"hidden": true,
+				},
+				{
+					"dataType": "string",
 					"title": "Sample name"
 				},
 				{
 					"dataType": "string",
-					"pkey": false,
 					"title": "Value"
 				},
 			];
@@ -169,11 +173,19 @@ class LossOnIgnitionDataset extends DatasetModule {
             for(let key in series) {
 				let unit = analysisMethod.unit.unit_abbrev;
 				let value = series[key][1] == null ? "null" : series[key][1];
+
+				let sample = this.getPhysicalSampleByPhysicalSampleId(siteData, series[key][0]);
+
 				contentItem.data.rows.push([
 					{
 						"type": "cell",
 						"tooltip": "",
 						"value": series[key][0]
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": sample.sample_name
 					},
 					{
 						"type": "cell",
@@ -186,6 +198,18 @@ class LossOnIgnitionDataset extends DatasetModule {
 			
 			section.contentItems.push(contentItem);
 		}
+	}
+
+	getPhysicalSampleByPhysicalSampleId(siteData, physicalSampleId) {
+		let selectedSample = null;
+		siteData.sample_groups.forEach((sg) => {
+			sg.physical_samples.forEach((sample) => {
+				if(sample.physical_sample_id == physicalSampleId) {
+					selectedSample = sample;
+				}
+			});
+		});
+		return selectedSample;
 	}
 
     getAnalysisEntityByPhysicalSampleId(analysisEntities, physicalSampleId) {
