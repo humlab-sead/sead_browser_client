@@ -93,6 +93,11 @@ class BasicSiteInformation {
 			}
 		});
 
+		let datasetReferencesHtml = this.sqs.renderBiblioReference(siteData, datasetBiblioIds);
+		if(datasetReferencesHtml == "") {
+			datasetReferencesHtml = "No data";
+		}
+
 		let sampleGroupBiblioIds = [];
 		siteData.sample_groups.forEach(sampleGroup => {
 			sampleGroup.biblio.forEach(biblio => {
@@ -101,16 +106,17 @@ class BasicSiteInformation {
 				}
 			});
 		});
-
-		let datasetReferencesHtml = this.sqs.renderBiblioReference(siteData, datasetBiblioIds);
 		let sampleGroupReferencesHtml = this.sqs.renderBiblioReference(siteData, sampleGroupBiblioIds);
+		if(sampleGroupReferencesHtml == "") {
+			sampleGroupReferencesHtml = "No data";
+		}
 
 		let biblioIds = siteData.biblio.map(siteRef => { return siteRef.biblio_id; });
 		let siteReferencesHtml = this.sqs.renderBiblioReference(siteData, biblioIds);
 		if(siteReferencesHtml == "") {
 			siteReferencesHtml = "No data";
 		}
-
+		
 		var node = $(".site-report-aux-info-container");
 		node
 			.append("<div class='site-report-aux-header-container'><h4>Site identifier</h4></div>")
