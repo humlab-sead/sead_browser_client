@@ -536,3 +536,11 @@ li.l1-container:hover {
 .toggle-button.active {
   transform: translateX(30px); /* Move the button to the right */
 }
+
+.sample-coordinates-map-container .sqs-menu-container {
+  position: relative;
+}
+
+.sample-coordinates-map-container .first-level-item-title {
+  font-size: 0.8em;
+}
