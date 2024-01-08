@@ -246,6 +246,10 @@ class ContentItemRenderer {
 			}, 100);
 		}
 		$(displayOptionsContainerNode).toggle(100);
+		
+		if(this.contentItem.renderOptions.length == 1) {
+			$(".site-report-render-options-main-render-type", node).hide();
+		}
 	}
 
 	renderOptionSelectedCallback(selectedRenderOption) {
