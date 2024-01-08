@@ -380,9 +380,11 @@ class SiteReportChart {
 		});
 
 		samplePointsMap.addSelectInteraction(selectStyle);
+		/*
 		samplePointsMap.setMapPopupClickCallback(sampleName => {
 			this.bringSampleIntoView(JSON.parse(sampleName));
 		});
+		*/
 		
 		
 		let mapMenu = `
@@ -516,10 +518,6 @@ class SiteReportChart {
 		}
 
 		return zCoordPresentation;
-	}
-
-	bringSampleIntoView(sampleInfo) {	
-		console.log(sampleInfo);
 	}
 
 	auxOptionsMenu(anchorSelector) {

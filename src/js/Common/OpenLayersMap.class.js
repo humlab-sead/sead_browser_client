@@ -1162,18 +1162,6 @@ class OpenLayersMap {
 
 				var tableRows = "";
 
-				/*
-				let sampleGroupedBySampleGroup = [];
-				//group prop.features by sampleGroupId
-				prop.features.forEach(f => {
-					let sampleGroupId = f.get('sampleGroupId');
-					if(sampleGroupedBySampleGroup[sampleGroupId] == undefined) {
-						sampleGroupedBySampleGroup[sampleGroupId] = [];
-					}
-					sampleGroupedBySampleGroup[sampleGroupId].push(f);
-				});
-				*/
-
 				for(var fk in prop.features) {
 					let fprop = prop.features[fk].getProperties();
 					let data = JSON.stringify({
@@ -1186,24 +1174,14 @@ class OpenLayersMap {
 					tableRows += "<td><span id='"+ttSampleId+"' class='sample-map-tooltip-link'>"+fprop.tooltip+"</span></td>";
 					tableRows += "</tr>";
 
-					/*
-					this.sqs.registerDelayedCallback("#"+ttSampleId, () => {
-						console.log(data, fprop.id, fprop.sampleGroupId, fprop.tooltip);
-					});
-					*/
-					
-					this.sqs.tooltipManager.registerTooltip("#"+ttSampleId, () => {
+					$(popupContainer).on('click', "#"+ttSampleId, () => {
 						let sr = this.sqs.siteReportManager.siteReport;
 						sr.focusOn({ section: "samples" });
 						sr.expandSampleGroup(fprop.sampleGroupId, fprop.name);
 						sr.pageFlipToSample(fprop.sampleGroupId, fprop.name);
 						sr.scrollToSample(fprop.sampleGroupId, fprop.name);
 						sr.highlightSampleRow(fprop.sampleGroupId, fprop.name);
-						
-					}, {
-						eventType: "click",
 					});
-					
 				}
 
 				tableRows = sqs.sqsOffer("samplePositionMapPopup", {
