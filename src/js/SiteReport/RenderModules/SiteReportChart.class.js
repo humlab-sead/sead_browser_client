@@ -476,7 +476,7 @@ class SiteReportChart {
 		$("#"+this.chartId).css("cursor", "default");
 
 		if(!renderBaseLayer) {
-			$("#"+this.chartId).append("<div class='sample-coordinates-map-info-text'>Basemap is not shown since this is a local coordinate system.</div>");
+			//$("#"+this.chartId).append("<div class='sample-coordinates-map-info-text'>Basemap is not shown since this is a local coordinate system.</div>");
 			// Create a Graticule control with fine grey lines
 			let graticule = new Graticule({
 				strokeStyle: new Stroke({

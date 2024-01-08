@@ -3455,8 +3455,8 @@ svg text {
 @keyframes gradientAnimation {
   0% {
     background: #c6c6c6;
-    border-top: 2px solid $aux-color;
-    border-bottom: 2px solid $aux-color;
+    border-top: 2px solid #fff;
+    border-bottom: 2px solid #fff;
   }
   25%, 50%, 75% {
     background: #fff; /* Change to the color you want for the flash */

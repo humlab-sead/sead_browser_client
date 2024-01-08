@@ -1117,6 +1117,15 @@ class SiteReport {
 		dataTable.page(pageNumOfSample).draw(false); // The 'false' parameter redraws the table without triggering the 'draw' event
 	}
 
+	scrollToSample(sampleGroupId, sampleId) {
+		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
+		let dataTable = $("td > div > div > table", subTable).DataTable();
+		let rowObj = dataTable.row((idx, data) => data[0] === sampleId);
+		let rowNode = dataTable.row(rowObj.index()).node();
+
+		$(rowNode)[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}
+
 	highlightSampleRow(sampleGroupId, sampleId) {
 		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
 		$(".highlighted-table-row", subTable).removeClass("highlighted-table-row");

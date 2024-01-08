@@ -1199,7 +1199,9 @@ class OpenLayersMap {
 						sr.focusOn({ section: "samples" });
 						sr.expandSampleGroup(fprop.sampleGroupId, fprop.name);
 						sr.pageFlipToSample(fprop.sampleGroupId, fprop.name);
+						sr.scrollToSample(fprop.sampleGroupId, fprop.name);
 						sr.highlightSampleRow(fprop.sampleGroupId, fprop.name);
+						
 					}, {
 						eventType: "click",
 					});
