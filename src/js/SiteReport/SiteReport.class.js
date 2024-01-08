@@ -56,7 +56,6 @@ class SiteReport {
 			this.siteData = siteData;
 			this.fetchComplete = true;
 			this.hideLoadingIndicator();
-			this.enableExportButton();
 
 			const bsi = new BasicSiteInformation(this.sqs, this.siteId);
 			const samples = new Samples(this.sqs, this.site);
@@ -108,11 +107,6 @@ class SiteReport {
 			}
 		}
 		return false;
-	}
-
-	enableExportButton() {
-		console.log("enableExportButton");
-		//$(".site-report-export-btn").css("cursor", "pointer");
 	}
 	
 	/*
@@ -265,7 +259,6 @@ class SiteReport {
 		$(".site-report-level-title", sectionNode)
 			.html("<i class=\"site-report-sections-expand-button fa fa-plus-circle\" aria-hidden=\"true\">&nbsp;</i><span class='title-text'>"+sectionTitle+"</span><span class='section-warning'></span>")
 			.on("click", (evt) => {
-				console.log("Clicked section title");
 				var parent = $(evt.currentTarget).parent();
 				var collapsed = parent.children(".site-report-level-content").attr("collapsed") == "true";
 				collapsed = !collapsed;

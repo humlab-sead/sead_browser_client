@@ -538,11 +538,9 @@ class OpenLayersMap {
 		});
 
 		if(this.getLayerByName("clusterPoints") != null) {
-			console.log("removing clusterPoints layer");
 			this.removeLayer("clusterPoints");
 		}
 
-		console.log("adding clusterPoints layer");
 		this.olMap.addLayer(clusterLayer);
 	}
 
