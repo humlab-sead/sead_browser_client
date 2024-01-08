@@ -93,7 +93,17 @@ class BasicSiteInformation {
 			}
 		});
 
+		let sampleGroupBiblioIds = [];
+		siteData.sample_groups.forEach(sampleGroup => {
+			sampleGroup.biblio.forEach(biblio => {
+				if(sampleGroupBiblioIds.indexOf(biblio.biblio_id) == -1) {
+					sampleGroupBiblioIds.push(biblio.biblio_id);
+				}
+			});
+		});
+
 		let datasetReferencesHtml = this.sqs.renderBiblioReference(siteData, datasetBiblioIds);
+		let sampleGroupReferencesHtml = this.sqs.renderBiblioReference(siteData, sampleGroupBiblioIds);
 
 		let biblioIds = siteData.biblio.map(siteRef => { return siteRef.biblio_id; });
 		let siteReferencesHtml = this.sqs.renderBiblioReference(siteData, biblioIds);
@@ -126,6 +136,9 @@ class BasicSiteInformation {
 			.append("<div class='site-report-aux-header-container'><h4>Site reference</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+siteReferencesHtml+"</div>")
+			.append("<div class='site-report-aux-header-container'><h4>Sample group references</h4></div>")
+			.append("<div class='site-report-aux-header-underline'></div>")
+			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+sampleGroupReferencesHtml+"</div>")
 			.append("<div class='site-report-aux-header-container'><h4>Dataset references</h4></div>")
 			.append("<div class='site-report-aux-header-underline'></div>")
 			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+datasetReferencesHtml+"</div>");
