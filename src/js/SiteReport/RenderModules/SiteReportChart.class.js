@@ -380,12 +380,6 @@ class SiteReportChart {
 		});
 
 		samplePointsMap.addSelectInteraction(selectStyle);
-		/*
-		samplePointsMap.setMapPopupClickCallback(sampleName => {
-			this.bringSampleIntoView(JSON.parse(sampleName));
-		});
-		*/
-		
 		
 		let mapMenu = `
 		<div class='menu-row-container'>

@@ -234,39 +234,11 @@ class Samples {
 					}
 				});
 
-				let cellValue = "";
-				sample.coordinates.forEach(coord => {
-					let ttId = "tt-"+nanoid();
-
-					if(typeof coord.dimension == "undefined" || typeof coord.dimension.dimension_name == "undefined") {
-						console.warn("WARN: Dimension not found for coordinate: ", coord);
-						return;
-					}
-
-					if(typeof coord.coordinate_method == "undefined" || typeof coord.coordinate_method.method_name == "undefined") {
-						console.warn("WARN: Coordinate method not found for coordinate: ", coord);
-						return;
-					}
-
-					if(coord.accuracy != null) {
-						cellValue += "<span id='"+ttId+"'>"+coord.dimension.dimension_name+" "+coord.measurement+" ("+coord.accuracy+")</span>, ";
-					}
-					else {
-						cellValue += "<span id='"+ttId+"'>"+coord.dimension.dimension_name+" "+coord.measurement+"</span>, ";
-					}
-					
-					let ttContent = "<h4 class='tooltip-header'>Coordinate system</h4>"+coord.coordinate_method.method_name+"<hr/>"+coord.coordinate_method.description;
-					if(typeof coord.coordinate_method.unit != "undefined") {
-						ttContent += "<br/><br/><span>Coordinates are specified in "+coord.coordinate_method.unit.unit_name+".</span>";
-					}
-					this.sqs.tooltipManager.registerTooltip("#"+ttId, ttContent, { drawSymbol: true });
-				});
-
-				cellValue = cellValue.substring(0, cellValue.length-2);
+				
 				subTable.rows.forEach(row => {
 					if(row[0].value == sample.sample_name) {
 						row.push({
-							"value": cellValue,
+							"value": this.formatCoordinates(sample.coordinates),
 							"type": "cell",
 							"tooltip": "",
 							"data": sample.coordinates
@@ -408,6 +380,91 @@ class Samples {
 		return "<div id='"+analysisTagId+"' class='sample-group-analysis-tag'>"+method.method_abbrev_or_alt_name+"</div>";
 	}
 
+	insertSampleGroupCoordinatesIntoTable(table, sampleGroups) {
+		let insertSampleGroupCoordinatesColumn = false;
+		sampleGroups.forEach(sg => {
+			if(sg.coordinates.length > 0) {
+				insertSampleGroupCoordinatesColumn = true;
+			}
+		});
+
+		if(insertSampleGroupCoordinatesColumn) {
+			table.columns.push({
+				"title": "Coordinates",
+				"role": "coordinates"
+			});
+		}
+
+		table.rows.forEach(row => {
+			let sampleGroupId = row[1].value;
+			sampleGroups.forEach(sg => {
+				if(sg.sample_group_id == sampleGroupId && sg.coordinates.length) {
+					row.push({
+						"value": this.formatCoordinates(sg.coordinates),
+						"type": "cell",
+						"tooltip": "",
+						"data": sg.coordinates
+					});
+				}
+			});
+		});
+
+	}
+	
+	formatCoordinates(coords) {
+		let siteData = this.sqs.siteReportManager.siteReport.siteData;
+
+		let cellValue = "";
+		coords.forEach(coord => {
+			let coordMethod = null;
+			siteData.lookup_tables.coordinate_methods.forEach(cm => {
+				if(cm.method_id == coord.coordinate_method_id) {
+					coordMethod = cm;
+				}
+			});
+
+			let dimension = null;
+			siteData.lookup_tables.dimensions.forEach(dim => {
+				if(dim.dimension_id == coord.dimension_id) {
+					dimension = dim;
+				}
+			});
+
+			let unit = null;
+			siteData.lookup_tables.units.forEach(u => {
+				if(u.unit_id == coordMethod.unit_id) {
+					unit = u;
+				}
+			});
+
+			if(typeof dimension == "undefined" || dimension == null || typeof dimension.dimension_name == "undefined") {
+				console.warn("WARN: Dimension not found for coordinate: ", coord);
+				return;
+			}
+
+			if(typeof coordMethod == "undefined" || coordMethod == null || typeof coordMethod.method_name == "undefined") {
+				console.warn("WARN: Coordinate method not found for coordinate: ", coord);
+				return;
+			}
+
+			let ttId = "tt-"+nanoid();
+			if(coord.accuracy != null) {
+				cellValue += "<span id='"+ttId+"'>"+dimension.dimension_name+" "+coord.measurement+" ("+coord.accuracy+")</span>, ";
+			}
+			else {
+				cellValue += "<span id='"+ttId+"'>"+dimension.dimension_name+" "+coord.measurement+"</span>, ";
+			}
+			
+			let ttContent = "<h4 class='tooltip-header'>Coordinate system</h4>"+coordMethod.method_name+"<hr/>"+coordMethod.description;
+			if(typeof unit != "undefined" && unit != null) {
+				ttContent += "<br/><br/><span>Coordinates are specified in "+unit.unit_name+".</span>";
+			}
+			this.sqs.tooltipManager.registerTooltip("#"+ttId, ttContent, { drawSymbol: true });
+		
+		});
+		cellValue = cellValue.substring(0, cellValue.length-2);
+		return cellValue;
+	}
 
 	insertSampleGroupReferencesIntoTable(table, sampleGroups) {
 		let insertSampleGroupReferensesColumn = false;
@@ -509,6 +566,22 @@ class Samples {
 				"title": "Descriptions"
 			});
 		}
+		
+		/*
+		let siteHasSampleGroupCoordinates = false;
+		for(let key in siteData.sample_groups) {
+			if(siteData.sample_groups[key].coordinates.length > 0) {
+				siteHasSampleGroupCoordinates = true;
+			}
+		}
+		if(siteHasSampleGroupCoordinates) {
+			sampleGroupColumns.push({
+				"dataType": "string",
+				"hidden": false,
+				"title": "Coordinates"
+			});
+		}
+		*/
 
 		let sampleGroupRows = [];
 
@@ -628,6 +701,7 @@ class Samples {
 
 		this.insertSampleAnalysesIntoTable(sampleGroupTable, siteData);
 		this.insertSampleGroupReferencesIntoTable(sampleGroupTable, siteData.sample_groups);
+		this.insertSampleGroupCoordinatesIntoTable(sampleGroupTable, siteData.sample_groups);
 
 		var section = {
 			"name": "samples",
@@ -666,6 +740,13 @@ class Samples {
 					sampleGroupHasSampleWithCoordinates = true;
 				}
 			});
+
+
+			//also check if the sample group itself has coordinates
+			if(typeof sampleGroup.coordinates != "undefined" && sampleGroup.coordinates.length > 0) {
+				sampleGroupHasSampleWithCoordinates = true;
+			}
+
 			if(sampleGroupHasSampleWithCoordinates) {
 				sampleGroupsWithCoordinates.push(sampleGroup);
 			}

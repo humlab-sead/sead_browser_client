@@ -3452,6 +3452,140 @@ svg text {
   animation: gradientAnimation .5s ease-out 5;
 }
 
+#chatbox-icon {
+  position: fixed;
+  display: none; //Flex
+  align-items: center;
+  justify-content: center;
+  bottom: 0;
+  right: 0;
+  background: $aux-color;
+  color: #fff;
+  border-radius: 50%;
+  padding: .5em;
+  font-size: 3.0em;
+  margin: .5em;
+  box-shadow: 0px 0px 10px 2px $shadow-color;
+  z-index: 2;
+  width: 1em;
+  height: 1em;
+  transition: all 0.3s ease-in-out;
+}
+
+#chatbox-loading-indicator {
+  display:inline-block;
+  position: relative;
+  top: 0em;
+  width: 3em;
+  height: 1em;
+  align-self: center;
+  background-image: url('../assets/loading-indicator8.svg');
+  background-repeat: no-repeat;
+  background-size: 100%;
+}
+
+#chatbox-icon:hover {
+  background: lighten($aux-color, 10%);
+  cursor: pointer;
+}
+
+#chatbox-icon.expanded {
+  width: 25vw;
+  height: 30vh;
+  border-radius: .1em;
+  cursor: auto;
+  padding: 0em;
+  resize: both;
+  overflow: auto;
+}
+
+#chatbox-inner-panel {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+#chatbox-input-controls {
+  display: flex;
+  width: 100%;
+}
+
+#chatbox-input-controls button {
+  border: none;
+  background: $base-color;
+  color: #fff;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+#chatbox-input {
+  padding: 0.5em;
+  border: none;
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  font-size: 1.2rem;
+  width: 100%;
+  background: #fff;
+}
+
+#chatbox-input:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
+
+#chatbox-messages {
+  display: block;
+  height: 100%;
+  width: auto;
+  background: #fff;
+  color: #000;
+  font-size: 1.0rem;
+  padding: 1.0rem;
+  overflow: auto;
+}
+
+.assistant-message {
+  color: green;
+  font-weight: bold;
+}
+
+.user-message {
+  color: blue;
+  font-weight: bold;
+}
+
+#chatbox-header {
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+  background: $pane-bg-color-dark;
+  height: 2.0rem;
+  font-size: 1.2rem;
+  cursor: move;
+}
+
+#chatbox-close-btn {
+  border: none;
+  color: #000;
+  font-size: 1.2rem;
+  margin-right: 0.5em;
+  cursor: pointer;
+}
+
+#chatbox-close-btn:hover {
+  color: #666;
+}
+
+#chatbox-header h3 {
+  font-size: 1.2rem;
+  color: #000;
+  margin-left: 0.5em;
+}
+
 @keyframes gradientAnimation {
   0% {
     background: #c6c6c6;

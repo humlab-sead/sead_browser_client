@@ -20,6 +20,7 @@ import NotificationManager from './NotificationManager.class.js';
 import ExportManager from './ExportManager.class.js';
 import Router from './Router.class.js';
 import Tutorial from './Tutorial.class.js';
+import AIAssistant from './AIAssistant.class.js';
 import { nanoid } from 'nanoid';
 
 //import css from '../stylesheets/style.scss';
@@ -261,6 +262,7 @@ class SeadQuerySystem {
 		this.facetManager = new FacetManager(this, this.filterDefinitions);
 		this.mainMenu = new MainMenu();
 		this.tutorial = new Tutorial(this);
+		this.aiAssistant = new AIAssistant(this);
 		
 		this.siteReportManager = new SiteReportManager(this);
 		var siteId = this.siteReportManager.getSiteIdFromUrl();
@@ -501,7 +503,7 @@ class SeadQuerySystem {
 		
 
 		let fetchDataTypesPromise = new Promise((resolve, reject) => {
-			$.ajax(this.config.siteReportServerAddress+"/data_types", {
+			$.ajax(this.config.siteReportServerAddress+"/tbl_data_types", {
 				method: "get",
 				dataType: "json",
 				timeout: Config.preloadTimeout,
@@ -527,7 +529,7 @@ class SeadQuerySystem {
 		});
 		
 		let fetchDatasetMasters = new Promise((resolve, reject) => {
-			$.ajax(this.config.siteReportServerAddress+"/dataset_masters", {
+			$.ajax(this.config.siteReportServerAddress+"/tbl_dataset_masters", {
 				method: "get",
 				dataType: "json",
 				timeout: Config.preloadTimeout,
@@ -549,7 +551,7 @@ class SeadQuerySystem {
 			});
 		});
 
-		fetch(this.config.siteReportServerAddress+"/ecocode_definitions?ecocode_group_id=eq.2")
+		fetch(this.config.siteReportServerAddress+"/tbl_ecocode_definitions?ecocode_group_id=eq.2")
 		.then((response) => response.json())
 		.then(ecocodes => {
 			this.bugsEcoCodeDefinitions = ecocodes;
