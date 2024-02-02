@@ -53,6 +53,17 @@ class ResultModule {
 
 	}
 
+	async fetchExportData(siteIds) {
+		return await fetch(Config.dataServerAddress+"/export/bulk/sites", {
+			method: 'POST',
+			mode: 'cors',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(siteIds)
+		}).then(res => res.json());
+	}
+
 	bindExportModuleDataToButton(button, module = null) {
 
 		let sitesExportCallback = () => {
@@ -85,8 +96,12 @@ class ResultModule {
 			
 			this.sqs.dialogManager.showPopOver("Export sites", html);
 
-			$("#"+xlsxDownloadButtonId).on("click", (evt) => {
+			$("#"+xlsxDownloadButtonId).on("click", async (evt) => {
 				let dataRows = [];
+
+				//get only the id attribute of each result data row
+				let siteIds = resultDataRows.map(site => site.id);
+				let sitesExportData = await this.fetchExportData(siteIds);
 
 				dataRows.push(["Content", "List of sites"]);
 				dataRows.push(["Description", this.sqs.config.dataExportDescription]);
@@ -96,59 +111,22 @@ class ResultModule {
 				dataRows.push([
 					"Site Id",
 					"Site name",
-					"Record type"
+					"National site identifier",
+					"Latitude",
+					"Longitude",
+					"Description"
 				]);
 
-				resultDataRows.forEach(site => {
-					let siteId = null;
-					if(typeof site.site_link != "undefined") {
-						siteId = site.site_link;
-					}
-					else {
-						siteId = site.id;
-					}
+				sitesExportData.forEach(site => {
 					dataRows.push([
-						siteId,
-						site.sitename,
-						site.record_type
+						site.site_id,
+						site.site_name,
+						site.national_site_identifier,
+						site.latitude_dd,
+						site.longitude_dd,
+						site.site_description
 					]);
 				});
-
-				/*
-				const ws_name = "SEAD Data";
-				const wb = new ExcelJS.Workbook();
-				const ws = wb.addWorksheet(ws_name);
-
-				dataRows.forEach(row => {
-					let addStyle = null;
-					if(typeof row[0] == 'object') {
-						if(row[0].style == 'header2') {
-							addStyle = styles.header2;
-						}
-						row.splice(0, 1);
-					}
-	
-					ws.addRow(row);
-					
-					if(addStyle != null) {
-						ws.lastRow.font = addStyle;
-					}
-				});
-
-				
-				wb.xlsx.writeBuffer().then(buffer => {
-					const blob = new Blob([buffer], { type: 'application/octet-stream' });
-					const blobUrl = URL.createObjectURL(blob);
-
-					//$("#site-report-xlsx-export-download-btn").attr("href", blobUrl);
-					//$("#site-report-xlsx-export-download-btn").attr("download", filename+".xlsx");
-
-					console.log(buffer);
-					console.log(blob);
-
-					//URL.revokeObjectURL(blobUrl);
-				});
-				*/
 				
 				var ws_name = "SEAD Data";
 				var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(dataRows);
@@ -156,23 +134,31 @@ class ResultModule {
 				XLSX.utils.book_append_sheet(wb, ws, ws_name);
 				//write workbook
 				XLSX.writeFile(wb, "sead_sites_export.xlsx");
-				
-				
 			});
 
-			$("#"+csvDownloadButtonId).on("click", (evt) => {
+			$("#"+csvDownloadButtonId).on("click", async (evt) => {
+
+				let siteIds = resultDataRows.map(site => site.id);
+				let sitesExportData = await this.fetchExportData(siteIds);
+
 				let siteExportCsv = "";
-				siteExportCsv += "Id,Name,Latitude,Longitude\r\n";
-				resultDataRows.forEach(site => {
-					let siteId = null;
-					if(typeof site.site_link != "undefined") {
-						siteId = site.site_link;
+				siteExportCsv += "Id,Name,National site identifier,Latitude,Longitude,Description\r\n";
+
+				let sanitizeForCsv = (str) => {
+					if(str == null) {
+						return null;
 					}
-					else {
-						siteId = site.id;
-					}
-					siteExportCsv += siteId+","+site.title+","+site.lat+","+site.lng+"\r\n";
+					return '"'+str.replace(/"/g, "'")+'"';
+				}
+
+				sitesExportData.forEach(site => {
+					site.site_name = sanitizeForCsv(site.site_name);
+					site.site_description = sanitizeForCsv(site.site_description);
+					site.national_site_identifier = sanitizeForCsv(site.national_site_identifier);
+
+					siteExportCsv += site.site_id+","+site.site_name+","+site.national_site_identifier+","+site.latitude_dd+","+site.longitude_dd+","+site.site_description+"\r\n";
 				});
+
 				this.sqs.dialogManager.hidePopOver();
 				const bytes = new TextEncoder().encode(siteExportCsv);
 				const blob = new Blob([bytes], {
@@ -181,23 +167,23 @@ class ResultModule {
 				saveAs(blob, "sead_sites_export.csv");
 			});
 
-			$("#"+jsonDownloadButtonId).on("click", (evt) => {
+			$("#"+jsonDownloadButtonId).on("click", async (evt) => {
+
+				let siteIds = resultDataRows.map(site => site.id);
+				let sitesExportData = await this.fetchExportData(siteIds);
+
 				let siteExportJson = [];
-				resultDataRows.forEach(site => {
-					let siteId = null;
-					if(typeof site.site_link != "undefined") {
-						siteId = site.site_link;
-					}
-					else {
-						siteId = site.id;
-					}
+				sitesExportData.forEach(site => {
 					siteExportJson.push({
-						site_id: siteId,
-						lat: site.lat,
-						lng: site.lng,
-						name: site.title
+						site_id: site.site_id,
+						name: site.site_name,
+						national_site_identifier: site.national_site_identifier,
+						lat: site.latitude_dd,
+						lng: site.longitude_dd,
+						description: site.site_description
 					});
 				});
+				
 				this.sqs.dialogManager.hidePopOver();
 				let jsonData = JSON.stringify(siteExportJson, null, 2);
 				const bytes = new TextEncoder().encode(jsonData);
