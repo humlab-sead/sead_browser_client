@@ -165,25 +165,14 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 			//since this is ms - there should be pars of values/AEs, one with a prepMethod and one without, both connected to the sample physical_sample
             //these needs to be paired up in 2 series
 
-			/* NOTE: This is what should be the correct code! But it's swapped in the database so the AEs that are NOT connected to the 550-prepMethod are actually the ones that are burned...
-				so this is commented out and we use the below reversed code instead
-            let burnedAnalysisEntities = dataset.analysis_entities.filter((ae) => {
-                return ae.prepMethods.length > 0 && ae.prepMethods.includes(82);
-            });
-
-            let unburnedAnalysisEntities = dataset.analysis_entities.filter((ae) => {
-                return ae.prepMethods.length < 1 || !ae.prepMethods.includes(82);
-            });
-			*/
-
 			dataset.analysis_entities.forEach((ae) => {
 				if(ae.prepMethods.length > 0 && ae.prepMethods.includes(82)) {
-					unburnedSeries.push([
+					burnedSeries.push([
 						ae.physical_sample_id,
 						parseFloat(ae.measured_values[0].measured_value)
 					]);
 				} else {
-					burnedSeries.push([
+					unburnedSeries.push([
 						ae.physical_sample_id,
 						parseFloat(ae.measured_values[0].measured_value)
 					]);
