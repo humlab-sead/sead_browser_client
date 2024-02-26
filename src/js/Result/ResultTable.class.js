@@ -174,12 +174,24 @@ class ResultTable extends ResultModule {
 
 		var columns = [
 			{
+				"title": "Select",
+				"column": "select"
+			},
+			{
 				"title": "Site ID",
 				"column": "site_link_filtered"
 			},
 			{
 				"title": "Site name",
 				"column": "sitename"
+			},
+			{
+				"title": "Samples",
+				"column": "samples"
+			},
+			{
+				"title": "Analyses",
+				"column": "analyses"
 			},
 			{
 				"title": "Record type",
@@ -200,9 +212,34 @@ class ResultTable extends ResultModule {
 		for(var key in renderData.rows) {
 			tableHtml += "<tr>";
 
+			if(renderData.rows[key].sitename == "Akia Lake Q5") {
+				console.log(renderData.rows[key]);
+			}
+
 			for(var ck in columns) {
-				var cellContent = renderData.rows[key][columns[ck].column];
-				tableHtml += "<td>"+cellContent+"</td>";
+				if(columns[ck].column == "select") {
+					tableHtml += "<td><input type='checkbox' /></td>";
+				}
+				else if(columns[ck].column == "samples") {
+					tableHtml += "<td>Samples</td>";
+				}
+				else if(columns[ck].column == "analyses") {
+					tableHtml += "<td> \
+					<div class='stacked-bar-container'> \
+					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #0a0;'></div> \
+					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #a00;'></div> \
+					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #9c591b;'></div> \
+					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #216600;'></div> \
+					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #909;'></div> \
+					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #690;'></div> \
+					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #099;'></div> \
+				  </div> \
+				  </td>";
+				}
+				else {
+					var cellContent = renderData.rows[key][columns[ck].column];
+					tableHtml += "<td>"+cellContent+"</td>";
+				}
 			}
 
 			tableHtml += "</tr>";
