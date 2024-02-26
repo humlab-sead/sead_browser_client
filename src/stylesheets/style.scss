@@ -3601,3 +3601,18 @@ svg text {
     border-bottom: 2px solid transparent;
   }
 }
+
+.stacked-bar-container {
+  display: flex;
+  height: 30px;
+  align-items: center;
+}
+
+.stacked-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  height: 50%;
+}
