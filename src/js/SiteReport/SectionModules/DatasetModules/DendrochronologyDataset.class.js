@@ -724,9 +724,9 @@ class DendrochronologyDataset extends DatasetModule {
 		}
 
 		let analysisMethod = null;
-		for(let key in siteData.lookup_tables.analysis_methods) {
-			if(siteData.lookup_tables.analysis_methods[key].method_id == 10) {
-				analysisMethod = siteData.lookup_tables.analysis_methods[key];
+		for(let key in siteData.lookup_tables.methods) {
+			if(siteData.lookup_tables.methods[key].method_id == 10) {
+				analysisMethod = siteData.lookup_tables.methods[key];
 			}
 		}
 

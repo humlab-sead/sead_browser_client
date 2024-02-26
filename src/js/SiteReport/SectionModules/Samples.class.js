@@ -1,5 +1,6 @@
 import css from '../../../stylesheets/style.scss';
 import { nanoid } from 'nanoid';
+import OpenLayersMap from '../../Common/OpenLayersMap.class.js';
 /*
 * Class: Samples
  */
@@ -214,7 +215,7 @@ class Samples {
 
 				//link up coordinate methods and dimensions to each coordinate
 				sample.coordinates.forEach(coord => {
-					siteData.lookup_tables.coordinate_methods.forEach(cm => {
+					siteData.lookup_tables.methods.forEach(cm => {
 						if(cm.method_id == coord.coordinate_method_id) {
 							coord.coordinate_method = cm;
 						}
@@ -289,9 +290,9 @@ class Samples {
 	getMethodFromDatasetId(site, datasetId) {
 		for(let key in site.datasets) {
 			if(site.datasets[key].dataset_id == datasetId) {
-				for(let alKey in site.lookup_tables.analysis_methods) {
-					if(site.lookup_tables.analysis_methods[alKey].method_id == site.datasets[key].method_id) {
-						return site.lookup_tables.analysis_methods[alKey];
+				for(let alKey in site.lookup_tables.methods) {
+					if(site.lookup_tables.methods[alKey].method_id == site.datasets[key].method_id) {
+						return site.lookup_tables.methods[alKey];
 					}
 				}
 			}
@@ -395,20 +396,96 @@ class Samples {
 			});
 		}
 
+		let siteData = this.sqs.siteReportManager.siteReport.siteData;
+
 		table.rows.forEach(row => {
 			let sampleGroupId = row[1].value;
 			sampleGroups.forEach(sg => {
 				if(sg.sample_group_id == sampleGroupId && sg.coordinates.length) {
+
+					//link up coordinate methods and dimensions to each coordinate
+					sg.coordinates.forEach(coord => {
+						siteData.lookup_tables.methods.forEach(cm => {
+							if(cm.method_id == coord.coordinate_method_id) {
+								coord.coordinate_method = cm;
+							}
+						});
+		
+						siteData.lookup_tables.dimensions.forEach(dim => {
+							if(dim.dimension_id == coord.dimension_id) {
+								coord.dimension = dim;
+							}
+						});
+					});
+
+					//sort coordinates by dimension name
+					sg.coordinates.sort((a, b) => {
+						if(a.dimension.dimension_name < b.dimension.dimension_name) {
+							return -1;
+						}
+					});
+
 					row.push({
-						"value": this.formatCoordinates(sg.coordinates),
+						"value": "<i style=\"font-size: 2em;width:100%;text-align:center;\" class=\"fa fa-map-marker clickable\" aria-hidden=\"true\"></i>",
+						//"value": this.formatCoordinatesAsMarker(sg.coordinates),
 						"type": "cell",
-						"tooltip": "",
-						"data": sg.coordinates
+						//"tooltip": this.formatCoordinates(sg.coordinates),
+						"data": sg.coordinates,
+						"clickCallback": (row) => {
+							this.renderSampleGroupCoordinatesMap(sampleGroups, sg);
+						}
 					});
 				}
 			});
 		});
 
+	}
+
+	renderSampleGroupCoordinatesMap(sampleGroups, sampleGroup) {
+		console.log(sampleGroups, sampleGroup);
+		let siteData = this.sqs.siteReportManager.siteReport.siteData;
+		let mapId = "map-"+nanoid();
+
+		this.sqs.dialogManager.showPopOver("Sample group coordinates", "<div id='"+mapId+"' class='sample-coordinates-map-modal-container'></div>");
+
+		let map = new OpenLayersMap(this.sqs);
+		let points = map.coordinatesToPoints(sampleGroup.coordinates);
+
+		sampleGroups.forEach(sg => {
+			if(sg.sample_group_id != sampleGroup.sample_group_id) {
+				if(sg.coordinates.length > 0) {
+					let sampleGroupPoints = map.coordinatesToPoints(sg.coordinates);
+					points = points.concat(sampleGroupPoints);
+				}
+			}
+		});
+
+		//make coordinates into geojson and add to map with setData
+		let geojson = {
+			"type": "FeatureCollection",
+			"features": []
+		};
+
+		points.forEach(point => {
+			let feature = {
+				"type": "Feature",
+				"geometry": {
+					"type": "Point",
+					"coordinates": [point.x, point.y]
+				},
+				"properties": {
+					"tooltip": point.tooltip
+				}
+			};
+			geojson.features.push(feature);
+		});
+
+		map.setData(geojson);
+		map.setMapBaseLayer("topoMap");
+		map.render("#"+mapId);
+		
+		map.renderPointsLayer(geojson);
+		map.fitToExtent();
 	}
 	
 	formatCoordinates(coords) {
@@ -417,7 +494,7 @@ class Samples {
 		let cellValue = "";
 		coords.forEach(coord => {
 			let coordMethod = null;
-			siteData.lookup_tables.coordinate_methods.forEach(cm => {
+			siteData.lookup_tables.methods.forEach(cm => {
 				if(cm.method_id == coord.coordinate_method_id) {
 					coordMethod = cm;
 				}
@@ -431,11 +508,14 @@ class Samples {
 			});
 
 			let unit = null;
-			siteData.lookup_tables.units.forEach(u => {
-				if(u.unit_id == coordMethod.unit_id) {
-					unit = u;
-				}
-			});
+			if(siteData.lookup_tables.units) {
+				siteData.lookup_tables.units.forEach(u => {
+					if(u.unit_id == coordMethod.unit_id) {
+						unit = u;
+					}
+				});
+			}
+			
 
 			if(typeof dimension == "undefined" || dimension == null || typeof dimension.dimension_name == "undefined") {
 				console.warn("WARN: Dimension not found for coordinate: ", coord);
@@ -463,6 +543,7 @@ class Samples {
 		
 		});
 		cellValue = cellValue.substring(0, cellValue.length-2);
+
 		return cellValue;
 	}
 
@@ -552,6 +633,7 @@ class Samples {
 				"title": "Sampling method"
 			},
 		];
+		
 
 		let siteHasSampleGroupDescriptions = false;
 		for(let key in siteData.sample_groups) {
@@ -566,25 +648,8 @@ class Samples {
 				"title": "Descriptions"
 			});
 		}
-		
-		/*
-		let siteHasSampleGroupCoordinates = false;
-		for(let key in siteData.sample_groups) {
-			if(siteData.sample_groups[key].coordinates.length > 0) {
-				siteHasSampleGroupCoordinates = true;
-			}
-		}
-		if(siteHasSampleGroupCoordinates) {
-			sampleGroupColumns.push({
-				"dataType": "string",
-				"hidden": false,
-				"title": "Coordinates"
-			});
-		}
-		*/
 
 		let sampleGroupRows = [];
-
 		let sampleGroupTable = {
 			columns: sampleGroupColumns,
 			rows: sampleGroupRows
@@ -592,7 +657,7 @@ class Samples {
 		
 		for(let key in siteData.sample_groups) {
 			var sampleGroup = siteData.sample_groups[key];
-			
+
 			var subTableColumns = [
 				{
 					"pkey": true,
@@ -798,9 +863,9 @@ class Samples {
 	}
 	
 	getSamplingMethodById(siteData, samplingMethodId) {
-		for(let key in siteData.lookup_tables.sampling_methods) {
-			if(siteData.lookup_tables.sampling_methods[key].method_id == samplingMethodId) {
-				return siteData.lookup_tables.sampling_methods[key];
+		for(let key in siteData.lookup_tables.methods) {
+			if(siteData.lookup_tables.methods[key].method_id == samplingMethodId) {
+				return siteData.lookup_tables.methods[key];
 			}
 		}
 		return null;

@@ -270,13 +270,13 @@ class DatasetModule {
 	}
 
 	getAnalysisMethodMetaById(siteData, methodId) {
-		if(typeof siteData.lookup_tables.analysis_methods == "undefined") {
+		if(typeof siteData.lookup_tables.methods == "undefined") {
 			return null;
 		}
-		for(let key in siteData.lookup_tables.analysis_methods) {
-			if(siteData.lookup_tables.analysis_methods[key]) {
-				if(siteData.lookup_tables.analysis_methods[key].method_id == methodId) {
-					return siteData.lookup_tables.analysis_methods[key];
+		for(let key in siteData.lookup_tables.methods) {
+			if(siteData.lookup_tables.methods[key]) {
+				if(siteData.lookup_tables.methods[key].method_id == methodId) {
+					return siteData.lookup_tables.methods[key];
 				}
 			}
 		}

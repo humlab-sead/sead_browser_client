@@ -434,6 +434,13 @@ class SiteReportTable {
 						let tt = this.siteReport.sqs.tooltipManager.registerTooltip("#"+cellNodeId, tooltipMsg, options);
 						this.tooltipIds.push("#"+cellNodeId);
 					}
+
+					if(row[colKey].hasOwnProperty("clickCallback")) {
+						this.sqs.tooltipManager.registerTooltip("#"+cellNodeId, (evt) => {
+							evt.stopPropagation();
+							row[colKey].clickCallback(row[colKey]);
+						}, {drawSymbol:true, eventType:"click"});
+					}
 					
 					//buttons
 					/*
@@ -455,6 +462,8 @@ class SiteReportTable {
 				}
 			}
 		}
+
+		
 
 		$(rowNode).on("click", (evt) => {
 			var rowNode = $(evt.currentTarget);

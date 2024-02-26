@@ -448,9 +448,9 @@ class Analysis {
 		}
 		let siteData = this.sqs.siteReportManager.siteReport.siteData;
 
-		for(let key in siteData.lookup_tables.analysis_methods) {
-			if(siteData.lookup_tables.analysis_methods[key].method_id == methodId) {
-				return siteData.lookup_tables.analysis_methods[key];
+		for(let key in siteData.lookup_tables.methods) {
+			if(siteData.lookup_tables.methods[key].method_id == methodId) {
+				return siteData.lookup_tables.methods[key];
 			}
 		}
 		return false;

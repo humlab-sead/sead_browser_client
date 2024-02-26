@@ -29,9 +29,9 @@ class MeasuredValueDataset extends DatasetModule {
 
 		for(let key in methodDatasets) {
             let dataset = methodDatasets[key];
-            for(let k in site.lookup_tables.analysis_methods) {
-                if(site.lookup_tables.analysis_methods[k].method_id == dataset.method_id) {
-                    analysisMethod = site.lookup_tables.analysis_methods[k];
+            for(let k in site.lookup_tables.methods) {
+                if(site.lookup_tables.methods[k].method_id == dataset.method_id) {
+                    analysisMethod = site.lookup_tables.methods[k];
                 }
             }
 
@@ -208,9 +208,9 @@ class MeasuredValueDataset extends DatasetModule {
 		dataGroups.forEach(dataGroup => {
 
 			let analysisMethod = null;
-			for(let key in siteData.lookup_tables.analysis_methods) {
-				if(siteData.lookup_tables.analysis_methods[key].method_id == dataGroup.method_id) {
-					analysisMethod = siteData.lookup_tables.analysis_methods[key];
+			for(let key in siteData.lookup_tables.methods) {
+				if(siteData.lookup_tables.methods[key].method_id == dataGroup.method_id) {
+					analysisMethod = siteData.lookup_tables.methods[key];
 				}
 			}
 			

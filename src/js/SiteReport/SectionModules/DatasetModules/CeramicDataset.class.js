@@ -117,7 +117,7 @@ class CeramicDataset extends DatasetModule {
 		let builtSections = [];
 
 		this.methodIds.forEach(methodId => {
-			siteData.lookup_tables.analysis_methods.forEach(method => {
+			siteData.lookup_tables.methods.forEach(method => {
 				if(method.method_id == methodId) {
 					let sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", method.method_id);
 					if(sectionKey === false) {

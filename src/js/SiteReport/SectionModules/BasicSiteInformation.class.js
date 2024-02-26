@@ -442,7 +442,7 @@ class BasicSiteInformation {
 			dsc.contact_type_id
 
 			let dsAnalysisMethodName = "Unknown";
-			siteData.lookup_tables.analysis_methods.forEach(method => {
+			siteData.lookup_tables.methods.forEach(method => {
 				if(method.method_id == dataset.method_id) {
 					dsAnalysisMethodName = method.method_name;
 				}

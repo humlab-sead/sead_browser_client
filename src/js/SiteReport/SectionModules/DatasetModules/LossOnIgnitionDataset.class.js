@@ -30,9 +30,9 @@ class LossOnIgnitionDataset extends DatasetModule {
 
         for(let key in methodDatasets) {
             let dataset = methodDatasets[key];
-            for(let k in site.lookup_tables.analysis_methods) {
-                if(site.lookup_tables.analysis_methods[k].method_id == dataset.method_id) {
-                    analysisMethod = site.lookup_tables.analysis_methods[k];
+            for(let k in site.lookup_tables.methods) {
+                if(site.lookup_tables.methods[k].method_id == dataset.method_id) {
+                    analysisMethod = site.lookup_tables.methods[k];
                 }
             }
 			if(analysisMethod == null) {
