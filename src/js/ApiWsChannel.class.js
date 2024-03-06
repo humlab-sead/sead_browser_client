@@ -1,9 +1,10 @@
 import { nanoid } from "nanoid";
-export class ApiWsChannel {
-    constructor() {
+class ApiWsChannel {
+    constructor(sqs, address = null) {
+        this.sqs = sqs;
         this.channelId = nanoid();
         this.ws = null;
-        this.address = "ws://localhost:3500";
+        this.address = address ? address : sqs.config.dataServerAddress.replace(/^(http:\/\/)(.*)$/, "ws://$2");
     }
 
     connect() {
@@ -11,9 +12,19 @@ export class ApiWsChannel {
             this.ws = new WebSocket(this.address, "api");
             this.ws.onopen = () => {
                 this.ws.onmessage = this.listen;
-                resolve(this);
+
+                if(this.ws.readyState == 1) {
+                    resolve(this);
+                }
+                else {
+                    reject("Failed to connect to WebSocket");
+                }
             };
         });
+    }
+
+    connected() {
+        return this.ws.readyState === 1;
     }
 
     send(msg) {
@@ -34,3 +45,5 @@ export class ApiWsChannel {
     }
 
 }
+
+export { ApiWsChannel as default }

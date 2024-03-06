@@ -20,6 +20,7 @@ import { createXYZ } from 'ol/tilegrid';
 import TileGrid from 'ol/tilegrid/TileGrid.js';
 import SqsMenu from '../SqsMenu.class.js';
 import { nanoid } from 'nanoid';
+import proj4 from "proj4";
 
 class OpenLayersMap {
     constructor(sqs) {
@@ -36,7 +37,7 @@ class OpenLayersMap {
 		this.defaultColorScheme = this.sqs.color.getColorScheme(20, false);
 		this.featureStyleCallbacks = [];
 
-		this.registerFeatureStyleCallback("default", (olMap, features, feature, resolution) => {
+		this.registerFeatureStyleCallback("default", (feature, resolution) => {
 			return this.getSingularPointStyle(feature);
 		}, true);
 
@@ -217,7 +218,7 @@ class OpenLayersMap {
 		});
     }
 
-	geFeatureStyle(name = null) {
+	getFeatureStyle(name = null) {
 		if(name == null) {
 			name = this.selectedStyleType;
 		}
@@ -527,7 +528,7 @@ class OpenLayersMap {
 		var clusterLayer = new VectorLayer({
 			source: clusterSource,
 			style: (feature) => {
-				return this.geFeatureStyle().callback(this.olMap, featurePoints, feature);
+				return this.getFeatureStyle().callback(this.olMap, featurePoints, feature);
 			},
 			zIndex: 1
 		});
@@ -600,9 +601,9 @@ class OpenLayersMap {
 	/*
 	* Function: renderPointsLayer
 	*/
-	renderPointsLayer(geoJsonData, styleType = null) {
+	renderPointsLayer(geoJsonData, styleType = null, featureProjection = "EPSG:3857") {
 		var gf = new GeoJSON({
-			//featureProjection: "EPSG:3857"
+			featureProjection: featureProjection
 		});
 		var featurePoints = gf.readFeatures(geoJsonData);
 		var pointsSource = new VectorSource({
@@ -614,20 +615,20 @@ class OpenLayersMap {
 			source: pointsSource
 		});
 		
-		var clusterLayer = new VectorLayer({
+		var layer = new VectorLayer({
 			source: clusterSource,
-			style: this.geFeatureStyle().callback,
+			style: this.getFeatureStyle().callback,
 			zIndex: 1
 		});
 		
-		clusterLayer.setProperties({
+		layer.setProperties({
 			"layerId": "points",
 			"type": "dataLayer"
 		});
 		if(this.getLayerByName("points") != null) {
 			this.removeLayer("points");
 		}
-		this.olMap.addLayer(clusterLayer);
+		this.olMap.addLayer(layer);
 	}
 
 	renderAbundancePointsLayer(geojson) {
@@ -1053,6 +1054,13 @@ class OpenLayersMap {
         let renderTarget = document.querySelector(renderTargetSelector);
 		this.renderTargetSelector = renderTargetSelector;
 
+		if($(renderTarget).width() == 0) {
+			$(renderTarget).width(500);
+		}
+		if($(renderTarget).height() == 0) {
+			$(renderTarget).height(500);
+		}
+
         renderTarget.innerHTML = "";
 
 		//create attribution and set its position to bottom left
@@ -1276,7 +1284,270 @@ class OpenLayersMap {
 		return styles;
 	}
 
-	
+	coordinatesToPoints(coordinates) {
+		let points = [];
+		if(coordinates.length == 0) {
+			return;
+		}
+
+		//if we have coordinates..
+		//1. if something which can be translated to wgs84 is available, choose it
+		let planarCoordPairs = this.filterAndPairPlanarCoordinates(coordinates);
+		let coordinatePair = null;
+		if(planarCoordPairs.length > 0) {
+			//planarCoordSys = planarCoords[0].coordinate_method;
+			coordinatePair = this.preparePlanarCoordinates(planarCoordPairs);
+		}
+
+		//a sample can have multiple z-coordinates, such as in the case where we have both "Depth from surface lower sample boundary" and "Depth from surface upper sample boundary"
+		let zCoords = this.getZCoordinatesFromCoordinates(coordinates);
+		let zCoordPresentation = "";
+		zCoords.forEach(zCoord => {
+			if(zCoordPresentation != "") {
+				zCoordPresentation += ", ";
+			}
+			zCoordPresentation += this.getZcoordinateAsString(zCoord);
+		});
+
+		points.push({
+			x: coordinatePair ? coordinatePair.coordinates[0] : null,
+			y: coordinatePair ? coordinatePair.coordinates[1] : null,
+			z: zCoords,
+			zString: zCoordPresentation,
+			planarCoordSys: coordinatePair ? coordinatePair.coordinateSystem : null,
+			sampleName: "",
+			tooltip: "",
+			sampleGroupId: "",
+			sampleGroupName: ""
+		});
+
+		return points;
+	}
+
+	filterAndPairPlanarCoordinates(coordinates) {
+		let planarCoords = [];
+		coordinates.forEach(coordinate => {
+			console.log("coordinate", coordinate)
+			if(this.sqs.config.xyCoordinateDimensionIds.includes(coordinate.dimension.dimension_id)) {
+				planarCoords.push(coordinate);
+			}
+		});
+
+		//match coordinate pairs based on their coordinate_method_id
+		let uniqueCoordinatePairs = [];
+		let coordinateMethodIds = [];
+		planarCoords.forEach(coordinate => {
+			if(!coordinateMethodIds.includes(coordinate.coordinate_method.method_id)) {
+				coordinateMethodIds.push(coordinate.coordinate_method.method_id);
+			}
+		});
+
+		coordinateMethodIds.forEach(methodId => {
+			let coordinatePair = [];
+			planarCoords.forEach(coordinate => {
+				if(coordinate.coordinate_method.method_id == methodId) {
+					coordinatePair.push(coordinate);
+				}
+			});
+			if(coordinatePair.length == 2) {
+				uniqueCoordinatePairs.push(coordinatePair);
+			}
+		});
+
+		return uniqueCoordinatePairs;
+	}
+
+	preparePlanarCoordinates(coordinatePairs) {
+		//Define projections
+		proj4.defs("EPSG:3006", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
+		proj4.defs("EPSG:3018", "+proj=tmerc +lat_0=0 +lon_0=14.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
+		proj4.defs("EPSG:3019", "+proj=tmerc +lat_0=0 +lon_0=15.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
+		proj4.defs("EPSG:3021", "+proj=tmerc +lat_0=0 +lon_0=18.05827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
+		proj4.defs("EPSG:3024", "+proj=tmerc +lat_0=0 +lon_0=20.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
+		proj4.defs("EPSG:3007","+proj=tmerc +lat_0=0 +lon_0=12 +k=1 +x_0=150000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs");
+		proj4.defs("SWEREF99_LAT_LONG_TO_1200", "+proj=pipeline +step +proj=latlong +ellps=GRS80 +step +inv +proj=utm +zone=12 +ellps=GRS80 +units=m +no_defs");
+		proj4.defs("SWEREF99_LAT_LONG_TO_3006", "+proj=pipeline +step +proj=latlong +ellps=GRS80 +step +inv +proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
+		proj4.defs("gothenburg-local", "+proj=tmerc +lat_0=0 +lon_0=11.304996 +k=1.00000867 +x_0=-6370680.1969 +y_0=-80.0124 +ellps=GRS80 +units=m +no_defs");
+		proj4.defs("EPSG:3021", '+proj=tmerc +lat_0=0 +lon_0=12 +k=1 +x_0=150000 +y_0=0 +ellps=GRS80 +units=m +no_defs');
+		proj4.defs("EPSG:9999", "+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs");
+
+		let workingCoordinates = {
+			x: null,
+			y: null,
+			method: null
+		}
+
+		//select a coordinate pair to use for the map
+		const coordinateSystemPriority = this.sqs.config.coordinateSystemPriority;
+
+		let selectedCoordinates = null;
+		coordinatePairs.forEach(pair => {
+			//choose the highest priority coordinate system based on pair[0].coordinate_method_id
+			if(selectedCoordinates == null || coordinateSystemPriority.indexOf(pair[0].coordinate_method.method_id) < coordinateSystemPriority.indexOf(selectedCoordinates[0].coordinate_method.method_id)) {
+				selectedCoordinates = pair;
+			}
+		});
+		
+		//pick out the x/y
+		selectedCoordinates.forEach(coordinate => {
+			if(coordinate.dimension.dimension_name == "X/North") {
+				workingCoordinates.y = coordinate;
+			}
+			if(coordinate.dimension.dimension_name == "Y/East") {
+				workingCoordinates.x = coordinate;
+			}
+			if(coordinate.dimension.dimension_name == "X/East") {
+				workingCoordinates.x = coordinate;
+			}
+			if(coordinate.dimension.dimension_name == "Y/North") {
+				workingCoordinates.y = coordinate;
+			}
+		});
+
+		workingCoordinates.method = workingCoordinates.x.coordinate_method;
+
+		if(workingCoordinates.x == null || workingCoordinates.y == null) {
+			//this will trigger if we are fed z-coords only, which can absolutely happen, so don't even warn about it
+			return null;
+		}
+
+		let outputCoords = null;
+		let sweref99Coords = null;
+		let coordinateSystem = null;
+
+		switch(workingCoordinates.x.coordinate_method.method_id) {
+			case 113: //"Malmö stads koordinatnät"
+				outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+				coordinateSystem = "local";
+				break;
+			case 105: //"Local grid" 
+				//outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+				outputCoords = proj4("EPSG:9999", "EPSG:4326", [workingCoordinates.x.measurement, workingCoordinates.y.measurement]);
+				coordinateSystem = "local";
+				break;
+			case 108: //"Göteborgs kommuns koordinatsystem" - we treat this as a local grid, for now
+				outputCoords = proj4("EPSG:3006", "EPSG:4326", [workingCoordinates.x.measurement, workingCoordinates.y.measurement]);
+				coordinateSystem = "EPSG:4326";
+				break;
+			case 103: //"RT90 5 gon V"
+				let rt90Coords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+				sweref99Coords = proj4("EPSG:3019", "EPSG:3006", rt90Coords);
+				outputCoords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				coordinateSystem = "EPSG:4326";
+				break;
+			case 69: //"RT90 2.5 gon V"
+				let rt9025Coords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+				sweref99Coords = proj4("EPSG:3021", "EPSG:3006", rt9025Coords);
+				outputCoords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				coordinateSystem = "EPSG:4326";
+				break;
+			case 78: //"Height from datum"
+				break;
+			case 80: //"Height from surface"
+				break;
+			case 77: //"Depth from reference level"
+				break;
+			case 76: //"Altitude above sea level"
+				break;
+			case 79: //"Depth from surface"
+				break;
+			case 72: //"WGS84"
+				outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+				coordinateSystem = "EPSG:4326";
+				break;
+			case 70: //"SWEREF 99 TM (Swedish)"
+				sweref99Coords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+				outputCoords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+				coordinateSystem = "EPSG:4326";
+				break;
+			case 121: //"Rikets höjdsystem 1900"
+				break;
+			case 102: //"RH70"
+				break;
+			case 114: //"WGS84 UTM zone 32"
+				//wgs84Coords = proj4('+proj=utm +zone=32 +ellps=WGS84', "EPSG:4326", [coordinateTrio.x.measurement, coordinateTrio.y.measurement]);
+				outputCoords = proj4('+proj=utm +zone=32 +ellps=WGS84 +datum=WGS84 +units=m +no_defs', "EPSG:4326", [workingCoordinates.x.measurement, workingCoordinates.y.measurement]);
+				coordinateSystem = "EPSG:4326";
+				break;
+			case 115: //"Depth from surface lower sample boundary"
+				break;
+			case 116: //"Depth from surface upper sample boundry "
+				break;
+			case 122: //"Depth from surface lower sample boundary "
+				break;
+			case 123: //"UTM U32 euref89"
+				outputCoords = proj4("+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs", "EPSG:4326", [workingCoordinates.y.measurement, workingCoordinates.x.measurement]);
+				coordinateSystem = "EPSG:4326";
+				break;
+			case 125: //"Upper sample boundary"
+				break;
+			case 126: //"Lower sample boundary depth"
+				break;
+			case 120: //"WGS84 UTM zone 33N"
+				outputCoords = proj4('+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs', "EPSG:4326", [workingCoordinates.y.measurement, workingCoordinates.x.measurement]);
+				coordinateSystem = "EPSG:4326";
+				break;
+			default:
+				console.warn("WARN: Support for coordinate method not implemented: "+workingCoordinates.x.coordinate_method.method_name);
+		}
+
+		//These don't actually (currently) exist in the database, but here they are for reference
+		/*
+		case "RT90 7.5 gon V":
+			let rt9075Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+			var sweref99Coords = proj4("EPSG:3018", "EPSG:3006", rt9075Coords);
+			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+			return wgs84Coords;
+		case "RT90 0 gon":
+			let rt900Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+			var sweref99Coords = proj4("EPSG:3024", "EPSG:3006", rt900Coords);
+			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+			return wgs84Coords;
+		case "RT90 2.5 gon O":
+			let rt9025oCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+			var sweref99Coords = proj4("EPSG:3018", "EPSG:3006", rt9025oCoords);
+			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+			return wgs84Coords;
+		case "RT90 5 gon O":
+			let rt905oCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
+			var sweref99Coords = proj4("EPSG:3019", "EPSG:3006", rt905oCoords);
+			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
+			return wgs84Coords;
+		*/
+
+		return {
+			coordinates: outputCoords,
+			coordinateSystem: coordinateSystem
+		};
+	}
+
+	getZCoordinatesFromCoordinates(coordinates) {
+		let zCoords = [];
+		coordinates.forEach(coordinate => {
+			if(this.sqs.config.zCoordinateDimensionIds.includes(coordinate.dimension.dimension_id)) {
+				zCoords.push(coordinate);
+			}
+		});
+
+		return zCoords;
+	}
+
+	getZcoordinateAsString(zCoord) {
+		if(!zCoord) {
+			return null;
+		}
+		let zCoordPresentation = "";
+		if(zCoord && zCoord.measurement) {
+			let title = zCoord.coordinate_method.method_abbrev_or_alt_name ? zCoord.coordinate_method.method_abbrev_or_alt_name : zCoord.coordinate_method.method_name;
+			let unitString = "";
+			if(typeof zCoord.coordinate_method.unit != "undefined") {
+				unitString = zCoord.coordinate_method.unit.unit_abbrev ? zCoord.coordinate_method.unit.unit_abbrev : zCoord.coordinate_method.unit.unit_name;
+			}
+			zCoordPresentation = title+" "+parseFloat(zCoord.measurement)+" "+unitString;
+		}
+
+		return zCoordPresentation;
+	}
 
 }
 

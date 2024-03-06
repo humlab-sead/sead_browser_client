@@ -2,6 +2,9 @@
 import DataTables from 'datatables';
 import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
 import ResultModule from './ResultModule.class.js'
+import ApiWsChannel from '../ApiWsChannel.class.js'
+import "../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";
+import { default as Tabulator } from "tabulator-tables";
 /*
 * Class: ResultTable
 */
@@ -144,7 +147,7 @@ class ResultTable extends ResultModule {
 	* Function: renderData
 	*/
 	renderData() {
-		this.renderDataTable();
+		this.renderDataTableNew();
 		return true;
 	}
 
@@ -191,7 +194,8 @@ class ResultTable extends ResultModule {
 			},
 			{
 				"title": "Analyses",
-				"column": "analyses"
+				"column": "analyses",
+				"sortable": false
 			},
 			{
 				"title": "Record type",
@@ -212,10 +216,6 @@ class ResultTable extends ResultModule {
 		for(var key in renderData.rows) {
 			tableHtml += "<tr>";
 
-			if(renderData.rows[key].sitename == "Akia Lake Q5") {
-				console.log(renderData.rows[key]);
-			}
-
 			for(var ck in columns) {
 				if(columns[ck].column == "select") {
 					tableHtml += "<td><input type='checkbox' /></td>";
@@ -224,17 +224,41 @@ class ResultTable extends ResultModule {
 					tableHtml += "<td>Samples</td>";
 				}
 				else if(columns[ck].column == "analyses") {
-					tableHtml += "<td> \
-					<div class='stacked-bar-container'> \
-					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #0a0;'></div> \
-					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #a00;'></div> \
-					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #9c591b;'></div> \
-					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #216600;'></div> \
-					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #909;'></div> \
-					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #690;'></div> \
-					<div class='stacked-segment' style='width: "+(Math.random()*20)+"%; background-color: #099;'></div> \
-				  </div> \
-				  </td>";
+					//tableHtml += this.renderAnalysesStackedBar(renderData.rows[key], renderData.rows.length);
+					let containerNodeId = "analyses-"+renderData.rows[key].site_link_filtered;
+					tableHtml += "<td id='"+containerNodeId+"' class='cute-little-loading-indicator'></td>";
+					this.sqs.asyncRender("#"+containerNodeId, {
+						serverAddress: this.sqs.config.dataServerAddress,
+						method: "ws",
+						data: {
+							type: "analysis_methods",
+							siteId: renderData.rows[key].site_link_filtered
+						},
+						callback: (request, data) => {
+							let highestDatasetCount = 0;
+							data.analysis_methods_datasets.forEach(amd => {
+								if(amd.dataset_count > highestDatasetCount) {
+									highestDatasetCount = amd.dataset_count;
+								}
+							});
+
+							let barHtml = "<div class='stacked-bar-container'>";
+							data.analysis_methods_datasets.forEach(amd => {
+								amd.color = "black";
+								for(let key in this.sqs.config.analysisMethodsColors) {
+									let amc = this.sqs.config.analysisMethodsColors[key];
+									if(amc.method_group_id == amd.method_group_id) {
+										amd.color = "#"+amc.color;
+									}
+								}
+								amd.barWidth = (amd.dataset_count / highestDatasetCount) * 100;
+								barHtml += "<div class='stacked-segment' style='width: "+(amd.barWidth)+"%; background-color: "+amd.color+";'></div>";
+							});
+							barHtml += "</div>";
+
+							$(request.containerNodeSelector).removeClass("cute-little-loading-indicator").html(barHtml);
+						}
+					});
 				}
 				else {
 					var cellContent = renderData.rows[key][columns[ck].column];
@@ -260,14 +284,181 @@ class ResultTable extends ResultModule {
 		$("#result-table-container .datatable-container").append(tableNode);
 		$('#result-table-container').show();
 		$("#result-datatable").DataTable({
-			paging: false,
+			paging: true,
 			bInfo: false,
 			bFilter: false,
-			order: [[ 1, "asc" ]]
+			order: [[ 1, "asc" ]],
+			columnDefs: [
+				{ "orderable": false, "targets": [0, 3, 4] }
+			],
+			drawCallback: (settings) => {
+				let api = new $.fn.dataTable.Api(settings);
+				let pageInfo = api.page.info();
+				// Now you can use pageInfo object
+				console.log(pageInfo);
+			}
+		});
+
+		$("#result-datatable > thead").css("position", "sticky").css("top", "0").css("z-index", "1");
+
+		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
+	}
+
+	renderDataTableNew() {
+		this.resultManager.renderMsg(false);
+
+		$('#result-table-container').html("");
+		$('#result-table-container').show();
+
+		if(this.sqs.config.showResultExportButton) {
+			this.renderExportButton();
+		}
+
+		console.log(this.data)
+		let maxAnalysisEntities = this.data.rows.reduce((max, row) => Math.max(max, row.analysis_entities), 0);
+
+		this.tabulatorTable = new Tabulator("#result-table-container", {
+			data: this.data.rows,
+			layout: "fitColumns",
+			initialSort:[             //set the initial sort order of the data
+				{column:"analysis_entities", dir:"desc"},
+			],
+			selectable: true,
+			columns:[
+				{title: "Select", formatter: "rowSelection", titleFormatter:"rowSelection", headerSort:false, cellClick:function(e, cell){
+					cell.getRow().toggleSelect(); // This will toggle the row selection on and off
+				}},
+				{title:"View site", field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
+					console.log(cell.getValue())
+				}, formatter: (cell, formatterParams, onRendered) => {
+						return `<div class='site-report-link site-report-table-button' site-id='${cell.getValue()}'><i class="fa fa-search" aria-hidden="true"></i> View site</div>`;
+					}
+				},
+				{title:"Site ID", field:"site_link_filtered"},
+				{title:"Site name", field:"sitename", tooltip: true},
+				{title:"Analysis entities", field:"analysis_entities", formatter: (cell, formatterParams, onRendered) => {
+					return `<div class='stacked-bar-outer-container'>
+					<div class='stacked-bar-container'>
+					<div class='stacked-segment' style='width: ${(cell.getValue() / maxAnalysisEntities * 100)}%; background-color: rgb(45, 94, 141);' title='${cell.getValue()}'></div>
+					</div>
+					<div class='stacked-bar-container-numerical-readout'>${cell.getValue()}</div>
+					</div>`;
+				}},
+				{title:"Analyses", field:"analyses", formatter: (cell, formatterParams, onRendered) => {
+					cell.getElement().innerHTML = "<div class='cute-little-loading-indicator'></div>";
+
+					let containerNodeId = "analyses-"+cell.getData().site_link_filtered;
+					this.sqs.asyncRender("#"+containerNodeId, {
+						serverAddress: this.sqs.config.dataServerAddress,
+						method: "ws",
+						data: {
+							type: "analysis_methods",
+							siteId: cell.getData().site_link_filtered
+						},
+						callback: (request, data) => {
+							let highestDatasetCount = 0;
+
+							//sort analysis_methods_datasets on name
+							data.analysis_methods_datasets.sort((a, b) => {
+								if(a.method_name < b.method_name) { return -1; }
+								if(a.method_name > b.method_name) { return 1; }
+								return 0;
+							});
+
+							data.analysis_methods_datasets.forEach(amd => {
+								if(amd.dataset_count > highestDatasetCount) {
+									highestDatasetCount = amd.dataset_count;
+								}
+							});
+
+							let totalDatasetCount = data.analysis_methods_datasets.reduce((total, amd) => total + amd.dataset_count, 0);
+
+							let barHtml = "<div class='stacked-bar-container'>";
+							data.analysis_methods_datasets.forEach(amd => {
+								amd.color = "000";
+								for(let key in this.sqs.config.analysisMethodsColors) {
+									let amc = this.sqs.config.analysisMethodsColors[key];
+									if(amc.method_id == amd.method_id) {
+										amd.color = amc.color;
+									}
+								}
+								amd.barWidth = (amd.dataset_count / totalDatasetCount) * 100;
+								barHtml += `<div class='stacked-segment' style='width: ${amd.barWidth}%; background-color: #${amd.color};' title='Method: ${amd.method_name}, Datasets: ${amd.dataset_count}'></div>`;
+							});
+							barHtml += "</div>";
+							cell.getElement().innerHTML = barHtml;
+						}
+					});
+
+					return cell.getElement().innerHTML;
+				}},
+				
+			],
 		});
 
 		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
+	}
+
+	async fetchAnalysesStackedBar(siteId, siteTdId, rowsNum) {
+		if(!this.wsChan) {
+			this.wsChan = new ApiWsChannel(this.sqs, "ws://localhost:8484").connect().then((chan) => {
+				console.log("Connected to WS")
+				
+				chan.bindListen((evt) => {
+					let data = JSON.parse(evt.data);
+
+					let highestDatasetCount = 0;
+					data.analysis_methods_datasets.forEach(amd => {
+						if(amd.dataset_count > highestDatasetCount) {
+							highestDatasetCount = amd.dataset_count;
+						}
+					});
+
+					let barHtml = "<div class='stacked-bar-container'>";
+					data.analysis_methods_datasets.forEach(amd => {
+
+						amd.color = "black";
+						for(let key in this.sqs.config.analysisMethodsColors) {
+							let amc = this.sqs.config.analysisMethodsColors[key];
+							if(amc.method_group_id == amd.method_group_id) {
+								amd.color = "#"+amc.color;
+							}
+						}
+
+						amd.barWidth = (amd.dataset_count / highestDatasetCount) * 100;
+						barHtml += "<div class='stacked-segment' style='width: "+(amd.barWidth)+"%; background-color: "+amd.color+";'></div>";
+						//console.log(amd.barWidth)
+					});
+					barHtml += "</div>";
+					$("#"+siteTdId).html(barHtml);
+				});
+
+				chan.send({
+					type: "analysis_methods",
+					siteId: siteId
+				});
+			});
+		}
+		else {
+			this.wsChan.send({
+				type: "analysis_methods",
+				siteId: siteId
+			});
 		
+		}
+	}
+
+	renderAnalysesStackedBar(row, rowsNum) {
+		let siteId = row.site_link_filtered;
+		let siteTdId = "site-"+siteId;
+		let out = "<td id='"+siteTdId+"'></td>";
+
+		this.requestsQueue.push({
+			siteId: siteId,
+			callback: async () => { return this.fetchAnalysesStackedBar(siteId, siteTdId, rowsNum); }
+		});
+
+		return out;
 	}
 
 	update() {
@@ -282,6 +473,11 @@ class ResultTable extends ResultModule {
 	* Function: unrender
 	*/
 	unrender() {
+		if(this.tabulatorTable) {
+			this.tabulatorTable.clearData();
+			this.tabulatorTable.destroy();
+		}
+		$('#result-table-container').html("");
 		$("#result-table-container").hide();
 	}
 	

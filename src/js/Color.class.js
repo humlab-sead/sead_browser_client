@@ -13,7 +13,7 @@ class Color {
 	getColorScheme(numColors, alpha = false, keyColors = null) {
 		var iterations = Math.ceil(numColors / 16);
 		var scheme = new ColorScheme;
-
+		
 		if(keyColors == null) {
 			keyColors = JSON.parse(JSON.stringify(Config.keyColors));
 		}

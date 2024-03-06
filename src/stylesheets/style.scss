@@ -320,6 +320,23 @@ h1.main-header {
   width: calc(100% - 40px);
 }
 
+.cute-little-loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+	background-image: url('../assets/loading-indicator7.svg');
+	background-repeat: no-repeat;
+	background-size: 100%;
+  background-position: center;
+	margin-right: 5px;
+	margin-left: 5px;
+	background-color: transparent;
+  opacity: 0.5;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+}
+
 .small-loading-indicator {
 	display:none;
 	background-color:#000;
@@ -3602,17 +3619,47 @@ svg text {
   }
 }
 
-.stacked-bar-container {
-  display: flex;
-  height: 30px;
-  align-items: center;
-}
-
-.stacked-segment {
+.stacked-bar-outer-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 14px;
-  height: 50%;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.stacked-bar-container {
+  display: flex;
+  height: 20px;
+  align-items: center;
+  width: 100%;
+}
+
+.stacked-segment {
+  height: 100%;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+.stacked-bar-container-numerical-readout {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.8);
+  display: inline-block;
+  font-size: 0.8em;
+}
+
+.site-report-table-button {
+  background: $base-color;
+  color: #fff;
+  border: none;
+  height: 100%;
+  padding-left: 0.25em;
+  padding-right: 0.25em;
+  font-size: 1.0em;
+  text-align: center;
+  cursor: pointer;
+}
+
+.site-report-table-button:hover {
+  background: lighten($base-color, 10%);
 }
