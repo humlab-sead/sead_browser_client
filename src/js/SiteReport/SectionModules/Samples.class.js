@@ -382,6 +382,8 @@ class Samples {
 	}
 
 	insertSampleGroupCoordinatesIntoTable(table, sampleGroups) {
+		console.warn("insertSampleGroupCoordinatesIntoTable called - not implemented yet.");
+		return;
 		let insertSampleGroupCoordinatesColumn = false;
 		sampleGroups.forEach(sg => {
 			if(sg.coordinates.length > 0) {
@@ -442,7 +444,6 @@ class Samples {
 	}
 
 	renderSampleGroupCoordinatesMap(sampleGroups, sampleGroup) {
-		console.log(sampleGroups, sampleGroup);
 		let siteData = this.sqs.siteReportManager.siteReport.siteData;
 		let mapId = "map-"+nanoid();
 
@@ -719,6 +720,7 @@ class Samples {
 			});
 			sampleGroupDescriptionsStringValue = sampleGroupDescriptionsStringValue.substring(0, sampleGroupDescriptionsStringValue.length-2);
 			
+			console.log(siteData, sampleGroup)
 			let samplingMethod = this.getSamplingMethodById(siteData, sampleGroup.sampling_method_id);
 
 			let sampleGroupRow = [
