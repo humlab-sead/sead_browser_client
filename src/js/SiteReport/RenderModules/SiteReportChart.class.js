@@ -184,7 +184,7 @@ class SiteReportChart {
 					if(cell.type == "subtable") {
 						let subTableCoordinateColumnKey = null;
 						cell.value.columns.forEach((sc, k) => {
-							if(sc.title == "Coordinates") {
+							if(sc.role == "coordinates") {
 								subTableCoordinateColumnKey = k;
 							}
 						});
