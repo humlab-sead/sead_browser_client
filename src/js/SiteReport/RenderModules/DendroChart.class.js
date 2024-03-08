@@ -1210,11 +1210,12 @@ class DendroChart {
     removeWarningTooltip(swr, evt) {
         this.removeTooltip();
     }
-
+    
     drawTooltip(content, xPos, yPos) {
         if(this.tooltipId != null) {
             return;
         }
+
         let tooltipContainer = document.createElement("div");
         this.tooltipId = "tooltip-"+nanoid();
         $(tooltipContainer).attr("id", this.tooltipId);
@@ -1225,18 +1226,15 @@ class DendroChart {
 
         $("body").append(tooltipContainer);
 
-        //$(tooltipContainer).css("top", evt.mouseX);
-        
-        setTimeout(() => {
-            $("#dendro-chart-svg").on("click", (evt) => {
-                if(this.tooltipId) {
-                    $("#"+this.tooltipId).remove();
-                    this.tooltipId = null;
-                    $("#dendro-chart-svg").off("click");
-                }
-            })
-        }, 500)
+        $("#dendro-chart-svg").on("click", (evt) => {
+            if(this.tooltipId) {
+                $("#"+this.tooltipId).remove();
+                this.tooltipId = null;
+                $("#dendro-chart-svg").off("click");
+            }
+        })
     }
+    
 
     removeTooltip() {
         if(this.tooltipId) {
