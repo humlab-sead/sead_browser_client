@@ -981,7 +981,12 @@ class DendroLib {
         }
 
         if(datingObject.dating_uncertainty) {
-            renderStr += " (+/-"+datingObject.dating_uncertainty+")";
+            //datingObject.dating_uncertainty is actually dating_uncertainty_id and needs to be looked up
+            let uncert = site.lookup_tables.dating_uncertainty.find(item => item.dating_uncertainty_id === datingObject.dating_uncertainty);
+
+            if(uncert != null && uncert.uncertainty == "From") {
+                renderStr = "After "+renderStr;
+            }
         }
 
         if(datingObject.minus && datingObject.plus) {

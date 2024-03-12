@@ -879,12 +879,6 @@ class DendroChart {
 
         //Figure out Width
         if(youngestGerminationYear.value && oldestFellingYear.value) {
-
-            let datingUncert = 0;
-            if(parseInt(oldestFellingYear.dating_uncertainty)) {
-                datingUncert = parseInt(oldestFellingYear.dating_uncertainty);
-            }
-
             barObject.certainty.width.value = this.xScale(oldestFellingYear.value) - this.xScale(youngestGerminationYear.value)
             //barObject.certainty.width.warnings = oldestFellingYear.warnings.concat(youngestGerminationYear.warnings);
             barObject.certainty.width.warnings = oldestFellingYear.warnings;
