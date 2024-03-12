@@ -91,7 +91,7 @@ class SiteReportManager {
 		
 		//This XHR is just for checking if the site with this ID actually exist
 		var xhr1 = this.sqs.pushXhr(null, "checkIfSiteExists");
-		xhr1.xhr = $.ajax(this.sqs.config.siteReportServerAddress+"/sites?site_id=eq."+siteId, {
+		xhr1.xhr = $.ajax(this.sqs.config.siteReportServerAddress+"/tbl_sites?site_id=eq."+siteId, {
 			method: "get",
 			dataType: "json",
 			success: (data, textStatus, xhr) => {

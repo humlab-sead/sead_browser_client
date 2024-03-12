@@ -501,7 +501,7 @@ class SeadQuerySystem {
 		
 
 		let fetchDataTypesPromise = new Promise((resolve, reject) => {
-			$.ajax(this.config.siteReportServerAddress+"/data_types", {
+			$.ajax(this.config.siteReportServerAddress+"/tbl_data_types", {
 				method: "get",
 				dataType: "json",
 				timeout: Config.preloadTimeout,
@@ -527,7 +527,7 @@ class SeadQuerySystem {
 		});
 		
 		let fetchDatasetMasters = new Promise((resolve, reject) => {
-			$.ajax(this.config.siteReportServerAddress+"/dataset_masters", {
+			$.ajax(this.config.siteReportServerAddress+"/tbl_dataset_masters", {
 				method: "get",
 				dataType: "json",
 				timeout: Config.preloadTimeout,
@@ -549,7 +549,7 @@ class SeadQuerySystem {
 			});
 		});
 
-		fetch(this.config.siteReportServerAddress+"/ecocode_definitions?ecocode_group_id=eq.2")
+		fetch(this.config.siteReportServerAddress+"/tbl_ecocode_definitions?ecocode_group_id=eq.2")
 		.then((response) => response.json())
 		.then(ecocodes => {
 			this.bugsEcoCodeDefinitions = ecocodes;
