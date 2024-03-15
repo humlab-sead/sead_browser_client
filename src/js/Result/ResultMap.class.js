@@ -227,6 +227,12 @@ class ResultMap extends ResultModule {
 		
 	}
 
+	getSelectedSites() {
+		return this.data.map((site) => {
+			return site.id
+		});
+	}
+
 	isVisible() {
 		return true;
 	}
@@ -238,7 +244,7 @@ class ResultMap extends ResultModule {
 		let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
 		
 		$("#result-map-container").append(exportButton);
-		this.bindExportModuleDataToButton(exportButton);
+		this.bindExportModuleDataToButton(exportButton, this);
 	}
 
 	/*
