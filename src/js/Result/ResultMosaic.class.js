@@ -1056,7 +1056,12 @@ class ResultMosaic extends ResultModule {
 		Plotly.newPlot(anchorNodeId, chartData, layout, config);
 
 		this.sqs.sqsEventListen("layoutResize", () => {
-			Plotly.relayout(anchorNodeId, layout);
+			try {
+				Plotly.relayout(anchorNodeId, layout);
+			}
+			catch(e) {
+				console.warn("Failed to relayout plotly chart", e);
+			}
 		}, this);
 
 	}
