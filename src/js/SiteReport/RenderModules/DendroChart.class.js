@@ -879,12 +879,6 @@ class DendroChart {
 
         //Figure out Width
         if(youngestGerminationYear.value && oldestFellingYear.value) {
-
-            let datingUncert = 0;
-            if(parseInt(oldestFellingYear.dating_uncertainty)) {
-                datingUncert = parseInt(oldestFellingYear.dating_uncertainty);
-            }
-
             barObject.certainty.width.value = this.xScale(oldestFellingYear.value) - this.xScale(youngestGerminationYear.value)
             //barObject.certainty.width.warnings = oldestFellingYear.warnings.concat(youngestGerminationYear.warnings);
             barObject.certainty.width.warnings = oldestFellingYear.warnings;
@@ -1210,11 +1204,12 @@ class DendroChart {
     removeWarningTooltip(swr, evt) {
         this.removeTooltip();
     }
-
+    
     drawTooltip(content, xPos, yPos) {
         if(this.tooltipId != null) {
             return;
         }
+
         let tooltipContainer = document.createElement("div");
         this.tooltipId = "tooltip-"+nanoid();
         $(tooltipContainer).attr("id", this.tooltipId);
@@ -1225,18 +1220,15 @@ class DendroChart {
 
         $("body").append(tooltipContainer);
 
-        //$(tooltipContainer).css("top", evt.mouseX);
-        
-        setTimeout(() => {
-            $("#dendro-chart-svg").on("click", (evt) => {
-                if(this.tooltipId) {
-                    $("#"+this.tooltipId).remove();
-                    this.tooltipId = null;
-                    $("#dendro-chart-svg").off("click");
-                }
-            })
-        }, 500)
+        $("#dendro-chart-svg").on("click", (evt) => {
+            if(this.tooltipId) {
+                $("#"+this.tooltipId).remove();
+                this.tooltipId = null;
+                $("#dendro-chart-svg").off("click");
+            }
+        })
     }
+    
 
     removeTooltip() {
         if(this.tooltipId) {

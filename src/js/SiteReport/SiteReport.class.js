@@ -836,9 +836,12 @@ class SiteReport {
 		};
 
 		if(section != "all" && contentItem != "all") {
-			
 			//Remove html from dataset references and add [] around each item
-			let plainRef = contentItem.datasetReference.replace(/<[^>]+>/g, '');
+			let plainRef = "";
+			if(contentItem.datasetReference) {
+				plainRef = contentItem.datasetReference.replace(/<[^>]+>/g, '');
+			}
+			
 			const lastIndex = plainRef.lastIndexOf('\n');
 			if (lastIndex !== -1) {
 				plainRef = plainRef.substring(0, lastIndex) + plainRef.substring(lastIndex + 1);

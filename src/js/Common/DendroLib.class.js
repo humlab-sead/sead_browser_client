@@ -941,26 +941,52 @@ class DendroLib {
             renderStr = datingObject.error_uncertainty+" ";
         }
 
-        if(datingObject.younger && datingObject.older) {
-            renderStr += datingObject.older+" - "+datingObject.younger;
+        let youngerDate = datingObject.younger;
+        let olderData = datingObject.older;
+        let olderSeasonPrefix = "";
+        let youngerSeasonPrefix = "";
+        if(datingObject.season_id && datingObject.season_type_id == 10) {
+            //this is a compound season like: "Winter-Summer", in this case the first season refers to the older date and the second to the younger
+            let seasonNames = datingObject.season_name.split("-");
+            olderSeasonPrefix = seasonNames[0].charAt(0)+" ";
+            youngerSeasonPrefix = seasonNames[1].charAt(0)+" ";
+            if(seasonNames[1] == "Winter") {
+                //if the younger season is winter, we +1 to the year since e.g. 1790 is actually 1790/1791 since it is not possible to determine which year it is during winter
+                youngerDate = youngerDate+"/"+String(youngerDate+1).substring(2);
+            }
         }
-        else if(datingObject.younger) {
-            renderStr += datingObject.younger;
+        if(datingObject.season_id && datingObject.season_type_id == 9) {
+            //this is a single season like "Summer"
+            olderSeasonPrefix = datingObject.season_name.charAt(0)+" ";
+            youngerSeasonPrefix = olderSeasonPrefix;
         }
-        else if(datingObject.older) {
-            renderStr += datingObject.older;
+
+        //if younger season is winter, we +1 to the year since e.g. 1790 is actually 1790/1791 since it is not possible to determine which year it is during winter
+        if(youngerDate && datingObject.season_type_id == 9 && datingObject.season_name == "Winter") {
+            youngerDate = youngerDate+"/"+String(youngerDate+1).substring(2);
+        }
+
+        if(youngerDate && olderData) {   
+            renderStr += olderSeasonPrefix+olderData+" - "+youngerSeasonPrefix+youngerDate;
+        }
+        else if(youngerDate) {
+            renderStr += youngerSeasonPrefix+youngerDate;
+        }
+        else if(olderData) {
+            renderStr += olderSeasonPrefix+olderData;
         }
         
         if(datingObject.age_type) {
             renderStr += " "+datingObject.age_type;
         }
-    
-        if(datingObject.season) {
-            renderStr = datingObject.season+" "+renderStr;
-        }
 
         if(datingObject.dating_uncertainty) {
-            renderStr += " (+/-"+datingObject.dating_uncertainty+")";
+            //datingObject.dating_uncertainty is actually dating_uncertainty_id and needs to be looked up
+            let uncert = site.lookup_tables.dating_uncertainty.find(item => item.dating_uncertainty_id === datingObject.dating_uncertainty);
+
+            if(uncert != null && uncert.uncertainty == "From") {
+                renderStr = "After "+renderStr;
+            }
         }
 
         if(datingObject.minus && datingObject.plus) {

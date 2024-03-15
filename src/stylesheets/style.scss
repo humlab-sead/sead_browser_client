@@ -1301,6 +1301,13 @@ h1.main-header {
   */
 }
 
+.sample-coordinates-map-modal-container {
+  position: relative;
+  height: 80vh;
+  width: 80vw;
+  overflow: hidden;
+}
+
 .sample-coordinates-map-info-text {
   position: absolute;
   top: 0px;
@@ -2195,6 +2202,16 @@ polyline{
 	font-size: 14px;
   color: #000;
   text-decoration: none;
+}
+
+.site-report-table-row .clickable:hover {
+  cursor:pointer;
+  color: white; /* Text color */
+  text-shadow: 
+    -1px -1px 4px $sead-brown,
+     1px -1px 4px $sead-brown,
+    -1px  1px 4px $sead-brown,
+     1px  1px 4px $sead-brown; /* Outline effect */
 }
 
 .site-report-link :hover {
