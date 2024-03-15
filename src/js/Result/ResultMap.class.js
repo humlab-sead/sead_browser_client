@@ -227,6 +227,12 @@ class ResultMap extends ResultModule {
 		
 	}
 
+	getSelectedSites() {
+		return this.data.map((site) => {
+			return site.id
+		});
+	}
+
 	isVisible() {
 		return true;
 	}
@@ -238,7 +244,7 @@ class ResultMap extends ResultModule {
 		let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
 		
 		$("#result-map-container").append(exportButton);
-		this.bindExportModuleDataToButton(exportButton);
+		this.bindExportModuleDataToButton(exportButton, this);
 	}
 
 	/*
@@ -247,14 +253,12 @@ class ResultMap extends ResultModule {
 	* Called from outside. Its the command from sqs to render the contents of this module. Will fetch data and then import & render it.
 	*/
 	render(fetch = true) {
-		let xhr = this.fetchData();
-		xhr.then((data, textStatus, xhr) => { //success
+		this.fetchData().then((data, textStatus, xhr) => { //success
 			if(this.active) {
 				this.renderInterfaceControls();
 			}
-		},
-		function(xhr, textStatus, errorThrown) { //error
-			console.log(errorThrown);
+		}).catch((xhr, textStatus, errorThrown) => { //error
+			console.log("Error fetching data for result map: "+errorThrown);
 		});
 	}
 
@@ -1272,6 +1276,7 @@ class ResultMap extends ResultModule {
 	*/
 	unrender() {
 		$(this.renderIntoNode).hide();
+		//this.olMap.setTarget(null);
 		$("#map-popup-container").remove();
 	}
 

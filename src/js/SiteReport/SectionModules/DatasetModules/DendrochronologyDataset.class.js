@@ -1,5 +1,4 @@
 import DatasetModule from "./DatasetModule.class";
-import { ApiWsChannel } from "../../../ApiWsChannel.class";
 import DendroLib from "../../../Common/DendroLib.class";
 import moment from "moment";
 import { nanoid } from 'nanoid'
@@ -69,7 +68,7 @@ class DendrochronologyDataset extends DatasetModule {
 		let chan = null;
 		let chanCreated = false;
 		if(wsChannel == null) {
-			let chan = new ApiWsChannel();
+			let chan = new ApiWsChannel(this.sqs);
 			await chan.connect();
 			chanCreated = true;
 		}
@@ -98,7 +97,7 @@ class DendrochronologyDataset extends DatasetModule {
 	}
 
 	async getAnalysisEntitiesForSamples(samples = []) {
-		let chan = new ApiWsChannel();
+		let chan = new ApiWsChannel(this.sqs);
 		await chan.connect();
 		chan.listen = (msg) => {
 			console.log("received: ", msg);

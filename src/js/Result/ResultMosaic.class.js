@@ -557,20 +557,6 @@ class ResultMosaic extends ResultModule {
 		});
 	}
 
-	/*
-	renderAnalysisMethods(renderIntoNode, resultMosaic) {
-		let promise = resultMosaic.fetchSiteData(resultMosaic.sites, "qse_analysis_methods", resultMosaic.requestBatchId);
-		promise.then((promiseData) => {
-			if(promiseData.requestId < resultMosaic.requestBatchId) {
-				return false;
-			}
-
-			let chartSeries = resultMosaic.prepareChartData("method_id", "method_name", promiseData.data);
-			resultMosaic.renderPieChart(renderIntoNode, chartSeries, "Analysis methods");
-		});
-	}
-	*/
-
 	renderIsotopesInSamples(renderIntoNode, resultMosaic) {
 		/*
 		SELECT count(isotope_types.designation) FROM postgrest_api.isotope_types 
@@ -1070,7 +1056,12 @@ class ResultMosaic extends ResultModule {
 		Plotly.newPlot(anchorNodeId, chartData, layout, config);
 
 		this.sqs.sqsEventListen("layoutResize", () => {
-			Plotly.relayout(anchorNodeId, layout);
+			try {
+				Plotly.relayout(anchorNodeId, layout);
+			}
+			catch(e) {
+				console.warn("Failed to relayout plotly chart", e);
+			}
 		}, this);
 
 	}

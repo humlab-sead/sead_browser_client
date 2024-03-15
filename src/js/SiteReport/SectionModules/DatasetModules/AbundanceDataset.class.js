@@ -80,7 +80,13 @@ class AbundanceDataset extends DatasetModule {
 		let ecoCodeBundles = await new Promise(async (resolve, reject) => {
 			let response = await fetch(this.sqs.config.dataServerAddress+"/ecocodes/site/"+siteData.site_id);
 			let ecoCodeBundles = await response.json();
-			resolve(ecoCodeBundles.ecocode_bundles);
+			if(typeof ecoCodeBundles.ecocode_bundles != "undefined") {
+				resolve(ecoCodeBundles.ecocode_bundles);
+			}
+			else {
+				console.warn("No eco code bundles found for this site.");
+				resolve([]);
+			}
 		});
 		
 		/*
@@ -175,26 +181,29 @@ class AbundanceDataset extends DatasetModule {
 			]
 		};
 
-		ecoCodeBundles.forEach(ecoCodeBundle => {
-			ecoCodeContentItem.data.rows.push([
-				{
-					type: "cell",
-					value: ecoCodeBundle.ecocode.name
-				},
-				{
-					type: "cell",
-					value: ecoCodeBundle.abundance
-				},
-				{
-					type: "cell",
-					value: ecoCodeBundle.taxa.length
-				},
-				{
-					type: "cell",
-					value: ecoCodeBundle.ecocode.ecocode_definition_id
-				}
-			]);
-		});
+		if(ecoCodeBundles) {
+			ecoCodeBundles.forEach(ecoCodeBundle => {
+				ecoCodeContentItem.data.rows.push([
+					{
+						type: "cell",
+						value: ecoCodeBundle.ecocode.name
+					},
+					{
+						type: "cell",
+						value: ecoCodeBundle.abundance
+					},
+					{
+						type: "cell",
+						value: ecoCodeBundle.taxa.length
+					},
+					{
+						type: "cell",
+						value: ecoCodeBundle.ecocode.ecocode_definition_id
+					}
+				]);
+			});
+		}
+		
 
 		return ecoCodeContentItem;
 	}
@@ -203,10 +212,14 @@ class AbundanceDataset extends DatasetModule {
 		let ecoCodeBundles = await new Promise(async (resolve, reject) => {
 			let response = await fetch(this.sqs.config.dataServerAddress+"/ecocodes/site/"+siteData.site_id+"/samples");
 			let ecoCodeBundles = await response.json();
-			resolve(ecoCodeBundles.ecocode_bundles);
+			if(typeof ecoCodeBundles.ecocode_bundles != "undefined") {
+				resolve(ecoCodeBundles.ecocode_bundles);
+			}
+			else {
+				console.warn("No eco code bundles found for this site.");
+				resolve([]);
+			}
 		});
-
-		//console.log(ecoCodeBundles);
 		
 		/*
 		X: Environment

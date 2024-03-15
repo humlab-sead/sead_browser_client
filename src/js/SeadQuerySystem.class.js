@@ -22,6 +22,7 @@ import Router from './Router.class.js';
 import Tutorial from './Tutorial.class.js';
 import AIAssistant from './AIAssistant.class.js';
 import { nanoid } from 'nanoid';
+import ApiWsChannel from './ApiWsChannel.class.js';
 
 //import css from '../stylesheets/style.scss';
 
@@ -43,6 +44,10 @@ class SeadQuerySystem {
 		this.taxa = []; //Local taxonomy db
 		this.systemReady = false;
 		this.requestUrl = null;
+
+		this.asyncRenderRequestQueue = [];
+		this.asyncRenderInFlightRequests = [];
+		this.asyncRenderMaxConcurrentRequests = 100;
 
 		this.experimentalFilters = [{
 			AggregateTitle: "count of x",
@@ -169,6 +174,83 @@ class SeadQuerySystem {
 		}
 	}
 
+	setCuteLittleLoadingIndicator(containerNode, set = true) {
+		if(set) {
+			$(containerNode).html("");
+			$(containerNode).addClass("small-loading-indicator");
+		}
+		else {
+			$(containerNode).removeClass("small-loading-indicator");
+		}
+	}
+
+	asyncRender(containerNodeSelector, params = {}) {
+		if(this.asyncRenderRequestQueue === undefined) {
+			this.asyncRenderRequestQueue = [];
+		}
+
+		//this.setCuteLittleLoadingIndicator(containerNodeSelector, true);
+
+		params.data.request_id = nanoid();
+
+		this.asyncRenderRequestQueue.push({
+			containerNodeSelector: containerNodeSelector,
+			params: params,
+		});
+		this.processAsyncRenderQueue();
+	}
+
+	processAsyncRenderQueue() {
+		if(!this.asyncRenderInterval) {
+			this.asyncRenderInterval = setInterval(async () => {
+
+				//if we have a ws channel but waiting for the connection to complete, don't do anything
+				if(this.wsChan && this.wsChan.connected() == false) {
+					return;
+				}
+
+				while(this.asyncRenderRequestQueue.length > 0 && this.asyncRenderMaxConcurrentRequests > this.asyncRenderInFlightRequests.length) {
+
+					let request = this.asyncRenderRequestQueue.shift();
+					
+					if(request.params.method == "ws") {
+						if(!this.wsChan) {
+							//console.log("Creating new ws channel");
+							this.wsChan = new ApiWsChannel(this);
+							await this.wsChan.connect();
+							this.wsChan.bindListen((evt) => {
+								let data = JSON.parse(evt.data);
+
+								for(let k in this.asyncRenderInFlightRequests) {
+									if(this.asyncRenderInFlightRequests[k].params.data.request_id == data.request_id) {
+										this.asyncRenderInFlightRequests[k].params.callback(this.asyncRenderInFlightRequests[k], data);
+										this.asyncRenderInFlightRequests.splice(k, 1);
+										break;
+									}
+								}
+							});
+							//console.log("Connected to WS")
+						}
+
+						if(!this.wsChan.connected()) {
+							console.error("Websocket not connected, cannot send async render request");
+						}
+						this.wsChan.send(request.params.data);
+						this.asyncRenderInFlightRequests.push(request);
+					}
+					else {
+						console.warn("asyncRender does not support method "+request.params.method);
+					}
+
+					if(this.asyncRenderRequestQueue.length == 0) {
+						clearInterval(this.asyncRenderInterval);
+						this.asyncRenderInterval = null;
+					}
+				}
+			}, 100);
+		}
+	}
+
 	bootstrapSystem() {
 
 		$("#preload-loading-indicator").remove();
@@ -182,6 +264,34 @@ class SeadQuerySystem {
 				}
 			}
 		}
+
+		/*
+		let method_ids = [
+			3, 6, 8, 10, 14, 15, 16, 21, 32, 33, 35, 36, 37, 38, 39, 40,
+			46, 47, 48, 51, 74, 94, 97, 98, 100, 101, 104, 106, 107, 109,
+			110, 111, 117, 118, 119, 127, 128, 129, 130, 131, 132, 133,
+			134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145,
+			146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157,
+			158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169,
+			170, 171, 172, 174, 175, 176
+		];
+
+		//generate colors
+		let colors = this.color.getColorScheme(method_ids.length);
+		let methodColorsConfig = [];
+		for(let key in method_ids) {
+			//strip leading #
+			let color = colors[key].substring(1);
+
+			methodColorsConfig.push({
+				method_id: method_ids[key],
+				color: color
+			});
+		}
+
+		console.log(JSON.stringify(methodColorsConfig, null, 2));
+		*/
+		
 		this.stateManager = new StateManager(this);
 		var viewstate = this.stateManager.getViewstateIdFromUrl();
 		this.layoutManager = new SqsLayoutManager(this);
@@ -292,7 +402,7 @@ class SeadQuerySystem {
 
 		var renderDefaultResult = viewstate === false;
 		if(siteId == false) { //Don't bother firing up the result section if a direct request has been made towards a site report
-			this.resultManager.setActiveModule(this.config.defaultResultModule, renderDefaultResult);
+			this.resultManager.setActiveModule(this.getUserSettings().defaultResultModule, renderDefaultResult);
 		}
 
 		if(viewstate != false) {
@@ -1388,6 +1498,10 @@ class SeadQuerySystem {
 			}
 		});
 		window.localStorage.setItem("sqsUserSettings", JSON.stringify(userSettings));
+	}
+
+	getUserSettings() {
+		return JSON.parse(window.localStorage.getItem("sqsUserSettings"));
 	}
 
 	loadUserSettings() {

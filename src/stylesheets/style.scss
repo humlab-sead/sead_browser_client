@@ -320,6 +320,23 @@ h1.main-header {
   width: calc(100% - 40px);
 }
 
+.cute-little-loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+	background-image: url('../assets/loading-indicator7.svg');
+	background-repeat: no-repeat;
+	background-size: 100%;
+  background-position: center;
+	margin-right: 5px;
+	margin-left: 5px;
+	background-color: transparent;
+  opacity: 0.5;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+}
+
 .small-loading-indicator {
 	display:none;
 	background-color:#000;
@@ -1698,10 +1715,6 @@ h1.main-header {
   border-radius: 50%;
 }
 
-#result-table-container {
-	overflow-y:auto;
-}
-
 .result-loading-indicator-error {
 	background-color: rgba(255, 0, 0, 0.65) !important;
 }
@@ -1828,6 +1841,9 @@ h1.main-header {
 
 #result-datatable {
   width: 100% !important;
+  height: 100%;
+  border: 0px solid #ccc;
+  border-bottom: 1px solid #ccc;
 }
 
 #result-datatable thead tr {
@@ -1841,8 +1857,16 @@ h1.main-header {
 }
 
 #result-table-container {
+  display: none;
+  flex-direction: column;
 	overflow-x: hidden;
+  /*overflow-y: auto;*/
 }
+
+#result-datatable-controls {
+  height: 5em;
+}
+
 
 input[type="search"] {
 	border-width: 1px;
@@ -3617,4 +3641,66 @@ svg text {
     border-top: 2px solid transparent;
     border-bottom: 2px solid transparent;
   }
+}
+
+.stacked-bar-outer-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.stacked-bar-container {
+  display: flex;
+  height: 20px;
+  align-items: center;
+  width: 100%;
+}
+
+.stacked-segment {
+  height: 100%;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+.stacked-bar-container-numerical-readout {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.8);
+  display: inline-block;
+  font-size: 0.8em;
+}
+
+.site-report-table-button {
+  background: $pane-bg-color-dark;
+  color: #000;
+  border: none;
+  height: 100%;
+  padding-left: 0.25em;
+  padding-right: 0.25em;
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
+  font-size: 1.0em;
+  text-align: center;
+  cursor: pointer;
+  max-width: 6em;
+  border-left: 0.4em solid $base-color;
+}
+
+.site-report-table-button:hover {
+  background: $pane-bg-color-dark;
+  cursor: pointer;
+}
+
+.tabulator .tabulator-row.tabulator-selected {
+  background-color: $pane-bg-color !important;
+}
+
+.tabulator .tabulator-row:nth-child(odd) {
+  background-color: #FFF;
+}
+
+.tabulator .tabulator-row:nth-child(even) {
+  background-color: #FFF;
 }

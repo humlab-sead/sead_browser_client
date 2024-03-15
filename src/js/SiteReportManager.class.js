@@ -11,6 +11,7 @@ class SiteReportManager {
 		this.siteReport = null;
 		this.siteReportsEnabled = true;
 
+		/*
 		this.sqs.sqsEventListen("resultModuleRenderComplete", () => {
 			if(this.sqs.resultManager.getActiveModule().name == "table" || this.sqs.resultManager.getActiveModule().name == "map") {
 				$(".site-report-link").off("click").on("click", (event) => {
@@ -20,6 +21,7 @@ class SiteReportManager {
 				});
 			}
 		});
+		*/
 
 		this.sqs.sqsEventListen("resultMapPopupRender", (data) => {
 			$(".site-report-link").off("click").on("click", (event) => {

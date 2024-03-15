@@ -37,7 +37,7 @@
 	"legalNoticeMsg":"The SEAD system is using cookies to enhance functionality and track usage statistics. If you choose to utilize our viewstate functionality you are also agreeing to us storing a pseudonymized version of your email address for identification purposes. For more information please read our <span id='privacy-policy-link' class='jslink'>full policy regarding cookies & GDPR</span>. By continuing to use the site you are agreeing to this policy.",
 	"indicatorStringsForUnknownSpecies": ["indet.", "indet", "sp.", "spp.", "sp"],
 	"maxEolImageResults": 100,
-	"filterBlacklist": ["construction_type", "abundance_classification", "dataset_methods", "region"],
+	"filterBlacklist": [],
 	"xyCoordinateDimensionIds": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
 	"zCoordinateDimensionIds": [2, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
 	"coordinateSystemPriority": [72, 70, 103, 69, 114, 123, 120],
@@ -60,104 +60,450 @@
 	},
 	"ecocodeColors": [
 		{
-			"ecocode_definition_id": 284,
-			"name": "aquatics",
+			"ecocode_definition_id": 323,
 			"color": "#0000fe"
 		},
 		{
-			"ecocode_definition_id": 285,
-			"name": "indicators: standing water",
+			"ecocode_definition_id": 324,
 			"color": "#6898fa"
 		},
 		{
-			"ecocode_definition_id": 287,
-			"name": "pasture/dung",
+			"ecocode_definition_id": 325,
+			"color": "#6898fa"
+		},
+		{
+			"ecocode_definition_id": 326,
 			"color": "#6a315b"
 		},
 		{
-			"ecocode_definition_id": 288,
-			"name": "meadowland",
+			"ecocode_definition_id": 327,
 			"color": "#cccd33"
 		},
 		{
-			"ecocode_definition_id": 289,
-			"name": "wood & trees",
+			"ecocode_definition_id": 328,
 			"color": "#006634"
 		},
 		{
-			"ecocode_definition_id": 290,
-			"name": "indicators: deciduous",
+			"ecocode_definition_id": 329,
 			"color": "#003334"
 		},
 		{
-			"ecocode_definition_id": 292,
+			"ecocode_definition_id": 330,
+			"color": "#003334"
+		},
+		{
+			"ecocode_definition_id": 331,
 			"name": "wetlands/marshes",
 			"color": "#6766cc"
 		},
 		{
-			"ecocode_definition_id": 293,
-			"name": "open wet habitats",
+			"ecocode_definition_id": 332,
 			"color": "#00ccff"
 		},
 		{
-			"ecocode_definition_id": 294,
-			"name": "disturbed/arable",
+			"ecocode_definition_id": 333,
 			"color": "#ff9934"
 		},
 		{
-			"ecocode_definition_id": 295,
-			"name": "sandy/dry",
+			"ecocode_definition_id": 334,
 			"color": "#ff6600"
 		},
 		{
-			"ecocode_definition_id": 296,
-			"name": "dung/foul habitats",
+			"ecocode_definition_id": 335,
 			"color": "#653332"
 		},
 		{
-			"ecocode_definition_id": 297,
-			"name": "carrion",
+			"ecocode_definition_id": 336,
 			"color": "#fe0000"
 		},
 		{
-			"ecocode_definition_id": 298,
-			"name": "indicators: dung",
+			"ecocode_definition_id": 337,
 			"color": "#996533"
 		},
 		{
-			"ecocode_definition_id": 299,
-			"name": "mould beetles",
+			"ecocode_definition_id": 338,
 			"color": "#808080"
 		},
 		{
-			"ecocode_definition_id": 300,
-			"name": "general synantropic",
+			"ecocode_definition_id": 339,
 			"color": "#000000"
 		},
 		{
-			"ecocode_definition_id": 301,
-			"name": "stored grain pest",
+			"ecocode_definition_id": 340,
 			"color": "#9900cc"
 		},
 		{
-			"ecocode_definition_id": 302,
-			"name": "dry dead wood",
+			"ecocode_definition_id": 341,
 			"color": "#ff99cb"
 		},
 		{
-			"ecocode_definition_id": 303,
-			"name": "heatland & moorland",
+			"ecocode_definition_id": 342,
 			"color": "#cb99cc"
 		},
 		{
-			"ecocode_definition_id": 304,
-			"name": "halotolerant",
+			"ecocode_definition_id": 343,
 			"color": "#CC6699"
 		},
 		{
-			"ecocode_definition_id": 305,
-			"name": "ectoparasites",
+			"ecocode_definition_id": 344,
 			"color": "#990100"
+		}
+	],
+	"analysisMethodGroupsColors": [
+		{"method_group_id": 1, "color": "0074ab"},
+		{"method_group_id": 2, "color": "005178"},
+		{"method_group_id": 3, "color": "bfeaff"},
+		{"method_group_id": 4, "color": "80d6ff"},
+		{"method_group_id": 9, "color": "ff7900"},
+		{"method_group_id": 13, "color": "b35500"},
+		{"method_group_id": 14, "color": "ffdebf"},
+		{"method_group_id": 15, "color": "ffbc80"},
+		{"method_group_id": 16, "color": "daff00"},
+		{"method_group_id": 17, "color": "99b300"},
+		{"method_group_id": 18, "color": "f6ffbf"},
+		{"method_group_id": 19, "color": "edff80"},
+		{"method_group_id": 20, "color": "8b0099"},
+		{"method_group_id": 21, "color": "61006b"},
+		{"method_group_id": 22, "color": "f9bfff"},
+		{"method_group_id": 23, "color": "f380ff"},
+		{"method_group_id": 24, "color": "ff3300"}
+	],
+	"analysisMethodsColors": [
+		{
+		  "method_id": 3,
+		  "color": "0074ab"
+		},
+		{
+		  "method_id": 6,
+		  "color": "005178"
+		},
+		{
+		  "method_id": 8,
+		  "color": "bfeaff"
+		},
+		{
+		  "method_id": 10,
+		  "color": "80d6ff"
+		},
+		{
+		  "method_id": 14,
+		  "color": "ff7900"
+		},
+		{
+		  "method_id": 15,
+		  "color": "b35500"
+		},
+		{
+		  "method_id": 16,
+		  "color": "ffdebf"
+		},
+		{
+		  "method_id": 21,
+		  "color": "ffbc80"
+		},
+		{
+		  "method_id": 32,
+		  "color": "daff00"
+		},
+		{
+		  "method_id": 33,
+		  "color": "99b300"
+		},
+		{
+		  "method_id": 35,
+		  "color": "f6ffbf"
+		},
+		{
+		  "method_id": 36,
+		  "color": "edff80"
+		},
+		{
+		  "method_id": 37,
+		  "color": "8b0099"
+		},
+		{
+		  "method_id": 38,
+		  "color": "61006b"
+		},
+		{
+		  "method_id": 39,
+		  "color": "f9bfff"
+		},
+		{
+		  "method_id": 40,
+		  "color": "f380ff"
+		},
+		{
+		  "method_id": 46,
+		  "color": "ff3300"
+		},
+		{
+		  "method_id": 47,
+		  "color": "b32400"
+		},
+		{
+		  "method_id": 48,
+		  "color": "ffccbf"
+		},
+		{
+		  "method_id": 51,
+		  "color": "ff9980"
+		},
+		{
+		  "method_id": 74,
+		  "color": "00b366"
+		},
+		{
+		  "method_id": 94,
+		  "color": "007d48"
+		},
+		{
+		  "method_id": 97,
+		  "color": "bfffe4"
+		},
+		{
+		  "method_id": 98,
+		  "color": "80ffc9"
+		},
+		{
+		  "method_id": 100,
+		  "color": "400099"
+		},
+		{
+		  "method_id": 101,
+		  "color": "2d006b"
+		},
+		{
+		  "method_id": 104,
+		  "color": "dabfff"
+		},
+		{
+		  "method_id": 106,
+		  "color": "b580ff"
+		},
+		{
+		  "method_id": 107,
+		  "color": "ffe500"
+		},
+		{
+		  "method_id": 109,
+		  "color": "b3a000"
+		},
+		{
+		  "method_id": 110,
+		  "color": "fff9bf"
+		},
+		{
+		  "method_id": 111,
+		  "color": "fff280"
+		},
+		{
+		  "method_id": 117,
+		  "color": "ff0000"
+		},
+		{
+		  "method_id": 118,
+		  "color": "b30000"
+		},
+		{
+		  "method_id": 119,
+		  "color": "ffbfbf"
+		},
+		{
+		  "method_id": 127,
+		  "color": "ff8080"
+		},
+		{
+		  "method_id": 128,
+		  "color": "00cc00"
+		},
+		{
+		  "method_id": 129,
+		  "color": "008f00"
+		},
+		{
+		  "method_id": 130,
+		  "color": "bfffbf"
+		},
+		{
+		  "method_id": 131,
+		  "color": "80ff80"
+		},
+		{
+		  "method_id": 132,
+		  "color": "330099"
+		},
+		{
+		  "method_id": 133,
+		  "color": "24006b"
+		},
+		{
+		  "method_id": 134,
+		  "color": "d5bfff"
+		},
+		{
+		  "method_id": 135,
+		  "color": "aa80ff"
+		},
+		{
+		  "method_id": 136,
+		  "color": "ffcc00"
+		},
+		{
+		  "method_id": 137,
+		  "color": "b38f00"
+		},
+		{
+		  "method_id": 138,
+		  "color": "fff2bf"
+		},
+		{
+		  "method_id": 139,
+		  "color": "ffe680"
+		},
+		{
+		  "method_id": 140,
+		  "color": "00cc00"
+		},
+		{
+		  "method_id": 141,
+		  "color": "008f00"
+		},
+		{
+		  "method_id": 142,
+		  "color": "bfffbf"
+		},
+		{
+		  "method_id": 143,
+		  "color": "80ff80"
+		},
+		{
+		  "method_id": 144,
+		  "color": "ff0000"
+		},
+		{
+		  "method_id": 145,
+		  "color": "b30000"
+		},
+		{
+		  "method_id": 146,
+		  "color": "ffbfbf"
+		},
+		{
+		  "method_id": 147,
+		  "color": "ff8080"
+		},
+		{
+		  "method_id": 148,
+		  "color": "ffcc00"
+		},
+		{
+		  "method_id": 149,
+		  "color": "b38f00"
+		},
+		{
+		  "method_id": 150,
+		  "color": "fff2bf"
+		},
+		{
+		  "method_id": 151,
+		  "color": "ffe680"
+		},
+		{
+		  "method_id": 152,
+		  "color": "330099"
+		},
+		{
+		  "method_id": 153,
+		  "color": "24006b"
+		},
+		{
+		  "method_id": 154,
+		  "color": "d5bfff"
+		},
+		{
+		  "method_id": 155,
+		  "color": "aa80ff"
+		},
+		{
+		  "method_id": 156,
+		  "color": "0033cc"
+		},
+		{
+		  "method_id": 157,
+		  "color": "00248f"
+		},
+		{
+		  "method_id": 158,
+		  "color": "bfcfff"
+		},
+		{
+		  "method_id": 159,
+		  "color": "809fff"
+		},
+		{
+		  "method_id": 160,
+		  "color": "ff9900"
+		},
+		{
+		  "method_id": 161,
+		  "color": "b36b00"
+		},
+		{
+		  "method_id": 162,
+		  "color": "ffe6bf"
+		},
+		{
+		  "method_id": 163,
+		  "color": "ffcc80"
+		},
+		{
+		  "method_id": 164,
+		  "color": "99ff00"
+		},
+		{
+		  "method_id": 165,
+		  "color": "6bb300"
+		},
+		{
+		  "method_id": 166,
+		  "color": "e6ffbf"
+		},
+		{
+		  "method_id": 167,
+		  "color": "ccff80"
+		},
+		{
+		  "method_id": 168,
+		  "color": "cc0099"
+		},
+		{
+		  "method_id": 169,
+		  "color": "8f006b"
+		},
+		{
+		  "method_id": 170,
+		  "color": "ffbfef"
+		},
+		{
+		  "method_id": 171,
+		  "color": "ff80df"
+		},
+		{
+		  "method_id": 172,
+		  "color": "ffff00"
+		},
+		{
+		  "method_id": 174,
+		  "color": "b3b300"
+		},
+		{
+		  "method_id": 175,
+		  "color": "ffffbf"
+		},
+		{
+		  "method_id": 176,
+		  "color": "ffff80"
 		}
 	],
 	"activeDomain":"general",
