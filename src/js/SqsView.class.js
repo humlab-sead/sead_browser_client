@@ -345,7 +345,6 @@ class SqsView {
 				$(this.anchor+" > .section-right").css("width", wp.right+"vw");
 			}
 		}).on("resize", (e) => {
-			console.log("evt: layoutResize")
 			this.sqs.sqsEventDispatch("layoutResize", e);
 			
 			//This was to prevent an issue with section-resize events being propagated as window-resize events
