@@ -26,7 +26,7 @@ class DiscreteFacet extends Facet {
 		//$(".facet-sort-alpha-btn > span", this.getDomRef()).text(this.title);
 		
 		this.sqs.tooltipManager.registerTooltip($(".facet-sort-alpha-btn", this.getDomRef()), "Sort by name");
-		this.sqs.tooltipManager.registerTooltip($(".facet-sort-num-btn", this.getDomRef()), "Sort by number of analysis entities, which is an indication of how much data we have related to this entry");
+		this.sqs.tooltipManager.registerTooltip($(".facet-sort-num-btn", this.getDomRef()), "Sort by number of data points. This is an indication of how much data we have related to this entry.");
 
 		if(this.name == "species") {
 			this.specialFunctionLinks.push({
