@@ -4,7 +4,7 @@ class ApiWsChannel {
         this.sqs = sqs;
         this.channelId = nanoid();
         this.ws = null;
-        this.address = address ? address : sqs.config.dataServerAddress.replace(/^(http:\/\/)(.*)$/, "ws://$2");
+        this.address = address ? address : sqs.config.dataServerAddress.replace(/^(https?):\/\/(.*)$/, (match, protocol, uri) => `${protocol === 'https' ? 'wss' : 'ws'}://${uri}`);
     }
 
     connect() {
