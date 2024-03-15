@@ -29,7 +29,7 @@ class ResultTable extends ResultModule {
 				$("#result-table-container").hide();
 			}
 			else {
-				$("#result-table-container").show();
+				$("#result-table-container").css("display", "flex");
 			}
 		});
 	}
@@ -151,12 +151,13 @@ class ResultTable extends ResultModule {
 		return true;
 	}
 
-	renderExportButton() {
+	renderExportButton(anchorNodeSelector = "#result-table-container") {
 		if($("#result-table-container .result-export-button").length > 0) {
+			console.warn("renderExportButton - Export button already exists");
 			return;
 		}
 		let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
-		$("#result-table-container").append(exportButton);
+		$(anchorNodeSelector).append(exportButton);
 		this.bindExportModuleDataToButton(exportButton);
 	}
 
@@ -279,10 +280,10 @@ class ResultTable extends ResultModule {
 		
 		tableNode = reply.node;
 		
+		$('#result-table-container').css("display", "flex");
 		$('#result-table-container').append("<div class='datatable-container'></div>")
-		
 		$("#result-table-container .datatable-container").append(tableNode);
-		$('#result-table-container').show();
+		
 		$("#result-datatable").DataTable({
 			paging: true,
 			bInfo: false,
@@ -307,36 +308,54 @@ class ResultTable extends ResultModule {
 	renderDataTableNew() {
 		this.resultManager.renderMsg(false);
 
-		$('#result-table-container').html("");
-		$('#result-table-container').show();
+		$('#result-table-container').html(`
+			<div id='result-datatable'></div>
+			<div id='result-datatable-controls'>
+			</div>
+			`);
 
-		if(this.sqs.config.showResultExportButton) {
-			this.renderExportButton();
-		}
+			/*
+		const exportDialog = document.importNode(document.querySelector('#export-dialog').content, true);
+		this.sqs.dialogManager.showPopOver("Export data", exportDialog);
+		
+		$("#result-table-export-btn").on("click", () => {
+			this.exportDataDialog();
+		});
+		*/
+		
+		$('#result-table-container').css("display", "flex");
 
-		console.log(this.data)
 		let maxAnalysisEntities = this.data.rows.reduce((max, row) => Math.max(max, row.analysis_entities), 0);
 
-		this.tabulatorTable = new Tabulator("#result-table-container", {
+		let maxRenderSlots = 5;
+		let currentRenderSlotsTaken = 0;
+
+		this.tabulatorTable = new Tabulator("#result-datatable", {
 			data: this.data.rows,
 			layout: "fitColumns",
-			initialSort:[             //set the initial sort order of the data
+			initialSort:[
 				{column:"analysis_entities", dir:"desc"},
 			],
 			selectable: true,
 			columns:[
-				{title: "Select", formatter: "rowSelection", titleFormatter:"rowSelection", headerSort:false, cellClick:function(e, cell){
-					cell.getRow().toggleSelect(); // This will toggle the row selection on and off
+				{title: "Select", widthGrow:1, formatter: "rowSelection", titleFormatter:"rowSelection", headerSort:false, cellClick:function(e, cell){
+					//cell.getRow().toggleSelect();
 				}},
-				{title:"View site", field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
-					console.log(cell.getValue())
+				{title:"View site", widthGrow:1, field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
+					cell.getRow().toggleSelect(); //undo selection of row
+					let siteId = parseInt(cell.getValue());
+					if(!siteId) {
+						console.log("WARN: No site ID found in cell value");
+						return;
+					}
+					this.sqs.siteReportManager.renderSiteReport(siteId);
 				}, formatter: (cell, formatterParams, onRendered) => {
 						return `<div class='site-report-link site-report-table-button' site-id='${cell.getValue()}'><i class="fa fa-search" aria-hidden="true"></i> View site</div>`;
 					}
 				},
-				{title:"Site ID", field:"site_link_filtered"},
-				{title:"Site name", field:"sitename", tooltip: true},
-				{title:"Analysis entities", field:"analysis_entities", formatter: (cell, formatterParams, onRendered) => {
+				{title:"Site ID", field:"site_link_filtered", widthGrow:1},
+				{title:"Site name", field:"sitename", tooltip: true, widthGrow:3},
+				{title:"Data points", field:"analysis_entities", widthGrow:2, formatter: (cell, formatterParams, onRendered) => {
 					return `<div class='stacked-bar-outer-container'>
 					<div class='stacked-bar-container'>
 					<div class='stacked-segment' style='width: ${(cell.getValue() / maxAnalysisEntities * 100)}%; background-color: rgb(45, 94, 141);' title='${cell.getValue()}'></div>
@@ -344,59 +363,100 @@ class ResultTable extends ResultModule {
 					<div class='stacked-bar-container-numerical-readout'>${cell.getValue()}</div>
 					</div>`;
 				}},
-				{title:"Analyses", field:"analyses", formatter: (cell, formatterParams, onRendered) => {
-					cell.getElement().innerHTML = "<div class='cute-little-loading-indicator'></div>";
+				{
+					title:"Analyses",
+					field:"analyses",
+					widthGrow:2,
+					formatter: (cell, formatterParams, onRendered) => {
+					  cell.getElement().classList.add('stacked-bar-container'); // Ensure this class sets the necessary size for the SVG
+					  cell.getElement().innerHTML = "<div class='cute-little-loading-indicator'></div>";
+				  
 
-					let containerNodeId = "analyses-"+cell.getData().site_link_filtered;
-					this.sqs.asyncRender("#"+containerNodeId, {
-						serverAddress: this.sqs.config.dataServerAddress,
-						method: "ws",
-						data: {
-							type: "analysis_methods",
-							siteId: cell.getData().site_link_filtered
-						},
-						callback: (request, data) => {
-							let highestDatasetCount = 0;
+					  let renderInterval = setInterval(() => {
+						if(maxRenderSlots > currentRenderSlotsTaken) {
+							currentRenderSlotsTaken++;
+							clearInterval(renderInterval);
 
-							//sort analysis_methods_datasets on name
-							data.analysis_methods_datasets.sort((a, b) => {
-								if(a.method_name < b.method_name) { return -1; }
-								if(a.method_name > b.method_name) { return 1; }
-								return 0;
-							});
+							
 
-							data.analysis_methods_datasets.forEach(amd => {
-								if(amd.dataset_count > highestDatasetCount) {
-									highestDatasetCount = amd.dataset_count;
-								}
-							});
-
-							let totalDatasetCount = data.analysis_methods_datasets.reduce((total, amd) => total + amd.dataset_count, 0);
-
-							let barHtml = "<div class='stacked-bar-container'>";
-							data.analysis_methods_datasets.forEach(amd => {
-								amd.color = "000";
-								for(let key in this.sqs.config.analysisMethodsColors) {
+							$.ajax(Config.dataServerAddress + "/graphs/analysis_methods", {
+								data: JSON.stringify([cell.getData().site_link_filtered]),
+								dataType: "json",
+								method: "post",
+								contentType: 'application/json; charset=utf-8',
+								crossDomain: true
+							  }).then(data => {
+								data.analysis_methods_datasets.sort((a, b) => {
+									return Number(a.method_id) - Number(b.method_id);
+								});
+								let totalDatasetCount = data.analysis_methods_datasets.reduce((total, amd) => total + amd.dataset_count, 0);
+						  
+								let svgNS = "http://www.w3.org/2000/svg";
+								let svg = document.createElementNS(svgNS, "svg");
+								svg.setAttribute("width", "100%");
+								svg.setAttribute("height", "100%"); // Adjust the height as needed
+						  
+								let currentOffset = 0;
+		
+								data.analysis_methods_datasets.forEach(amd => {
+								  amd.color = "000";
+								  for (let key in this.sqs.config.analysisMethodsColors) {
 									let amc = this.sqs.config.analysisMethodsColors[key];
-									if(amc.method_id == amd.method_id) {
-										amd.color = amc.color;
+									if (amc.method_id == amd.method_id) {
+									  amd.color = amc.color;
 									}
-								}
-								amd.barWidth = (amd.dataset_count / totalDatasetCount) * 100;
-								barHtml += `<div class='stacked-segment' style='width: ${amd.barWidth}%; background-color: #${amd.color};' title='Method: ${amd.method_name}, Datasets: ${amd.dataset_count}'></div>`;
-							});
-							barHtml += "</div>";
-							cell.getElement().innerHTML = barHtml;
-						}
-					});
+								  }
+						  
+								  let rect = document.createElementNS(svgNS, "rect");
+								  amd.barWidth = (amd.dataset_count / totalDatasetCount) * 100;
+								  
+								  rect.setAttribute("x", `${currentOffset}%`); // Position based on currentOffset
+								  rect.setAttribute("width", `${amd.barWidth}%`);
+								  rect.setAttribute("height", "100%"); // The height of the rect, adjust as needed
+								  rect.setAttribute("fill", `#${amd.color}`);
+								  svg.appendChild(rect);
+		
+								  this.sqs.tooltipManager.registerTooltip(rect, `Method: ${amd.method_name}, Datasets: ${amd.dataset_count}`)
+								 
+								  currentOffset += amd.barWidth;
+								});
+						  
+								// Clear the loading indicator before appending the SVG
+								cell.getElement().innerHTML = '';
+								cell.getElement().appendChild(svg);
+								currentRenderSlotsTaken--;
+							  });
 
-					return cell.getElement().innerHTML;
-				}},
+
+
+							
+						}
+					}, 100);
+
+					  
+				  
+					  // The initial return is just the loading indicator
+					  return cell.getElement().innerHTML;
+					}
+				}
+				  
 				
 			],
 		});
 
+		if(this.sqs.config.showResultExportButton) {
+			//this.renderExportButton("#result-datatable-controls");
+			let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
+			$("#result-datatable-controls").append(exportButton);
+			this.bindExportModuleDataToButton(exportButton, this);
+		}
+
 		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
+	}
+
+	getSelectedSites() {
+		let selectedRows = this.tabulatorTable.getSelectedData();
+		return selectedRows.map(row => row.site_link_filtered);
 	}
 
 	async fetchAnalysesStackedBar(siteId, siteTdId, rowsNum) {
