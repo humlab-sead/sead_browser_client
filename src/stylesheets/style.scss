@@ -1708,10 +1708,6 @@ h1.main-header {
   border-radius: 50%;
 }
 
-#result-table-container {
-	overflow-y:auto;
-}
-
 .result-loading-indicator-error {
 	background-color: rgba(255, 0, 0, 0.65) !important;
 }
@@ -1838,6 +1834,9 @@ h1.main-header {
 
 #result-datatable {
   width: 100% !important;
+  height: 100%;
+  border: 0px solid #ccc;
+  border-bottom: 1px solid #ccc;
 }
 
 #result-datatable thead tr {
@@ -1851,8 +1850,16 @@ h1.main-header {
 }
 
 #result-table-container {
+  display: none;
+  flex-direction: column;
 	overflow-x: hidden;
+  /*overflow-y: auto;*/
 }
+
+#result-datatable-controls {
+  height: 5em;
+}
+
 
 input[type="search"] {
 	border-width: 1px;
@@ -3649,17 +3656,34 @@ svg text {
 }
 
 .site-report-table-button {
-  background: $base-color;
-  color: #fff;
+  background: $pane-bg-color-dark;
+  color: #000;
   border: none;
   height: 100%;
   padding-left: 0.25em;
   padding-right: 0.25em;
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
   font-size: 1.0em;
   text-align: center;
   cursor: pointer;
+  max-width: 6em;
+  border-left: 0.4em solid $base-color;
 }
 
 .site-report-table-button:hover {
-  background: lighten($base-color, 10%);
+  background: $pane-bg-color-dark;
+  cursor: pointer;
+}
+
+.tabulator .tabulator-row.tabulator-selected {
+  background-color: $pane-bg-color !important;
+}
+
+.tabulator .tabulator-row:nth-child(odd) {
+  background-color: #FFF;
+}
+
+.tabulator .tabulator-row:nth-child(even) {
+  background-color: #FFF;
 }
