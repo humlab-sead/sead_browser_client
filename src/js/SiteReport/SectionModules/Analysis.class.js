@@ -6,6 +6,7 @@ import CeramicDataset from "./DatasetModules/CeramicDataset.class";
 import RadioMetricDatingDataset from "./DatasetModules/RadioMetricDatingDataset.class";
 import DatingToPeriodDataset from "./DatasetModules/DatingToPeriodDataset.class";
 import C14Dataset from "./DatasetModules/C14Dataset.class";
+import IsotopeDataset from "./DatasetModules/IsotopeDataset.class";
 import MagneticSusceptibilityDataset from "./DatasetModules/MagneticSusceptibilityDataset.class";
 import LossOnIgnitionDataset from "./DatasetModules/LossOnIgnitionDataset.class";
 /*
@@ -97,6 +98,9 @@ class Analysis {
 		});
 		this.datasetModules.push({
 			"className": C14Dataset
+		});
+		this.datasetModules.push({
+			"className": IsotopeDataset
 		});
 		this.datasetModules.push({
 			"className": GenericDataset

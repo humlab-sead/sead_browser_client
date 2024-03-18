@@ -720,7 +720,6 @@ class Samples {
 			});
 			sampleGroupDescriptionsStringValue = sampleGroupDescriptionsStringValue.substring(0, sampleGroupDescriptionsStringValue.length-2);
 			
-			console.log(siteData, sampleGroup)
 			let samplingMethod = this.getSamplingMethodById(siteData, sampleGroup.sampling_method_id);
 
 			let sampleGroupRow = [

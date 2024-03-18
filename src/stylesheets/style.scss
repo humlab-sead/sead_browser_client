@@ -3659,22 +3659,22 @@ svg text {
   width: 100%;
 }
 
-.stacked-segment {
+.stacked-bar-container > .stacked-segment {
   height: 100%;
   flex-grow: 0;
   flex-shrink: 0;
+  background: $pane-bg-color-dark;
 }
 
 .stacked-bar-container-numerical-readout {
   position: absolute;
-  background: rgba(255, 255, 255, 0.8);
   display: inline-block;
   font-size: 0.8em;
 }
 
 .site-report-table-button {
-  background: $pane-bg-color-dark;
-  color: #000;
+  background: $base-color;
+  color: #fff;
   border: none;
   height: 100%;
   padding-left: 0.25em;
@@ -3685,7 +3685,6 @@ svg text {
   text-align: center;
   cursor: pointer;
   max-width: 6em;
-  border-left: 0.4em solid $base-color;
 }
 
 .site-report-table-button:hover {

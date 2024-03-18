@@ -332,6 +332,7 @@ class ResultTable extends ResultModule {
 
 		this.tabulatorTable = new Tabulator("#result-datatable", {
 			data: this.data.rows,
+			placeholder:"No data",
 			layout: "fitColumns",
 			initialSort:[
 				{column:"analysis_entities", dir:"desc"},
@@ -358,7 +359,7 @@ class ResultTable extends ResultModule {
 				{title:"Data points", field:"analysis_entities", widthGrow:2, formatter: (cell, formatterParams, onRendered) => {
 					return `<div class='stacked-bar-outer-container'>
 					<div class='stacked-bar-container'>
-					<div class='stacked-segment' style='width: ${(cell.getValue() / maxAnalysisEntities * 100)}%; background-color: rgb(45, 94, 141);' title='${cell.getValue()}'></div>
+					<div class='stacked-segment' style='width: ${(cell.getValue() / maxAnalysisEntities * 100)}%;' title='${cell.getValue()}'></div>
 					</div>
 					<div class='stacked-bar-container-numerical-readout'>${cell.getValue()}</div>
 					</div>`;
@@ -368,16 +369,14 @@ class ResultTable extends ResultModule {
 					field:"analyses",
 					widthGrow:2,
 					formatter: (cell, formatterParams, onRendered) => {
-					  cell.getElement().classList.add('stacked-bar-container'); // Ensure this class sets the necessary size for the SVG
-					  cell.getElement().innerHTML = "<div class='cute-little-loading-indicator'></div>";
-				  
+						let cellElement = cell.getElement();
+						cellElement.classList.add('stacked-bar-container'); // Ensure this class sets the necessary size for the SVG
+						cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
 
-					  let renderInterval = setInterval(() => {
+						let renderInterval = setInterval(() => {
 						if(maxRenderSlots > currentRenderSlotsTaken) {
 							currentRenderSlotsTaken++;
 							clearInterval(renderInterval);
-
-							
 
 							$.ajax(Config.dataServerAddress + "/graphs/analysis_methods", {
 								data: JSON.stringify([cell.getData().site_link_filtered]),
@@ -385,58 +384,52 @@ class ResultTable extends ResultModule {
 								method: "post",
 								contentType: 'application/json; charset=utf-8',
 								crossDomain: true
-							  }).then(data => {
+								}).then(data => {
 								data.analysis_methods_datasets.sort((a, b) => {
 									return Number(a.method_id) - Number(b.method_id);
 								});
 								let totalDatasetCount = data.analysis_methods_datasets.reduce((total, amd) => total + amd.dataset_count, 0);
-						  
+							
 								let svgNS = "http://www.w3.org/2000/svg";
 								let svg = document.createElementNS(svgNS, "svg");
 								svg.setAttribute("width", "100%");
 								svg.setAttribute("height", "100%"); // Adjust the height as needed
-						  
+							
 								let currentOffset = 0;
 		
 								data.analysis_methods_datasets.forEach(amd => {
-								  amd.color = "000";
-								  for (let key in this.sqs.config.analysisMethodsColors) {
+									amd.color = "000";
+									for (let key in this.sqs.config.analysisMethodsColors) {
 									let amc = this.sqs.config.analysisMethodsColors[key];
 									if (amc.method_id == amd.method_id) {
-									  amd.color = amc.color;
+										amd.color = amc.color;
 									}
-								  }
-						  
-								  let rect = document.createElementNS(svgNS, "rect");
-								  amd.barWidth = (amd.dataset_count / totalDatasetCount) * 100;
-								  
-								  rect.setAttribute("x", `${currentOffset}%`); // Position based on currentOffset
-								  rect.setAttribute("width", `${amd.barWidth}%`);
-								  rect.setAttribute("height", "100%"); // The height of the rect, adjust as needed
-								  rect.setAttribute("fill", `#${amd.color}`);
-								  svg.appendChild(rect);
-		
-								  this.sqs.tooltipManager.registerTooltip(rect, `Method: ${amd.method_name}, Datasets: ${amd.dataset_count}`)
-								 
-								  currentOffset += amd.barWidth;
-								});
-						  
-								// Clear the loading indicator before appending the SVG
-								cell.getElement().innerHTML = '';
-								cell.getElement().appendChild(svg);
-								currentRenderSlotsTaken--;
-							  });
-
-
-
+									}
 							
-						}
-					}, 100);
-
-					  
-				  
-					  // The initial return is just the loading indicator
-					  return cell.getElement().innerHTML;
+									let rect = document.createElementNS(svgNS, "rect");
+									amd.barWidth = (amd.dataset_count / totalDatasetCount) * 100;
+									
+									rect.setAttribute("x", `${currentOffset}%`); // Position based on currentOffset
+									rect.setAttribute("width", `${amd.barWidth}%`);
+									rect.setAttribute("height", "100%"); // The height of the rect, adjust as needed
+									rect.setAttribute("fill", `#${amd.color}`);
+									svg.appendChild(rect);
+		
+									this.sqs.tooltipManager.registerTooltip(rect, `Method: ${amd.method_name}, Datasets: ${amd.dataset_count}`)
+									
+									currentOffset += amd.barWidth;
+								});
+							
+								// Clear the loading indicator before appending the SVG
+								cellElement.innerHTML = '';
+								cellElement.appendChild(svg);
+								currentRenderSlotsTaken--;
+								});
+							}
+						}, 200);						
+					
+						// The initial return is just the loading indicator
+						return cellElement.innerHTML;
 					}
 				}
 				  
