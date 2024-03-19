@@ -403,7 +403,7 @@ class DiscreteFacet extends Facet {
 						<div class='facet-row-checkbox'>`+checkMark+`</div>
 					</div>
 					<div class='facet-row-text' title='`+displayTitle+`'>`+specialFunctionLinks+displayTitle+`</div>
-					<div class='facet-row-count' title="This is the number of 'analysis entities', which is an indication of how much data we have related to this entry">`+dataElement.count+`</div>
+					<div class='facet-row-count' title="This is the number of data points, which is an indication of how much data we have related to this entry">`+dataElement.count+`</div>
 				</div>`;
 			}
 		}

@@ -248,7 +248,6 @@ class ResultMosaic extends ResultModule {
 	 * This will also be called when the domain changes, despite the reuslt module not changing, which means we need to unrender any previous mosaic tiles
 	 */
 	render() {
-		
 		var xhr = this.fetchData();
 		xhr.then((respData, textStatus, xhr) => { //success
 			if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.

@@ -28,6 +28,14 @@ class Tutorial {
     }
 
     init() {
+      
+      $(document).on("domainChanged", (event, domain) => {
+        //if we are on the domain step
+        if(this.tour.isActive() && this.tour.getCurrentStep().id == 3) {
+          this.tour.next();
+        }
+      });
+
       this.tour = new Shepherd.Tour({
         useModalOverlay: true,
         defaultStepOptions: {
@@ -72,22 +80,37 @@ class Tutorial {
           title: 'Domains of data',
           text: `The SEAD system contains many types of data from archeological excavations and palaeoecological investigations. The data are organized into different 'domains', which can be selected via this menu.
           <br /><br />
-          Selecting a domain narrows the available data and filters to those most relevant to a research field. Let's keep it on the "General" domain for now, which shows all filters and all data in the system.
+          Selecting a domain narrows the available data and filters to those most relevant to a research field. The "General" domain shows all filters and all data in the system.
           `,
           classes: 'tutorial-container',
           attachTo: { element: '#filter-menu-domain-area', on: 'right' },
+          advanceOn: { selector: '#filter-menu-domain-area', event: 'click' },
           buttons: [
-            {
-              text: 'Next',
-              classes: 'yes-button',
-              action: this.tour.next
-            },
             {
               text: 'Exit tour',
               classes: 'no-button',
               action: this.tour.complete,
             }
           ]
+      });
+
+      this.tour.addStep({
+        id: this.stepCounter++,
+        title: 'Select the Paleoentomology domain',
+        text: `
+        The Paleoentomology domain contains data from fossilized insects, which can be used to perform reconstructions of past environments. Please click on it now.`,
+        classes: 'tutorial-container',
+        attachTo: { element: '#domains-menu-anchor-point [menu-item=palaeoentomology]', on: 'right' },
+        advanceOn: {
+          event: 'domainChanged'
+        },
+        buttons: [
+          {
+            text: 'Exit tour',
+            classes: 'no-button',
+            action: this.tour.complete,
+          }
+        ]
       });
 
       this.tour.addStep({
@@ -98,7 +121,7 @@ class Tutorial {
           Click on the Filters menu to open it and continue the tour.
           `,
           classes: 'tutorial-container',
-          attachTo: { element: '#filter-menu-container', on: 'right' },
+          attachTo: { element: '#filter-menu-filter-area', on: 'right' },
           advanceOn: { selector: '#filter-menu-filter-area', event: 'click' },
           buttons: [
             {
@@ -156,8 +179,8 @@ class Tutorial {
                   });
               });
           },
-          attachTo: { element: '#facet-section .facet:first-of-type .tutorial-target', on: 'right' },
-          advanceOn: { selector: '#facet-section .facet:first-of-type .tutorial-target', event: 'click' },
+          attachTo: { element: '#facet-section .tutorial-target', on: 'right' },
+          advanceOn: { selector: '#facet-section .tutorial-target', event: 'click' },
           buttons: [
             {
               text: 'Exit tour',
@@ -280,22 +303,26 @@ class Tutorial {
           title: 'Analyses',
           text: `This section shows the various analyses performed on the samples. Clicking on an analysis will show you the results.
           Sometimes several ways of viewing the results are available.
-          This site only has one analysis associated with it. 
-          <br /><br />
-          Go ahead and click on it to expand it.`,
+          `,
           attachTo: { element: '#site-report-section-analyses', on: 'right' },
-          /* TODO: we should add a listerner here which waits until the analyses section has been rendered, since this is otherwise a race condition
           beforeShowPromise: () => {
             return new Promise((resolve) => {
-                this.sqs.sqsEventListen("facetDataRendered", () => {
+              //poll for the existance of #site-report-section-analyses
+              let interval = setInterval(() => {
+                if($("#site-report-section-analyses").length > 0) {
+                  clearInterval(interval);
                   resolve();
-                });
+                }
+              }, 100);
             });
           },
-          */
           classes: 'tutorial-container',
-          advanceOn: { selector: '#site-report-section-3 > h3.site-report-level-title', event: 'click' },
           buttons: [
+            {
+              text: 'Next',
+              classes: 'yes-button',
+              action: this.tour.next
+            },
             {
               text: 'Exit tour',
               classes: 'no-button',
@@ -304,12 +331,30 @@ class Tutorial {
           ]
       });
 
+
+      this.tour.addStep({
+        id: this.stepCounter++,
+        title: 'Analyses',
+        text: `
+        Go ahead and click on the Palaeoentomology analysis to expand it.`,
+        attachTo: { element: '#site-report-section-3 > h3.site-report-level-title', on: 'right' },
+        classes: 'tutorial-container',
+        advanceOn: { selector: '#site-report-section-3 > h3.site-report-level-title', event: 'click' },
+        buttons: [
+          {
+            text: 'Exit tour',
+            classes: 'no-button',
+            action: this.tour.complete,
+          }
+        ]
+    });
+
       
       this.tour.addStep({
         id: this.stepCounter++,
         title: 'Analyses',
         text: `Here you can see the results of the analysis, in this case an abundance count of fossilized insects, displayed as number of individuals per taxon in each sample. These data can then be used to perform an environmental reconstruction.`,
-        attachTo: { element: '#cic-34772', on: 'right' },
+        attachTo: { element: '#cic-89323', on: 'right' },
         classes: 'tutorial-container',
         scrollTo: true,
         buttons: [
@@ -397,13 +442,6 @@ class Tutorial {
       $("#tutorial-question").hide();
       this.sqs.dialogManager.hidePopOver();
       this.tour.start();
-
-      setTimeout(() => {
-        //add tutorial target boxes, but only if it doesn't exist
-        if($("#tutorial-map-targeting-box").length == 0) {
-          $("#result-mosaic-container").append("<div id='tutorial-map-targeting-box'></div>");
-        }
-      }, 500);
     }
 
     sqsMenu() {

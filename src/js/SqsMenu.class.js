@@ -105,7 +105,6 @@ class sqsMenu {
 					this.menuDef.viewPortResizeCallback();
 				}, 500);
 			}
-			
 		}
 	}
 	

@@ -472,6 +472,8 @@ class ResultMap extends ResultModule {
 		let table = $("<table></table>").attr("id", "map-popup-sites-table").append("<tbody></tbody>").appendTo(popup);
 		$("#result-container").append(popup);
 
+		$("#result-container").append("<div id='tutorial-map-targeting-box'></div>");
+
 		if(this.selectInteraction != null) {
 			this.olMap.removeInteraction(this.selectInteraction);
 		}
