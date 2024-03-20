@@ -731,7 +731,7 @@ class ResultMosaic extends ResultModule {
 		return await this.preparePieChart(renderIntoNode, "qse_ceramics_type_count", "type_name", "count");
 	}
 
-	renderBarChartPlotly(renderIntoNode, chartSeries, chartTitle) {
+	async renderBarChartPlotly(renderIntoNode, chartSeries, chartTitle) {
 		if(chartSeries.length == 0) {
 			this.sqs.setNoDataMsg(renderIntoNode);
 			return;
@@ -794,7 +794,7 @@ class ResultMosaic extends ResultModule {
 			displayModeBar: false
 		}
 
-		Plotly.newPlot($(renderIntoNode)[0], data, layout, config);
+		return Plotly.newPlot($(renderIntoNode)[0], data, layout, config);
 	}
 
 	renderBarChart(renderIntoNode, chartSeries, chartTitle) {
@@ -1025,7 +1025,18 @@ class ResultMosaic extends ResultModule {
 	}
 	*/
 
-	renderPieChartPlotly(renderIntoNode, chartData, layoutConfig = {}) {
+	async exportPieChartPlotly(renderIntoNode, plot) {
+		let renderImagePromise = Plotly.toImage(plot, {format: 'png', width: 800, height: 800});
+		renderImagePromise.then((base64ImageUrl) => {
+			let a = document.createElement('a');
+			a.href = base64ImageUrl;
+			a.download = 'chart.png';
+			a.click();
+		});
+	
+	}
+
+	async renderPieChartPlotly(renderIntoNode, chartData, layoutConfig = {}) {
 		if(typeof renderIntoNode == "object") {
 			console.warn("target node is an object, we need to convert this to an id");
 			return;
@@ -1041,7 +1052,14 @@ class ResultMosaic extends ResultModule {
 				  size: 22
 				},
 			},
-			displayModeBar: false
+			displayModeBar: false,
+			margin: {
+				l: 50,
+				r: 50,
+				b: 50,
+				t: 50,
+				pad: 4
+			},
 		};
 
 		Object.assign(layout, layoutConfig);
@@ -1052,7 +1070,7 @@ class ResultMosaic extends ResultModule {
 			displayModeBar: false
 		}
 
-		Plotly.newPlot(anchorNodeId, chartData, layout, config);
+		let plot = await Plotly.newPlot(anchorNodeId, chartData, layout, config);
 
 		this.sqs.sqsEventListen("layoutResize", () => {
 			try {
@@ -1063,6 +1081,7 @@ class ResultMosaic extends ResultModule {
 			}
 		}, this);
 
+		return plot;
 	}
 
 	unrenderPlotlyChart(selector) {

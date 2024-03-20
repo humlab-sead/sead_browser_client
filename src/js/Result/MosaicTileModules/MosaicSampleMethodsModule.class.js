@@ -10,6 +10,7 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         this.active = true;
         this.data = null;
         this.renderIntoNode = null;
+        this.plot = null;
     }
 
     async render(renderIntoNode = null) {
@@ -72,7 +73,9 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         });
 
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false });
+        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false }).then(plot => {
+            this.plot = plot;
+        })
 
 
         /*
@@ -106,6 +109,9 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         $(".result-export-button-mosaic", this.renderIntoNode).remove();
     }
 
+    getAvailableExportFormats() {
+        return ["json", "csv", "png"];
+    }
     
     formatDataForExport(data, format = "json") {
         if(format == "csv") {
@@ -119,6 +125,10 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
                 });
                 return newItem;
             });
+        }
+        if(format == "png") {
+            let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+            resultMosaic.exportPieChartPlotly(this.renderIntoNode, this.plot);
         }
 
         return data;

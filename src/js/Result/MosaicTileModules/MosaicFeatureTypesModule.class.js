@@ -12,6 +12,7 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         this.data = null;
         this.renderIntoNode = null;
         this.requestId = 0;
+        this.plot = null;
     }
 
     async render(renderIntoNode = null) {
@@ -55,7 +56,9 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         this.data = chartSeries;
         
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-        this.chart = resultMosaic.renderBarChartPlotly(this.renderIntoNode, chartSeries);
+        resultMosaic.renderBarChartPlotly(this.renderIntoNode, chartSeries).then(plot => {
+            this.plot = plot;
+        });
     }
     
     async update() {
@@ -64,6 +67,19 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
 
     async fetch() {
         
+    }
+
+    getAvailableExportFormats() {
+        return ["json", "csv", "png"];
+    }
+
+    formatDataForExport(data, format = "json") {
+        if(format == "png") {
+            let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+            resultMosaic.exportPieChartPlotly(this.renderIntoNode, this.plot);
+        }
+
+        return data;
     }
 
     async unrender() {

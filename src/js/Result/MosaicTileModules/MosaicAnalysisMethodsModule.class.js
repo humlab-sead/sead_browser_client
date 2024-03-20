@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import MosaicTileModule from "./MosaicTileModule.class";
 
+
 class MosaicAnalysisMethodsModule extends MosaicTileModule {
     constructor(sqs) {
         super();
@@ -12,6 +13,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         this.active = true;
         this.data = null;
         this.renderIntoNode = null;
+        this.plot = null;
     }
 
     async render(renderIntoNode = null) {
@@ -71,7 +73,9 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         });
 
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false });
+        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false }).then(plot => {
+            this.plot = plot;
+        })
     }
 
     async update() {
@@ -89,6 +93,10 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         this.active = false;
     }
 
+    getAvailableExportFormats() {
+        return ["json", "csv", "png"];
+    }
+
     formatDataForExport(data, format = "json") {
         if(format == "csv") {
             let includeColumns = ["description","method_abbrev_or_alt_name","method_name","dataset_count"];
@@ -101,6 +109,10 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
                 });
                 return newItem;
             });
+        }
+        if(format == "png") {
+            let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+            resultMosaic.exportPieChartPlotly(this.renderIntoNode, this.plot);
         }
 
         return data;

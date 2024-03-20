@@ -138,7 +138,6 @@ class MosaicEcoCodesModule extends MosaicTileModule {
     }
 
 	formatDataForExport(data, format = "json") {
-		console.log(data);
 		
         if(format == "csv") {
             let includeColumns = ["abbreviation", "ecocode_definition_id", "name", "totalAbundance"];
