@@ -10,9 +10,12 @@ class MosaicCeramicsRelativeAgesModule extends MosaicTileModule {
         this.pendingRequestPromise = null;
         this.active = true;
         this.data = null;
+        this.renderComplete = false;
+        this.chartType = "zingchart";
     }
 
     async render(renderIntoNode) {
+        this.renderComplete = false;
         this.active = true;
         this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
@@ -35,6 +38,7 @@ class MosaicCeramicsRelativeAgesModule extends MosaicTileModule {
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "relative_age_name", "count");
         this.sqs.setLoadingIndicator(renderIntoNode, false);
         this.chart = resultMosaic.renderBarChart(renderIntoNode, chartSeries, this.title);
+        this.renderComplete = true;
     }
 
     async update() {
@@ -45,10 +49,6 @@ class MosaicCeramicsRelativeAgesModule extends MosaicTileModule {
         
     }
 
-    async unrender() {
-        this.pendingRequestPromise = null;
-        this.active = false;
-    }
 }
 
 export default MosaicCeramicsRelativeAgesModule;

@@ -520,9 +520,10 @@ class SeadQuerySystem {
 	reset() {
 		this.layoutManager.setActiveView("filters");
 		this.domainManager.setActiveDomain("general");
-		this.resultManager.setActiveModule(this.config.defaultResultModule, true);
-		this.facetManager.reset();
-		this.menuManager.resetAll();
+		this.resultManager.setActiveModule(this.config.defaultResultModule, true).then(() => {
+			this.facetManager.reset();
+			this.menuManager.resetAll();
+		});
 	}
 
 	/*

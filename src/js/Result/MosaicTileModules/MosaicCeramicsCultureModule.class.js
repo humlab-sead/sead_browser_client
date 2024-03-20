@@ -10,9 +10,12 @@ class MosaicCeramicsCultureModule extends MosaicTileModule {
         this.pendingRequestPromise = null;
         this.active = true;
         this.data = null;
+        this.renderComplete = false;
+        this.chartType = "zingchart";
     }
 
     async render(renderIntoNode) {
+        this.renderComplete = false;
         this.active = true;
         this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
@@ -35,6 +38,7 @@ class MosaicCeramicsCultureModule extends MosaicTileModule {
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "Culture", "count");
         this.sqs.setLoadingIndicator(renderIntoNode, false);
         this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);
+        this.renderComplete = true;
     }
 
     async update() {
@@ -45,10 +49,6 @@ class MosaicCeramicsCultureModule extends MosaicTileModule {
         
     }
 
-    async unrender() {
-        this.pendingRequestPromise = null;
-        this.active = false;
-    }
 }
 
 export default MosaicCeramicsCultureModule;

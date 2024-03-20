@@ -12,9 +12,11 @@ class MosaicTemporalDistributionModule extends MosaicTileModule {
         this.active = true;
         this.data = null;
         this.renderIntoNode = null;
+        this.chartType = "plotly";
     }
 
     async render(renderIntoNode = null) {
+        this.renderComplete = false;
         if(renderIntoNode) {
             this.renderIntoNode = renderIntoNode;
         }
@@ -71,6 +73,7 @@ class MosaicTemporalDistributionModule extends MosaicTileModule {
 
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
         resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false });
+        this.renderComplete = true;
     }
 
     async update() {
@@ -79,13 +82,6 @@ class MosaicTemporalDistributionModule extends MosaicTileModule {
 
     async fetch() {
         
-    }
-
-    async unrender() {
-        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        resultMosaic.unrenderPlotlyChart(this.renderIntoNode.substring(1));
-        this.pendingRequestPromise = null;
-        this.active = false;
     }
 }
 

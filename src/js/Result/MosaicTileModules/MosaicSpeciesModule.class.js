@@ -12,9 +12,12 @@ class MosaicSpeciesModule extends MosaicTileModule {
         this.active = true;
         this.data = null;
         this.renderIntoNode = null;
+        this.renderComplete = false;
+        this.chartType = "";
     }
 
     async render(renderIntoNode = null) {
+        this.renderComplete = false;
         if(renderIntoNode) {
             this.renderIntoNode = renderIntoNode;
         }
@@ -42,10 +45,9 @@ class MosaicSpeciesModule extends MosaicTileModule {
             });
         });
         
-        console.log(taxaList);
-        
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
         //this.chart = resultMosaic.renderPieChart(this.renderIntoNode, chartSeries, "Analysis methods");
+        this.renderComplete = true;
     }
 
     async update() {
@@ -53,12 +55,6 @@ class MosaicSpeciesModule extends MosaicTileModule {
     }
 
     async fetch() {
-        
-    }
-
-    async unrender() {
-        this.pendingRequestPromise = null;
-        this.active = false;
     }
 }
 

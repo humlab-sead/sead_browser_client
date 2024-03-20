@@ -10,9 +10,12 @@ class MosaicDendroBuildingTypesModule extends MosaicTileModule {
         this.pendingRequestPromise = null;
         this.active = true;
         this.data = null;
+        this.renderComplete = false;
+        this.chartType = "zingchart";
     }
 
     async render(renderIntoNode) {
+        this.renderComplete = false;
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         this.sqs.setLoadingIndicator(renderIntoNode, true);
@@ -34,6 +37,7 @@ class MosaicDendroBuildingTypesModule extends MosaicTileModule {
         let chartSeries = resultMosaic.makeChartSeries(pData.data, "group_description", "No. of samples");
         this.sqs.setLoadingIndicator(renderIntoNode, false);
         this.chart = resultMosaic.renderPieChart(renderIntoNode, chartSeries, this.title);
+        this.renderComplete = true;
     }
     
     async update() {
@@ -42,11 +46,6 @@ class MosaicDendroBuildingTypesModule extends MosaicTileModule {
 
     async fetch() {
         
-    }
-
-    async unrender() {
-        this.pendingRequestPromise = null;
-        this.active = false;
     }
 }
 

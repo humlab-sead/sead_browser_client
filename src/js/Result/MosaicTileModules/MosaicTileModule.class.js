@@ -9,6 +9,8 @@ class MosaicTileModule {
         this.renderIntoNode = null;
         this.active = true;
         this.data = null;
+        this.renderComplete = false;
+        this.chartType = "";
     }
 
     async fetch() {
@@ -16,6 +18,7 @@ class MosaicTileModule {
     }
 
     async render() {
+        this.renderComplete = false;
     }
 
     async update() {
@@ -23,10 +26,27 @@ class MosaicTileModule {
     }
 
     async unrender() {
-        if(this.chart != null) {
-            this.chart.destroy();
-            this.chart = null;
-        }
+        return new Promise((resolve, reject) => {
+            this.waitForRenderCompleteInterval = setInterval(() => {
+                if(this.renderComplete) {
+                    clearInterval(this.waitForRenderCompleteInterval);
+    
+                    if(this.chart != null && !this.chart instanceof Promise && this.chartType == "chartjs") {
+                        this.chart.destroy();
+                        this.chart = null;
+                    }
+    
+                    let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+                    if(this.renderIntoNode != null && this.renderIntoNode.length > 0 && this.chartType == "plotly") {
+                        resultMosaic.unrenderPlotlyChart(this.renderIntoNode);
+                    }
+
+                    this.pendingRequestPromise = null;
+                    this.active = false;
+                    resolve();
+                }
+            }, 100);
+        });
     }
 
     getAvailableExportFormats() {

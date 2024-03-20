@@ -11,17 +11,27 @@ class MosaicMapModule extends MosaicTileModule {
         this.resultMap = null;
         this.pendingRequestPromise = null;
         this.active = true;
+        this.renderComplete = false;
+        this.chartType = "openlayers";
     }
 
     async render(renderIntoNode) {
+        this.renderComplete = false;
         this.active = true;
+        this.renderIntoNode = renderIntoNode;
         
         if(this.resultMap == null) {
             this.resultMap = new ResultMap(this.sqs.resultManager, renderIntoNode, false);
         }
         
         await this.resultMap.fetchData();
-        this.data = this.resultMap.renderData;
+        if(this.resultMap != null) {
+            this.data = this.resultMap.renderData;
+        }
+        else {
+            console.warn("Map unrendered before data was fetched.");
+        }
+        this.renderComplete = true;
     }
 
     async fetch() {
@@ -29,18 +39,14 @@ class MosaicMapModule extends MosaicTileModule {
     }
 
     async update() {
-        this.resultMap.update();
+        if(this.resultMap != null) {
+            this.resultMap.update();
+        }
+        else {
+            this.render(this.renderIntoNode);
+        }
 	}
-
-    async unrender() {
-
-    }
-
-    unrender() {
-        this.resultMap = null;
-        this.pendingRequestPromise = null;
-        this.active = false;
-    }
+    
 }
 
 export default MosaicMapModule;

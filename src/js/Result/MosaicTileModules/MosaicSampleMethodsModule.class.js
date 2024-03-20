@@ -11,9 +11,12 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         this.data = null;
         this.renderIntoNode = null;
         this.plot = null;
+        this.renderComplete = false;
+        this.chartType = "plotly";
     }
 
     async render(renderIntoNode = null) {
+        this.renderComplete = false;
         if(renderIntoNode) {
             this.renderIntoNode = renderIntoNode;
         }
@@ -91,6 +94,7 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         console.log(chartSeries);
         */
         //this.chart = resultMosaicModule.renderPieChart(this.renderIntoNode, chartSeries, "Sampling methods");
+        this.renderComplete = true;
     }
 
     async fetch() {
@@ -100,7 +104,7 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
     async update() {
         this.render();
     }
-
+    /*
     async unrender() {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         resultMosaic.unrenderPlotlyChart(this.renderIntoNode.substring(1));
@@ -108,6 +112,7 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         this.active = false;
         $(".result-export-button-mosaic", this.renderIntoNode).remove();
     }
+    */
 
     getAvailableExportFormats() {
         return ["json", "csv", "png"];

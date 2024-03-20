@@ -11,6 +11,8 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
         this.pendingRequestPromise = null;
         this.active = true;
         this.data = null;
+        this.renderComplete = false;
+        this.chartType = "plotly";
     }
 
     async fetch(renderIntoNode = null) {
@@ -65,65 +67,69 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
             return false;
         }
 
-        let categories = data.categories;
-
-        let chartSeries = [];
-        chartSeries.push({
-            "values": [],
-            "text": [],
-            "sites": [],
-            "timestamps": []
-        });
-
-		for(let key in categories) {
-			chartSeries[0].values.push(categories[key].datingsNum);
-            chartSeries[0].text.push(categories[key].startYear+"-"+categories[key].endYear);
-            chartSeries[0].timestamps.push({
-                startTs: categories[key].startTs,
-                endTs: categories[key].endTs
-            });
-		}
-
-        /*
-        chartSeries.push({
-            "values": [],
-            "text": [],
-            "sites": [],
-            "timestamps": []
-        });
-
-		for(let key in categories) {
-			chartSeries[1].values.push(categories[key].datingsNum - categories[key].datingsNumHighReliability);
-            chartSeries[1].text.push(categories[key].startYear+"-"+categories[key].endYear);
-            chartSeries[1].timestamps.push({
-                startTs: categories[key].startTs,
-                endTs: categories[key].endTs
-            });
-		}
-        */
+        
+        
 
         if(renderIntoNode) {
             this.sqs.setLoadingIndicator(renderIntoNode, false);
         }
-        
-        return chartSeries;
+
+        return data.categories;
     }
 
     async render(renderIntoNode) {
+        this.renderComplete = false;
         this.active = true;
         this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        let chartSeries = await this.fetch(renderIntoNode);
+        let data = await this.fetch(renderIntoNode);
 
-        if(chartSeries === false) {
+        let plotlyChartData = [{
+            x: data.map(item => `${item.startYear} - ${item.endYear}`),
+            y: data.map(item => item.datingsNum),
+            customdata: data.map(category => category.name),
+            type: 'bar',
+            name: "Dating histogram",
+            hovertemplate: data.map(item => `${item.startYear} - ${item.endYear}<br>%{y} datings<extra></extra>`),
+            marker: {
+                color: this.sqs.color.getColorScheme(1)[0]
+            }
+        }];
+
+        let startYearOfFirstBinLabel = `${data[0].startYear} - ${data[0].endYear}`;
+        let endYearOfLastBinLabel = `${data[data.length - 1].startYear} - ${data[data.length - 1].endYear}`;
+
+        if(data === false) {
             this.sqs.setNoDataMsg(this.renderIntoNode);
         }
         else {
-            this.chart = resultMosaic.renderHistogram(this.renderIntoNode, chartSeries);
+            this.chart = resultMosaic.renderHistogramPlotly(this.renderIntoNode, plotlyChartData, {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                bargap: 0.25,
+                xaxis: {
+                    title: "Year range",
+                    tickangle: -45,
+                    tickvals: [startYearOfFirstBinLabel, endYearOfLastBinLabel], // Use the exact labels from the x data
+                    ticktext: [data[0].startYear.toString(), data[data.length - 1].endYear.toString()] // Displaying just the years for clarity
+                },
+                yaxis: {
+                    title: "Number of datings",
+                },
+                margin: {
+                    l: 70, // Left margin
+                    r: 50, // Right margin
+                    b: 70, // Increase bottom margin for more space
+                    t: 50, // Top margin
+                    pad: 4
+                },
+            });
         }
+        this.renderComplete = true;
     }
 
     async update() {
+        this.renderComplete = false;
         let chartSeries = await this.fetch(this.renderIntoNode);
         if(chartSeries === false) {
             this.sqs.setNoDataMsg(this.renderIntoNode);
@@ -131,12 +137,8 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
         else {
             this.render(this.renderIntoNode);
         }
+        this.renderComplete = true;
 	}
-
-    async unrender() {
-        this.pendingRequestPromise = null;
-        this.active = false;
-    }
 }
 
 export default MosaicDendroDatingHistogramModule;

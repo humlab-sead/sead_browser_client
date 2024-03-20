@@ -9,10 +9,11 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         this.requestId = 0;
         this.active = true;
         this.data = null;
+        this.renderComplete = false;
+        this.chartType = "plotly";
     }
 
     async fetch(renderIntoNode = null) {
-        console.log(this.name, "fetch");
         this.sqs.setNoDataMsg(renderIntoNode, false);
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         if(renderIntoNode) {
@@ -50,29 +51,35 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
             return false;
         }
 
+        let colors = this.sqs.color.getColorScheme(data.categories.length);
+
+        let chartData = [{
+            values: data.categories.map(category => category.count),
+            labels: data.categories.map(category => category.name),
+            customdata: data.categories.map(category => category.name),
+            marker: {
+                colors: colors
+            },
+            type: 'pie',
+            hole: 0.4,
+            name: "Tree species",
+            hoverinfo: 'label+percent',
+            textinfo: 'label+percent',
+            textposition: "inside",
+            hovertemplate: "%{percent} of datasets are %{customdata}<extra></extra>"
+        }];
+
         this.data = data.categories;
-
-        let categories = data.categories;
-
-        let chartSeries = [];
-
-        for(let key in categories) {
-            chartSeries.push({
-                "values": [categories[key].count],
-                "text": [categories[key].name],
-                "sites": []
-            });
-        }
 
         if(renderIntoNode) {
             this.sqs.setLoadingIndicator(renderIntoNode, false);
         }
 
-        return chartSeries;
+        return chartData;
     }
 
     async render(renderIntoNode) {
-        console.log(this.name, "render");
+        this.renderComplete = false;
         this.active = true;
         this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
@@ -82,11 +89,13 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
             this.sqs.setNoDataMsg(this.renderIntoNode);
         }
         else {
-            this.chart = resultMosaic.renderPieChart(this.renderIntoNode, chartSeries);
+            this.chart = resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartSeries);
         }
+        this.renderComplete = true;
     }
 
     async update() {
+        this.renderComplete = false;
         let chartSeries = await this.fetch(this.renderIntoNode);
         if(chartSeries === false) {
             this.sqs.setNoDataMsg(this.renderIntoNode);
@@ -94,11 +103,9 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         else {
             this.render(this.renderIntoNode);
         }
+        this.renderComplete = true;
 	}
 
-    async unrender() {
-        this.active = false;
-    }
 }
 
 export default MosaicDendroTreeSpeciesChartModule;

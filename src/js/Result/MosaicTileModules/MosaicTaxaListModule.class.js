@@ -11,9 +11,11 @@ class MosaicTaxaListModule extends MosaicTileModule {
         this.active = true;
         this.data = null;
         this.renderIntoNode = null;
+        this.chartType = "table";
     }
 
     async render(renderIntoNode = null) {
+        this.renderComplete = false;
         if(renderIntoNode) {
             this.renderIntoNode = renderIntoNode;
         }
@@ -78,6 +80,7 @@ class MosaicTaxaListModule extends MosaicTileModule {
 
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
         $(this.renderIntoNode).html(out);
+        this.renderComplete = true;
     }
 
     async update() {
@@ -86,10 +89,6 @@ class MosaicTaxaListModule extends MosaicTileModule {
 
     async fetch() {
         
-    }
-
-    async unrender() {
-        this.active = false;
     }
 
     formatDataForExport(data, format = "json") {

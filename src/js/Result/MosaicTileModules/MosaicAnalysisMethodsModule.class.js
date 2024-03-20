@@ -14,9 +14,12 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         this.data = null;
         this.renderIntoNode = null;
         this.plot = null;
+        this.renderComplete = false;
+        this.chartType = "plotly";
     }
 
     async render(renderIntoNode = null) {
+        this.renderComplete = false;
         if(renderIntoNode) {
             this.renderIntoNode = renderIntoNode;
         }
@@ -76,6 +79,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false }).then(plot => {
             this.plot = plot;
         })
+        this.renderComplete = true;
     }
 
     async update() {
@@ -84,13 +88,6 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
 
     async fetch() {
         
-    }
-
-    async unrender() {
-        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        resultMosaic.unrenderPlotlyChart(this.renderIntoNode.substring(1));
-        this.pendingRequestPromise = null;
-        this.active = false;
     }
 
     getAvailableExportFormats() {

@@ -41,20 +41,14 @@ class ResultMosaic extends ResultModule {
 			}
 		});
 
-		/*
+		
 		//On domain change - unrender/render all tile modules
+		
 		this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
-			if(this.resultManager.getActiveModule().name == this.name) {
-				
-				this.modules.forEach(moduleMeta => {
-					console.log(moduleMeta)
-					//let module = this.getInstanceOfModule(moduleMeta.name);
-					//module.unrender();
-				})
-				
-			}
+			this.unrender();
+			this.render();
 		});
-		*/
+		
 
 		this.modules.push({
 			title: "Site map",
@@ -303,11 +297,13 @@ class ResultMosaic extends ResultModule {
 	}
 
 	renderGridModules(resultGridModules) {
+		/*
 		for(let key in this.modules) {
 			if(this.modules[key].module != null) {
 				this.modules[key].module.unrender();
 			}
 		}
+		*/
 
 		resultGridModules.forEach(mConf => {
 			if(typeof mConf.default == "undefined" || mConf.default == true) {
@@ -372,7 +368,7 @@ class ResultMosaic extends ResultModule {
 	}
 
 	unrenderGridModules() {
-		
+		console.warn("Unrendering grid modules - not implemented");
 	}
 
 	renderGridModuleSelector(resultGridModules, moduleConf, grid_box_id, options) {
@@ -481,7 +477,7 @@ class ResultMosaic extends ResultModule {
 	 * Function: renderData
 	 */
 	renderData() {
-		this.unrender();
+		//this.unrender();
 		$('#result-mosaic-container').show();
 		$('#result-mosaic-container').css("display", "grid");
 
@@ -1014,6 +1010,54 @@ class ResultMosaic extends ResultModule {
 		
 	}
 
+	renderHistogramPlotly(renderIntoNode, chartSeries, layoutConfig = {}) {
+		if(typeof renderIntoNode == "object") {
+			console.warn("target node is an object, we need to convert this to an id");
+			return;
+		}
+
+		let layout = {
+			paper_bgcolor: this.sqs.color.colors.paneBgColor,
+			showlegend: false,
+			title: {
+				text:'',
+				font: {
+				  family: 'Didact Gothic, sans-serif',
+				  size: 22
+				},
+			},
+			displayModeBar: false,
+			margin: {
+				l: 50,
+				r: 50,
+				b: 50,
+				t: 50,
+				pad: 4
+			},
+		};
+
+		Object.assign(layout, layoutConfig);
+		let anchorNodeId = renderIntoNode.substring(1);
+
+		let config = {
+			responsive: true,
+			displayModeBar: false
+		}
+
+		let plot = Plotly.newPlot(anchorNodeId, chartSeries, layout, config);
+
+		this.sqs.sqsEventListen("layoutResize", () => {
+			try {
+				Plotly.relayout(anchorNodeId, layout);
+			}
+			catch(e) {
+				console.warn("Failed to relayout plotly chart", e);
+			}
+		}, this);
+
+		return plot;
+	}
+
 	/*
 	renderNoDataMsg(renderIntoNode) {
 		let noDataMsgNode = $("<div class='result-mosaic-no-data-msg'><div>No data</div></div>");
@@ -1087,11 +1131,19 @@ class ResultMosaic extends ResultModule {
 	unrenderPlotlyChart(selector) {
 		this.sqs.sqsEventUnlisten("layoutResize", this);
 		let node = $(selector);
+		console.log(selector, node);
 		if(node.length == 0) {
 			console.warn("Bailing on unrenderPlotlyChart because node was not found");
 			return;
 		}
-		Plotly.purge(node[0]);
+
+		//check that node is a plotly chart
+		if(typeof node[0].data == "undefined") {
+			console.warn("Bailing on unrenderPlotlyChart because node was not a plotly chart");
+			return;
+		}
+		
+		return Plotly.purge(node[0]);
 	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {
@@ -1292,13 +1344,17 @@ class ResultMosaic extends ResultModule {
 	}
 	
 	unrender() {
+		let promises = [];
 		this.modules.forEach(module => {
 			if(module.module != null && typeof module.module.unrender == "function") {
-				module.module.unrender();
+				promises.push(module.module.unrender());
 			}
 		});
 
-		$("#result-mosaic-container").html("");
+		Promise.all(promises).then(() => {
+			$("#result-mosaic-container").html("");
+		});
+
 	}
 
 	exportSettings() {

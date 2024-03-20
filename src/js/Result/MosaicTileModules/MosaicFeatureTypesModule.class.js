@@ -13,9 +13,12 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         this.renderIntoNode = null;
         this.requestId = 0;
         this.plot = null;
+        this.renderComplete = false;
+        this.chartType = "plotly";
     }
 
     async render(renderIntoNode = null) {
+        this.renderComplete = false;
         if(renderIntoNode) {
             this.renderIntoNode = renderIntoNode;
         }
@@ -59,6 +62,7 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         resultMosaic.renderBarChartPlotly(this.renderIntoNode, chartSeries).then(plot => {
             this.plot = plot;
         });
+        this.renderComplete = true;
     }
     
     async update() {
@@ -82,10 +86,6 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         return data;
     }
 
-    async unrender() {
-        this.pendingRequestPromise = null;
-        this.active = false;
-    }
 }
 
 export default MosaicFeatureTypesModule;

@@ -262,17 +262,17 @@ class ResultManager {
 	* Parameters:
 	* resultModuleId
 	*/
-	setActiveModule(resultModuleId, renderModule = true) {
-		//Check that this module exists
+	//Check that this module exists
+	async setActiveModule(resultModuleId, renderModule = true) {
 		if(!this.getModule(resultModuleId)) {
 			return false;
 		}
 
-		if(renderModule && this.activeModuleId != "none") { //If there's already an active module, unrender this first
+		if(renderModule && this.activeModuleId != "none") {
 			this.renderMsg(false);
 			let module = this.getActiveModule();
 			module.setActive(false);
-			module.unrender();
+			//module.unrender();
 		}
 		if(renderModule) {
 			this.getResultModuleByName(resultModuleId).render();

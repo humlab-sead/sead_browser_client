@@ -16,9 +16,12 @@ class MosaicEcoCodesModule extends MosaicTileModule {
         this.data = null;
         this.renderIntoNode = null;
         this.requestId = 0;
+        this.renderComplete = false;
+        this.chartType = "chartjs";
     }
 
     async render(renderIntoNode = null) {
+        this.renderComplete = false;
         if(renderIntoNode) {
             this.renderIntoNode = renderIntoNode;
         }
@@ -122,6 +125,7 @@ class MosaicEcoCodesModule extends MosaicTileModule {
 			document.getElementById(this.chartId),
 			config
 		);
+        this.renderComplete = true;
     }
 
     async update() {
@@ -132,10 +136,6 @@ class MosaicEcoCodesModule extends MosaicTileModule {
         
     }
 
-    async unrender() {
-        this.pendingRequestPromise = null;
-        this.active = false;
-    }
 
 	formatDataForExport(data, format = "json") {
 		
