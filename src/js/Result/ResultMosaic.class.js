@@ -1010,7 +1010,7 @@ class ResultMosaic extends ResultModule {
 		
 	}
 
-	renderHistogramPlotly(renderIntoNode, chartSeries, layoutConfig = {}) {
+	renderHistogramPlotly(renderIntoNode, chartSeries, layoutConfig = {}, configConfig = {}) {
 		if(typeof renderIntoNode == "object") {
 			console.warn("target node is an object, we need to convert this to an id");
 			return;
@@ -1043,6 +1043,8 @@ class ResultMosaic extends ResultModule {
 			responsive: true,
 			displayModeBar: false
 		}
+
+		Object.assign(config, configConfig);
 
 		let plot = Plotly.newPlot(anchorNodeId, chartSeries, layout, config);
 
@@ -1131,7 +1133,6 @@ class ResultMosaic extends ResultModule {
 	unrenderPlotlyChart(selector) {
 		this.sqs.sqsEventUnlisten("layoutResize", this);
 		let node = $(selector);
-		console.log(selector, node);
 		if(node.length == 0) {
 			console.warn("Bailing on unrenderPlotlyChart because node was not found");
 			return;

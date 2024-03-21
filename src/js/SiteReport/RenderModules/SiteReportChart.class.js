@@ -77,7 +77,7 @@ class SiteReportChart {
 			if(ro.selected) {
 				switch(ro.type) {
 					case "bar":
-						node = this.renderBarChartPlotly();
+						node = this.renderScatterChartPlotly();
 						break;
 					case "ecocode":
 						node = this.renderEcoCodeChart();
@@ -96,6 +96,7 @@ class SiteReportChart {
 						break;
 					case "multistack":
 						node = this.renderMultistack();
+						//node = this.renderMultistackPlotly();
 						break;
 					case "dendrochart":
 						node = this.renderDendroChart();
@@ -119,7 +120,7 @@ class SiteReportChart {
 	renderBarChart() {
 		//this.renderBarChartZing();
 		//this.renderBarChartCJS();
-		this.renderBarChartPlotly();
+		this.renderScatterChartPlotly();
 	}
 
 	getCoordinateSystems(coordinates) {
@@ -1018,8 +1019,10 @@ class SiteReportChart {
 			let trace = {
 				x: [], //sample names
 				y: [], //species abundances across samples
+				text: [], //tooltip text
 				name: traceTaxonId, //species name
-				type: 'bar'
+				type: 'bar',
+				orientation: 'h'
 			};
 			
 			for(var key in contentItem.data.rows) {
@@ -1027,38 +1030,26 @@ class SiteReportChart {
 				let taxonId = contentItem.data.rows[key][taxonIdColKey].value;
 				let taxonAb = contentItem.data.rows[key][abundanceColKey].value;
 				if(taxonId == traceTaxonId) {
-					trace.x.push(sampleName);
-					trace.y.push(taxonAb);
+					trace.x.push(taxonAb);
+					trace.y.push(sampleName);
+					trace.text.push(`Taxon ID: ${taxonId}<br>Taxon: <br>Abundance: ${taxonAb}`);
 				}
 			}
 			taxaTraces.push(trace);
 		});
 		
-		var colors = [];
-		//colors = this.sqs.color.getMonoColorScheme(taxonCount);
-		//colors = this.sqs.color.getColorScheme(taxonCount, false);
-		//colors = this.sqs.color.getVariedColorScheme(taxonCount);
-		
-		let traces = [];
-
-		var trace1 = {
-			x: ['giraffes', 'orangutans', 'monkeys'],
-			y: [20, 14, 23],
-			name: 'SF Zoo',
-			type: 'bar'
-		};
-			
-		var trace2 = {
-			x: ['giraffes', 'orangutans', 'monkeys'],
-			y: [12, 18, 29],
-			name: 'LA Zoo',
-			type: 'bar'
-		};
-			
-		//var data = [trace1, trace2];
 		let data = taxaTraces;
+
 		var layout = {
-			barmode: 'stack'
+			barmode: 'stack',
+			title: chartTitle,
+			yaxis: {
+				title: 'Sample Names',
+				showticklabels: true,
+			},
+			xaxis: {
+				title: 'Abundance'
+			}
 		};
 
 		this.chartId = "chart-"+nanoid();
@@ -1066,7 +1057,62 @@ class SiteReportChart {
 		$(this.anchorNodeSelector).append(chartContainer);
 
 		Plotly.newPlot(this.chartId, data, layout, {responsive: true, displayModeBar: false});
+	}
 
+	async renderMultistackPlotly3(chartTitle = "Abundances") {
+		var contentItem = this.contentItem;
+		// Assuming 'this.siteReport.getContentItemRenderer(contentItem)' is a way to access options; you'll need to adapt this part
+		let cir = this.siteReport.getContentItemRenderer(contentItem);
+
+		// Prepare data variables
+		let taxa = [];
+		let samples = []; // Unique sample IDs
+		let sampleNames = []; // Unique sample names for x-axis
+		let traceColors = []; // Colors for each trace
+
+		// Assumed methods to get column keys based on titles
+		let taxonIdColKey = this.getTableColumnKeyByTitle("Taxon id");
+		let taxonNameColKey = this.getTableColumnKeyByTitle("Taxon");
+		let abundanceColKey = this.getTableColumnKeyByTitle("Abundance count");
+		let sampleIdColKey = this.getTableColumnKeyByTitle("Sample id");
+		let sampleNameColKey = this.getTableColumnKeyByTitle("Sample name");
+
+		// Data aggregation logic here...
+
+		// Prepare Plotly traces
+		let traces = taxa.map(taxon => {
+			return {
+				x: sampleNames,
+				y: taxon.samples.map(sample => sample.abundance), // You'll need to ensure these are correctly ordered to match `sampleNames`
+				type: 'bar',
+				name: taxon.taxonName,
+				marker: {
+					color: taxon.color, // Assume each taxon has a color property
+				}
+			};
+		});
+
+		// Layout configuration
+		var layout = {
+			title: chartTitle,
+			barmode: 'stack',
+			xaxis: {
+				title: 'Sample Names', // Assuming you're labeling the samples on the x-axis
+			},
+			yaxis: {
+				title: 'Abundance', // Assuming you're quantifying abundance on the y-axis
+			}
+		};
+
+		// Generate a unique ID for the chart container
+		this.chartId = "chart-" + nanoid();
+		var chartContainer = document.createElement('div');
+		chartContainer.id = this.chartId;
+		chartContainer.className = 'site-report-chart-container';
+		document.querySelector(this.anchorNodeSelector).appendChild(chartContainer);
+
+		// Render the chart using Plotly
+		Plotly.newPlot(this.chartId, traces, layout);
 	}
 
 	/*
@@ -1438,7 +1484,7 @@ class SiteReportChart {
 		}
 	}
 
-	renderBarChartPlotly() {
+	renderScatterChartPlotly() {
 		var contentItem = this.contentItem;
 	  
 		let chartData = this.dataTransform(contentItem);
@@ -1471,11 +1517,7 @@ class SiteReportChart {
 		});
 		*/
 
-		let graphType = "bar";
-		if(contentItem.data.rows.length > 100) {
-			graphType = "scatter";
-		}
-		graphType = "scatter"; //FIXME: We should rename this method to reflect that we are now using scatter plots for bar charts
+		let graphType = "scatter";
 		
 		let data = [
 		  {
@@ -1531,10 +1573,26 @@ class SiteReportChart {
 			xaxis: {
 				type: "category", //to get distinct and not linear/range values
 				tickangle: 60,
+				title: {
+					text: 'Sample',
+					font: {
+						family: 'Didact Gothic, sans-serif',
+						size: 18,
+						color: '#333'
+					},
+				}
 			},
 			yaxis: {
 				showticklabels: false,
 				automargin: true,
+				title: {
+					text: '',
+					font: {
+						family: 'Didact Gothic, sans-serif',
+						size: 18,
+						color: '#333'
+					},
+				}
 			}
 		};
 	  
@@ -1730,13 +1788,21 @@ class SiteReportChart {
 				scales: {
 					x: {
 						stacked: true,
+						title: {
+							display: true,
+							text: 'Sample' // Label for the x-axis
+						}
 					},
 					y: {
-						stacked: true
+						stacked: true,
+						title: {
+							display: true,
+							text: 'Percentage' // Label for the y-axis
+						}
 					}
 				}
 			}
-		  };
+		};
 		
 		  
 		this.chartId = "chart-"+nanoid();
@@ -2088,9 +2154,17 @@ class SiteReportChart {
 				scales: {
 					x: {
 						stacked: true,
+						title: {
+							display: true,
+							text: 'Sample' // Label for the x-axis
+						}
 					},
 					y: {
-						stacked: true
+						stacked: true,
+						title: {
+							display: true,
+							text: '' // Label for the y-axis
+						}
 					}
 				}
 			}
