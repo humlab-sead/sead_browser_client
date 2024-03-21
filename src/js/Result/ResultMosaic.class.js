@@ -1100,10 +1100,10 @@ class ResultMosaic extends ResultModule {
 			},
 			displayModeBar: false,
 			margin: {
-				l: 50,
-				r: 50,
-				b: 50,
-				t: 50,
+				l: 120,
+				r: 120,
+				b: 120,
+				t: 120,
 				pad: 4
 			},
 		};
