@@ -1829,6 +1829,10 @@ h1.main-header {
   /*overflow-y: auto;*/
 }
 
+#result-datatable {
+  border: 1px solid #ddd;
+}
+
 #result-datatable-controls {
   height: 3em;
 }
@@ -3692,7 +3696,6 @@ svg text {
 }
 
 .tabulator-table > .tabulator-row > .tabulator-cell {
-  //padding: 2px !important;
   display: table-cell;
   vertical-align: middle;
   padding: 0.1em;
@@ -3700,6 +3703,12 @@ svg text {
   padding-right: 0.5em;
   margin: 0;
   height: 1.2em;
+  border-right: 1px solid #eee;
+}
+.tabulator-col {
+  font-size: 1.0em;
+  background: $inactive-color !important;
+  color: #fff;
 }
 
 .result-table-select-all-checkbox .tabulator-col-content {
