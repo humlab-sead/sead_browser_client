@@ -187,7 +187,7 @@ class ResultTable extends ResultModule {
 			selectable: true,
 			columns:[
 				{title: "Select", widthGrow:-1, formatter: "rowSelection", titleFormatter:"rowSelection", cssClass: "result-table-select-all-checkbox", hozAlign:"center", headerSort:false},
-				{title:"View site", widthGrow:1, field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
+				{title:"View site", widthGrow:0, field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
 					cell.getRow().toggleSelect(); //undo selection of row
 					let siteId = parseInt(cell.getValue());
 					if(!siteId) {
