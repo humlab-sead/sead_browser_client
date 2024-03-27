@@ -539,6 +539,8 @@ class DiscreteFacet extends Facet {
 	* Function: minimize
 	*/
 	minimize(changeFacetSize = true) {
+		changeFacetSize = false; //discrete facets should not change size when minimized
+
 		this.scrollPosition = this.getScrollPos();
 		super.minimize(changeFacetSize);
 
