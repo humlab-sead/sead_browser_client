@@ -91,19 +91,24 @@ class ResultModule {
 			}
 			*/
 			
-
 			html += "This export will contain "+selectedSites.length+" sites.<br /><br />";
 			html += "<a id='"+xlsxDownloadButtonId+"' class='light-theme-button'>Download XLSX</a>";
 			html += "<a id='"+csvDownloadButtonId+"' class='light-theme-button'>Download CSV</a>";
 			html += "<a id='"+jsonDownloadButtonId+"' class='light-theme-button'>Download JSON</a>";
 			
+			if(selectedSites.length == 0) {
+				html = "No sites selected!";
+			}
+
 			this.sqs.dialogManager.showPopOver("Export sites", html);
 
-			$("#"+xlsxDownloadButtonId).on("click", () => { this.exportSitesAsXlsx(selectedSites); });
+			if(selectedSites.length > 0) {
+				$("#"+xlsxDownloadButtonId).on("click", () => { this.exportSitesAsXlsx(selectedSites); });
 
-			$("#"+csvDownloadButtonId).on("click", async () => { this.exportSitesAsCsv(selectedSites); });
+				$("#"+csvDownloadButtonId).on("click", async () => { this.exportSitesAsCsv(selectedSites); });
 
-			$("#"+jsonDownloadButtonId).on("click", async () => { this.exportSitesAsJson(selectedSites); });
+				$("#"+jsonDownloadButtonId).on("click", async () => { this.exportSitesAsJson(selectedSites); });
+			}
 		};
 
 		
@@ -151,7 +156,7 @@ class ResultModule {
 	async exportSitesAsCsv(siteIds) {
 		let sitesExportData = await this.fetchExportData(siteIds);
 
-		let siteExportCsv = "";
+		let siteExportCsv = "\uFEFF"; //Byte Order Mark (BOM) to force Excel to open the file with UTF-8 encoding
 		siteExportCsv += "Id,Name,National site identifier,Latitude,Longitude,Description\r\n";
 
 		let sanitizeForCsv = (str) => {
