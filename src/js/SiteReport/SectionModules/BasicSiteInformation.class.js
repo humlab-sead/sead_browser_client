@@ -3,9 +3,8 @@ import { nanoid } from 'nanoid';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
-import { OSM } from 'ol/source';
 import { Group as GroupLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
+import { Vector as VectorSource, StadiaMaps } from 'ol/source';
 import {fromLonLat, transform} from 'ol/proj.js';
 import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style.js';
 import { defaults as defaultControls } from 'ol/control.js';
@@ -530,9 +529,14 @@ class BasicSiteInformation {
 			layers: new GroupLayer({
 				layers: [
 					new TileLayer({
-						source: new OSM({
-							url: 'https://a.tile.opentopomap.org/{z}/{x}/{y}.png',
-							attributions: 'Map baselayer: &copy; <a href="https://www.opentopomap.org">OpenTopoMap</a>'
+						source: new StadiaMaps({
+							layer: 'stamen_terrain_background',
+							wrapX: true,
+							url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}.png",
+							attributions: `&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>
+							&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>
+							&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>
+							&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>`
 						}),
 						visible: true
 					})
