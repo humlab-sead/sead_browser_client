@@ -147,7 +147,7 @@ class ResultTable extends ResultModule {
 	* Function: renderData
 	*/
 	renderData() {
-		this.renderDataTableNew();
+		this.renderDataTable();
 		return true;
 	}
 
@@ -161,151 +161,7 @@ class ResultTable extends ResultModule {
 		this.bindExportModuleDataToButton(exportButton);
 	}
 
-	/*
-	* Function: renderDataTable
-	*/
 	renderDataTable() {
-
-		this.resultManager.renderMsg(false);
-
-		$('#result-table-container').html("");
-
-		if(this.sqs.config.showResultExportButton) {
-			this.renderExportButton();
-		}
-
-		var renderData = JSON.parse(JSON.stringify(this.data)); //Make a copy
-
-		var columns = [
-			{
-				"title": "Select",
-				"column": "select"
-			},
-			{
-				"title": "Site ID",
-				"column": "site_link_filtered"
-			},
-			{
-				"title": "Site name",
-				"column": "sitename"
-			},
-			{
-				"title": "Samples",
-				"column": "samples"
-			},
-			{
-				"title": "Analyses",
-				"column": "analyses",
-				"sortable": false
-			},
-			{
-				"title": "Record type",
-				"column": "record_type"
-			}
-		];
-
-
-		let tableHtml = "<table id='result-datatable'>";
-		tableHtml += "<thead><tr>";
-		for(var key in columns) {
-			tableHtml += "<td>"+columns[key].title+"</td>";
-		}
-		tableHtml += "</tr></thead>";
-		//$('#result-datatable').append(colHTML);
-
-		tableHtml += "<tbody>";
-		for(var key in renderData.rows) {
-			tableHtml += "<tr>";
-
-			for(var ck in columns) {
-				if(columns[ck].column == "select") {
-					tableHtml += "<td><input type='checkbox' /></td>";
-				}
-				else if(columns[ck].column == "samples") {
-					tableHtml += "<td>Samples</td>";
-				}
-				else if(columns[ck].column == "analyses") {
-					//tableHtml += this.renderAnalysesStackedBar(renderData.rows[key], renderData.rows.length);
-					let containerNodeId = "analyses-"+renderData.rows[key].site_link_filtered;
-					tableHtml += "<td id='"+containerNodeId+"' class='cute-little-loading-indicator'></td>";
-					this.sqs.asyncRender("#"+containerNodeId, {
-						serverAddress: this.sqs.config.dataServerAddress,
-						method: "ws",
-						data: {
-							type: "analysis_methods",
-							siteId: renderData.rows[key].site_link_filtered
-						},
-						callback: (request, data) => {
-							let highestDatasetCount = 0;
-							data.analysis_methods_datasets.forEach(amd => {
-								if(amd.dataset_count > highestDatasetCount) {
-									highestDatasetCount = amd.dataset_count;
-								}
-							});
-
-							let barHtml = "<div class='stacked-bar-container'>";
-							data.analysis_methods_datasets.forEach(amd => {
-								amd.color = "black";
-								for(let key in this.sqs.config.analysisMethodsColors) {
-									let amc = this.sqs.config.analysisMethodsColors[key];
-									if(amc.method_group_id == amd.method_group_id) {
-										amd.color = "#"+amc.color;
-									}
-								}
-								amd.barWidth = (amd.dataset_count / highestDatasetCount) * 100;
-								barHtml += "<div class='stacked-segment' style='width: "+(amd.barWidth)+"%; background-color: "+amd.color+";'></div>";
-							});
-							barHtml += "</div>";
-
-							$(request.containerNodeSelector).removeClass("cute-little-loading-indicator").html(barHtml);
-						}
-					});
-				}
-				else {
-					var cellContent = renderData.rows[key][columns[ck].column];
-					tableHtml += "<td>"+cellContent+"</td>";
-				}
-			}
-
-			tableHtml += "</tr>";
-		}
-		
-		tableHtml += "</tbody></table>";
-		let tableNode = $(tableHtml);
-		
-		let reply = this.resultManager.sqs.sqsOffer("resultTableData", {
-			data: renderData,
-			node: tableNode
-		});
-		
-		tableNode = reply.node;
-		
-		$('#result-table-container').css("display", "flex");
-		$('#result-table-container').append("<div class='datatable-container'></div>")
-		$("#result-table-container .datatable-container").append(tableNode);
-		
-		$("#result-datatable").DataTable({
-			paging: true,
-			bInfo: false,
-			bFilter: false,
-			order: [[ 1, "asc" ]],
-			columnDefs: [
-				{ "orderable": false, "targets": [0, 3, 4] }
-			],
-			drawCallback: (settings) => {
-				let api = new $.fn.dataTable.Api(settings);
-				let pageInfo = api.page.info();
-				// Now you can use pageInfo object
-				console.log(pageInfo);
-			}
-		});
-
-		$("#result-datatable > thead").css("position", "sticky").css("top", "0").css("z-index", "1");
-
-		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
-	}
-
-	renderDataTableNew() {
 		this.resultManager.renderMsg(false);
 
 		$('#result-table-container').html(`
@@ -313,15 +169,6 @@ class ResultTable extends ResultModule {
 			<div id='result-datatable-controls'>
 			</div>
 			`);
-
-			/*
-		const exportDialog = document.importNode(document.querySelector('#export-dialog').content, true);
-		this.sqs.dialogManager.showPopOver("Export data", exportDialog);
-		
-		$("#result-table-export-btn").on("click", () => {
-			this.exportDataDialog();
-		});
-		*/
 		
 		$('#result-table-container').css("display", "flex");
 
@@ -339,9 +186,7 @@ class ResultTable extends ResultModule {
 			],
 			selectable: true,
 			columns:[
-				{title: "Select", widthGrow:1, formatter: "rowSelection", titleFormatter:"rowSelection", headerSort:false, cellClick:function(e, cell){
-					//cell.getRow().toggleSelect();
-				}},
+				{title: "Select", widthGrow:-1, formatter: "rowSelection", titleFormatter:"rowSelection", cssClass: "result-table-select-all-checkbox", hozAlign:"center", headerSort:false},
 				{title:"View site", widthGrow:1, field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
 					cell.getRow().toggleSelect(); //undo selection of row
 					let siteId = parseInt(cell.getValue());
@@ -351,10 +196,13 @@ class ResultTable extends ResultModule {
 					}
 					this.sqs.siteReportManager.renderSiteReport(siteId);
 				}, formatter: (cell, formatterParams, onRendered) => {
-						return `<div class='site-report-link site-report-table-button' site-id='${cell.getValue()}'><i class="fa fa-search" aria-hidden="true"></i> View site</div>`;
+						return `
+						<div class='site-report-link site-report-table-button' site-id='${cell.getValue()}'>
+						<i class="fa fa-search" aria-hidden="true"></i>&nbsp;View site
+						</div>`;
 					}
 				},
-				{title:"Site ID", field:"site_link_filtered", widthGrow:1},
+				{title:"Site ID", field:"site_link_filtered", widthGrow:1, hozAlign:"center"},
 				{title:"Site name", field:"sitename", tooltip: true, widthGrow:3},
 				{title:"Data points", field:"analysis_entities", widthGrow:2, formatter: (cell, formatterParams, onRendered) => {
 					return `<div class='stacked-bar-outer-container'>
@@ -370,7 +218,7 @@ class ResultTable extends ResultModule {
 					widthGrow:2,
 					formatter: (cell, formatterParams, onRendered) => {
 						let cellElement = cell.getElement();
-						cellElement.classList.add('stacked-bar-container'); // Ensure this class sets the necessary size for the SVG
+						cellElement.classList.add('stacked-bar-container');
 						cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
 
 						let renderInterval = setInterval(() => {
@@ -393,7 +241,7 @@ class ResultTable extends ResultModule {
 								let svgNS = "http://www.w3.org/2000/svg";
 								let svg = document.createElementNS(svgNS, "svg");
 								svg.setAttribute("width", "100%");
-								svg.setAttribute("height", "100%"); // Adjust the height as needed
+								svg.setAttribute("height", "80%");
 							
 								let currentOffset = 0;
 		
@@ -409,9 +257,9 @@ class ResultTable extends ResultModule {
 									let rect = document.createElementNS(svgNS, "rect");
 									amd.barWidth = (amd.dataset_count / totalDatasetCount) * 100;
 									
-									rect.setAttribute("x", `${currentOffset}%`); // Position based on currentOffset
+									rect.setAttribute("x", `${currentOffset}%`);
 									rect.setAttribute("width", `${amd.barWidth}%`);
-									rect.setAttribute("height", "100%"); // The height of the rect, adjust as needed
+									rect.setAttribute("height", "100%");
 									rect.setAttribute("fill", `#${amd.color}`);
 									svg.appendChild(rect);
 		
@@ -438,7 +286,6 @@ class ResultTable extends ResultModule {
 		});
 
 		if(this.sqs.config.showResultExportButton) {
-			//this.renderExportButton("#result-datatable-controls");
 			let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
 			$("#result-datatable-controls").append(exportButton);
 			this.bindExportModuleDataToButton(exportButton, this);

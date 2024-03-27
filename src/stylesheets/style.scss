@@ -851,20 +851,6 @@ h1.main-header {
     margin:0 !important;
   }
 
-  #popover-dialog-frame {
-    position: absolute !important;
-    top: 0px !important;
-    left: 0px !important;
-    margin: 0 !important;
-    width: 100vw !important;
-    height: auto !important;
-    box-shadow: none !important;
-    max-height: auto !important;
-    max-width: 100vw !important;
-    grid-column: auto !important;
-    grid-row: auto !important;
-  }
-
   .popover-close-btn {
     display: none !important;
   }
@@ -1836,26 +1822,6 @@ h1.main-header {
 	height: 100%;
 }
 
-#result-datatable_wrapper {
-}
-
-#result-datatable {
-  width: 100% !important;
-  height: 100%;
-  border: 0px solid #ccc;
-  border-bottom: 1px solid #ccc;
-}
-
-#result-datatable thead tr {
-	background-color: $inactive-color;
-	color: #fff;
-	font-size: 16px;
-}
-
-#result-datatable tbody tr:hover {
-	background-color: $pane-bg-color;
-}
-
 #result-table-container {
   display: none;
   flex-direction: column;
@@ -1864,9 +1830,8 @@ h1.main-header {
 }
 
 #result-datatable-controls {
-  height: 5em;
+  height: 3em;
 }
-
 
 input[type="search"] {
 	border-width: 1px;
@@ -2450,6 +2415,8 @@ polyline{
   //overflow: auto;
   max-height: 95vh;
   max-width: 95vw;
+  min-width: 300px;
+  min-height: 80px;
   border-width: 1px;
   border-style: solid;
   border-color: $pane-bg-color-dark;
@@ -3654,9 +3621,14 @@ svg text {
 
 .stacked-bar-container {
   display: flex;
-  height: 20px;
+  min-height: 1em;
+  height: 1em;
   align-items: center;
   width: 100%;
+}
+
+.stacked-bar-container > svg {
+  vertical-align: middle;
 }
 
 .stacked-bar-container > .stacked-segment {
@@ -3673,10 +3645,14 @@ svg text {
 }
 
 .site-report-table-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: $base-color;
+  position: relative;
+  top: 0;
   color: #fff;
   border: none;
-  height: 100%;
   padding-left: 0.25em;
   padding-right: 0.25em;
   padding-top: 0.25em;
@@ -3685,6 +3661,9 @@ svg text {
   text-align: center;
   cursor: pointer;
   max-width: 6em;
+  margin: auto;
+  width: calc(100% - 0.5em);
+  height: 100%;
 }
 
 .site-report-table-button:hover {
@@ -3702,4 +3681,76 @@ svg text {
 
 .tabulator .tabulator-row:nth-child(even) {
   background-color: #FFF;
+}
+
+.tabulator .tabulator-row {
+  border-bottom: 1px solid #eee;
+}
+
+.tabulator-tableHolder {
+  background-color: transparent;
+}
+
+.tabulator-table > .tabulator-row > .tabulator-cell {
+  //padding: 2px !important;
+  display: table-cell;
+  vertical-align: middle;
+  padding: 0.1em;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  margin: 0;
+  height: 1.2em;
+}
+
+.result-table-select-all-checkbox .tabulator-col-content {
+  text-align: center;
+}
+
+.mosaic-dynamic-chart-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1em;
+  margin-top: 5em;
+  width: 100%;
+}
+
+.thin-divider-line {
+  border: 0; 
+  border-top: 1px solid $aux-color;
+}
+
+.mosaic-dynamic-chart-form > div {
+  width: 80%;
+}
+
+.mosaic-dynamic-chart-form .dropdown-group {
+  display: block;
+  margin-bottom: 1em;
+}
+
+.mosaic-dynamic-chart-form .dropdown-group label {
+  display: block;
+  font-size: 1.2em;
+}
+
+.mosaic-dynamic-chart-form .dropdown-group select {
+  display: block;
+  background: #fff;
+}
+
+.mosaic-dynamic-chart-form button {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2em;
+  background: $base-color;
+  color: #fff;
+  padding: 1em;
+}
+
+.mosaic-dynamic-chart-options-container {
+  display: none;
 }
