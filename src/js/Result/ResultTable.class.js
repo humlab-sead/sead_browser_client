@@ -25,13 +25,18 @@ class ResultTable extends ResultModule {
 		};
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
-			if(data.selection != this.name) {
-				$("#result-table-container").hide();
-			}
-			else {
-				$("#result-table-container").css("display", "flex");
-			}
+			this.setActive(data.selection == this.name);
 		});
+	}
+
+	setActive(active) {
+		super.setActive(active);
+		if(!this.active) {
+			$("#result-table-container").hide();
+		}
+		else {
+			$("#result-table-container").css("display", "flex");
+		}
 	}
 	
 	isVisible() {
