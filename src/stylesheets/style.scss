@@ -1406,7 +1406,6 @@ h1.main-header {
 .list-container-header-item {
   font-weight: bold;
   padding-left:0;
-  min-width: 86px;
   cursor:pointer;
 }
 
@@ -1421,6 +1420,10 @@ h1.main-header {
   width: 100%;
   margin-top: 0.2em;
 	//background-color:rgba(0, 0, 255, 0.5);
+}
+
+.sort-symbol {
+  margin-right: 0.5em;
 }
 
 .multistage-container {
