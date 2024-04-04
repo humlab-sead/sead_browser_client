@@ -15,7 +15,8 @@ html {
 
 h1 {
   font-family: $header-font, 'arial';
-  font-size:36px;
+  font-family: "Didact Gothic", sans-serif;
+  font-size: 24px !important;
   margin-top: 0px !important;
 }
 
@@ -595,7 +596,9 @@ h1.main-header {
 .facet-text-search-input {
 	display:none;
 	height: 10px;
-	margin-top: 4px;
+	margin-top: auto;
+  margin-bottom: auto;
+  margin-right: 0.5em;
 	width: 25%;
 }
 
@@ -2410,22 +2413,21 @@ polyline{
 }
 
 #popover-dialog-frame {
-  position: relative;
-  grid-column: 2;
-  grid-row: 2;
-  background-color: #fff;
-  box-shadow: 0px 0px 20px 5px $shadow-color;
-  padding: 1em;
-  //overflow: auto;
+  display: block;
   max-height: 95vh;
   max-width: 95vw;
   min-width: 300px;
   min-height: 80px;
-  border-width: 1px;
-  border-style: solid;
-  border-color: $pane-bg-color-dark;
+  position: relative;
+  grid-column: 2;
+  grid-row: 2;
+  z-index: 10;
+  background: #fff;
+  padding: 1.5em;
+  box-shadow: 0px 0px 10px 10px $shadow-color;
+  border-radius: 3px;
+  border-left: .5em solid $aux-color;
 }
-
 
 #popover-dialog-frame > h1 {
   margin-top: 5px;
@@ -3116,6 +3118,24 @@ svg text {
   }
 }
 
+@keyframes slide-in-from-top {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes expand-from-center {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .tab-container {
 }
 
@@ -3193,7 +3213,7 @@ svg text {
   right: -100%;
   z-index: 100;
   background: #fff;
-  padding: 1em;
+  padding: 1.5em;
   animation-name: slide-in;
   animation-duration: 0.5s;
   animation-delay: 2s;
@@ -3201,6 +3221,10 @@ svg text {
   box-shadow: 0px 0px 10px 10px $shadow-color;
   border-radius: 3px;
   border-left: .5em solid $aux-color;
+}
+
+#tutorial-select-form-container {
+  margin-bottom: 1em;
 }
 
 /* animation which creates a slide-in from the right */
@@ -3213,21 +3237,22 @@ svg text {
   }
 }
 
-#tutorial-question button:hover {
+.tutorial-dialog button:hover {
   cursor: pointer;
   background: lighten($base-color, 10%);
 }
 
-#tutorial-question .yes-button {
+.tutorial-dialog .yes-button {
   background: $base-color;
   color: #fff;
   border: none;
   padding: .5em;
   margin: .5em;
+  margin-left: 0;
   cursor: pointer;
 }
 
-#tutorial-question .no-button {
+.tutorial-dialog .no-button {
   background: $inactive-color;
   color: #fff;
   border: none;
@@ -3723,6 +3748,15 @@ svg text {
   padding: 1em;
   margin-top: 5em;
   width: 100%;
+}
+
+.dynamic-chart-back-to-form-button {
+  z-index: 100;
+  position: absolute;
+  top: 4em;
+  left: 2em;
+  color: blue;
+  cursor: pointer;
 }
 
 .thin-divider-line {

@@ -19,7 +19,7 @@ import DomainManager from './DomainManager.class.js';
 import NotificationManager from './NotificationManager.class.js';
 import ExportManager from './ExportManager.class.js';
 import Router from './Router.class.js';
-import Tutorial from './Tutorial.class.js';
+import Tutorial from './Tutorials/Tutorial.class.js';
 import AIAssistant from './AIAssistant.class.js';
 import { nanoid } from 'nanoid';
 import ApiWsChannel from './ApiWsChannel.class.js';
