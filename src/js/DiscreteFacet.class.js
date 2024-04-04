@@ -51,6 +51,12 @@ class DiscreteFacet extends Facet {
 			this.updateRenderData(data);
 		});
 
+		//on seadFacetSelection
+		$(document).on("seadFacetSelection", (evt, data) => {
+			this.visibleData = this.determineVisibleData();
+			this.renderData(this.visibleData);
+		});
+
 		this.registerTextSearchEvents();
 		this.registerSortEvents();
 		
@@ -136,24 +142,42 @@ class DiscreteFacet extends Facet {
 			this.textSearch(evt);
 		});
 	}
+
+	determineVisibleData() {
+		this.visibleData = [];
+		if(this.textFilterString.length > 0) {
+			for(var key in this.data) {
+				if(this.data[key].title.toLowerCase().includes(this.textFilterString)) {
+					this.visibleData.push(this.data[key]);
+				}
+			}
+
+			//also add selected items to the visible data, if not already present
+			for(var key in this.selections) {
+				for(var dk in this.data) {
+					if(this.selections[key] == this.data[dk].id && this.visibleData.indexOf(this.data[dk]) == -1) {
+						this.visibleData.push(this.data[dk]);
+					}
+				}
+			}
+
+			$(this.getDomRef()).find(".facet-text-search-btn").addClass("facet-control-active");
+		}
+		else {
+			this.visibleData = this.data;
+			$(this.getDomRef()).find(".facet-text-search-btn").removeClass("facet-control-active");
+		}
+
+		return this.visibleData;
+	}
 	
 	textSearch(evt) {
 		clearTimeout(this.textSearchTimeout);
 		this.textSearchTimeout = setTimeout(() => {
 			this.textFilterString = $(evt.target).val().toLowerCase();
-			this.visibleData = [];
-			if(this.textFilterString.length > 0) {
-				for(var key in this.data) {
-					if(this.data[key].title.toLowerCase().includes(this.textFilterString)) {
-						this.visibleData.push(this.data[key]);
-					}
-				}
-				$(this.getDomRef()).find(".facet-text-search-btn").addClass("facet-control-active");
-			}
-			else {
-				this.visibleData = this.data;
-				$(this.getDomRef()).find(".facet-text-search-btn").removeClass("facet-control-active");
-			}
+			
+			this.visibleData = this.determineVisibleData();
+
 			this.renderData(this.visibleData);
 		}, 250);
 	}
