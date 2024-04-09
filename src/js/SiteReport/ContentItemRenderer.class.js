@@ -14,6 +14,15 @@ class ContentItemRenderer {
     }
 
     render() {
+
+		if(this.sqs.isPromise(this.contentItem)) {
+			this.contentItem.then((contentItem) => {
+				this.contentItem = contentItem;
+				this.render();
+			});
+			return;
+		}
+
         var datasetId = "";
 		if(this.contentItem.hasOwnProperty("datasetId")) {
 			datasetId = "<span class='dataset-id'>("+this.contentItem.name+")</span>";
