@@ -57,6 +57,7 @@ class MeasuredValueDataset extends DatasetModule {
 				"name": dataset.dataset_id,
 				"title": dataset.dataset_name,
 				"datasetReference": this.sqs.renderBiblioReference(site, dataset.biblio_id == null ? [] : [dataset.biblio_id]),
+				"datasetReferencePlain": this.sqs.renderBiblioReference(site, dataset.biblio_id == null ? [] : [dataset.biblio_id], false),
 				"datasetContacts": this.sqs.renderContacts(site, dataset.contacts),
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataset.dataset_id,

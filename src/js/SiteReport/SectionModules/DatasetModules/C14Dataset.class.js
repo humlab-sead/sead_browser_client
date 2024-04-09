@@ -110,6 +110,7 @@ class C14Dataset extends DatasetModule {
 				"name": nanoid(), //Normally: analysis.datasetId
 				"title": method.method_name, //Normally this would be: analysis.datasetName
 				"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
+				"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, false),
 				"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
 				"data": {
 					"columns": columns,

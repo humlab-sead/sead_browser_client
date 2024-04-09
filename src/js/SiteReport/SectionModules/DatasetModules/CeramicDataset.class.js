@@ -325,6 +325,7 @@ class CeramicDataset extends DatasetModule {
 			"name": "Ceramics", //Normally: analysis.datasetId
 			"title": "Ceramics", //Normally this would be: analysis.datasetName
 			"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
+			"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, false),
 			"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
 			"data": {
 				"columns": columns,

@@ -494,10 +494,12 @@ class DendrochronologyDataset extends DatasetModule {
 					hidden: true
 				},
 				{
-					title: "Measurement type"
+					title: "Measurement type",
+					role: "key"
 				},
 				{
-					title: "Measurement value"
+					title: "Measurement value",
+					role: "value"
 				},
 				{
 					title: "data",
@@ -545,6 +547,9 @@ class DendrochronologyDataset extends DatasetModule {
 			});
 			
 			let subTable = {
+				"meta": {
+					dataStructure: "key-value"
+				},
 				"columns": subTableColumns,
 				"rows": subTableRows
 			};
@@ -636,7 +641,8 @@ class DendrochronologyDataset extends DatasetModule {
 		let contentItem = {
 			"name": "dendro",
 			"title": "Dendrochronology",
-			"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
+			"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, true),
+			"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, false),
 			"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
 			"titleTooltip": "Name of the dataset",
 			"datasetId": 0,
@@ -802,117 +808,6 @@ class DendrochronologyDataset extends DatasetModule {
 				{
 					"name": "Spreadsheet",
 					"selected": false,
-					"type": "table",
-					"options": [
-						{
-							"name": "columnsVisibility",
-							"hiddenColumns": [
-								3
-							],
-							"showControls": false
-						},
-						{
-							"name": "showNumRows",
-							"value": 15
-						}
-					]
-				}
-			]
-		};
-		
-		return ci;
-	}
-
-	/* Function: buildContentItem
-	*/
-	buildContentItemOLD(datasetGroup) {
-		//Defining columns
-		var columns = [
-			{
-				"dataType": "number",
-				"pkey": true,
-				"title": "Analysis entitiy id",
-				"hidden": true
-			},/*
-			{
-				"dataType": "string",
-				"pkey": false,
-				"title": "Data type name"
-			},
-			{
-				"dataType": "string",
-				"pkey": false,
-				"title": "Dataset name"
-			},*/
-			{
-				"dataType": "string",
-				"pkey": false,
-				"title": "Value type"
-			},
-			{
-				"dataType": "string",
-				"pkey": false,
-				"title": "Measurement value"
-			}
-		];
-
-		//Filling up the rows - all dataset's data goes in the same table for dendro
-		var rows = [];
-		for(let dk in datasetGroup.datasets) {
-			
-			let dataset = datasetGroup.datasets[dk];
-
-			for(let key in dataset.dendro) {
-				let valueType = this.getDendroValueType(dataset.dendro[key].dendro_lookup_id);
-				
-				let valueTypeName = dataset.dendro[key].dendro_lookup_id;
-				let valueTypeDescription = "Unknown dendrochronological data type";
-				
-				if(valueType !== false) {
-					valueTypeName = valueType.name;
-					valueTypeDescription = valueType.description;
-				}
-				let valueMeasurement = dataset.dendro[key].measurement_value;
-
-				var row = [
-					{
-						"type": "cell",
-						"tooltip": "",
-						"value": dataset.dendro[key].analysis_entity_id
-					},
-					{
-						"type": "cell",
-						"tooltip": valueTypeDescription,
-						"value": valueTypeName
-					},
-					{
-						"type": "cell",
-						"tooltip": "",
-						"value": valueMeasurement
-					}
-				];
-
-				rows.push(row);
-			}
-		}
-
-		let datingRows = this.getDatingRowsFromDatasetGroup(datasetGroup);
-		console.log(datingRows)
-		rows = rows.concat(datingRows);
-		
-		//datasetGroup.sample.sample_name
-		let ci = {
-			"name": datasetGroup.physical_sample_id, //Normally: analysis.datasetId
-			"title": "Sample "+datasetGroup.sample.sample_name, //Normally this would be: analysis.datasetName
-			"datasetId": datasetGroup.physical_sample_id, //Normally: analysis.datasetId
-			"data": {
-				"columns": columns,
-				"rows": rows
-			},
-			"renderOptions": [
-				{
-					"name": "Spreadsheet",
-					"selected": true,
 					"type": "table",
 					"options": [
 						{

@@ -99,6 +99,11 @@ class IsotopeDataset extends DatasetModule {
             dataset.analysis_entities.forEach(ae => {
                 
                 let subTable = {
+                    /*
+                    "meta": {
+                        dataStructure: "key-value"
+                    },
+                    */
                     "expanded": false,
                     "columns": [
                         {
@@ -232,6 +237,7 @@ class IsotopeDataset extends DatasetModule {
             "name": nanoid(), //Normally: analysis.datasetId
             "title": method.method_name, //Normally this would be: analysis.datasetName
             "datasetReference": this.sqs.renderBiblioReference(siteData, uniqueDatasetBiblioIds),
+            "datasetReferencePlain": this.sqs.renderBiblioReference(siteData, uniqueDatasetBiblioIds, false),
             "datasetContacts": this.sqs.renderContacts(siteData, uniqueDatasetContactIds),
             "data": {
                 "columns": columns,
