@@ -250,7 +250,7 @@ class SiteReport {
 			.attr("id", "site-report-section-"+section.name)
 			.attr("site-report-section-name", section.name)
 			.attr("render-weight", weight);
-		
+
 		//Make header
 		var sectionTitle = section.title;
 		if(section.hasOwnProperty("methodName")) {
@@ -259,6 +259,14 @@ class SiteReport {
 		$(".site-report-level-title", sectionNode)
 			.html("<i class=\"site-report-sections-expand-button fa fa-plus-circle\" aria-hidden=\"true\">&nbsp;</i><span class='title-text'>"+sectionTitle+"</span><span class='section-warning'></span>")
 			.on("click", (evt) => {
+				
+				//if evt.target parent has the id "site-report-section-analyses" or "site-report-section-samples" then return
+				//because these are the main sections, and it makes little to no sense to collapse them
+				let targetSectionId = $(evt.target).parent().attr("id");
+				if(targetSectionId == "site-report-section-analyses" || targetSectionId == "site-report-section-samples") {
+					return;
+				}
+
 				var parent = $(evt.currentTarget).parent();
 				var collapsed = parent.children(".site-report-level-content").attr("collapsed") == "true";
 				collapsed = !collapsed;
@@ -482,101 +490,7 @@ class SiteReport {
 			$(node).attr("download", filename+".geojson");
 		}
 		if(exportFormat == "xlsx") {
-			//Remove columns from table which are flagged for exclusion
-			for(let key in exportStruct.datatable.columns) {
-				if(exportStruct.datatable.columns[key].exclude_from_export) {
-					exportStruct.datatable.columns.splice(key, 1);
-					exportStruct.datatable.rows.forEach((row) => {
-						row.splice(key, 1);
-					});
-				}
-			}
-
-			//Strip html from values
-			exportStruct.datatable.rows.forEach((row) => {
-				row.forEach((column) => {
-					if(typeof column.value == "string") {
-						column.value = this.sqs.parseStringValueMarkup(column.value, { drawSymbol: false });
-						column.value = column.value.replace(/<[^>]*>?/gm, '');
-					}
-				});
-			});
-
-			const ws_name = "SEAD Data";
-			const wb = new ExcelJS.Workbook();
-			const ws = wb.addWorksheet(ws_name);
-			
-			var data = this.getDataForXlsx(exportStruct.datatable);
-
-			data.unshift([""]);
-			data.unshift(["Content: "+exportStruct.meta.content]);
-			data.unshift(["Section: "+exportStruct.meta.section]);
-			data.unshift(["Data distributed by SEAD under the license "+this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")"]);
-			data.unshift(["Source attribution: "+exportStruct.meta.attribution]);
-			data.unshift(["Source url: "+exportStruct.meta.url]);
-			data.unshift(["References: "+exportStruct.meta.datasetReference]);
-			data.unshift(["Site name: "+exportStruct.meta.siteName]);
-			data.unshift([exportStruct.meta.description]);
-
-			/*
-			var ws_name = "SEAD Data";
-			var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(data);
-			//add worksheet to workbook
-			XLSX.utils.book_append_sheet(wb, ws, ws_name);
-			//write workbook
-			XLSX.writeFile(wb, filename+".xlsx");
-			*/
-
-			
-
-			// Add data to the worksheet
-
-			let styles = {
-				header1: { size: 14, bold: true },
-				header2: { size: 12, bold: true },
-			}
-
-			data.forEach(row => {
-				let addStyle = null;
-				if(typeof row[0] == 'object') {
-					if(row[0].style == 'header2') {
-						addStyle = styles.header2;
-					}
-					row.splice(0, 1);
-				}
-
-				ws.addRow(row);
-				
-				if(addStyle != null) {
-					ws.lastRow.font = addStyle;
-				}
-			});
-			
-			wb.xlsx.writeBuffer().then(buffer => {
-				const blob = new Blob([buffer], { type: 'application/octet-stream' });
-				const blobUrl = URL.createObjectURL(blob);
-
-				$("#site-report-xlsx-export-download-btn").attr("href", blobUrl);
-				$("#site-report-xlsx-export-download-btn").attr("download", filename+".xlsx");
-			});
-
-			/*
-			wb.xlsx.writeFile(filename + '.xlsx')
-			.then(() => {
-				console.log("Workbook created!");
-			})
-			.catch(error => {
-				console.error("Error creating workbook:", error);
-			});
-			*/
-
-			
-			
-			node = $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
-			/*
-			$(node).on("click", (evt) => {
-			});
-			*/
+			node = this.getXlsxExport(filename, exportStruct);
 		}
 		if(exportFormat == "png") {
 			node = $("<a id='site-report-png-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download PNG</a>");
@@ -620,6 +534,214 @@ class SiteReport {
 		}
 		
 		return node;
+	}
+
+
+	getDataForXlsx(data) {
+		console.log(data)
+		// This will hold all the formatted samples
+		const formattedExcelRows = [];
+		
+		let subTableColumnKey = null;
+		for(let key in data.columns) {
+			if(data.columns[key].dataType == 'subtable') {
+				subTableColumnKey = key;
+			}
+		}
+
+		// Iterate over each sample
+		data.rows.forEach((sampleRow) => {
+			let excelRow = {};
+
+			if(subTableColumnKey == null) {
+				//this is just a plain table - no subtables
+				for(let key in sampleRow) {
+					let r = sampleRow[key];
+
+					if(data.columns[key].hidden) {
+						continue;
+					}
+
+					excelRow[data.columns[key].title] = r.value;
+				}
+
+				formattedExcelRows.push(excelRow);
+			}
+			else {
+				//this is a table with subtables
+				//insert the parent level data into the sample object
+				let parentLevelData = {};
+				for(let key in data.columns) {
+					if(data.columns[key].dataType != "subtable" && !data.columns[key].hidden) {
+						let columnName = data.columns[key].title;
+						parentLevelData[columnName] = sampleRow[key].value;
+					}
+				}
+
+				const subtable = sampleRow[subTableColumnKey].value;
+				// Iterate over each row in the subtable
+
+
+				console.log(subtable)
+
+				let keyColumnKey = null;
+				let valueColumnKey = null;
+				if(typeof subtable.meta != "undefined" && typeof subtable.meta.dataStructure != "undefined" && subtable.meta.dataStructure == "key-value") {
+					//this means that we should have a column with the role "key" and a column with the role "value"
+					for(let key in subtable.columns) {
+						if(subtable.columns[key].role == "key") {
+							keyColumnKey = key;
+						}
+						if(subtable.columns[key].role == "value") {
+							valueColumnKey = key;
+						}
+					}
+				}
+
+				excelRow = {...parentLevelData};
+
+				let eachRowIsAKeyValPair = keyColumnKey != null && valueColumnKey != null;
+
+				subtable.rows.forEach((subRow) => {
+					if(eachRowIsAKeyValPair) {
+						const measurementType = subRow[keyColumnKey].value;
+						const measurementValue = subRow[valueColumnKey].value;
+						excelRow[measurementType] = measurementValue;
+					}
+					else {
+						excelRow = {...parentLevelData};
+						for(let cellKey in subRow) {
+							//find column title for this cell key
+							let cell = subRow[cellKey];
+							let columnName = subtable.columns[cellKey].title;
+							excelRow[columnName] = cell.value;
+						}
+						formattedExcelRows.push(excelRow);
+					}
+				});
+				if(eachRowIsAKeyValPair) {
+					formattedExcelRows.push(excelRow);
+				}
+			}
+		
+			// Add the formatted sample to the array
+			//formattedExcelRows.push(excelRow);
+		});
+		
+		console.log(formattedExcelRows);
+		return formattedExcelRows;
+	}
+
+	getXlsxExport(filename, exportStruct) {
+		//Remove columns from table which are flagged for exclusion
+		for(let key in exportStruct.datatable.columns) {
+			if(exportStruct.datatable.columns[key].exclude_from_export) {
+				exportStruct.datatable.columns.splice(key, 1);
+				exportStruct.datatable.rows.forEach((row) => {
+					row.splice(key, 1);
+				});
+			}
+		}
+
+		//Strip html from values
+		exportStruct.datatable.rows.forEach((row) => {
+			row.forEach((column) => {
+				if(typeof column.value == "string") {
+					column.value = this.sqs.parseStringValueMarkup(column.value, { drawSymbol: false });
+					column.value = column.value.replace(/<[^>]*>?/gm, '');
+				}
+			});
+		});
+
+		const ws_name = "SEAD Data";
+		const wb = new ExcelJS.Workbook();
+		const ws = wb.addWorksheet(ws_name);
+
+		let data = this.getDataForXlsx(exportStruct.datatable);
+
+		// Add data to the worksheet
+
+		let styles = {
+			header1: { size: 14, bold: true },
+			header2: { size: 12, bold: true },
+		}
+
+		// Initialize an empty set to track unique properties (columns)
+		let columnSet = new Set();
+
+		// Scout through each rowObject to find all unique properties
+		data.forEach(rowObject => {
+			Object.keys(rowObject).forEach(key => {
+				columnSet.add(key);
+			});
+		});
+
+		// Convert the set of columns into an array
+		let columns = Array.from(columnSet);
+
+		let mainHeaderRow = ws.addRow(["SEAD Dataset Export"]);
+		mainHeaderRow.font = styles.header1;
+
+		let metaDataHeaderRow = [
+			"Content",
+			"Section",
+			"License",
+			"Source attribution",
+			"Source url",
+			"References",
+			"Site name",
+			"Date of export",
+			"Description",
+			""
+		];
+		let metaDataValueRow = [
+			exportStruct.meta.content,
+			exportStruct.meta.section,
+			`Data distributed by SEAD under the license ${this.sqs.config.dataLicense.name} (${this.sqs.config.dataLicense.url})`,
+			exportStruct.meta.attribution,
+			exportStruct.meta.url,
+			exportStruct.meta.datasetReference,
+			exportStruct.meta.siteName,
+			new Date().toLocaleDateString('sv-SE'),
+			exportStruct.meta.description,
+			""
+		];
+
+		// Add the metadata to the worksheet
+		let metaDataHeaderRowExcel = ws.addRow(metaDataHeaderRow);
+		metaDataHeaderRowExcel.eachCell((cell) => {
+			cell.font = styles.header2;
+		});
+
+		// Add the metadata values to the worksheet
+		ws.addRow(metaDataValueRow);
+		ws.addRow([]); // Empty row for spacing
+
+
+		// Add the column headers as the first row in the worksheet
+		let headerRow = ws.addRow(columns);
+		headerRow.eachCell((cell) => {
+			cell.font = styles.header2;
+		});
+
+		data.forEach(rowObject => {
+			// Create an excelRow by extracting all values from the rowObject
+			let excelRow = columns.map(column => rowObject[column] || '');
+		  
+			// Add the excelRow as a new row in the worksheet
+			ws.addRow(excelRow);
+		});
+		  
+		
+		wb.xlsx.writeBuffer().then(buffer => {
+			const blob = new Blob([buffer], { type: 'application/octet-stream' });
+			const blobUrl = URL.createObjectURL(blob);
+
+			$("#site-report-xlsx-export-download-btn").attr("href", blobUrl);
+			$("#site-report-xlsx-export-download-btn").attr("download", filename+".xlsx");
+		});
+		
+		return $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
 	}
 	
 	renderDataAsPdf(exportStruct) {
@@ -836,17 +958,19 @@ class SiteReport {
 		};
 
 		if(section != "all" && contentItem != "all") {
-			//Remove html from dataset references and add [] around each item
-			let plainRef = "";
-			if(contentItem.datasetReference) {
-				plainRef = contentItem.datasetReference.replace(/<[^>]+>/g, '');
+			let plainRef = typeof contentItem.datasetReferencePlain != "undefined" ? contentItem.datasetReferencePlain : "";
+
+			if(plainRef == "") {
+				if(contentItem.datasetReference) {
+					plainRef = contentItem.datasetReference.replace(/<[^>]+>/g, '');
+				}
+
+				const lastIndex = plainRef.lastIndexOf('\n');
+				if (lastIndex !== -1) {
+					plainRef = plainRef.substring(0, lastIndex) + plainRef.substring(lastIndex + 1);
+				}
+				plainRef = "["+plainRef.replace(/\n/g, '] [')+"]";
 			}
-			
-			const lastIndex = plainRef.lastIndexOf('\n');
-			if (lastIndex !== -1) {
-				plainRef = plainRef.substring(0, lastIndex) + plainRef.substring(lastIndex + 1);
-			}
-			plainRef = "["+plainRef.replace(/\n/g, '] [')+"]";
 
 			exportStruct = {
 				meta: {
@@ -857,7 +981,7 @@ class SiteReport {
 					description: this.sqs.config.dataExportDescription,
 					siteName: this.siteData.site_name,
 					url: this.sqs.config.serverRoot+"/site/"+this.siteId,
-					datasetReference: plainRef
+					datasetReference: plainRef,
 				},
 				datatable: this.stripExcludedColumnsFromContentItem(contentItem).data
 			};
@@ -935,103 +1059,6 @@ class SiteReport {
 			}
 		});
 		
-	}
-	
-	
-	/*
-	* Function: getDataForXlsx
-	*
-	* Formats a data table for XLSX-export. Doesn't actually make it into XLSX, it just created a JSON data structure that is appropriate for feeding into the XLSX library.
-	 */
-	
-	getDataForXlsx2(dataTable) {
-		let rows = [];
-		let headerRow = [];
-		let hiddenIndices = [];
-		dataTable.columns.forEach((col, i) => {
-			if(!col.hidden) {
-				headerRow.push(col.title);
-			}
-			else {
-				hiddenIndices.push(i);
-			}
-		});
-		rows.push({
-			style: "header",
-			cells: headerRow
-		});
-
-		dataTable.rows.forEach((row) => {
-			let cells = [];
-			row.forEach((cell, i) => {
-				if(hiddenIndices.includes(i)) {
-					return;
-				}
-				else {
-					cells.push(cell.value);
-				}
-					
-			});
-
-			rows.push({
-				style: "default",
-				cells: cells
-			});
-		});
-
-		return rows;
-	}
-
-	getDataForXlsx(dataTable) {
-		var data = [];
-		var row = [];
-		let rowIsHeader = false;
-		
-		for(var key in dataTable.columns) {
-			var col = dataTable.columns[key];
-			if(col.hasOwnProperty("dataType") && col.dataType == "subtable") {
-				//We don't really need to do anything here since the subtable datatype is specified in the row-cells as well...
-			}
-			else {
-				if(col.hasOwnProperty("title")) {
-					row.push(col.title);
-				}
-				else {
-					row.push("-empty-");
-				}
-			}
-		}
-
-		row.unshift({ style: 'header2' });
-
-		data.push(row);
-		for(var key in dataTable.rows) {
-			row = [];
-			var subTable = [];
-			for(var cellKey in dataTable.rows[key]) {
-				var cell = dataTable.rows[key][cellKey];
-				
-				if(cell.type == "subtable") {
-					rowIsHeader = true;
-					subTable = this.getDataForXlsx(cell.value);
-				}
-				else {
-					if(cell.hasOwnProperty("value")) {
-						row.push(cell.value);
-					}
-				}
-			}
-			if(rowIsHeader) {
-				row.unshift({ style: 'header2' });
-			}
-			data.push(row);
-			for(var k in subTable) {
-				//subTable[k].unshift("SubTable:");
-				data.push(subTable[k]);
-			}
-		}
-		
-		return data;
 	}
 	
 	offerToRenderModules(contentItem, anchorSelector) {
