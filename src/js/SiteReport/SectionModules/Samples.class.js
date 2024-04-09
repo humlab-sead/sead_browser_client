@@ -771,7 +771,7 @@ class Samples {
 
 		var section = {
 			"name": "samples",
-			"title": "Overview",
+			"title": "Samples",
 			"collapsed": false,
 			"contentItems": [{
 				"name": "sampleGroups",
@@ -837,6 +837,7 @@ class Samples {
 				"name": "sampleCoordinatesMap",
 				"title": "Sample coordinates",
 				"datasetReference": this.sqs.renderBiblioReference(siteData, biblioIds),
+				"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, biblioIds, false),
 				"datasetContacts": "",
 				"collapsed": false,
 				"data": {
