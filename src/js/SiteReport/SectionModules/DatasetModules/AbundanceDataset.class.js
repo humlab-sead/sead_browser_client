@@ -659,13 +659,11 @@ class AbundanceDataset extends DatasetModule {
 		});
 
 		if(palaeontomolyDatasetFound) {
-			let siteEcoCodeContentItem = await this.getSiteEcoCodeContentItem(siteData);
-			let siteSamplesEcoCodeContentItem = await this.getSamplesEcoCodeContentItem(siteData);
-			
 			let ecoCodeSection = this.getSectionByMethodId(3, sections);
 			if(ecoCodeSection) {
-				ecoCodeSection.contentItems.push(siteEcoCodeContentItem);
-				ecoCodeSection.contentItems.push(siteSamplesEcoCodeContentItem);
+				//these two get eco codes methods actually return promises, but that's ok, the content-item rendered will handle that
+				ecoCodeSection.contentItems.push(this.getSiteEcoCodeContentItem(siteData));
+				ecoCodeSection.contentItems.push(this.getSamplesEcoCodeContentItem(siteData));
 			}
 			else {
 				console.warn("Tried to insert a contentItem into a section that couldn't be found.");
