@@ -51,7 +51,22 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
             return false;
         }
 
-        let colors = this.sqs.color.getColorScheme(data.categories.length);
+        let backupColors = this.sqs.color.getColorScheme(data.categories.length);
+        //map the data.categories "name" property to this.sqs.config.treeSpeciesColors
+        //if the name is not found, use a backup color
+        let colors = [];
+        data.categories.forEach(category => {
+            // Find the color configuration for the current category
+            let colorConfig = this.sqs.config.treeSpeciesColors.find(speciesColor => speciesColor.species === category.name);
+            
+            // If a color configuration is found, push the color; otherwise, push the default color
+            if (colorConfig) {
+                colors.push(colorConfig.color);
+            } else {
+                console.warn(`No color configuration found for tree species ${category.name}. Using backup color.`);
+                colors.push(backupColors.shift());
+            }
+        });
 
         let chartData = [{
             values: data.categories.map(category => category.count),

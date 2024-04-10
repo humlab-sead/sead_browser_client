@@ -505,6 +505,48 @@
 		  "color": "ffff80"
 		}
 	],
+	"treeSpeciesColors": [
+		{
+			"species": "Tall",
+			"color": "0074ab"
+		  },
+		  {
+			"species": "Ek",
+			"color": "005178"
+		  },
+		  {
+			"species": "Undefined",
+			"color": "bfeaff"
+		  },
+		  {
+			"species": "Gran",
+			"color": "80d6ff"
+		  },
+		  {
+			"species": "Ask",
+			"color": "ff7900"
+		  },
+		  {
+			"species": "Bok",
+			"color": "b35500"
+		  },
+		  {
+			"species": "Lärk",
+			"color": "ffdebf"
+		  },
+		  {
+			"species": "Äppel",
+			"color": "ffbc80"
+		  },
+		  {
+			"species": "Lind",
+			"color": "daff00"
+		  },
+		  {
+			"species": "Björk",
+			"color": "99b300"
+		  }
+	],
 	"activeDomain":"general",
 	"domains":[
 		{
