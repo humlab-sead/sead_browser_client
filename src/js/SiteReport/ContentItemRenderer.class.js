@@ -14,10 +14,21 @@ class ContentItemRenderer {
     }
 
     render() {
-
 		if(this.sqs.isPromise(this.contentItem)) {
-			this.contentItem.then((contentItem) => {
-				this.contentItem = contentItem;
+			this.contentItem.then((resolvedContentItem) => {
+				for(let sectionKey in this.siteReport.data.sections) {
+					for(let sectionKey2 in this.siteReport.data.sections[sectionKey].sections) {
+						if(typeof this.siteReport.data.sections[sectionKey].sections[sectionKey2].contentItems != "undefined") {
+							for(let ciKey in this.siteReport.data.sections[sectionKey].sections[sectionKey2].contentItems) {
+								if(this.siteReport.data.sections[sectionKey].sections[sectionKey2].contentItems[ciKey] === this.contentItem) {
+									this.siteReport.data.sections[sectionKey].sections[sectionKey2].contentItems[ciKey] = resolvedContentItem;
+								}
+							}
+						}
+					}
+				}
+
+				this.contentItem = resolvedContentItem;
 				this.render();
 			});
 			return;
@@ -438,13 +449,13 @@ class ContentItemRenderer {
 		var controlsId = "content-item-export-"+nanoid();
 		var node = $("#site-report-content-item-export-template")[0].cloneNode(true);
 		$(node).attr("id", controlsId);
-		
+
 		$(node).on("click", (evt) => {
 			evt.preventDefault();
 			evt.stopPropagation();
 			
 			let selectedRoType = "";
-			contentItem.renderOptions.map((ro) => {
+			this.contentItem.renderOptions.map((ro) => {
 				if(ro.selected) {
 					selectedRoType = ro.type;
 				}
