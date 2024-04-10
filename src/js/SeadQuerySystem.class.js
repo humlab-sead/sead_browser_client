@@ -276,15 +276,18 @@ class SeadQuerySystem {
 			170, 171, 172, 174, 175, 176
 		];
 
+		//let trees = [264, 15152, 550, 762, 957, 763, 551, 1052];
+		let trees = ["Tall", "Ek", "Undefined", "Gran", "Ask", "Bok", "Lärk", "Äppel", "Lind", "Björk"];
+
 		//generate colors
-		let colors = this.color.getColorScheme(method_ids.length);
+		let colors = this.color.getColorScheme(trees.length);
 		let methodColorsConfig = [];
-		for(let key in method_ids) {
+		for(let key in trees) {
 			//strip leading #
 			let color = colors[key].substring(1);
 
 			methodColorsConfig.push({
-				method_id: method_ids[key],
+				species: trees[key],
 				color: color
 			});
 		}
@@ -1571,7 +1574,7 @@ class SeadQuerySystem {
 				if (biblio.full_reference) {
 					html += "<span class='dataset-biblio-full-reference'>" + biblio.full_reference + "</span>";
 				} else {
-					html += renderBiblioDetails(biblio, true); // True for HTML
+					html += this.renderBiblioDetails(biblio, true); // True for HTML
 				}
 				html += "</li></div>";
 			});
@@ -1584,7 +1587,7 @@ class SeadQuerySystem {
 				if (biblio.full_reference) {
 					text += biblio.full_reference + "\n";
 				} else {
-					text += renderBiblioDetails(biblio, false) + "\n"; // False for plain text
+					text += this.renderBiblioDetails(biblio, false) + "\n"; // False for plain text
 				}
 			});
 			return text.trim();
