@@ -581,9 +581,6 @@ class SiteReport {
 				const subtable = sampleRow[subTableColumnKey].value;
 				// Iterate over each row in the subtable
 
-
-				console.log(subtable)
-
 				let keyColumnKey = null;
 				let valueColumnKey = null;
 				if(typeof subtable.meta != "undefined" && typeof subtable.meta.dataStructure != "undefined" && subtable.meta.dataStructure == "key-value") {
@@ -906,6 +903,8 @@ class SiteReport {
 	}
 
 	stripExcludedColumnsFromContentItem(ci) {
+		
+
 		let subTableKey = null;
 		ci.data.columns.forEach((col, key) => {
 			if(col.dataType == "subtable") {
@@ -943,6 +942,7 @@ class SiteReport {
 	
 	async renderExportDialog(formats = ["json", "xlsx", "pdf"], section = "all", contentItem = "all") {
 		let exportData = this.sqs.copyObject(this.data);
+
 		this.prepareExportStructure(exportData.sections);
 		exportData = this.stripExcludedColumnsFromExportData(exportData);
 
