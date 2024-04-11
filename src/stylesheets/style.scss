@@ -3352,6 +3352,17 @@ svg text {
   z-index: -1;
 }
 
+#tutorial-map-targeting-box-upper-left {
+  position: absolute;
+  left: calc(25% - 8em);
+  top: calc(25% - 5em);
+  height: 10em;
+  width: 16em;
+
+  background: transparent;
+  z-index: -1;
+}
+
 .mosaic-top-taxa-container {
   position: relative;
   display: flex;
@@ -3745,13 +3756,15 @@ svg text {
 }
 
 .mosaic-dynamic-chart-form {
+  position: absolute;
+  top: 0em;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1em;
-  margin-top: 5em;
-  width: 100%;
+  padding: 0em;
+  margin-top: 3em;
+  width: calc(100% - 2em);
 }
 
 .dynamic-chart-back-to-form-button {
@@ -3796,8 +3809,4 @@ svg text {
   background: $base-color;
   color: #fff;
   padding: 1em;
-}
-
-.mosaic-dynamic-chart-options-container {
-  display: none;
 }

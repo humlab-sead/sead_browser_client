@@ -416,13 +416,8 @@ class DiscreteFacet extends Facet {
 					specialFunctionLinks += " ";
 				}
 
-				let tutorialHook = "";
-				if(displayTitle == "Abercynafon") {
-					tutorialHook = "tutorial-target";
-				}
-
 				out += `
-				<div class='facet-row `+selectedClass+` `+tutorialHook+`' facet-row-id='`+dataElement.id+`'>
+				<div class='facet-row `+selectedClass+`' facet-row-id='`+dataElement.id+`'>
 					<div class='facet-row-checkbox-container'>
 						<div class='facet-row-checkbox'>`+checkMark+`</div>
 					</div>

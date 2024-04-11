@@ -473,6 +473,7 @@ class ResultMap extends ResultModule {
 		$("#result-container").append(popup);
 
 		$("#result-container").append("<div id='tutorial-map-targeting-box'></div>");
+		$("#result-container").append("<div id='tutorial-map-targeting-box-upper-left'></div>");
 
 		if(this.selectInteraction != null) {
 			this.olMap.removeInteraction(this.selectInteraction);

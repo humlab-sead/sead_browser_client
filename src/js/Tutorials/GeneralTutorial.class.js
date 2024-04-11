@@ -141,8 +141,8 @@ class GeneralTutorial {
                     });
                 });
             },
-            attachTo: { element: '#facet-section .tutorial-target', on: 'right' },
-            advanceOn: { selector: '#facet-section .tutorial-target', event: 'click' },
+            attachTo: { element: '#facet-section [facet-row-id="4814"]', on: 'right' },
+            advanceOn: { selector: '.facet', event: 'click' },
             buttons: [
                 {
                 text: 'Exit tour',
