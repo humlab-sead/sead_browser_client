@@ -599,14 +599,14 @@
 					"grid_column": "1"
 				},
 				{
-					"module_name": "mosaic-dendro-tree-species-chart",
-					"grid_row": "2",
-					"grid_column": "2"
-				},
-				{
 					"module_name": "mosaic-map",
 					"grid_row": "1",
 					"grid_column": "span 2"
+				},
+				{
+					"module_name": "mosaic-dynamic-chart",
+					"grid_row": "2",
+					"grid_column": "2"
 				},
 				{
 					"module_name": "mosaic-feature-types",

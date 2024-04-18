@@ -16,6 +16,7 @@ import MosaicDendroTreeSpeciesChartModule from "./MosaicTileModules/MosaicDendro
 import MosaicTemporalDistributionModule from "./MosaicTileModules/MosaicTemporalDistributionModule.class";
 import MosaicTaxaListModule from "./MosaicTileModules/MosaicTaxaListModule.class";
 import MosaicEcoCodesModule from './MosaicTileModules/MosaicEcoCodesModule.class.js';
+import MosaicDynamicChartModule from './MosaicTileModules/MosaicDynamicChartModule.class.js';
 import { nanoid } from 'nanoid';
 import Plotly from "plotly.js-dist-min";
 
@@ -128,8 +129,13 @@ class ResultMosaic extends ResultModule {
 			classTemplate: MosaicEcoCodesModule,
 			module: null
 		});
+		this.modules.push({
+			title: "Generate chart",
+			className: "MosaicDynamicChartModule",
+			classTemplate: MosaicDynamicChartModule,
+			module: null
+		});
 		
-
 		this.modules.forEach(mReg => {
 			mReg.name = new mReg.classTemplate().name;
 		});
@@ -1133,17 +1139,18 @@ class ResultMosaic extends ResultModule {
 	unrenderPlotlyChart(selector) {
 		this.sqs.sqsEventUnlisten("layoutResize", this);
 		let node = $(selector);
+
 		if(node.length == 0) {
-			console.warn("Bailing on unrenderPlotlyChart because node was not found");
+			//console.warn("Bailing on unrenderPlotlyChart because node was not found");
 			return;
 		}
 
 		//check that node is a plotly chart
 		if(typeof node[0].data == "undefined") {
-			console.warn("Bailing on unrenderPlotlyChart because node was not a plotly chart");
+			//console.warn("Bailing on unrenderPlotlyChart because node was not a plotly chart");
 			return;
 		}
-		
+
 		return Plotly.purge(node[0]);
 	}
 	

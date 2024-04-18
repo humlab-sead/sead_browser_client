@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { Parser } from "json2csv";
+import { Parser } from '@json2csv/plainjs';
 import JSZip from "jszip";
 
 class MosaicTileModule {
