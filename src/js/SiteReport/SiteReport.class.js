@@ -492,6 +492,9 @@ class SiteReport {
 		if(exportFormat == "xlsx") {
 			node = this.getXlsxExport(filename, exportStruct);
 		}
+		if(exportFormat == "csv") {
+			node = this.getCsvExport(filename, exportStruct);
+		}
 		if(exportFormat == "png") {
 			node = $("<a id='site-report-png-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download PNG</a>");
 
@@ -629,6 +632,118 @@ class SiteReport {
 		return formattedExcelRows;
 	}
 
+	getCsvExport(filename, exportStruct) {
+		//Remove columns from table which are flagged for exclusion
+		for(let key in exportStruct.datatable.columns) {
+			if(exportStruct.datatable.columns[key].exclude_from_export) {
+				exportStruct.datatable.columns.splice(key, 1);
+				exportStruct.datatable.rows.forEach((row) => {
+					row.splice(key, 1);
+				});
+			}
+		}
+
+		//Strip html from values
+		exportStruct.datatable.rows.forEach((row) => {
+			row.forEach((column) => {
+				if(typeof column.value == "string") {
+					column.value = this.sqs.parseStringValueMarkup(column.value, { drawSymbol: false });
+					column.value = column.value.replace(/<[^>]*>?/gm, '');
+				}
+			});
+		});
+
+		const formattedExcelRows = this.getDataForXlsx(exportStruct.datatable);
+
+		let csvContent = "data:text/csv;charset=utf-8,";
+
+		// Add the headers to the CSV content
+		csvContent += Object.keys(formattedExcelRows[0]).join(",") + "\n";
+
+		// Add the data to the CSV content
+		formattedExcelRows.forEach((row) => {
+			csvContent += Object.values(row).join(",") + "\n";
+		});
+
+		const encodedUri = encodeURI(csvContent);
+		const blob = new Blob([csvContent], { type: 'text/csv' });
+
+		$("#site-report-csv-export-download-btn").attr("href", encodedUri);
+		$("#site-report-csv-export-download-btn").attr("download", filename+".csv");
+		return $("<a id='site-report-csv-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download CSV</a>");
+	}
+
+	/*
+	getCsvExport(filename, exportStruct) {
+		// Remove columns from table which are flagged for exclusion
+		for (let key in exportStruct.datatable.columns) {
+			if (exportStruct.datatable.columns[key].exclude_from_export) {
+				exportStruct.datatable.columns.splice(key, 1);
+				exportStruct.datatable.rows.forEach((row) => {
+					row.splice(key, 1);
+				});
+			}
+		}
+	
+		// Strip HTML from values
+		exportStruct.datatable.rows.forEach((row) => {
+			row.forEach((column, index, theArray) => {
+				if (typeof column.value == "string") {
+					column.value = this.sqs.parseStringValueMarkup(column.value, { drawSymbol: false });
+					column.value = column.value.replace(/<[^>]*>?/gm, '');
+					// Update the row array in place with the stripped string
+					theArray[index] = column.value;
+				}
+			});
+		});
+	
+		// Prepare data for CSV
+		let data = this.getDataForXlsx(exportStruct.datatable);
+	
+		// Initialize an array to hold CSV lines
+		let csvContent = [];
+	
+		// Add MetaData to CSV
+		let metaData = [
+			`"Content","Section","License","Source attribution","Source url","References (citation required)","Site name","Date of export","Description"`,
+			`"${exportStruct.meta.content}","${exportStruct.meta.section}","Data distributed by SEAD under the license ${this.sqs.config.dataLicense.name} (${this.sqs.config.dataLicense.url})","${exportStruct.meta.attribution}","${exportStruct.meta.url}","${exportStruct.meta.datasetReference}","${exportStruct.meta.siteName}","${new Date().toLocaleDateString('sv-SE')}","${exportStruct.meta.description}"`
+		];
+	
+		// Concatenate metadata to csvContent
+		csvContent = csvContent.concat(metaData, ""); // Adding an empty string for an empty line
+	
+		// Extract column headers
+		let columns = exportStruct.datatable.columns.map(column => column.headerName);
+	
+		// Add column headers as the first row
+		csvContent.push(`"${columns.join('","')}"`);
+	
+		// Iterate over each data row
+		data.forEach(rowObject => {
+			// Map each rowObject to its CSV string representation
+			let row = columns.map(column => `"${rowObject[column] || ''}"`).join(',');
+			csvContent.push(row);
+		});
+	
+		// Combine all CSV lines into a single string
+		let csvString = csvContent.join("\n");
+	
+		// Convert the CSV string to a Blob and create a download link
+		const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+		const blobUrl = URL.createObjectURL(blob);
+	
+		// Create a temporary download link and trigger the download
+		let downloadLink = document.createElement("a");
+		downloadLink.href = blobUrl;
+		downloadLink.download = `${filename}.csv`;
+		document.body.appendChild(downloadLink);
+		downloadLink.click();
+		document.body.removeChild(downloadLink);
+	
+		return $("<a class='site-report-export-download-btn light-theme-button'>Download CSV</a>");
+	}
+	*/
+
 	getXlsxExport(filename, exportStruct) {
 		//Remove columns from table which are flagged for exclusion
 		for(let key in exportStruct.datatable.columns) {
@@ -685,7 +800,7 @@ class SiteReport {
 			"License",
 			"Source attribution",
 			"Source url",
-			"References",
+			"References (citation required)",
 			"Site name",
 			"Date of export",
 			"Description",

@@ -17,6 +17,7 @@
     "image-size": false
   },
   "dependencies": {
+    "@json2csv/plainjs": "^7.0.6",
     "@popperjs/core": "^2.11.8",
     "@webevt/elevatezoom": "^3.0.81",
     "ajv": "^6.12.6",
@@ -43,7 +44,6 @@
     "jquery-doubletaptogo": "^3.0.1",
     "jquery-ui-dist": "^1.13.2",
     "js-sha1": "^0.6.0",
-    "json2csv": "^5.0.7",
     "jszip": "^3.8.0",
     "kolorwheel": "^0.2.1",
     "less": "^3.12.2",
