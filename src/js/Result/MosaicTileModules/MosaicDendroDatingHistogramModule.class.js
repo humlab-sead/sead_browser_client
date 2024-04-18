@@ -84,6 +84,12 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         let data = await this.fetch(renderIntoNode);
 
+        if(!data) {
+            console.warn("Fetch for dendro dating histogram returned bad value:", data);
+            this.sqs.setNoDataMsg(this.renderIntoNode);
+            return;
+        }
+
         let plotlyChartData = [{
             x: data.map(item => `${item.startYear} - ${item.endYear}`),
             y: data.map(item => item.datingsNum),
