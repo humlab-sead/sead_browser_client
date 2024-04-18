@@ -380,7 +380,44 @@ class DendroLib {
             return result;
         }
 
-        //If we don't have an "Inferred growth year" then we really can't say what the oldest possible germination year could be, could be when the dinosaurs roamed the earth, almost...
+        //second attempt: Outermost tree-ring date – tree age ≤
+
+        let treeAge = this.getDendroMeasurementByName("Tree age ≤", dataGroup);
+        if(treeAge) {
+            treeAge = parseInt(treeAge);
+        }
+        let outerMostTreeRingDate = this.getDendroMeasurementByName("Outermost tree-ring date", dataGroup);
+        
+        if(outerMostTreeRingDate) {
+            let outerMostTreeRingDateValue = null;
+            if(outerMostTreeRingDate.younger) {
+                outerMostTreeRingDateValue = parseInt(outerMostTreeRingDate.younger);
+            }
+            if(outerMostTreeRingDate.older) {
+                outerMostTreeRingDateValue = parseInt(outerMostTreeRingDate.older);
+            }
+    
+            if(outerMostTreeRingDate.age_type != "AD" && outerMostTreeRingDate.age_type != null) {
+                result.warnings.push("Outermost tree-ring date has an unsupported age_type: "+outerMostTreeRingDate.age_type);
+            }
+            if(outerMostTreeRingDate.dating_uncertainty) {
+                result.dating_uncertainty = outerMostTreeRingDate.dating_uncertainty;
+            }
+            if(outerMostTreeRingDate.error_uncertainty) {
+                result.error_uncertainty = outerMostTreeRingDate.error_uncertainty;
+                result.warnings.push("The outermost tree-ring date has an uncertainty specified as: "+outerMostTreeRingDate.error_uncertainty);
+            }
+    
+            if(outerMostTreeRingDate && treeAge) {
+                result.value = outerMostTreeRingDateValue - treeAge;
+                result.formula = "Outermost tree-ring date - Tree age ≤";
+                result.reliability = 2;
+                result.warnings.push("Oldest germination year was calculated using: "+result.formula);
+                result.value += valueMod;
+                return result;
+            }
+        }
+        
         return result;
     }
     
@@ -398,6 +435,7 @@ class DendroLib {
 
         let valueMod = 0;
 
+        
         //if we have an inferrred growth year - great (actually not sarcasm!), just return that
         let measurementName = "Inferred growth year ≤";
         let infGrowthYearYounger = this.getDendroMeasurementByName(measurementName, dataGroup);
@@ -412,64 +450,46 @@ class DendroLib {
         if(this.attemptUncertainDatingCaculations == false) {
             return result;
         }
-
-        //Attempt a calculation based on: 'Estimated felling year' - 'Tree age ≥'
-        let estFellingYear = this.getDendroMeasurementByName("Estimated felling year", dataGroup);
-        if(!estFellingYear) {
-            //If we don't have some sort of valid value from efy then there's no point of any of the below
-            return result;
-        }
+        
         let treeAge = this.getDendroMeasurementByName("Tree age ≥", dataGroup);
 
         let currentWarnings = [];
+
+        let outerMostTreeRingDate = this.getDendroMeasurementByName("Outermost tree-ring date", dataGroup);
         
-        let estFellingYearValue = estFellingYear.younger;
-        if(!estFellingYearValue) {
-            estFellingYearValue = estFellingYear.older;
-            if(!parseInt(estFellingYearValue)) {
+        if(outerMostTreeRingDate) {
+            let outerMostTreeRingDateValue = null;
+            if(outerMostTreeRingDate.older) {
+                outerMostTreeRingDateValue = parseInt(outerMostTreeRingDate.older);
+            }
+            if(outerMostTreeRingDate.younger) {
+                outerMostTreeRingDateValue = parseInt(outerMostTreeRingDate.younger);
+            }
+    
+            if(outerMostTreeRingDate.age_type != "AD" && outerMostTreeRingDate.age_type != null) {
+                result.warnings.push("Outermost tree-ring date has an unsupported age_type: "+outerMostTreeRingDate.age_type);
+            }
+            if(outerMostTreeRingDate.dating_uncertainty) {
+                result.dating_uncertainty = outerMostTreeRingDate.dating_uncertainty;
+            }
+            if(outerMostTreeRingDate.error_uncertainty) {
+                result.error_uncertainty = outerMostTreeRingDate.error_uncertainty;
+                result.warnings.push("The outermost tree-ring date has an uncertainty specified as: "+outerMostTreeRingDate.error_uncertainty);
+            }
+    
+            if(outerMostTreeRingDate && treeAge && parseInt(treeAge)) {
+                result.value = outerMostTreeRingDateValue - parseInt(treeAge);
+                result.formula = "Outermost tree-ring date - Tree age ≥";
+                result.reliability = 2;
+                result.warnings.push("Youngest germination year was calculated using: "+result.formula);
+                result.value += valueMod;
                 return result;
             }
-            currentWarnings.push("Using the older estimated felling year for calculation since a younger year was not found");
-        }
-
-        //return result; //This used to be the cut-off, WHY?
-        
-        estFellingYearValue = parseInt(estFellingYearValue);
-
-        if(estFellingYearValue && treeAge && parseInt(treeAge)) {
-            result.value = estFellingYearValue - parseInt(treeAge);
-            result.formula = 'Estimated felling year - Tree age ≥';
-            result.reliability = 2;
-            result.warnings.push("Youngest germination year was calculated using: "+result.formula);
-
-            if(estFellingYear.age_type != "AD" && estFellingYear.age_type != null) {
-                result.warnings.push("Estimated felling year has an unsupported age_type: "+estFellingYear.age_type);
-            }
-            if(estFellingYear.dating_uncertainty) {
-                result.dating_uncertainty = estFellingYear.dating_uncertainty;
-                result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.dating_uncertainty);
-            }
-            if(estFellingYear.error_uncertainty) {
-                result.error_uncertainty = estFellingYear.error_uncertainty;
-                result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.error_uncertainty);
-            }
-            if(estFellingYear.minus != null && parseInt(estFellingYear.minus)) {
-                //result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
-            }
-            if(estFellingYear.plus != null && parseInt(estFellingYear.plus)) {
-                //result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
-                valueMod += estFellingYear.plus;
-            }
-
-            result.value += valueMod;
-
-            result.warnings = result.warnings.concat(currentWarnings);
-            return result;
         }
     
-        //If the above failed, that means we either don't have Estimated felling year OR Tree age >=
-        //If we don't have Estimated felling year we're heckin' hecked and have to give up on dating
-        //If we DO have Estimated felling year and also a Pith value and Tree rings, we can try a calculation based on that
+        //If the above failed, that means we either don't have Outermost tree-ring date OR Tree age >=
+        //If we don't have Outermost tree-ring date we're heckin' hecked and have to give up on dating
+        //If we DO have Outermost tree-ring date and also a Pith value and Tree rings, we can try a calculation based on that
         let treeRings = this.getDendroMeasurementByName("Tree rings", dataGroup);
         let pith = this.parsePith(this.getDendroMeasurementByName("Pith (P)", dataGroup));
 
@@ -484,18 +504,18 @@ class DendroLib {
             pithSource = "";
         }
 
-        if(estFellingYearValue && parseInt(treeRings) && pithValue && pith.notes != "Measured width") {
-            result.value = estFellingYearValue - parseInt(treeRings) - pithValue;
-            result.formula = "Estimated felling year - Tree rings - Distance to pith"+pithSource;
+        if(outerMostTreeRingDate && parseInt(treeRings) && pithValue && pith.notes != "Measured width") {
+            result.value = outerMostTreeRingDate - parseInt(treeRings) - pithValue;
+            result.formula = "Outermost tree-ring date - Tree rings - Distance to pith"+pithSource;
             result.reliability = 3;
             result.warnings.push("There is no dendrochronological estimation of the youngest possible germination year, it was therefore calculated using: "+result.formula);
             return result;
         }
-    
-        //WARNING: this gives a very vauge dating, saying almost nothing about germination year, only minimum lifespan
-        if(estFellingYear && estFellingYearValue && parseInt(treeRings)) {
-            result.value = estFellingYearValue - parseInt(treeRings);
-            result.formula = "Estimated felling year - Tree rings";
+
+
+        if(outerMostTreeRingDate && parseInt(treeRings)) {
+            result.value = outerMostTreeRingDate - parseInt(treeRings);
+            result.formula = "Outermost tree-ring date - Tree rings";
             result.reliability = 4;
             result.warnings.push("There is no dendrochronological estimation of the youngest possible germination year, it was therefore calculated using: "+result.formula);
             return result;
@@ -527,7 +547,6 @@ class DendroLib {
             }
             if(estFellingYear.dating_uncertainty) {
                 result.dating_uncertainty = estFellingYear.dating_uncertainty;
-                valueMod -= estFellingYear.dating_uncertainty;
                 //result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.dating_uncertainty);
             }
             if(estFellingYear.error_uncertainty) {
@@ -544,6 +563,7 @@ class DendroLib {
         }
         
         
+        //1 Estimated felling year (older)
         if(estFellingYear && parseInt(estFellingYear.older)) {
             let value = parseInt(estFellingYear.older);
             result.value = value + valueMod;
@@ -551,7 +571,9 @@ class DendroLib {
             result.reliability = 1;
             return result;
         }
-        else if(estFellingYear && parseInt(estFellingYear.younger)) {
+        
+        //2
+        if(estFellingYear && parseInt(estFellingYear.younger)) {
             //If there's no older felling year, but there is a younger one, then consider the oldest possible felling year to be unknown
             //result.warnings.push("No value found for the older estimated felling year, using the younger year instead");
             let value = parseInt(estFellingYear.younger);
@@ -559,15 +581,6 @@ class DendroLib {
             result.formula = "Estimated felling year (younger)";
             result.reliability = 2;
             return result;
-        }
-
-        let minTreeAge = this.getDendroMeasurementByName("Tree age ≥", dataGroup);
-        let germinationYear = this.getDendroMeasurementByName("Inferred growth year ≤", dataGroup);
-        if(minTreeAge && germinationYear) {
-            result.formula = "Inferred growth year ≤ + Tree age ≥";
-            result.reliability = 3;
-            result.value = germinationYear + minTreeAge + valueMod;
-            result.warnings.push("Oldest possible feeling year was calculated using: "+result.formula);
         }
 
         return result;
@@ -597,23 +610,14 @@ class DendroLib {
         }
         if(estFellingYear.dating_uncertainty) {
             result.dating_uncertainty = estFellingYear.dating_uncertainty;
-            valueMod += estFellingYear.dating_uncertainty;
             //result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.dating_uncertainty);
         }
         if(estFellingYear.error_uncertainty) {
             result.error_uncertainty = estFellingYear.error_uncertainty;
             result.warnings.push("The estimated felling year has an uncertainty specified as: "+estFellingYear.error_uncertainty);
         }
-        /*
-        if(estFellingYear.minus != null && parseInt(estFellingYear.minus)) {
-            result.warnings.push("The estimated felling year has a minus uncertainty specified as: "+estFellingYear.minus);
-        }
-        if(estFellingYear.plus != null && parseInt(estFellingYear.plus)) {
-            result.warnings.push("The estimated felling year has a plus uncertainty specified as: "+estFellingYear.plus);
-            valueMod += estFellingYear.plus;
-        }
-        */
         
+        //1
         if(estFellingYear && parseInt(estFellingYear.younger)) {
             let value = parseInt(estFellingYear.younger);
             result.value = value + valueMod;
@@ -621,22 +625,15 @@ class DendroLib {
             result.reliability = 1;
             return result;
         }
-        else if(estFellingYear && parseInt(estFellingYear.older)) {
+        
+        //2
+        if(estFellingYear && parseInt(estFellingYear.older)) {
             result.warnings.push("No value found for the younger estimated felling year, using the older year instead");
             let value = parseInt(estFellingYear.older);
             result.value = value + valueMod;
             result.formula = "Estimated felling year (older)";
             result.reliability = 2;
             return result;
-        }
-
-        let maxTreeAge = this.getDendroMeasurementByName("Tree age ≤", dataGroup);
-        let germinationYear = this.getDendroMeasurementByName("Inferred growth year ≥", dataGroup);
-        if(maxTreeAge && germinationYear) {
-            result.formula = "Inferred growth year ≥ + Tree age ≤";
-            result.reliability = 3;
-            result.value = germinationYear + maxTreeAge + valueMod;
-            result.warnings.push("Youngest possible feeling year was calculated using: "+result.formula);
         }
 
         return result;
