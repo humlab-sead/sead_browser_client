@@ -203,8 +203,6 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 				//find sample name based on physical_sample_id
 				let physicalSample = this.getPhysicalSampleByPhysicalSampleId(site, physicalSampleId)
 				let sampleName = physicalSample.sample_name;
-
-				let unit = analysisMethod.unit.unit_abbrev;
 				
 				//find the unburned value
 				let unburnedSeriesItem = unburnedSeries.find((seriesItem) => {
@@ -236,13 +234,11 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 					{
 						"type": "cell",
 						"tooltip": "",
-						"unit": unburnedValue == "N/A" ? "" : unit,
 						"value": unburnedValue,
 					},
 					{
 						"type": "cell",
 						"tooltip": "",
-						"unit": burnedValue == "N/A" ? "" : unit,
 						"value": burnedValue,
 					},
 				]);
