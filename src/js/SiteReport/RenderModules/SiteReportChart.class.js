@@ -173,6 +173,10 @@ class SiteReportChart {
 		return coordinateSystems;
 	}
 
+	getSampleGroupMapPoints(contentItem) {
+		
+	}
+
 	getSampleMapPoints(contentItem) {
 		let points = [];
 		let selectedSampleGroupId = this.getSelectedRenderOptionExtra("Sample group").value;
@@ -244,6 +248,8 @@ class SiteReportChart {
 	
 	renderCoordinateMap() {
 		let contentItem = this.contentItem;
+
+		console.log(contentItem);
 
 		let selectedSampleGroupId = this.getSelectedRenderOptionExtra("Sample group").value;
 
@@ -2145,7 +2151,7 @@ class SiteReportChart {
 								return "Sample "+context[0].label;
 							},
 							label: function(context) {
-								return context.dataset.label+" weight: "+context.formattedValue+" mg";
+								return context.dataset.label+": "+context.formattedValue;
 							}
 						}
 					}
