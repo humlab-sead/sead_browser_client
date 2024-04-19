@@ -312,9 +312,9 @@ class DendroChart {
             result.strValue = rawPith.substring(rawPith.indexOf(">")+1).trim();
             let range = this.valueIsRange(result.strValue);
             if(range !== false) {
-                result.value = range.value;
-                result.lower = range.lower;
-                result.upper = range.upper;
+                result.value = range.value + 1;
+                result.lower = range.lower + 1;
+                result.upper = range.upper + 1;
                 result.note = "Greater than, with range";    
             }
             else {
@@ -327,10 +327,10 @@ class DendroChart {
             result.strValue = rawPith.substring(rawPith.indexOf("<")+1).trim();
             let range = this.valueIsRange(result.strValue);
             if(range !== false) {
-                result.value = range.value;
-                result.lower = range.lower;
-                result.upper = range.upper;
-                result.note = "Less than, with range";    
+                result.value = range.value - 1;
+                result.lower = range.lower - 1;
+                result.upper = range.upper - 1;
+                result.note = "Less than, with range";
             }
             else {
                 result.value = parseInt(result.strValue);
@@ -342,9 +342,9 @@ class DendroChart {
             result.strValue = rawPith.substring(rawPith.indexOf("&gt;")+4).trim();
             let range = this.valueIsRange(result.strValue);
             if(range !== false) {
-                result.value = range.value;
-                result.lower = range.lower;
-                result.upper = range.upper;
+                result.value = range.value + 1;
+                result.lower = range.lower + 1;
+                result.upper = range.upper + 1;
                 result.note = "Greater than, with range";    
             }
             else {
@@ -357,9 +357,9 @@ class DendroChart {
             result.strValue = rawPith.substring(rawPith.indexOf("&lt;")+4).trim();
             let range = this.valueIsRange(result.strValue);
             if(range !== false) {
-                result.value = range.value;
-                result.lower = range.lower;
-                result.upper = range.upper;
+                result.value = range.value - 1;
+                result.lower = range.lower - 1;
+                result.upper = range.upper - 1;
                 result.note = "Less than, with range";    
             }
             else {
