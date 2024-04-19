@@ -541,14 +541,19 @@ class SiteReport {
 
 
 	getDataForXlsx(data) {
-		console.log(data)
 		// This will hold all the formatted samples
 		const formattedExcelRows = [];
-		
+
 		let subTableColumnKey = null;
+		let coordinatesColumnKey = null;
 		for(let key in data.columns) {
 			if(data.columns[key].dataType == 'subtable') {
 				subTableColumnKey = key;
+			}
+
+			if(data.columns[key].role == "coordinates") {
+				//here we have to ignore the "value" of each cell and instead look for the coordinates in the "data" property
+				coordinatesColumnKey = key;
 			}
 		}
 
@@ -559,13 +564,18 @@ class SiteReport {
 			if(subTableColumnKey == null) {
 				//this is just a plain table - no subtables
 				for(let key in sampleRow) {
+					if(key == "nodeId") {
+						continue;
+					}
 					let r = sampleRow[key];
-
 					if(data.columns[key].hidden) {
 						continue;
 					}
 
 					excelRow[data.columns[key].title] = r.value;
+					if(key == coordinatesColumnKey && r.data) {
+						excelRow[data.columns[key].title] = r.data;
+					}
 				}
 
 				formattedExcelRows.push(excelRow);
@@ -577,7 +587,12 @@ class SiteReport {
 				for(let key in data.columns) {
 					if(data.columns[key].dataType != "subtable" && !data.columns[key].hidden) {
 						let columnName = data.columns[key].title;
+
 						parentLevelData[columnName] = sampleRow[key].value;
+						if(key == coordinatesColumnKey) {
+							//not using "columnName" as the key here because then it would just say "Coordinates" and it would not be clear that this is the coordinates for the sample group and not the individual samples
+							parentLevelData["Sample group coordinates"] = this.formatCoordinatesForExport(sampleRow[key].data);
+						}
 					}
 				}
 
@@ -623,15 +638,17 @@ class SiteReport {
 					formattedExcelRows.push(excelRow);
 				}
 			}
-		
-			// Add the formatted sample to the array
-			//formattedExcelRows.push(excelRow);
 		});
-		
-		console.log(formattedExcelRows);
+
 		return formattedExcelRows;
 	}
 
+	formatCoordinatesForExport(coordinates) {
+		return coordinates.map(coord => {
+			return `${coord.coordinate_method.method_name} ${coord.measurement} ${coord.dimension.dimension_abbrev}; `;
+		}).join(' | ');
+	}
+	
 	getCsvExport(filename, exportStruct) {
 		//Remove columns from table which are flagged for exclusion
 		for(let key in exportStruct.datatable.columns) {
