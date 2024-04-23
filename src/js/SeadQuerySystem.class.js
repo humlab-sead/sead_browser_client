@@ -1574,7 +1574,7 @@ class SeadQuerySystem {
 				if (biblio.full_reference) {
 					html += "<span class='dataset-biblio-full-reference'>" + biblio.full_reference + "</span>";
 				} else {
-					html += this.renderBiblioDetails(biblio, true); // True for HTML
+					html += this.renderBiblioDetails(biblio, htmlEnabled); 
 				}
 				html += "</li></div>";
 			});
@@ -1587,159 +1587,31 @@ class SeadQuerySystem {
 				if (biblio.full_reference) {
 					text += biblio.full_reference + "\n";
 				} else {
-					text += this.renderBiblioDetails(biblio, false) + "\n"; // False for plain text
+					text += this.renderBiblioDetails(biblio, htmlEnabled) + "\n";
 				}
 			});
 			return text.trim();
 		}
 	}
-	
-	renderBiblioDetails(biblio, isHtml) {
+
+	renderBiblioDetails(biblio, htmlEnabled) {
 		let details = "";
-		const separator = isHtml ? "</span> " : ", ";
-		if (biblio.author) details += "<span class='dataset-biblio-author'>" + biblio.author + separator;
-		if (biblio.year) details += "<span class='dataset-biblio-year'>" + biblio.year + separator;
-		if (biblio.title) details += "<span class='dataset-biblio-title'>" + biblio.title + separator;
-		if (biblio.doi) details += "<span class='dataset-biblio-doi'>" + biblio.doi + separator;
-		if (biblio.isbn) details += "<span class='dataset-biblio-isbn'>" + biblio.isbn + separator;
-		if (biblio.url) details += "<span class='dataset-biblio-url'>" + biblio.url + separator;
-		if (biblio.notes) details += "<span class='dataset-biblio-notes'>" + biblio.notes + separator;
-		if (biblio.bugs_reference) details += "<span class='dataset-biblio-bugs-reference'>" + biblio.bugs_reference + separator;
-		return isHtml ? details + "</span>" : details.slice(0, -2); // Remove the last separator for plain text
-	}
+		const fields = ['author', 'year', 'title', 'doi', 'isbn', 'url', 'notes', 'bugs_reference']; // List of all fields
+		const separator = htmlEnabled ? "</span> " : ", ";
 	
-	/*
-	renderBiblioReferenceOLD(siteData, biblioIds, htmlEnabled = true) {
-		let datasetBiblio = [];
-		for(let k in biblioIds) {
-			let biblioId = biblioIds[k];
-			let foundBiblio = false;
-			for(let bibKey in siteData.lookup_tables.biblio) {
-				if(siteData.lookup_tables.biblio[bibKey].biblio_id == biblioId) {
-					foundBiblio = true;
-					datasetBiblio.push(siteData.lookup_tables.biblio[bibKey])
+		fields.forEach(field => {
+			if (biblio[field]) {
+				if (htmlEnabled) {
+					details += `<span class='dataset-biblio-${field}'>${biblio[field]}</span>${separator}`;
+				} else {
+					details += `${biblio[field]}${separator}`;
 				}
 			}
-			if(!foundBiblio) {
-				console.warn("Biblio not found in lookup table:", biblioId);
-			}
-		}
-
-		if(datasetBiblio.length == 0) {
-			return "";
-		}
-
-		let html = "<ul>";
-		datasetBiblio.forEach(biblio => {
-			html += "<div class='dataset-biblio'>";
-			if(biblio.full_reference) {
-				html += "<li class='dataset-biblio-full-reference'>"+biblio.full_reference+"</li>";
-			}
-			else {
-				html += "<li>";
-				if(biblio.author) {
-					html += "<span class='dataset-biblio-author'>"+biblio.author+"</span>";
-				}
-				if(biblio.year) {
-					html += "<span class='dataset-biblio-year'>"+biblio.year+"</span>";
-				}
-				if(biblio.title) {
-					html += "<span class='dataset-biblio-title'>"+biblio.title+"</span>";
-				}
-				if(biblio.doi) {
-					html += "<span class='dataset-biblio-doi'>"+biblio.doi+"</span>";
-				}
-				if(biblio.isbn) {
-					html += "<span class='dataset-biblio-isbn'>"+biblio.isbn+"</span>";
-				}
-				if(biblio.url) {
-					html += "<span class='dataset-biblio-url'>"+biblio.url+"</span>";
-				}
-				if(biblio.notes) {
-					html += "<span class='dataset-biblio-notes'>"+biblio.notes+"</span>";
-				}
-				if(biblio.bugs_reference) {
-					html += "<span class='dataset-biblio-bugs-reference'>"+biblio.bugs_reference+"</span>";
-				}
-				html += "</li>";
-			}
-			
-			html += "</div>";
 		});
-
-		html += "</ul>";
-		
-		return html;
+	
+		// Trim the last separator: for HTML, it's part of the structure, for text, it needs to be removed
+		return htmlEnabled ? details : details.slice(0, -2);
 	}
-
-	renderBiblioReferenceOLD2(siteData, biblioIds, html = true) {
-		let datasetBiblio = [];
-		for (let k in biblioIds) {
-		  let biblioId = biblioIds[k];
-		  let foundBiblio = false;
-		  for (let bibKey in siteData.lookup_tables.biblio) {
-			if (siteData.lookup_tables.biblio[bibKey].biblio_id == biblioId) {
-			  foundBiblio = true;
-			  datasetBiblio.push(siteData.lookup_tables.biblio[bibKey]);
-			}
-		  }
-		  if (!foundBiblio) {
-			console.warn("Biblio not found in lookup table:", biblioId);
-		  }
-		}
-	  
-		if (datasetBiblio.length == 0) {
-		  return "";
-		}
-	  
-		if(html) {
-		  let htmlString = "<ul>";
-		  datasetBiblio.forEach(biblio => {
-			htmlString += "<div class='dataset-biblio'>";
-			// Construct the HTML string by appending the other HTML elements as needed
-			// ...
-			htmlString += "</div>";
-		  });
-		  htmlString += "</ul>";
-		  return htmlString;
-		} else {
-		  let plainText = ""; // Initialize a plain text string
-		  datasetBiblio.forEach(biblio => {
-			// Append the bibliographic information to the plain text string
-			if(biblio.full_reference) {
-			  plainText += `${biblio.full_reference}\n`;
-			} else {
-			  if(biblio.author) {
-				plainText += `Author: ${biblio.author}\n`;
-			  }
-			  if(biblio.year) {
-				plainText += `Year: ${biblio.year}\n`;
-			  }
-			  if(biblio.title) {
-				plainText += `Title: ${biblio.title}\n`;
-			  }
-			  if(biblio.doi) {
-				plainText += `DOI: ${biblio.doi}\n`;
-			  }
-			  if(biblio.isbn) {
-				plainText += `ISBN: ${biblio.isbn}\n`;
-			  }
-			  if(biblio.url) {
-				plainText += `URL: ${biblio.url}\n`;
-			  }
-			  if(biblio.notes) {
-				plainText += `Notes: ${biblio.notes}\n`;
-			  }
-			  if(biblio.bugs_reference) {
-				plainText += `Bugs Reference: ${biblio.bugs_reference}\n`;
-			  }
-			  plainText += '\n'; // Add an extra newline for spacing between entries
-			}
-		  });
-		  return plainText.trim(); // Trim trailing newlines from the string
-		}
-	  }
-	*/
 
 	isPromise(value) {
 		return Boolean(value && typeof value.then === 'function');
