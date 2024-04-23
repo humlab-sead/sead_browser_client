@@ -11,6 +11,8 @@ import Plotly from "plotly.js-dist-min";
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import ExcelJS from 'exceljs/dist/exceljs.min.js';
+import { Vector as VectorLayer } from 'ol/layer';
+import { GeoJSON } from 'ol/format';
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 /*
 * Class: SiteReport
@@ -329,6 +331,15 @@ class SiteReport {
 		}
 		return false;
 	}
+	
+	getContentItemRendererByName(contentItemName) {
+		for(let key in this.contentItemRendererRepository) {
+			if(this.contentItemRendererRepository[key].contentItem.name == contentItemName) {
+				return this.contentItemRendererRepository[key];
+			}
+		}
+		return false;
+	}
 
 	updateSection(section) {
 		section.contentItems.forEach((contentItem) => {
@@ -471,20 +482,28 @@ class SiteReport {
 			$(node).attr("download", filename+".json");
 		}
 		if(exportFormat == "geojson") {
-			node = $("<a id='site-report-json-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download GeoJSON</a>");
-			
-			//let jsonData = this.prepareJsonExport(exportStruct);
-			let jsonData = {};
-			
-			jsonData.license = this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")";
+			let cir = this.getContentItemRendererByName("sampleCoordinatesMap");
 
-			let json = JSON.stringify(jsonData, (key, value) => {
-				if(key == "renderInstance") {
-					value = null;
+			let ri = null;
+			cir.renderInstanceRepository.forEach(riItem => {
+				if(riItem.contentItemName == "sampleCoordinatesMap") {
+					ri = riItem;
 				}
-				return value;
-			}, 2);
-			
+			});
+
+			let points = [];
+			let geojson = {};
+			cir.renderInstanceRepository.forEach(riItem => {
+				if(riItem.contentItemName == "sampleCoordinatesMap") {
+					points = ri.renderInstance.getSampleMapPoints(cir.contentItem);
+					geojson = ri.renderInstance.convertPointsToGeoJSON(points);
+				}
+			});
+
+			node = $("<a id='site-report-json-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download GeoJSON</a>");
+
+			geojson.meta = exportStruct.meta;
+			let json = JSON.stringify(geojson, null, 2);
 			let exportData = Buffer.from(json).toString('base64');
 			$(node).attr("href", "data:application/octet-stream;charset=utf-8;base64,"+exportData);
 			$(node).attr("download", filename+".geojson");
@@ -506,8 +525,6 @@ class SiteReport {
 								let ci = this.modules[k].module.section.sections[sk].contentItems[cik];
 								if(ci.name == exportStruct.meta.dataset) {
 									let chartId = $("#contentItem-"+ci.datasetId+" .site-report-chart-container").attr("id");
-									
-									console.log(chartId, $("#"+chartId));
 
 									Plotly.downloadImage(chartId, {
 										format: 'png', // You can use 'jpeg', 'png', 'webp', 'svg', or 'pdf'
@@ -1035,8 +1052,6 @@ class SiteReport {
 	}
 
 	stripExcludedColumnsFromContentItem(ci) {
-		
-
 		let subTableKey = null;
 		ci.data.columns.forEach((col, key) => {
 			if(col.dataType == "subtable") {
@@ -1091,8 +1106,8 @@ class SiteReport {
 
 		if(section != "all" && contentItem != "all") {
 			let plainRef = typeof contentItem.datasetReferencePlain != "undefined" ? contentItem.datasetReferencePlain : "";
-
 			if(plainRef == "") {
+				console.log("No plainRef found, trying to strip the HTML instead")
 				if(contentItem.datasetReference) {
 					plainRef = contentItem.datasetReference.replace(/<[^>]+>/g, '');
 				}
@@ -1119,7 +1134,7 @@ class SiteReport {
 			};
 		}
 
-		exportStruct.meta.attribution = this.sqs.config.dataAttributionString;
+		exportStruct.meta.sead_reference = this.sqs.config.dataAttributionString;
 		exportStruct.meta.license = this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")";
 		
 		let dialogNodeId = nanoid();

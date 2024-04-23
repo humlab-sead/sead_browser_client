@@ -35,6 +35,7 @@ import SqsMenu from "../../SqsMenu.class.js";
 
 import OpenLayersMap from "../../Common/OpenLayersMap.class.js";
 import { local } from "d3";
+import { isInteger, isNumber } from "lodash";
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {
@@ -245,11 +246,58 @@ class SiteReportChart {
 
 		return points;
 	}
+
+	convertPointsToGeoJSON(points) {
+		let features = [];
+		points.forEach(point => {
+			let geometry = {};
+
+			if(isNumber(point.x) && isNumber(point.y)) {
+				geometry = {
+					type: "Point",
+					coordinates: [
+						point.x,
+						point.y
+					]
+				};
+			}
+
+			let zCoordPresentation = "";
+			if(point.z.length > 0 && isNumber(parseFloat(point.z[0].measurement))) {
+				point.z.forEach(zCoord => {
+					if(zCoordPresentation != "") {
+						zCoordPresentation += ", ";
+					}
+					zCoordPresentation += this.getZcoordinateAsString(zCoord);
+				});
+				point.zString = zCoordPresentation;
+
+				geometry.coordinates.push(point.z[0].measurement);
+			}
+
+			features.push({
+				type: "Feature",
+				geometry: geometry,
+				properties: {
+					sampleName: point.sampleName,
+					sampleGroupId: point.sampleGroupId,
+					sampleGroupName: point.sampleGroupName,
+					planarCoordSys: point.planarCoordSys,
+					verticalCoordDesc: zCoordPresentation,
+				}
+			});
+		});
+
+		let geojson = {
+			type: "FeatureCollection",
+			features: features
+		};
+	
+		return geojson;
+	}
 	
 	renderCoordinateMap() {
 		let contentItem = this.contentItem;
-
-		console.log(contentItem);
 
 		let selectedSampleGroupId = this.getSelectedRenderOptionExtra("Sample group").value;
 
@@ -492,6 +540,8 @@ class SiteReportChart {
 			
 			samplePointsMap.olMap.addControl(graticule);
 		}
+
+		return geoJson;
 	}
 
 	getZFromPoint(point) {
@@ -510,6 +560,16 @@ class SiteReportChart {
 		}
 		let zCoordPresentation = "";
 		if(zCoord && zCoord.measurement) {
+
+			if(zCoord.coordinate_method.unit_id && typeof zCoord.coordinate_method.unit == "undefined") {
+				//lookup this unit
+				this.siteReport.siteData.lookup_tables.units.forEach(u => {
+					if(u.unit_id == zCoord.coordinate_method.unit_id) {
+						zCoord.coordinate_method.unit = u;
+					}
+				});
+			}
+
 			let title = zCoord.coordinate_method.method_abbrev_or_alt_name ? zCoord.coordinate_method.method_abbrev_or_alt_name : zCoord.coordinate_method.method_name;
 			let unitString = "";
 			if(typeof zCoord.coordinate_method.unit != "undefined") {
