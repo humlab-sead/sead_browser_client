@@ -35,7 +35,7 @@ import SqsMenu from "../../SqsMenu.class.js";
 
 import OpenLayersMap from "../../Common/OpenLayersMap.class.js";
 import { local } from "d3";
-import { isInteger, isNumber } from "lodash";
+import { isNumber } from "lodash";
 
 class SiteReportChart {
 	constructor(siteReport, contentItem) {
