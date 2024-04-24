@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 //import 'zingchart/es6';
 import * as d3 from 'd3';
-import DendroLib from "../../Common/DendroLib.class";
+import DendroLib from "../../../../lib/sead_common/DendroLib.class";
 
 
 class DendroChart {
@@ -737,6 +737,7 @@ class DendroChart {
 
     getBarObjectFromDataObject(dataObject, barIndex = 0) {
         let d = dataObject;
+        
         let barObject = {
             sample_name: d.sample_name,
             //dataObject: dataObject,
@@ -842,16 +843,7 @@ class DendroChart {
         barObject.fellingUncertainty.width.value = this.xScale(youngestFellingYear.value) - this.xScale(oldestFellingYear.value);
         barObject.fellingUncertainty.width.warnings = youngestFellingYear.warnings.concat(oldestFellingYear.warnings);
 
-        
-
         return barObject;
-    }
-
-    concatWarnings(warnings, datingResult) {
-        if(datingResult && datingResult.warnings) {
-            warnings = warnings.concat(datingResult.warnings);
-        }
-        return warnings;
     }
 
     drawCertaintyBars(container, dataObjects, initialTransitions = true) {
@@ -1204,8 +1196,6 @@ class DendroChart {
 
         let sg = this.getSampleGroupBySampleName(dataObject.sample_name, this.siteReport.siteData);
         let sample = this.getSampleBySampleName(dataObject.sample_name, sg);
-
-        console.log(sg, sample);
 
         let sampleVars = [];
 
@@ -2127,10 +2117,8 @@ class DendroChart {
     }
 
     renderChart() {
-        
         $(this.anchorNodeSelector+" svg").remove();
         let contentItem = this.contentItem;
-        //this.dataObjects = this.getTableRowsAsObjects(contentItem);
         this.dataObjects = contentItem.data.dataGroups;
 
         let totalNumOfSamples = this.dataObjects.length;
@@ -2318,7 +2306,7 @@ class DendroChart {
         })
 
         this.drawCertaintyBars(container, dataObjects);
-        this.drawSapwoodBars(container, dataObjects);
+        //this.drawSapwoodBars(container, dataObjects);
         this.drawFellingUncertaintyBars(container, dataObjects);
         //this.drawGerminationUncertaintyBars(container, dataObjects);
         this.drawYAxis(container, dataObjects);

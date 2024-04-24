@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import * as d3 from 'd3';
-import DendroLib from "../../Common/DendroLib.class";
+import DendroLib from "../../../../lib/sead_common/DendroLib.class";
 import Plotly from 'plotly.js-dist-min';
 
 class DendroPlotly {

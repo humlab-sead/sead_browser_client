@@ -1,5 +1,5 @@
 import DatasetModule from "./DatasetModule.class";
-import DendroLib from "../../../Common/DendroLib.class";
+import DendroLib from "../../../../../lib/sead_common/DendroLib.class";
 import moment from "moment";
 import { nanoid } from 'nanoid'
 import * as d3 from 'd3';
@@ -113,89 +113,11 @@ class DendrochronologyDataset extends DatasetModule {
 			sampleIds: sampleIds
 		})
 
-		/*
-		samples.forEach((sample) => {
-			chan.send({
-				cmd: "getAnalysisEntitiesForSampleId",
-				sampleId: sample.physicalSampleId
-			})
-		});
-		*/
-		
-		
-		
 		return [];
 	}
 
 	getDendroData(analysisEntityId) {
 		return {};
-	}
-
-	/*
-	getDendroValues(analysisEntityId) {
-		this.getApiWsChannel().then((ws) => {
-			let msgId = nanoid();
-			ws.onmessage = (evt) => {
-				let msg = JSON.parse(evt.data);
-				if(msg.msgId == msgId) { //Check that this is for us
-					console.log(msg.data);
-				}
-			};
-			ws.send(JSON.stringify({
-				msgId: msgId,
-				sql: 'SELECT * FROM tbl_dendro_lookup'
-			}));
-		});
-	}
-	*/
-
-	/*
-	getApiWsChannel() {
-		return new Promise((resolve, reject) => {
-			const ws = new WebSocket("ws://localhost:3500", "sql");
-			this.wsConnectInterval = setInterval(() => {
-				if(ws.readyState == 1) {
-					clearInterval(this.wsConnectInterval);
-					
-					resolve(ws);
-				}
-			}, 100);
-		});
-	}
-	*/
-
-	async fetchDendroDating(datasetGroup) {
-		await $.ajax(this.sqs.config.siteReportServerAddress+"/qse_dendro_dating?physical_sample_id=eq."+datasetGroup.physical_sample_id, {
-			method: "get",
-			dataType: "json",
-			success: async (data, textStatus, xhr) => {
-				/*
-				console.log(datasetGroup)
-				console.log(data);
-
-				//datasetGroup.datasets.dendro = data;
-
-				for(let key in data) {
-					datasetGroup.datasets.push({
-						dendro: [{
-							measurement_type: data[key].date_type,
-							measurement_value: data[key].older+" - "+data[key].younger,
-							measurement_values: {
-								age_type: data[key].age_type,
-								younger: data[key].younger,
-								older: data[key].older,
-								plus: data[key].plus,
-								minus: data[key].minus,
-								error_uncertainty: data[key].error_uncertainty,
-								season: data[key].season,
-							}
-						}]
-					});
-				}
-				*/
-				datasetGroup.dating = data;
-			}
-		});
 	}
 
 	/* Function: fetchSampleData
@@ -442,7 +364,6 @@ class DendrochronologyDataset extends DatasetModule {
 
 	async makeSection(siteData, sections) {
 		let dendroDatasets = this.claimDatasets(siteData);
-
 		let dataGroups = siteData.data_groups.filter((dataGroup) => {
 			return dataGroup.type == "dendro";
 		});
