@@ -382,8 +382,6 @@ class Samples {
 	}
 
 	insertSampleGroupCoordinatesIntoTable(table, sampleGroups) {
-		console.warn("insertSampleGroupCoordinatesIntoTable called - not implemented yet.");
-		return;
 		let insertSampleGroupCoordinatesColumn = false;
 		sampleGroups.forEach(sg => {
 			if(sg.coordinates.length > 0) {
@@ -440,7 +438,6 @@ class Samples {
 				}
 			});
 		});
-
 	}
 
 	renderSampleGroupCoordinatesMap(sampleGroups, sampleGroup) {
@@ -450,12 +447,13 @@ class Samples {
 		this.sqs.dialogManager.showPopOver("Sample group coordinates", "<div id='"+mapId+"' class='sample-coordinates-map-modal-container'></div>");
 
 		let map = new OpenLayersMap(this.sqs);
-		let points = map.coordinatesToPoints(sampleGroup.coordinates);
 
+		let points = map.sampleGroupToPoints(sampleGroup);
+		//add points from other sample groups
 		sampleGroups.forEach(sg => {
 			if(sg.sample_group_id != sampleGroup.sample_group_id) {
 				if(sg.coordinates.length > 0) {
-					let sampleGroupPoints = map.coordinatesToPoints(sg.coordinates);
+					let sampleGroupPoints = map.sampleGroupToPoints(sg);
 					points = points.concat(sampleGroupPoints);
 				}
 			}
@@ -475,7 +473,9 @@ class Samples {
 					"coordinates": [point.x, point.y]
 				},
 				"properties": {
-					"tooltip": point.tooltip
+					"sampleGroupId": point.sampleGroupId,
+					"sampleGroupName": point.sampleGroupName,
+					"tooltip": point.tooltip ? point.tooltip : "No information available",
 				}
 			};
 			geojson.features.push(feature);
@@ -487,6 +487,7 @@ class Samples {
 		
 		map.renderPointsLayer(geojson);
 		map.fitToExtent();
+		map.addSelectInteraction(null, false);
 	}
 	
 	formatCoordinates(coords) {
@@ -858,7 +859,29 @@ class Samples {
 				}]
 			}
 
-			section.contentItems.push(sampleCoordinatesContentItem);
+			let subTableColumnKey = null;
+			sampleGroupColumns.forEach((col, key) => {
+				if(col.dataType == "subtable") {
+					subTableColumnKey = key;
+				}
+			});
+
+			let atLeastOneSampleGroupHasSamplesWithCoordinates = false;
+			sampleGroupRows.forEach(row => {
+				let samplesSubtable = row[subTableColumnKey].value;
+
+				//check if we have a column with role 'coordinates'
+				samplesSubtable.columns.forEach(col => {
+					if(col.role == "coordinates") {
+						atLeastOneSampleGroupHasSamplesWithCoordinates = true;
+					}
+				});
+			});
+
+			if(atLeastOneSampleGroupHasSamplesWithCoordinates) {
+				section.contentItems.push(sampleCoordinatesContentItem);
+			}
+			
 		}
 
 		return section;

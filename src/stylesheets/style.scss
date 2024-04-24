@@ -2168,6 +2168,14 @@ polyline{
   background-color: $pane-bg-color;
 }
 
+.sample-map-tooltip-text {
+  position:relative;
+	top: 1px;
+  font-size: 14px;
+  color: #000;
+  text-decoration: none;
+}
+
 .hidden {
 	display:none;
 }

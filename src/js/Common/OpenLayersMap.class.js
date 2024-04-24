@@ -629,6 +629,7 @@ class OpenLayersMap {
 			this.removeLayer("points");
 		}
 		this.olMap.addLayer(layer);
+		this.setMapDataLayer("points");
 	}
 
 	renderAbundancePointsLayer(geojson) {
@@ -1091,12 +1092,12 @@ class OpenLayersMap {
 		attributionElement.getElementsByTagName("button")[0].style.display = "none";
     }
 
-	addSelectInteraction(selectStyle = null) {
+	addSelectInteraction(selectStyle = null, clickablePopupElements = true) {
 		if(this.selectInteraction != null) {
 			this.olMap.removeInteraction(this.selectInteraction);
 		}
 
-		this.selectInteraction = this.createSelectInteraction(selectStyle);
+		this.selectInteraction = this.createSelectInteraction(selectStyle, clickablePopupElements);
 		this.olMap.addInteraction(this.selectInteraction);
 	}
 
@@ -1109,7 +1110,7 @@ class OpenLayersMap {
 		return false;
 	}
 
-	createSelectInteraction(selectStyle = null) {
+	createSelectInteraction(selectStyle = null, clickablePopupElements = true) {
 		let popupContainer = document.createElement('div');
 		popupContainer.id = "map-popup-container-"+nanoid();
 		popupContainer.classList.add("map-popup-container");
@@ -1124,7 +1125,12 @@ class OpenLayersMap {
 
 		var selectInteraction = new SelectInteraction({
 			style: selectStyle != null ? selectStyle : (feature) => {
-				if(this.getVisibleDataLayer().getProperties().layerId == "clusterPoints") {
+				let dataLayer = this.getVisibleDataLayer();
+				if(!dataLayer) {
+					console.warn("No visible data layer");
+					return;
+				}
+				if(dataLayer.getProperties().layerId == "clusterPoints") {
 					return this.getClusterPointStyle(feature, {
 						selected: true,
 						highlighted: false
@@ -1145,6 +1151,7 @@ class OpenLayersMap {
 		
 		selectInteraction.on("select", (evt) => {
 			if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == false) {
+				//if this is a single point
 				$(popupContainer).show();
 				var feature = evt.selected[0];
 				var coords = feature.getGeometry().getCoordinates();
@@ -1160,6 +1167,7 @@ class OpenLayersMap {
 				this.selectPopupOverlay.setPosition(coords);
 			}
 			else if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == true) {
+				//if this is a cluster point
 				$(popupContainer).show();
 
 				var feature = evt.selected[0];
@@ -1177,19 +1185,27 @@ class OpenLayersMap {
 						sampleGroupId: fprop.sampleGroupId,
 						sampleGroupName: fprop.sampleGroupName
 					});
+
+					let textClass = "sample-map-tooltip-link";
+					if(!clickablePopupElements) {
+						textClass = "sample-map-tooltip-text";
+					}
+
 					let ttSampleId = "tt-"+nanoid();
 					tableRows += "<tr data='"+data+"' row-id='"+fprop.id+"'>";
-					tableRows += "<td><span id='"+ttSampleId+"' class='sample-map-tooltip-link'>"+fprop.tooltip+"</span></td>";
+					tableRows += "<td><span id='"+ttSampleId+"' class='"+textClass+"'>"+fprop.tooltip+"</span></td>";
 					tableRows += "</tr>";
 
-					$(popupContainer).on('click', "#"+ttSampleId, () => {
-						let sr = this.sqs.siteReportManager.siteReport;
-						sr.focusOn({ section: "samples" });
-						sr.expandSampleGroup(fprop.sampleGroupId, fprop.name);
-						sr.pageFlipToSample(fprop.sampleGroupId, fprop.name);
-						sr.scrollToSample(fprop.sampleGroupId, fprop.name);
-						sr.highlightSampleRow(fprop.sampleGroupId, fprop.name);
-					});
+					if(clickablePopupElements) {
+						$(popupContainer).on('click', "#"+ttSampleId, () => {
+							let sr = this.sqs.siteReportManager.siteReport;
+							sr.focusOn({ section: "samples" });
+							sr.expandSampleGroup(fprop.sampleGroupId, fprop.name);
+							sr.pageFlipToSample(fprop.sampleGroupId, fprop.name);
+							sr.scrollToSample(fprop.sampleGroupId, fprop.name);
+							sr.highlightSampleRow(fprop.sampleGroupId, fprop.name);
+						});
+					}
 				}
 
 				tableRows = sqs.sqsOffer("samplePositionMapPopup", {
@@ -1324,10 +1340,21 @@ class OpenLayersMap {
 		return points;
 	}
 
+	sampleGroupToPoints(sampleGroup) {
+		let points = this.coordinatesToPoints(sampleGroup.coordinates);
+		
+		if(points.length > 0) {
+			points[0].sampleGroupId = sampleGroup.sample_group_id;
+			points[0].sampleGroupName = sampleGroup.sample_group_name;
+			points[0].tooltip = sampleGroup.sample_group_name;
+		}
+		
+		return points;
+	}
+
 	filterAndPairPlanarCoordinates(coordinates) {
 		let planarCoords = [];
 		coordinates.forEach(coordinate => {
-			console.log("coordinate", coordinate)
 			if(this.sqs.config.xyCoordinateDimensionIds.includes(coordinate.dimension.dimension_id)) {
 				planarCoords.push(coordinate);
 			}
