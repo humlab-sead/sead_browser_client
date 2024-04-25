@@ -1032,24 +1032,36 @@ class SiteReport {
 		element.click();
 		document.body.removeChild(element);
 	}
-	
 
 	stripExcludedColumnsFromExportData(exportData) {
-		exportData.sections.forEach(section => {
-			section.contentItems.forEach(ci => {
-				ci = this.stripExcludedColumnsFromContentItem(ci);
-			});
-			if(section.hasOwnProperty("sections")) {
-				section.sections.forEach(subSection => {
-					subSection.contentItems.forEach(ci => {
-						ci = this.stripExcludedColumnsFromContentItem(ci);
-					});
-				});
-			}
-		});
+		// Define a recursive function to handle both top-level and nested sections
+		const stripSections = (sections) => {
+			sections.forEach(section => {
+				// Process each content item in the current section
+				section.contentItems.forEach(ci => {
+					//if ci is an empty object...
+					if(Object.keys(ci).length === 0 && ci.constructor === Object) {
+						return;
+					}
 
+					if (!this.sqs.isPromise(ci)) {
+						ci = this.stripExcludedColumnsFromContentItem(ci);
+					}
+				});
+	
+				// Recursively process any nested sections
+				if (section.hasOwnProperty("sections")) {
+					stripSections(section.sections);
+				}
+			});
+		};
+	
+		// Start the recursion with the top-level sections
+		stripSections(exportData.sections);
+	
 		return exportData;
 	}
+	
 
 	stripExcludedColumnsFromContentItem(ci) {
 		let subTableKey = null;
@@ -1088,7 +1100,7 @@ class SiteReport {
 	}
 	
 	async renderExportDialog(formats = ["json", "xlsx", "pdf"], section = "all", contentItem = "all") {
-		let exportData = this.sqs.copyObject(this.data);
+		let exportData = this.sqs.copySiteReportData(this.data);
 
 		this.prepareExportStructure(exportData.sections);
 		exportData = this.stripExcludedColumnsFromExportData(exportData);
@@ -1200,9 +1212,6 @@ class SiteReport {
 						delete item[oKey];
 					}
 				}
-			}
-			if(typeof item == "string" || typeof item == "number") {
-
 			}
 		});
 		
