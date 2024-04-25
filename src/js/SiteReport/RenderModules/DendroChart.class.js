@@ -2310,7 +2310,9 @@ class DendroChart {
         this.drawFellingUncertaintyBars(container, dataObjects);
         //this.drawGerminationUncertaintyBars(container, dataObjects);
         this.drawYAxis(container, dataObjects);
-        this.drawSampleBarWarnings(container, dataObjects);
+        
+        //after discussion with Anton, we have decided to not have the warnings
+        //this.drawSampleBarWarnings(container, dataObjects);
     }
 
     unrender() {
