@@ -662,7 +662,7 @@ class AbundanceDataset extends DatasetModule {
 		if(palaeontomolyDatasetFound) {
 			let ecoCodeSection = this.getSectionByMethodId(3, sections);
 			if(ecoCodeSection) {
-				//these two get eco codes methods actually return promises, but that's ok, the content-item rendered will handle that
+				//these two get eco codes methods actually return promises, but that's ok, the content-item renderer will handle that
 				ecoCodeSection.contentItems.push(this.getSiteEcoCodeContentItem(siteData));
 				ecoCodeSection.contentItems.push(this.getSamplesEcoCodeContentItem(siteData));
 			}
