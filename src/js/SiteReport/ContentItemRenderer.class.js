@@ -14,6 +14,7 @@ class ContentItemRenderer {
     }
 
     render() {
+		//if the contentItem is a promise, we wait for it to resolve before rendering and then we update the siteReport.data with the resolved contentItem
 		if(this.sqs.isPromise(this.contentItem)) {
 			this.contentItem.then((resolvedContentItem) => {
 				for(let sectionKey in this.siteReport.data.sections) {
