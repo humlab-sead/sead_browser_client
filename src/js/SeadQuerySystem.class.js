@@ -1253,6 +1253,45 @@ class SeadQuerySystem {
 		return tf;
 	}
 
+	copySiteReportData(obj) {
+		// Check if the input is null or not an object (base case for recursion)
+		if (obj === null || typeof obj !== 'object') {
+			return obj;
+		}
+	
+		// Handle Arrays
+		if (Array.isArray(obj)) {
+			return obj.reduce((arr, item, index) => {
+				// Recursively copy each item in the array
+				arr[index] = this.copySiteReportData(item);
+				return arr;
+			}, []);
+		}
+	
+		// Handle Date objects
+		if (obj instanceof Date) {
+			return new Date(obj.getTime());
+		}
+	
+		// Create a shallow copy of the object
+		const copiedObject = {};
+	
+		// Recursively copy properties that are not Promises
+		Object.keys(obj).forEach(key => {
+			const value = obj[key];
+			// Check if value is a Promise using instance of or any other logic
+			if (!this.isPromise(value)) {
+				copiedObject[key] = this.copySiteReportData(value);
+			} else {
+				// You can choose to set it to null or just omit it from copied object
+				// copiedObject[key] = null;
+				console.warn('Promise found in object', key);
+			}
+		});
+	
+		return copiedObject;
+	}
+
 	copyObject(obj) {
 		return JSON.parse(JSON.stringify(obj));
 	}
