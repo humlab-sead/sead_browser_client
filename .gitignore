@@ -2,4 +2,3 @@
 node_modules
 dist
 src/config/config.json
-lib/sead_common/
