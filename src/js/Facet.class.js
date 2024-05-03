@@ -276,6 +276,7 @@ class Facet {
 	*/
 	fetchData(render = true) {
 		if(!this.dataFetchingEnabled) {
+			console.warn("WARN: fetchData called on a facet where dataFetchingEnabled is false. Ignoring.");
 			return;
 		}
 		this.showLoadingIndicator(true);

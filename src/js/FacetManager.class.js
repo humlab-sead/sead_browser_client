@@ -1217,7 +1217,7 @@ class FacetManager {
 				if(facetDef[gk].filters[fk].type == "multistage") {
 					icon = "<span class='sqs-menu-facet-type-icon'><i class=\"fa fa-list-ul\" aria-hidden=\"true\"></i></span>";
 				}
-				if(facetDef[gk].filters[fk].type == "map") {
+				if(facetDef[gk].filters[fk].type == "geopolygon") {
 					icon = "<span class='sqs-menu-facet-type-icon'><i class=\"fa fa-map-marker\" aria-hidden=\"true\"></i></span>";
 				}
 

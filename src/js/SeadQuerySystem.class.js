@@ -49,6 +49,8 @@ class SeadQuerySystem {
 		this.asyncRenderInFlightRequests = [];
 		this.asyncRenderMaxConcurrentRequests = 100;
 
+		this.experimentalFilters = [];
+		/*
 		this.experimentalFilters = [{
 			AggregateTitle: "count of x",
 			AggregateType: "count",
@@ -63,6 +65,7 @@ class SeadQuerySystem {
 			IsDefault: false,
 			enabled: true,
 		}];
+		*/
 
 		$("#sead-release-version").text(this.config.version);
 
@@ -675,37 +678,12 @@ class SeadQuerySystem {
 	}
 
 	importFilters(data) {
-
 		
 		this.experimentalFilters.forEach(filter => {
 			if(filter.enabled) {
 				data.push(filter);
 			}
 		});
-
-		
-		
-		/*
-		data.push({
-			"FacetId": 200, //made up
-			"FacetCode": "geographic_polygon",
-			"DisplayTitle": "Geographic polygon",
-			"Description": "Geographic polygon",
-			"FacetGroupKey": "others",
-			"FacetTypeKey": "map",
-			"IsApplicable": true,
-			"IsDefault": false,
-			"AggregateType": "count",
-			"AggregateTitle": "",
-			"FacetGroup": {
-				"FacetGroupKey": "others",
-				"DisplayTitle": "Others",
-				"Description": "Others"
-			}
-		});
-		*/
-		
-
 
 		const customDescriptions = [
 			{
@@ -815,7 +793,7 @@ class SeadQuerySystem {
 					filterGroup.items.push({
 						"facetCode": filter.FacetCode,
 						"displayTitle": filter.DisplayTitle,
-						"facetTypeKey": filter.FacetTypeKey, //"discrete" or "range" or "map" or "multistage"
+						"facetTypeKey": filter.FacetTypeKey, //"discrete" or "range" or "map" or "multistage" or "geopolygon"
 						"aggregateType": filter.AggregateType,
 						"aggregateTitle": filter.AggregateTitle,
 						"dependencies": [],

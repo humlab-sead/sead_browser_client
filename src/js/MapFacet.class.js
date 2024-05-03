@@ -23,7 +23,7 @@ class MapFacet extends Facet {
 		super(sqs, id, template);
 		this.olMap = null;
 		this.domObj = this.getDomRef();
-		this.dataFetchingEnabled = false;
+		this.dataFetchingEnabled = true;
 
 		$(".facet-text-search-btn", this.domObj).hide();
 
@@ -213,6 +213,11 @@ class MapFacet extends Facet {
 			coordinates.pop();
 			const convertedCoordinates = coordinates.map(coord => transform(coord, 'EPSG:3857', 'EPSG:4326'));
 
+			//swap the lat and long values
+			convertedCoordinates.forEach(coord => {
+				coord.reverse();
+			});
+
 			//flatten the convertedCoordinates array
 			const flatCoordinates = convertedCoordinates.flat();
 			this.selections = flatCoordinates;
@@ -267,7 +272,6 @@ class MapFacet extends Facet {
 	*/
 	importData(data) {
 		super.importData();
-		
 	}
 
 	/*
@@ -289,35 +293,6 @@ class MapFacet extends Facet {
 		else {
 			$(".map-filter-selection-info", this.domObj).text("Nothing selected");
 		}
-		
-
-		/*
-		$(".facet-text-search-input", this.getDomRef()).hide();
-		$(".facet-text-search-btn", this.getDomRef()).hide();
-		
-
-		$(this.domObj).find(".facet-body").show(); //Un-do hide of facet-body which is done in the super
-		
-		if(changeFacetSize) {
-			var headerHeight = $(".facet-header", this.domObj).height();
-			let subHeaderHeight = $(".list-container-header", this.domObj).height();
-			let facetHeight = headerHeight + subHeaderHeight + this.selections.length * this.rowHeight + 6;
-			let facetBodyHeight = subHeaderHeight + this.selections.length * this.rowHeight + 6;
-			
-			if(facetHeight > Config.facetBodyHeight+headerHeight) {
-				facetHeight = Config.facetBodyHeight+headerHeight;
-			}
-
-			$(this.domObj).css("height", facetHeight+"px");
-			$(".facet-body", this.domObj).css("height", facetBodyHeight+"px");
-		}
-		
-		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
-		this.sqs.facetManager.updateSlotSize(slotId);
-		this.sqs.facetManager.updateAllFacetPositions();
-		
-		this.updateRenderData();
-		*/
 	}
 
 	/*
@@ -327,22 +302,6 @@ class MapFacet extends Facet {
 		super.maximize();
 
 		$(".map-filter-selection-info", this.domObj).hide();
-		/*
-		//$(".facet-text-search-input", this.getDomRef()).show();
-		$(".facet-text-search-btn", this.getDomRef()).show();
-		
-		$(".discrete-facet-blank-space", this.getDomRef()).show();
-		$("#facet-"+this.id).css("height", this.defaultHeight);
-		$("#facet-"+this.id).find(".facet-body").css("height", this.bodyHeight);
-		//this.renderData(this.visibleData);
-		this.updateRenderData();
-		
-		$(this.domObj).find(".facet-body").scrollTop(this.scrollPosition);
-
-		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
-		this.sqs.facetManager.updateSlotSize(slotId);
-		this.sqs.facetManager.updateAllFacetPositions();
-		*/
 	}
 
 	updateRenderData() {
