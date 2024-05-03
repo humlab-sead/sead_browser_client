@@ -84,7 +84,12 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         let data = await this.fetch(renderIntoNode);
 
-        if(!data) {
+        if(!data || data.length == 0) {
+            console.warn("Fetch for dendro dating histogram returned bad value:", data);
+            this.sqs.setNoDataMsg(this.renderIntoNode);
+            return;
+        }
+        if(!data[0].startYear || !data[0].endYear) {
             console.warn("Fetch for dendro dating histogram returned bad value:", data);
             this.sqs.setNoDataMsg(this.renderIntoNode);
             return;
