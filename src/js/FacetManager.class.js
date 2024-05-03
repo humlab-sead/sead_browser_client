@@ -241,7 +241,7 @@ class FacetManager {
 				return new DiscreteFacet(this.sqs, this.getNewFacetId(), template);
 			case "range":
 				return new RangeFacet(this.sqs, this.getNewFacetId(), template);
-			case "map":
+			case "geopolygon":
 				return new MapFacet(this.sqs, this.getNewFacetId(), template);
 		}
 	}
@@ -392,6 +392,10 @@ class FacetManager {
 		for(var key in facetDefinitions) {
 			let facetTemplate = this.getFacetTemplateByFacetId(facetDefinitions[key].name);
 			let facet = this.makeNewFacet(facetTemplate);
+			if(!facet) {
+				console.log("Facet not found: "+facetDefinitions[key].name);
+				continue;
+			}
 			facet.setSelections(facetDefinitions[key].selections);
 			this.addFacet(facet, false); //This will trigger a facet load request
 			
@@ -1060,15 +1064,25 @@ class FacetManager {
 		for(var key in facetState) {
 
 			var picks = [];
-			if(facetState[key].type == "discrete" || facetState[key].type == "multistage") {
+			if(facetState[key].type == "discrete" || facetState[key].type == "geopolygon" || facetState[key].type == "multistage") {
 				for(var sk in facetState[key].selections) {
 					
 					if(facetState[key].selections[sk] != null) { //I got this once - an empty selection, but I can reproduce it and thus can't find the original cause so I'm just gonna defend against it here for now.
-						picks.push({
-							pickType: 1, //0 = ukn, 1 = discrete, 2 = lower, 3 = upper
-							pickValue: facetState[key].selections[sk],
-							text: facetState[key].selections[sk]
-						});
+						
+						if(facetState[key].type == "geopolygon") {
+							picks = facetState[key].selections.map((selection) => {
+								return {
+									pickValue: selection
+								}
+							});
+						}
+						else {
+							picks.push({
+								pickType: 1, //0 = ukn, 1 = discrete, 2 = lower, 3 = upper
+								pickValue: facetState[key].selections[sk],
+								text: facetState[key].selections[sk]
+							});
+						}
 					}
 					else {
 						console.error("Oops! Error number 2398725 (I totally just made that up) occured. But seriously though, there was an error, you should probably look into it. Glad I'm not you.");

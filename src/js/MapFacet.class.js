@@ -6,7 +6,7 @@ import { Group as GroupLayer } from 'ol/layer';
 import Overlay from 'ol/Overlay';
 import GeoJSON from 'ol/format/GeoJSON';
 import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
-import { fromLonLat } from 'ol/proj.js';
+import { fromLonLat, transform } from 'ol/proj.js';
 import { Select as SelectInteraction, Draw as DrawInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
 import { Attribution } from 'ol/control';
@@ -76,7 +76,7 @@ class MapFacet extends Facet {
 			],
 			view: new View({
 			  center: fromLonLat([12.41, 48.82]),
-			  zoom: 3
+			  zoom: 3,
 			}),
 			loadTilesWhileInteracting: true,
 			loadTilesWhileAnimating: true
@@ -198,20 +198,6 @@ class MapFacet extends Facet {
 			}
 			
 			sketch = event.feature;
-			
-			/*
-			listener = sketch.getGeometry().on('change',function(event){
-				selectedFeatures.clear();
-				var polygon = event.target;
-				var features = pointsLayer.getSource().getFeatures();
-
-				for (var i = 0 ; i < features.length; i++){
-					if(polygon.intersectsExtent(features[i].getGeometry().getExtent())){
-						selectedFeatures.push(features[i]);
-					}
-				}
-			});
-			*/
 		}, this);
 
 
@@ -223,24 +209,15 @@ class MapFacet extends Facet {
 			//selectedFeatures.clear();
 
 			var polygon = event.feature.getGeometry();
-			this.selections = polygon.getCoordinates()[0];
-			this.selections.pop();
-			
+			let coordinates = polygon.getCoordinates()[0];
+			coordinates.pop();
+			const convertedCoordinates = coordinates.map(coord => transform(coord, 'EPSG:3857', 'EPSG:4326'));
 
-			//this.broadcastSelection(); //uncomment me when server supports this!
-			
-			console.log(JSON.stringify(this.selections, null, 2));
+			//flatten the convertedCoordinates array
+			const flatCoordinates = convertedCoordinates.flat();
+			this.selections = flatCoordinates;
 
-			/*
-			var features = pointsLayer.getSource().getFeatures();
-			for (var i = 0 ; i < features.length; i++){
-				if(polygon.intersectsExtent(features[i].getGeometry().getExtent())){
-					selectedFeatures.push(features[i]);
-				}
-			}
-			console.log(selectedFeatures);
-			*/
-			
+			this.broadcastSelection();
 		});
 	}
 
