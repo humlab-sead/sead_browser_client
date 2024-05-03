@@ -1713,7 +1713,7 @@ h1.main-header {
 }
 
 .tabulator-row:hover {
-	background-color: rgba(0, 0, 100, 0.25) !important;
+	background-color: lighten(rgba(45, 94, 141, 0.15), 20%) !important;
 	color: #000 !important;
 }
 
@@ -1831,9 +1831,7 @@ h1.main-header {
 
 #result-table-container {
   display: none;
-  flex-direction: column;
-	overflow-x: hidden;
-  /*overflow-y: auto;*/
+  grid-template-rows: 1fr min-content;
 }
 
 #result-datatable {
