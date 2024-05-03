@@ -212,7 +212,7 @@ class MosaicDynamicChartModule extends MosaicTileModule {
                 });
 
                 let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-                resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: true }).then(plot => {
+                resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData).then(plot => {
                     this.plot = plot;
                 })
 
