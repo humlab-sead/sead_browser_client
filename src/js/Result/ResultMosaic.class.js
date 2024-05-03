@@ -1106,12 +1106,13 @@ class ResultMosaic extends ResultModule {
 			},
 			displayModeBar: false,
 			margin: {
-				l: 120,
-				r: 120,
-				b: 120,
-				t: 120,
-				pad: 4
+				l: 50,
+				r: 50,
+				b: 50,
+				t: 50,
+				pad: 2
 			},
+			legend: { x: 1, y: 1, xanchor: 'right', yanchor: 'top', bgcolor: 'rgba(255, 255, 255, 0.5)' }
 		};
 
 		Object.assign(layout, layoutConfig);
