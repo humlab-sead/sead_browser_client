@@ -35,7 +35,7 @@ class ResultTable extends ResultModule {
 			$("#result-table-container").hide();
 		}
 		else {
-			$("#result-table-container").css("display", "flex");
+			$("#result-table-container").css("display", "grid");
 		}
 	}
 	
@@ -169,17 +169,22 @@ class ResultTable extends ResultModule {
 	renderDataTable() {
 		this.resultManager.renderMsg(false);
 
+		$('#result-table-container').css("display", "grid");
 		$('#result-table-container').html(`
 			<div id='result-datatable'></div>
 			<div id='result-datatable-controls'>
 			</div>
 			`);
-		
-		$('#result-table-container').css("display", "flex");
+
+		if(this.sqs.config.showResultExportButton) {
+			let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
+			$("#result-datatable-controls").append(exportButton);
+			this.bindExportModuleDataToButton(exportButton, this);
+		}
 
 		let maxAnalysisEntities = this.data.rows.reduce((max, row) => Math.max(max, row.analysis_entities), 0);
 
-		let maxRenderSlots = 5;
+		let maxRenderSlots = 4;
 		let currentRenderSlotsTaken = 0;
 
 		this.tabulatorTable = new Tabulator("#result-datatable", {
@@ -289,12 +294,6 @@ class ResultTable extends ResultModule {
 				
 			],
 		});
-
-		if(this.sqs.config.showResultExportButton) {
-			let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
-			$("#result-datatable-controls").append(exportButton);
-			this.bindExportModuleDataToButton(exportButton, this);
-		}
 
 		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 	}
