@@ -213,6 +213,7 @@ class Samples {
 					continue;
 				}
 
+				/*
 				//link up coordinate methods and dimensions to each coordinate
 				sample.coordinates.forEach(coord => {
 					siteData.lookup_tables.methods.forEach(cm => {
@@ -227,6 +228,7 @@ class Samples {
 						}
 					});
 				});
+				*/
 
 				//sort coordinates by dimension name
 				sample.coordinates.sort((a, b) => {
@@ -486,7 +488,7 @@ class Samples {
 		map.render("#"+mapId);
 		
 		map.renderPointsLayer(geojson);
-		map.fitToExtent();
+		map.fitToExtentGeojson();
 		map.addSelectInteraction(null, false);
 	}
 	
@@ -834,6 +836,7 @@ class Samples {
 				});
 			});
 
+			/*
 			let sampleCoordinatesContentItem = {
 				"name": "sampleCoordinatesMap",
 				"title": "Sample coordinates",
@@ -858,6 +861,7 @@ class Samples {
 					}]
 				}]
 			}
+			*/
 
 			let subTableColumnKey = null;
 			sampleGroupColumns.forEach((col, key) => {
@@ -878,9 +882,11 @@ class Samples {
 				});
 			});
 
+			/*
 			if(atLeastOneSampleGroupHasSamplesWithCoordinates) {
 				section.contentItems.push(sampleCoordinatesContentItem);
 			}
+			*/
 			
 		}
 

@@ -21,6 +21,9 @@ import TileGrid from 'ol/tilegrid/TileGrid.js';
 import SqsMenu from '../SqsMenu.class.js';
 import { nanoid } from 'nanoid';
 import proj4 from "proj4";
+import Feature from 'ol/Feature';
+import Point from 'ol/geom/Point';
+import { extend, createEmpty } from 'ol/extent';
 
 class OpenLayersMap {
     constructor(sqs) {
@@ -39,6 +42,14 @@ class OpenLayersMap {
 
 		this.registerFeatureStyleCallback("default", (feature, resolution) => {
 			return this.getSingularPointStyle(feature);
+		}, true);
+
+		this.registerFeatureStyleCallback("sampleGroupCoordinates", (feature, resolution) => {
+			return this.getSampleGroupCoordinatesPointStyle(feature);
+		}, true);
+
+		this.registerFeatureStyleCallback("sampleCoordinates", (feature, resolution) => {
+			return this.getSampleCoordinatesPointStyle(feature);
 		}, true);
 
 		this.registerFeatureStyleCallback("colorCodedAltitude", (olMap, features, feature, resolution) => {
@@ -348,6 +359,10 @@ class OpenLayersMap {
         this.data = data;
     }
 
+	setGeojsonData(data) {
+		this.setData(data);
+	}
+
     /*
 	* Function: setMapBaseLayer
 	*/
@@ -364,6 +379,59 @@ class OpenLayersMap {
 				layer.setVisible(false);
 			}
 		});
+	}
+
+	exportMenu(anchorSelector, siteData = null) {
+		var menu = {
+			title: "<i class=\"fa fa-download result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Export</span>", //The name of the menu as it will be displayed in the UI
+			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
+			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
+			anchor: anchorSelector+" .map-export-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
+			staticSelection: true, //whether a selected item remains highlighted or not, purely visual
+			visible: true, //show this menu by default
+			style: {
+				menuTitleClass: "result-map-control-menu-title",
+				l1TitleClass: "result-map-control-item-title"
+			},
+			items: [ //The menu items contained in this menu
+			],
+			triggers: [{
+				selector: anchorSelector,
+				on: "click"
+			}]
+		};
+
+		menu.items.push({
+			name: "exportMap",
+			title: "GeoJSON",
+			tooltip: "",
+			callback: () => {
+				this.exportMapAsGeoJSON(siteData);
+			}
+		});
+
+		return menu;
+	}
+
+	exportMapAsGeoJSON(siteData = null) {
+		this.data.sead_meta = {
+			"site": siteData.site_id ? siteData.site_id : "N/A",
+			"description": this.sqs.config.dataExportDescription,
+			"siteName": siteData.site_name ? siteData.site_name : "N/A",
+			"url": siteData.site_id ? this.sqs.config.serverRoot+"/site/"+siteData.site_id : "N/A",
+			"sead_reference": this.sqs.config.dataAttributionString,
+			"license": this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")"
+		};
+
+		let blob = new Blob([JSON.stringify(this.data, null, 2)], { type: 'application/geo+json;' });
+		let url = URL.createObjectURL(blob);
+
+		// Create a link and trigger the download
+		let a = document.createElement("a");
+		a.href = url;
+		a.download = "sead-site-sample-coordinates-export.geojson";
+		document.body.appendChild(a);
+		a.click();
 	}
 
 	baseLayerMenu(anchorSelector) {
@@ -414,6 +482,10 @@ class OpenLayersMap {
 		}
 	}
 
+	renderExportMenu(anchorSelector, siteData = null) {
+		new SqsMenu(this.sqs, this.exportMenu(anchorSelector, siteData));
+	}
+
 	renderBaseLayerMenu(anchorSelector) {
 		new SqsMenu(this.sqs, this.baseLayerMenu(anchorSelector));
 
@@ -455,14 +527,14 @@ class OpenLayersMap {
 	/*
 	* Function: setMapDataLayer
 	*/
-	setMapDataLayer(dataLayerId) {
+	setMapDataLayer(dataLayerId, hideAllOthers = true) {
 		this.clearSelections();
 		this.dataLayers.forEach((layer, index, array) => {
 			if(layer.getProperties().layerId == dataLayerId && layer.getVisible() == false) {
 				layer.setVisible(true);
 				layer.getProperties().renderCallback(this);
 			}
-			if(layer.getProperties().layerId != dataLayerId && layer.getVisible() == true) {
+			if(hideAllOthers && layer.getProperties().layerId != dataLayerId && layer.getVisible() == true) {
 				this.removeLayer(layer.getProperties().layerId);
 				layer.setVisible(false);
 			}
@@ -606,6 +678,7 @@ class OpenLayersMap {
 			featureProjection: featureProjection
 		});
 		var featurePoints = gf.readFeatures(geoJsonData);
+
 		var pointsSource = new VectorSource({
 			features: featurePoints
 		});
@@ -630,6 +703,110 @@ class OpenLayersMap {
 		}
 		this.olMap.addLayer(layer);
 		this.setMapDataLayer("points");
+	}
+
+	getFeaturesFromSamplePoints(points) {
+		return points.map(point => {
+			let olPoint = null;
+			if(point.planarCoordSys == "EPSG:4326") {
+				olPoint = new Point(fromLonLat([point.x, point.y]))
+			}
+			else {
+				olPoint = new Point([point.x, point.y]);
+			}
+			
+			return new Feature({
+			  geometry: olPoint,
+			  level: point.level,
+			  name: point.sampleName,
+			  sampleName: point.sampleName,
+			  sampleGroupId: point.sampleGroupId,
+			  sampleGroupName: point.sampleGroupName,
+			  tooltip: point.tooltip,
+			});
+		});
+	}
+
+	addPointsLayerFromFeatures(layerName, featurePoints, styleType) {
+		var pointsSource = new VectorSource({
+			features: featurePoints
+		});
+		
+		var clusterSource = new ClusterSource({
+			distance: 0,
+			source: pointsSource
+		});
+
+		var layer = new VectorLayer({
+			source: clusterSource,
+			style: styleType ? this.getFeatureStyle(styleType).callback : this.getFeatureStyle().callback,
+			zIndex: 1
+		});
+		
+		layer.setProperties({
+			"layerId": layerName,
+			"type": "dataLayer"
+		});
+
+		//remove any previous layer with the same name
+		if(this.getLayerByName(layerName) != null) {
+			this.removeLayer(layerName);
+		}
+
+		this.dataLayers.push(layer);
+		this.olMap.addLayer(layer);
+		this.setMapDataLayer(layerName, false);
+
+		return layer;
+	}
+
+	updatePointsLayerFromFeatures(layerName, featurePoints) {
+		let source = this.getLayerByName(layerName).getSource();
+		source.clear();
+
+		featurePoints.forEach(feature => {
+			source.addFeature(feature);
+		});
+	}
+
+	addPointsLayerFromGeoJSON(layerName, geoJsonData, styleType = null) {
+		const featureProjection = "EPSG:3857";
+		
+		var gf = new GeoJSON({
+			featureProjection: featureProjection
+		});
+		var featurePoints = gf.readFeatures(geoJsonData);
+
+		var pointsSource = new VectorSource({
+			features: featurePoints
+		});
+		
+		var clusterSource = new ClusterSource({
+			distance: 0,
+			source: pointsSource
+		});
+
+		var layer = new VectorLayer({
+			source: clusterSource,
+			style: styleType ? this.getFeatureStyle(styleType).callback : this.getFeatureStyle().callback,
+			zIndex: 1
+		});
+		
+		layer.setProperties({
+			"layerId": layerName,
+			"type": "dataLayer"
+		});
+
+		//remove any previous layer with the same name
+		if(this.getLayerByName(layerName) != null) {
+			this.removeLayer(layerName);
+		}
+
+		this.dataLayers.push(layer);
+		this.olMap.addLayer(layer);
+		this.setMapDataLayer(layerName, false);
+
+		return layer;
 	}
 
 	renderAbundancePointsLayer(geojson) {
@@ -756,6 +933,118 @@ class OpenLayersMap {
 			let v = 255 * (averageZValue / zMax);
 			fillColor = "rgba("+v+", 0, 0)";
 		}
+		
+		//if point is highlighted (its a hit when doing a search)
+		if(options.highlighted) {
+			fillColor = this.style.highlighted.fillColor;
+			strokeColor = this.style.highlighted.strokeColor;
+			textColor = this.style.highlighted.textColor;
+			zIndex = 10;
+		}
+		//if point is selected (clicked on)
+		if(options.selected) {
+			fillColor = this.style.selected.fillColor;
+			strokeColor = this.style.selected.strokeColor;
+			textColor = this.style.selected.textColor;
+			zIndex = 10;
+		}
+
+		var styles = [];
+		styles.push(new Style({
+			image: new CircleStyle({
+				radius: pointSize,
+				stroke: new Stroke({
+					color: strokeColor
+				}),
+				fill: new Fill({
+					color: fillColor
+				})
+			}),
+			zIndex: zIndex,
+			text: new Text({
+				text: clusterSizeText == 1 ? "" : clusterSizeText,
+				offsetY: 1,
+				fill: new Fill({
+					color: textColor
+				})
+			})
+		}));
+		
+		return styles;
+	}
+
+	getSampleGroupCoordinatesPointStyle(feature, options = { selected: false, highlighted: false }) {
+		var pointsNum = feature.get('features').length;
+		var clusterSizeText = pointsNum.toString();
+		if(pointsNum > 999) {
+			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
+		}
+		let pointSize = 10;
+
+		var zIndex = 0;
+		
+		//default values if point is not selected and not highlighted
+		var fillColor = "rgba(0, 0, 180, 0.5)";
+		var strokeColor = this.style.default.strokeColor;
+		var textColor = "#fff";
+		
+		//if point is highlighted (its a hit when doing a search)
+		if(options.highlighted) {
+			fillColor = this.style.highlighted.fillColor;
+			strokeColor = this.style.highlighted.strokeColor;
+			textColor = this.style.highlighted.textColor;
+			zIndex = 10;
+		}
+		//if point is selected (clicked on)
+		if(options.selected) {
+			fillColor = this.style.selected.fillColor;
+			strokeColor = this.style.selected.strokeColor;
+			textColor = this.style.selected.textColor;
+			zIndex = 10;
+		}
+
+		var styles = [];
+		styles.push(new Style({
+			image: new CircleStyle({
+				radius: pointSize,
+				stroke: new Stroke({
+					color: strokeColor
+				}),
+				fill: new Fill({
+					color: fillColor
+				})
+			}),
+			zIndex: zIndex,
+			text: new Text({
+				text: clusterSizeText == 1 ? "" : clusterSizeText,
+				offsetY: 1,
+				fill: new Fill({
+					color: textColor
+				})
+			})
+		}));
+		
+		return styles;
+	}
+
+	getSampleCoordinatesPointStyle(feature, options = { selected: false, highlighted: false }) {
+		let pointsNum = 1;
+		if(feature.get('features')) {
+			pointsNum = feature.get('features').length;
+		}
+		
+		var clusterSizeText = pointsNum.toString();
+		if(pointsNum > 999) {
+			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
+		}
+		let pointSize = 10;
+
+		var zIndex = 0;
+		
+		//default values if point is not selected and not highlighted
+		var fillColor = "rgba(180, 0, 0, 0.5)";
+		var strokeColor = this.style.default.strokeColor;
+		var textColor = "#fff";
 		
 		//if point is highlighted (its a hit when doing a search)
 		if(options.highlighted) {
@@ -1014,42 +1303,85 @@ class OpenLayersMap {
 		return styles;
 	}
 
-	fitToExtent() {
-		let data = this.data.features;
-	
+	getExtentFromFeatures(features) {
 		let lngLow, lngHigh, latLow, latHigh;
+		if (features.length > 0) {
+			let lngs = features.map(feature => feature.getGeometry().getCoordinates()[0]);
+			let lats = features.map(feature => feature.getGeometry().getCoordinates()[1]);
+
+			lngLow = Math.min(...lngs);
+			lngHigh = Math.max(...lngs);
+			latLow = Math.min(...lats);
+			latHigh = Math.max(...lats);
+		}
+		else {
+			return null;
+		}
+
+		return [lngLow, latLow, lngHigh, latHigh];
+	}
+
+	combineExtents(extent1, extent2) {
+        let combinedExtent = createEmpty();
+        extend(combinedExtent, extent1);
+        extend(combinedExtent, extent2);
+        return combinedExtent;
+    }
+
+	fitToExtent(features, padding = 30, maxZoom = 15, localCoordinateSystem = false) {
+		let data = features;
+
 		if (data.length > 0) {
-			lngLow = Math.min(...data.map(feature => feature.geometry.coordinates[0]));
-			lngHigh = Math.max(...data.map(feature => feature.geometry.coordinates[0]));
-			latLow = Math.min(...data.map(feature => feature.geometry.coordinates[1]));
-			latHigh = Math.max(...data.map(feature => feature.geometry.coordinates[1]));
+			let extent = this.getExtentFromFeatures(features);
+
+			// Check for valid extent values
+			if (extent.some(coord => coord == null || isNaN(coord))) {
+				console.error("Invalid coordinates in extent", JSON.stringify(extent, null, 2));
+				return;
+			}
+
+			this.olMap.getView().fit(extent, {
+				padding: [padding, padding, padding, padding],
+				maxZoom: maxZoom,
+				duration: 500
+			});
 		} else {
-			latHigh = false;
-			latLow = false;
-			lngHigh = false;
-			lngLow = false;
+			console.error("No data to fit extent.");
 		}
-	
-		let extentNW = null;
-		let extentSE = null;
-		let extent = null;
-		if (latHigh === false || latLow === false || lngHigh === false || lngLow === false) {
-			extent = this.defaultExtent;
-		} else {
-			extentNW = fromLonLat([lngLow, latLow]);
-			extentSE = fromLonLat([lngHigh, latHigh]);
-	
-			extent = extentNW.concat(extentSE);
-		}
-	
-		let padding = 30;
-		this.olMap.getView().fit(extent, {
-			padding: [padding, padding, padding, padding],
-			maxZoom: 10,
-			duration: 500
-		});
 	}
 	
+	fitToExtentGeojson(geojson = null, padding = 30, maxZoom = 15, localCoordinateSystem = false) {
+		let data = geojson != null ? geojson : this.data.features;
+		
+		if (data.length > 0) {
+			let lngs = data.map(feature => feature.geometry.coordinates[0]);
+			let lats = data.map(feature => feature.geometry.coordinates[1]);
+	
+			let lngLow = Math.min(...lngs);
+			let lngHigh = Math.max(...lngs);
+			let latLow = Math.min(...lats);
+			let latHigh = Math.max(...lats);
+	
+			// Determine the extent based on the coordinate system type
+			let extent = localCoordinateSystem 
+						 ? [lngLow, latLow, lngHigh, latHigh] 
+						 : [fromLonLat([lngLow, latLow]), fromLonLat([lngHigh, latHigh])].flat();
+	
+			// Check for valid extent values
+			if (extent.some(coord => coord == null || isNaN(coord))) {
+				console.error("Invalid coordinates in extent", JSON.stringify(extent, null, 2));
+				return;
+			}
+	
+			this.olMap.getView().fit(extent, {
+				padding: [padding, padding, padding, padding],
+				maxZoom: maxZoom,
+				duration: 500
+			});
+		} else {
+			console.error("No data to fit extent.");
+		}
+	}
 
     render(renderTargetSelector) {
         let renderTarget = document.querySelector(renderTargetSelector);
@@ -1074,10 +1406,11 @@ class OpenLayersMap {
             target: renderTarget,
 			attribution: true,
             controls: [attribution], //Override default controls and set NO controls
-            layers: new GroupLayer({
+            /*
+			layers: new GroupLayer({
                 layers: this.baseLayers
             }),
-            
+            */
             view: new View({
                 center: fromLonLat([12.41, 48.82]),
                 zoom: this.currentZoomLevel,
@@ -1091,6 +1424,15 @@ class OpenLayersMap {
 		var attributionElement = this.olMap.getTargetElement().getElementsByClassName('ol-attribution')[0];
 		attributionElement.getElementsByTagName("button")[0].style.display = "none";
     }
+
+	addStandardBaseLayers() {
+		this.baseLayers.forEach((layer, index, array) => {
+			//only add if this layer doesn't already exist
+			if(this.getLayerByName(layer.getProperties().layerId) == null) {
+				this.olMap.addLayer(layer);
+			}
+		});
+	}
 
 	addSelectInteraction(selectStyle = null, clickablePopupElements = true) {
 		if(this.selectInteraction != null) {
@@ -1108,6 +1450,27 @@ class OpenLayersMap {
 			}
 		}
 		return false;
+	}
+
+	addOverlayInfoBox(text, position = "bottom") {
+		const overlayElement = document.createElement('div');
+		overlayElement.style.position = 'absolute';
+		overlayElement.className = 'ol-overlay-container-info-box';
+		
+		if(position == "bottom") {
+			overlayElement.style.bottom = '1em';
+		}
+		if(position == "top") {
+			overlayElement.style.top = '5em';
+		}
+
+		overlayElement.innerText = text;
+
+		$(this.renderTargetSelector).append(overlayElement);
+	}
+
+	removeOverlayInfoBox() {
+		$(this.renderTargetSelector).find('.ol-overlay-container').remove();
 	}
 
 	createSelectInteraction(selectStyle = null, clickablePopupElements = true) {
@@ -1181,7 +1544,7 @@ class OpenLayersMap {
 				for(var fk in prop.features) {
 					let fprop = prop.features[fk].getProperties();
 					let data = JSON.stringify({
-						sampleName: fprop.name,
+						sampleName: fprop.sampleName,
 						sampleGroupId: fprop.sampleGroupId,
 						sampleGroupName: fprop.sampleGroupName
 					});
@@ -1200,10 +1563,17 @@ class OpenLayersMap {
 						$(popupContainer).on('click', "#"+ttSampleId, () => {
 							let sr = this.sqs.siteReportManager.siteReport;
 							sr.focusOn({ section: "samples" });
-							sr.expandSampleGroup(fprop.sampleGroupId, fprop.name);
-							sr.pageFlipToSample(fprop.sampleGroupId, fprop.name);
-							sr.scrollToSample(fprop.sampleGroupId, fprop.name);
-							sr.highlightSampleRow(fprop.sampleGroupId, fprop.name);
+							
+							if(fprop.level == "Sample group") {
+								sr.highlightSampleGroupRow(fprop.sampleGroupId);
+							}
+							if(fprop.level == "Sample") {
+								sr.expandSampleGroup(fprop.sampleGroupId, fprop.name);
+								sr.pageFlipToSample(fprop.sampleGroupId, fprop.name);
+								sr.scrollToSample(fprop.sampleGroupId, fprop.name);
+								sr.highlightSampleRow(fprop.sampleGroupId, fprop.name);
+							}
+							
 						});
 					}
 				}
@@ -1298,6 +1668,56 @@ class OpenLayersMap {
 		}));
 		
 		return styles;
+	}
+
+	pointsToGeoJSON(points) {
+		let geojson = {
+			"type": "FeatureCollection",
+			"features": []
+		};
+
+		let localCoordinateSystemFound = false;
+		let epsg4326CoordinateSystemFound = false;
+		
+		points.forEach(point => {
+
+			if(point.planarCoordSys == "EPSG:4326") {
+				epsg4326CoordinateSystemFound = true;
+			}
+			else {
+				localCoordinateSystemFound = true;
+			}
+
+			let feature = {
+				"type": "Feature",
+				"geometry": {
+					"type": "Point",
+					"coordinates": [point.x, point.y]
+				},
+				"properties": {
+					"sampleGroupId": point.sampleGroupId,
+					"sampleGroupName": point.sampleGroupName,
+					"tooltip": point.tooltip ? point.tooltip : "No information available",
+					"level": point.level ? point.level : "N/A",
+				}
+			};
+			geojson.features.push(feature);
+		});
+
+		if(localCoordinateSystemFound && !epsg4326CoordinateSystemFound) {
+			geojson.coordinateSystem = "local";
+		}
+		if(epsg4326CoordinateSystemFound && !localCoordinateSystemFound) {
+			geojson.coordinateSystem = "EPSG:4326";
+		}
+		if(localCoordinateSystemFound && epsg4326CoordinateSystemFound) {
+			geojson.coordinateSystem = "mixed";
+		}
+		if(!localCoordinateSystemFound && !epsg4326CoordinateSystemFound) {
+			geojson.coordinateSystem = "unknown";
+		}
+
+		return geojson;
 	}
 
 	coordinatesToPoints(coordinates) {
@@ -1448,13 +1868,12 @@ class OpenLayersMap {
 				coordinateSystem = "local";
 				break;
 			case 105: //"Local grid" 
-				//outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
-				outputCoords = proj4("EPSG:9999", "EPSG:4326", [workingCoordinates.x.measurement, workingCoordinates.y.measurement]);
+				outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
 				coordinateSystem = "local";
 				break;
 			case 108: //"Göteborgs kommuns koordinatsystem" - we treat this as a local grid, for now
-				outputCoords = proj4("EPSG:3006", "EPSG:4326", [workingCoordinates.x.measurement, workingCoordinates.y.measurement]);
-				coordinateSystem = "EPSG:4326";
+				outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+				coordinateSystem = "local";
 				break;
 			case 103: //"RT90 5 gon V"
 				let rt90Coords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];

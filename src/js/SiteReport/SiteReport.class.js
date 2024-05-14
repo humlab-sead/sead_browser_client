@@ -55,6 +55,8 @@ class SiteReport {
 
 		this.fetchSite().then(siteData => {
 			console.log(siteData);
+			this.linkDataStructures(siteData);
+
 			this.siteData = siteData;
 			this.fetchComplete = true;
 			this.hideLoadingIndicator();
@@ -95,6 +97,42 @@ class SiteReport {
 
 		$("#site-report-exit-menu").on("click", () => {
 			this.siteReportManager.unrenderSiteReport();
+		});
+	}
+
+	linkDataStructures(siteData) {
+		siteData.sample_groups.forEach(sampleGroup => {
+			//link methods and dimensions to coordinates for sample groups
+			sampleGroup.coordinates.forEach(coord => {
+				siteData.lookup_tables.methods.forEach(cm => {
+					if(cm.method_id == coord.coordinate_method_id) {
+						coord.coordinate_method = cm;
+					}
+				});
+
+				siteData.lookup_tables.dimensions.forEach(dim => {
+					if(dim.dimension_id == coord.dimension_id) {
+						coord.dimension = dim;
+					}
+				});
+			});
+
+			//link methods and dimensions to samples for samples
+			sampleGroup.physical_samples.forEach(sample => {
+				sample.coordinates.forEach(coord => {
+					siteData.lookup_tables.methods.forEach(cm => {
+						if(cm.method_id == coord.coordinate_method_id) {
+							coord.coordinate_method = cm;
+						}
+					});
+		
+					siteData.lookup_tables.dimensions.forEach(dim => {
+						if(dim.dimension_id == coord.dimension_id) {
+							coord.dimension = dim;
+						}
+					});
+				});
+			});
 		});
 	}
 
@@ -1303,6 +1341,15 @@ class SiteReport {
 		let rowNode = dataTable.row(rowObj.index()).node();
 
 		$(rowNode)[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}
+
+	highlightSampleGroupRow(sampleGroupId) {
+		$(".highlighted-table-row").removeClass("highlighted-table-row");
+		$("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").addClass("highlighted-table-row");
+		
+		$("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]")[0].addEventListener('animationend', function() {
+			$("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").removeClass('highlighted-table-row');
+		});
 	}
 
 	highlightSampleRow(sampleGroupId, sampleId) {

@@ -132,9 +132,7 @@
 }
 
 #site-report-map-container {
-  border: solid #ccc 1px;
-  margin-top: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 1em;
   height: 15em;
 }
 
@@ -263,6 +261,10 @@
   border-bottom: 1px solid #ccc;
 }
 
+#site-report-sample-map-container {
+  position: relative;
+}
+
 /*
 .site-report-aux-header-container:after {
   content: '';
@@ -290,13 +292,10 @@
   padding-top: 5px;
   padding-bottom: 3px;
   margin: 0px;
+  font-weight: bold;
 }
 
 .site-report-aux-info-text-container {
-  padding-left: 5px;
-  padding-right: 5px;
-  margin-top: 5px;
-  margin-bottom: 10px;
   font-family: $normal-font;
 }
 
@@ -761,4 +760,15 @@ tr.site-report-table-row-with-subtable:hover td {
   font-size: 1em;
   color: #444;
   margin-top: 0;
+}
+
+.ol-overlay-container-info-box {
+  display: block;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 0.5em;
+  border: 1px solid #aaa;
+  z-index: 100;
 }

@@ -2,7 +2,7 @@
 import { nanoid } from 'nanoid';
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
+import { Tile as TileLayer, Vector as VectorLayer, Graticule } from 'ol/layer';
 import { Group as GroupLayer } from 'ol/layer';
 import { Vector as VectorSource, StadiaMaps } from 'ol/source';
 import {fromLonLat, transform} from 'ol/proj.js';
@@ -14,6 +14,8 @@ import css from '../../../stylesheets/style.scss';
 import DatingToPeriodDataset from './DatasetModules/DatingToPeriodDataset.class';
 import { Chart } from "chart.js";
 import DendrochronologyDataset from './DatasetModules/DendrochronologyDataset.class';
+import OpenLayersMap from '../../Common/OpenLayersMap.class';
+import SqsMenu from '../../SqsMenu.class';
 
 /*
 * Class: BasicSiteInformation
@@ -117,41 +119,44 @@ class BasicSiteInformation {
 		}
 		
 		var node = $(".site-report-aux-info-container");
-		node
-			.append("<div class='site-report-aux-header-container'><h4>Site identifier</h4></div>")
-			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-aux-info-text-container'>"+siteData.site_id+"</div>")
-			//.append("<div class='site-report-aux-header-container'><h4>Site name</h4></div>")
-			//.append("<div class='site-report-aux-header-underline'></div>")
-			//.append("<div class='site-report-aux-info-text-container'>"+data.siteName+"</div>")
-			.append("<div class='site-report-aux-header-container'><h4>Location</h4></div>")
-			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div id='site-report-locations-container'></div>")
-			.append("<div class='site-report-aux-header-container'><h4>Export</h4></div>")
-			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-aux-info-text-container'>"+exportLinksHtml+"</div>")
-			.append("<div class='site-report-aux-header-container'><h4>Description</h4></div>")
-			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>"+siteDecription+"</div>")
-			.append(`<div id='site-report-time-overview-container' class='site-report-aux-info-text-container'>
-				<div class='site-report-aux-header-container'><h4>Site dating overview</h4></div>
-				<div class='site-report-aux-header-underline'></div>
-				<div id="site-report-time-overview"></div>
-			</div>`)
-			.append("<div class='site-report-aux-header-container'><h4>Site reference</h4></div>")
-			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+siteReferencesHtml+"</div>")
-			.append("<div class='site-report-aux-header-container'><h4>Sample group references</h4></div>")
-			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+sampleGroupReferencesHtml+"</div>")
-			.append("<div class='site-report-aux-header-container'><h4>Dataset references</h4></div>")
-			.append("<div class='site-report-aux-header-underline'></div>")
-			.append("<div class='site-report-site-description site-report-aux-info-text-container'>"+datasetReferencesHtml+"</div>");
-			
+
+		let auxInfoHtml = `<div class='site-report-aux-header-container'><h4>Site identifier</h4></div>
+		<div class='site-report-aux-header-underline'></div>
+		<div class='site-report-aux-info-text-container site-report-information-item'>${siteData.site_id}</div>
+		<div class='site-report-aux-header-container'><h4>Site location</h4></div>
+		<div class='site-report-aux-header-underline'></div>
+		<div id='site-report-locations-container' class='site-report-information-item'></div>
+		<div class='site-report-aux-header-container'><h4>Sample locations</h4></div>
+		<div class='site-report-aux-header-underline'></div>
+		<div id='site-report-sample-coordinates-container' class='site-report-information-item'></div>
+		<div class='site-report-aux-header-container'><h4>Export</h4></div>
+		<div class='site-report-aux-header-underline'></div>
+		<div class='site-report-aux-info-text-container site-report-information-item'>${exportLinksHtml}</div>
+		<div class='site-report-aux-header-container'><h4>Description</h4></div>
+		<div class='site-report-aux-header-underline'></div>
+		<div class='site-report-information-item site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>${siteDecription}</div>
+		<div id='site-report-time-overview-container' class='site-report-aux-info-text-container'>
+			<div class='site-report-aux-header-container'><h4>Site dating overview</h4></div>
+			<div class='site-report-aux-header-underline'></div>
+			<div id="site-report-time-overview" class='site-report-information-item'></div>
+		</div>
+		<div class='site-report-aux-header-container'><h4>Site reference</h4></div>
+		<div class='site-report-aux-header-underline'></div>
+		<div class='site-report-site-description site-report-aux-info-text-container site-report-information-item'>${siteReferencesHtml}</div>
+		<div class='site-report-aux-header-container'><h4>Sample group references</h4></div>
+		<div class='site-report-aux-header-underline'></div>
+		<div class='site-report-site-description site-report-aux-info-text-container site-report-information-item'>${sampleGroupReferencesHtml}</div>
+		<div class='site-report-aux-header-container'><h4>Dataset references</h4></div>
+		<div class='site-report-aux-header-underline'></div>
+		<div class='site-report-site-description site-report-aux-info-text-container site-report-information-item'>${datasetReferencesHtml}</div>`;
+
+		node.append(auxInfoHtml);
 		
 		this.sqs.tooltipManager.registerTooltip("#site-report-time-overview-container .site-report-aux-header-container h4", "This chart shows the extremes (oldest and youngest) of all dated samples in this site, categorized by type of dating. Dating is shown as years before present (BP), which in SEAD is defined as the year "+this.sqs.config.constants.BP+".", {placement: "top", drawSymbol: true});
 
-		$("#site-report-locations-container").append("<div id='site-report-map-container'></div>");
+		$("#site-report-locations-container").append("<div id='site-report-map-container'>");
+		$("#site-report-sample-coordinates-container").append("<div id='site-report-sample-map-container'></div>");
+
 
 		var locationsContainer = $("#site-report-locations-container");
 		for(var i = 0; i < siteData.location.length; i++) {
@@ -171,6 +176,7 @@ class BasicSiteInformation {
 		});
 		
 		this.renderMiniMap(siteData);
+		this.renderSampleMap(siteData);
 
 		this.sqs.sqsEventListen("analysisSectionsBuilt", () => {
 			this.renderTimeOverview("site-report-time-overview");
@@ -588,6 +594,368 @@ class BasicSiteInformation {
 		this.sqs.sqsEventListen("layoutResize", () => {
 			this.olMap.updateSize();
 		});
+	}
+
+	getMapSampleGroupLocationPointsFromSiteData(olMap, siteData, sampleGroupIdFilter = null) {
+		let sampleGroupPoints = [];
+		siteData.sample_groups.forEach(sampleGroup => {
+			if(sampleGroupIdFilter && sampleGroup.sample_group_id != sampleGroupIdFilter) {
+				return;
+			}
+			if(sampleGroup.coordinates && sampleGroup.coordinates.length > 0) {
+				let points = olMap.coordinatesToPoints(sampleGroup.coordinates);
+				points.forEach(p => {
+					p.level = "Sample group";
+					p.name = sampleGroup.sample_group_name;
+					p.sampleGroupId = sampleGroup.sample_group_id;
+					p.sampleGroupName = sampleGroup.sample_group_name;
+					p.tooltip = sampleGroup.sample_group_name;
+				});
+				sampleGroupPoints.push(...points);
+			}
+		});
+
+		return sampleGroupPoints;
+	}
+
+	getMapSampleLocationPointsFromSiteData(olMap, siteData, sampleGroupIdFilter = null) {
+		let samplePoints = [];
+		siteData.sample_groups.forEach(sampleGroup => {
+			if(sampleGroupIdFilter && sampleGroup.sample_group_id != sampleGroupIdFilter) {
+				return;
+			}
+			
+			sampleGroup.physical_samples.forEach(sample => {
+				if(sample.coordinates && sample.coordinates.length > 0) {
+					let points = olMap.coordinatesToPoints(sample.coordinates);
+					points.forEach(p => {
+						p.level = "Sample";
+						p.name = sample.sample_name;
+						p.sampleName = sample.sample_name;
+						p.sampleGroupId = sampleGroup.sample_group_id;
+						p.sampleGroupName = sampleGroup.sample_group_name;
+						p.tooltip = sample.sample_name;
+					});
+					samplePoints.push(...points);
+				}
+			});
+		});
+
+		return samplePoints;
+	}
+
+	renderSampleMap(siteData) {
+		$("#site-report-sample-map-container").html("");
+
+		//menu stuff
+		let mapMenu = `
+		<div class='menu-row-container'>
+			<div class='map-base-layer-menu-container'>
+				<div class='menu-row-item'>Base layers</div>
+				<div class='map-base-layer-menu sqs-menu-container'></div>
+			</div>
+			<div class='menu-row-item-divider'></div>
+			<div class='map-export-menu-container'>
+				<div class='menu-row-item'>Export</div>
+				<div class='map-export-menu sqs-menu-container'></div>
+			</div>
+			<div class='menu-row-item-divider'></div>
+			<div class='map-sample-group-menu-container'>
+				<div class='menu-row-item'>Sample group</div>
+				<div class='map-sample-group-menu sqs-menu-container'></div>
+			</div>
+		</div>
+		`;
+
+		$("#site-report-sample-map-container").append(mapMenu);
+
+		let sampleGroupMenuItems = [{
+			name: "all",
+			title: "All",
+			staticSelection: false,
+			selected: true,
+			callback: () => {
+				this.setSampleMapData(olMap, siteData);
+			}
+		}];
+
+		let siteHasSampleCoordinates = false;
+		siteData.sample_groups.forEach(sampleGroup => {
+			let sampleGroupHasCoordinates = false;
+			if(sampleGroup.coordinates && sampleGroup.coordinates.length > 0) {
+				sampleGroupHasCoordinates = true;
+				siteHasSampleCoordinates = true;
+			}
+			sampleGroup.physical_samples.forEach(sample => {
+				if(sample.coordinates && sample.coordinates.length > 0) {
+					sampleGroupHasCoordinates = true;
+					siteHasSampleCoordinates = true;
+				}
+			});
+
+			if(sampleGroupHasCoordinates) {
+				sampleGroupMenuItems.push({
+					name: sampleGroup.sample_group_id,
+					title: sampleGroup.sample_group_name,
+					staticSelection: false,
+					selected: false,
+					callback: () => {
+						this.setSampleMapData(olMap, siteData, sampleGroup.sample_group_id)
+					}
+				});
+			}
+		});
+
+		if(!siteHasSampleCoordinates) {
+			$("#site-report-sample-map-container").html("There are no samples or sample groups with coordinates in this site.");
+			return;
+		}
+
+		let olMap = new OpenLayersMap(this.sqs);
+		olMap.render("#site-report-sample-map-container");
+		
+		var menu = {
+			title: "<i class=\"fa fa-globe result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Sample group</span>", //The name of the menu as it will be displayed in the UI
+			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
+			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
+			anchor: "#site-report-sample-map-container .map-sample-group-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
+			staticSelection: true, //whether a selected item remains highlighted or not, purely visual
+			visible: true, //show this menu by default
+			style: {
+				menuTitleClass: "result-map-control-menu-title",
+				l1TitleClass: "result-map-control-item-title"
+			},
+			items: sampleGroupMenuItems,
+			triggers: [{
+				selector: "#site-report-sample-map-container .map-sample-group-menu-container",
+				on: "click"
+			}]
+		};
+		new SqsMenu(this.sqs, menu);
+
+		let sampleGroupsGeojson = this.getSampleGroupsAsGeoJSON(olMap, siteData.sample_groups, null);
+		let samplesGeojson = this.getSamplesAsGeoJSON(olMap, siteData.sample_groups, null);
+		let allGeojson = sampleGroupsGeojson;
+		allGeojson.features.push(...samplesGeojson.features);
+		olMap.setGeojsonData(allGeojson);
+		//olMap.renderExportMenu("#site-report-sample-map-container .map-export-menu-container", siteData);
+
+		let exportMenu = {
+			title: "<i class=\"fa fa-download result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Export</span>", //The name of the menu as it will be displayed in the UI
+			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
+			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
+			anchor: "#site-report-sample-map-container .map-export-menu-container .map-export-menu", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
+			staticSelection: true, //whether a selected item remains highlighted or not, purely visual
+			visible: true, //show this menu by default
+			style: {
+				menuTitleClass: "result-map-control-menu-title",
+				l1TitleClass: "result-map-control-item-title"
+			},
+			items: [ //The menu items contained in this menu
+			],
+			triggers: [{
+				selector: "#site-report-sample-map-container .map-export-menu-container",
+				on: "click"
+			}]
+		};
+
+		exportMenu.items.push({
+			name: "exportMap",
+			title: "GeoJSON",
+			tooltip: "",
+			callback: () => {
+				olMap.exportMapAsGeoJSON(siteData);
+			}
+		});
+
+		new SqsMenu(this.sqs, exportMenu);
+		//end of menu stuff
+
+		this.setSampleMapData(olMap, siteData);
+
+		olMap.setMapBaseLayer("topoMap");
+	}
+
+	setSampleMapData(olMap, siteData, sampleGroupId = null) {
+		let sampleGroupIdFilter = sampleGroupId;
+		let sampleGroupPoints = this.getMapSampleGroupLocationPointsFromSiteData(olMap, siteData, sampleGroupIdFilter);
+		let samplePoints = this.getMapSampleLocationPointsFromSiteData(olMap, siteData, sampleGroupIdFilter);
+
+		if(sampleGroupPoints.length == 0 && samplePoints.length == 0) {
+			console.log("There are no samples or sample groups with coordinates in this site. Not rendering samples map.");
+			olMap.addOverlayInfoBox("There are no samples or sample groups with coordinates in this site.", "top");
+			return false;
+		}
+
+		let foundLocalCoordinates = false;
+		let renderBaseLayer = false;
+		for(let key in samplePoints) {
+			if(samplePoints[key].planarCoordSys == "EPSG:4326") {
+				renderBaseLayer = true;
+			}
+			else {
+				foundLocalCoordinates = true;
+			}
+		}
+
+		for(let key in sampleGroupPoints) {
+			if(sampleGroupPoints[key].planarCoordSys == "EPSG:4326") {
+				renderBaseLayer = true;
+			}
+			else {
+				foundLocalCoordinates = true;
+			}
+		}
+
+		if(!renderBaseLayer) {
+			$("#site-report-sample-map-container .map-base-layer-menu-container").hide();
+		}
+		else {
+			$("#site-report-sample-map-container .map-base-layer-menu-container").show();
+		}
+
+		if(renderBaseLayer && foundLocalCoordinates) {
+			console.warn("WARN: Found local coordinates mixed in with WGS84 in sample data. Ignoring local coordinates.");
+			//add map overlay explaining that local coordinates are mixed in with WGS84
+			olMap.addOverlayInfoBox("This site contains local coordinate systems mixed with WGS84. The map is displayed in WGS84, and local coordinates are ignored.");
+		}
+		else {
+			olMap.removeOverlayInfoBox();
+		}
+
+		let sampleGroupFeatures = olMap.getFeaturesFromSamplePoints(sampleGroupPoints);
+		let sampleFeatures = olMap.getFeaturesFromSamplePoints(samplePoints);
+
+		//remove any previous dataLayers
+		olMap.removeLayer("Sample groups");
+		olMap.removeLayer("Samples");
+
+		olMap.addPointsLayerFromFeatures("Sample groups", sampleGroupFeatures, "sampleGroupCoordinates");
+		olMap.addPointsLayerFromFeatures("Samples", sampleFeatures, "sampleCoordinates");
+
+		let sampleGroupsExtent = olMap.getExtentFromFeatures(sampleGroupFeatures);
+		let samplesExtent = olMap.getExtentFromFeatures(sampleFeatures);
+
+		let combinedExtent = [];
+		if(!sampleGroupsExtent) {
+			combinedExtent = samplesExtent;
+		}
+		else if(!samplesExtent) {
+			combinedExtent = sampleGroupsExtent;
+		}
+		else {
+			combinedExtent = olMap.combineExtents(sampleGroupsExtent, samplesExtent);
+		}
+		
+		
+		let padding = 30;
+		let maxZoom = renderBaseLayer ? 16 : 100;
+		olMap.olMap.getView().fit(combinedExtent, {
+			padding: [padding, padding, padding, padding],
+			maxZoom: maxZoom,
+			duration: 500
+		});
+
+		if(renderBaseLayer) {
+			olMap.addStandardBaseLayers(); //this is safe to run even if the layers are already added
+			$("#site-report-sample-map-container .map-base-layer-menu-container").show();
+			olMap.renderBaseLayerMenu("#site-report-sample-map-container .map-base-layer-menu-container");
+		}
+		else {
+			$("#site-report-sample-map-container .map-base-layer-menu-container").hide();
+			// Create a Graticule control with fine grey lines if it doesn't already exist
+			if(olMap.olMap.getControls().getArray().filter(control => control instanceof Graticule).length == 0) {
+				let graticule = new Graticule({
+					strokeStyle: new Stroke({
+						color: 'rgba(0, 0, 0, 0.5)',
+						width: 1,
+						lineDash: [0.5, 4],
+					}),
+					showLabels: false,
+				});
+				
+				olMap.olMap.addControl(graticule);
+			}
+		}
+
+		let selectStyle = (feature) => {
+			let dataLayer = olMap.getVisibleDataLayer();
+			if(!dataLayer) {
+				console.warn("No visible data layer");
+				return;
+			}
+
+			return new Style({
+				image: new CircleStyle({
+					radius: 10,
+					stroke: new Stroke({
+						color: "#fff"
+					}),
+					fill: new Fill({
+						color: "#ff0000"
+					})
+				})
+			});
+		};
+
+		olMap.addSelectInteraction(selectStyle);
+
+		let sampleGroupsGeojson = this.getSampleGroupsAsGeoJSON(olMap, siteData.sample_groups, sampleGroupId);
+		let samplesGeojson = this.getSamplesAsGeoJSON(olMap, siteData.sample_groups, sampleGroupId);
+		let allGeojson = sampleGroupsGeojson;
+		allGeojson.features.push(...samplesGeojson.features);
+		olMap.setGeojsonData(allGeojson);
+	}
+
+	getSampleGroupsAsGeoJSON(olMap, sampleGroups, sampleGroupIdFilter = null) {
+		let sampleGroupPoints = [];
+		sampleGroups.forEach(sampleGroup => {
+			if(sampleGroupIdFilter && sampleGroup.sample_group_id != sampleGroupIdFilter) {
+				return;
+			}
+			if(sampleGroup.coordinates && sampleGroup.coordinates.length > 0) {
+				let points = olMap.coordinatesToPoints(sampleGroup.coordinates);
+				points.forEach(p => {
+					p.level = "Sample group";
+					p.name = sampleGroup.sample_group_name;
+					p.sampleGroupId = sampleGroup.sample_group_id;
+					p.sampleGroupName = sampleGroup.sample_group_name;
+					p.tooltip = sampleGroup.sample_group_name;
+				});
+				sampleGroupPoints.push(...points);
+			}
+		});
+
+		let sampleGroupsGeojson = olMap.pointsToGeoJSON(sampleGroupPoints);
+
+		return sampleGroupsGeojson;
+	}
+
+	getSamplesAsGeoJSON(olMap, sampleGroups, sampleGroupIdFilter = null) {
+		let samplePoints = [];
+		sampleGroups.forEach(sampleGroup => {
+			if(sampleGroupIdFilter && sampleGroup.sample_group_id != sampleGroupIdFilter) {
+				return;
+			}
+			
+			sampleGroup.physical_samples.forEach(sample => {
+				if(sample.coordinates && sample.coordinates.length > 0) {
+					let points = olMap.coordinatesToPoints(sample.coordinates);
+					points.forEach(p => {
+						p.level = "Sample";
+						p.name = sample.sample_name;
+						p.sampleName = sample.sample_name;
+						p.sampleGroupId = sampleGroup.sample_group_id;
+						p.sampleGroupName = sampleGroup.sample_group_name;
+						p.tooltip = sample.sample_name;
+					});
+					samplePoints.push(...points);
+				}
+			});
+		});
+		let samplesGeojson = olMap.pointsToGeoJSON(samplePoints);
+
+		return samplesGeojson;
 	}
 	
 	destroy() {

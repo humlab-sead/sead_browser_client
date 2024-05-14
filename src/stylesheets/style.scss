@@ -257,6 +257,19 @@ div:focus {
     "section-left section-right";
 }
 
+.site-report-information-item {
+  padding: 0.5em;
+  margin-bottom: 1em;
+}
+
+.site-report-information-item ul {
+  padding-left: 1.5em;
+}
+
+.site-report-information-item ul.site-report-export-links {
+  padding-left: 0em;
+}
+
 h1.main-header {
 	margin-top:0px;
 	margin-bottom: 0.0vh;
@@ -3507,6 +3520,10 @@ svg text {
 }
 
 .highlighted-table-row {
+  animation: gradientAnimation .5s ease-out 5;
+}
+
+.highlighted-table-row td {
   animation: gradientAnimation .5s ease-out 5;
 }
 

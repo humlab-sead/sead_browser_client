@@ -804,8 +804,7 @@ class ResultMap extends ResultModule {
 	* Function: getPointStyle
 	*/
 	getPointStyle(feature, options = { selected: false, highlighted: false }) {
-		
-		var pointSize = 8;
+		var pointSize = 12;
 		var zIndex = 0;
 		var text = "";
 		
