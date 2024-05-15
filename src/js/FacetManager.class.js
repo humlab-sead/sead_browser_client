@@ -243,6 +243,8 @@ class FacetManager {
 				return new RangeFacet(this.sqs, this.getNewFacetId(), template);
 			case "geopolygon":
 				return new MapFacet(this.sqs, this.getNewFacetId(), template);
+			case "rangesintersect":
+				return new RangeFacet(this.sqs, this.getNewFacetId(), template);
 		}
 	}
 
@@ -1097,7 +1099,7 @@ class FacetManager {
 			* may not map up to the existing categories.
 			*/
 			//if(facetState[key].type == "range" && facetState[key].selections.length == 2 && requestInfo.targetCode != facetState[key].name) {
-			if(facetState[key].type == "range" && facetState[key].selections.length == 2) {
+			if((facetState[key].type == "range" || facetState[key].type == "rangesintersect")  && facetState[key].selections.length == 2) {
 				picks.push({
 					pickType: 2, //0 = ukn, 1 = discrete, 2 = lower, 3 = upper
 					pickValue: facetState[key].selections[0],
