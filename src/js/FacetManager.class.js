@@ -241,10 +241,13 @@ class FacetManager {
 				return new DiscreteFacet(this.sqs, this.getNewFacetId(), template);
 			case "range":
 				return new RangeFacet(this.sqs, this.getNewFacetId(), template);
-			case "geopolygon":
-				return new MapFacet(this.sqs, this.getNewFacetId(), template);
 			case "rangesintersect":
 				return new RangeFacet(this.sqs, this.getNewFacetId(), template);
+			case "geopolygon":
+				return new MapFacet(this.sqs, this.getNewFacetId(), template);
+			default:
+				console.warn("Facet type not recognized: "+template.type);
+				return false;
 		}
 	}
 
