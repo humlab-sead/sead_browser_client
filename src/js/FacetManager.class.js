@@ -1216,7 +1216,7 @@ class FacetManager {
 				if(facetDef[gk].filters[fk].type == "discrete") {
 					icon = "<span class='sqs-menu-facet-type-icon'><i class=\"fa fa-list-ul\" aria-hidden=\"true\"></i></span>";
 				}
-				if(facetDef[gk].filters[fk].type == "range") {
+				if(facetDef[gk].filters[fk].type == "range" || facetDef[gk].filters[fk].type == "rangesintersect") {
 					icon = "<span class='sqs-menu-facet-type-icon'><i class=\"fa fa-bar-chart\" aria-hidden=\"true\"></i></span>";
 				}
 				if(facetDef[gk].filters[fk].type == "multistage") {
