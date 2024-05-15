@@ -723,6 +723,7 @@ class OpenLayersMap {
 			  sampleGroupId: point.sampleGroupId,
 			  sampleGroupName: point.sampleGroupName,
 			  tooltip: point.tooltip,
+			  z: point.z,
 			});
 		});
 	}
@@ -1721,6 +1722,24 @@ class OpenLayersMap {
 	}
 
 	coordinatesToPoints(coordinates) {
+		//do some lookups on the method and dimension unit_id's
+		coordinates.forEach(coord => {
+			if(coord.coordinate_method && coord.coordinate_method.unit_id) {
+				this.sqs.siteReportManager.siteReport.siteData.lookup_tables.units.forEach(unit => {
+					if(unit.unit_id == coord.coordinate_method.unit_id) {
+						coord.coordinate_method.unit = unit;
+					}
+				});
+			}
+			if(coord.dimension && coord.dimension.unit_id) {
+				this.sqs.siteReportManager.siteReport.siteData.lookup_tables.units.forEach(unit => {
+					if(unit.unit_id == coord.dimension.unit_id) {
+						coord.dimension.unit = unit;
+					}
+				});
+			}
+		});
+
 		let points = [];
 		if(coordinates.length == 0) {
 			return;

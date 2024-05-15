@@ -629,12 +629,18 @@ class BasicSiteInformation {
 				if(sample.coordinates && sample.coordinates.length > 0) {
 					let points = olMap.coordinatesToPoints(sample.coordinates);
 					points.forEach(p => {
+
+						let tooltipText = sample.sample_name;
+						if(p.zString) {
+							tooltipText += " ("+p.zString+")";
+						}
+
 						p.level = "Sample";
 						p.name = sample.sample_name;
 						p.sampleName = sample.sample_name;
 						p.sampleGroupId = sampleGroup.sample_group_id;
 						p.sampleGroupName = sampleGroup.sample_group_name;
-						p.tooltip = sample.sample_name;
+						p.tooltip = tooltipText;
 					});
 					samplePoints.push(...points);
 				}
