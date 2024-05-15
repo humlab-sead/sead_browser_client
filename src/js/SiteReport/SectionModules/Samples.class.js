@@ -394,7 +394,7 @@ class Samples {
 		if(insertSampleGroupCoordinatesColumn) {
 			table.columns.push({
 				"title": "Coordinates",
-				"role": "coordinates"
+				"role": "coordinates",
 			});
 		}
 
@@ -428,13 +428,14 @@ class Samples {
 					});
 
 					row.push({
-						"value": "<i style=\"font-size: 2em;width:100%;text-align:center;\" class=\"fa fa-map-marker clickable\" aria-hidden=\"true\"></i>",
+						"value": "<i style=\"font-size: 1.5em;width:100%;text-align:center;\" class=\"fa fa-info-circle clickable\" aria-hidden=\"true\"></i>",
 						//"value": this.formatCoordinatesAsMarker(sg.coordinates),
 						"type": "cell",
 						//"tooltip": this.formatCoordinates(sg.coordinates),
 						"data": sg.coordinates,
 						"clickCallback": (row) => {
-							this.renderSampleGroupCoordinatesMap(sampleGroups, sg);
+							//this.renderSampleGroupCoordinatesMap(sampleGroups, sg);
+							this.sqs.dialogManager.showPopOver("Sample group coordinates", this.formatCoordinates(sg.coordinates));
 						}
 					});
 				}
@@ -442,6 +443,7 @@ class Samples {
 		});
 	}
 
+	/*
 	renderSampleGroupCoordinatesMap(sampleGroups, sampleGroup) {
 		let siteData = this.sqs.siteReportManager.siteReport.siteData;
 		let mapId = "map-"+nanoid();
@@ -491,6 +493,7 @@ class Samples {
 		map.fitToExtentGeojson();
 		map.addSelectInteraction(null, false);
 	}
+	*/
 	
 	formatCoordinates(coords) {
 		let siteData = this.sqs.siteReportManager.siteReport.siteData;
