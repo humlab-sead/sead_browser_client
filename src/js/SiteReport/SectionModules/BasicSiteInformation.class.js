@@ -631,9 +631,11 @@ class BasicSiteInformation {
 					points.forEach(p => {
 
 						let tooltipText = sample.sample_name;
+						/*
 						if(p.zString) {
 							tooltipText += " ("+p.zString+")";
 						}
+						*/
 
 						p.level = "Sample";
 						p.name = sample.sample_name;
@@ -672,8 +674,6 @@ class BasicSiteInformation {
 			</div>
 		</div>
 		`;
-
-		$("#site-report-sample-map-container").append(mapMenu);
 
 		let sampleGroupMenuItems = [{
 			name: "all",
@@ -719,6 +719,7 @@ class BasicSiteInformation {
 
 		let olMap = new OpenLayersMap(this.sqs);
 		olMap.render("#site-report-sample-map-container");
+		$("#site-report-sample-map-container").append(mapMenu);
 		
 		var menu = {
 			title: "<i class=\"fa fa-globe result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Sample group</span>", //The name of the menu as it will be displayed in the UI
@@ -852,7 +853,6 @@ class BasicSiteInformation {
 		else {
 			combinedExtent = olMap.combineExtents(sampleGroupsExtent, samplesExtent);
 		}
-		
 		
 		let padding = 30;
 		let maxZoom = renderBaseLayer ? 16 : 100;

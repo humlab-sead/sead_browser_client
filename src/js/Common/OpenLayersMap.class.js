@@ -1757,6 +1757,7 @@ class OpenLayersMap {
 		//a sample can have multiple z-coordinates, such as in the case where we have both "Depth from surface lower sample boundary" and "Depth from surface upper sample boundary"
 		let zCoords = this.getZCoordinatesFromCoordinates(coordinates);
 		let zCoordPresentation = "";
+
 		zCoords.forEach(zCoord => {
 			if(zCoordPresentation != "") {
 				zCoordPresentation += ", ";
@@ -2001,6 +2002,7 @@ class OpenLayersMap {
 		if(!zCoord) {
 			return null;
 		}
+		
 		let zCoordPresentation = "";
 		if(zCoord && zCoord.measurement) {
 			let title = zCoord.coordinate_method.method_abbrev_or_alt_name ? zCoord.coordinate_method.method_abbrev_or_alt_name : zCoord.coordinate_method.method_name;
@@ -2008,7 +2010,13 @@ class OpenLayersMap {
 			if(typeof zCoord.coordinate_method.unit != "undefined") {
 				unitString = zCoord.coordinate_method.unit.unit_abbrev ? zCoord.coordinate_method.unit.unit_abbrev : zCoord.coordinate_method.unit.unit_name;
 			}
-			zCoordPresentation = title+" "+parseFloat(zCoord.measurement)+" "+unitString;
+
+			let accuracyString = "";
+			if(zCoord.accuracy) {
+				accuracyString = " (Accuracy: ±"+parseFloat(zCoord.accuracy)+" "+unitString+")";
+			}
+
+			zCoordPresentation = title+" "+parseFloat(zCoord.measurement)+" "+unitString+accuracyString;
 		}
 
 		return zCoordPresentation;
