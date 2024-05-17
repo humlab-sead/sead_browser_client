@@ -127,18 +127,30 @@ class SeadQuerySystem {
 		//window.dispatchEvent(event);
 	}
 
-	setLoadingIndicator(containerNode, set = true) {
+	setLoadingIndicator(containerNode, set = true, nonInvasive = false) {
 		//Remove any overlay box that might already exist in this container (effectively overwriting that msg)
 		$(".overlay-msg-box", containerNode).remove();
 				
 		if(set) {
 			const frag = document.getElementById("logo-loading-indicator");
 			const node = document.importNode(frag.content, true);
-			$(containerNode).html("");
+			if(!nonInvasive) {
+				$(containerNode).html("");
+			}
 			$(containerNode).append(node);
+
+			if(nonInvasive) {
+				$(".logo-loading-indicator", containerNode).addClass("logo-loading-indicator-non-invasive");
+			}
 		}
 		else {
-			$(containerNode).html("");
+			if(nonInvasive) {
+				$(".logo-loading-indicator", containerNode).remove();
+			}
+			else {
+				$(containerNode).html("");
+			}
+			
 		}
 
 		/*

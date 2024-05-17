@@ -2668,6 +2668,14 @@ polyline{
   background-color: transparent;
 }
 
+.logo-loading-indicator-non-invasive img {
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 20000;
+  border-radius: 1em;
+  padding: 0.5em;
+  border: 1px solid #ccc;
+  box-shadow: 0px 0px .5em .25em $shadow-color;
+}
 
 #preload-failed-indicator {
   display:none;
