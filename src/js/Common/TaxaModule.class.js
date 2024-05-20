@@ -77,7 +77,6 @@ class TaxaModule {
 	* Function: fetchData
 	*/
 	fetchData() {
-		console.log("fetchData");
 		if(this.resultDataFetchingSuspended) {
 			this.pendingDataFetch = true;
 			return false;
