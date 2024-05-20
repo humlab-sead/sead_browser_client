@@ -308,33 +308,6 @@ class SiteReportChart {
 		return null;
 	}
 
-	getZcoordinateAsString(zCoord) {
-		if(!zCoord) {
-			return null;
-		}
-		let zCoordPresentation = "";
-		if(zCoord && zCoord.measurement) {
-
-			if(zCoord.coordinate_method.unit_id && typeof zCoord.coordinate_method.unit == "undefined") {
-				//lookup this unit
-				this.siteReport.siteData.lookup_tables.units.forEach(u => {
-					if(u.unit_id == zCoord.coordinate_method.unit_id) {
-						zCoord.coordinate_method.unit = u;
-					}
-				});
-			}
-
-			let title = zCoord.coordinate_method.method_abbrev_or_alt_name ? zCoord.coordinate_method.method_abbrev_or_alt_name : zCoord.coordinate_method.method_name;
-			let unitString = "";
-			if(typeof zCoord.coordinate_method.unit != "undefined") {
-				unitString = zCoord.coordinate_method.unit.unit_abbrev ? zCoord.coordinate_method.unit.unit_abbrev : zCoord.coordinate_method.unit.unit_name;
-			}
-			zCoordPresentation = title+" "+parseFloat(zCoord.measurement)+" "+unitString;
-		}
-
-		return zCoordPresentation;
-	}
-
 	auxOptionsMenu(anchorSelector) {
 		var menu = {
 			title: "<i class=\"fa fa-globe result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Altitude</span>", //The name of the menu as it will be displayed in the UI
