@@ -882,7 +882,6 @@ h1.main-header {
 
   .result-taxon-grid-container {
     display: block !important;
-    background: #fff !important;
     grid-template-areas:
             "a"
             "c"
@@ -908,8 +907,8 @@ h1.main-header {
   }
 
   .result-content-box {
-    page-break-inside: avoid;
-    background: #fff !important;
+    break-inside: avoid;
+    background: transparent !important;
   }
 
   #rcb-distribution-biblio {
