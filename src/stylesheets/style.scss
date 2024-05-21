@@ -848,13 +848,16 @@ h1.main-header {
             "f f e g";
 }
 
+.print-only-text {
+  display: none;
+}
+
 @media print {
 
   #main-container {
     position: absolute !important;
   }
   #filter-view-main-container {
-    display: none !important;
   }
 
   #popover-dialog {
@@ -865,6 +868,12 @@ h1.main-header {
     grid-template-rows: 1fr !important;
     padding:0 !important;
     margin:0 !important;
+    background: #fff !important;
+  }
+
+  #popover-dialog-frame {
+    border: none !important;
+    box-shadow: none !important;
   }
 
   .popover-close-btn {
@@ -873,6 +882,7 @@ h1.main-header {
 
   .result-taxon-grid-container {
     display: block !important;
+    background: #fff !important;
     grid-template-areas:
             "a"
             "c"
@@ -886,10 +896,20 @@ h1.main-header {
   }
   body {
     overflow: scroll !important;
+    background: #fff !important;
+  }
+
+  i.fa-question-circle {
+    display: none !important;
+  }
+
+  .print-only-text {
+    display: block !important;
   }
 
   .result-content-box {
     page-break-inside: avoid;
+    background: #fff !important;
   }
 
   #rcb-distribution-biblio {
@@ -914,6 +934,7 @@ h1.main-header {
   .result-content-box .header {
     font-size: 2em !important;
     color: #000 !important;
+    background: #fff;
   }
 
   .tab-buttons {
@@ -935,7 +956,6 @@ h1.main-header {
   .link-copy {
     display: none !important;
   }
-
 }
 
 .hidden-tooltip {

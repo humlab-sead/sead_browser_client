@@ -378,16 +378,18 @@ class TaxaModule {
 
 		let ttId = "tt-"+nanoid();
 		
+		let tooltipText = "Images are acquired through a fuzzy search, using search strings based on family, genus and species depending on what is available. Because of this, the image results may not represent the actual taxon.";
 		$("#result-taxon-image-info").html(`<div class='taxa-image-info'>
 		<span id='`+ttId+`'>Fuzzy search results</span>
+		<span class='print-only-text'>`+tooltipText+`</span>
 		</div>
 		<hr />`);
 		$("#result-taxon-image-info").show();
-
-		this.sqs.tooltipManager.registerTooltip("#"+ttId, "Images are acquired through a fuzzy search, using search strings based on family, genus and species depending on what is available. Because of this, the image results may not represent the actual taxon.", { drawSymbol:true });
+		
+		this.sqs.tooltipManager.registerTooltip("#"+ttId, tooltipText, { drawSymbol:true });
 
 		$("#result-taxon-image-container").html(imageNodes);
-		
+
 		return renderedImages;
 	}
 
@@ -745,7 +747,7 @@ class TaxaModule {
 			html += "<div id='"+group.domId+"' class='rcb-year-wheel'></div>";
 			html += "</div>";
 			$("#rcb-seasonlity-year-wheels", instance).append(html);
-
+			
 			this.sqs.tooltipManager.registerTooltip("#rcb-seasonlity-year-wheels-header > div", "Months in which this taxon has been observed as active.", { drawSymbol: true });
 
 			let tooltipText = "The activity: '"+activityName+"' is known for this species in the location: '"+locationName+"'";
@@ -777,6 +779,15 @@ class TaxaModule {
 		this.sqs.matomoTrackPageView("Taxon datasheet");
 
 		this.registerPrintButton();
+
+		window.addEventListener('beforeprint', (event) => {
+			console.log('Before print event triggered');
+			
+		});
+		
+		window.addEventListener('afterprint', (event) => {
+			console.log('After print event triggered');
+		});
 
 		return true;
 	}
