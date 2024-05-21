@@ -270,8 +270,8 @@ class OpenLayersMap {
             type: "baseLayer"
         });
 
-
 		this.baseLayers.push(gbifLayer);
+		this.olMap.addLayer(gbifLayer);
 	}
 	
 	addGbifLayerVector(url) {

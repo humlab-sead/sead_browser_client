@@ -637,10 +637,9 @@ class TaxaModule {
 		.then(response => response.json())
 		.then(data => {
 			let url = "https://api.gbif.org/v2/map/occurrence/density/{z}/{x}/{y}@2x.png?taxonKey="+data.speciesKey+"&bin=hex&hexPerTile=30&style=classic.poly";
-			modernDistMap.addGbifLayer(url);
-			//let url = "https://api.gbif.org/v2/map/occurrence/density/{z}/{x}/{y}.mvt?srs=EPSG:3857&taxonKey="+data.speciesKey;
-			//modernDistMap.addGbifLayerVector(url);
 			modernDistMap.render("#rcb-distribution-map");
+			modernDistMap.addStandardBaseLayers();
+			modernDistMap.addGbifLayer(url);
 			modernDistMap.setMapDataLayer("gbif", false);
 			modernDistMap.addTextOverlay("Data sourced from <a target='_blank' href='https://www.gbif.org/'>GBIF</a>.");
 		});
@@ -779,15 +778,6 @@ class TaxaModule {
 		this.sqs.matomoTrackPageView("Taxon datasheet");
 
 		this.registerPrintButton();
-
-		window.addEventListener('beforeprint', (event) => {
-			console.log('Before print event triggered');
-			
-		});
-		
-		window.addEventListener('afterprint', (event) => {
-			console.log('After print event triggered');
-		});
 
 		return true;
 	}
