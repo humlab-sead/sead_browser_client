@@ -596,6 +596,7 @@ class SiteReport {
 
 
 	getDataForXlsx(data) {
+		console.log(data)
 		// This will hold all the formatted samples
 		const formattedExcelRows = [];
 
@@ -619,7 +620,7 @@ class SiteReport {
 			if(subTableColumnKey == null) {
 				//this is just a plain table - no subtables
 				for(let key in sampleRow) {
-					if(key == "nodeId") {
+					if(key == "nodeId" || key == "meta") {
 						continue;
 					}
 					let r = sampleRow[key];
