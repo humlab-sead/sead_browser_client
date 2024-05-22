@@ -604,12 +604,22 @@ class BasicSiteInformation {
 			}
 			if(sampleGroup.coordinates && sampleGroup.coordinates.length > 0) {
 				let points = olMap.coordinatesToPoints(sampleGroup.coordinates);
+
+				let pointAccuracy = null;
+				if(sampleGroup.coordinates.length > 1) {
+					if(sampleGroup.coordinates[0].accuracy != sampleGroup.coordinates[1].accuracy) {
+						console.warn("WARN: Sample group coordinates have different accuracy values. Using the first one.");
+					}
+					pointAccuracy = sampleGroup.coordinates[0].accuracy;
+				}
+
 				points.forEach(p => {
 					p.level = "Sample group";
 					p.name = sampleGroup.sample_group_name;
 					p.sampleGroupId = sampleGroup.sample_group_id;
 					p.sampleGroupName = sampleGroup.sample_group_name;
 					p.tooltip = sampleGroup.sample_group_name;
+					p.accuracy = pointAccuracy;
 				});
 				sampleGroupPoints.push(...points);
 			}
@@ -628,6 +638,15 @@ class BasicSiteInformation {
 			sampleGroup.physical_samples.forEach(sample => {
 				if(sample.coordinates && sample.coordinates.length > 0) {
 					let points = olMap.coordinatesToPoints(sample.coordinates);
+
+					let pointAccuracy = null;
+					if(sample.coordinates.length > 1) {
+						if(sample.coordinates[0].accuracy != sample.coordinates[1].accuracy) {
+							console.warn("WARN: Sample coordinates have different accuracy values. Using the first one.");
+						}
+						pointAccuracy = sample.coordinates[0].accuracy;
+					}
+
 					points.forEach(p => {
 
 						let tooltipText = sample.sample_name;
@@ -643,6 +662,7 @@ class BasicSiteInformation {
 						p.sampleGroupId = sampleGroup.sample_group_id;
 						p.sampleGroupName = sampleGroup.sample_group_name;
 						p.tooltip = tooltipText;
+						p.accuracy = pointAccuracy;
 					});
 					samplePoints.push(...points);
 				}
