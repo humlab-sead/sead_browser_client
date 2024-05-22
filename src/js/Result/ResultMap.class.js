@@ -262,6 +262,14 @@ class ResultMap extends ResultModule {
 		});
 	}
 
+	setActive(active) {
+		super.setActive(active);
+
+		if(!active) {
+			$(this.renderIntoNode).hide();
+		}
+	}
+
 	/*
 	* Function: fetchData
 	*/

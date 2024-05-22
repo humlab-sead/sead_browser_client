@@ -267,7 +267,7 @@ class ResultManager {
 		if(!this.getModule(resultModuleId)) {
 			return false;
 		}
-
+		
 		if(renderModule && this.activeModuleId != "none") {
 			this.renderMsg(false);
 			let module = this.getActiveModule();
