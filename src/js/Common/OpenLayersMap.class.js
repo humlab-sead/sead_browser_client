@@ -714,7 +714,6 @@ class OpenLayersMap {
 			else {
 				olPoint = new Point([point.x, point.y]);
 			}
-			
 			return new Feature({
 			  geometry: olPoint,
 			  level: point.level,
@@ -724,6 +723,7 @@ class OpenLayersMap {
 			  sampleGroupName: point.sampleGroupName,
 			  tooltip: point.tooltip,
 			  z: point.z,
+			  accuracy: point.accuracy,
 			});
 		});
 	}
@@ -1004,7 +1004,27 @@ class OpenLayersMap {
 			zIndex = 10;
 		}
 
-		var styles = [];
+		/*
+		let accuracyLevels = [
+			'Precise',
+			'Locality',
+			'Parish',
+			'Municipality',
+			'County',
+			'Landscape'
+		];
+		*/
+
+		let styles = [];
+
+		let featureAccuracy = "Precise";
+		feature.get('features').forEach(f => {
+			let fProp = f.getProperties();
+			if(fProp.accuracy && fProp.accuracy != "Precise") {
+				featureAccuracy = "Not precise";
+			}
+		});
+		
 		styles.push(new Style({
 			image: new CircleStyle({
 				radius: pointSize,
@@ -1024,6 +1044,25 @@ class OpenLayersMap {
 				})
 			})
 		}));
+
+		if(featureAccuracy == "Not precise") {
+			styles.push(new Style({
+				image: new CircleStyle({
+					radius: 50,
+					fill: new Fill({
+						color: "rgba(0, 0, 180, 0.25)"
+					})
+				}),
+				zIndex: 5,
+				text: new Text({
+					text: clusterSizeText == 1 ? "" : clusterSizeText,
+					offsetY: 1,
+					fill: new Fill({
+						color: textColor
+					})
+				})
+			}));
+		}
 		
 		return styles;
 	}
