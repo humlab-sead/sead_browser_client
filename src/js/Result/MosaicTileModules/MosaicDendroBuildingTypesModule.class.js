@@ -15,6 +15,7 @@ class MosaicDendroBuildingTypesModule extends MosaicTileModule {
     }
 
     async render(renderIntoNode) {
+        super.render();
         this.renderComplete = false;
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");

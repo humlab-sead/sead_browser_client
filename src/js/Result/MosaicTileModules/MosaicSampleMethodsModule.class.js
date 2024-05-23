@@ -16,6 +16,7 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
     }
 
     async render(renderIntoNode = null) {
+        super.render();
         this.renderComplete = false;
         if(renderIntoNode) {
             this.renderIntoNode = renderIntoNode;

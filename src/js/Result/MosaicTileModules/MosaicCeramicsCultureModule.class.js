@@ -15,6 +15,7 @@ class MosaicCeramicsCultureModule extends MosaicTileModule {
     }
 
     async render(renderIntoNode) {
+        super.render();
         this.renderComplete = false;
         this.active = true;
         this.renderIntoNode = renderIntoNode;

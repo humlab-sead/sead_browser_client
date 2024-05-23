@@ -405,13 +405,13 @@ class ResultMosaic extends ResultModule {
 	}
 
 	bindGridModuleSelectionCallbacks() {
-		$(".result-mosaic-tile-chart-selector").on("change", (evt) => {
+		$(".result-mosaic-tile-chart-selector").on("change", async (evt) => {
 			let mosaicTileNode = $(evt.target).parent().parent();
 			let graphContainer = $(".result-mosaic-graph-container", mosaicTileNode);
 			let gridBoxId = graphContainer.attr("id");
 			let currentModuleInstanceId = graphContainer.attr("module-instance-id")
 			let currentModuleMeta = this.getModuleMetaByInstanceId(currentModuleInstanceId);
-			currentModuleMeta.module.unrender();
+			await currentModuleMeta.module.unrender();
 
 			let selectedModuleName = $(evt.target).val();
 

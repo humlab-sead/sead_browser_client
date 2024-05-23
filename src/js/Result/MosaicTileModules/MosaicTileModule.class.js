@@ -11,6 +11,7 @@ class MosaicTileModule {
         this.data = null;
         this.renderComplete = false;
         this.chartType = "";
+        this.name = "";
     }
 
     async fetch() {
@@ -43,6 +44,7 @@ class MosaicTileModule {
 
                     this.pendingRequestPromise = null;
                     this.active = false;
+                    console.log("Unrendered "+this.name+" module")
                     resolve();
                 }
             }, 100);
