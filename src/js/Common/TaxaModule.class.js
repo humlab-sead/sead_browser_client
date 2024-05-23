@@ -267,10 +267,17 @@ class TaxaModule {
 
 			let promises = [];
 
-			fetch(queryUrl).then(response => response.json()).then(eolResponse => {
+			let jsonPromise = fetch(queryUrl).then(response => response.json()).catch(err => {
+				console.warn(err);
+				reject(err);
+			});
+
+			jsonPromise.then(eolResponse => {
 				if(eolResponse.results.length < this.sqs.config.maxEolImageResults) {
 					eolResponse.results.forEach(eolSpecies => {
-						let p = fetch("https://eol.org/api/pages/1.0/"+eolSpecies.id+".json?details=true&images_per_page=10").then(response => response.json());
+						let p = fetch("https://eol.org/api/pages/1.0/"+eolSpecies.id+".json?details=true&images_per_page=10").then(response => response.json()).catch(err => {
+							reject(err);}
+						);
 						promises.push(p);
 					});
 
@@ -313,6 +320,9 @@ class TaxaModule {
 				$("#no-images-msg").show();
 				$("#result-taxon-image-container-eol-loading-indicator").hide();
 			}
+		}).catch(err => {
+			$("#images-error-msg").show();
+			$("#result-taxon-image-container-eol-loading-indicator").hide();
 		});
 
 		let taxonUrl = window.location.protocol+"//"+window.location.host+"/taxon/"+taxonData.taxon_id;
