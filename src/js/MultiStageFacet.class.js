@@ -69,6 +69,17 @@ class MultiStageFacet extends Facet {
 			this.selectPreviousFilterStage();
 		});
 		this.sqs.tooltipManager.registerTooltip(backButtonNode, "Go back to parent selection");
+
+		//FIXME: this is a temporary hacky fix, but we listen for site report switch event and hide the filter when the site report is active
+		//as a workaround. Because otherwise it can end up in a state where the filter is still visible in the site report view.
+		$(document).on('viewChange', (event, args) => {
+			if(args.viewName == "siteReport") {
+				$("#"+this.getCurrentFilter().domContainerId, this.domObj).css("display", "none");
+			}
+			else {
+				$("#"+this.getCurrentFilter().domContainerId, this.domObj).css("display", "block");
+			}
+		});
 	}
 
 	registerSortEvents() {

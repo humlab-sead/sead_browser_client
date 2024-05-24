@@ -923,7 +923,6 @@ class SeadQuerySystem {
 	
 	//FIXME: Maybe this can be made static?
 	sqsEventDispatch(eventName, args) {
-		//console.log("Event dispatch:", eventName, args);
 		$.event.trigger(eventName, args);
 	}
 
