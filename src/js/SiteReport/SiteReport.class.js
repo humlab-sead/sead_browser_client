@@ -583,11 +583,11 @@ class SiteReport {
 				}
 			});
 		}
-		
+
 		if(exportFormat == "pdf") {
-			node = $("<a id='site-report-png-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download PDF</a>");
+			node = $("<a id='site-report-print-btn' class='site-report-export-download-btn light-theme-button'>Download PDF</a>");
 			$(node).on("click", (evt) => {
-				this.renderDataAsPdf(exportStruct);
+				this.renderDataAsPdf(exportStruct, this.data);
 			});
 		}
 		
@@ -929,15 +929,14 @@ class SiteReport {
 		return $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
 	}
 	
-	renderDataAsPdf(exportStruct) {
-
+	async renderDataAsPdf(exportStruct, siteData) {
 		let includedColumns = [
 			'Sample name',
 			'Abundance count',
 			'Taxon',
 			'Identification levels',
 			'Element type',
-			'Modification'
+			'Modification',
 		];
 
 		let pdfDoc = {
@@ -959,18 +958,25 @@ class SiteReport {
 					text: exportStruct.meta.url+"\n\n",
 				},
 				{
-					text: "SEAD version",
+					text: "SEAD browser version",
 					style: "subheader2"
 				},
 				{
 					text: this.sqs.config.version+"\n\n",
 				},
 				{
-					text: "Reference",
+					text: "SEAD reference",
 					style: "subheader2"
 				},
 				{
-					text: exportStruct.meta.attribution+"\n\n",
+					text: exportStruct.meta.sead_reference+"\n\n",
+				},
+				{
+					text: "Dataset reference",
+					style: "subheader2"
+				},
+				{
+					text: exportStruct.meta.datasetReference+"\n\n",
 				},
 				{
 					text: "Site name",
@@ -978,6 +984,20 @@ class SiteReport {
 				},
 				{
 					text: this.siteData.site_name+"\n\n",
+				},
+				{
+					text: "Site location",
+					style: "subheader2"
+				},
+				{
+					text: exportStruct.meta.siteLocation+"\n\n",
+				},
+				{
+					text: "Site coordinates",
+					style: "subheader2"
+				},
+				{
+					text: exportStruct.meta.siteLocationCoordinates+"\n\n",
 				},
 				{
 					text: "Dataset",
@@ -1010,24 +1030,25 @@ class SiteReport {
 		};
 
 		
-		let headerRow = [];
+		let abundanceHeaderRow = [];
 		let taxonColKey = null;
 		let colKeys = [];
 		for(let colKey in exportStruct.datatable.columns) {
 			let col = exportStruct.datatable.columns[colKey];
+
 			if(col.exclude_from_export) {
 				continue;
 			}
 			if(col.title == "Taxon") {
-				taxonColKey = col.key;
+				taxonColKey = colKey;
 			}
 			if(includedColumns.includes(col.title)) {
-				headerRow.push(col.title);
+				abundanceHeaderRow.push(col.title);
 				colKeys.push(colKey);
 			}
 		}
 
-		let tableRows = [];
+		let abundanceTableRows = [];
 
 		for(let rowKey in exportStruct.datatable.rows) {
 			let row = exportStruct.datatable.rows[rowKey];
@@ -1046,18 +1067,72 @@ class SiteReport {
 				}
 			}
 			
-			tableRows.push(tableRow);
+			abundanceTableRows.push(tableRow);
 		}
 
-		tableRows.unshift(headerRow)
+		abundanceTableRows.unshift(abundanceHeaderRow)
+
+		pdfDoc.content.push({
+			text: "Taxa abundance and identification data",
+			style: "subheader"
+		});
+
+		pdfDoc.content.push({
+			table: {
+				body: abundanceTableRows
+			}
+		});
+
+		//add space between tables
+		pdfDoc.content.push({
+			text: "\n\n"
+		});
+		
+		
+		let biologyTableRows = [["Taxon", "Biology", "Distribution"]];
+
+		for(let rowKey in exportStruct.datatable.rows) {
+			let row = exportStruct.datatable.rows[rowKey];
+
+			let biologyText = "";
+			row[taxonColKey].rawValue.text_biology.forEach(bio => {
+				biologyText += bio.biology_text + "\n\n";
+			});
+
+			let distributionText = "";
+			row[taxonColKey].rawValue.text_distribution.forEach(distro => {
+				distributionText += distro.distribution_text + "\n\n";
+			});
+
+			biologyTableRows.push([row[3].value, biologyText, distributionText]);
+		}
+
+		//add a header explaining the table
+		pdfDoc.content.push({
+			text: "Taxa biology and distribution",
+			style: "subheader"
+		});
+
 		
 		pdfDoc.content.push({
 			table: {
-				body: tableRows
+				body: biologyTableRows
 			}
 		});
-		
-	
+
+
+		let refTableRows = [["Reference"]];
+
+		pdfDoc.content.push({
+			text: "References for species data",
+			style: "subheader"
+		});
+
+		pdfDoc.content.push({
+			table: {
+				body: refTableRows
+			}
+		});
 
 		pdfMake.createPdf(pdfDoc).open();
 	}
@@ -1170,6 +1245,14 @@ class SiteReport {
 				plainRef = "["+plainRef.replace(/\n/g, '] [')+"]";
 			}
 
+			let siteLocationString = "";
+			this.siteData.location.forEach((loc) => {
+				siteLocationString += loc.location_name + ", ";
+			});
+			siteLocationString = siteLocationString.slice(0, -2);
+
+			let siteLocationCoordinatesString = parseFloat(this.siteData.latitude_dd) + "\"N, " + parseFloat(this.siteData.longitude_dd) + "\"E, Altitude: " + parseFloat(this.siteData.altitude) + "m"	;
+
 			exportStruct = {
 				meta: {
 					site: this.siteId,
@@ -1180,6 +1263,8 @@ class SiteReport {
 					siteName: this.siteData.site_name,
 					url: this.sqs.config.serverRoot+"/site/"+this.siteId,
 					datasetReference: plainRef,
+					siteLocation: siteLocationString,
+					siteLocationCoordinates: siteLocationCoordinatesString
 				},
 				datatable: this.stripExcludedColumnsFromContentItem(contentItem).data
 			};

@@ -473,6 +473,10 @@ class ContentItemRenderer {
 				exportFormats = ["geojson"];
 			}
 
+			if(contentItem.exportFormats) {
+				exportFormats = exportFormats.concat(contentItem.exportFormats);
+			}
+
 			this.siteReport.renderExportDialog(exportFormats, section, contentItem);
 		});
 		

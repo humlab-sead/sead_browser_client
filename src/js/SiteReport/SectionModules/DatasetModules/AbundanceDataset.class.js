@@ -472,6 +472,7 @@ class AbundanceDataset extends DatasetModule {
 				"title": dataGroup.dataset_name,
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataGroup.id,
+				"exportFormats": ["pdf"],
 				"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
 				"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, false),
 				"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
@@ -1084,6 +1085,7 @@ class AbundanceDataset extends DatasetModule {
 			"title": analysis.datasetName,
 			"titleTooltip": "Name of the dataset",
 			"datasetId": analysis.datasetId,
+			"exportFormats": ["pdf"],
 			"data": {
 				"columns": columns,
 				"rows": rows
