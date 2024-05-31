@@ -724,7 +724,7 @@ class MultiStageFacet extends Facet {
 	* data - The data package from the server.
 	*/
 	importData(data) {
-		super.importData();
+		super.importData(data);
 
 		let filter = this.getFilterByName(data.FacetsConfig.TargetCode);
 

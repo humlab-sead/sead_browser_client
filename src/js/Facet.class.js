@@ -96,7 +96,22 @@ class Facet {
 				$(facet.getDomRef()).css("width", "100%"); //reset width to what we want since jQuery will change this to an absolute value after dragstop
 			}
 		});
-		
+
+		document.addEventListener('keydown', (evt) => {
+			if(evt.shiftKey && evt.key == "D") {
+				if($(".facet-sql-btn", this.getDomRef()).css("display") == "none") {
+					$(".facet-sql-btn", this.getDomRef()).show();
+				}
+				else {
+					$(".facet-sql-btn", this.getDomRef()).hide();
+				}
+			}
+        });
+
+		$(".facet-sql-btn", this.getDomRef()).on("click", () => {
+			const formattedSQL = this.sql.replace(/\n/g, "<br/>");
+			this.sqs.dialogManager.showPopOver("Filter SQL", formattedSQL);
+		});
 	}
 
 	setHeight(height = Config.facetBodyHeight) {
@@ -364,6 +379,7 @@ class Facet {
 	* data - The data package from the server.
 	*/
 	importData(data) {
+		this.sql = data.SqlQuery;
 		this.isDataLoaded = true;
 	}
 

@@ -253,6 +253,7 @@ class ResultMap extends ResultModule {
 	* Called from outside. Its the command from sqs to render the contents of this module. Will fetch data and then import & render it.
 	*/
 	render(fetch = true) {
+		super.render();
 		this.fetchData().then((data, textStatus, xhr) => { //success
 			if(this.active) {
 				this.renderInterfaceControls();
@@ -309,6 +310,7 @@ class ResultMap extends ResultModule {
 	* Imports result data and then renders it.
 	*/
 	importResultData(data, renderMap = true) {
+		this.sql = data.Query;
 		this.data = [];
 		var keyMap = {};
 

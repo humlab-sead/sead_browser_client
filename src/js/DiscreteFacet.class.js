@@ -645,7 +645,7 @@ class DiscreteFacet extends Facet {
 	* data - The data package from the server.
 	*/
 	importData(data) {
-		super.importData();
+		super.importData(data);
 		this.data = [];
 		var i = 0;
 		for(var key in data.Items) {

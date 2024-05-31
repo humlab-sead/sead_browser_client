@@ -207,6 +207,7 @@ class ResultMosaic extends ResultModule {
 	}
 	
 	importResultData(data) {
+		this.sql = data.Query;
 		this.data.columns = [];
 		this.data.rows = [];
 		
@@ -483,6 +484,7 @@ class ResultMosaic extends ResultModule {
 	 * Function: renderData
 	 */
 	renderData() {
+		super.render();
 		//this.unrender();
 		$('#result-mosaic-container').show();
 		$('#result-mosaic-container').css("display", "grid");

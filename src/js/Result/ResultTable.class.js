@@ -5,6 +5,11 @@ import ResultModule from './ResultModule.class.js'
 import ApiWsChannel from '../ApiWsChannel.class.js'
 import "../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";
 import { default as Tabulator } from "tabulator-tables";
+import { nanoid } from "nanoid";
+
+// Dynamically require all .webp images in the specified directory
+const featureTypeIcons = require.context('../../assets/feature_types', false, /\.webp$/);
+
 /*
 * Class: ResultTable
 */
@@ -92,6 +97,7 @@ class ResultTable extends ResultModule {
 	* Function: importResultData
 	*/
 	importResultData(data) {
+		this.sql = data.Query;
 		this.data.columns = [];
 		this.data.rows = [];
 
@@ -166,6 +172,16 @@ class ResultTable extends ResultModule {
 		this.bindExportModuleDataToButton(exportButton);
 	}
 
+	getFeatureTypeIconUrl(iconName) {
+		try {
+			return featureTypeIcons(`./${iconName}.webp`);
+		} catch (e) {
+			// Return a default image 
+			return featureTypeIcons(`./undefined.webp`) 
+		}
+	}
+	
+
 	renderDataTable() {
 		this.resultManager.renderMsg(false);
 
@@ -187,6 +203,163 @@ class ResultTable extends ResultModule {
 		let maxRenderSlots = 4;
 		let currentRenderSlotsTaken = 0;
 
+		let tableColumns = [
+			{title: "Select", widthGrow:-1, formatter: "rowSelection", titleFormatter:"rowSelection", cssClass: "result-table-select-all-checkbox", hozAlign:"center", headerSort:false},
+			{title:"View site", widthGrow:0, field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
+				cell.getRow().toggleSelect(); //undo selection of row
+				let siteId = parseInt(cell.getValue());
+				if(!siteId) {
+					console.log("WARN: No site ID found in cell value");
+					return;
+				}
+				this.sqs.siteReportManager.renderSiteReport(siteId);
+			}, formatter: (cell, formatterParams, onRendered) => {
+					return `
+					<div class='site-report-link site-report-table-button' site-id='${cell.getValue()}'>
+					<i class="fa fa-search" aria-hidden="true"></i>&nbsp;View site
+					</div>`;
+				}
+			},
+			{title:"Site ID", field:"site_link_filtered", widthGrow:1, hozAlign:"center"},
+			{title:"Site name", field:"sitename", tooltip: true, widthGrow:3},
+			{title:"Data points", field:"analysis_entities", widthGrow:1, formatter: (cell, formatterParams, onRendered) => {
+				return `<div class='stacked-bar-outer-container'>
+				<div class='stacked-bar-container'>
+				<div class='stacked-segment' style='width: ${(cell.getValue() / maxAnalysisEntities * 100)}%;' title='${cell.getValue()}'></div>
+				</div>
+				<div class='stacked-bar-container-numerical-readout'>${cell.getValue()}</div>
+				</div>`;
+			}},
+			{
+				title:"Analyses",
+				field:"analyses",
+				widthGrow:2,
+				formatter: (cell, formatterParams, onRendered) => {
+					let cellElement = cell.getElement();
+					cellElement.classList.add('stacked-bar-container');
+					cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
+
+					let renderInterval = setInterval(() => {
+					if(maxRenderSlots > currentRenderSlotsTaken) {
+						currentRenderSlotsTaken++;
+						clearInterval(renderInterval);
+
+						$.ajax(Config.dataServerAddress + "/graphs/analysis_methods", {
+							data: JSON.stringify([cell.getData().site_link_filtered]),
+							dataType: "json",
+							method: "post",
+							contentType: 'application/json; charset=utf-8',
+							crossDomain: true
+							}).then(data => {
+							data.analysis_methods_datasets.sort((a, b) => {
+								return Number(a.method_id) - Number(b.method_id);
+							});
+							let totalDatasetCount = data.analysis_methods_datasets.reduce((total, amd) => total + amd.dataset_count, 0);
+						
+							let svgNS = "http://www.w3.org/2000/svg";
+							let svg = document.createElementNS(svgNS, "svg");
+							svg.setAttribute("width", "100%");
+							svg.setAttribute("height", "80%");
+						
+							let currentOffset = 0;
+	
+							data.analysis_methods_datasets.forEach(amd => {
+								amd.color = "000";
+								for (let key in this.sqs.config.analysisMethodsColors) {
+								let amc = this.sqs.config.analysisMethodsColors[key];
+								if (amc.method_id == amd.method_id) {
+									amd.color = amc.color;
+								}
+								}
+						
+								let rect = document.createElementNS(svgNS, "rect");
+								amd.barWidth = (amd.dataset_count / totalDatasetCount) * 100;
+								
+								rect.setAttribute("x", `${currentOffset}%`);
+								rect.setAttribute("width", `${amd.barWidth}%`);
+								rect.setAttribute("height", "100%");
+								rect.setAttribute("fill", `#${amd.color}`);
+								svg.appendChild(rect);
+	
+								this.sqs.tooltipManager.registerTooltip(rect, `Method: ${amd.method_name}, Datasets: ${amd.dataset_count}`)
+								
+								currentOffset += amd.barWidth;
+							});
+						
+							// Clear the loading indicator before appending the SVG
+							cellElement.innerHTML = '';
+							cellElement.appendChild(svg);
+							currentRenderSlotsTaken--;
+							});
+						}
+					}, 200);						
+				
+					// The initial return is just the loading indicator
+					return cellElement.innerHTML;
+				}
+			}
+		];
+
+		let activeDomain = this.sqs.domainManager.getActiveDomain().name;
+		if(this.sqs.config.featureTypesEnabledDomainsList && this.sqs.config.featureTypesEnabledDomainsList.includes(activeDomain)) {
+			tableColumns.push({
+				title:"Feature types",
+				field:"feature_types",
+				widthGrow:2,
+				formatter: (cell, formatterParams, onRendered) => {
+					let cellElement = cell.getElement();
+					cellElement.classList.add('stacked-bar-container');
+					cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
+
+					let renderInterval = setInterval(() => {
+					if(maxRenderSlots > currentRenderSlotsTaken) {
+						currentRenderSlotsTaken++;
+						clearInterval(renderInterval);
+
+						$.ajax(Config.dataServerAddress + "/graphs/feature_types", {
+							data: JSON.stringify([cell.getData().site_link_filtered]),
+							dataType: "json",
+							method: "post",
+							contentType: 'application/json; charset=utf-8',
+							crossDomain: true
+							}).then(data => {
+								let maxFeatureCount = data.feature_types.reduce((max, ft) => Math.max(max, ft.feature_count), 0);
+
+								//sort feature types by feature count
+								data.feature_types.sort((a, b) => {
+									return b.feature_count - a.feature_count;
+								});
+
+								let ftData = "";
+								data.feature_types.forEach(ft => {
+									ft.feature_count;
+									//in iconName, replace spaces with underscores and make lowercase, also replace '/' with '_'
+									let iconName = ft.name.replace(/\s/g, "_").replace(/\//g, "_").toLowerCase();
+
+									let bgHeight = (ft.feature_count / maxFeatureCount) * 100;
+									
+									let ttId = "tt-"+nanoid();
+									ftData += `
+									<div id='${ttId}' class='feature-type-icon-container'>
+										<div class='feature-type-icon-bar' style='height:${bgHeight}%;'></div>
+										<img src='${this.getFeatureTypeIconUrl(iconName)}' class='feature-type-icon' title='${ft.name}'>
+									</div>
+									`;
+
+									this.sqs.tooltipManager.registerTooltip("#"+ttId, `${ft.name}, ${ft.feature_count} counts`)
+								});
+								cellElement.innerHTML = ftData ? ftData : "";
+								currentRenderSlotsTaken--;
+							});
+						}
+					}, 200);						
+				
+					// The initial return is just the loading indicator
+					return cellElement.innerHTML;
+				}
+			});
+		}
+
 		this.tabulatorTable = new Tabulator("#result-datatable", {
 			data: this.data.rows,
 			placeholder:"No data",
@@ -195,104 +368,7 @@ class ResultTable extends ResultModule {
 				{column:"analysis_entities", dir:"desc"},
 			],
 			selectable: true,
-			columns:[
-				{title: "Select", widthGrow:-1, formatter: "rowSelection", titleFormatter:"rowSelection", cssClass: "result-table-select-all-checkbox", hozAlign:"center", headerSort:false},
-				{title:"View site", widthGrow:0, field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
-					cell.getRow().toggleSelect(); //undo selection of row
-					let siteId = parseInt(cell.getValue());
-					if(!siteId) {
-						console.log("WARN: No site ID found in cell value");
-						return;
-					}
-					this.sqs.siteReportManager.renderSiteReport(siteId);
-				}, formatter: (cell, formatterParams, onRendered) => {
-						return `
-						<div class='site-report-link site-report-table-button' site-id='${cell.getValue()}'>
-						<i class="fa fa-search" aria-hidden="true"></i>&nbsp;View site
-						</div>`;
-					}
-				},
-				{title:"Site ID", field:"site_link_filtered", widthGrow:1, hozAlign:"center"},
-				{title:"Site name", field:"sitename", tooltip: true, widthGrow:3},
-				{title:"Data points", field:"analysis_entities", widthGrow:2, formatter: (cell, formatterParams, onRendered) => {
-					return `<div class='stacked-bar-outer-container'>
-					<div class='stacked-bar-container'>
-					<div class='stacked-segment' style='width: ${(cell.getValue() / maxAnalysisEntities * 100)}%;' title='${cell.getValue()}'></div>
-					</div>
-					<div class='stacked-bar-container-numerical-readout'>${cell.getValue()}</div>
-					</div>`;
-				}},
-				{
-					title:"Analyses",
-					field:"analyses",
-					widthGrow:2,
-					formatter: (cell, formatterParams, onRendered) => {
-						let cellElement = cell.getElement();
-						cellElement.classList.add('stacked-bar-container');
-						cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
-
-						let renderInterval = setInterval(() => {
-						if(maxRenderSlots > currentRenderSlotsTaken) {
-							currentRenderSlotsTaken++;
-							clearInterval(renderInterval);
-
-							$.ajax(Config.dataServerAddress + "/graphs/analysis_methods", {
-								data: JSON.stringify([cell.getData().site_link_filtered]),
-								dataType: "json",
-								method: "post",
-								contentType: 'application/json; charset=utf-8',
-								crossDomain: true
-								}).then(data => {
-								data.analysis_methods_datasets.sort((a, b) => {
-									return Number(a.method_id) - Number(b.method_id);
-								});
-								let totalDatasetCount = data.analysis_methods_datasets.reduce((total, amd) => total + amd.dataset_count, 0);
-							
-								let svgNS = "http://www.w3.org/2000/svg";
-								let svg = document.createElementNS(svgNS, "svg");
-								svg.setAttribute("width", "100%");
-								svg.setAttribute("height", "80%");
-							
-								let currentOffset = 0;
-		
-								data.analysis_methods_datasets.forEach(amd => {
-									amd.color = "000";
-									for (let key in this.sqs.config.analysisMethodsColors) {
-									let amc = this.sqs.config.analysisMethodsColors[key];
-									if (amc.method_id == amd.method_id) {
-										amd.color = amc.color;
-									}
-									}
-							
-									let rect = document.createElementNS(svgNS, "rect");
-									amd.barWidth = (amd.dataset_count / totalDatasetCount) * 100;
-									
-									rect.setAttribute("x", `${currentOffset}%`);
-									rect.setAttribute("width", `${amd.barWidth}%`);
-									rect.setAttribute("height", "100%");
-									rect.setAttribute("fill", `#${amd.color}`);
-									svg.appendChild(rect);
-		
-									this.sqs.tooltipManager.registerTooltip(rect, `Method: ${amd.method_name}, Datasets: ${amd.dataset_count}`)
-									
-									currentOffset += amd.barWidth;
-								});
-							
-								// Clear the loading indicator before appending the SVG
-								cellElement.innerHTML = '';
-								cellElement.appendChild(svg);
-								currentRenderSlotsTaken--;
-								});
-							}
-						}, 200);						
-					
-						// The initial return is just the loading indicator
-						return cellElement.innerHTML;
-					}
-				}
-				  
-				
-			],
+			columns: tableColumns,
 		});
 
 		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");

@@ -70,6 +70,7 @@ class ResultModule {
 			let jsonDownloadButtonId = "json-dl-"+nanoid();
 			let csvDownloadButtonId = "csv-dl-"+nanoid();
 			let xlsxDownloadButtonId = "xlsx-dl-"+nanoid();
+			let sqlDownloadButtonId = "sql-dl-"+nanoid();
 			
 			let selectedSites = this.data.rows ? this.data.rows : this.data;
 
@@ -95,6 +96,21 @@ class ResultModule {
 			html += "<a id='"+xlsxDownloadButtonId+"' class='light-theme-button'>Download XLSX</a>";
 			html += "<a id='"+csvDownloadButtonId+"' class='light-theme-button'>Download CSV</a>";
 			html += "<a id='"+jsonDownloadButtonId+"' class='light-theme-button'>Download JSON</a>";
+			html += "<a id='"+sqlDownloadButtonId+"' class='light-theme-button'>View SQL</a>";
+
+			let aggregatedExportButtonId = "json-dl-"+nanoid();
+			if(this.sqs.config.experimentalSiteExports) {
+				let aggregatedExportTooltipId = "tt-"+nanoid();
+				html += `<br /><hr /><br /><h3 id='`+aggregatedExportTooltipId+`'>Aggregated exports</h3>
+				<a id='"+aggregatedExportButtonId+"' class='light-theme-button'>Aggregated PDF</a>
+				<select id='aggregated-export'>
+					<option value='taxa'>Taxa</option>
+				</select>
+				`;
+
+				this.sqs.tooltipManager.registerTooltip("#"+aggregatedExportTooltipId, "Select the type of data to aggregate and export from the selected sites.", { drawSymbol: true });
+			}
+
 			
 			if(selectedSites.length == 0) {
 				html = "No sites selected!";
@@ -108,6 +124,18 @@ class ResultModule {
 				$("#"+csvDownloadButtonId).on("click", async () => { this.exportSitesAsCsv(selectedSites); });
 
 				$("#"+jsonDownloadButtonId).on("click", async () => { this.exportSitesAsJson(selectedSites); });
+
+				$("#"+sqlDownloadButtonId).on("click", async () => {
+					let currentModule = this.resultManager.getActiveModule();
+					const formattedSQL = currentModule.sql.replace(/\n/g, "<br/>");
+					this.sqs.dialogManager.showPopOver("Result SQL", formattedSQL);
+				});
+
+				if(this.sqs.config.experimentalSiteExports) {
+					$("#"+aggregatedExportButtonId).on("click", async () => {
+
+					 });
+				}
 			}
 		};
 

@@ -1475,6 +1475,32 @@ h1.main-header {
   //overflow-x: hidden;
 }
 
+.feature-type-icon-container {
+  display: inline-block;
+  margin-right: 0.1em;
+  height: 1.5em;
+  padding: 0;
+}
+
+.feature-type-icon {
+  display: inline-block;
+  width: 1.5em;
+  height: 100%;
+  background: blue;
+  margin: 0;
+  padding: 0;
+}
+
+.feature-type-icon-bar {
+  display:inline-block;
+  background:red;
+  width: 2px;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  left: 5px;
+}
+
 /*
 .staging-container {
   margin:0;
@@ -1681,6 +1707,10 @@ h1.main-header {
 
 .facet-text-search-btn {
 	display:none;
+}
+
+div.facet-sql-btn {
+  display:none;
 }
 
 .facet-no-data-msg {

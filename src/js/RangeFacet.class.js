@@ -98,7 +98,7 @@ class RangeFacet extends Facet {
 	* The imported/converted data structure.
 	*/
 	importData(importData, overwrite = true) {
-		super.importData();
+		super.importData(importData);
 
 		//these doesn't currently work because of a bug in the server which returns the wrong values, we do it manually below
 		//this.totalLower = importData.IntervalInfo.FullExtent.Lower;
