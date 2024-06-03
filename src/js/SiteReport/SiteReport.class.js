@@ -1050,6 +1050,9 @@ class SiteReport {
 
 		let abundanceTableRows = [];
 
+
+		let taxonIds = [];
+
 		for(let rowKey in exportStruct.datatable.rows) {
 			let row = exportStruct.datatable.rows[rowKey];
 			let tableRow = [];
@@ -1060,6 +1063,7 @@ class SiteReport {
 					let cell = row[cellKey];
 					if(typeof cell.rawValue != "undefined") {
 						tableRow.push(this.sqs.formatTaxon(cell.rawValue, null, false));
+						taxonIds.push(cell.rawValue.taxon_id);
 					}
 					else {
 						tableRow.push(cell.value);
@@ -1121,12 +1125,24 @@ class SiteReport {
 		});
 
 
-		let refTableRows = [["Reference"]];
+		let refTableRows = [["Taxon", "Reference"]];
 
 		pdfDoc.content.push({
-			text: "References for species data",
+			text: "\n\nReferences for species data",
 			style: "subheader"
 		});
+
+
+		let taxonReferencePromises = [];
+		taxonIds.forEach(taxonId => {
+			taxonReferencePromises.push(this.fetchTaxonReferences(taxonId).then(references => {
+				references.references.forEach(r => {
+					refTableRows.push([references.taxon_id, r.author_name]);
+				});
+			}));
+		});
+
+		await Promise.all(taxonReferencePromises);
 
 		pdfDoc.content.push({
 			table: {
@@ -1135,6 +1151,19 @@ class SiteReport {
 		});
 
 		pdfMake.createPdf(pdfDoc).open();
+	}
+
+	async fetchTaxonReferences(taxonId) {
+		let references = null;
+
+		//fetch <json_api_server>/taxon_references/28963
+		let url = this.sqs.config.dataServerAddress+"/taxon_references/"+taxonId;
+		let response = await fetch(url);
+		if(response.ok) {
+			references = await response.json();
+		}
+
+		return references;
 	}
 
 	pushDownload(filename, text) {
