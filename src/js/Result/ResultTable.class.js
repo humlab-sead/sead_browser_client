@@ -330,8 +330,16 @@ class ResultTable extends ResultModule {
 									return b.feature_count - a.feature_count;
 								});
 
+								const maxDispayFeaturesCount = 3;
+								let displayFeaturesDisplayedCount = 0;
 								let ftData = "";
+								let otherFeatureTypes = "";
 								data.feature_types.forEach(ft => {
+									if(displayFeaturesDisplayedCount >= maxDispayFeaturesCount) {
+										otherFeatureTypes += `${ft.name} (${ft.feature_count}), `;
+										return;
+									}
+									displayFeaturesDisplayedCount++;
 									ft.feature_count;
 									//in iconName, replace spaces with underscores and make lowercase, also replace '/' with '_'
 									let iconName = ft.name.replace(/\s/g, "_").replace(/\//g, "_").toLowerCase();
@@ -348,6 +356,14 @@ class ResultTable extends ResultModule {
 
 									this.sqs.tooltipManager.registerTooltip("#"+ttId, `${ft.name}, ${ft.feature_count} counts`)
 								});
+
+								if(displayFeaturesDisplayedCount == maxDispayFeaturesCount) {
+									let ttId = "tt-"+nanoid();
+									ftData += `<div id='${ttId}' class='feature-type-icon-container'>...</div>`;
+									otherFeatureTypes = otherFeatureTypes.slice(0, -2); //remove trailing comma
+									this.sqs.tooltipManager.registerTooltip("#"+ttId, "Other features: "+otherFeatureTypes);
+								}
+
 								cellElement.innerHTML = ftData ? ftData : "";
 								currentRenderSlotsTaken--;
 							});
