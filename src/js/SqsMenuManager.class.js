@@ -58,6 +58,7 @@ class SqsMenuManager {
 		
 		var menu = new SqsMenu(this.sqs, menuDef);
 		this.menus.push(menu);
+
 		return menu;
 	}
 	

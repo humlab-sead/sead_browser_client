@@ -243,6 +243,8 @@ class sqsMenu {
 
 				//This "expands" (displays) all of the children items
 				$(".second-level-item", firstLevelItem).css("display", "block");
+
+				this.adaptMenuToViewport();
 			});
 			
 			if(item.selected) {
@@ -275,7 +277,29 @@ class sqsMenu {
 			if(typeof this.menuDef.viewPortResizeCallback == "function") {
 				this.menuDef.viewPortResizeCallback();
 			}
+			
+			this.adaptMenuToViewport();
 		});
+	}
+
+	isBottomOutOfViewport() {
+		const element = document.querySelector(this.menuDef.anchor);
+		const rect = element.getBoundingClientRect();
+		const windowHeight = (window.innerHeight || document.documentElement.clientHeight);
+
+		// Check if the bottom of the element is beyond the vertical limit of the viewport
+		return rect.bottom > windowHeight;
+	}
+
+	adaptMenuToViewport() {
+		$(this.menuDef.anchor).css("max-height", "");
+		if(this.isBottomOutOfViewport()) {
+			//calculate the max height of the menu based on the current position, height and viewport height
+			let menuTop = $(this.menuDef.anchor).offset().top;
+			let windowHeight = $(window).height();
+			let newMaxHeight = windowHeight - menuTop - 0;
+			$(this.menuDef.anchor).css("max-height", newMaxHeight+"px");
+		}
 	}
 
 	closeAllMenus() {
