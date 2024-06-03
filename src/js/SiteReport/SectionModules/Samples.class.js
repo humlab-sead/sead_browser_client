@@ -116,6 +116,43 @@ class Samples {
 		}
 	}
 
+	insertSampleFeaturesIntoTable(subTable, sampleGroup) {
+		//features are in sample_groups.physical_samples.features
+		let insertSampleFeaturesColumn = false;
+		for(let k in sampleGroup.physical_samples) {
+			var sample = sampleGroup.physical_samples[k];
+			if(sample.features.length > 0) {
+				insertSampleFeaturesColumn = true;
+			}
+		}
+
+		if(insertSampleFeaturesColumn) {
+			subTable.columns.push({
+				"title": "Sample features"
+			});
+
+			for(let k in sampleGroup.physical_samples) {
+				var sample = sampleGroup.physical_samples[k];
+				let cellValue = "";
+				sample.features.forEach(data => {
+					let ttId = "tt-"+nanoid();
+					cellValue += "<span id='"+ttId+"'>"+data.feature_type_name+"</span>, ";
+					this.sqs.tooltipManager.registerTooltip("#"+ttId, "<h4 class='tooltip-header'>"+data.feature_type_name+"</h4><hr/>"+data.feature_type_description, { drawSymbol: true });
+				});
+				cellValue = cellValue.substring(0, cellValue.length-2);
+				subTable.rows.forEach(row => {
+					if(row[0].value == sample.sample_name) {
+						row.push({
+							"value": cellValue,
+							"type": "cell",
+							"tooltip": ""
+						});
+					}
+				});
+			}
+		}
+	}
+
 	insertSampleDescriptionsIntoTable(subTable, sampleGroup) {
 		let insertSampleDescriptionsColumn = false;
 		for(let k in sampleGroup.physical_samples) {
@@ -704,6 +741,7 @@ class Samples {
 			this.insertSampleLocationsIntoTable(subTable, sampleGroup);
 			this.insertSampleAltRefsIntoTable(subTable, sampleGroup);
 			this.insertSampleCoordinatesIntoTable(subTable, sampleGroup);
+			this.insertSampleFeaturesIntoTable(subTable, sampleGroup);
 
 			let samplingContextValue = "";
 			sampleGroup.sampling_context.forEach(samplingContext => {
