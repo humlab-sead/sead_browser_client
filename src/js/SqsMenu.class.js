@@ -284,6 +284,9 @@ class sqsMenu {
 
 	isBottomOutOfViewport() {
 		const element = document.querySelector(this.menuDef.anchor);
+		if(!element) {
+			return false;
+		}
 		const rect = element.getBoundingClientRect();
 		const windowHeight = (window.innerHeight || document.documentElement.clientHeight);
 
