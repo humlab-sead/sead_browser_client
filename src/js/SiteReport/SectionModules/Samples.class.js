@@ -48,10 +48,17 @@ class Samples {
 				"title": "Sample dimensions"
 			});
 
+			let pkeyColumnKey = null;
+			subTable.columns.forEach((col, key) => {
+				if(col.pkey === true) {
+					pkeyColumnKey = key;
+				}
+			});
+
 			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
 				subTable.rows.forEach(row => {
-					if(row[0].value == sample.sample_name) {
+					if(row[pkeyColumnKey].value == sample.physical_sample_id) {
 						
 						let cellText = "";
 						let unitText = "";
@@ -131,17 +138,26 @@ class Samples {
 				"title": "Sample features"
 			});
 
+			//find pkey column
+			let pkeyColumnKey = null;
+			subTable.columns.forEach((col, key) => {
+				if(col.pkey === true) {
+					pkeyColumnKey = key;
+				}
+			});
+
 			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
 				let cellValue = "";
 				sample.features.forEach(data => {
-					let ttId = "tt-"+nanoid();
-					cellValue += "<span id='"+ttId+"'>"+data.feature_type_name+"</span>, ";
-					this.sqs.tooltipManager.registerTooltip("#"+ttId, "<h4 class='tooltip-header'>"+data.feature_type_name+"</h4><hr/>"+data.feature_type_description, { drawSymbol: true });
+					cellValue += this.sqs.renderFeatureTypeIcon(data.feature_type_name, 1, -1);
 				});
-				cellValue = cellValue.substring(0, cellValue.length-2);
+				if(sample.features.length > 0) {
+					cellValue = cellValue.substring(0, cellValue.length-2);
+				}
+
 				subTable.rows.forEach(row => {
-					if(row[0].value == sample.sample_name) {
+					if(row[pkeyColumnKey].value == sample.physical_sample_id) {
 						row.push({
 							"value": cellValue,
 							"type": "cell",
@@ -167,6 +183,13 @@ class Samples {
 				"title": "Sample descriptions"
 			});
 
+			let pkeyColumnKey = null;
+			subTable.columns.forEach((col, key) => {
+				if(col.pkey === true) {
+					pkeyColumnKey = key;
+				}
+			});
+
 			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
 				let descriptionValue = "";
@@ -177,7 +200,7 @@ class Samples {
 				});
 				descriptionValue = descriptionValue.substring(0, descriptionValue.length-2);
 				subTable.rows.forEach(row => {
-					if(row[0].value == sample.sample_name) {
+					if(row[pkeyColumnKey].value == sample.physical_sample_id) {
 						row.push({
 							"value": descriptionValue,
 							"type": "cell",
@@ -203,6 +226,13 @@ class Samples {
 				"title": "Sample locations"
 			});
 
+			let pkeyColumnKey = null;
+			subTable.columns.forEach((col, key) => {
+				if(col.pkey === true) {
+					pkeyColumnKey = key;
+				}
+			});
+
 			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
 				let cellValue = "";
@@ -214,7 +244,7 @@ class Samples {
 				
 				cellValue = cellValue.substring(0, cellValue.length-2);
 				subTable.rows.forEach(row => {
-					if(row[0].value == sample.sample_name) {
+					if(row[pkeyColumnKey].value == sample.physical_sample_id) {
 						row.push({
 							"value": cellValue,
 							"type": "cell",
@@ -241,6 +271,13 @@ class Samples {
 			subTable.columns.push({
 				"title": "Coordinates",
 				"role": "coordinates"
+			});
+
+			let pkeyColumnKey = null;
+			subTable.columns.forEach((col, key) => {
+				if(col.pkey === true) {
+					pkeyColumnKey = key;
+				}
 			});
 
 			for(let k in sampleGroup.physical_samples) {
@@ -274,9 +311,8 @@ class Samples {
 					}
 				});
 
-				
 				subTable.rows.forEach(row => {
-					if(row[0].value == sample.sample_name) {
+					if(row[pkeyColumnKey].value == sample.physical_sample_id) {
 						row.push({
 							"value": this.formatCoordinates(sample.coordinates),
 							"type": "cell",
@@ -303,6 +339,12 @@ class Samples {
 				"title": "Alternative identifiers"
 			});
 			
+			let pkeyColumnKey = null;
+			subTable.columns.forEach((col, key) => {
+				if(col.pkey === true) {
+					pkeyColumnKey = key;
+				}
+			});
 
 			for(let k in sampleGroup.physical_samples) {
 				var sample = sampleGroup.physical_samples[k];
@@ -314,7 +356,7 @@ class Samples {
 				});
 				cellValue = cellValue.substring(0, cellValue.length-2);
 				subTable.rows.forEach(row => {
-					if(row[0].value == sample.sample_name) {
+					if(row[pkeyColumnKey].value == sample.physical_sample_id) {
 						row.push({
 							"value": cellValue,
 							"type": "cell",
@@ -337,6 +379,95 @@ class Samples {
 			}
 		}
 		return null;
+	}
+
+	insertSampleGroupFeatureTypesIntoTable(table, site) {
+		let sampleGroupColKey = null;
+		for(let key in table.columns) {
+			if(table.columns[key].pkey === true) {
+				sampleGroupColKey = key;
+			}
+		}
+
+		for(let key in table.rows) {
+			let row = table.rows[key];
+			let sampleGroupId = row[sampleGroupColKey].value;
+			let featureTypes = [];
+			let sampleGroupFeatures = [];
+
+			// get all features from the sample group
+			for(let sgKey in site.sample_groups) {
+				if(site.sample_groups[sgKey].sample_group_id == sampleGroupId) {
+					site.sample_groups[sgKey].physical_samples.forEach(sample => {
+						sample.features.forEach(feature => {
+							sampleGroupFeatures.push(feature);
+						});
+					});
+				}
+			}
+
+			//construe the unique feature types from the features and also record the count of each feature type
+			sampleGroupFeatures.forEach(feature => {
+				let found = false;
+				featureTypes.forEach(featureType => {
+					if(featureType.feature_type_name == feature.feature_type_name) {
+						found = true;
+					}
+				});
+				if(!found) {
+					featureTypes.push({
+						"feature_type_name": feature.feature_type_name,
+						"count": 1
+					});
+				}
+				else {
+					featureTypes.forEach(featureType => {
+						if(featureType.feature_type_name == feature.feature_type_name) {
+							featureType.count++;
+						}
+					});
+				}
+			});
+
+			let value = "<div class='feature-type-icons'>";
+
+			let maxFeatureCount = 0;
+			featureTypes.forEach(featureType => {
+				if(featureType.count > maxFeatureCount) {
+					maxFeatureCount = featureType.count;
+				}
+			});
+
+			//now sort the feature types by count
+			featureTypes.sort((a, b) => {
+				if(a.count < b.count) {
+					return 1;
+				}
+				else {
+					return -1;
+				}
+			});
+
+			featureTypes.forEach(featureType => {
+				value += this.sqs.renderFeatureTypeIcon(featureType.feature_type_name, featureType.count, maxFeatureCount);
+			});
+			if(featureTypes.length > 0) {
+				value = value.substring(0, value.length-2);
+			}
+			value += "</div>";
+
+			row.push({
+				"type": "cell",
+				"value": value,
+				"tooltip": ""
+			});
+		}
+		
+		table.columns.push({
+			"dataType": "string",
+			"pkey": false,
+			"title": "Feature types"
+		});
 	}
 
 	insertSampleAnalysesIntoTable(table, site) {
@@ -705,6 +836,9 @@ class Samples {
 			var subTableColumns = [
 				{
 					"pkey": true,
+					"title": "Sample id"
+				},
+				{
 					"title": "Sample name"
 				},
 				{
@@ -721,6 +855,12 @@ class Samples {
 				var sample = sampleGroup.physical_samples[k];
 				
 				let subTableRow = [
+					{
+						"type": "cell",
+						"value": sample.physical_sample_id,
+						"tooltip": "",
+						"hidden": true
+					},
 					{
 						"type": "cell",
 						"value": sample.sample_name,
@@ -810,6 +950,7 @@ class Samples {
 		}
 
 		this.insertSampleAnalysesIntoTable(sampleGroupTable, siteData);
+		this.insertSampleGroupFeatureTypesIntoTable(sampleGroupTable, siteData);
 		this.insertSampleGroupReferencesIntoTable(sampleGroupTable, siteData.sample_groups);
 		this.insertSampleGroupCoordinatesIntoTable(sampleGroupTable, siteData.sample_groups);
 

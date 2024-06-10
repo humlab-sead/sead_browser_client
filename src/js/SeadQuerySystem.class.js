@@ -279,6 +279,7 @@ class SeadQuerySystem {
 				}
 			}
 		}
+		
 
 		/*
 		let method_ids = [
@@ -1705,6 +1706,27 @@ class SeadQuerySystem {
 		html += "</ul>";
 		
 		return html;
+	}
+
+	renderFeatureTypeIcon(featureTypeName, featureTypeCount, maxFeatureCount) {
+		let ttId = "tt-"+nanoid();
+		let printName = featureTypeName.split(" ").map(word => word.substring(0, 1)).join("").toUpperCase();
+		let bgHeight = (featureTypeCount / maxFeatureCount) * 100;
+		let ftData = `
+			<div id='${ttId}' class='feature-type-icon-container'>
+				<div class='feature-type-icon-bar' style='height:${bgHeight}%;'></div>
+				<div class='feature-type-icon'>${printName}</div>
+			</div>
+		`;
+
+		if(maxFeatureCount == -1) {
+			this.tooltipManager.registerTooltip("#"+ttId, `${featureTypeName}`);
+		}
+		else {
+			this.tooltipManager.registerTooltip("#"+ttId, `${featureTypeName}, ${featureTypeCount} counts`);
+		}
+		
+		return ftData;
 	}
 	
 }

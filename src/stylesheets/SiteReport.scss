@@ -728,6 +728,10 @@ tr.site-report-table-row-with-subtable:hover td {
 
 @keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
 
+.feature-tag {
+  display: inline-block;
+}
+
 .analyses-tags-container {
   display: flex;
   cursor: default;

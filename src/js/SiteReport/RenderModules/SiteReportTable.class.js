@@ -740,7 +740,7 @@ class SiteReportTable {
 	}
 
 	renderSubTable(rowNodeId, subTable) {
-		
+
 		$("#"+rowNodeId).addClass("table-row-expanded");
 		
 		let subTableId = "subtable-"+nanoid();

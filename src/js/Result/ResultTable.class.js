@@ -1,14 +1,9 @@
-//import Config from '../../config/config.js'
-import DataTables from 'datatables';
 import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
 import ResultModule from './ResultModule.class.js'
 import ApiWsChannel from '../ApiWsChannel.class.js'
 import "../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";
 import { default as Tabulator } from "tabulator-tables";
 import { nanoid } from "nanoid";
-
-// Dynamically require all .webp images in the specified directory
-const featureTypeIcons = require.context('../../assets/feature_types', false, /\.webp$/);
 
 /*
 * Class: ResultTable
@@ -330,39 +325,38 @@ class ResultTable extends ResultModule {
 									return b.feature_count - a.feature_count;
 								});
 
-								const maxDispayFeaturesCount = 3;
+								const maxDisplayFeaturesCount = 5;
 								let displayFeaturesDisplayedCount = 0;
-								let ftData = "";
+								let ftData = "<div class='feature-type-icons'>";
 								let otherFeatureTypes = "";
+
+								if(data.feature_types.length >= maxDisplayFeaturesCount) {
+									//this might seem strange, but it is because if
+									//we are going over the limit, then the last slot will be the "other" slot,
+									//so we need to reduce the amount of availble slots by one
+									displayFeaturesDisplayedCount++;
+								}
+
 								data.feature_types.forEach(ft => {
-									if(displayFeaturesDisplayedCount >= maxDispayFeaturesCount) {
+									if(displayFeaturesDisplayedCount >= maxDisplayFeaturesCount) {
 										otherFeatureTypes += `${ft.name} (${ft.feature_count}), `;
 										return;
 									}
 									displayFeaturesDisplayedCount++;
-									ft.feature_count;
-									//in iconName, replace spaces with underscores and make lowercase, also replace '/' with '_'
-									let iconName = ft.name.replace(/\s/g, "_").replace(/\//g, "_").toLowerCase();
 
-									let bgHeight = (ft.feature_count / maxFeatureCount) * 100;
-									
-									let ttId = "tt-"+nanoid();
-									ftData += `
-									<div id='${ttId}' class='feature-type-icon-container'>
-										<div class='feature-type-icon-bar' style='height:${bgHeight}%;'></div>
-										<img src='${this.getFeatureTypeIconUrl(iconName)}' class='feature-type-icon' title='${ft.name}'>
-									</div>
-									`;
-
-									this.sqs.tooltipManager.registerTooltip("#"+ttId, `${ft.name}, ${ft.feature_count} counts`)
+									ftData += this.sqs.renderFeatureTypeIcon(ft.name, ft.feature_count, maxFeatureCount);
 								});
 
-								if(displayFeaturesDisplayedCount == maxDispayFeaturesCount) {
+								if(displayFeaturesDisplayedCount == maxDisplayFeaturesCount) {
 									let ttId = "tt-"+nanoid();
-									ftData += `<div id='${ttId}' class='feature-type-icon-container'>...</div>`;
+									ftData += `<div id='${ttId}' class='feature-type-icon-container'>
+										<div class='feature-type-icon'>...</div>
+									</div>`;
 									otherFeatureTypes = otherFeatureTypes.slice(0, -2); //remove trailing comma
 									this.sqs.tooltipManager.registerTooltip("#"+ttId, "Other features: "+otherFeatureTypes);
 								}
+
+								ftData += "</div>";
 
 								cellElement.innerHTML = ftData ? ftData : "";
 								currentRenderSlotsTaken--;
