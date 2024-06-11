@@ -55,6 +55,12 @@ class SiteReport {
 			this.hideLoadingIndicator();
 		});
 
+		const bsi = new BasicSiteInformation(this.sqs);
+		const samples = new Samples(this.sqs, this.site);
+		const ecoCodes = new EcoCodes(this.sqs, this.site);
+		const analysis = new Analysis(this.sqs);
+		bsi.preRender();
+
 		this.fetchSite().then(siteData => {
 			console.log(siteData);
 			this.linkDataStructures(siteData);
@@ -62,11 +68,6 @@ class SiteReport {
 			this.siteData = siteData;
 			this.fetchComplete = true;
 			this.hideLoadingIndicator();
-
-			const bsi = new BasicSiteInformation(this.sqs);
-			const samples = new Samples(this.sqs, this.site);
-			const ecoCodes = new EcoCodes(this.sqs, this.site);
-			const analysis = new Analysis(this.sqs);
 
 			this.modules.push({
 				"name": "basicSiteInformation",
