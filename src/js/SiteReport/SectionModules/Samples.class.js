@@ -135,7 +135,7 @@ class Samples {
 
 		if(insertSampleFeaturesColumn) {
 			subTable.columns.push({
-				"title": "Sample features"
+				"title": "Feature types"
 			});
 
 			//find pkey column
