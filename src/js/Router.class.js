@@ -28,7 +28,7 @@ class Router {
                 if(Number.isInteger(parseInt(pathComponents[2]))) {
                     this.sqs.layoutManager.setActiveView("siteReport");
                     let siteId = pathComponents[2];
-                    this.sqs.siteReportManager.renderSiteReport(siteId);
+                    this.sqs.siteReportManager.renderSiteReport([siteId]);
                 }
                 else {
                     console.error("Invalid site requested!");

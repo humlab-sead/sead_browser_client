@@ -611,7 +611,7 @@
 					"grid_column": "2"
 				},
 				{
-					"module_name": "mosaic-feature-types",
+					"module_name": "mosaic-taxa-list",
 					"default": false
 				}
 			]

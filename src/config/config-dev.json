@@ -10,7 +10,7 @@
 	"serverAddress":"https://supersead.humlab.umu.se/query",
 	"viewStateServerAddress":"https://supersead.humlab.umu.se/vsapi",
 	"siteReportServerAddress":"https://supersead.humlab.umu.se/postgrest",
-	"dataServerAddress": "https://supersead.humlab.umu.se/jsonapi",
+	"dataServerAddress": "http://localhost:8484",
 	"copilotServerAddress": "wss://supersead.humlab.umu.se/ai-assistant",
 	"defaultResultModule":"mosaic",
 	"resultMapDataLayers": ["clusterPoints", "points", "heatmap"],
@@ -612,7 +612,7 @@
 					"grid_column": "2"
 				},
 				{
-					"module_name": "mosaic-feature-types",
+					"module_name": "mosaic-taxa-list",
 					"default": false
 				}
 			]

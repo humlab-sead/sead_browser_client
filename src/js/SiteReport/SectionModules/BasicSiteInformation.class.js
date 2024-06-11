@@ -23,9 +23,8 @@ import SqsMenu from '../../SqsMenu.class';
  */
 
 class BasicSiteInformation {
-	constructor(sqs, siteId) {
+	constructor(sqs) {
 		this.sqs = sqs;
-		this.siteId = siteId;
 		this.data = {};
 		this.buildComplete = false;
 		this.exportTryInterval = null;

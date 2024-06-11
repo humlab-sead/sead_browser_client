@@ -21,11 +21,13 @@ pdfMake.vfs = pdfFonts.pdfMake.vfs;
 */
 
 class SiteReport {
-	constructor(siteReportManager, siteId) {
-		console.log("New siteReport for site", siteId);
+	constructor(siteReportManager, siteIds) {
+		console.log("New siteReport for", siteIds);
 		this.siteReportManager = siteReportManager;
 		this.sqs = this.siteReportManager.sqs;
-		this.siteId = siteId;
+		//this.siteId = siteId;
+		this.siteIds = siteIds;
+		this.siteId = siteIds[0];
 		this.animationTime = 400;
 		this.animationEasing = "easeOutCubic";
 		this.backMenu = null;
@@ -61,10 +63,10 @@ class SiteReport {
 			this.fetchComplete = true;
 			this.hideLoadingIndicator();
 
-			const bsi = new BasicSiteInformation(this.sqs, this.siteId);
+			const bsi = new BasicSiteInformation(this.sqs);
 			const samples = new Samples(this.sqs, this.site);
 			const ecoCodes = new EcoCodes(this.sqs, this.site);
-			const analysis = new Analysis(this.sqs, this.siteId);
+			const analysis = new Analysis(this.sqs);
 
 			this.modules.push({
 				"name": "basicSiteInformation",
@@ -137,7 +139,12 @@ class SiteReport {
 	}
 
 	async fetchSite() {
-		return await $.get(Config.dataServerAddress+"/site/"+this.siteId);
+		if(this.siteIds.length > 1) {
+			return await $.get(Config.dataServerAddress+"/sites/"+this.siteIds.join(","));
+		}
+		else {
+			return await $.get(Config.dataServerAddress+"/site/"+this.siteIds[0]);
+		}
 	}
 
 	getModuleByName(moduleName) {

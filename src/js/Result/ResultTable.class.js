@@ -207,7 +207,7 @@ class ResultTable extends ResultModule {
 					console.log("WARN: No site ID found in cell value");
 					return;
 				}
-				this.sqs.siteReportManager.renderSiteReport(siteId);
+				this.sqs.siteReportManager.renderSiteReport([siteId]);
 			}, formatter: (cell, formatterParams, onRendered) => {
 					return `
 					<div class='site-report-link site-report-table-button' site-id='${cell.getValue()}'>

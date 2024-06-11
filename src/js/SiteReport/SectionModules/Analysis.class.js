@@ -36,9 +36,8 @@ class Analysis {
 	/*
 	* Function: constructor
 	*/
-	constructor(sqs, siteId) {
+	constructor(sqs) {
 		this.sqs = sqs;
-		this.siteId = siteId;
 		this.buildComplete = false;
 		this.auxiliaryDataFetched = true; //There is currently no auxiliary data to fetch for any analysis module, so... 
 
@@ -150,80 +149,6 @@ class Analysis {
 		});
 
 		return samples;
-	}
-
-	/*
-	* Function: fetch
-	*/
-	async fetch() {
-		//Fetching all analyses for this site
-		await new Promise((resolve, reject) => {
-
-			$.ajax(this.sqs.config.siteReportServerAddress+"/qse_site_analyses?site_id=eq."+this.siteId, {
-				method: "get",
-				dataType: "json",
-				success: async (data, textStatus, xhr) => {
-					for(var key in data) { //For each analysis...
-						//Each analysis (data[key]) here contains:
-						//method_id - Defines what type of analysis this is
-						//dataset_id - A key you can use to fetch more information about this dataset (a dataset is a result set from an analysis)
-						//sample_group_id - The sample group this analysis was performed on
-						
-						//Check that this datasetId is not already registered. Sometimes we get duplicate dataset ID's with different sample groups as individual rows,
-						//presumably because multiple sample groups are sometimes used to perform an analysis
-						var analysisKey = this.sqs.findObjectPropInArray(this.data.analyses, "datasetId", data[key].dataset_id);
-						
-						//Load the physical_samples for this sampleGroup
-						let samples = await this.fetchSamplesBySampleGroupId(data[key].sample_group_id);
-
-						if(analysisKey === false) {
-							this.data.analyses.push({
-								"methodGroupId": data[key].method_group_id,
-								"methodId": data[key].method_id,
-								"datasetId": data[key].dataset_id,
-								"sampleGroups": [{
-									"sampleGroupId": data[key].sample_group_id,
-									"samples": samples
-								}]
-							});
-						}
-						else {
-							this.data.analyses[analysisKey].sampleGroups.push({
-								"sampleGroupId": data[key].sample_group_id,
-								"samples": samples
-							});
-						}
-					}
-					
-					let analysesPromises = this.delegateAnalyses(this.data.analyses);
-
-					Promise.all(analysesPromises).then(() => {
-						this.render();
-						resolve();
-					});
-
-					//Now that we have stored the analyses properly, fetch more data about each one.
-					//(analysis and dataset is pretty much synonymous since the dataset is a result of an analysis)
-					/*
-					for(var key in this.data.analyses) {
-						analysisPromises.push(this.fetchAnalysis(this.data.analyses[key].datasetId));
-					}
-					
-
-					let promises = methodPromises.concat(analysisPromises);
-
-					Promise.all(promises).then((values) => {
-						//console.log("All analyses fetched and built - Running Analysis Render", values);
-						this.render();
-						resolve(data);
-					});
-					*/
-				},
-				error: () => {
-					reject();
-				}
-			});
-		});
 	}
 
 

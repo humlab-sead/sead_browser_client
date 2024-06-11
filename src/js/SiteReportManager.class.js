@@ -27,7 +27,7 @@ class SiteReportManager {
 			$(".site-report-link").off("click").on("click", (event) => {
 				var siteId = parseInt($(event.currentTarget).attr("site-id"));
 				//window.location.href = "/site/"+siteId;
-				this.renderSiteReport(siteId);
+				this.renderSiteReport([siteId]);
 			});
 		});
 		
@@ -84,15 +84,57 @@ class SiteReportManager {
 		
 		return offerData;
 	}
-	
-	renderSiteReport(siteId, updateHistory = true) {
+
+	async getHashFromString(string) {
+		const encoder = new TextEncoder();
+		const data = encoder.encode(string);
+		const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+		const hashArray = Array.from(new Uint8Array(hashBuffer));
+		const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(',');
+		return hashHex;
+	}
+
+	renderSiteReport(siteIds, updateHistory = true) {
+
+		let siteIdsHash = siteIdsHash = this.getHashFromString(siteIds.join(","));
+
 		if(updateHistory) {
 			var stateObj = {};
-			history.pushState(stateObj, "", "/site/"+siteId);
+			history.pushState(stateObj, "", "/site/"+siteIds[0]);
 		}
 		
 		//This XHR is just for checking if the site with this ID actually exist
 		var xhr1 = this.sqs.pushXhr(null, "checkIfSiteExists");
+
+		let siteCheckExistancePromises = [];
+		siteIds.forEach(siteId => {
+			//siteCheckExistancePromises.push($.ajax(this.sqs.config.siteReportServerAddress+"/tbl_sites?site_id=eq."+siteId));
+
+			siteCheckExistancePromises.push(fetch(`${this.sqs.config.siteReportServerAddress}/tbl_sites?site_id=eq.${siteId}`, {
+				method: 'GET'
+			}));
+		})
+
+		Promise.all(siteCheckExistancePromises).then((results) => {
+			//if all promises were successful, we can continue
+			if(results.every(result => result.ok)) {
+				//Yay - they all exist, so go ahead and render, if system is ready...
+				if(this.sqs.systemReady) {
+					this.sqs.setActiveView("siteReport");
+					this.siteReport = new SiteReport(this, siteIds);
+				}
+				else {
+					setTimeout(() => {
+						this.renderSiteReport(siteIds, false);
+					}, 100);
+				}
+			}
+			else {
+				this.sqs.dialogManager.showPopOver("Not found", "The requested site ("+siteIds.join(",")+") does not exist.")
+			}
+		});
+		
+		/*
 		xhr1.xhr = $.ajax(this.sqs.config.siteReportServerAddress+"/tbl_sites?site_id=eq."+siteId, {
 			method: "get",
 			dataType: "json",
@@ -108,7 +150,7 @@ class SiteReportManager {
 					}
 					else {
 						setTimeout(() => {
-							this.renderSiteReport(siteId, false);
+							this.renderSiteReport(siteIds, false);
 						}, 100);
 					}
 				}
@@ -116,6 +158,7 @@ class SiteReportManager {
 				this.sqs.popXhr(xhr1);
 			}
 		});
+		*/
 
 		this.sqs.matomoTrackPageView("Site report");
 	}
