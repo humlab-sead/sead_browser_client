@@ -53,6 +53,13 @@ class SiteReport {
 			this.hideLoadingIndicator();
 		});
 
+		const bsi = new BasicSiteInformation(this.sqs, this.siteId);
+		const samples = new Samples(this.sqs, this.site);
+		const ecoCodes = new EcoCodes(this.sqs, this.site);
+		const analysis = new Analysis(this.sqs, this.siteId);
+
+		bsi.preRender();
+
 		this.fetchSite().then(siteData => {
 			console.log(siteData);
 			this.linkDataStructures(siteData);
@@ -60,11 +67,6 @@ class SiteReport {
 			this.siteData = siteData;
 			this.fetchComplete = true;
 			this.hideLoadingIndicator();
-
-			const bsi = new BasicSiteInformation(this.sqs, this.siteId);
-			const samples = new Samples(this.sqs, this.site);
-			const ecoCodes = new EcoCodes(this.sqs, this.site);
-			const analysis = new Analysis(this.sqs, this.siteId);
 
 			this.modules.push({
 				"name": "basicSiteInformation",
@@ -1051,19 +1053,18 @@ class SiteReport {
 		let abundanceTableRows = [];
 
 
-		let taxonIds = [];
+		let taxonIds = new Set([]);
 
 		for(let rowKey in exportStruct.datatable.rows) {
 			let row = exportStruct.datatable.rows[rowKey];
 			let tableRow = [];
-			
 
 			for(let cellKey in row) {
 				if(colKeys.includes(cellKey)) {
 					let cell = row[cellKey];
 					if(typeof cell.rawValue != "undefined") {
 						tableRow.push(this.sqs.formatTaxon(cell.rawValue, null, false));
-						taxonIds.push(cell.rawValue.taxon_id);
+						taxonIds.add(parseInt(cell.rawValue.taxon_id));
 					}
 					else {
 						tableRow.push(cell.value);
@@ -1132,13 +1133,27 @@ class SiteReport {
 			style: "subheader"
 		});
 
-
 		let taxonReferencePromises = [];
-		taxonIds.forEach(taxonId => {
-			taxonReferencePromises.push(this.fetchTaxonReferences(taxonId).then(references => {
-				references.references.forEach(r => {
-					refTableRows.push([references.taxon_id, r.author_name]);
-				});
+
+		let taxonIdsArray = [...taxonIds];
+
+		// Sort the Array
+		taxonIdsArray.sort((a, b) => a - b); // this does nothing since the references are fetched (and therefore also inserted) asynchronously. Should probably be fixed at some point
+
+		taxonIdsArray.forEach(taxonId => {
+			let refStr = "";
+			taxonReferencePromises.push(this.fetchTaxonReferences(taxonId).then(data => {
+				if(data.references && data.references.taxonomy_notes && data.references.taxonomy_notes.length > 0) {
+					data.references.taxonomy_notes.forEach(note => {
+						refStr += note.biblio.bugs_reference + "\n";
+						refStr += note.biblio.title ? note.biblio.title : "";
+					});
+				}
+				else {
+					refStr = "No references found";
+				}
+
+				refTableRows.push([data.taxon_id, refStr]);
 			}));
 		});
 

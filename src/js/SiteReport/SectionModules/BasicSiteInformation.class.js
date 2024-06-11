@@ -63,6 +63,10 @@ class BasicSiteInformation {
 		return referenceHtml;
 	}
 
+	preRender() {
+		$(".site-report-title-site-name").html("Loading...");
+	}
+
 	/*
 	* Function: render
 	*
