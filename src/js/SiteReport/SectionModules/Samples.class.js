@@ -798,7 +798,22 @@ class Samples {
 
 			});
 		}
+	}
 
+	getSampleGroupsReferencesBiblioIds(sampleGroups) {
+		let ids = [];
+		sampleGroups.forEach(sg => {
+			sg.biblio.forEach(biblio => {
+				ids.push(biblio.biblio_id);
+			});
+		});
+
+		//make sure they are unique
+		ids = ids.filter((value, index, self) => {
+			return self.indexOf(value) === index;
+		});
+
+		return ids;
 	}
 
 	compileSectionStruct(siteData) {
@@ -979,7 +994,7 @@ class Samples {
 
 		this.insertSampleAnalysesIntoTable(sampleGroupTable, siteData);
 		this.insertSampleGroupFeatureTypesIntoTable(sampleGroupTable, siteData);
-		this.insertSampleGroupReferencesIntoTable(sampleGroupTable, siteData.sample_groups);
+		//this.insertSampleGroupReferencesIntoTable(sampleGroupTable, siteData.sample_groups); //we include this information in the "datasetReference" property of the section instead
 		this.insertSampleGroupCoordinatesIntoTable(sampleGroupTable, siteData.sample_groups);
 
 		var section = {
@@ -989,6 +1004,7 @@ class Samples {
 			"contentItems": [{
 				"name": "sampleGroups",
 				"title": "Sample groups",
+				"datasetReference": this.sqs.renderBiblioReference(siteData, this.getSampleGroupsReferencesBiblioIds(siteData.sample_groups)),
 				"data": {
 					"columns": sampleGroupColumns,
 					"rows": sampleGroupRows
