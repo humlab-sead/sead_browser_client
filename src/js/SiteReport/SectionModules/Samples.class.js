@@ -389,6 +389,34 @@ class Samples {
 			}
 		}
 
+		let insertSampleGroupFeatureColumn = false;
+
+		//this is just a check to see if there are any features in the sample groups at all
+		for(let key in table.rows) {
+			let row = table.rows[key];
+			let sampleGroupId = row[sampleGroupColKey].value;
+			let sampleGroupFeatures = [];
+
+			// get all features from the sample group
+			for(let sgKey in site.sample_groups) {
+				if(site.sample_groups[sgKey].sample_group_id == sampleGroupId) {
+					site.sample_groups[sgKey].physical_samples.forEach(sample => {
+						sample.features.forEach(feature => {
+							sampleGroupFeatures.push(feature);
+						});
+					});
+				}
+			}
+
+			if(sampleGroupFeatures.length > 0) {
+				insertSampleGroupFeatureColumn = true;
+			}
+		}
+
+		if(!insertSampleGroupFeatureColumn) {
+			return;
+		}
+
 		for(let key in table.rows) {
 			let row = table.rows[key];
 			let sampleGroupId = row[sampleGroupColKey].value;
@@ -455,7 +483,7 @@ class Samples {
 				value = value.substring(0, value.length-2);
 			}
 			value += "</div>";
-
+				
 			row.push({
 				"type": "cell",
 				"value": value,
