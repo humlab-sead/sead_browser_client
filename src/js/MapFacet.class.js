@@ -271,7 +271,7 @@ class MapFacet extends Facet {
 	* data - The data package from the server.
 	*/
 	importData(data) {
-		super.importData();
+		super.importData(data);
 	}
 
 	/*
