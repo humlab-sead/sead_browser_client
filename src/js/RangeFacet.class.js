@@ -100,24 +100,8 @@ class RangeFacet extends Facet {
 	importData(importData, overwrite = true) {
 		super.importData(importData);
 
-		//these doesn't currently work because of a bug in the server which returns the wrong values, we do it manually below
-		//this.totalLower = importData.IntervalInfo.FullExtent.Lower;
-		//this.totalUpper = importData.IntervalInfo.FullExtent.Upper;
-
-		//find out what the max/min values are for the data
-		let min = null;
-		let max = null;
-		for(let itemKey in importData.Items) {
-			if(min == null || importData.Items[itemKey].Extent[0] < min) {
-				min = importData.Items[itemKey].Extent[0];
-			}
-			if(max == null || importData.Items[itemKey].Extent[1] > max) {
-				max = importData.Items[itemKey].Extent[1];
-			}
-		}
-
-		this.totalLower = min;
-		this.totalUpper = max;
+		this.totalLower = importData.IntervalInfo.FullExtent.DataLow;
+		this.totalUpper = importData.IntervalInfo.FullExtent.DataHigh;
 
 		let filteredData = false;
 		for(let k in importData.Picks) {
@@ -149,8 +133,8 @@ class RangeFacet extends Facet {
 		}
 
 	}
-
-	reduceResolutionOfDataset(dataset, selections = [], resolution = 100) {
+	
+	reduceResolutionOfDataset(dataset, selections = [], resolution = 20) {
 
 		if(dataset.length <= this.numberOfCategories) { //Nothing to do, we can't upscale data resolution, only downscale
 			return dataset;
@@ -214,7 +198,7 @@ class RangeFacet extends Facet {
 			});
 			bins[bk].value = Math.round((binTotal / bins[bk].sites.length) * 10) / 10;
 		}
-		
+
 		return bins;
 	}
 
