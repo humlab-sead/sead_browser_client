@@ -1151,6 +1151,36 @@ class DendroChart {
         })
     }
     
+    adjustTooltipPosition(tooltip) {
+        const tooltipRect = tooltip.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+    
+        let top = parseInt(tooltip.style.top, 10);
+        let left = parseInt(tooltip.style.left, 10);
+    
+        // Adjust for horizontal overflow
+        if (tooltipRect.right > viewportWidth) {
+            left -= (tooltipRect.right - viewportWidth);
+        } else if (tooltipRect.left < 0) {
+            left = 0;
+        }
+    
+        // Adjust for vertical overflow
+        if (tooltipRect.bottom > viewportHeight) {
+            top -= (tooltipRect.bottom - viewportHeight);
+        } else if (tooltipRect.top < 0) {
+            top = 0;
+        }
+
+        // Adjust for upper border overflow
+        if (tooltipRect.top < 0) {
+            top = top - tooltipRect.top;
+        }
+    
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+    }
 
     removeTooltip() {
         if(this.tooltipId) {
@@ -1324,6 +1354,7 @@ class DendroChart {
         $(tooltipContainer).html(content);
 
         $("body").append(tooltipContainer);
+
         $(".dendro-tooltip-close-button").on("click", () => {
             this.removeInfoTooltip();
         });
@@ -1332,6 +1363,8 @@ class DendroChart {
         if(bottomOfTooltipBox > $(document).height() - 100) {
             $(tooltipContainer).css("top", evt.pageY - $(tooltipContainer).height() - 20);
         }
+
+        this.adjustTooltipPosition(tooltipContainer);
         
         setTimeout(() => {
             $("#dendro-chart-svg").on("click", (evt) => {
