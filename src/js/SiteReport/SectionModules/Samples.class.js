@@ -127,7 +127,7 @@ class Samples {
 		let insertSampleHorizonsColumn = false;
 		for(let k in sampleGroup.physical_samples) {
 			var sample = sampleGroup.physical_samples[k];
-			if(sample.horizons.length > 0) {
+			if(typeof sample.horizons != "undefined" && sample.horizons.length > 0) {
 				insertSampleHorizonsColumn = true;
 			}
 		}
@@ -182,7 +182,6 @@ class Samples {
 				});
 			}
 		}
-	
 	}
 
 	insertSampleFeaturesIntoTable(subTable, sampleGroup) {
