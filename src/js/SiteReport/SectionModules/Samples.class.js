@@ -123,6 +123,68 @@ class Samples {
 		}
 	}
 
+	insertSampleHorizonsIntoTable(subTable, sampleGroup) {
+		let insertSampleHorizonsColumn = false;
+		for(let k in sampleGroup.physical_samples) {
+			var sample = sampleGroup.physical_samples[k];
+			if(sample.horizons.length > 0) {
+				insertSampleHorizonsColumn = true;
+			}
+		}
+
+		if(insertSampleHorizonsColumn) {
+			subTable.columns.push({
+				"title": "Horizon"
+			});
+
+			let pkeyColumnKey = null;
+			subTable.columns.forEach((col, key) => {
+				if(col.pkey === true) {
+					pkeyColumnKey = key;
+				}
+			});
+
+			let siteData = this.sqs.siteReportManager.siteReport.siteData;
+
+			for(let k in sampleGroup.physical_samples) {
+				var sample = sampleGroup.physical_samples[k];
+				let cellValue = "";
+				sample.horizons.forEach(horizonId => {
+					let ttId = "tt-"+nanoid();
+
+					let horizonData = null;
+					let methodData = null;
+					siteData.lookup_tables.horizons.forEach(horizon => {
+						if(horizon.horizon_id == horizonId) {
+							horizonData = horizon;
+
+							siteData.lookup_tables.methods.forEach(method => {
+								if(method.method_id == horizonData.method_id) {
+									methodData = method;
+								}
+							});
+						}
+					});
+
+					cellValue += "<span id='"+ttId+"'>"+horizonData.horizon_name+"</span>, ";
+					let horizonDescription = horizonData.description ? horizonData.description : "No description available";
+					this.sqs.tooltipManager.registerTooltip("#"+ttId, "<h4 class='tooltip-header'>"+horizonData.horizon_name+"</h4>"+horizonDescription+"<hr/>"+methodData.method_name, { drawSymbol: true });
+				});
+				cellValue = cellValue.substring(0, cellValue.length-2);
+				subTable.rows.forEach(row => {
+					if(row[pkeyColumnKey].value == sample.physical_sample_id) {
+						row.push({
+							"value": cellValue,
+							"type": "cell",
+							"tooltip": ""
+						});
+					}
+				});
+			}
+		}
+	
+	}
+
 	insertSampleFeaturesIntoTable(subTable, sampleGroup) {
 		//features are in sample_groups.physical_samples.features
 		let insertSampleFeaturesColumn = false;
@@ -925,6 +987,7 @@ class Samples {
 			this.insertSampleAltRefsIntoTable(subTable, sampleGroup);
 			this.insertSampleCoordinatesIntoTable(subTable, sampleGroup);
 			this.insertSampleFeaturesIntoTable(subTable, sampleGroup);
+			this.insertSampleHorizonsIntoTable(subTable, sampleGroup);
 
 			let samplingContextValue = "";
 			sampleGroup.sampling_context.forEach(samplingContext => {
