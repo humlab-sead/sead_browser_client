@@ -47,7 +47,7 @@ class RangeFacet extends Facet {
 		this.sliderElement = null;
 		this.minDataValue = null;
 		this.maxDataValue = null;
-		this.numberOfCategories = 20; //Number of categories (bars) we want to abstract dataset
+		//this.numberOfCategories = 50; //Number of categories (bars) we want to abstract dataset
 		$(".facet-text-search-btn", this.getDomRef()).hide(); //range facets do not have text searching...
 
 		Chart.register(CategoryScale);
@@ -134,7 +134,7 @@ class RangeFacet extends Facet {
 
 	}
 	
-	reduceResolutionOfDataset(dataset, selections = [], resolution = 20) {
+	reduceResolutionOfDataset(dataset, selections = [], resolution = 100) {
 
 		if(dataset.length <= this.numberOfCategories) { //Nothing to do, we can't upscale data resolution, only downscale
 			return dataset;
@@ -305,10 +305,13 @@ class RangeFacet extends Facet {
 			this.data = this.sqs.copyObject(this.datasets.unfiltered);
 		}
 		
-		//let categories = this.data;
-		let categories = this.reduceResolutionOfDataset(this.data, selections, this.numberOfCategories);
-		
-		
+		let categories = this.data;
+		/*
+		console.log(this.data);
+		let categories = this.reduceResolutionOfDataset(this.data, selections);
+		console.log(categories)
+		*/
+
 		$(".facet-body > .chart-container", this.getDomRef()).show();
 		if(this.chart == null) {
 			this.renderChart(categories, selections);
@@ -531,8 +534,8 @@ class RangeFacet extends Facet {
 		$(".noUi-handle-lower .range-facet-manual-input", this.getDomRef()).val(this.getSelections()[0]);
 		$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(this.getSelections()[1]);
 
-		//let categories = this.data;
-		let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());
+		let categories = this.data;
+		//let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());
 		this.updateChart(categories, this.getSelections());
 	}
 
@@ -634,8 +637,8 @@ class RangeFacet extends Facet {
 			this.data = this.sqs.copyObject(this.datasets.unfiltered);
 		}
 		
-		//let categories = this.data;
-		let categories = this.reduceResolutionOfDataset(this.data, this.getSelections(), this.numberOfCategories);
+		let categories = this.data;
+		//let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());
 
 		this.renderChart(categories, this.getSelections());
 	}
