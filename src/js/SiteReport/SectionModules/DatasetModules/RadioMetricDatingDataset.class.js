@@ -394,6 +394,7 @@ class RadioMetricDatingDataset extends DatasetModule {
 			"name": datasetGroup.physical_sample_id,
 			"title": "Sample "+datasetGroup.sample.sample_name,
 			"datasetId": datasetGroup.physical_sample_id,
+			"methodGroupId": this.methodGroupId,
 			"data": {
 				"columns": columns,
 				"rows": rows

@@ -330,6 +330,7 @@ class Samples {
 
 		if(insertSampleCoordinatesColumn) {
 			subTable.columns.push({
+				"dataType": "component",
 				"title": "Coordinates",
 				"role": "coordinates"
 			});
@@ -602,7 +603,7 @@ class Samples {
 		}
 		
 		table.columns.push({
-			"dataType": "string",
+			"dataType": "component",
 			"pkey": false,
 			"title": "Analysis methods"
 		});
@@ -650,6 +651,7 @@ class Samples {
 
 		if(insertSampleGroupCoordinatesColumn) {
 			table.columns.push({
+				"dataType": "component",
 				"title": "Coordinates",
 				"role": "coordinates",
 			});

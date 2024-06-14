@@ -1646,7 +1646,100 @@ class SeadQuerySystem {
 		return Boolean(value && typeof value.then === 'function');
 	}
 
-	renderContacts(siteData, contactIds) {
+	renderContacts(siteData, contactIds, html = true) {
+		// Reduce contactIds down to just unique values
+		contactIds = contactIds.filter((value, index, self) => {
+			return self.indexOf(value) === index;
+		});
+	
+		let datasetContacts = [];
+		for (let k in contactIds) {
+			let contactId = contactIds[k];
+			let foundContact = false;
+			for (let contactKey in siteData.lookup_tables.dataset_contacts) {
+				if (siteData.lookup_tables.dataset_contacts[contactKey].contact_id == contactId) {
+					foundContact = true;
+					datasetContacts.push(siteData.lookup_tables.dataset_contacts[contactKey]);
+				}
+			}
+			if (!foundContact) {
+				console.warn("Contact not found in lookup table:", contactId);
+			}
+		}
+	
+		if (datasetContacts.length == 0) {
+			return "";
+		}
+	
+		if (!html) {
+			let textOutput = "";
+			datasetContacts.forEach(contact => {
+				if (contact.contact_first_name) {
+					textOutput += contact.contact_first_name + "\n";
+				}
+				if (contact.contact_last_name) {
+					textOutput += contact.contact_last_name + "\n";
+				}
+				if (contact.contact_email) {
+					textOutput += contact.contact_email + "\n";
+				}
+				if (contact.contact_address_1) {
+					textOutput += contact.contact_address_1 + "\n";
+				}
+				if (contact.contact_address_2) {
+					textOutput += contact.contact_address_2 + "\n";
+				}
+				if (contact.contact_location_name) {
+					textOutput += contact.contact_location_name + "\n";
+				}
+				if (contact.contact_url) {
+					textOutput += contact.contact_url + "\n";
+				}
+				if (contact.contact_type_description) {
+					textOutput += contact.contact_type_description + "\n";
+				}
+				textOutput += "\n";
+			});
+			return textOutput.trim(); // Remove trailing newline
+		}
+	
+		let htmlOutput = "<ul>";
+		datasetContacts.forEach(contact => {
+			htmlOutput += "<li class='dataset-contact'>";
+			if (contact.contact_first_name) {
+				htmlOutput += "<div class='dataset-contact-name'>" + contact.contact_first_name + "</div>";
+			}
+			if (contact.contact_last_name) {
+				htmlOutput += "<div class='dataset-contact-name'>" + contact.contact_last_name + "</div>";
+			}
+			if (contact.contact_email) {
+				htmlOutput += "<div class='dataset-contact-email'>" + contact.contact_email + "</div>";
+			}
+			if (contact.contact_address_1) {
+				htmlOutput += "<div class='dataset-contact-phone'>" + contact.contact_address_1 + "</div>";
+			}
+			if (contact.contact_address_2) {
+				htmlOutput += "<div class='dataset-contact-phone'>" + contact.contact_address_2 + "</div>";
+			}
+			if (contact.contact_location_name) {
+				htmlOutput += "<div class='dataset-contact-notes'>" + contact.contact_location_name + "</div>";
+			}
+			if (contact.contact_url) {
+				htmlOutput += "<div class='dataset-contact-notes'>" + contact.contact_url + "</div>";
+			}
+			if (contact.contact_type_description) {
+				htmlOutput += "<div class='dataset-contact-notes'>" + contact.contact_type_description + "</div>";
+			}
+			htmlOutput += "</li>";
+		});
+	
+		htmlOutput += "</ul>";
+	
+		return htmlOutput;
+	}
+	
+
+	renderContactsOLD(siteData, contactIds) {
 
 		//reduce contactIds down to just unique values
 		contactIds = contactIds.filter((value, index, self) => {

@@ -61,6 +61,7 @@ class MeasuredValueDataset extends DatasetModule {
 				"datasetContacts": this.sqs.renderContacts(site, dataset.contacts),
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataset.dataset_id,
+				"methodId": analysisMethod.method_id,
 				"data": {
 					"columns": [],
 					"rows": []

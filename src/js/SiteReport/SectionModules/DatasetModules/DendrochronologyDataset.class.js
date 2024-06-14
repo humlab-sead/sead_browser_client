@@ -567,6 +567,7 @@ class DendrochronologyDataset extends DatasetModule {
 			"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
 			"titleTooltip": "Name of the dataset",
 			"datasetId": 0,
+			"methodId": 10,
 			"data": {
 				"columns": columns,
 				"rows": rows,

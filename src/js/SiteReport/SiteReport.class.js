@@ -551,6 +551,9 @@ class SiteReport {
 		if(exportFormat == "xlsx") {
 			node = this.getXlsxExport(filename, exportStruct);
 		}
+		if(exportFormat == "xlsxBook") {
+			node = this.getXlsxBookExport(filename, exportStruct);
+		}
 		if(exportFormat == "csv") {
 			node = this.getCsvExport(filename, exportStruct);
 		}
@@ -818,6 +821,289 @@ class SiteReport {
 		return $("<a class='site-report-export-download-btn light-theme-button'>Download CSV</a>");
 	}
 	*/
+
+	stripHtmlUsingDOM(input) {
+		const temporaryElement = document.createElement('div');
+		temporaryElement.innerHTML = input;
+		return temporaryElement.textContent || temporaryElement.innerText || '';
+	}
+
+	getXlsxBookExport(filename, exportStruct) {
+		let siteData = exportStruct;
+
+		const wb = new ExcelJS.Workbook();
+		const siteWorksheet = wb.addWorksheet("Site");
+		const samplesWorksheet = wb.addWorksheet("Samples");
+
+		let siteMetaColumns = [
+			"Site identifier",
+			"License", 
+			"Date of export",
+			"Webclient version",
+			"API version",
+			"Site name",
+			"Site description",
+			"Latitude (WGS84)",
+			"Longitude (WGS84)",
+			"Database attribution",
+		];
+
+		let headerRow = siteWorksheet.addRow(siteMetaColumns);
+		headerRow.eachCell((cell) => {
+			cell.font = { bold: true };
+		});
+
+		let siteMetaRow = [
+			this.siteId,
+			this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")",
+			new Date().toLocaleDateString('sv-SE'),
+			this.sqs.config.version,
+			siteData.api_source,
+			siteData.site_name,
+			siteData.site_description,
+			siteData.latitude_dd,
+			siteData.longitude_dd,
+			this.sqs.config.dataAttributionString,
+		];
+
+		siteWorksheet.addRow(siteMetaRow);
+
+
+		for(let key in this.sqs.siteReportManager.siteReport.data.sections) {
+			let section = this.sqs.siteReportManager.siteReport.data.sections[key];
+			if(section.name == "samples") {
+				for(let key2 in section.contentItems) {
+					let contentItem = section.contentItems[key2];
+					if(contentItem.name == "sampleGroups") {
+						let subTableColumnKey = null;
+						let columnKeys = [];
+						let sampleGroupColumns = [];
+						contentItem.data.columns.forEach((column, index) => {
+							//we exclude columns with a dataType marked as subtables and components from the export
+							
+							if(column.dataType != "subtable" && column.dataType != "component") {
+								columnKeys.push(index);
+								sampleGroupColumns.push(column.title);
+							}
+
+							if(column.dataType == "subtable") {
+								subTableColumnKey = index;
+							}
+						});
+
+						if(subTableColumnKey != null) {
+							contentItem.data.rows.forEach(sampleGroupRow => {
+
+								let sampleGroupExcelRowValues = [];
+								columnKeys.forEach(key3 => {
+									let v = this.sqs.parseStringValueMarkup(sampleGroupRow[key3].value, { drawSymbol: false });
+									v = this.stripHtmlUsingDOM(v);
+									sampleGroupExcelRowValues.push(v);
+								});
+
+								let subTable = sampleGroupRow[subTableColumnKey].value;
+
+								let columns = [...sampleGroupColumns];
+								subTable.columns.forEach(subTableColumn => {
+									columns.push(subTableColumn.title);
+								});
+
+								//push a new header row for each of the subtables/samples
+								let columnRow = samplesWorksheet.addRow(columns);
+								columnRow.eachCell((cell) => {
+									cell.font = { bold: true };
+								});
+
+								subTable.rows.forEach(subTableRow => {
+									let excelRow = [...sampleGroupExcelRowValues];
+									subTableRow.forEach((subTableCell, index) => {
+										let cellValue = this.sqs.parseStringValueMarkup(subTableCell.value, { drawSymbol: false });
+										cellValue = this.stripHtmlUsingDOM(cellValue);
+										excelRow.push(cellValue);
+									});
+									samplesWorksheet.addRow(excelRow);
+								});
+							});
+
+						};
+					}
+				}
+			}
+
+			if(section.name == "analyses") {
+				section.sections.forEach(analysisSection => {
+					
+					let worksheet = wb.addWorksheet(analysisSection.title);
+
+					let biblioRef = null;
+					let contactIds = new Set();
+					for(let k in siteData.datasets) {
+						if(siteData.datasets[k].method_id == 10) {
+							siteData.lookup_tables.biblio.forEach(biblio => {
+								if(biblio.biblio_id == siteData.datasets[k].biblio_id) {
+									biblioRef = biblio;
+								}
+							});
+
+							siteData.datasets[k].contacts.forEach(contact_id => {
+								contactIds.add(contact_id);
+							});
+
+							continue;
+						}
+					}
+
+					const contactIdsArr = Array.from(contactIds);
+					let contactString = this.sqs.renderContacts(siteData, contactIdsArr, false);
+
+					
+					if(biblioRef) {
+						let r = worksheet.addRow(["Dataset reference; please cite this dataset as:"]);
+						r.eachCell((cell) => {
+							cell.font = { bold: true };
+						});
+						worksheet.addRow([biblioRef.full_reference]);
+					}
+					else {
+						let r = worksheet.addRow(["Dataset reference"]);
+						r.eachCell((cell) => {
+							cell.font = { bold: true };
+						});
+						worksheet.addRow(["No reference found"]);
+					}
+					let r = worksheet.addRow(["Dataset contact information:"]);
+					r.eachCell((cell) => {
+						cell.font = { bold: true };
+					});
+					if(contactIdsArr.length > 0) {
+						worksheet.addRow([contactString]);
+					}
+					else {
+						worksheet.addRow(["No contact information found"]);
+					}
+					
+					worksheet.addRow([]);
+
+					analysisSection.contentItems.forEach(contentItem => {
+						if(this.sqs.isPromise(contentItem)) {
+							console.warn("Content item is a promise");
+							return;
+						}
+
+						if(contentItem.methodId && (contentItem.methodId == 10 || contentItem.methodId == 171)) {
+							this.insanitySubroutine(worksheet, contentItem);
+						}
+						else {
+							this.sanityPrevails(worksheet, contentItem);
+						}
+					});
+				});
+			}
+		}
+
+		wb.xlsx.writeBuffer().then(buffer => {
+			const blob = new Blob([buffer], { type: 'application/octet-stream' });
+			const blobUrl = URL.createObjectURL(blob);
+
+			$("#site-report-xlsx-export-download-btn").attr("href", blobUrl);
+			$("#site-report-xlsx-export-download-btn").attr("download", filename+".xlsx");
+		});
+
+		return $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
+	}
+
+	sanityPrevails(worksheet, contentItem) {
+		let dataTable = contentItem.data;
+
+		let columnRow = [];
+		//insert dataset name as the first column
+		columnRow.push("Dataset");
+		dataTable.columns.forEach((column, index) => {
+			if(column.dataType != "subtable" && column.dataType != "component") {
+				columnRow.push(column.title);
+			}
+		});
+		let headerRow = worksheet.addRow(columnRow);
+		headerRow.eachCell((cell) => {
+			cell.font = { bold: true };
+		});
+
+		dataTable.rows.forEach((row, index) => {
+			let excelRow = [];
+
+			//insert dataset name as the first column
+			excelRow.push(contentItem.title);
+
+			dataTable.columns.forEach((column, index) => {
+				if(column.dataType != "subtable" && column.dataType != "component") {
+					let cellValue = this.sqs.parseStringValueMarkup(row[index].value, { drawSymbol: false });
+					cellValue = this.stripHtmlUsingDOM(cellValue);
+					excelRow.push(cellValue);
+				}
+			});
+
+			worksheet.addRow(excelRow);
+		});
+	}
+
+	insanitySubroutine(worksheet, contentItem) {
+		let dataTable = contentItem.data;
+		let subTableColumnKey = null;
+		let sampleColumns = [];
+		let columnKeys = [];
+		dataTable.columns.forEach((column, index) => {
+			//we exclude columns with a dataType marked as subtables and components from the export
+			if(column.dataType != "subtable" && column.dataType != "component") {
+				columnKeys.push(index);
+				sampleColumns.push(column.title);
+			}
+
+			if(column.dataType == "subtable") {
+				subTableColumnKey = index;
+			}
+		});
+
+		if(subTableColumnKey != null) {
+			dataTable.rows.forEach(analysisRow => {
+
+				let analysisExcelRowValues = [];
+				columnKeys.forEach(key3 => {
+					let v = this.sqs.parseStringValueMarkup(analysisRow[key3].value, { drawSymbol: false });
+					v = this.stripHtmlUsingDOM(v);
+					analysisExcelRowValues.push(v);
+				});
+
+				let subTable = analysisRow[subTableColumnKey].value;
+
+				let valueColumnKeys = [];
+				let valueColumns = [...sampleColumns];
+				subTable.columns.forEach((subTableColumn, index) => {
+					if(subTableColumn.exclude_from_export !== true && subTableColumn.hidden !== true) {
+						valueColumnKeys.push(index);
+						valueColumns.push(subTableColumn.title);
+					}
+				});
+
+				let headersRow = worksheet.addRow(valueColumns);
+				headersRow.eachCell((cell) => {
+					cell.font = { bold: true };
+				});
+				
+				subTable.rows.forEach(subTableRow => {
+					let excelRow = [...analysisExcelRowValues];
+					subTableRow.forEach((subTableCell, index) => {
+						if(valueColumnKeys.includes(index)) {
+							let cellValue = this.sqs.parseStringValueMarkup(subTableCell.value, { drawSymbol: false });
+							cellValue = this.stripHtmlUsingDOM(cellValue);
+							excelRow.push(cellValue);
+						}
+					});
+
+					worksheet.addRow(excelRow);
+				});
+			});
+		}
+	}
 
 	getXlsxExport(filename, exportStruct) {
 		//Remove columns from table which are flagged for exclusion

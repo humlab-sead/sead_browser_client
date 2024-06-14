@@ -79,7 +79,11 @@ class BasicSiteInformation {
 		
 		var exportLinksHtml = "";
 		exportLinksHtml += "<ul class='site-report-export-links'>";
-		exportLinksHtml += "<div class='site-report-export-btn' href=''><li class='light-theme-button'><i class=\"fa fa-download\" aria-hidden=\"true\" style='margin-right:5px;'></i><span style='float:right;'>Export all site data</span></li></div>";
+		exportLinksHtml += `<div class='site-report-export-btn' href=''>
+			<li class='light-theme-button'><i class=\"fa fa-download\" aria-hidden=\"true\" style='margin-right:5px;'></i>
+				<span style='float:right;'>Export all site data</span>
+			</li>
+		</div>`;
 		exportLinksHtml += "</ul>";
 		
 		
@@ -514,6 +518,7 @@ class BasicSiteInformation {
 	
 	exportSite() {
 		let jsonBtn = this.sqs.siteReportManager.siteReport.getExportButton("json", this.sqs.siteReportManager.siteReport.siteData);
+		let xlsxBtn = this.sqs.siteReportManager.siteReport.getExportButton("xlsxBook", this.sqs.siteReportManager.siteReport.siteData);
 		//let pdfBtn = this.sqs.siteReportManager.siteReport.getExportButton("pdf", this.sqs.siteReportManager.siteReport.siteData);
 
 		let dialogNodeId = nanoid();
@@ -521,6 +526,7 @@ class BasicSiteInformation {
 		this.sqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
 
 		$("#node-"+dialogNodeId).append(jsonBtn);
+		$("#node-"+dialogNodeId).append(xlsxBtn);
 		//$("#node-"+dialogNodeId).append(pdfBtn);
 	}
 

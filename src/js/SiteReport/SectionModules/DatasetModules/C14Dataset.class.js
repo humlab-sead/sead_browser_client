@@ -112,6 +112,7 @@ class C14Dataset extends DatasetModule {
 				"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
 				"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, false),
 				"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
+				"methodId": dataGroup.method_id,
 				"data": {
 					"columns": columns,
 					"rows": rows

@@ -65,6 +65,7 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 				"datasetContacts": this.sqs.renderContacts(site, dataset.contacts),
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataset.dataset_id,
+				"methodId": dataset.method_id,
 				"data": {
 					"columns": [],
 					"rows": []

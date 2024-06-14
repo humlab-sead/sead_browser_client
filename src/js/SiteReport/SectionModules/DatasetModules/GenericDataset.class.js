@@ -83,6 +83,7 @@ class GenericDataset extends DatasetModule {
 				"title": dataset.dataset_name,
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataset.dataset_id,
+				"methodId": dataset.method_id,
 				"data": {
 					"columns": [],
 					"rows": []

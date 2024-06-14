@@ -472,6 +472,7 @@ class AbundanceDataset extends DatasetModule {
 				"title": dataGroup.dataset_name,
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataGroup.id,
+				"methodId": dataGroup.method_id,
 				"exportFormats": ["pdf"],
 				"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
 				"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, false),

@@ -295,8 +295,6 @@ class CeramicDataset extends DatasetModule {
 
 			rows.push(row);
 		});
-
-		console.log(datasetGroups);
 		
 
 		let datasetBiblioIds = [];
@@ -327,6 +325,7 @@ class CeramicDataset extends DatasetModule {
 			"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
 			"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, false),
 			"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
+			"methodId": 171, //or 172, but for what this will be used for, it doesn't matter
 			"data": {
 				"columns": columns,
 				"rows": rows
