@@ -193,12 +193,16 @@ class BasicSiteInformation {
 
 
 	renderTimeOverview(targetAnchorQuery) {
-		let siteDatingSummary = null;
+		let siteDatingSummary = [];
 		this.sqs.siteReportManager.siteReport.modules.forEach(m => {
 			if(m.name == "analysis") {
 				m.module.datasetModules.forEach(dsm => {
 					if(dsm.instance instanceof DatingToPeriodDataset) {
-						siteDatingSummary = dsm.instance.getDatingSummary();
+						siteDatingSummary = siteDatingSummary.concat(dsm.instance.getDatingSummary());
+					}
+
+					if(dsm.instance instanceof DendrochronologyDataset) {
+						siteDatingSummary = siteDatingSummary.concat(dsm.instance.getDatingSummary());
 					}
 				})
 			}
@@ -206,27 +210,10 @@ class BasicSiteInformation {
 
 		const standardAges = siteDatingSummary;
 
-		/* dendro is not quite compatible since it's not BP
-		//now also get the standard ages for any dendro datasets
-		let dendrodDatingSummary = null;
-		this.sqs.siteReportManager.siteReport.modules.forEach(m => {
-			if(m.name == "analysis") {
-				m.module.datasetModules.forEach(dsm => {
-					if(dsm.instance instanceof DendrochronologyDataset) {
-						dendrodDatingSummary = dsm.instance.getDatingSummary();
-					}
-				});
-			}
-		});
-
-		standardAges.push(...dendrodDatingSummary);
-		*/
-
 		if(standardAges.length == 0) {
 			document.getElementById(targetAnchorQuery).innerHTML = "No data";
 			return;
 		}
-
 
 		let compoundAges = [];
 		standardAges.forEach(standardAge => {
@@ -249,7 +236,8 @@ class BasicSiteInformation {
 					ageType: standardAge.ageType,
 					ages: [standardAge],
 					older: standardAge.ageOlder,
-					younger: standardAge.ageYounger
+					younger: standardAge.ageYounger,
+					isBP: standardAge.isBP
 				});
 			}
 		});
@@ -277,6 +265,40 @@ class BasicSiteInformation {
 			datasets: datasets
 		};
 
+		let ticksLabelCallback = null;
+		let tooltipCallback = null;
+		console.log(compoundAges)
+		if(compoundAges.length > 0 && compoundAges[0].isBP) {
+			ticksLabelCallback = function (value, index, values) {
+				if (value >= 1000) {
+					return value / 1000 + "k BP";
+				} else {
+					return value+" BP";
+				}
+			};
+
+			tooltipCallback = function (tooltipItems) {
+				let older = tooltipItems[0].raw[0];
+				let younger = tooltipItems[0].raw[1];
+				return older+" BP - "+younger+" BP";
+			}
+		}
+		else {
+			ticksLabelCallback = function (value, index, values) {
+				if (value >= 1000) {
+					return value / 1000 + "k";
+				} else {
+					return value;
+				}
+			};
+
+			tooltipCallback = function (tooltipItems) {
+				let older = tooltipItems[0].raw[0];
+				let younger = tooltipItems[0].raw[1];
+				return older+" - "+younger;
+			}
+		}
+
 		const config = {
 			type: 'bar',
 			data: data,
@@ -285,13 +307,7 @@ class BasicSiteInformation {
 					x: {
 						reverse: true,
 						ticks: {
-							callback: function (value, index, values) {
-								if (value >= 1000) {
-									return value / 1000 + "k BP";
-								} else {
-									return value+" BP";
-								}
-							},
+							callback: ticksLabelCallback,
 					  	},
 					},
 				},
@@ -300,11 +316,7 @@ class BasicSiteInformation {
 				plugins: {
 					tooltip: {
 						callbacks: {
-							title: (tooltipItems) => {
-								let older = tooltipItems[0].raw[0];
-								let younger = tooltipItems[0].raw[1];
-								return older+" BP - "+younger+" BP";
-							},
+							title: tooltipCallback,
 							label: (data) => {
 								return "Dating by "+data.label;
 							}
@@ -326,7 +338,7 @@ class BasicSiteInformation {
 		document.getElementById(targetAnchorQuery).innerHTML = '<canvas id="'+chartId+'"></canvas>';
 
 		const ctx = document.getElementById(chartId).getContext("2d");
-        const myChart = new Chart(ctx, config);
+        new Chart(ctx, config);
 	}
 
 	/**

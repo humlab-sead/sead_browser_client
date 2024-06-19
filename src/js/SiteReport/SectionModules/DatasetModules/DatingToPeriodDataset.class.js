@@ -265,6 +265,7 @@ class DatingToPeriodDataset extends DatasetModule {
 
 					stdAge.ageOlder = from;
 					stdAge.ageYounger = to;
+					stdAge.isBP = true;
 				}
 
 				summary.push(stdAge);

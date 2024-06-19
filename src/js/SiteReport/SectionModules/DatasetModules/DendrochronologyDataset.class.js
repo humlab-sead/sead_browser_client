@@ -47,19 +47,15 @@ class DendrochronologyDataset extends DatasetModule {
 			return summary;
 		}
 
-		//extentMin and extentMax is in years, we need to convert them to BP (before present)
-		let extentMinBP = config.constants.BP - this.extentMin;
-		let extentMaxBP = config.constants.BP - this.extentMax;
-
 		let stdAge = new StandardAge();
-		stdAge.ageType = "Dendrochronological";
+		stdAge.ageType = "Dendrochronology";
 		stdAge.ageLocation = "";
-		stdAge.ageOlder = extentMinBP;
-		stdAge.ageYounger = extentMaxBP;
+		stdAge.ageOlder = this.extentMin;
+		stdAge.ageYounger = this.extentMax;
 		stdAge.sample = null;
+		stdAge.isBP = false;
 
 		summary.push(stdAge);
-
 		return summary;
 	}
 	

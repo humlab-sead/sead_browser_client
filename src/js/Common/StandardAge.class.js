@@ -5,6 +5,7 @@ class StandardAge {
 		this.ageOlder = 0;
 		this.ageYounger = 0;
 		this.sample = null;
+		this.isBP = true;
 	}
 }
 
