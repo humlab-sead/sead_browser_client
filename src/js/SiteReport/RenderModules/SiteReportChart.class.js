@@ -1114,7 +1114,6 @@ class SiteReportChart {
 
 	renderScatterChartPlotly() {
 		var contentItem = this.contentItem;
-	  
 		let chartData = this.dataTransform(contentItem);
 
 		//let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
@@ -1124,6 +1123,17 @@ class SiteReportChart {
 		// Combine the arrays and sort them based on values
 		let keysArray = chartData.x.values;
 		let valuesArray = chartData.y.values;
+
+		let unitColKey = null;
+		contentItem.data.columns.forEach((column, index) => {
+			if(column.title == 'Unit') {
+				unitColKey = index;
+			}
+		});
+
+		if(unitColKey != null && contentItem.data.rows.length > 0) {
+			chartData.y.unit = contentItem.data.rows[0][unitColKey].value;
+		}
 
 		let combinedArrays = keysArray.map((key, index) => ({ key, value: valuesArray[index] }));
 		combinedArrays.sort((a, b) => a.value - b.value);
@@ -1153,9 +1163,9 @@ class SiteReportChart {
 			y: chartData.y.values,
 			type: graphType,
 			mode: "markers",
-			text: chartData.y.values.map((val) => `${val}${chartData.y.unit}`),
+			text: chartData.y.values.map((val) => `${val} ${chartData.y.unit}`),
 			hoverinfo: "x+text",
-			hovertemplate: '%{y}<extra>Sample name %{x}</extra>',
+			hovertemplate: `%{y} ${chartData.y.unit}<extra>Sample name %{x}</extra>`,
 			textposition: 'auto',
 			marker: {
 				color: this.sqs.color.colors.baseColor,
@@ -1214,7 +1224,7 @@ class SiteReportChart {
 				showticklabels: false,
 				automargin: true,
 				title: {
-					text: '',
+					text: 'Value',
 					font: {
 						family: 'Didact Gothic, sans-serif',
 						size: 18,
