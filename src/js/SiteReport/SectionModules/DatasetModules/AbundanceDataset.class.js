@@ -435,7 +435,7 @@ class AbundanceDataset extends DatasetModule {
 
 			let analysisMethod = null;
 			for(let key in siteData.lookup_tables.methods) {
-				if(siteData.lookup_tables.methods[key].method_id == dataGroup.method_id) {
+				if(dataGroup.method_ids.includes(siteData.lookup_tables.methods[key].method_id)) {
 					analysisMethod = siteData.lookup_tables.methods[key];
 				}
 			}
@@ -450,7 +450,7 @@ class AbundanceDataset extends DatasetModule {
 				section = {
 					"name": dataGroup.method_id,
 					"title": dataGroup.method_name,
-					"methodId": analysisMethod.method_id,
+					"methodId": analysisMethod ? analysisMethod.method_id : null,
 					"methodDescription": analysisMethodDescription,
 					"collapsed": true,
 					"contentItems": []
@@ -569,11 +569,12 @@ class AbundanceDataset extends DatasetModule {
 				},
 			];
 			
-			dataGroup.data_points.forEach((data_point => {
+			dataGroup.values.forEach((value => {
+
 				let elementsValue = "";
 				let elementsTooltip = "";
 
-				let abundanceElements = this.getEntriesFromLookupTable(siteData, "abundance_elements", "abundance_element_id", [data_point.value.abundance_element_id]);
+				let abundanceElements = this.getEntriesFromLookupTable(siteData, "abundance_elements", "abundance_element_id", [value.value.abundance_element_id]);
 				if(abundanceElements && abundanceElements.length > 0) {
 					elementsValue = abundanceElements[0].element_name;
 					elementsTooltip = abundanceElements[0].element_description;
@@ -582,7 +583,7 @@ class AbundanceDataset extends DatasetModule {
 				let modificationsValue = "";
 
 				let modificationIds = [];
-				data_point.value.modifications.forEach(item => {
+				value.value.modifications.forEach(item => {
 					modificationIds.push(item.modification_type_id);
 				});
 
@@ -595,12 +596,12 @@ class AbundanceDataset extends DatasetModule {
 				}
 
 				let identificationLevelsValue = "";
-				data_point.value.identification_levels.forEach(idlvlItem => {
+				value.value.identification_levels.forEach(idlvlItem => {
 					identificationLevelsValue += idlvlItem.identification_level_name+", ";
 				});
 				identificationLevelsValue = identificationLevelsValue.substring(0, identificationLevelsValue.length-2);
 
-				let taxon = this.getTaxonByIdFromLookup(siteData, data_point.value.taxon_id);
+				let taxon = this.getTaxonByIdFromLookup(siteData, value.value.taxon_id);
 
 				let commonNames = "";
 				taxon.common_names.forEach(cn => {
@@ -618,19 +619,19 @@ class AbundanceDataset extends DatasetModule {
 				contentItem.data.rows.push([
 					{
 						"type": "cell",
-						"value": data_point.value.abundance_id
+						"value": value.value.abundance_id
 					},
 					{
 						"type": "cell",
-						"value": data_point.sample_name
+						"value": value.sample_name
 					},
 					{
 						"type": "cell",
-						"value": data_point.value.abundance
+						"value": value.value.abundance
 					},
 					{
 						"type": "cell",
-						"value": this.sqs.formatTaxon(taxon, data_point.value.identification_levels, true, true),
+						"value": this.sqs.formatTaxon(taxon, value.value.identification_levels, true, true),
 						"rawValue": taxon,
 						"tooltip": commonNames
 					},
@@ -649,11 +650,11 @@ class AbundanceDataset extends DatasetModule {
 					},
 					{
 						"type": "cell",
-						"value": data_point.physical_sample_id
+						"value": value.physical_sample_id
 					},
 					{
 						"type": "cell",
-						"value": data_point.value.taxon_id
+						"value": value.value.taxon_id
 					},
 				]);
 			}));
