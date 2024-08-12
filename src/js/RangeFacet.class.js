@@ -1,6 +1,6 @@
 import Facet from './Facet.class.js';
 import noUiSlider from "nouislider";
-import "nouislider/distribute/nouislider.min.css";
+//import "nouislider/distribute/nouislider.min.css";
 import styles from '../stylesheets/style.scss'
 import { Chart, CategoryScale, LinearScale, BarController, BarElement } from "chart.js";
 //import Config from "../config/config";
