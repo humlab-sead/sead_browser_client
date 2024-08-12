@@ -1,9 +1,9 @@
 import { nanoid } from "nanoid";
 import Color from "../Color.class";
-import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
+//import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
 import Config from '../../config/config.json';
 import "../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";
-import { default as Tabulator } from "tabulator-tables";
+import { Tabulator } from "tabulator-tables";
 import OpenLayersMap from "./OpenLayersMap.class";
 import TabContainer from "./TabContainer.class";
 import * as d3 from "d3";
@@ -300,6 +300,7 @@ class TaxaModule {
 	}
 
 	renderSpecies(container, taxonData) {
+		
 		$("#no-images-msg").hide();
 		$("#taxon-images-message-box").show();
 		$("#result-taxon-image-container-eol-loading-indicator").show();
@@ -952,6 +953,9 @@ class TaxaModule {
 	* Function: unrender
 	*/
 	unrender() {
+		if(modernDistMap) {
+			modernDistMap.setTarget(null);
+		}
 		$("#result-taxon-container").hide();
 	}
 	
