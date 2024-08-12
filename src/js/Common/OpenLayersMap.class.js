@@ -1608,9 +1608,14 @@ class OpenLayersMap {
 								sr.highlightSampleGroupRow(fprop.sampleGroupId);
 							}
 							if(fprop.level == "Sample") {
+								sr.pageFlipToSampleGroup(fprop.sampleGroupId, fprop.sampleGroupName);
 								sr.expandSampleGroup(fprop.sampleGroupId, fprop.name);
 								sr.pageFlipToSample(fprop.sampleGroupId, fprop.name);
-								sr.scrollToSample(fprop.sampleGroupId, fprop.name);
+								let success = sr.scrollToSample(fprop.sampleGroupId, fprop.name);
+								if(!success) {
+									this.sqs.notificationManager.notify("Sample not found", "error");
+									return false;
+								}
 								sr.highlightSampleRow(fprop.sampleGroupId, fprop.name);
 							}
 							
