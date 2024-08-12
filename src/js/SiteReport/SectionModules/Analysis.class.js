@@ -9,6 +9,7 @@ import C14Dataset from "./DatasetModules/C14Dataset.class";
 import IsotopeDataset from "./DatasetModules/IsotopeDataset.class";
 import MagneticSusceptibilityDataset from "./DatasetModules/MagneticSusceptibilityDataset.class";
 import LossOnIgnitionDataset from "./DatasetModules/LossOnIgnitionDataset.class";
+import EntityAgesDataset from "./DatasetModules/EntityAgesDataset.class";
 /*
 * Class: Analysis
 * 
@@ -101,6 +102,9 @@ class Analysis {
 		});
 		this.datasetModules.push({
 			"className": IsotopeDataset
+		});
+		this.datasetModules.push({
+			"className": EntityAgesDataset
 		});
 		this.datasetModules.push({
 			"className": GenericDataset
