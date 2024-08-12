@@ -150,6 +150,11 @@ class MeasuredValueDataset extends DatasetModule {
 					"pkey": false,
 					"title": "Value"
 				},
+				{
+					"dataType": "string",
+					"pkey": false,
+					"title": "Unit"
+				},
 			];
 
 
@@ -182,6 +187,11 @@ class MeasuredValueDataset extends DatasetModule {
 						"type": "cell",
 						"tooltip": "",
 						"value": value
+					},
+					{
+						"type": "cell",
+						"tooltip": analysisMethod.unit ? analysisMethod.unit.description : "",
+						"value": analysisMethod.unit ? analysisMethod.unit.unit_abbrev : ""
 					},
 				]);
 			});
