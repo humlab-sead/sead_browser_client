@@ -228,6 +228,8 @@
   
 }
 
+
+
 /*
 .site-report-aux-header-container {
   border-left: 5px solid #ccc;
@@ -374,6 +376,11 @@ tr.site-report-table-row-with-subtable:hover td {
   border-color: #666;
   color: #000;
   border-radius: 3px;
+}
+
+//datatables will sometimes add this type to numeric columns, which makes everything ugly, so we override it here
+.dt-type-numeric {
+  text-align: left !important; 
 }
 
 .dataTables_length {
