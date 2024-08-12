@@ -3760,6 +3760,10 @@ svg text {
   height: 100%;
 }
 
+.stacked-bar-container > svg {
+  height: calc(26px - 4px);
+}
+
 .stacked-bar-container {
   display: flex;
   min-height: 1em;
@@ -3848,6 +3852,11 @@ svg text {
   color: #fff;
 }
 
+.tabulator-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
 .result-table-select-all-checkbox .tabulator-col-content {
   text-align: center;
 }
@@ -3912,4 +3921,18 @@ svg text {
   position: absolute;
   left: 10px;
   top: 0;
+}
+
+.dataset-export-btn {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  cursor: pointer;
+  width: auto;
+}
+
+.dataset-export-btn .cute-little-loading-indicator {
+  background-size: 1em;
+  height: 1.1em;
+  margin-right: 0 !important;
 }
