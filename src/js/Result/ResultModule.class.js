@@ -3,8 +3,15 @@ import "file-saver";
 import "../../assets/loading-indicator5.svg";
 import Config from "../../config/config.json";
 import { saveAs } from "file-saver";
-import XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs/dist/exceljs.min.js';
+
+import AbundanceData from "./DatahandlingModules/AbundanceData.class.js";
+import DatingData from "./DatahandlingModules/DatingData.class.js";
+import DendroCeramicsData from "./DatahandlingModules/DendroCeramicsData.class.js";
+import IsotopeData from "./DatahandlingModules/IsotopeData.class.js";
+import MeasuredValuesData from "./DatahandlingModules/MeasuredValuesData.class.js";
+import EntityAgesData from "./DatahandlingModules/EntityAgesData.class.js";
 
 /*
 * Class: ResultModule
@@ -20,6 +27,14 @@ class ResultModule {
 		this.name = "";
 		this.data = [];
 		this.requestId = 0;
+
+		this.dataModules = [];
+		this.dataModules.push(new AbundanceData(this.sqs));
+		this.dataModules.push(new DendroCeramicsData(this.sqs));
+		this.dataModules.push(new DatingData(this.sqs));
+		this.dataModules.push(new IsotopeData(this.sqs));
+		this.dataModules.push(new MeasuredValuesData(this.sqs));
+		this.dataModules.push(new EntityAgesData(this.sqs));
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			
@@ -66,7 +81,7 @@ class ResultModule {
 
 	bindExportModuleDataToButton(button, module = null) {
 
-		let sitesExportCallback = () => {
+		let sitesExportCallback = async () => {
 			let jsonDownloadButtonId = "json-dl-"+nanoid();
 			let csvDownloadButtonId = "csv-dl-"+nanoid();
 			let xlsxDownloadButtonId = "xlsx-dl-"+nanoid();
@@ -78,39 +93,35 @@ class ResultModule {
 				selectedSites = module.getSelectedSites();
 			}
 
-			let html = "";
-			
-			/*
-			if(selectedSites.length > Config.maxAllowedSitesInAnExport) {
-				html += "The maximum amount of sites you can export in one go is "+Config.maxAllowedSitesInAnExport+" and this result set contains "+selectedSites.length+" sites.";
-				html += "<br />";
-				html += "Please try to narrow down your search and try again.";
-			}
-			else {
-				html += "This export will contain "+selectedSites.length+" sites and will be delivered as a zipped JSON file.<br />It might take some time to prepare depending on the number of sites.<br /><br /><br />";
-				html += "<a id='"+downloadButtonId+"' class='light-theme-button'>Download Zipped JSON</a>";
-			}
-			*/
-			
+			let html = "";	
 			html += "This export will contain "+selectedSites.length+" sites.<br /><br />";
+
+			html += "<h3>Export list of sites</h3>";
 			html += "<a id='"+xlsxDownloadButtonId+"' class='light-theme-button'>Download XLSX</a>";
 			html += "<a id='"+csvDownloadButtonId+"' class='light-theme-button'>Download CSV</a>";
 			html += "<a id='"+jsonDownloadButtonId+"' class='light-theme-button'>Download JSON</a>";
 			html += "<a id='"+sqlDownloadButtonId+"' class='light-theme-button'>View SQL</a>";
 
-			let aggregatedExportButtonId = "json-dl-"+nanoid();
+			//fetch dataset summaries for selected sites to see what is available for export
+			let datasetSummaries = await this.fetchDatasetSummaries(selectedSites);
+			console.log(datasetSummaries)
+
+			datasetSummaries.sort((a, b) => {
+				return a.method_name.localeCompare(b.method_name);
+			});
+
+			html += "<br /><br /><hr />";
+			let aggregatedExportButtonId = "dataset-dl-"+nanoid();
 			if(this.sqs.config.experimentalSiteExports) {
-				let aggregatedExportTooltipId = "tt-"+nanoid();
-				html += `<br /><hr /><br /><h3 id='`+aggregatedExportTooltipId+`'>Aggregated exports</h3>
-				<a id='"+aggregatedExportButtonId+"' class='light-theme-button'>Aggregated PDF</a>
-				<select id='aggregated-export'>
-					<option value='taxa'>Taxa</option>
-				</select>
-				`;
-
-				this.sqs.tooltipManager.registerTooltip("#"+aggregatedExportTooltipId, "Select the type of data to aggregate and export from the selected sites.", { drawSymbol: true });
+				html += "<h3>Export datasets</h3>";
+				html += "<select id='export-datasets'>";
+	
+				datasetSummaries.forEach((summary) => {
+					html += "<option value='"+summary.method_id+"'>"+summary.method_name+" ("+summary.siteCount+" sites, "+summary.datasetCount+" datasets)</option>";
+				});
+				html += "</select><br /><br />"
+				html += `<a id='`+aggregatedExportButtonId+`' class='light-theme-button dataset-export-btn'>Dataset Export</a>`;
 			}
-
 			
 			if(selectedSites.length == 0) {
 				html = "No sites selected!";
@@ -133,6 +144,50 @@ class ResultModule {
 
 				if(this.sqs.config.experimentalSiteExports) {
 					$("#"+aggregatedExportButtonId).on("click", async () => {
+						console.log(selectedSites);
+						let methodId = parseInt($("#export-datasets").val());
+						console.log("Method id", methodId);
+
+						//show a loading indicator while we fetch and compile the data
+						$("#"+aggregatedExportButtonId).append(`<div class="cute-little-loading-indicator"></div>`);
+						
+						try {
+
+							/*
+							datasetSummaries.forEach((summary) => {
+								if(summary.method_id == methodId && summary.datasetCount > 100) {
+									this.sqs.notificationManager.notify("SEAD is processing your export. This might take a minute due to the significant amount of datasets you have selected.", "info");
+								}
+							});
+							*/
+
+							let response = await fetch(Config.dataServerAddress + '/datagroups', {
+								method: 'POST',
+								headers: {
+									'Content-Type': 'application/json'
+								},
+								body: JSON.stringify({
+									siteIds: selectedSites,
+									methodIds: [methodId]
+								})
+							});
+						
+							if (!response.ok) {
+								throw new Error(`HTTP error! Status: ${response.status}`);
+							}
+						
+							let sites = await response.json();
+							this.getDatagroupsAsXlsx(methodId, sites);
+
+							$("#"+aggregatedExportButtonId).find(".cute-little-loading-indicator").remove();
+						
+							// Now you can use `aggregatedExportData` as needed
+						} catch (error) {
+							console.error('Error:', error);
+							$("#"+aggregatedExportButtonId).find(".cute-little-loading-indicator").remove();
+						}
+
+						
 
 					 });
 				}
@@ -154,7 +209,310 @@ class ResultModule {
 				sitesExportCallback();
 			});
 		}
+	}
+	
+	addMagneticSusceptibilityDatasetsToXlsxTable(table, datasets) {
+		table.columns.push({ header: 'MS unburned', key: 'ms_unburned', width: 20});
+		table.columns.push({ header: 'MS burned', key: 'ms_burned', width: 20});
 
+		datasets.forEach((dataset) => {
+			let unburnedAnalysisEntities = dataset.analysis_entities.filter((ae) => {
+				return ae.prepMethods && ae.prepMethods.includes(82) == false;
+			});
+			let burnedAnalysisEntities = dataset.analysis_entities.filter((ae) => {
+				return ae.prepMethods && ae.prepMethods.includes(82);
+			});
+
+			let writtenPhysicalSampleIds = [];
+			unburnedAnalysisEntities.forEach((ae) => {
+				let row = [dataset.site_id, dataset.dataset_name, ae.sample_name, ae.measured_values[0].measured_value];
+
+				//find corresponding burned value by physical_sample_id
+				burnedAnalysisEntities.forEach((bae) => {
+					if(bae.physical_sample_id == ae.physical_sample_id) {
+						row.push(bae.measured_values[0].measured_value);
+					}
+				});
+
+				writtenPhysicalSampleIds.push(ae.physical_sample_id);
+
+				table.rows.push(row);
+			});
+
+			//now do the same for the burnedAnalysisEntities, since it is possible that we could have a burned value without an unburned value
+			burnedAnalysisEntities.forEach((ae) => {
+				if(!writtenPhysicalSampleIds.includes(ae.physical_sample_id)) {
+					let row = [dataset.site_id, dataset.dataset_name, ae.sample_name, null, ae.measured_values[0].measured_value];
+					table.rows.push(row);
+				}
+			});
+		});
+	}
+
+	addStandardDatasetsToXlsxTable(table, datasets) {
+
+	}
+
+	getReferenceSheet(sites) {
+		let biblioIds = new Set();
+		let contactIds = new Set();
+		sites.forEach((site) => {
+			site.datasets.forEach((dataset) => {
+				if(dataset && dataset.biblio_id) {
+					biblioIds.add(dataset.biblio_id);
+				}
+				if(dataset && dataset.contacts.length > 0 ) {
+					dataset.contacts.forEach((contact) => {
+						contactIds.add(contact.contact_id);
+					});
+				}
+			});
+		});
+		
+
+		let biblioUrl = this.sqs.config.siteReportServerAddress+"/tbl_biblio?biblio_id=in.("+Array.from(biblioIds).join(",")+")";
+		console.log(biblioUrl);
+
+		fetch(biblioUrl).then((response) => {
+			return response.json();
+		}).then((bibliography) => {
+			console.log(bibliography);
+			/*
+			let refWorksheet = workbook.getWorksheet("References");
+			refWorksheet.columns = [
+				{ header: 'Biblio ID', key: 'biblio_id', width: 10},
+				{ header: 'Title', key: 'title', width: 50},
+				{ header: 'Authors', key: 'authors', width: 50},
+				{ header: 'Year', key: 'year', width: 10},
+				{ header: 'Journal', key: 'journal', width: 20},
+				{ header: 'Volume', key: 'volume', width: 10},
+				{ header: 'Pages', key: 'pages', width: 10},
+				{ header: 'DOI', key: 'doi', width: 20},
+				{ header: 'URL', key: 'url', width: 20},
+			];
+
+			bibliography.forEach((biblio) => {
+				refWorksheet.addRow([
+					biblio.biblio_id,
+					biblio.title,
+					biblio.authors,
+					biblio.year,
+					biblio.journal,
+					biblio.volume,
+					biblio.pages,
+					biblio.doi,
+					biblio.url
+				]);
+			});
+			*/
+		});
+
+	}
+
+	async getDatagroupsAsXlsx(methodId, sites) {
+		for(let key in sites) {
+			let site = sites[key];
+			site.data_groups = site.data_groups.filter(dataGroup => dataGroup !== null);
+		}
+
+		let tables = [];
+		this.dataModules.forEach((dataModule) => {
+			tables.push(dataModule.getDataAsTable(methodId, sites));
+		});
+		
+		let allNull = true;
+		let workbook = new ExcelJS.Workbook();
+
+		let metaWorksheet = workbook.addWorksheet("SEAD metadata");
+
+		metaWorksheet.columns = [
+			{ header: 'Description', key: 'description', width: 20},
+			{ header: 'SEAD browser URL', key: 'url', width: 50},
+			{ header: 'SEAD Attribution', key: 'attribution', width: 50},
+			{ header: 'Date of export', key: 'date_of_export', width: 10},
+			{ header: 'SEAD browser version', key: 'version', width: 10}
+		];
+
+		metaWorksheet.addRow([
+			this.sqs.config.dataExportDescription, 
+			Config.serverRoot, 
+			Config.dataAttributionString,
+			new Date().toISOString(),
+			Config.version	
+		]);
+
+		tables.forEach((table) => {
+			if(table != null) {
+				let datasetWorksheet = workbook.addWorksheet(table.name);
+				datasetWorksheet.columns = table.columns;
+				table.rows.forEach((row) => {
+					datasetWorksheet.addRow(row);
+				});
+				allNull = false;
+			}
+		});
+
+		console.log(tables)
+
+		//let refWorksheet = workbook.addWorksheet("References");
+		//this.getReferenceSheet(sites);
+
+		if(allNull) {
+			console.warn("No data found for export");
+			this.sqs.notificationManager.notify("SEAD was unable to export these datasets.", "error");
+			return;
+		}
+		workbook.xlsx.writeBuffer().then((buffer) => {
+			saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'sead_datasets_export.xlsx');
+		});
+	}
+
+	async getDatasetsAsXlsx(datasets) {
+		//generate an xlsx from the datasets
+		console.log(datasets);
+
+		let table = {
+			columns: [
+				{ header: 'Site ID', key: 'site_id', width: 10},
+				{ header: 'Dataset name', key: 'dataset_name', width: 30},
+				{ header: 'Sample name', key: 'sample_name', width: 30},
+			],
+			rows: []
+		}
+		
+		let datasetMethodId = null;
+		if(datasets.length > 0) {
+			if(!datasets[0].method_id && datasets[0].data_groups && datasets[0].data_groups.length > 0 && datasets[0].data_groups[0].method_id) {
+				datasetMethodId = datasets[0].data_groups[0].method_id;
+			}
+			else {
+				datasetMethodId = datasets[0].method_id;
+			}
+		}
+		else {
+			console.warn("No datasets found for export");
+			return;
+		}
+
+		if(datasetMethodId == 33) {
+			 this.addMagneticSusceptibilityDatasetsToXlsxTable(table, datasets);
+		}
+		else if(datasetMethodId == 10) {
+			console.warn("BUT THIS IS DENDRO!!")
+	   	}
+		else {
+			table.columns.push({ header: 'Value',  key: 'value', width: 20});
+
+			datasets.forEach((dataset) => {
+				console.log(dataset);
+
+				/*
+				if(dataset.data_group && dataset.data_groups.method_id == 10) {
+					dataset.data_group.datasets.forEach(dgds => {
+						dgds.id;
+						dgds.label;
+						dgds.value;
+					});
+				}
+				*/
+
+				/*
+				if(dataset.analysis_entities) {
+					dataset.analysis_entities.forEach((ae) => {
+						if(ae.measured_values) {
+							let row = [dataset.site_id, dataset.dataset_name, ae.sample_name, ae.measured_values[0].measured_value];
+							table.rows.push(row);
+						}
+						else {
+							console.warn("No measured values found for analysis entity", ae)
+						}
+					});
+				}
+				*/
+				
+			});
+		}
+
+		console.log(table);
+		
+		let workbook = new ExcelJS.Workbook();
+		let datasetWorksheet = workbook.addWorksheet("Datasets");
+		
+		datasetWorksheet.columns = table.columns;
+
+		table.rows.forEach((row) => {
+			datasetWorksheet.addRow(row);
+		});
+
+		workbook.xlsx.writeBuffer().then((buffer) => {
+			saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'sead_datasets_export.xlsx');
+		});
+		
+	}
+
+	getMeasuredValueDatasetExport(dataset) {
+		let table = {
+			columns: [
+				{ name: 'Measured value' }
+			],
+			rows: []
+		};
+
+		let foundPrepMethod550 = false;
+		dataset.analysis_entities.forEach((ae) => {
+			if(ae.prepMethods && ae.prepMethods.includes(82)) {
+				foundPrepMethod550 = true;
+			}
+		});
+
+		if(foundPrepMethod550) {
+			table.columns.shift();
+			table.columns.push({ name: 'Unburned measured value' });
+			table.columns.push({ name: 'Burned measured value' });
+
+			let unburnedAanalysisEntities = dataset.analysis_entities.filter((ae) => {
+				return ae.prepMethods && ae.prepMethods.includes(82) == false;
+			});
+			let burnedAanalysisEntities = dataset.analysis_entities.filter((ae) => {
+				return ae.prepMethods && ae.prepMethods.includes(82);
+			});
+
+			unburnedAanalysisEntities.forEach((ae) => {
+				let row = [dataset.site_id, dataset.dataset_name, ae.sample_name, ae.measured_values[0].measured_value];
+
+				//find corresponding burned value by physical_sample_id
+				burnedAanalysisEntities.forEach((bae) => {
+					if(bae.physical_sample_id == ae.physical_sample_id) {
+						row.push(bae.measured_values[0].measured_value);
+					}
+				});
+
+				table.rows.push(row);
+			});
+		}
+		else {
+			dataset.analysis_entities.forEach((ae) => {
+				let row = [dataset.site_id, dataset.dataset_name, ae.sample_name, ae.measured_values[0].measured_value];
+				table.rows.push(row);
+			});
+		}
+
+		console.log(table);
+
+		return table;
+	}
+
+
+	async fetchDatasetSummaries(siteIds) {
+		return await fetch(Config.dataServerAddress+"/datasetsummaries", {
+			method: 'POST',
+			mode: 'cors',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(siteIds)
+		}).then(res => res.json());
+	
 	}
 
 	async exportSitesAsJson(siteIds) {
