@@ -1,4 +1,4 @@
-import 'babel-polyfill';
+//import 'babel-polyfill';
 import config from '../config/config.json';
 import html from "../index.ejs";
 import 'notifyjs-browser';
