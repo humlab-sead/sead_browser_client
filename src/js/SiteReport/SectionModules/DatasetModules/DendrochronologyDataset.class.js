@@ -293,7 +293,8 @@ class DendrochronologyDataset extends DatasetModule {
 		return false;
 	}
 
-	getTableRowsAsObjects(contentItem) {
+	/*
+	getTableRowsAsObjectsOLD(contentItem) {
 		let dataObjects = [];
 		for(let rowKey in contentItem.data.rows) {
 			let row = contentItem.data.rows[rowKey];
@@ -343,11 +344,11 @@ class DendrochronologyDataset extends DatasetModule {
 			})
 	
 			dataObjects.push(dataObject);
-	
 		}
 	
 		return dataObjects;
 	}
+	*/
 
 	getDendroMethodDescription(siteData, dendroLookupId) {
 		for(let key in siteData.lookup_tables.dendro) {
@@ -359,9 +360,9 @@ class DendrochronologyDataset extends DatasetModule {
 	}
 
 	async makeSection(siteData, sections) {
-		let dendroDatasets = this.claimDatasets(siteData);
+		let dendroDatasets = this.claimDatasets(siteData); //even though we do not use the return from this, we still need it to clear the dendro datasets from the stack
 		let dataGroups = siteData.data_groups.filter((dataGroup) => {
-			return dataGroup.type == "dendro";
+			return dataGroup.method_ids.includes(10);
 		});
 
 		if(dataGroups.length == 0) {
@@ -426,30 +427,30 @@ class DendrochronologyDataset extends DatasetModule {
 			];
 
 			let subTableRows = [];
-			dataGroup.datasets.forEach(dataset => {
-				let value = dataset.value;
+			dataGroup.values.forEach(dgValue => {
+				let value = dgValue.value;
 				let tooltip = "";
 
 				/*
-				if(dataset.id == 134 || dataset.id == 137) {
+				if(dgValue.id == 134 || dgValue.id == 137) {
 					//This is Estimated felling year or Outermost tree-ring date, these are complex values that needs to be parsed
 					value = this.dl.renderDendroDatingAsString(value, siteData);
 				}
 				*/
 
-				if(dataset.id == 134 || dataset.id == 137) {
-					value = this.dl.renderDendroDatingAsString(dataset.data, siteData, true, this.sqs);
+				if(dgValue.lookupId == 134 || dgValue.lookupId == 137) {
+					value = this.dl.renderDendroDatingAsString(dgValue.data, siteData, true, this.sqs);
 				}
 
 				subTableRows.push([
 					{
 						type: "cell",
-						value: dataset.id
+						value: dgValue.lookupId
 					},
 					{
 						type: "cell",
-						value: dataset.label,
-						tooltip: this.getDendroMethodDescription(siteData, dataset.id).description
+						value: dgValue.key,
+						tooltip: this.getDendroMethodDescription(siteData, dgValue.lookupId).description
 					},
 					{
 						type: "cell",
@@ -458,7 +459,7 @@ class DendrochronologyDataset extends DatasetModule {
 					},
 					{
 						type: "data",
-						value: dataset.value == "complex" ? dataset.data : dataset.value
+						value: dgValue.value == "complex" ? dgValue.data : dgValue.value
 					}
 				]);
 			});
@@ -491,9 +492,12 @@ class DendrochronologyDataset extends DatasetModule {
 			]);
 		});
 
+
+		//Here we need to convert out dataGroups to sampleDataObject so that we can pass them into the functions below...
+		let sampleDataObjects = this.dl.dataGroupsToSampleDataObjects(dataGroups);
 		
 		//Check if there are any dated samples, if not, switch to spreadsheet render view
-		let extentMin = d3.min(dataGroups, d => {
+		let extentMin = d3.min(sampleDataObjects, d => {
             let plantingYear = this.dl.getOldestGerminationYear(d).value
             if(!plantingYear) {
                 plantingYear = this.dl.getYoungestGerminationYear(d).value;
@@ -501,7 +505,7 @@ class DendrochronologyDataset extends DatasetModule {
             return plantingYear;
         });
     
-        let extentMax = d3.max(dataGroups, d => {
+        let extentMax = d3.max(sampleDataObjects, d => {
             let fellingYear =  this.dl.getOldestFellingYear(d).value;
             if(!fellingYear) {
                 fellingYear = this.dl.getYoungestFellingYear(d).value;
