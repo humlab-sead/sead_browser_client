@@ -1723,16 +1723,74 @@ class SiteReport {
 						if(!$(selector).hasClass("table-row-expanded")) {
 							$(selector).trigger("click");
 						}
+						else {
+							console.log("Sample group row already expanded", selector);
+						}
 					}
 				});
 			}
 		});
 	}
 
-	pageFlipToSample(sampleGroupId, sampleId) {
+	pageFlipToSampleGroup(sampleGroupId) {
+		let dataTable = $("#cic-sampleGroups > #contentItem-sampleGroups table").DataTable();
+
+		//find the dataTable column header called 'Sample group id'
+		let sampleGroupIdColumnKey = null;
+		dataTable.columns().header().each((header, index) => {
+			if(header.innerText == "Sample group id") {
+				sampleGroupIdColumnKey = index;
+			}
+		});
+
+		let sampleGroupRowIndex = null;
+		let sampleGroupRowObj = dataTable.row((idx, data) => {
+			if(data[0] == sampleGroupId) {
+				sampleGroupRowIndex = idx;
+			}
+			return data[0] == sampleGroupId;
+		});
+
+		let sortedIndex = null;
+		let rowsSorted = dataTable.rows( { order: 'applied' } );
+		if(!rowsSorted[0]) {
+			console.warn("Could not get sorted rows");
+			return;
+		}
+		rowsSorted[0].forEach((idx, newIdx) => {
+			if(idx == sampleGroupRowObj.index()) {
+				sortedIndex = newIdx;
+			}
+		});
+
+		let pageNumOfSampleGroup = Math.floor(sortedIndex / dataTable.page.len());
+
+		let currentTablePage = dataTable.page();
+
+		if(pageNumOfSampleGroup != currentTablePage) {
+			console.log("Page flipping sample group table to page", pageNumOfSampleGroup);
+			dataTable.page(pageNumOfSampleGroup).draw(false); // The 'false' parameter redraws the table without triggering the 'draw' event
+		}
+
+		//scroll to the sample group
+		let rowNode = dataTable.row(sampleGroupRowObj.index()).node();
+		$(rowNode)[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}
+
+	pageFlipToSample(sampleGroupId, sampleName) {
 		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
+
 		let dataTable = $("td > div > div > table", subTable).DataTable();
-		let rowObj = dataTable.row((idx, data) => data[0] === sampleId);
+
+		//find the dataTable column header called 'Sample name'
+		let sampleNameColumnKey = null;
+		dataTable.columns().header().each((header, index) => {
+			if(header.innerText == "Sample name") {
+				sampleNameColumnKey = index;
+			}
+		});
+
+		let rowObj = dataTable.row((idx, data) => data[sampleNameColumnKey] === sampleName);
 
 		let sortedIndex = null;
 		let rowsSorted = dataTable.rows( { order: 'applied' } );
@@ -1747,16 +1805,21 @@ class SiteReport {
 		});
 
 		let pageNumOfSample = Math.floor(sortedIndex / dataTable.page.len());
+		console.log("Page flipping sample table to page", pageNumOfSample);
 		dataTable.page(pageNumOfSample).draw(false); // The 'false' parameter redraws the table without triggering the 'draw' event
 	}
 
-	scrollToSample(sampleGroupId, sampleId) {
+	scrollToSample(sampleGroupId, sampleName) {
 		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
 		let dataTable = $("td > div > div > table", subTable).DataTable();
-		let rowObj = dataTable.row((idx, data) => data[0] === sampleId);
+		let rowObj = dataTable.row((idx, cells) => cells[1] === sampleName); //cell 1 is the sample name
+		if(!rowObj.index()) {
+			console.warn("Could not find sample row in table");
+			return false;
+		}
 		let rowNode = dataTable.row(rowObj.index()).node();
-
 		$(rowNode)[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+		return true;
 	}
 
 	highlightSampleGroupRow(sampleGroupId) {
@@ -1768,11 +1831,20 @@ class SiteReport {
 		});
 	}
 
-	highlightSampleRow(sampleGroupId, sampleId) {
+	highlightSampleRow(sampleGroupId, sampleName) {
 		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
 		$(".highlighted-table-row", subTable).removeClass("highlighted-table-row");
 		let dataTable = $("td > div > div > table", subTable).DataTable();
-		let rowObj = dataTable.row((idx, data) => data[0] === sampleId);
+
+		//find the dataTable column header called 'Sample name'
+		let sampleNameColumnKey = null;
+		dataTable.columns().header().each((header, index) => {
+			if(header.innerText == "Sample name") {
+				sampleNameColumnKey = index;
+			}
+		});
+
+		let rowObj = dataTable.row((idx, data) => data[sampleNameColumnKey] === sampleName);
 		var rowNode = dataTable.row(rowObj.index()).node();
 
 		// Add 'highlighted-table-row' class to the specified row
