@@ -239,6 +239,9 @@ class MapFacet extends Facet {
 	* Function: unrender
 	*/
 	unrender() {
+		if(this.olMap) {
+			this.olMap.setTarget(null);
+		}
 		$("#result-container").html("");
 	}
 
