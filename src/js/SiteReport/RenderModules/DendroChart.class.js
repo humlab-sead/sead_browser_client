@@ -847,7 +847,6 @@ class DendroChart {
     }
 
     drawCertaintyBars(container, dataObjects, initialTransitions = true) {
-
         let bars = container.selectAll(".dendro-bar")
             .data(dataObjects)
             .join("rect")
@@ -1284,7 +1283,7 @@ class DendroChart {
         */
         
 
-        /*
+         /*
         let sampleDimensions = "";
         sample.dimensions.forEach(dim => {
             let ttId = "value-tooltip-"+nanoid();
@@ -1315,9 +1314,6 @@ class DendroChart {
             });
         }
         
-
-        //TODO:  sample.locations, sample.dimensions
-
         dataObject.datasets.forEach(dataset => {
             let value = dataset.value;
             if(value == "complex") {
@@ -2152,7 +2148,7 @@ class DendroChart {
     renderChart() {
         $(this.anchorNodeSelector+" svg").remove();
         let contentItem = this.contentItem;
-        this.dataObjects = contentItem.data.dataGroups;
+        this.dataObjects = this.dendroLib.dataGroupsToSampleDataObjects(contentItem.data.dataGroups);
 
         let totalNumOfSamples = this.dataObjects.length;
         this.dataObjects = this.stripNonDatedObjects(this.dataObjects);
@@ -2160,11 +2156,11 @@ class DendroChart {
         let undatedSamples = totalNumOfSamples - this.dataObjects.length;
         this.clearSampleWarnings();
 
-        this.dataObjects = this.dataObjects.filter(d => {
+        this.dataObjects = this.dataObjects.filter(dataObject => {
             let result = false;
             this.siteReport.siteData.sample_groups.forEach(sg => {
                 sg.physical_samples.forEach(ps => {
-                    if(ps.physical_sample_id == d.physical_sample_id) {
+                    if(ps.physical_sample_id == dataObject.physical_sample_id) {
                         if(sg.sample_group_id == this.selectedSampleGroup.value || this.selectedSampleGroup.value == "all") {
                             result = true;
                         }
