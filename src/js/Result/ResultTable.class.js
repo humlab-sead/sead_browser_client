@@ -1,9 +1,17 @@
-import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
+//import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
 import ResultModule from './ResultModule.class.js'
 import ApiWsChannel from '../ApiWsChannel.class.js'
 import "../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";
-import { default as Tabulator } from "tabulator-tables";
 import { nanoid } from "nanoid";
+import { Tabulator, FormatModule, SelectRowModule, InteractionModule, TooltipModule, SortModule, ResponsiveLayoutModule, ResizeTableModule } from "tabulator-tables";
+
+Tabulator.registerModule(FormatModule);
+Tabulator.registerModule(SelectRowModule);
+Tabulator.registerModule(InteractionModule);
+Tabulator.registerModule(TooltipModule);
+Tabulator.registerModule(SortModule);
+Tabulator.registerModule(ResponsiveLayoutModule);
+Tabulator.registerModule(ResizeTableModule);
 
 /*
 * Class: ResultTable
@@ -19,6 +27,7 @@ class ResultTable extends ResultModule {
 		this.icon = "<i class=\"fa fa-table\" aria-hidden=\"true\"></i>";
 		this.maxRenderCount = 100000;
 		this.hasCurrentData = false;
+		this.tooltipAnchors = [];
 		this.data = {
 			columns: [],
 			rows: []
@@ -140,6 +149,7 @@ class ResultTable extends ResultModule {
 	* Function: render
 	*/
 	render() {
+		this.unrender();
 		super.render();
 		var xhr = this.fetchData();
 		xhr.then((data, textStatus, xhr) => { //success
@@ -164,7 +174,7 @@ class ResultTable extends ResultModule {
 		}
 		let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
 		$(anchorNodeSelector).append(exportButton);
-		this.bindExportModuleDataToButton(exportButton);
+		this.bindExportModuleDataToButton(exportButton, this);
 	}
 
 	getFeatureTypeIconUrl(iconName) {
@@ -195,7 +205,7 @@ class ResultTable extends ResultModule {
 
 		let maxAnalysisEntities = this.data.rows.reduce((max, row) => Math.max(max, row.analysis_entities), 0);
 
-		let maxRenderSlots = 4;
+		let maxRenderSlots = 12;
 		let currentRenderSlotsTaken = 0;
 
 		let tableColumns = [
@@ -277,6 +287,7 @@ class ResultTable extends ResultModule {
 								svg.appendChild(rect);
 	
 								this.sqs.tooltipManager.registerTooltip(rect, `Method: ${amd.method_name}, Datasets: ${amd.dataset_count}`)
+								this.tooltipAnchors.push(rect);
 								
 								currentOffset += amd.barWidth;
 							});
@@ -296,6 +307,54 @@ class ResultTable extends ResultModule {
 		];
 
 		let activeDomain = this.sqs.domainManager.getActiveDomain().name;
+
+		
+		if(false && activeDomain == "dendrochronology") {
+			tableColumns.push({
+				title:"Dating overview",
+				field:"dating_overview",
+				widthGrow:2,
+				formatter: (cell, formatterParams, onRendered) => {
+					let cellElement = cell.getElement();
+					cellElement.classList.add('stacked-bar-container');
+					cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
+
+					let renderInterval = setInterval(() => {
+					if(maxRenderSlots > currentRenderSlotsTaken) {
+						currentRenderSlotsTaken++;
+						clearInterval(renderInterval);
+
+						$.ajax(Config.dataServerAddress + "/graphs/dating_overview", {
+							data: JSON.stringify([cell.getData().site_link_filtered]),
+							dataType: "json",
+							method: "post",
+							contentType: 'application/json; charset=utf-8',
+							crossDomain: true
+							}).then(data => {
+								console.log(data.dating_extremes[0].site_id, data.dating_extremes[0].age_older, data.dating_extremes[0].age_younger);
+
+								let older = data.dating_extremes[0].age_older;
+								let younger = data.dating_extremes[0].age_younger;
+
+								cellElement.innerHTML = "";
+
+								if (older && younger) {
+									cellElement.innerHTML += `<span>${older} - ${younger}</span>`;
+								} else {
+									cellElement.innerHTML = "N/A";
+								}
+
+								currentRenderSlotsTaken--;
+							});
+						}
+					}, 200);						
+				
+					// The initial return is just the loading indicator
+					return cellElement.innerHTML;
+				}
+			});
+		}
+
 		if(this.sqs.config.featureTypesEnabledDomainsList && this.sqs.config.featureTypesEnabledDomainsList.includes(activeDomain)) {
 			tableColumns.push({
 				title:"Feature types",
@@ -354,6 +413,7 @@ class ResultTable extends ResultModule {
 									</div>`;
 									otherFeatureTypes = otherFeatureTypes.slice(0, -2); //remove trailing comma
 									this.sqs.tooltipManager.registerTooltip("#"+ttId, "Other features: "+otherFeatureTypes);
+									this.tooltipAnchors.push("#"+ttId);
 								}
 
 								ftData += "</div>";
@@ -380,6 +440,12 @@ class ResultTable extends ResultModule {
 			selectable: true,
 			columns: tableColumns,
 		});
+
+		/* this is a hack to make resize of the table work, and it works, but it's inefficient since it re-fetches the dynamic columns
+		window.addEventListener('resize', () => {
+			this.tabulatorTable.redraw(true); 
+		});
+		*/
 
 		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 	}
@@ -469,6 +535,12 @@ class ResultTable extends ResultModule {
 		}
 		$('#result-table-container').html("");
 		$("#result-table-container").hide();
+
+		//unregister all tooltips
+		this.tooltipAnchors.forEach(anchor => {
+			this.sqs.tooltipManager.unRegisterTooltip(anchor);
+		});
+		this.tooltipAnchors = [];
 	}
 	
 	/*
