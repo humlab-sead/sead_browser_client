@@ -78,7 +78,7 @@ module.exports = (env, config) => {
         {
           test: /\.js$/,
           exclude: /node_modules/,
-          use: ['babel-loader', 'source-map-loader'],
+          use: ['source-map-loader'],
         },
         // Generic resources
         {
