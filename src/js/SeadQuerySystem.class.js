@@ -1183,6 +1183,21 @@ class SeadQuerySystem {
 		return false;
 	}
 
+	tryParseValueAsNumber(input) {
+		// Check if the input can be parsed as an integer
+		if (/^\d+$/.test(input)) {
+			return parseInt(input, 10);
+		}
+	
+		// Check if the input can be parsed as a float
+		if (/^\d+\.\d+$/.test(input)) {
+			return parseFloat(input);
+		}
+	
+		// If parsing as a number failed, return the original string
+		return input;
+	}
+
 	/**
 	 * formatTaxon
 	 * 
