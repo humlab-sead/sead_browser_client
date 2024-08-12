@@ -1287,6 +1287,9 @@ class ResultMap extends ResultModule {
 	* Function: unrender
 	*/
 	unrender() {
+		if(this.olMap) {
+			this.olMap.setTarget(null);
+		}
 		$(this.renderIntoNode).hide();
 		//this.olMap.setTarget(null);
 		$("#map-popup-container").remove();
