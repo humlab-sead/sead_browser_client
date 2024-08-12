@@ -3,13 +3,16 @@ import { nanoid } from 'nanoid'
 var $  = require( 'jquery' );
 import "jszip";
 import "datatables.net-dt";
+import "datatables.net-dt/css/dataTables.dataTables.min.css"
 import "datatables.net-buttons-dt";
+import "datatables.net-buttons-dt/css/buttons.dataTables.min.css";
 import "datatables.net-buttons/js/buttons.colVis.js";
 import "datatables.net-buttons/js/buttons.html5.js";
 import "datatables.net-buttons/js/buttons.print.js";
 import "datatables.net-colreorder-dt";
-import "datatables.net-fixedheader-dt";
+import "datatables.net-colreorder-dt/css/colReorder.dataTables.min.css";
 import "datatables.net-responsive-dt";
+import "datatables.net-responsive-dt/css/responsive.dataTables.min.css";
 
 /*
 * Class: SiteReportTable
