@@ -60,21 +60,21 @@
 }
 
 .sqs-menu-block-vertical {
-  @include sqs-menu-block;
   height:87px;
   width: 87px;
   border-left: 1px solid #fff;
   z-index: 2;
+  @include sqs-menu-block;
 }
 
 .sqs-menu-block-horizontal {
-  @include sqs-menu-block;
   height: 43px;
   width: auto;
   font-size: 20px;
   border-right-width: 1px;
   border-right-style: solid;
   border-right-color: #fff;
+  @include sqs-menu-block;
 }
 
 .sqs-menu-block-vertical-large {
@@ -162,7 +162,7 @@
 }
 
 .l1-container-level-vertical {
-  @include l1-container-level;
+  
   position: fixed;
   max-width: 30%;
   //right:0px; //Enable this if this element goes outside browser viewport (on the right)
@@ -171,6 +171,7 @@
   box-shadow: 12px 0 15px -4px rgba(0, 0, 0, 0.5), -12px 0 8px -4px rgba(0, 0, 0, 0.5);
   */
   //box-shadow: 2px 12px 10px 5px $shadow-color;
+  @include l1-container-level;
 }
 /*
 .l1-container-level-vertical {
@@ -219,10 +220,10 @@
 }
 
 .l1-container-level-horizontal {
-  	@include l1-container-level;
 	  position: relative;
   	margin-top: 0px;
   	height: 33px;
+    @include l1-container-level;
 }
 
 .l1-container-level-horizontal > .l1-container {
