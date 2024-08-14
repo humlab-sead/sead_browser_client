@@ -300,7 +300,7 @@ class DatingToPeriodDataset extends DatasetModule {
 
 			section.contentItems.push(contentItem);
 		});
-
+		
 		this.summary = summary;
 	}
 
