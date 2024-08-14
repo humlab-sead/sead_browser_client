@@ -130,50 +130,6 @@ class DatasetModule {
 		return html;
 	}
 
-	claimDatasetsOLD(site) {
-		let methodDatasets = [];
-		let methodDatasetsSelectedByGroup = [];
-		let methodDatasetsSelectedById = [];
-		if(typeof this.methodGroupIds != "undefined" && this.methodGroupIds.length > 0) {
-			methodDatasetsSelectedByGroup = site.datasets.filter(dataset => {
-				return this.methodGroupIds.includes(dataset.method_group_id);
-			});
-			//console.log(this.constructor.name+" claimed datasets (by group):", methodDatasets);
-		}
-		if(typeof this.methodIds != "undefined") {
-			methodDatasetsSelectedById = site.unclaimedDatasets.filter(dataset => {
-				return this.methodIds.includes(dataset.method_id);
-			});
-			//console.log(this.constructor.name+" claimed datasets (by id):", methodDatasets);
-		}
-
-		methodDatasets = methodDatasetsSelectedByGroup.concat(methodDatasetsSelectedById);
-
-		let unclaimedDatasets = [];
-		site.unclaimedDatasets.forEach(dataset => {
-			let isClaimed = false;
-			methodDatasets.forEach(methodDataset => {
-				if(methodDataset.dataset_id == dataset.dataset_id) {
-					isClaimed = true;
-				}
-			});
-			if(!isClaimed) {
-				unclaimedDatasets.push(dataset);
-			}
-		});
-		
-		//site.datasets = unclaimedDatasets;
-		site.unclaimedDatasets = unclaimedDatasets;
-		
-		/* this is much more elegant method for finding the unclaimed datasets, but it doesn't work with method groups...
-		site.datasets = site.datasets.filter(dataset => {
-			return !this.methodIds.includes(dataset.method_id);
-		});
-		*/
-
-		return methodDatasets;
-	}
-
 
 	claimDatasets(site) {
 		let methodDatasets = [];
@@ -280,6 +236,58 @@ class DatasetModule {
 				}
 			}
 		}
+	}
+
+	getSampleById(siteData, physicalSampleId) {
+		if(!siteData) {
+			console.warn("getSampleById: siteData is null");
+		}
+		for(let key in siteData.sample_groups) {
+			let sampleGroup = siteData.sample_groups[key];
+			for(let sKey in sampleGroup.physical_samples) {
+				let sample = sampleGroup.physical_samples[sKey];
+				if(sample.physical_sample_id == physicalSampleId) {
+					return sample;
+				}
+			}
+		}
+		return null;
+	}
+
+	createSection(sectionData) {
+		let sectionsLength = this.section.sections.push(sectionData);
+		let sectionKey = sectionsLength - 1;
+		return this.section.sections[sectionKey];
+	}
+
+	getSection(sectionName) {
+		let sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", sectionName);
+		if(sectionKey === false) {
+			return false;
+		}
+		return this.section.sections[sectionKey];
+	}
+
+	groupDatasetsByMethod(datasets) {
+		let datasetGroups = [];
+		for(let key in datasets) {
+			let found = false;
+			for(let gKey in datasetGroups) {
+				if(datasetGroups[gKey].methodId == datasets[key].method.method_id) {
+					found = true;
+					datasetGroups[gKey].datasets.push(datasets[key]);
+				}
+			}
+
+			if(!found) {
+				datasetGroups.push({
+					methodId: datasets[key].method.method_id,
+					datasets: [datasets[key]]
+				});
+			}
+		}
+
+		return datasetGroups;
 	}
 }
 
