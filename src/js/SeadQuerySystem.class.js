@@ -1567,7 +1567,7 @@ class SeadQuerySystem {
 
 	parseStringValueMarkup(value, ttOptions = { drawSymbol: true }) {
 		if(typeof value == "undefined") {
-			console.warn("An undefined value was passed into parseStringValueMarkup");
+			//console.warn("An undefined value was passed into parseStringValueMarkup");
 			return undefined;
 		}
 		value = value.toString();
@@ -1584,6 +1584,16 @@ class SeadQuerySystem {
 		});
 
 		return result;
+	}
+
+	capitalizeAndPrettifyString(str) {
+		if(typeof str == "undefined") {
+			return "";
+		}
+		str = str.toLowerCase();
+		str = str.charAt(0).toUpperCase() + str.slice(1);
+		str = str.replace(/_/g, " ");
+		return str;
 	}
 
 	matomoTrackPageView(pageTitle = "Unknown page") {
