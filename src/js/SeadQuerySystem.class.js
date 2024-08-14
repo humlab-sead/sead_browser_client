@@ -533,6 +533,12 @@ class SeadQuerySystem {
 		this.sqsEventDispatch("sqsInitComplete");
 		this.router.route();
 		this.tutorial.init();
+
+		document.addEventListener('keydown', (evt) => {
+			if(evt.shiftKey && evt.key == "D") {
+				this.facetManager.toggleDebug();
+			}
+        });
 	}
 
 	//resets the UI to the initial state, removes any filters and so on

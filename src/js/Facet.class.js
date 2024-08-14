@@ -97,21 +97,19 @@ class Facet {
 			}
 		});
 
-		document.addEventListener('keydown', (evt) => {
-			if(evt.shiftKey && evt.key == "D") {
-				if($(".facet-sql-btn", this.getDomRef()).css("display") == "none") {
-					$(".facet-sql-btn", this.getDomRef()).show();
-				}
-				else {
-					$(".facet-sql-btn", this.getDomRef()).hide();
-				}
-			}
-        });
-
 		$(".facet-sql-btn", this.getDomRef()).on("click", () => {
 			const formattedSQL = this.sql.replace(/\n/g, "<br/>");
 			this.sqs.dialogManager.showPopOver("Filter SQL", formattedSQL);
 		});
+	}
+
+	showSqlButton(show = true) {
+		if(show) {
+			$(".facet-sql-btn", this.getDomRef()).show();
+		}
+		else {
+			$(".facet-sql-btn", this.getDomRef()).hide();
+		}
 	}
 
 	setHeight(height = Config.facetBodyHeight) {

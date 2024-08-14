@@ -21,6 +21,7 @@ class FacetManager {
 		this.facets = [];
 		this.links = [];
 		this.facetId = 0;
+		this.debugMode = false;
 
 		this.facetDataFetchingSuspended = false; //Wait for signal to fetch data after add/remove/swap among facets?
 		this.facetDataFetchQueue = [];
@@ -102,6 +103,19 @@ class FacetManager {
 			this.buildFilterStructure(domainName);
 		});
 		
+	}
+
+	toggleDebug() {
+		this.debugMode = !this.debugMode;
+		
+		this.facets.forEach((facet) => {
+			if(this.debugMode) {
+				facet.showSqlButton();
+			}
+			else {
+				facet.showSqlButton(false);
+			}
+		});
 	}
 	
 	renderShowOnlySelectionsButton() {
