@@ -10,6 +10,7 @@ import IsotopeDataset from "./DatasetModules/IsotopeDataset.class";
 import MagneticSusceptibilityDataset from "./DatasetModules/MagneticSusceptibilityDataset.class";
 import LossOnIgnitionDataset from "./DatasetModules/LossOnIgnitionDataset.class";
 import EntityAgesDataset from "./DatasetModules/EntityAgesDataset.class";
+import ESRDataset from "./DatasetModules/ESRDataset.class";
 /*
 * Class: Analysis
 * 
@@ -105,6 +106,9 @@ class Analysis {
 		});
 		this.datasetModules.push({
 			"className": EntityAgesDataset
+		});
+		this.datasetModules.push({
+			"className": ESRDataset
 		});
 		this.datasetModules.push({
 			"className": GenericDataset

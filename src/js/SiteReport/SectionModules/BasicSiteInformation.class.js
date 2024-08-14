@@ -14,6 +14,7 @@ import css from '../../../stylesheets/style.scss';
 import DatingToPeriodDataset from './DatasetModules/DatingToPeriodDataset.class';
 import { Chart } from "chart.js";
 import DendrochronologyDataset from './DatasetModules/DendrochronologyDataset.class';
+import ESRDataset from './DatasetModules/ESRDataset.class';
 import OpenLayersMap from '../../Common/OpenLayersMap.class';
 import SqsMenu from '../../SqsMenu.class';
 
@@ -204,6 +205,10 @@ class BasicSiteInformation {
 					if(dsm.instance instanceof DendrochronologyDataset) {
 						siteDatingSummary = siteDatingSummary.concat(dsm.instance.getDatingSummary());
 					}
+
+					if(dsm.instance instanceof ESRDataset) {
+						siteDatingSummary = siteDatingSummary.concat(dsm.instance.getDatingSummary());
+					}
 				})
 			}
 		});
@@ -338,7 +343,11 @@ class BasicSiteInformation {
 		document.getElementById(targetAnchorQuery).innerHTML = '<canvas id="'+chartId+'"></canvas>';
 
 		const ctx = document.getElementById(chartId).getContext("2d");
-        new Chart(ctx, config);
+        const chart = new Chart(ctx, config);
+
+		window.addEventListener('resize', () => {
+			chart.resize();
+		});
 	}
 
 	/**
