@@ -143,6 +143,7 @@ class SiteReportTable {
 		//Make into DataTable
 		this.dt = $(this.tableNode).DataTable({
 			"responsive": true,
+			"autoWidth": false,
 			"paging": this.rows.length > this.pagingRows,
 			"bInfo": false,
 			"bFilter": false,
