@@ -27,10 +27,12 @@ class ESRDataset extends DatasetModule {
 
 	async makeSection(siteData, sections) {
 		let datasets = this.claimDatasets(siteData);
-		
-        console.log(datasets);
+        this.summary = [];
 
-		let summary = [];
+        if(datasets.length == 0) {
+            this.buildIsComplete = true;
+            return;
+        }
 
         let columns = [
             {
@@ -88,7 +90,7 @@ class ESRDataset extends DatasetModule {
                 stdAge.ageYounger = analysisEntity.dating_values.age ? parseInt(analysisEntity.dating_values.age) : null;
                 stdAge.ageLocation = null;
                 stdAge.sample = analysisEntity.physical_sample_id;
-                summary.push(stdAge);
+                this.summary.push(stdAge);
 
                 let row = [
                     {
@@ -157,7 +159,6 @@ class ESRDataset extends DatasetModule {
         };
 
         section.contentItems.push(contentItem);
-        this.summary = summary;
 	}
 
 	getDatingSummary() {
