@@ -98,7 +98,6 @@ class DialogManager {
 	* 
 	*/
 	renderDialog(dialogDomId, vars = []) {
-
 		var dialog = $(dialogDomId);
 
 		for(var key in vars) {
