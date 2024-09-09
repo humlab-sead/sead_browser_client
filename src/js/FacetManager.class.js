@@ -99,7 +99,7 @@ class FacetManager {
 				let facet = this.facets[i];
 				facet.destroy();
 			}
-
+			
 			this.buildFilterStructure(domainName);
 		});
 		
@@ -107,7 +107,7 @@ class FacetManager {
 
 	toggleDebug() {
 		this.debugMode = !this.debugMode;
-		
+
 		this.facets.forEach((facet) => {
 			if(this.debugMode) {
 				facet.showSqlButton();
