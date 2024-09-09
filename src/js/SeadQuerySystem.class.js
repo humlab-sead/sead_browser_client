@@ -20,6 +20,7 @@ import NotificationManager from './NotificationManager.class.js';
 import ExportManager from './ExportManager.class.js';
 import Router from './Router.class.js';
 import Tutorial from './Tutorials/Tutorial.class.js';
+import SearchManager from './SearchManager.class.js';
 import AIAssistant from './AIAssistant.class.js';
 import { nanoid } from 'nanoid';
 import ApiWsChannel from './ApiWsChannel.class.js';
@@ -443,9 +444,10 @@ class SeadQuerySystem {
         });
         */
 	  	
-	  	this.help = new HelpAgent();
+	  	this.help = new HelpAgent(this);
 	  	this.help.setState(true);
 		this.userManager = new UserManager(this);
+		this.searchManager = new SearchManager(this);
 
 		var auxMenuDef = {
 			anchor: "#aux-menu",
@@ -463,8 +465,8 @@ class SeadQuerySystem {
 		]);
 		
 		this.menuManager.createMenu(auxMenu);
+		this.menuManager.createMenu(this.searchManager.sqsMenu());
 
-		
 		//this.menuManager.createMenu(this.domainManager.sqsMenu());
 		
 
@@ -483,6 +485,7 @@ class SeadQuerySystem {
 		this.modules.push(this.menuManager);
 		this.modules.push(this.dialogManager);
 		this.modules.push(this.siteReportManager);
+		this.modules.push(this.searchManager);
 		this.modules.push(this.router);
 		this.modules.push(this.help);
 		for(var key in this.resultManager.modules) {
