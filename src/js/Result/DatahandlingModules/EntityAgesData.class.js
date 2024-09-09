@@ -32,11 +32,7 @@ class EntityAgesData extends DataHandlingModule {
 
         let table = {
             name: method.method_name,
-            columns: [
-                { header: 'Site ID', key: 'site_id', width: 10},
-				{ header: 'Dataset name', key: 'dataset_name', width: 30},
-				{ header: 'Sample name', key: 'sample_name', width: 30},
-            ],
+            columns: this.commonColumns,
             rows: []
         }
 
@@ -44,7 +40,6 @@ class EntityAgesData extends DataHandlingModule {
         sites.forEach(site => {
             site.data_groups.forEach((dataGroup) => {
                 if(this.claimedDataGroup(dataGroup) && dataGroup.method_ids.includes(methodId)) {
-
                     dataGroup.values.forEach((value) => {
                         valueColumnsSet.add(this.formatColumnName(value.key));
                     });
@@ -59,6 +54,7 @@ class EntityAgesData extends DataHandlingModule {
         });
 
         sites.forEach((site) => {
+            let siteBiblioIds = this.getSiteBiblioIds(site);
             site.data_groups.forEach((dataGroup) => {
                 if(this.claimedDataGroup(dataGroup)) {
 
@@ -72,7 +68,12 @@ class EntityAgesData extends DataHandlingModule {
                             return;
                         }
 
-                        let row = [site.site_id, dataGroup.dataset_name, this.getSampleNameByPhysicalSampleId(site, value.physical_sample_id)];
+                        let siteRefStr = siteBiblioIds.length > 0 ? siteBiblioIds.join(", ") : "";
+                        let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
+                        let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, value.physical_sample_id);
+                        let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
+
+                        let row = [site.site_id, dataGroup.dataset_name, this.getSampleNameByPhysicalSampleId(site, value.physical_sample_id), siteRefStr, datasetRefStr, sampleGroupRefStr];
 
                         let valueFound = false;
                         valueColumns.forEach((valueColumn) => {
@@ -94,6 +95,7 @@ class EntityAgesData extends DataHandlingModule {
 
                         processedSampleIds.push(value.physical_sample_id);
                     });
+
                 }
             });
         });

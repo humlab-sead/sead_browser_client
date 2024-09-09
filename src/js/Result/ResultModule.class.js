@@ -13,6 +13,9 @@ import IsotopeData from "./DatahandlingModules/IsotopeData.class.js";
 import MeasuredValuesData from "./DatahandlingModules/MeasuredValuesData.class.js";
 import EntityAgesData from "./DatahandlingModules/EntityAgesData.class.js";
 
+import DatasetExportWorker from '../Workers/DatasetExport.worker.js';
+
+
 /*
 * Class: ResultModule
 */
@@ -104,7 +107,6 @@ class ResultModule {
 
 			//fetch dataset summaries for selected sites to see what is available for export
 			let datasetSummaries = await this.fetchDatasetSummaries(selectedSites);
-			console.log(datasetSummaries)
 
 			datasetSummaries.sort((a, b) => {
 				return a.method_name.localeCompare(b.method_name);
@@ -112,16 +114,19 @@ class ResultModule {
 
 			html += "<br /><br /><hr />";
 			let aggregatedExportButtonId = "dataset-dl-"+nanoid();
-			if(this.sqs.config.experimentalSiteExports) {
-				html += "<h3>Export datasets</h3>";
-				html += "<select id='export-datasets'>";
-	
-				datasetSummaries.forEach((summary) => {
-					html += "<option value='"+summary.method_id+"'>"+summary.method_name+" ("+summary.siteCount+" sites, "+summary.datasetCount+" datasets)</option>";
-				});
-				html += "</select><br /><br />"
-				html += `<a id='`+aggregatedExportButtonId+`' class='light-theme-button dataset-export-btn'>Dataset Export</a>`;
-			}
+			html += "<h3>Export datasets</h3>";
+			html += "<select id='export-datasets'>";
+
+			datasetSummaries.forEach((summary) => {
+				html += "<option value='"+summary.method_id+"'>"+summary.method_name+" ("+summary.siteCount+" sites, "+summary.datasetCount+" datasets)</option>";
+			});
+			html += "</select><br /><br />"
+			html += "<div id='export-controls-container'>";
+			html += `<a id='`+aggregatedExportButtonId+`' class='light-theme-button dataset-export-btn'>Dataset Export</a>`;
+			html += `<div id='export-progress-bar-container'>
+				<div class='export-progress-bar-fill'></div>
+			</div>`;
+			html += "</div>";
 			
 			if(selectedSites.length == 0) {
 				html = "No sites selected!";
@@ -142,55 +147,48 @@ class ResultModule {
 					this.sqs.dialogManager.showPopOver("Result SQL", formattedSQL);
 				});
 
-				if(this.sqs.config.experimentalSiteExports) {
-					$("#"+aggregatedExportButtonId).on("click", async () => {
-						console.log(selectedSites);
-						let methodId = parseInt($("#export-datasets").val());
-						console.log("Method id", methodId);
+				$("#"+aggregatedExportButtonId).on("click", async () => {
+					if(this.exportInProgress) {
+						this.sqs.notificationManager.notify("An export is already in progress. Please wait for it to finish.", "info");
+						return;
+					}
+					this.exportInProgress = true;
+					
+					$("#"+aggregatedExportButtonId).append(`<div class="cute-little-loading-indicator"></div>`);
+					$("#export-progress-bar-container").css("visibility", "visible");
 
-						//show a loading indicator while we fetch and compile the data
-						$("#"+aggregatedExportButtonId).append(`<div class="cute-little-loading-indicator"></div>`);
-						
-						try {
+					let methodId = parseInt($("#export-datasets").val());
 
-							/*
-							datasetSummaries.forEach((summary) => {
-								if(summary.method_id == methodId && summary.datasetCount > 100) {
-									this.sqs.notificationManager.notify("SEAD is processing your export. This might take a minute due to the significant amount of datasets you have selected.", "info");
-								}
+					const worker = new DatasetExportWorker();
+					// Handle messages from the worker
+					worker.onmessage = (e) => {
+						const { type, progress, total, results } = e.data;
+
+						if (type === 'progress') {
+							$(".export-progress-bar-fill").css({
+								width: (progress / total * 100)+"%"
 							});
-							*/
-
-							let response = await fetch(Config.dataServerAddress + '/datagroups', {
-								method: 'POST',
-								headers: {
-									'Content-Type': 'application/json'
-								},
-								body: JSON.stringify({
-									siteIds: selectedSites,
-									methodIds: [methodId]
-								})
-							});
-						
-							if (!response.ok) {
-								throw new Error(`HTTP error! Status: ${response.status}`);
-							}
-						
-							let sites = await response.json();
-							this.getDatagroupsAsXlsx(methodId, sites);
-
-							$("#"+aggregatedExportButtonId).find(".cute-little-loading-indicator").remove();
-						
-							// Now you can use `aggregatedExportData` as needed
-						} catch (error) {
-							console.error('Error:', error);
-							$("#"+aggregatedExportButtonId).find(".cute-little-loading-indicator").remove();
 						}
 
-						
+						if (type === 'complete') {
+							this.getDatagroupsAsXlsx(methodId, results); // Use the results
+							$("#export-progress-bar-container").css("visibility", "hidden");
+							$(".export-progress-bar-fill").css({
+								width: "0%"
+							});
+							$("#"+aggregatedExportButtonId).find(".cute-little-loading-indicator").remove();
+							this.exportInProgress = false;
+						}
+					};
 
-					 });
-				}
+					// Start the worker with the necessary data
+					worker.postMessage({
+						methodId: methodId,
+						selectedSites: selectedSites,
+						dataServerAddress: Config.dataServerAddress
+					});
+					
+				 });
 			}
 		};
 
@@ -253,9 +251,92 @@ class ResultModule {
 
 	}
 
-	getReferenceSheet(sites) {
+	async getReferenceTable(sites) {
+
+		let columns = [
+			'Reference type',
+			'Reference ID', 
+			'Biblio UUID', 
+			'DOI', 
+			'Authors',
+			'ISBN',
+			'Notes',
+			'Title',
+			'Year',
+			'Full reference', 
+			'Bugs reference', 
+			'URL', 
+			'Date updated',
+		];
+		let rows = [];
+
+		let sampleGroupBiblioIds = new Set();
 		let biblioIds = new Set();
 		let contactIds = new Set();
+		
+		//site references
+		sites.forEach((site) => {
+			site.biblio.forEach(bib => {
+				let row = [
+					'Site reference',
+					bib.biblio_id,
+					bib.biblio_uuid,
+					bib.doi,
+					bib.authors,
+					bib.isbn,
+					bib.notes,
+					bib.title,
+					bib.year,
+					bib.full_reference,
+					bib.bugs_reference,
+					bib.url,
+					bib.date_updated,
+				];
+				rows.push(row);
+			})
+		});
+
+		//sample group references
+		sites.forEach((site) => {
+			site.sample_groups.forEach((sampleGroup) => {
+				sampleGroup.biblio.forEach((biblio) => {
+					sampleGroupBiblioIds.add(biblio.biblio_id);
+				});
+			});
+		});
+
+		
+		Array.from(sampleGroupBiblioIds).forEach((biblioId) => {
+			let biblioIdFound = false;
+			sites.forEach((site) => {
+				site.lookup_tables.biblio.forEach((biblio) => {
+					if(biblio.biblio_id == biblioId) {
+						biblioIdFound = true;
+						let row = [
+							'Sample group reference',
+							biblio.biblio_id,
+							biblio.biblio_uuid,
+							biblio.doi,
+							biblio.authors,
+							biblio.isbn,
+							biblio.notes,
+							biblio.title,
+							biblio.year,
+							biblio.full_reference,
+							biblio.bugs_reference,
+							biblio.url,
+							biblio.date_updated,
+						];
+						rows.push(row);
+					}
+				});
+			});
+			if(!biblioIdFound) {
+				console.warn("Sample group reference not found for biblio_id", biblioId);
+			}
+		});
+
+		//dataset references
 		sites.forEach((site) => {
 			site.datasets.forEach((dataset) => {
 				if(dataset && dataset.biblio_id) {
@@ -268,45 +349,39 @@ class ResultModule {
 				}
 			});
 		});
-		
 
-		let biblioUrl = this.sqs.config.siteReportServerAddress+"/tbl_biblio?biblio_id=in.("+Array.from(biblioIds).join(",")+")";
-		console.log(biblioUrl);
 
-		fetch(biblioUrl).then((response) => {
-			return response.json();
-		}).then((bibliography) => {
-			console.log(bibliography);
-			/*
-			let refWorksheet = workbook.getWorksheet("References");
-			refWorksheet.columns = [
-				{ header: 'Biblio ID', key: 'biblio_id', width: 10},
-				{ header: 'Title', key: 'title', width: 50},
-				{ header: 'Authors', key: 'authors', width: 50},
-				{ header: 'Year', key: 'year', width: 10},
-				{ header: 'Journal', key: 'journal', width: 20},
-				{ header: 'Volume', key: 'volume', width: 10},
-				{ header: 'Pages', key: 'pages', width: 10},
-				{ header: 'DOI', key: 'doi', width: 20},
-				{ header: 'URL', key: 'url', width: 20},
-			];
-
-			bibliography.forEach((biblio) => {
-				refWorksheet.addRow([
-					biblio.biblio_id,
-					biblio.title,
-					biblio.authors,
-					biblio.year,
-					biblio.journal,
-					biblio.volume,
-					biblio.pages,
-					biblio.doi,
-					biblio.url
-				]);
+		Array.from(biblioIds).forEach((biblioId) => {
+			let biblioIdFound = false;
+			sites.forEach((site) => {
+				site.lookup_tables.biblio.forEach((biblio) => {
+					if(biblio.biblio_id == biblioId) {
+						biblioIdFound = true;
+						let row = [
+							'Dataset reference',
+							biblio.biblio_id,
+							biblio.biblio_uuid,
+							biblio.doi,
+							biblio.authors,
+							biblio.isbn,
+							biblio.notes,
+							biblio.title,
+							biblio.year,
+							biblio.full_reference,
+							biblio.bugs_reference,
+							biblio.url,
+							biblio.date_updated,
+						];
+						rows.push(row);
+					}
+				});
 			});
-			*/
+			if(!biblioIdFound) {
+				console.warn("Dataset reference not found for biblio_id", biblioId);
+			}
 		});
 
+		return { columns: columns, rows: rows };
 	}
 
 	async getDatagroupsAsXlsx(methodId, sites) {
@@ -322,9 +397,32 @@ class ResultModule {
 		
 		let allNull = true;
 		let workbook = new ExcelJS.Workbook();
+		
+		tables.forEach((table) => {
+			if(table != null) {
+				let datasetWorksheet = workbook.addWorksheet(table.name);
+				datasetWorksheet.columns = table.columns;
+				table.rows.forEach((row) => {
+					datasetWorksheet.addRow(row);
+				});
+				allNull = false;
+			}
+		});
+
+		let refWorksheet = workbook.addWorksheet("References");
+		let references = await this.getReferenceTable(sites);
+
+		let columns = references.columns.map((column) => {
+			return { header: column, key: column, width: 20};
+		});
+		refWorksheet.columns = columns;
+
+		refWorksheet.rows = [];
+		references.rows.forEach((row) => {
+			refWorksheet.addRow(row);
+		});
 
 		let metaWorksheet = workbook.addWorksheet("SEAD metadata");
-
 		metaWorksheet.columns = [
 			{ header: 'Description', key: 'description', width: 20},
 			{ header: 'SEAD browser URL', key: 'url', width: 50},
@@ -340,22 +438,6 @@ class ResultModule {
 			new Date().toISOString(),
 			Config.version	
 		]);
-
-		tables.forEach((table) => {
-			if(table != null) {
-				let datasetWorksheet = workbook.addWorksheet(table.name);
-				datasetWorksheet.columns = table.columns;
-				table.rows.forEach((row) => {
-					datasetWorksheet.addRow(row);
-				});
-				allNull = false;
-			}
-		});
-
-		console.log(tables)
-
-		//let refWorksheet = workbook.addWorksheet("References");
-		//this.getReferenceSheet(sites);
 
 		if(allNull) {
 			console.warn("No data found for export");

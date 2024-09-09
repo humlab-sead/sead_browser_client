@@ -18,13 +18,9 @@ class DendroCeramicsData extends DataHandlingModule {
 
         let table = {
             name: method.method_name,
-            columns: [
-                { header: 'Site ID', key: 'site_id', width: 10},
-				{ header: 'Sample name', key: 'sample_name', width: 30},
-            ],
+            columns: this.commonColumns,
             rows: []
         }
-
         
         let valueColumnsSet = new Set();
         sites.forEach(site => {
@@ -43,11 +39,18 @@ class DendroCeramicsData extends DataHandlingModule {
             table.columns.push({ header: valueColumn, key: valueColumn, width: 30 });
         });
 
-        
+
         sites.forEach(site => {
+            let siteBiblioIds = this.getSiteBiblioIds(site);
             site.data_groups.forEach((dataGroup) => {
                 if(this.claimedDataGroup(dataGroup)) {
-                    let row = [site.site_id, dataGroup.sample_name];
+
+                    let siteRefStr = siteBiblioIds.length > 0 ? siteBiblioIds.join(", ") : "";
+                    let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
+                    let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, value.physical_sample_id);
+                    let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
+
+                    let row = [site.site_id, dataGroup.sample_name, siteRefStr, datasetRefStr, sampleGroupRefStr];
                     let valueFound = false;
                     valueColumns.forEach((valueColumn) => {
                         let value = dataGroup.values.find((value) => value.key === valueColumn);
@@ -55,7 +58,11 @@ class DendroCeramicsData extends DataHandlingModule {
                             valueFound = true;
                         }
                         if(value && value.valueType == 'complex' && value.methodId == 10) {
-                            row.push(this.dendroLib.renderDendroDatingAsString(value.value, site, false, this.sqs));
+                            let rowValue = "";
+                            if(value.value) {
+                                rowValue = this.dendroLib.renderDendroDatingAsString(value.value, site, false, this.sqs);
+                            }
+                            row.push(rowValue);
                         }
                         else {
                             row.push(value ? value.value : '');
@@ -73,6 +80,14 @@ class DendroCeramicsData extends DataHandlingModule {
         if(table.rows.length == 0) {
             return null;
         }
+        /*
+        sites.forEach((site) => {
+            let biblio = this.getDatasetBiblio(site);
+            let contacts = this.getDatasetContacts(site);
+            console.log(biblio, contacts);
+        });
+        */
+
         return table;
     }
 

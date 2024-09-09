@@ -6,6 +6,7 @@ class DatingData extends DataHandlingModule {
         super(sqs);
         this.methodIds = [14, 151, 148, 38, 150];
         this.methodGroupIds = [19, 20, 3];
+        this.excludeMethodIds = [10];
         this.data = [];
     }
 
@@ -31,11 +32,7 @@ class DatingData extends DataHandlingModule {
 
         let table = {
             name: method.method_name,
-            columns: [
-                { header: 'Site ID', key: 'site_id', width: 10},
-				{ header: 'Dataset name', key: 'dataset_name', width: 30},
-				{ header: 'Sample name', key: 'sample_name', width: 30},
-            ],
+            columns: this.commonColumns,
             rows: []
         }
 
@@ -58,6 +55,9 @@ class DatingData extends DataHandlingModule {
         });
 
         sites.forEach((site) => {
+
+            let siteBiblioIds = this.getSiteBiblioIds(site);
+
             site.data_groups.forEach((dataGroup) => {
                 if(this.claimedDataGroup(dataGroup)) {
 
@@ -71,7 +71,12 @@ class DatingData extends DataHandlingModule {
                             return;
                         }
 
-                        let row = [site.site_id, dataGroup.dataset_name, this.getSampleNameByPhysicalSampleId(site, dataGroup.physical_sample_id)];
+                        let siteRefStr = siteBiblioIds.length > 0 ? siteBiblioIds.join(", ") : "";
+                        let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
+                        let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, value.physical_sample_id);
+                        let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
+
+                        let row = [site.site_id, dataGroup.dataset_name, this.getSampleNameByPhysicalSampleId(site, dataGroup.physical_sample_id), siteRefStr, datasetRefStr, sampleGroupRefStr];
                         let valueFound = false;
                         valueColumns.forEach((valueColumn) => {
                             let v = dataGroup.values.find((v) => this.formatColumnName(v.key) === valueColumn);

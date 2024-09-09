@@ -36,87 +36,185 @@ class MeasuredValuesData extends DataHandlingModule {
         return pairs;
     }
 
-    getDataAsTableNEW(methodId, sites) {
+    getDataAsTable(methodId, sites) {
+        console.log(methodId);
         let method = this.getMethod(sites, methodId);
 
         let table = {
             name: method.method_name,
-            columns: [
-                { header: 'Site ID', key: 'site_id', width: 10},
-				{ header: 'Dataset name', key: 'dataset_name', width: 30},
-				{ header: 'Sample name', key: 'sample_name', width: 30},
-            ],
+            columns: [],
             rows: []
         }
 
-        if(method.method_id == 33) {
-            table.columns.push({ header: 'Unburned', key: 'unburned', width: 30});
-            table.columns.push({ header: 'Burned', key: 'burned', width: 30});
-        }
-
-
-
-
+        this.commonColumns.forEach((column) => {
+            table.columns.push(column);
+        });
         
+        let plainValueSeries = [];
         let unburnedSeries = [];
         let burnedSeries = [];
         //since this is ms - there should be pars of values/AEs, one with a prepMethod and one without, both connected to the sample physical_sample
         //these needs to be paired up in 2 series
 
-        dataset.analysis_entities.forEach((ae) => {
-            if(ae.prepMethods.length > 0 && ae.prepMethods.includes(82)) {
-                burnedSeries.push([
-                    ae.physical_sample_id,
-                    parseFloat(ae.measured_values[0].measured_value)
-                ]);
-            } else {
-                unburnedSeries.push([
-                    ae.physical_sample_id,
-                    parseFloat(ae.measured_values[0].measured_value)
-                ]);
-            }
+        let allSiteBiblioIds = new Set();
+        sites.forEach((site) => {
+            let siteBiblioIds = this.getSiteBiblioIds(site);
+            site.data_groups.forEach((dataGroup) => {
+                if(this.claimedDataGroup(dataGroup)) {
+                    console.log(dataGroup);
+                    
+                    dataGroup.biblio_ids.forEach((biblioId) => {
+                        allSiteBiblioIds.add(biblioId);
+                    });
+
+                    dataGroup.values.forEach((value) => {
+
+                        let unit = "";
+                        site.lookup_tables.methods.forEach((method) => {
+                            if(method.method_id == methodId) {
+                                site.lookup_tables.units.forEach((unitItem) => {
+                                    if(unitItem.unit_id == method.unit_id) {
+                                        unit = unitItem.unit_abbrev;
+                                    }
+                                });
+                            }
+                        });
+                        
+
+                        if(value.prep_methods.length > 0) {
+                            if(value.prep_methods.includes(82)) {
+                                burnedSeries.push({
+                                    physical_sample_id: value.physical_sample_id,
+                                    value: parseFloat(value.value)+unit,
+                                    dataGroup: dataGroup,
+                                    site: site
+                                });
+                            } else {
+                                unburnedSeries.push({
+                                    physical_sample_id: value.physical_sample_id,
+                                    value: parseFloat(value.value)+unit,
+                                    dataGroup: dataGroup,
+                                    site: site 
+                                });
+                            }
+                        }
+                        else {
+                            plainValueSeries.push({
+                                physical_sample_id: value.physical_sample_id,
+                                value: parseFloat(value.value)+unit,
+                                dataGroup: dataGroup,
+                                site: site
+                            });
+                        }
+                    });
+                }
+            });
         });
 
         //sort the series (by physical_sample_id)
         unburnedSeries.sort((a, b) => {
-            return a[0] - b[0];
+            return a.physical_sample_id - b.physical_sample_id;
         });
         burnedSeries.sort((a, b) => {
-            return a[0] - b[0];
+            return a.physical_sample_id - b.physical_sample_id;
+        });
+        plainValueSeries.sort((a, b) => {
+            return a.physical_sample_id - b.physical_sample_id;
         });
 
-        let physicalSampleIds = new Set();
-        unburnedSeries.forEach((seriesItem) => {
-            physicalSampleIds.add(seriesItem[0]);
-        });
-        burnedSeries.forEach((seriesItem) => {
-            physicalSampleIds.add(seriesItem[0]);
-        });
+        console.log(unburnedSeries);
+        console.log(burnedSeries);
+        console.log(plainValueSeries);
 
-        physicalSampleIds.forEach((physicalSampleId) => {
-            let unburnedValue = "N/A";
-            let burnedValue = "N/A";
+        if(plainValueSeries.length > 0) {
+            table.columns.push({ header: 'Value', key: 'value', width: 30});
+        }
+        if(unburnedSeries.length > 0) {
+            table.columns.push({ header: 'Unburned', key: 'unburned', width: 30});
+        }
+        if(burnedSeries.length > 0) {
+            table.columns.push({ header: 'Burned', key: 'burned', width: 30});
+        }
 
-            //find sample name based on physical_sample_id
-            let physicalSample = this.getPhysicalSampleByPhysicalSampleId(site, physicalSampleId)
-            let sampleName = physicalSample.sample_name;
+        plainValueSeries.forEach((seriesItem) => {
+            let dataGroup = seriesItem.dataGroup;
+            let site = seriesItem.site;
+            let physicalSample = this.getPhysicalSampleByPhysicalSampleId(site, seriesItem.physical_sample_id);
+
+            let siteRefStr = Array.from(allSiteBiblioIds).length > 0 ? Array.from(allSiteBiblioIds).join(", ") : "";
+            let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
+            let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, seriesItem.physical_sample_id);
+            let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
+
+            let row = [site.site_id, seriesItem.dataGroup.dataset_name, physicalSample.sample_name, siteRefStr, datasetRefStr, sampleGroupRefStr, seriesItem.value];
+            if(unburnedSeries.length > 0) {
+                row.push("");
+            }
+            if(burnedSeries.length > 0) {
+                row.push("");
+            }
             
-            //find the unburned value
-            let unburnedSeriesItem = unburnedSeries.find((seriesItem) => {
-                return seriesItem[0] == physicalSampleId;
-            });
-            if(unburnedSeriesItem) {
-                unburnedValue = unburnedSeriesItem[1];
+            table.rows.push(row);
+        });
+
+        unburnedSeries.forEach((seriesItem) => {
+            let dataGroup = seriesItem.dataGroup;
+            let site = seriesItem.site;
+            let physicalSample = this.getPhysicalSampleByPhysicalSampleId(site, seriesItem.physical_sample_id);
+
+            let burnedSibling = burnedSeries.find((s) => s.physical_sample_id == seriesItem.physical_sample_id);
+
+            let siteRefStr = Array.from(allSiteBiblioIds).length > 0 ? Array.from(allSiteBiblioIds).join(", ") : "";
+            let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
+            let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, seriesItem.physical_sample_id);
+            let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
+
+            let row = [site.site_id, seriesItem.dataGroup.dataset_name, physicalSample.sample_name, siteRefStr, datasetRefStr, sampleGroupRefStr];
+            if(plainValueSeries.length > 0) {
+                row.push("");
             }
 
-            //find the burned value
-            let burnedSeriesItem = burnedSeries.find((seriesItem) => {
-                return seriesItem[0] == physicalSampleId;
-            });
-            if(burnedSeriesItem) {
-                burnedValue = burnedSeriesItem[1];
+            row.push(seriesItem.value);
+            if(burnedSeries.length > 0) {
+                row.push(burnedSibling ? burnedSibling.value : "N/A");
             }
+
+            table.rows.push(row);
         });
+
+        burnedSeries.forEach((seriesItem) => {
+            let dataGroup = seriesItem.dataGroup;
+            let site = seriesItem.site;
+            let physicalSample = this.getPhysicalSampleByPhysicalSampleId(site, seriesItem.physical_sample_id);
+
+            let unburnedSibling = unburnedSeries.find((s) => s.physical_sample_id == seriesItem.physical_sample_id);
+
+            let siteRefStr = Array.from(allSiteBiblioIds).length > 0 ? Array.from(allSiteBiblioIds).join(", ") : "";
+            let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
+            let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, seriesItem.physical_sample_id);
+            let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
+
+            let row = [site.site_id, seriesItem.dataGroup.dataset_name, physicalSample.sample_name, siteRefStr, datasetRefStr, sampleGroupRefStr];
+
+            if(plainValueSeries.length > 0) {
+                row.push("");
+            }
+
+            if(unburnedSeries.length > 0) {
+                row.push(unburnedSibling ? unburnedSibling.value : "");
+            }
+
+            row.push(seriesItem.value);
+
+            table.rows.push(row);
+        });
+
+        console.log(table);
+
+        if(table.rows.length == 0) {
+            return null;
+        }
+        return table;
     }
     
     getPhysicalSampleByPhysicalSampleId(siteData, physicalSampleId) {
@@ -131,7 +229,7 @@ class MeasuredValuesData extends DataHandlingModule {
 		return selectedSample;
 	}
 
-    getDataAsTable(methodId, sites) {
+    getDataAsTableOLD(methodId, sites) {
         let method = this.getMethod(sites, methodId);
 
         if(!method) {
@@ -144,6 +242,7 @@ class MeasuredValuesData extends DataHandlingModule {
                 { header: 'Site ID', key: 'site_id', width: 10},
 				{ header: 'Dataset name', key: 'dataset_name', width: 30},
 				{ header: 'Sample name', key: 'sample_name', width: 30},
+                { header: 'Reference ID', key: 'reference', width: 30}
             ],
             rows: []
         }
@@ -208,7 +307,8 @@ class MeasuredValuesData extends DataHandlingModule {
                             
                             let burnedSibling = burnedSeries.find((s) => s[0] == seriesItem[0]);
 
-                            let row = [site.site_id, dataGroup.dataset_name, physicalSample.sample_name, seriesItem[1], burnedSibling ? burnedSibling[1] : "N/A"];
+                            let refStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
+                            let row = [site.site_id, dataGroup.dataset_name, physicalSample.sample_name, refStr, seriesItem[1], burnedSibling ? burnedSibling[1] : "N/A"];
                             table.rows.push(row);
                         });
 

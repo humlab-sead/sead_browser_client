@@ -21,24 +21,32 @@ class AbundanceData extends DataHandlingModule {
 
         let table = {
             name: method.method_name,
-            columns: [
-                { header: 'Site ID', key: 'site_id', width: 10},
-				{ header: 'Dataset name', key: 'dataset_name', width: 30},
-				{ header: 'Sample name', key: 'sample_name', width: 30},
-                { header: 'Taxon', key: 'taxon', width: 30},
-                { header: 'Abundance', key: 'abundance', width: 30},
-                { header: 'Modifications', key: 'modifications', width: 30},
-                { header: 'Element type', key: 'element_type', width: 30}
-            ],
+            columns: this.commonColumns,
             rows: []
         }
 
+        table.columns = table.columns.concat([
+            { header: 'Taxon', key: 'taxon', width: 30},
+            { header: 'Abundance', key: 'abundance', width: 30},
+            { header: 'Modifications', key: 'modifications', width: 30},
+            { header: 'Element type', key: 'element_type', width: 30}
+        ]);
+
         sites.forEach((site) => {
+
+            let siteBiblioIds = this.getSiteBiblioIds(site);
+
             site.data_groups.forEach((dataGroup) => {
                 if(this.claimedDataGroup(dataGroup) && dataGroup.method_ids.includes(methodId)) {
 
                     dataGroup.values.forEach((value) => {
-                        let row = [site.site_id, dataGroup.dataset_name, this.getSampleNameByPhysicalSampleId(site, value.physical_sample_id)];
+
+                        let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, value.physical_sample_id);
+
+                        let siteRefStr = siteBiblioIds.length > 0 ? siteBiblioIds.join(", ") : "";
+                        let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
+                        let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
+                        let row = [site.site_id, dataGroup.dataset_name, this.getSampleNameByPhysicalSampleId(site, value.physical_sample_id), siteRefStr, datasetRefStr, sampleGroupRefStr];
 
                         if(value.valueType == 'complex') {
                             let taxon = this.getTaxonByTaxonId(site, value.data.taxon_id);
