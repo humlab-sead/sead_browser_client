@@ -77,11 +77,19 @@
             <div id="logo-aux-container">
               <div id="sead-logo"></div>
               
-              <div style="margin:0;padding:0;">
-                <div id="aux-menu-button" class="menu-button">
-                  <i class="fa fa-bars" style='font-size: 1.5em' aria-hidden="true"></i>
+              <div id="aux-menus-container">
+                <div style="margin:0;padding:0;width:100%;height:100%;">
+                  <div id="aux-menu-button" class="menu-button">
+                    <i class="fa fa-bars" style='font-size: 1.5em' aria-hidden="true"></i>
+                  </div>
+                  <div id="aux-menu"></div>
                 </div>
-                <div id="aux-menu"></div>
+
+                <!--
+                <div style="margin:0;padding:0;">
+                  <div id="search-menu"></div>
+                </div>
+                -->
               </div>
               
             </div>
@@ -677,6 +685,13 @@
             <!--You are signed in as <span id="googleName"></span>. <span id="google-signout">Sign out</span>.-->
           </div>
           <div id="google-signin"></div>
+      </div>
+
+      <div id="search-dialog-template" class="">
+        <div class="overlay-dialog-content">
+          <input id="search-input" type="text" placeholder="Search..." />
+          <div id="search-results"></div>
+        </div>
       </div>
 
       <div id="help-section" class="overlay-dialog">
