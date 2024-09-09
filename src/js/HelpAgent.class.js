@@ -8,7 +8,8 @@ class HelpAgent {
 	/*
 	* Function: constructor
 	*/
-	constructor() {
+	constructor(sqs) {
+		this.sqs = sqs;
 		this.active = false;
 		this.msgs = [];
 
