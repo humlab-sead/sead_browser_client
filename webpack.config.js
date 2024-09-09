@@ -48,6 +48,10 @@ module.exports = (env, config) => {
     module: {
       rules: [
         {
+          test: /\.worker\.js$/,
+          use: { loader: 'worker-loader' }
+        },
+        {
           test: /\.ejs$/, 
           use: [{
             loader: 'ejs-compiled-loader',
