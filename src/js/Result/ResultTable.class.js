@@ -209,7 +209,7 @@ class ResultTable extends ResultModule {
 		let currentRenderSlotsTaken = 0;
 
 		let tableColumns = [
-			{title: "Select", widthGrow:-1, formatter: "rowSelection", titleFormatter:"rowSelection", cssClass: "result-table-select-all-checkbox", hozAlign:"center", headerSort:false},
+			{title: "Select", widthGrow:-1, formatter: "rowSelection", titleFormatter:"rowSelection", cssClass: "result-table-select-all-checkbox", hozAlign:"center", headerSort:false, cellClick: (evt, cell) => { cell.getRow().toggleSelect(); }},
 			{title:"View site", widthGrow:0, field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
 				cell.getRow().toggleSelect(); //undo selection of row
 				let siteId = parseInt(cell.getValue());
