@@ -440,8 +440,7 @@ class ResultModule {
 		]);
 
 		if(allNull) {
-			console.warn("No data found for export");
-			this.sqs.notificationManager.notify("SEAD was unable to export these datasets.", "error");
+			this.sqs.notificationManager.notify("SEAD currently lacks support for exporting these type of datasets.", "warning");
 			return;
 		}
 		workbook.xlsx.writeBuffer().then((buffer) => {
