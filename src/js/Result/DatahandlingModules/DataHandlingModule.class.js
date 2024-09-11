@@ -9,9 +9,9 @@ class DataHandlingModule {
             { header: 'Site ID', key: 'site_id', width: 10},
             { header: 'Dataset name', key: 'dataset_name', width: 30},
             { header: 'Sample name', key: 'sample_name', width: 30},
-            { header: 'Site reference IDs', key: 'site_reference', width: 30},
-            { header: 'Dataset reference IDs', key: 'dataset_reference', width: 30},
-            { header: 'Sample group reference IDs', key: 'sample_group_reference', width: 30},
+            { header: 'Site references', key: 'site_reference', width: 30},
+            { header: 'Dataset references', key: 'dataset_reference', width: 30},
+            { header: 'Sample group references', key: 'sample_group_reference', width: 30},
         ];
     }
 
@@ -27,7 +27,7 @@ class DataHandlingModule {
         return method;
     }
     
-    claimedDataGroup(dataGroup, verbose = true) {
+    claimedDataGroup(dataGroup, verbose = false) {
         let claimed = false;
         if (dataGroup.method_ids.some(methodId => this.methodIds.includes(methodId))) {
             if(verbose) console.log(this.constructor.name + " is claiming data group: " + dataGroup.data_group_id);
@@ -184,16 +184,15 @@ class DataHandlingModule {
 
     getSampleGroupBiblioIds(site, physicalSampleId) {
         let sampleGroupBiblioIds = [];
+        
+        // Use `find` to return the first sample group that contains the physical sample with the matching ID
         let sampleGroup = site.sample_groups.find((sampleGroup) => {
-            sampleGroup.physical_samples.forEach((sample) => {
-                if(sample.physical_sample_id == physicalSampleId) {
-                    return true;
-                }
-            });
+            return sampleGroup.physical_samples.some((sample) => sample.physical_sample_id == physicalSampleId);
         });
+
         if(sampleGroup) {
             sampleGroup.biblio.forEach((b) => {
-                sampleGroupBiblioIds.push(b);
+                sampleGroupBiblioIds.push(b.biblio_id);
             });
         }
         return sampleGroupBiblioIds;
@@ -206,7 +205,32 @@ class DataHandlingModule {
         });
         return siteBiblioIds;
     }
+
+    getBiblio(site, biblioId) {
+        for(let key in site.lookup_tables.biblio) {
+            if(site.lookup_tables.biblio[key].biblio_id == biblioId) {
+                return site.lookup_tables.biblio[key];
+            }
+        }
+        return null;
+    }
     
+    getBibliosString(site, biblioIds) {
+        let biblioString = "";
+        biblioIds.forEach((biblioId) => {
+            let biblio = this.getBiblio(site, biblioId);
+            if(biblio) {
+                biblioString += biblio.title + ", ";
+            }
+            else {
+                console.warn("Could not find biblio with id " + biblioId);
+            }
+        });
+        if(biblioString.length > 0) {
+            biblioString = biblioString.substring(0, biblioString.length - 2);
+        }
+        return biblioString;
+    }
 }
 
 export default DataHandlingModule;

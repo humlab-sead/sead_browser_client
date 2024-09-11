@@ -43,6 +43,11 @@ class IsotopeData extends DataHandlingModule {
             site.data_groups.forEach((dataGroup) => {
                 if(this.claimedDataGroup(dataGroup)) {
                     console.log(dataGroup);
+
+                    dataGroup.values.sort((a, b) => {
+                        return a.physical_sample_id - b.physical_sample_id;
+                    });
+
                     /*
                     let row = [site.site_id, dataGroup.sample_name];
                     let valueFound = false;

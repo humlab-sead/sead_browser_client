@@ -42,15 +42,21 @@ class DendroCeramicsData extends DataHandlingModule {
 
         sites.forEach(site => {
             let siteBiblioIds = this.getSiteBiblioIds(site);
+            let siteBiblioAsString = this.getBibliosString(site, siteBiblioIds);
+
             site.data_groups.forEach((dataGroup) => {
                 if(this.claimedDataGroup(dataGroup)) {
+                    let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, dataGroup.physical_sample_id);
 
-                    let siteRefStr = siteBiblioIds.length > 0 ? siteBiblioIds.join(", ") : "";
-                    let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
-                    let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, value.physical_sample_id);
-                    let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
+                    let row = [
+                        site.site_id, 
+                        "",  //dataset name
+                        dataGroup.sample_name, 
+                        siteBiblioAsString, 
+                        this.getBibliosString(site, dataGroup.biblio_ids), 
+                        this.getBibliosString(site, sampleGroupBiblioIds)
+                    ];
 
-                    let row = [site.site_id, dataGroup.sample_name, siteRefStr, datasetRefStr, sampleGroupRefStr];
                     let valueFound = false;
                     valueColumns.forEach((valueColumn) => {
                         let value = dataGroup.values.find((value) => value.key === valueColumn);

@@ -36,8 +36,22 @@ class MeasuredValuesData extends DataHandlingModule {
         return pairs;
     }
 
+    getPrepMethodString(site, prepMethodIds) {
+        //look in site.lookup_tables.prep_methods
+        let prepMethodString = "";
+        site.lookup_tables.prep_methods.forEach((prepMethod) => {
+            if(prepMethodIds.includes(prepMethod.method_id)) {
+                prepMethodString += prepMethod.method_name + ", ";
+            }
+        });
+
+        if(prepMethodString.length > 0) {
+            prepMethodString = prepMethodString.substring(0, prepMethodString.length - 2);
+        }
+        return prepMethodString;
+    }
+
     getDataAsTable(methodId, sites) {
-        console.log(methodId);
         let method = this.getMethod(sites, methodId);
 
         let table = {
@@ -50,166 +64,112 @@ class MeasuredValuesData extends DataHandlingModule {
             table.columns.push(column);
         });
         
+        let series = [];
         let plainValueSeries = [];
         let unburnedSeries = [];
         let burnedSeries = [];
-        //since this is ms - there should be pars of values/AEs, one with a prepMethod and one without, both connected to the sample physical_sample
+        //there should be pars of values/AEs, one with a prepMethod 82 and one without, both connected to the sample physical_sample
         //these needs to be paired up in 2 series
 
+        let valueGroups = [];
         let allSiteBiblioIds = new Set();
         sites.forEach((site) => {
-            let siteBiblioIds = this.getSiteBiblioIds(site);
             site.data_groups.forEach((dataGroup) => {
                 if(this.claimedDataGroup(dataGroup)) {
-                    console.log(dataGroup);
                     
                     dataGroup.biblio_ids.forEach((biblioId) => {
                         allSiteBiblioIds.add(biblioId);
                     });
 
+                    //group values by physical_sample_id
+                    
                     dataGroup.values.forEach((value) => {
-
-                        let unit = "";
-                        site.lookup_tables.methods.forEach((method) => {
-                            if(method.method_id == methodId) {
-                                site.lookup_tables.units.forEach((unitItem) => {
-                                    if(unitItem.unit_id == method.unit_id) {
-                                        unit = unitItem.unit_abbrev;
-                                    }
-                                });
-                            }
-                        });
-                        
-
-                        if(value.prep_methods.length > 0) {
-                            if(value.prep_methods.includes(82)) {
-                                burnedSeries.push({
-                                    physical_sample_id: value.physical_sample_id,
-                                    value: parseFloat(value.value)+unit,
-                                    dataGroup: dataGroup,
-                                    site: site
-                                });
-                            } else {
-                                unburnedSeries.push({
-                                    physical_sample_id: value.physical_sample_id,
-                                    value: parseFloat(value.value)+unit,
-                                    dataGroup: dataGroup,
-                                    site: site 
-                                });
-                            }
-                        }
-                        else {
-                            plainValueSeries.push({
+                        let group = valueGroups.find((group) => group.physical_sample_id == value.physical_sample_id);
+                        if(!group) {
+                            group = {
                                 physical_sample_id: value.physical_sample_id,
-                                value: parseFloat(value.value)+unit,
-                                dataGroup: dataGroup,
-                                site: site
-                            });
+                                site: site,
+                                values: []
+                            }
+                            valueGroups.push(group);
                         }
+                        group.values.push(value);
                     });
+
                 }
             });
         });
 
-        //sort the series (by physical_sample_id)
-        unburnedSeries.sort((a, b) => {
-            return a.physical_sample_id - b.physical_sample_id;
+        let valueColumns = new Set();
+        valueColumns.add("Value");
+        valueGroups.forEach((group) => {
+            group.values.forEach((value) => {
+                if(value.prep_methods.length > 0) {
+                    //look up this prep_method
+                    let prepMethod = this.getPrepMethodString(group.site, value.prep_methods);
+                    valueColumns.add(prepMethod);
+                }
+            });
         });
-        burnedSeries.sort((a, b) => {
-            return a.physical_sample_id - b.physical_sample_id;
-        });
-        plainValueSeries.sort((a, b) => {
-            return a.physical_sample_id - b.physical_sample_id;
+
+        Array.from(valueColumns).forEach((valueColumn) => {
+            table.columns.push({ header: valueColumn, key: valueColumn, width: 30 });
         });
 
-        console.log(unburnedSeries);
-        console.log(burnedSeries);
-        console.log(plainValueSeries);
+        valueGroups.forEach((group) => {
 
-        if(plainValueSeries.length > 0) {
-            table.columns.push({ header: 'Value', key: 'value', width: 30});
-        }
-        if(unburnedSeries.length > 0) {
-            table.columns.push({ header: 'Unburned', key: 'unburned', width: 30});
-        }
-        if(burnedSeries.length > 0) {
-            table.columns.push({ header: 'Burned', key: 'burned', width: 30});
-        }
+            let physicalSample = this.getPhysicalSampleByPhysicalSampleId(group.site, group.physical_sample_id);
+            let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(group.site, group.physical_sample_id);
 
-        plainValueSeries.forEach((seriesItem) => {
-            let dataGroup = seriesItem.dataGroup;
-            let site = seriesItem.site;
-            let physicalSample = this.getPhysicalSampleByPhysicalSampleId(site, seriesItem.physical_sample_id);
+            let siteBiblioIds = this.getSiteBiblioIds(group.site);
+            let siteBiblioAsString = this.getBibliosString(group.site, siteBiblioIds);
 
-            let siteRefStr = Array.from(allSiteBiblioIds).length > 0 ? Array.from(allSiteBiblioIds).join(", ") : "";
-            let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
-            let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, seriesItem.physical_sample_id);
-            let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
+            let datasetBiblioIds = new Set();
+            let datasetName = "";
+            group.values.forEach((value) => {
+                //find the dataset with this analysis_entity_id
+                group.site.datasets.forEach((dataset) => {
+                    if(dataset) {
+                        dataset.analysis_entities.forEach((ae) => {
+                            if(ae.analysis_entity_id == value.analysis_entity_id) {
+                                datasetBiblioIds.add(ae.biblio_id);
+                                datasetName = dataset.dataset_name; //we assume that all values in the group belongs to the same dataset
+                            }
+                        });
+                    }
+                });
+            });
 
-            let row = [site.site_id, seriesItem.dataGroup.dataset_name, physicalSample.sample_name, siteRefStr, datasetRefStr, sampleGroupRefStr, seriesItem.value];
-            if(unburnedSeries.length > 0) {
-                row.push("");
-            }
-            if(burnedSeries.length > 0) {
-                row.push("");
-            }
+            let row = [
+                group.site.site_id, 
+                datasetName, //datasetname
+                physicalSample.sample_name, 
+                siteBiblioAsString, //site references
+                this.getBibliosString(group.site, Array.from(datasetBiblioIds)), //dataset references
+                this.getBibliosString(group.site, sampleGroupBiblioIds) //sample groups references
+            ];
+
+            //a value group is basically the last columns of a row, and we need to fill out all the columns we have in the valueColumns set
+            Array.from(valueColumns).forEach((valueColumn) => {
             
-            table.rows.push(row);
-        });
+                if(valueColumn == "Value") {
+                    let value = group.values.find((v) => {
+                        return v.prep_methods.length == 0;
+                    });
+                    row.push(value ? value.value : "");
+                    return;
+                }
 
-        unburnedSeries.forEach((seriesItem) => {
-            let dataGroup = seriesItem.dataGroup;
-            let site = seriesItem.site;
-            let physicalSample = this.getPhysicalSampleByPhysicalSampleId(site, seriesItem.physical_sample_id);
+                let value = group.values.find((v) => {
+                    let prepMethod = this.getPrepMethodString(group.site, v.prep_methods);
+                    return prepMethod === valueColumn;
+                });
 
-            let burnedSibling = burnedSeries.find((s) => s.physical_sample_id == seriesItem.physical_sample_id);
-
-            let siteRefStr = Array.from(allSiteBiblioIds).length > 0 ? Array.from(allSiteBiblioIds).join(", ") : "";
-            let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
-            let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, seriesItem.physical_sample_id);
-            let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
-
-            let row = [site.site_id, seriesItem.dataGroup.dataset_name, physicalSample.sample_name, siteRefStr, datasetRefStr, sampleGroupRefStr];
-            if(plainValueSeries.length > 0) {
-                row.push("");
-            }
-
-            row.push(seriesItem.value);
-            if(burnedSeries.length > 0) {
-                row.push(burnedSibling ? burnedSibling.value : "N/A");
-            }
+                row.push(value ? value.value : "");
+            });
 
             table.rows.push(row);
         });
-
-        burnedSeries.forEach((seriesItem) => {
-            let dataGroup = seriesItem.dataGroup;
-            let site = seriesItem.site;
-            let physicalSample = this.getPhysicalSampleByPhysicalSampleId(site, seriesItem.physical_sample_id);
-
-            let unburnedSibling = unburnedSeries.find((s) => s.physical_sample_id == seriesItem.physical_sample_id);
-
-            let siteRefStr = Array.from(allSiteBiblioIds).length > 0 ? Array.from(allSiteBiblioIds).join(", ") : "";
-            let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
-            let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, seriesItem.physical_sample_id);
-            let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
-
-            let row = [site.site_id, seriesItem.dataGroup.dataset_name, physicalSample.sample_name, siteRefStr, datasetRefStr, sampleGroupRefStr];
-
-            if(plainValueSeries.length > 0) {
-                row.push("");
-            }
-
-            if(unburnedSeries.length > 0) {
-                row.push(unburnedSibling ? unburnedSibling.value : "");
-            }
-
-            row.push(seriesItem.value);
-
-            table.rows.push(row);
-        });
-
-        console.log(table);
 
         if(table.rows.length == 0) {
             return null;
@@ -228,131 +188,6 @@ class MeasuredValuesData extends DataHandlingModule {
 		});
 		return selectedSample;
 	}
-
-    getDataAsTableOLD(methodId, sites) {
-        let method = this.getMethod(sites, methodId);
-
-        if(!method) {
-            return null;
-        }
-
-        let table = {
-            name: method.method_name,
-            columns: [
-                { header: 'Site ID', key: 'site_id', width: 10},
-				{ header: 'Dataset name', key: 'dataset_name', width: 30},
-				{ header: 'Sample name', key: 'sample_name', width: 30},
-                { header: 'Reference ID', key: 'reference', width: 30}
-            ],
-            rows: []
-        }
-
-        if(method.method_id == 33) {
-            table.columns.push({ header: 'Unburned', key: 'unburned', width: 30});
-            table.columns.push({ header: 'Burned', key: 'burned', width: 30});
-        }
-        else {
-            table.columns.push({ header: 'Value', key: 'taxon', width: 30});
-        }
-
-        let unitCellValue = "";
-        if(method.unit) {
-            unitCellValue = method.unit.unit_abbrev;
-            table.columns.push({ header: 'Unit', key: 'unit', width: 10});
-        }
-
-        sites.forEach((site) => {
-            site.data_groups.forEach((dataGroup) => {
-                if(this.claimedDataGroup(dataGroup) && dataGroup.method_ids.includes(methodId)) {
-                    if(method.method_id == 33) {
-                        let unburnedSeries = [];
-                        let burnedSeries = [];
-                        //since this is ms - there should be pars of values/AEs, one with a prepMethod and one without, both connected to the sample physical_sample
-                        //these needs to be paired up in 2 series
-
-                        dataGroup.values.forEach((value) => {
-                            if(value.prep_methods.length > 0 && value.prep_methods.includes(82)) {
-                                burnedSeries.push([
-                                    value.physical_sample_id,
-                                    parseFloat(value.value)
-                                ]);
-                            } else {
-                                unburnedSeries.push([
-                                    value.physical_sample_id,
-                                    parseFloat(value.value)
-                                ]);
-                            }
-                        });
-
-                        //sort the series (by physical_sample_id)
-                        unburnedSeries.sort((a, b) => {
-                            return a[0] - b[0];
-                        });
-                        burnedSeries.sort((a, b) => {
-                            return a[0] - b[0];
-                        });
-
-                        let physicalSampleIds = new Set();
-                        unburnedSeries.forEach((seriesItem) => {
-                            physicalSampleIds.add(seriesItem[0]);
-                        });
-                        burnedSeries.forEach((seriesItem) => {
-                            physicalSampleIds.add(seriesItem[0]);
-                        });
-
-                        unburnedSeries.forEach((seriesItem) => {
-            
-                            //find sample name based on physical_sample_id
-                            let physicalSample = this.getPhysicalSampleByPhysicalSampleId(site, seriesItem[0]);
-                            
-                            let burnedSibling = burnedSeries.find((s) => s[0] == seriesItem[0]);
-
-                            let refStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
-                            let row = [site.site_id, dataGroup.dataset_name, physicalSample.sample_name, refStr, seriesItem[1], burnedSibling ? burnedSibling[1] : "N/A"];
-                            table.rows.push(row);
-                        });
-
-                        /*
-                        //create pairs of values where values that have the same key are pairs and one should have prep_methods 82 and the other no prep_methods
-                        let valuePairs = this.getPairsOfValues(dataGroup.values);
-                        
-                        if(valuePairs.length == 0) {
-                            //not all MS values have a burned/unburned pair
-                        }
-
-                        valuePairs.forEach((pair) => {
-
-                            let burned = pair[0].prep_methods.includes(82) ? pair[0] : pair[1];
-                            let unburned = pair[0].prep_methods.includes(82) ? pair[1] : pair[0];
-
-                            let row = [site.site_id, dataGroup.dataset_name, unburned.sample_name, unburned.value, burned.value];
-                            if(method.unit) {
-                                row.push(unitCellValue);
-                            }
-                            table.rows.push(row);
-                        });
-                        */
-                    }
-                    else {
-                        dataGroup.values.forEach((value) => {
-                            let row = [site.site_id, dataGroup.dataset_name, value.sample_name, value.value];
-    
-                            if(method.unit) {
-                                row.push(unitCellValue);
-                            }
-                            table.rows.push(row);
-                        });
-                    }
-
-                }
-            });
-        });
-
-        if(table.rows.length == 0) {
-            return null;
-        }
-        return table;
-    }
 }
 
 export default MeasuredValuesData;

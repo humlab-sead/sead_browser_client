@@ -57,6 +57,7 @@ class DatingData extends DataHandlingModule {
         sites.forEach((site) => {
 
             let siteBiblioIds = this.getSiteBiblioIds(site);
+            let siteBiblioAsString = this.getBibliosString(site, siteBiblioIds);
 
             site.data_groups.forEach((dataGroup) => {
                 if(this.claimedDataGroup(dataGroup)) {
@@ -71,12 +72,17 @@ class DatingData extends DataHandlingModule {
                             return;
                         }
 
-                        let siteRefStr = siteBiblioIds.length > 0 ? siteBiblioIds.join(", ") : "";
-                        let datasetRefStr = dataGroup.biblio_ids.length > 0 ? dataGroup.biblio_ids.join(", ") : "";
                         let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, value.physical_sample_id);
-                        let sampleGroupRefStr = sampleGroupBiblioIds.length > 0 ? sampleGroupBiblioIds.join(", ") : "";
 
-                        let row = [site.site_id, dataGroup.dataset_name, this.getSampleNameByPhysicalSampleId(site, dataGroup.physical_sample_id), siteRefStr, datasetRefStr, sampleGroupRefStr];
+                        let row = [
+                            site.site_id, 
+                            dataGroup.dataset_name, 
+                            this.getSampleNameByPhysicalSampleId(site, value.physical_sample_id), 
+                            siteBiblioAsString, 
+                            this.getBibliosString(site, dataGroup.biblio_ids), 
+                            this.getBibliosString(site, sampleGroupBiblioIds)
+                        ];
+                        
                         let valueFound = false;
                         valueColumns.forEach((valueColumn) => {
                             let v = dataGroup.values.find((v) => this.formatColumnName(v.key) === valueColumn);
