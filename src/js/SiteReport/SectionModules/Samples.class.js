@@ -575,8 +575,11 @@ class Samples {
 			for(let sgKey in site.sample_groups) {
 				if(site.sample_groups[sgKey].sample_group_id == sampleGroupId) {
 					site.sample_groups[sgKey].datasets.forEach(dataset => {
+						if(dataset == null) {
+							console.warn("WARN: Dataset is null for sample group: ", site.sample_groups[sgKey]);
+							return;
+						}
 						let method = this.getMethodFromDatasetId(site, dataset);
-
 						let found = false;
 						analysisMethodsTags.forEach(methodTag => {
 							if(methodTag.method_id == method.method_id) {
