@@ -6,6 +6,9 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 require("ejs-compiled-loader");
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const cesiumSource = path.resolve(__dirname, 'node_modules/cesium/Source');
+const cesiumWorkers = path.join(cesiumSource, '../Build/Cesium/Workers');
 
 module.exports = (env, config) => {
 
@@ -17,19 +20,24 @@ module.exports = (env, config) => {
       path: path.resolve(__dirname, './dist'),
       filename: '[name].sead.bundle.js',
       publicPath: '/',
+      sourcePrefix: '', // <-- Cesium requires this to remove the leading slash in imports
       assetModuleFilename: '[name][ext][query]'
+    },
+    amd: {
+      // Enable Cesium to work with Webpack's AMD
+      toUrlUndefined: true
     },
     plugins: [
       new webpack.DefinePlugin({
         'process.env': {
           DEBUG: false,
         },
+        CESIUM_BASE_URL: JSON.stringify('/'),
       }),
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, './src/index.ejs'), // template file
         filename: 'index.html', // output file
         templateParameters: {
-          //'baseUrl': 'https://example.com',
           'baseUrl': seadConfig.serverRoot,
         }
       }),
@@ -37,6 +45,14 @@ module.exports = (env, config) => {
       new webpack.ProvidePlugin({
         $: 'jquery',
         jQuery: 'jquery',
+      }),
+      new CopyWebpackPlugin({
+        patterns: [
+          { from: cesiumWorkers, to: 'Workers' },
+          { from: path.join(cesiumSource, 'Assets'), to: 'Assets' },
+          { from: path.join(cesiumSource, 'Widgets'), to: 'Widgets' },
+          { from: path.join(cesiumSource, 'ThirdParty'), to: 'ThirdParty' },
+        ],
       }),
       /*
       new BundleAnalyzerPlugin({
