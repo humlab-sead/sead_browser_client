@@ -265,6 +265,7 @@ class ResultManager {
 	//Check that this module exists
 	async setActiveModule(resultModuleId, renderModule = true) {
 		if(!this.getModule(resultModuleId)) {
+			console.warn("Result module "+resultModuleId+" does not exist.");
 			return false;
 		}
 		
