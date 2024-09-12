@@ -53,7 +53,7 @@ class DendroCeramicsData extends DataHandlingModule {
                         "",  //dataset name
                         dataGroup.sample_name, 
                         siteBiblioAsString, 
-                        this.getBibliosString(site, dataGroup.biblio_ids), 
+                        this.getBibliosString(site, dataGroup.biblio_ids ? dataGroup.biblio_ids : []), 
                         this.getBibliosString(site, sampleGroupBiblioIds)
                     ];
 
