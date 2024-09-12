@@ -32,6 +32,7 @@ class Facet {
 		this.locked = false;
 		this.enabled = true; //If this facet is not applicable within the current domain, this will be false.
 		this.dataFetchingEnabled = true;
+		this.unit = "";
 
 		var facetDomObj = $("#facet-template")[0].cloneNode(true);
 		this.domObj = facetDomObj;

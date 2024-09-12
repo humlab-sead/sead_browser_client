@@ -38,6 +38,7 @@ class RangeFacet extends Facet {
 	*/
 	constructor(sqs, id = null, template = {}) {
 		super(sqs, id, template);
+		
 		this.totalUpper = null; //Lowest possible value of this filter, without filters applied
 		this.totalLower = null; //Highest possible value of this fulter, without filters applied
 		this.datasets = {
@@ -49,6 +50,11 @@ class RangeFacet extends Facet {
 		this.sliderElement = null;
 		this.minDataValue = null;
 		this.maxDataValue = null;
+		
+		if(template.name == "analysis_entity_ages") {
+			this.unit = "BP";
+		}
+		
 		//this.numberOfCategories = 50; //Number of categories (bars) we want to abstract dataset
 		$(".facet-text-search-btn", this.getDomRef()).hide(); //range facets do not have text searching...
 
@@ -57,7 +63,7 @@ class RangeFacet extends Facet {
 		Chart.register(BarController);
 		Chart.register(BarElement);
 	}
-	
+
 	/*
 	* Function: setSelections
 	* 
@@ -344,7 +350,6 @@ class RangeFacet extends Facet {
 			console.log(this.sliderElement);
 			this.sliderElement.destroy();
 		}
-		console.log($(".facet-body > .chart-container", this.getDomRef()));
 		$(".facet-body > .chart-container", this.getDomRef()).hide();
 	}
 
@@ -401,6 +406,10 @@ class RangeFacet extends Facet {
 		});
 	}
 
+	formatWithSpaces(number) {
+		return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+	}
+
 	/*
 	 * Function: renderSlider
 	 *
@@ -421,6 +430,16 @@ class RangeFacet extends Facet {
 			max: sliderMax,
 			step: 1,
 			skin: "flat",
+			prettify_enabled: true, // Enables prettify function
+			prettify: (num) => {
+				if(this.unit == "BP") {
+					return this.formatWithSpaces(num)+" BP";
+				}
+				else {
+					return this.formatWithSpaces(num);
+					//return num.toLocaleString();
+				}
+			},
 			onFinish: (data) => {
 				let values = [];
 				values.push(data.from);
