@@ -28,57 +28,24 @@
   margin-right: 30px;
 }
 
-.noUi-handle {
-	position:relative;
-	background-color: $inactive-color !important;
-	background-color: transparent !important;
-	height: 4px !important;
-	width: 26px !important;
-	top:-9px !important;
-
-	opacity: 1.0;
-	margin-top:0px;
-	cursor: ew-resize !important;
-	box-shadow: none !important;
-	border-radius: 1px !important;
-	border-width: 0px !important;
-	border-color: $aux-color !important;
-	border-style: solid;
-	border-top-width: 0px !important;
-	border-bottom-width: 0px !important;
-	border-left-width: 0px !important;
-	border-right-width: 0px !important;
+.irs-bar {
+	background: $aux-color !important;
 }
 
-
-
-.noUi-handle-lower > .slider-manual-input-container {
-  position: relative !important;
-  /*left: -23px !important;*/
-  border-right: 4px solid $aux-color !important;
+.irs-handle > i {
+	background: $aux-color !important;
 }
 
-
-.noUi-handle-upper > .slider-manual-input-container {
-  position: relative !important;
-  left: 10px !important;
-  border-left: 4px solid $aux-color !important;
+.irs-to {
+	background: $aux-color !important;
 }
 
-
-
-.noUi-handle:after, .noUi-handle:before {
-	background-color: red !important;
-	content: '' !important;
-	width: 0px !important;
-	height: 0px !important;
+.irs-from {
+	background: $aux-color !important;
 }
 
-
-div.noUi-connect {
-  background-color: $aux-color !important;
-  height: 5px;
-  margin-top:6px;
+.irs-single {
+	background: $aux-color !important;
 }
 
 
