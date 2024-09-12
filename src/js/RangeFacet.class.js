@@ -383,6 +383,13 @@ class RangeFacet extends Facet {
 			},
 			animation: {
 				duration: 0
+			},
+			scales: {
+				x: {
+					ticks: {
+						display: false  // This will hide the x-axis labels
+					}
+				}
 			}
 		};
 

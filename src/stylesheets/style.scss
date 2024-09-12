@@ -1413,6 +1413,7 @@ h1.main-header {
 	width: 100%;
 }
 
+
 .chart-canvas-container {
 	position:relative;
 	height: 100%;
@@ -3832,8 +3833,8 @@ svg text {
   border-bottom: 1px solid #eee;
 }
 
-.tabulator-tableHolder {
-  background-color: #fff;
+.tabulator {
+  background-color: #fff !important;
 }
 
 .tabulator-table > .tabulator-row > .tabulator-cell {
