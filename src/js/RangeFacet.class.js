@@ -1,11 +1,13 @@
 import Facet from './Facet.class.js';
-import noUiSlider from "nouislider";
+//import noUiSlider from "nouislider";
 //import "nouislider/distribute/nouislider.min.css";
 import styles from '../stylesheets/style.scss'
 import { Chart, CategoryScale, LinearScale, BarController, BarElement } from "chart.js";
 //import Config from "../config/config";
 //import { runInThisContext } from 'vm';
 
+import "ion-rangeslider";
+import "ion-rangeslider/css/ion.rangeSlider.min.css";
 /*
 Works like this:
 
@@ -405,7 +407,21 @@ class RangeFacet extends Facet {
 		if(startDefault.length < 2) {
 			startDefault = [sliderMin, sliderMax];
 		}
-		
+
+		$(".range-slider-input", this.getDomRef()).ionRangeSlider({
+			type: "double",
+			min: sliderMin,
+			max: sliderMax,
+			step: 1,
+			skin: "flat",
+			onFinish: (data) => {
+				let values = [];
+				values.push(data.from);
+				values.push(data.to);
+				this.sliderMovedCallback(values);
+			}
+		});
+		/*
 		var rangesliderContainer = $(".rangeslider-container", this.getDomRef())[0];
 		this.sliderElement = noUiSlider.create(rangesliderContainer, {
 			start: startDefault,
@@ -455,6 +471,8 @@ class RangeFacet extends Facet {
 		this.sliderElement.on("change", (values, slider) => {
 			this.sliderMovedCallback(values, slider);
 		});
+
+		*/
 	}
 	
 	updateChart(categories, selections) {
@@ -524,7 +542,7 @@ class RangeFacet extends Facet {
 	* Function: sliderMovedCallback
 	*
 	*/
-	sliderMovedCallback(values, whichSlider) {
+	sliderMovedCallback(values, whichSlider = null) {
 
 		let highValue = parseFloat(values[0]);
 		let lowValue = parseFloat(values[1]);
