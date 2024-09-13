@@ -22,6 +22,10 @@ class ResultGlobe extends ResultModule {
 		this.renderGlobeIntoNode = $(".result-globe-render-container", renderIntoNode)[0];
     }
 
+	update() {
+		this.render();
+	}
+
     render(fetch = true) {
 		super.render();
 
