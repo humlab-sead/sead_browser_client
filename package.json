@@ -10,6 +10,7 @@
     "build": "cp src/config/config-prod.json src/config/config.json && webpack --progress --mode production --devtool source-map",
     "dev": "cp src/config/config-dev.json src/config/config.json && webpack serve --progress --mode development --allowed-hosts localhost --devtool source-map",
     "build:dev": "cp src/config/config-dev.json src/config/config.json && webpack --mode=production --progress",
+    "build:staging": "cp src/config/config-staging.json src/config/config.json && webpack --mode=production --progress",
     "build:prod": "cp src/config/config-prod.json src/config/config.json && webpack --mode=production --progress",
     "build:docs": "C:/Program Files (x86)/Natural Docs/NaturalDocs.exe ND-Config"
   },
