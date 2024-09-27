@@ -3994,3 +3994,12 @@ tr.free-text-search-result-row:hover {
   margin:0;
   padding:0;
 }
+
+#result-globe-control-panel {
+  position: absolute;
+  top: 4em;
+  background: rgba($pane-bg-color, 0.9);
+  padding: 1em;
+}
+
+
