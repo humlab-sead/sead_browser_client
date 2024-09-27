@@ -13,10 +13,13 @@ import MosaicDendroBuildingTypesModule from "./MosaicTileModules/MosaicDendroBui
 //import MosaicDendroTreeSpeciesModule from "./MosaicTileModules/OLD-MosaicDendroTreeSpeciesModule.class";
 import MosaicDendroDatingHistogramModule from "./MosaicTileModules/MosaicDendroDatingHistogramModule.class";
 import MosaicDendroTreeSpeciesChartModule from "./MosaicTileModules/MosaicDendroTreeSpeciesChartModule.class";
+import MosaicDendroConstructionPurposeModule from "./MosaicTileModules/MosaicDendroConstructionPurposeModule.class";
 import MosaicTemporalDistributionModule from "./MosaicTileModules/MosaicTemporalDistributionModule.class";
 import MosaicTaxaListModule from "./MosaicTileModules/MosaicTaxaListModule.class";
 import MosaicEcoCodesModule from './MosaicTileModules/MosaicEcoCodesModule.class.js';
 import MosaicDynamicChartModule from './MosaicTileModules/MosaicDynamicChartModule.class.js';
+import MosaicDendroWaneyEdgeModule from './MosaicTileModules/MosaicDendroWaneyEdgeModule.class.js';
+import MosaicDendroBarkModule from './MosaicTileModules/MosaicDendroBarkModule.class.js';
 import { nanoid } from 'nanoid';
 import Plotly from "plotly.js-dist-min";
 
@@ -133,6 +136,24 @@ class ResultMosaic extends ResultModule {
 			title: "Generate chart",
 			className: "MosaicDynamicChartModule",
 			classTemplate: MosaicDynamicChartModule,
+			module: null
+		});
+		this.modules.push({
+			title: "Construction purpose",
+			className: "MosaicDendroConstructionPurposeModule",
+			classTemplate: MosaicDendroConstructionPurposeModule,
+			module: null
+		});
+		this.modules.push({
+			title: "Waney edge",
+			className: "MosaicDendroWaneyEdgeModule",
+			classTemplate: MosaicDendroWaneyEdgeModule,
+			module: null
+		});
+		this.modules.push({
+			title: "Bark",
+			className: "MosaicDendroBarkModule",
+			classTemplate: MosaicDendroBarkModule,
 			module: null
 		});
 		

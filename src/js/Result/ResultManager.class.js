@@ -15,6 +15,7 @@ class ResultManager {
 		this.resultDataFetchingSuspended = false;
 		this.pendingDataFetch = false;
 		this.resultModuleRenderStatus = "none";
+		this.sqsInitComplete = false;
 		
 		//Event hook-ins below
 		if(this.resultSectionDisabled == false) {
@@ -38,6 +39,10 @@ class ResultManager {
 				if(data.facet.getSelections().length > 0) {
 					this.updateResultView(data.facet);
 				}
+			});
+
+			$(window).on("sqsInitComplete", () => {
+				this.sqsInitComplete = true;
 			});
 			
 			$(window).on("seadStatePreLoad", (event, data) => {
@@ -275,8 +280,13 @@ class ResultManager {
 			module.setActive(false);
 			//module.unrender();
 		}
-		if(renderModule) {
+		if(renderModule && this.sqsInitComplete) {
 			this.getResultModuleByName(resultModuleId).render();
+		}
+		else if(renderModule && !this.sqsInitComplete) {
+			$(window).on("sqsInitComplete", () => {
+				this.getResultModuleByName(resultModuleId).render();
+			});
 		}
 		this.getResultModuleByName(resultModuleId).setActive(true);
 		this.activeModuleId = resultModuleId;
