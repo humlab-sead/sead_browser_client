@@ -66,7 +66,6 @@
     "tabulator": "^0.2.40",
     "tabulator-tables": "^6.2.5",
     "webpack-copy-plugin": "^0.0.4",
-    "xlsx": "^0.18.5",
     "zingchart": "^2.9.1",
     "zingtouch": "^1.0.6"
   },
@@ -93,7 +92,7 @@
     "url-loader": "^4.1.1",
     "webpack": "^5.78.0",
     "webpack-babel-env-deps": "^1.6.4",
-    "webpack-bundle-analyzer": "^4.9.0",
+    "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "^5.0.1",
     "webpack-dev-server": "^4.13.2",
     "worker-loader": "^3.0.8"
