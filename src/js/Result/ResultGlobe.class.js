@@ -1,8 +1,5 @@
 import ResultModule from './ResultModule.class.js'
-import SqsMenu from '../SqsMenu.class.js';
-import { Color, Viewer, Cartesian3, Cartesian2, LabelStyle, VerticalOrigin } from "cesium"; 
 import "../../../node_modules/cesium/Build/Cesium/Widgets/widgets.css";
-
 
 /*
 * Class: ResultModule
@@ -23,6 +20,7 @@ class ResultGlobe extends ResultModule {
     }
 
 	update() {
+		console.log("ResultGlobe.update()");
 		this.render();
 	}
 
@@ -32,81 +30,238 @@ class ResultGlobe extends ResultModule {
 		$(this.renderIntoNode).show();
 		$(this.renderIntoNode).html("");
 
-		//Create a Viewer instances and add the DataSource.
+		import("cesium").then(Cesium => {
+			const { Color, Viewer, Cartesian3, Cartesian2, LabelStyle, VerticalOrigin, HeightReference } = Cesium;
 		
-		const viewer = new Viewer($(this.renderIntoNode).attr("id"), {
-			animation: false,
-			timeline: false,
-		});
-		viewer.clock.shouldAnimate = false;
+			this.viewer = new Viewer($(this.renderIntoNode).attr("id"), {
+				animation: false,
+				timeline: false,
+			});
+			this.viewer.clock.shouldAnimate = false;
 
-		viewer.camera.setView({
-			destination: Cartesian3.fromDegrees(10.0, 50.0, 5000000) // (lon, lat, height in meters)
-		});
-        
-		
-		if(fetch) {
-			this.fetchData().then((data, textStatus, xhr) => {
-				if(this.active) {
+			this.viewer.camera.setView({
+				destination: Cartesian3.fromDegrees(10.0, 50.0, 5000000) // (lon, lat, height in meters)
+			});
+			
+			$(this.renderIntoNode).append(`
+				<div id='result-globe-control-panel'>
+				<h3>Eco codes</h3>
 
-					//this should be extracted from data.Meta.Columns instead
-					let siteIdKey = null;
-					let siteNameKey = null;
-					let lngKey = null;
-					let latKey = null;
+				<label>Ecocode calculated by:</label><br />
+				<select id='result-globe-ecocode-calculation'>
+					<option value='abundance'>Abundance of all taxa related to ecocode</option>
+					<option value='taxa'>Number of unique taxa related to ecocode</option>
+				</select>
+				
+				<ul id='result-globe-ecocode-list'>
+				</ul>
+				</div>
+				`);
 
-					data.Meta.Columns.forEach((column, index) => {
-						if(column.FieldKey == "category_id") {
-							siteIdKey = index;
-						}
-						if(column.FieldKey == "category_name") {
-							siteNameKey = index;
-						}
-						if(column.FieldKey == "longitude_dd") {
-							lngKey = index;
-						}
-						if(column.FieldKey == "latitude_dd") {
-							latKey = index;
-						}
-					});
+			if(fetch) {
+				this.fetchData().then((data, textStatus, xhr) => {
+					if(this.active) {
+						this.data = data;
+						//this should be extracted from data.Meta.Columns instead
+						let siteIdKey = null;
+						let siteNameKey = null;
+						let lngKey = null;
+						let latKey = null;
 
-					data.Data.DataCollection.forEach(site => {
-						// Add each site as a point (billboard or label) to the Cesium viewer
-						viewer.entities.add({
-							position: Cartesian3.fromDegrees(site[lngKey], site[latKey]),  // Convert lat/lng to Cartesian3
-							point: { // Add a point to represent the site
-								pixelSize: 10,
-								color: Color.RED,
-							},
-							label: { // Add a label with the site's title
-								font: '14pt sans-serif',
-								style: LabelStyle.FILL_AND_OUTLINE,
-								outlineWidth: 2,
-								verticalOrigin: VerticalOrigin.BOTTOM,
-								pixelOffset: new Cartesian2(0, -9) // Adjust label position
-							},
-						});
-
-						let height = 50*10000; // Height of the cylinder (proportional to the value)
-
-						viewer.entities.add({
-							position: Cartesian3.fromDegrees(site[lngKey], site[latKey], height / 2),  // Convert lat/lng to Cartesian3
-							cylinder: {
-								length: height, // The height of the cylinder (proportional to the value)
-								topRadius: 5000, // Radius of the top of the cylinder
-								bottomRadius: 5000, // Radius of the bottom of the cylinder
-								material: Color.BLUE.withAlpha(0.5), // Color and transparency of the cylinder
-								verticalOrigin: VerticalOrigin.BOTTOM,
+						data.Meta.Columns.forEach((column, index) => {
+							if(column.FieldKey == "category_id") {
+								siteIdKey = index;
+							}
+							if(column.FieldKey == "category_name") {
+								siteNameKey = index;
+							}
+							if(column.FieldKey == "longitude_dd") {
+								lngKey = index;
+							}
+							if(column.FieldKey == "latitude_dd") {
+								latKey = index;
 							}
 						});
-					});
-	
-				}
-			}).catch((xhr, textStatus, errorThrown) => { //error
-				console.error("Error fetching data for result globe: ", textStatus, errorThrown);
-			});
-		}
+						
+						data.Data.DataCollection.forEach(site => {
+							// Add each site as a point (billboard or label) to the Cesium viewer
+							this.viewer.entities.add({
+								entityType: 'siteCircle',
+								position: Cartesian3.fromDegrees(site[lngKey], site[latKey]),  // Convert lat/lng to Cartesian3
+								point: { // Add a point to represent the site
+									pixelSize: 6,
+									color: Color.fromBytes(1, 0, 157, 100),
+									outlineColor: Color.fromBytes(255, 255, 255, 128), 
+									outlineWidth: 0.5, 
+								},
+							});
+						});
+
+						this.renderControlPanel(data);
+					}
+				}).catch((xhr, textStatus, errorThrown) => { //error
+					console.error("Error fetching data for result globe: ", textStatus, errorThrown);
+				});
+			}
+		});
+
 		
+		
+	}
+
+	async renderControlPanel(data) {
+
+		$("#result-globe-ecocode-calculation").on("change", (evt) => {
+			const selectedEcocode = $("input[name='ecocode']:checked").val();
+			const selectedCalculation = $(evt.target).val();
+			this.renderBars(selectedEcocode, selectedCalculation);
+		});
+
+		let siteIds = data.Data.DataCollection.map(site => site[0]);
+
+		$("#result-globe-ecocode-list").html("");
+		for(let key in this.sqs.bugsEcoCodeDefinitions) {
+			let ecocode = this.sqs.bugsEcoCodeDefinitions[key];
+			$("#result-globe-ecocode-list").append(`
+				<li>
+					<input value='${ecocode.ecocode_definition_id}' type='radio' name='ecocode' />
+					${ecocode.name}
+				</li>
+			`);
+
+			// Bind the change event to all radio buttons after they are added to the DOM
+		}
+
+		$("input[name='ecocode']").on("change", (evt) => {
+			const selectedEcocode = $(evt.target).val();
+
+			$.ajax(Config.dataServerAddress + "/ecocodes/sites/individual/"+selectedEcocode, {
+				data: JSON.stringify(siteIds),
+				dataType: "json",
+				method: "post",
+				contentType: 'application/json; charset=utf-8',
+				crossDomain: true,
+				success: (respData, textStatus, jqXHR) => {
+					this.ecoCodeData = respData;
+					const selectedCalculation = $("#result-globe-ecocode-calculation").val();
+					this.renderBars(selectedEcocode, selectedCalculation, this.ecoCodeData);
+				},
+				error: (respData, textStatus, jqXHR) => {
+					console.error("Error fetching ecocodes for result globe: ", textStatus, respData);
+				}
+			});
+			
+		});
+		
+	}
+
+	renderBars(selectedEcocode, selectedCalculationMode, ecoCodeData = null) {
+		console.log(selectedEcocode, selectedCalculationMode, ecoCodeData);
+		if(ecoCodeData) {
+			this.ecoCodeData = ecoCodeData;
+		}
+
+		this.viewer.entities.values.forEach(entity => {
+			if (entity.entityType !== 'siteCircle') {
+				this.viewer.entities.remove(entity);
+			}
+		});
+
+		let siteIdKey = null;
+		let siteNameKey = null;
+		let lngKey = null;
+		let latKey = null;
+
+		this.data.Meta.Columns.forEach((column, index) => {
+			if(column.FieldKey == "category_id") {
+				siteIdKey = index;
+			}
+			if(column.FieldKey == "category_name") {
+				siteNameKey = index;
+			}
+			if(column.FieldKey == "longitude_dd") {
+				lngKey = index;
+			}
+			if(column.FieldKey == "latitude_dd") {
+				latKey = index;
+			}
+		});
+
+
+		let maxTotalAbundance = 0;
+		let maxTotalTaxa = 0;
+		this.ecoCodeData.forEach((siteEcocodeData) => {
+			if(siteEcocodeData.totalAbundance > maxTotalAbundance) {
+				maxTotalAbundance = siteEcocodeData.totalAbundance;
+			}
+			if(siteEcocodeData.taxaCount > maxTotalTaxa) {
+				maxTotalTaxa = siteEcocodeData.taxaCount;
+			}
+		});
+
+		this.ecoCodeData.forEach((siteEcocodeData) => {
+			siteEcocodeData.site_id;
+			siteEcocodeData.abbreviation;
+			siteEcocodeData.definition;
+			siteEcocodeData.name;
+			siteEcocodeData.taxaCount;
+			siteEcocodeData.totalAbundance;
+
+			if(siteEcocodeData.ecocode_definition_id != selectedEcocode) {
+				return;
+			}
+
+			//find the site in the data.Data.DataCollection
+			let site = this.data.Data.DataCollection.find(site => site[siteIdKey] == siteEcocodeData.site_id);
+			let siteId =  site[siteIdKey];
+			let siteLat = site[latKey];
+			let siteLng = site[lngKey];
+
+			let height = 0;
+			if(selectedCalculationMode == "abundance") {
+				height = (siteEcocodeData.totalAbundance / maxTotalAbundance) * 1000000; // Height of the cylinder (proportional to the value)
+			}
+			else {
+				height = (siteEcocodeData.taxaCount / maxTotalTaxa) * 1000000; // Height of the cylinder (proportional to the value
+			}
+			this.viewer.entities.add({
+				position: Cartesian3.fromDegrees(siteLng, siteLat, height / 2),  // Convert lat/lng to Cartesian3
+				cylinder: {
+					length: height, // The height of the cylinder (proportional to the value)
+					topRadius: 8000, // Radius of the top of the cylinder
+					bottomRadius: 8000, // Radius of the bottom of the cylinder
+					material: Color.fromBytes(157, 0, 1, 200), // Color and transparency of the cylinder
+					verticalOrigin: VerticalOrigin.BOTTOM,
+					HeightReference: HeightReference.CLAMP_TO_GROUND
+				}
+			});
+
+		});
+
+		/*
+		this.viewer.scene.postRender.addEventListener(() => {
+			this.updateCylinderRadius();
+		});
+		*/
+	}
+
+	updateCylinderRadius() {
+		const cameraPosition = this.viewer.camera.positionWC;
+
+		// Loop through all entities and apply changes only to non-siteCircle entities
+		this.viewer.entities.values.forEach(entity => {
+			if (entity.entityType !== 'siteCircle' && entity.cylinder) {  // Ignore siteCircle entities
+				const cylinderPosition = entity.position.getValue(this.viewer.clock.currentTime);
+
+				// Calculate distance between the camera and the cylinder
+				const distance = Cartesian3.distance(cameraPosition, cylinderPosition);
+
+				// Adjust the radius dynamically based on the distance
+				const scaleFactor = distance * 0.000005;  // Adjust this factor for your needs
+				entity.cylinder.topRadius = scaleFactor;
+				entity.cylinder.bottomRadius = scaleFactor;
+			}
+		});
 	}
 
 	async fetchData() {

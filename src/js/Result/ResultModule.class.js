@@ -3,9 +3,7 @@ import "file-saver";
 import "../../assets/loading-indicator5.svg";
 import Config from "../../config/config.json";
 import { saveAs } from "file-saver";
-import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs/dist/exceljs.min.js';
-
 import AbundanceData from "./DatahandlingModules/AbundanceData.class.js";
 import DatingData from "./DatahandlingModules/DatingData.class.js";
 import DendroCeramicsData from "./DatahandlingModules/DendroCeramicsData.class.js";
@@ -650,42 +648,54 @@ class ResultModule {
 	}
 
 	async exportSitesAsXlsx(siteIds) {
-		let dataRows = [];
-
+		let workbook = new ExcelJS.Workbook();
+		let worksheet = workbook.addWorksheet('SEAD Data');
+	  
 		let sitesExportData = await this.fetchExportData(siteIds);
-
-		dataRows.push(["Content", "List of sites"]);
-		dataRows.push(["Description", this.sqs.config.dataExportDescription]);
-		dataRows.push(["url", Config.serverRoot]);
-		dataRows.push(["Attribution", Config.dataAttributionString]);
-		dataRows.push([]);
-		dataRows.push([
-			"Site Id",
-			"Site name",
-			"National site identifier",
-			"Latitude",
-			"Longitude",
-			"Description"
+	  
+		// Adding header rows
+		worksheet.addRow(["Content", "List of sites"]);
+		worksheet.addRow(["Description", this.sqs.config.dataExportDescription]);
+		worksheet.addRow(["url", Config.serverRoot]);
+		worksheet.addRow(["Attribution", Config.dataAttributionString]);
+		worksheet.addRow([]); // Empty row
+		worksheet.addRow([
+		  "Site Id",
+		  "Site name",
+		  "National site identifier",
+		  "Latitude",
+		  "Longitude",
+		  "Description"
 		]);
-
+	  
+		// Adding data rows
 		sitesExportData.forEach(site => {
-			dataRows.push([
-				site.site_id,
-				site.site_name,
-				site.national_site_identifier,
-				site.latitude_dd,
-				site.longitude_dd,
-				site.site_description
-			]);
+		  worksheet.addRow([
+			site.site_id,
+			site.site_name,
+			site.national_site_identifier,
+			site.latitude_dd,
+			site.longitude_dd,
+			site.site_description
+		  ]);
 		});
 		
-		var ws_name = "SEAD Data";
-		var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(dataRows);
-		//add worksheet to workbook
-		XLSX.utils.book_append_sheet(wb, ws, ws_name);
-		//write workbook
-		XLSX.writeFile(wb, "sead_sites_export.xlsx");
+
+		// Writing the workbook to a Blob
+		const buffer = await workbook.xlsx.writeBuffer();
+		const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+	  
+		// Create a download link and trigger the download
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = "sead_sites_export.xlsx";
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		window.URL.revokeObjectURL(url);
 	}
+	
 	
 }
 

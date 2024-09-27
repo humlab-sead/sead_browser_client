@@ -1,6 +1,5 @@
 import { Buffer } from 'buffer';
 import { nanoid } from 'nanoid';
-import XLSX from 'xlsx';
 import Config from '../../config/config.json';
 import ContentItemRenderer from './ContentItemRenderer.class';
 import BasicSiteInformation from './SectionModules/BasicSiteInformation.class';
@@ -8,12 +7,15 @@ import Samples from './SectionModules/Samples.class';
 import Analysis from './SectionModules/Analysis.class';
 import EcoCodes from './SectionModules/EcoCodes.class';
 import Plotly from "plotly.js-dist-min";
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
 import ExcelJS from 'exceljs/dist/exceljs.min.js';
 import { Vector as VectorLayer } from 'ol/layer';
 import { GeoJSON } from 'ol/format';
+/*
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
+*/
+
 /*
 * Class: SiteReport
 *
@@ -100,6 +102,16 @@ class SiteReport {
 		$("#site-report-exit-menu").on("click", () => {
 			this.siteReportManager.unrenderSiteReport();
 		});
+	}
+
+	async loadPdfMake() {
+		const pdfMakeModule = await import('pdfmake/build/pdfmake');
+		const pdfFontsModule = await import('pdfmake/build/vfs_fonts');
+		
+		// Set the virtual file system for pdfMake
+		pdfMakeModule.default.vfs = pdfFontsModule.default.pdfMake.vfs;
+		
+		return pdfMakeModule.default;
 	}
 
 	linkDataStructures(siteData) {
@@ -1451,6 +1463,7 @@ class SiteReport {
 			}
 		});
 
+		const pdfMake = await this.loadPdfMake();
 		pdfMake.createPdf(pdfDoc).open();
 	}
 
