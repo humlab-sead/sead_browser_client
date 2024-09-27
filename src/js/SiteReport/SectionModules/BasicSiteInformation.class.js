@@ -177,6 +177,11 @@ class BasicSiteInformation {
 				locationsContainer.append(", ");
 			}
 		}
+
+		if(siteData.site_location_accuracy) {
+			locationsContainer.append("<div><h5>Location accuracy</h5><span id='site-location-accuracy-value'>"+siteData.site_location_accuracy+"</span></div>");
+		}
+
 		
 		$(".site-report-export-btn", node).on("click", (evt) => {
 			evt.preventDefault();
