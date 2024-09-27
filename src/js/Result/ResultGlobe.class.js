@@ -12,6 +12,7 @@ class ResultGlobe extends ResultModule {
 		this.name = "globe";
 		this.prettyName = "Globe";
 		this.icon = "<i class='fa fa-globe'></i>";
+		this.experimental = true;
 
 		$(this.renderIntoNode).append("<div class='result-globe-render-container'></div>");
 		$(".result-globe-render-container", this.renderIntoNode).css("height", "100%");
@@ -24,6 +25,10 @@ class ResultGlobe extends ResultModule {
 		this.render();
 	}
 
+	isVisible() {
+		return false;
+	}
+
     render(fetch = true) {
 		super.render();
 
@@ -31,6 +36,8 @@ class ResultGlobe extends ResultModule {
 		$(this.renderIntoNode).html("");
 
 		import("cesium").then(Cesium => {
+			this.cesium = Cesium;
+			Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0NjcwNWEyNi1jMWY0LTRkY2ItYTNjOC1jYzRmOGY5YjFiZGEiLCJpZCI6MjQ0NjAyLCJpYXQiOjE3Mjc0NDUxNTR9.vzRMNvNDlL_FlLsFoB-yc1bNWQdbbpjJ3AJ19jr8_os';
 			const { Color, Viewer, Cartesian3, Cartesian2, LabelStyle, VerticalOrigin, HeightReference } = Cesium;
 		
 			this.viewer = new Viewer($(this.renderIntoNode).attr("id"), {
@@ -86,7 +93,9 @@ class ResultGlobe extends ResultModule {
 						data.Data.DataCollection.forEach(site => {
 							// Add each site as a point (billboard or label) to the Cesium viewer
 							this.viewer.entities.add({
-								entityType: 'siteCircle',
+								properties: {
+									entityType: 'site'
+								},
 								position: Cartesian3.fromDegrees(site[lngKey], site[latKey]),  // Convert lat/lng to Cartesian3
 								point: { // Add a point to represent the site
 									pixelSize: 6,
@@ -156,16 +165,26 @@ class ResultGlobe extends ResultModule {
 	}
 
 	renderBars(selectedEcocode, selectedCalculationMode, ecoCodeData = null) {
-		console.log(selectedEcocode, selectedCalculationMode, ecoCodeData);
+		const { Color, Viewer, Cartesian3, Cartesian2, LabelStyle, VerticalOrigin, HeightReference } = this.cesium;
+
 		if(ecoCodeData) {
 			this.ecoCodeData = ecoCodeData;
 		}
 
-		this.viewer.entities.values.forEach(entity => {
-			if (entity.entityType !== 'siteCircle') {
+		let removedBars = 0;
+		const entities = this.viewer.entities.values;
+
+		for (let i = entities.length - 1; i >= 0; i--) {
+			const entity = entities[i];
+			if (
+				entity.properties &&
+				entity.properties.entityType &&
+				entity.properties.entityType.getValue() === 'ecocodeBar'
+			) {
 				this.viewer.entities.remove(entity);
+				removedBars++;
 			}
-		});
+		}
 
 		let siteIdKey = null;
 		let siteNameKey = null;
@@ -207,6 +226,9 @@ class ResultGlobe extends ResultModule {
 			siteEcocodeData.taxaCount;
 			siteEcocodeData.totalAbundance;
 
+			let ecocodeColorHex = this.sqs.config.ecocodeColors.find(ecocode => ecocode.ecocode_definition_id == siteEcocodeData.ecocode_definition_id).color;
+			let ecocodeColorRgb = Color.fromCssColorString(ecocodeColorHex);
+
 			if(siteEcocodeData.ecocode_definition_id != selectedEcocode) {
 				return;
 			}
@@ -225,12 +247,15 @@ class ResultGlobe extends ResultModule {
 				height = (siteEcocodeData.taxaCount / maxTotalTaxa) * 1000000; // Height of the cylinder (proportional to the value
 			}
 			this.viewer.entities.add({
+				properties: {
+					entityType: 'ecocodeBar'
+				},
 				position: Cartesian3.fromDegrees(siteLng, siteLat, height / 2),  // Convert lat/lng to Cartesian3
 				cylinder: {
 					length: height, // The height of the cylinder (proportional to the value)
 					topRadius: 8000, // Radius of the top of the cylinder
 					bottomRadius: 8000, // Radius of the bottom of the cylinder
-					material: Color.fromBytes(157, 0, 1, 200), // Color and transparency of the cylinder
+					material: Color.fromBytes(ecocodeColorRgb.red*255, ecocodeColorRgb.green*255, ecocodeColorRgb.blue*255, 255), // Color of the cylinder
 					verticalOrigin: VerticalOrigin.BOTTOM,
 					HeightReference: HeightReference.CLAMP_TO_GROUND
 				}

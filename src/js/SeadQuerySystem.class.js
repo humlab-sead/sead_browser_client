@@ -548,6 +548,7 @@ class SeadQuerySystem {
 		document.addEventListener('keydown', (evt) => {
 			if(evt.shiftKey && evt.key == "D") {
 				this.facetManager.toggleDebug();
+				this.resultManager.toggleDebug();
 			}
         });
 	}

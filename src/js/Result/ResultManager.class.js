@@ -16,6 +16,7 @@ class ResultManager {
 		this.pendingDataFetch = false;
 		this.resultModuleRenderStatus = "none";
 		this.sqsInitComplete = false;
+		this.debugMode = false;
 		
 		//Event hook-ins below
 		if(this.resultSectionDisabled == false) {
@@ -102,6 +103,17 @@ class ResultManager {
 			});
 		}
 		
+	}
+
+	toggleDebug() {
+		this.debugMode = !this.debugMode;
+
+		if(this.debugMode) {
+			$("#result-menu .sqs-menu-item-hidden").css("display", "block");
+		}
+		else {
+			$("#result-menu .sqs-menu-item-hidden").css("display", "none");
+		}
 	}
 
     /*
