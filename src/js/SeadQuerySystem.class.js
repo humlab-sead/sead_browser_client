@@ -541,9 +541,9 @@ class SeadQuerySystem {
 		}
 
 		this.systemReady = true;
-		this.sqsEventDispatch("sqsInitComplete");
 		this.router.route();
 		this.tutorial.init();
+		this.sqsEventDispatch("sqsInitComplete");
 
 		document.addEventListener('keydown', (evt) => {
 			if(evt.shiftKey && evt.key == "D") {
