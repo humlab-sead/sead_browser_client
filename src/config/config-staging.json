@@ -599,7 +599,8 @@
 				{
 					"module_name": "mosaic-dendro-dating-histogram",
 					"grid_row": "2",
-					"grid_column": "1"
+					"grid_column": "1",
+					"default": false
 				},
 				{
 					"module_name": "mosaic-map",
@@ -607,12 +608,21 @@
 					"grid_column": "span 2"
 				},
 				{
-					"module_name": "mosaic-dynamic-chart",
+					"module_name": "mosaic-waney-edge-chart",
 					"grid_row": "2",
-					"grid_column": "2"
+					"grid_column": "1",
+					"default": true
 				},
 				{
-					"module_name": "mosaic-feature-types",
+					"module_name": "mosaic-dendro-tree-species-chart",
+					"grid_row": "2",
+					"grid_column": "2",
+					"default": true
+				},
+				{
+					"module_name": "mosaic-bark-chart",
+					"grid_row": "2",
+					"grid_column": "1",
 					"default": false
 				}
 			]
