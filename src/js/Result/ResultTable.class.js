@@ -234,7 +234,9 @@ class ResultTable extends ResultModule {
 				</div>
 				<div class='stacked-bar-container-numerical-readout'>${cell.getValue()}</div>
 				</div>`;
-			}},
+			},
+				sorter: "number",
+			},
 			{
 				title:"Analyses",
 				field:"analyses",
