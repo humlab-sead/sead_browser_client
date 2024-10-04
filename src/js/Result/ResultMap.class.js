@@ -41,7 +41,9 @@ class ResultMap extends ResultModule {
 
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
 		if(Config.timelineEnabled && includeTimeline) {
-			$(this.renderIntoNode).append("<div class='result-timeline-render-container'></div>");
+			$(this.renderIntoNode).append(`<div id='result-timeline-render-container'>
+				<input class='range-slider-input'>
+				</input></div>`);
 		}
 		else {
 			$(".result-map-render-container", this.renderIntoNode).css("height", "100%");
@@ -49,7 +51,7 @@ class ResultMap extends ResultModule {
 
 		this.renderMapIntoNode = $(".result-map-render-container", renderIntoNode)[0];
 		if(Config.timelineEnabled && includeTimeline) {
-			this.renderTimelineIntoNode = $(".result-timeline-render-container", renderIntoNode)[0];
+			this.renderTimelineIntoNode = $("#result-timeline-render-container", renderIntoNode)[0];
 		}
 		
 		this.olMap = null;
@@ -223,8 +225,9 @@ class ResultMap extends ResultModule {
 		this.resultManager.sqs.sqsEventListen("siteReportClosed", () => this.resizeCallback());
 
 		//Create attached timeline object
-		this.timeline = new Timeline(this);
-		
+		if(Config.timelineEnabled) {
+			this.timeline = new Timeline(this);
+		}
 	}
 
 	getSelectedSites() {
@@ -347,7 +350,7 @@ class ResultMap extends ResultModule {
 		if(this.timeline != null) {
 			//this.data = this.timeline.makeFakeTimeData(this.data); //FIXME: REMOVE THIS WHEN THERE IS DATA AVAILABLE
 			this.timeline.fetchTimeData(this.data).then(d => {
-				this.data = d;
+				//this.data = d;
 				if(renderMap) {
 					this.renderMap();
 					this.renderVisibleDataLayers();
@@ -359,8 +362,6 @@ class ResultMap extends ResultModule {
 				}
 			});
 		}
-
-		
 	}
 
 	async update() {

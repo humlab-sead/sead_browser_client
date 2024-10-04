@@ -813,6 +813,7 @@ class FacetManager {
 		for(let key in facetDef) {
 			let group = facetDef[key];
 			group.enabled = false;
+			
 			group.items.forEach((facet) => {
 				if(facet.enabled != false) {
 					group.enabled = true;
@@ -1436,6 +1437,7 @@ class FacetManager {
 		}
 
         this.filterDefinitions = this.filterFilters(domainFilterList, this.filterDefinitions);
+
 		this.facetDef = this.importFacetDefinitions(this.filterDefinitions);
 		
         var sqsMenuStruct = this.makesqsMenuFromFacetDef(this.facetDef);

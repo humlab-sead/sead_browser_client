@@ -2014,15 +2014,37 @@ polyline{
   background-color: $pane-bg-color;
 }
 
-.result-timeline-render-container {
+#result-timeline-render-container {
+  
   width: 100%;
-  height: 20%;
+  height: calc(20% - 20px);
+  
   background-color: $white;
   margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+#result-timeline-render-container > span {
+  position: relative;
+  top: 7.5em;
+}
+
+#result-timeline-render-container > span > span.irs-handle.to {
+  position: relative;
+  top: -16em;
+  height: 9em;
+  cursor: ew-resize;
+}
+
+#result-timeline-render-container > span > span.irs-handle.from {
+  position: relative;
+  top: -8em;
+  height: 9em;
+  cursor: ew-resize;
 }
 
 .resultMosaicChart {
-  background-color: #eef;
+  background-color: rgb(32, 32, 34);
 }
 
 .dataTables_filter input[type='search'] {
@@ -4001,5 +4023,3 @@ tr.free-text-search-result-row:hover {
   background: rgba($pane-bg-color, 0.9);
   padding: 1em;
 }
-
-
