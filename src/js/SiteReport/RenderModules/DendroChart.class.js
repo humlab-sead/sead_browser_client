@@ -223,12 +223,12 @@ class DendroChart {
     }
 
     getDendroMeasurementById(dendroLookupId, dataObject) {
-        for(let key in dataObject.datasets) {
-            if(dataObject.datasets[key].id == dendroLookupId) {
-                if(dataObject.datasets[key].value == "complex") {
-                    return dataObject.datasets[key].data;
+        for(let key in dataObject.values) {
+            if(dataObject.values[key].lookupId == dendroLookupId) {
+                if(dataObject.values[key].valueType == "complex") {
+                    return dataObject.values[key].data;
                 }
-                return dataObject.datasets[key].value;
+                return dataObject.values[key].value;
             }
         }
     }
