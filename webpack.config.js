@@ -54,12 +54,10 @@ module.exports = (env, config) => {
           { from: path.join(cesiumSource, 'ThirdParty'), to: 'ThirdParty' },
         ],
       }),
-      /*
       new BundleAnalyzerPlugin({
         analyzerMode: 'static',
         reportFilename: 'bundle-report.html',
       }),
-      */
     ],
     module: {
       rules: [
