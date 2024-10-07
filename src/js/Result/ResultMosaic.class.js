@@ -20,6 +20,8 @@ import MosaicEcoCodesModule from './MosaicTileModules/MosaicEcoCodesModule.class
 import MosaicDynamicChartModule from './MosaicTileModules/MosaicDynamicChartModule.class.js';
 import MosaicDendroWaneyEdgeModule from './MosaicTileModules/MosaicDendroWaneyEdgeModule.class.js';
 import MosaicDendroBarkModule from './MosaicTileModules/MosaicDendroBarkModule.class.js';
+import MosaicDendroOverviewModule from './MosaicTileModules/MosaicDendroOverviewModule.class.js';
+
 import { nanoid } from 'nanoid';
 import Plotly from "plotly.js-dist-min";
 
@@ -154,6 +156,12 @@ class ResultMosaic extends ResultModule {
 			title: "Bark",
 			className: "MosaicDendroBarkModule",
 			classTemplate: MosaicDendroBarkModule,
+			module: null
+		});
+		this.modules.push({
+			title: "Data overview",
+			className: "MosaicDendroOverviewModule",
+			classTemplate: MosaicDendroOverviewModule,
 			module: null
 		});
 		

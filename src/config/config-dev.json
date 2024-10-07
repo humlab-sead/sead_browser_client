@@ -27,6 +27,7 @@
 	"dataAttributionString": "Buckland P.I., Sjölander M., Eriksson E.J. (2018) Strategic Environmental Archaeology Database (SEAD). In: Smith C. (eds) Encyclopedia of Global Archaeology. Springer, Cham. DOI:10.1007/978-3-319-51726-1_833-2",
 	"dataExportDescription": "Data export from the SEAD project. Visit https://www.sead.se for more information.",
 	"timelineEnabled": false,
+	"dendroTreeRingWidthChartEnabled": true,
 	"preloadTimeout": 20000,
 	"dendroSiteReportSectionEnabled": true,
 	"showResultExportButton": true,
@@ -612,7 +613,7 @@
 					"module_name": "mosaic-waney-edge-chart",
 					"grid_row": "2",
 					"grid_column": "1",
-					"default": true
+					"default": false
 				},
 				{
 					"module_name": "mosaic-dendro-tree-species-chart",
@@ -625,6 +626,12 @@
 					"grid_row": "2",
 					"grid_column": "1",
 					"default": false
+				},
+				{
+					"module_name": "mosaic-dendro-overview",
+					"grid_row": "2",
+					"grid_column": "1",
+					"default": true
 				}
 			]
 		},

@@ -27,6 +27,7 @@
 	"dataAttributionString": "Buckland P.I., Sjölander M., Eriksson E.J. (2018) Strategic Environmental Archaeology Database (SEAD). In: Smith C. (eds) Encyclopedia of Global Archaeology. Springer, Cham. DOI:10.1007/978-3-319-51726-1_833-2",
 	"dataExportDescription": "Data export from the SEAD project. Visit https://www.sead.se for more information.",
 	"timelineEnabled": false,
+	"dendroTreeRingWidthChartEnabled": false,
 	"preloadTimeout": 20000,
 	"dendroSiteReportSectionEnabled": true,
 	"showResultExportButton": true,

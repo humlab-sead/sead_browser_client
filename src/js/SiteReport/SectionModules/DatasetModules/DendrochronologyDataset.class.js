@@ -382,6 +382,10 @@ class DendrochronologyDataset extends DatasetModule {
 			},
 			{
 				title: "Date sampled"
+			},
+			{
+				title: "Ring widths",
+				hidden: true
 			}
 		];
 		let rows = [];
@@ -428,6 +432,10 @@ class DendrochronologyDataset extends DatasetModule {
 
 			let subTableRows = [];
 			dataGroup.values.forEach(dgValue => {
+				if(dgValue.lookupId == null) {
+					return;
+				}
+
 				let value = dgValue.value;
 				let tooltip = "";
 
@@ -488,6 +496,10 @@ class DendrochronologyDataset extends DatasetModule {
 				{
 					type: "cell",
 					value: dateSampled
+				},
+				{
+					type: "cell",
+					value: []
 				}
 			]);
 		});
@@ -558,6 +570,8 @@ class DendrochronologyDataset extends DatasetModule {
 				});
 			}
 		});
+
+		//defaultDisplayOption = "ring-width";
 
 		let contentItem = {
 			"name": "dendro",
@@ -637,6 +651,14 @@ class DendrochronologyDataset extends DatasetModule {
 				},
 			]
 		};
+
+		if(config.dendroTreeRingWidthChartEnabled) {
+			contentItem.renderOptions.push({
+				"name": "Ring width",
+				"selected": defaultDisplayOption == "ring-width",
+				"type": "dendro-tree-ring-width",
+			});
+		}
 
 		//This is just for hiding/disabling some parts of dendro before it's ready for production usage
 		if(this.sqs.domainManager.getDomain("dendrochronology").enabled === false) {

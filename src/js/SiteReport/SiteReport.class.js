@@ -64,6 +64,10 @@ class SiteReport {
 
 		this.fetchSite().then(siteData => {
 			console.log(siteData);
+			if(!siteData) {
+				console.error("Could not fetch site");
+				return;
+			}
 			this.linkDataStructures(siteData);
 
 			this.siteData = siteData;

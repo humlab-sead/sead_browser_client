@@ -226,6 +226,7 @@ class ContentItemRenderer {
 					case "ecocode":
 					case "ecocodes-samples":
 					case "coordinate-map":
+					case "dendro-tree-ring-width":
 						renderInstance = new SiteReportChart(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);
 						this.addRenderInstance(this.contentItem.name, renderInstance);

@@ -1036,7 +1036,6 @@ class DendroChart {
             });
 
             if(this.showUncertainty == "estimates") {
-                
                 d.barObject.germinationUncertainty.x.warnings.forEach(warningMsg => {
                     this.addDrawableSampleWarning(drawableSampleWarnings, d, "oldestGerminationYear", warningMsg);
                 });

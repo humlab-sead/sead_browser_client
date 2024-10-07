@@ -102,6 +102,9 @@ class SiteReportChart {
 					case "dendrochart":
 						node = this.renderDendroChart();
 						break;
+					case "dendro-tree-ring-width":
+						node = this.renderDendroTreeRingWidth();
+						break;
 						/*
 					case "coordinate-map":
 						this.renderCoordinateMap();
@@ -743,6 +746,72 @@ class SiteReportChart {
 		Plotly.newPlot(this.chartId, traces, layout);
 	}
 
+
+	renderDendroTreeRingWidth() {
+		console.log("renderDendroTreeRingWidth");
+
+		let years = [];
+		let allValues = [];  // To store all values for each year (multiple traces)
+		let traceLabels = []; // Optional: to store labels for the traces if needed
+
+		// Iterate through your data structure and extract years and values
+		this.contentItem.data.dataGroups.forEach(dataGroup => {
+			dataGroup.values.forEach(value => {
+				if (value.key === "Ring widths") {
+					let ringWidthSeries = value.data;
+					ringWidthSeries.forEach(series => {
+						series.seriesId;
+						series.data.forEach(dataPoint => {
+
+							// Add year to the years array if it's not already there
+							if (!years.includes(dataPoint.year)) {
+								years.push(dataPoint.year);
+							}
+
+							// Add value to the respective array in allValues
+							let seriesIndex = traceLabels.indexOf(series.seriesId);
+							if (seriesIndex === -1) {
+								traceLabels.push(series.seriesId);
+								seriesIndex = traceLabels.length - 1;
+								allValues.push([]);
+							}
+							allValues[seriesIndex].push(dataPoint.value / 1000);
+
+
+						});
+					});
+				}
+			});
+		});
+
+		// Now that we have years and values, let's create the Plotly trace objects
+		let traces = allValues.map((valueSet, index) => {
+			return {
+				x: years,  // X-axis will be years
+				y: valueSet,  // Y-axis will be the respective values
+				mode: 'lines+markers',  // Line and markers
+				name: `Series ${traceLabels[index]}`  // Name each trace with seriesId
+			};
+		});
+
+		// Define the layout for the chart
+		let layout = {
+			title: 'Ring Widths Line Chart',
+			xaxis: { title: 'Year' },
+			yaxis: { title: 'Ring Width (mm)' },
+			showlegend: false,
+			autosize: true,
+            responsive: true
+		};
+
+		
+		let chartAnchorNodeId = "tree-ring-chart-"+nanoid(6);
+		
+		var chartContainer = $("<div id='"+chartAnchorNodeId+"' class='site-report-chart-container'></div>");
+		$(this.anchorNodeSelector).append(chartContainer);
+
+		Plotly.newPlot(chartAnchorNodeId, traces, layout);
+	}
 	/*
 	* Function: renderMultistack
 	*
