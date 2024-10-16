@@ -45,7 +45,7 @@ class MosaicDendroBuildingTypesModule extends MosaicTileModule {
         
     }
 
-    async fetch() {
+    async fetchData() {
         
     }
 }

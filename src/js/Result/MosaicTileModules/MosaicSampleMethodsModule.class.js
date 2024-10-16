@@ -28,22 +28,16 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         this.sqs.setLoadingIndicator(this.renderIntoNode, true);
+       
+        let response = await this.fetchData("/graphs/sample_methods", JSON.stringify(resultMosaic.sites));
+        if(!response) {
+            return false;
+        }
 
-        let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/sample_methods", {
-            method: "POST",
-            mode: "cors",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(resultMosaic.sites)
-        });
         let data = await response.json();
         this.data = data.sample_methods_sample_groups;
 
         let colors = this.sqs.color.getColorScheme(data.sample_methods_sample_groups.length);
-
-
-
 
         let  chartData = [{
             labels: [],
@@ -96,10 +90,6 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         */
         //this.chart = resultMosaicModule.renderPieChart(this.renderIntoNode, chartSeries, "Sampling methods");
         this.renderComplete = true;
-    }
-
-    async fetch() {
-        
     }
 
     async update() {

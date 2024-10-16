@@ -51,6 +51,58 @@ class MosaicDendroBarkModule extends MosaicTileModule {
         //set loading indicator
         this.sqs.setLoadingIndicator(this.renderIntoNode, true);
 
+        this.fetchData("/dendro/dynamicchart", requestBody).then(async response => {
+            if(!response) {
+                return false;
+            }
+
+            let data = await response.json();
+
+            this.data = data.categories;
+
+            if(data.categories.length == 0) {
+                //set no data msg
+                this.sqs.setNoDataMsg(this.renderIntoNode, true);
+                return false;
+            }
+
+            let chartData = [{
+                labels: [],
+                values: [],
+                customdata: [],
+                marker: {
+                    colors: this.sqs.color.getColorScheme(data.categories.length)
+                },
+                type: 'pie',
+                hole: 0.4,
+                name: "Dynamic chart",
+                hoverinfo: 'label+percent',
+                textinfo: 'label+percent',
+                textposition: "inside",
+                //hovertemplate: "%{percent} of datasets are %{customdata}<extra></extra>"
+            }];
+    
+            data.categories.sort((a, b) => {
+                if(a.count > b.count) {
+                    return -1;
+                }
+                else {
+                    return 1;
+                }
+            });
+    
+            data.categories.forEach(category => {
+                chartData[0].labels.push(category.name);
+                chartData[0].values.push(category.count);
+            });
+
+            let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+            resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false }).then(plot => {
+                this.plot = plot;
+            });
+        });
+        
+        /*
         $.ajax({
             method: "POST",
             url: this.sqs.config.dataServerAddress+"/dendro/dynamicchart",
@@ -108,6 +160,7 @@ class MosaicDendroBarkModule extends MosaicTileModule {
                 console.error("Error fetching chart data: ", err);
             }
         });
+        */
     }
 
     async update() {

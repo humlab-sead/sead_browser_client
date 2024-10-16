@@ -81,7 +81,7 @@ class MosaicTemporalDistributionModule extends MosaicTileModule {
         this.render();
     }
 
-    async fetch() {
+    async fetchData() {
         
     }
 }

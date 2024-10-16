@@ -88,7 +88,7 @@ class MosaicTaxaListModule extends MosaicTileModule {
         this.render();
     }
 
-    async fetch() {
+    async fetchData() {
         
     }
 

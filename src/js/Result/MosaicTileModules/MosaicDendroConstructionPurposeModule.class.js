@@ -44,6 +44,31 @@ class MosaicConstructionPurposeModule extends MosaicTileModule {
 
         let requestBody = `{"requestId":1,"requestType":"populate","targetCode":"construction_purpose","domainCode":"dendrochronology","facetConfigs":[{"facetCode":"construction_purpose","position":1,"picks":[],"textFilter":""}]}`;
 
+
+        this.fetchData("/api/facets/load", requestBody).then(async response => {
+            if(!response) {
+                return false;
+            }
+
+            let data = await response.json();
+
+            let categories = [];
+            data.Items.forEach(item => {
+                item.Name;
+                item.Count;
+
+                categories.push({
+                    count: item.Count,
+                    name: item.Name
+                });
+            });
+
+            this.renderPieChartPlotly({
+                categories: categories
+            });
+        });
+
+        /*
         $.ajax({
             method: "POST",
             url: this.sqs.config.serverAddress+"/api/facets/load",
@@ -76,6 +101,7 @@ class MosaicConstructionPurposeModule extends MosaicTileModule {
                 console.error("Error fetching chart data: ", err);
             }
         });
+        */
     }
 
     renderPieChartPlotly(data) {
@@ -143,7 +169,7 @@ class MosaicConstructionPurposeModule extends MosaicTileModule {
         this.render();
     }
 
-    async fetch() {
+    async fetchData() {
         
     }
 

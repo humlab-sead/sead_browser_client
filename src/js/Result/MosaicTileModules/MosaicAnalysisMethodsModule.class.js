@@ -31,7 +31,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         this.sqs.setLoadingIndicator(this.renderIntoNode, true);
-
+        /*
         let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/analysis_methods", {
             method: "POST",
             mode: "cors",
@@ -40,6 +40,13 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
             },
             body: JSON.stringify(resultMosaic.sites)
         });
+        */
+
+        let response = await this.fetchData("/graphs/analysis_methods", JSON.stringify(resultMosaic.sites));
+        if(!response) {
+            return false;
+        }
+
         let data = await response.json();
         this.data = data.analysis_methods_datasets;
 
@@ -85,10 +92,6 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
 
     async update() {
         this.render();
-    }
-
-    async fetch() {
-        
     }
 
     getAvailableExportFormats() {

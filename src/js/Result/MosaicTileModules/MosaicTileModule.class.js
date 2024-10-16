@@ -14,8 +14,31 @@ class MosaicTileModule {
         this.name = "";
     }
 
-    async fetch() {
+    async fetchData(path, postData) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let response = await fetch(this.sqs.config.dataServerAddress + path, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: postData
+                });
+            
+                if (!response.ok) {
+                    // Handle non-200 HTTP responses
+                    throw new Error(`Server error: ${response.status} - ${response.statusText}`);
+                }
 
+                resolve(response);
+            
+            } catch (error) {
+                this.sqs.setErrorIndicator(this.renderIntoNode, "Could not fetch data for "+this.name+" module");
+                reject(error);
+                return;
+            }
+        });
     }
 
     async render() {

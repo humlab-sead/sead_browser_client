@@ -46,7 +46,7 @@ class MosaicCeramicsCultureModule extends MosaicTileModule {
         
     }
 
-    async fetch() {
+    async fetchData() {
         
     }
 

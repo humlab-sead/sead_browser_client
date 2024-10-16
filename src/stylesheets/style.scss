@@ -39,6 +39,23 @@ body {
   background-color: $pane-bg-color;
 }
 
+.error-indicator {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.error-indicator h2 {
+  background: transparent;
+  font-size: 2rem;
+  margin-bottom: .5em;
+}
+
+.error-indicator label {
+  display: block;
+  font-size: 1rem;
+}
+
 input {
 
 }

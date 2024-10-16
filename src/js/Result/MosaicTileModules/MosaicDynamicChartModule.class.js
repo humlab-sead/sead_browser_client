@@ -304,7 +304,7 @@ class MosaicDynamicChartModule extends MosaicTileModule {
         this.render();
     }
 
-    async fetch() {
+    async fetchData() {
         
     }
 

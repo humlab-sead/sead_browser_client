@@ -154,30 +154,6 @@ class SeadQuerySystem {
 			}
 			
 		}
-
-		/*
-		if(set) {
-			const boxFrag = document.getElementById("logo-loading-indicator");
-			const box = document.importNode(boxFrag.content, true);
-			$(containerNode).html("");
-			$(containerNode).append(box);
-		}
-		else {
-			$(containerNode).html("");
-		}
-		*/
-
-		/*
-		//Remove any overlay box that might already exist in this container (effectively overwriting that msg)
-		$(".overlay-msg-box", containerNode).remove();
-
-		if(set) {
-			$(containerNode).append("<div class='overlay-msg-box foreground-loading-indicator result-mosaic-loading-indicator-bg'></div>")
-		}
-		else {
-			$(".foreground-loading-indicator", containerNode).remove();
-		}
-		*/
 	}
 
 	setBgLoadingIndicator(containerNode, set = true) {
@@ -189,6 +165,17 @@ class SeadQuerySystem {
 		else {
 			$(containerNode).removeClass("result-mosaic-loading-indicator-bg");
 		}
+	}
+
+	setErrorIndicator(containerNode, msg = "") {
+		//Remove any overlay box that might already exist in this container (effectively overwriting that msg)
+		$(".overlay-msg-box", containerNode).remove();
+		
+		const frag = document.getElementById("error-indicator");
+		const node = document.importNode(frag.content, true);
+		$("label", node).text(msg);
+		$(containerNode).html("");
+		$(containerNode).append(node);
 	}
 
 	setCuteLittleLoadingIndicator(containerNode, set = true) {

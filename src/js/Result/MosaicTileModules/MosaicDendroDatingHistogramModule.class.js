@@ -16,12 +16,13 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
         this.chartType = "plotly";
     }
 
-    async fetch(renderIntoNode = null) {
+    async fetchData(renderIntoNode = null) {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         if(renderIntoNode) {
             this.sqs.setLoadingIndicator(renderIntoNode, true);
         }
         
+        /*
         let requestString = this.sqs.config.dataServerAddress+"/dendro/dating-histogram";
         let requestBody = {
             sites: resultMosaic.sites,
@@ -38,6 +39,21 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
                 "Content-Type": "application/json"
             }
         });
+        */
+
+        let requestBody = {
+            sites: resultMosaic.sites,
+            requestId: ++this.requestId,
+        };
+
+        let requestBodyJson = JSON.stringify(requestBody);
+
+        let response = await this.fetch("/dendro/dating-histogram", requestBodyJson);
+        if(!response) {
+            return false;
+        }
+
+        let data = await response.json();
         
         /*
         if(!this.active) {
@@ -116,7 +132,7 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
         this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         if(!this.data) {
-            let response = await this.fetch(renderIntoNode);
+            let response = await this.fetchData(renderIntoNode);
             this.data = response.data;
 
             if(response.requestId < this.requestId) {
@@ -142,7 +158,7 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
         this.renderComplete = false;
 
         this.sqs.setLoadingIndicator(this.renderIntoNode, true, false);
-        let response = await this.fetch();
+        let response = await this.fetchData();
         if(response.requestId != this.requestId) {
             return;
         }
