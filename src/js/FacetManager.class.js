@@ -357,6 +357,24 @@ class FacetManager {
 		}
 	}
 
+	addTimelineFacet(facet) {
+		//first check if we already have this
+		for(var key in this.facets) {
+			if(this.facets[key].name == facet.name) {
+				console.log("Facet already exists: "+facet.name);
+				return;
+			}
+		}
+		//if we don't, then always add it to the end
+		this.facets.push(facet);
+		let lastSlotId = this.slots[this.slots.length-1].id;
+		this.updateLinks(facet.id, lastSlotId);
+		this.queueFacetDataFetch(facet);
+		console.log(this.facets);
+		console.log(this.slots);
+		console.log(this.links);
+	}
+
 	/*
 	* Function: addFacet
 	* 
@@ -1261,10 +1279,13 @@ class FacetManager {
 								}
 							}
 							
-							if(facetExists === false) {
+							if(facetExists === false && facetName != "analysis_entity_ages") {
 								let t = this.sqs.facetManager.getFacetTemplateByFacetId(facetName);
 								var facet = this.sqs.facetManager.makeNewFacet(t);
 								this.sqs.facetManager.addFacet(facet);
+							}
+							else {
+								this.sqs.notificationManager.notify("Filter already exists.", "info");
 							}
 						}
 					})()

@@ -1,7 +1,7 @@
 //import * as d3 from 'd3';
 //import Config from '../../config/config.js'
 import ResultModule from './ResultModule.class.js'
-import Timeline from './Timeline.class.js';
+import TimelineFacet from '../TimelineFacet.class.js';
 import SqsMenu from '../SqsMenu.class';
 
 /*OpenLayers imports*/
@@ -41,18 +41,32 @@ class ResultMap extends ResultModule {
 
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
 		if(Config.timelineEnabled && includeTimeline) {
-			$(this.renderIntoNode).append(`<div id='result-timeline-render-container'>
-				<input class='range-slider-input'>
-				</input></div>`);
+			$(this.renderIntoNode).append(`
+				<div id='result-timeline-render-container'>
+					<div id='timeline-title-bar'>
+						<h2>Timeline</h2>
+						<div id='timeline-scale-selector-container'>
+							<label>Age</label>
+							<select id='timeline-scale-selector'>
+							</select>
+						</div>
+					</div>
+					<div id='result-timeline'></div>
+					<div id='result-timeline-curtains'>
+						<div id='result-timeline-curtain-left'></div>
+						<div id='result-timeline-curtain-right'></div>
+					</div>
+					<div id='result-timeline-slider'>
+						<input class='range-slider-input' />
+					</div>
+				</div>
+			`);
 		}
 		else {
 			$(".result-map-render-container", this.renderIntoNode).css("height", "100%");
 		}
 
 		this.renderMapIntoNode = $(".result-map-render-container", renderIntoNode)[0];
-		if(Config.timelineEnabled && includeTimeline) {
-			this.renderTimelineIntoNode = $("#result-timeline-render-container", renderIntoNode)[0];
-		}
 		
 		this.olMap = null;
 		this.name = "map";
@@ -226,7 +240,12 @@ class ResultMap extends ResultModule {
 
 		//Create attached timeline object
 		if(Config.timelineEnabled) {
-			this.timeline = new Timeline(this);
+			let facetId = "timeline";
+			let facetTemplate = this.sqs.facetManager.getFacetTemplateByFacetId("analysis_entity_ages");
+			facetTemplate.virtual = true;
+			let mapObject = this;
+			this.timeline = new TimelineFacet(this.sqs, facetId, facetTemplate, mapObject);
+			this.sqs.facetManager.addTimelineFacet(this.timeline);
 		}
 	}
 
@@ -262,7 +281,7 @@ class ResultMap extends ResultModule {
 				this.renderInterfaceControls();
 			}
 		}).catch((xhr, textStatus, errorThrown) => { //error
-			console.log("Error fetching data for result map: "+errorThrown);
+			console.log("Error fetching data for result map:", xhr, textStatus, errorThrown);
 		});
 	}
 

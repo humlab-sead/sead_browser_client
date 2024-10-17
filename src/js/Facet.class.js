@@ -33,7 +33,14 @@ class Facet {
 		this.enabled = true; //If this facet is not applicable within the current domain, this will be false.
 		this.dataFetchingEnabled = true;
 		this.unit = "";
+		this.virtual = template.virtual; //a virtual facet is not necessarily rendered out into the UI, but it will stil exist in the facet chain and act as a filter.
 
+		if(!this.virtual) {
+			this.initFacetUi();
+		}
+	}
+
+	initFacetUi() {
 		var facetDomObj = $("#facet-template")[0].cloneNode(true);
 		this.domObj = facetDomObj;
 		$(facetDomObj).attr("id", "facet-"+this.id);

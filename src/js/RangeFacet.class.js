@@ -90,7 +90,6 @@ class RangeFacet extends Facet {
 			this.sqs.facetManager.queueFacetDataFetch(this);
 			this.broadcastSelection();
 		}
-		
 	}
 
 
@@ -139,7 +138,6 @@ class RangeFacet extends Facet {
 				value: bins[itemKey].Count //value/count for this category/span
 			});
 		}
-
 	}
 	
 	reduceResolutionOfDataset(dataset, selections = [], resolution = 100) {
@@ -424,7 +422,7 @@ class RangeFacet extends Facet {
 			startDefault = [sliderMin, sliderMax];
 		}
 
-		$(".range-slider-input", this.getDomRef()).ionRangeSlider({
+		this.slider = $(".range-slider-input", this.getDomRef()).ionRangeSlider({
 			type: "double",
 			min: sliderMin,
 			max: sliderMax,
@@ -447,6 +445,8 @@ class RangeFacet extends Facet {
 				this.sliderMovedCallback(values);
 			}
 		});
+
+		
 		/*
 		var rangesliderContainer = $(".rangeslider-container", this.getDomRef())[0];
 		this.sliderElement = noUiSlider.create(rangesliderContainer, {
