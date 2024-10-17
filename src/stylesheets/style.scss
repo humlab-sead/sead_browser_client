@@ -2297,12 +2297,33 @@ polyline{
   background-color: $pane-bg-color;
 }
 
+#result-map-controls-data-type-container {
+  display:flex;
+  position:absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+}
+
+#result-map-controls-data-type-sub-menu {
+  display:block;
+  position:absolute;
+  top: 4em;
+  left: 0px;
+  z-index: 1;
+  background: $base-color;
+  border: 1px solid $inactive-color;
+  border-radius: 0.25em;
+  padding: 0.5em;
+}
+
 #result-map-controls-container {
   display:flex;
   position:absolute;
   top: 10px;
   right: 10px;
   z-index: 1;
+  box-shadow: -5px 5px 1em .25em rgba(0, 0, 0, 0.15);
 }
 
 .menu-row-container {
@@ -3104,10 +3125,6 @@ svg text {
 }
 
 .result-map-map-control-item-container {
-}
-
-#result-map-controls-container {
-  box-shadow: -5px 5px 1em .25em rgba(0, 0, 0, 0.15);
 }
 
 .result-map-map-control-item {

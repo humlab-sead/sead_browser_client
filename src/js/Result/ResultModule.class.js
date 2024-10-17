@@ -40,7 +40,73 @@ class ResultModule {
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			
 		});
+
+		this.availableFetchSlots = 5;
+		this.usedFetchSlots = 0;
+		this.fetchSlotsInterval = null;
+		this.fetchQueue = [];
+		this.isProcessingQueue = false;
 	}
+
+	// Helper method to actually perform the fetch for the next request in the queue
+	async fetchNextInQueue() {
+		if (this.fetchQueue.length === 0 || this.usedFetchSlots >= this.availableFetchSlots) {
+			return;
+		}
+
+		// Increment the used fetch slots
+		this.usedFetchSlots++;
+
+		// Get the next item from the queue
+		const { endpoint, requestData, resolve, reject } = this.fetchQueue.shift();
+
+		try {
+			// Perform the request
+			let data = await $.ajax(Config.dataServerAddress + endpoint, {
+				data: JSON.stringify(requestData),
+				dataType: "json",
+				method: "post",
+				contentType: 'application/json; charset=utf-8',
+				crossDomain: true
+			});
+
+			// Use the processResponse function to handle dynamic response processing
+			resolve(data);
+		} catch (error) {
+			reject(error); // Reject in case of an error
+		} finally {
+			// After request finishes (whether successful or not), release the fetch slot
+			this.usedFetchSlots--;
+			// Process the next item in the queue
+			this.processQueue();
+		}
+	}
+
+	// Process the queue based on available fetch slots
+	processQueue() {
+		if (!this.isProcessingQueue && this.fetchQueue.length > 0) {
+			this.isProcessingQueue = true;
+
+			// Continue processing the queue as long as there are slots available
+			while (this.usedFetchSlots < this.availableFetchSlots && this.fetchQueue.length > 0) {
+				this.fetchNextInQueue();
+			}
+
+			this.isProcessingQueue = false; // Done processing the current queue
+		}
+	}
+
+	// Public method to fetch data, with a customizable endpoint and response processing
+	async fetchAuxData(endpoint, requestData) {
+		return new Promise((resolve, reject) => {
+			// Add the request to the queue
+			this.fetchQueue.push({ endpoint, requestData, resolve, reject });
+
+			// Start processing the queue if not already processing
+			this.processQueue();
+		});
+	}
+
 
 	isVisible() {
 		return true;

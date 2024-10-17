@@ -344,6 +344,16 @@ class ResultMap extends ResultModule {
 			data: this.renderData
 		}).data;
 
+
+
+		let siteIds = [];
+		this.renderData.forEach((site) => {
+			siteIds.push(site.id);
+		});
+		this.fetchFeatureTypes(siteIds);
+
+
+
 		if(this.timeline != null) {
 			//this.data = this.timeline.makeFakeTimeData(this.data); //FIXME: REMOVE THIS WHEN THERE IS DATA AVAILABLE
 			this.timeline.fetchTimeData(this.data).then(d => {
@@ -359,8 +369,27 @@ class ResultMap extends ResultModule {
 				}
 			});
 		}
+	}
 
-		
+	async fetchFeatureTypes(siteIds) {
+
+		//add a new datalayer (heatmap) containing the feature types
+
+		let dataLayer = new VectorLayer();
+		dataLayer.setProperties({
+			layerId: "featureTypes",
+			title: "Feature Types",
+			type: "dataLayer",
+			renderCallback: () => {
+				this.renderFeatureTypesLayer();
+			},
+			visible: false
+		});
+
+		siteIds.forEach((siteId) => {
+			this.fetchAuxData("/graphs/feature_types", [siteId]).then(data => {
+			});
+		});
 	}
 
 	async update() {
@@ -544,8 +573,13 @@ class ResultMap extends ResultModule {
 		if($("#result-map-controls-container").length == 0) {
 			$(this.renderMapIntoNode).append("<div id='result-map-controls-container'></div>");
 		}
+
+		if($("#result-map-controls-data-type-container").length == 0) {
+			$(this.renderMapIntoNode).append("<div id='result-map-controls-data-type-container'></div>");
+		}
 		
 		$("#result-map-controls-container").html("");
+		$("#result-map-controls-data-type-container").html("");
 
 		let baseLayersHtml = "<div class='result-map-map-control-item-container'>";
 		baseLayersHtml += "<div id='result-map-baselayer-controls-menu' class='result-map-map-control-item'>Base layers</div>";
@@ -560,6 +594,15 @@ class ResultMap extends ResultModule {
 		dataLayersHtml += "</div>";
 		$("#result-map-controls-container").append(dataLayersHtml);
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
+
+		//add controls for selecting what data type is shown on the map
+		let dataTypeHtml = "<div class='result-map-map-control-item-container'>";
+		dataTypeHtml += "<div id='result-map-data-type-controls-menu' class='result-map-map-control-item'>Data type</div>";
+		dataTypeHtml += "<div id='result-map-data-type-controls-menu-anchor'></div>";
+		dataTypeHtml += "</div>";
+		$("#result-map-controls-data-type-container").append(dataTypeHtml);
+		new SqsMenu(this.resultManager.sqs, this.resultMapDataTypesControlsSqsMenu());
+
 
 
 		/*
@@ -1264,6 +1307,62 @@ class ResultMap extends ResultModule {
 				callback: this.makeMapControlMenuCallback(prop)
 			});
 		}
+		return menu;
+	}
+
+	resultMapDataTypesControlsSqsMenu() {
+		var menu = {
+			title: "<i class=\"fa fa-map-marker result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Data type</span>", //The name of the menu as it will be displayed in the UI
+			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
+			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
+			anchor: "#result-map-data-type-controls-menu-anchor", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
+			staticSelection: true, //whether a selected item remains highlighted or not, purely visual
+			visible: true, //show this menu by default
+			style: {
+				menuTitleClass: "result-map-control-menu-title",
+				l1TitleClass: "result-map-control-item-title"
+			},
+			items: [ //The menu items contained in this menu
+			],
+			triggers: [{
+				selector: "#result-map-data-type-controls-menu",
+				on: "click"
+			}]
+		};
+
+		menu.items.push({
+			name: "sites",
+			title: "Sites",
+			tooltip: "",
+			staticSelection: false,
+			selected: false,
+			callback: () => {
+				console.log("Sites");
+			}
+		});
+
+		menu.items.push({
+			name: "featureTypes",
+			title: "Feature types",
+			tooltip: "",
+			staticSelection: false,
+			selected: false,
+			callback: () => {
+				console.log("Feature types");
+				//this.setMapDataLayer("heatmap");
+
+				$("#result-map-controls-data-type-container").append(`
+					<div id='result-map-controls-data-type-sub-menu'>
+						<select>
+							<option>Feature type 1</option>
+							<option>2</option>
+						</select>
+					</div>
+					`);
+
+			}
+		});
+
 		return menu;
 	}
 

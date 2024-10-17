@@ -375,64 +375,51 @@ class ResultTable extends ResultModule {
 					cellElement.classList.add('stacked-bar-container');
 					cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
 
-					let renderInterval = setInterval(() => {
-					if(maxRenderSlots > currentRenderSlotsTaken) {
-						currentRenderSlotsTaken++;
-						clearInterval(renderInterval);
+					
+					this.fetchAuxData("/graphs/feature_types", [cell.getData().site_link_filtered]).then(data => {
+						let maxFeatureCount = data.feature_types.reduce((max, ft) => Math.max(max, ft.feature_count), 0);
 
-						$.ajax(Config.dataServerAddress + "/graphs/feature_types", {
-							data: JSON.stringify([cell.getData().site_link_filtered]),
-							dataType: "json",
-							method: "post",
-							contentType: 'application/json; charset=utf-8',
-							crossDomain: true
-							}).then(data => {
-								let maxFeatureCount = data.feature_types.reduce((max, ft) => Math.max(max, ft.feature_count), 0);
+						//sort feature types by feature count
+						data.feature_types.sort((a, b) => {
+							return b.feature_count - a.feature_count;
+						});
 
-								//sort feature types by feature count
-								data.feature_types.sort((a, b) => {
-									return b.feature_count - a.feature_count;
-								});
+						const maxDisplayFeaturesCount = 5;
+						let displayFeaturesDisplayedCount = 0;
+						let ftData = "<div class='feature-type-icons'>";
+						let otherFeatureTypes = "";
 
-								const maxDisplayFeaturesCount = 5;
-								let displayFeaturesDisplayedCount = 0;
-								let ftData = "<div class='feature-type-icons'>";
-								let otherFeatureTypes = "";
-
-								if(data.feature_types.length >= maxDisplayFeaturesCount) {
-									//this might seem strange, but it is because if
-									//we are going over the limit, then the last slot will be the "other" slot,
-									//so we need to reduce the amount of availble slots by one
-									displayFeaturesDisplayedCount++;
-								}
-
-								data.feature_types.forEach(ft => {
-									if(displayFeaturesDisplayedCount >= maxDisplayFeaturesCount) {
-										otherFeatureTypes += `${ft.name} (${ft.feature_count}), `;
-										return;
-									}
-									displayFeaturesDisplayedCount++;
-
-									ftData += this.sqs.renderFeatureTypeIcon(ft.name, ft.feature_count, maxFeatureCount);
-								});
-
-								if(displayFeaturesDisplayedCount == maxDisplayFeaturesCount) {
-									let ttId = "tt-"+nanoid();
-									ftData += `<div id='${ttId}' class='feature-type-icon-container'>
-										<div class='feature-type-icon'>...</div>
-									</div>`;
-									otherFeatureTypes = otherFeatureTypes.slice(0, -2); //remove trailing comma
-									this.sqs.tooltipManager.registerTooltip("#"+ttId, "Other features: "+otherFeatureTypes);
-									this.tooltipAnchors.push("#"+ttId);
-								}
-
-								ftData += "</div>";
-
-								cellElement.innerHTML = ftData ? ftData : "";
-								currentRenderSlotsTaken--;
-							});
+						if(data.feature_types.length >= maxDisplayFeaturesCount) {
+							//this might seem strange, but it is because if
+							//we are going over the limit, then the last slot will be the "other" slot,
+							//so we need to reduce the amount of availble slots by one
+							displayFeaturesDisplayedCount++;
 						}
-					}, 200);						
+
+						data.feature_types.forEach(ft => {
+							if(displayFeaturesDisplayedCount >= maxDisplayFeaturesCount) {
+								otherFeatureTypes += `${ft.name} (${ft.feature_count}), `;
+								return;
+							}
+							displayFeaturesDisplayedCount++;
+
+							ftData += this.sqs.renderFeatureTypeIcon(ft.name, ft.feature_count, maxFeatureCount);
+						});
+
+						if(displayFeaturesDisplayedCount == maxDisplayFeaturesCount) {
+							let ttId = "tt-"+nanoid();
+							ftData += `<div id='${ttId}' class='feature-type-icon-container'>
+								<div class='feature-type-icon'>...</div>
+							</div>`;
+							otherFeatureTypes = otherFeatureTypes.slice(0, -2); //remove trailing comma
+							this.sqs.tooltipManager.registerTooltip("#"+ttId, "Other features: "+otherFeatureTypes);
+							this.tooltipAnchors.push("#"+ttId);
+						}
+
+						ftData += "</div>";
+
+						cellElement.innerHTML = ftData ? ftData : "";
+					});
 				
 					// The initial return is just the loading indicator
 					return cellElement.innerHTML;
