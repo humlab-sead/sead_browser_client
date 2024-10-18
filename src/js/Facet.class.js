@@ -439,7 +439,7 @@ class Facet {
 	*/
 	updatePosition() {
 
-		if(this.isBeingDragged) {
+		if(this.isBeingDragged || this.id == "timeline") {
 			return;
 		}
 

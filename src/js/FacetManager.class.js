@@ -57,10 +57,10 @@ class FacetManager {
 				this.chainQueueFacetDataFetch(fetchFromFacet);
 			}
 			
-			if(this.facets.length == 0) {
+			if(this.facets.length < 2) {
 				$("#facet-show-only-selections-btn").hide();
 				setTimeout(() => {
-					if(this.facets.length == 0) { //If there's still no facet...
+					if(this.facets.length  < 2) { //If there's still no facet...
 						this.renderDemoSlot();
 					}
 				}, 500);
@@ -397,6 +397,10 @@ class FacetManager {
 		this.facets.push(facet);
 		let slot = this.addSlot();
 
+		//move the "timeline" facet to the end of the chain
+		let timelineFacet = this.getFacetById("timeline");
+		this.updateLinks(timelineFacet.id, this.getSlotByFacet(timelineFacet).id+1);
+
 		if(insertIntoSlotPosition != null) {
 			this.facets.forEach((facet) => {
 				this.updateLinks(facet.id, this.getSlotByFacet(facet).id+1);
@@ -563,7 +567,7 @@ class FacetManager {
 	* Will adjust the number of slots to match the number of facets.
 	*/
 	adjustNumberOfSlots() {
-		var delta = this.facets.length - this.slots.length;
+		var delta = (this.facets.length-1) - this.slots.length;
 
 		while(delta > 0) {
 			this.addSlot();
@@ -1244,6 +1248,9 @@ class FacetManager {
 			};
 			
 			for(var fk in facetDef[gk].filters) {
+				if(facetDef[gk].filters[fk].name == "analysis_entity_ages") {
+					continue;
+				}
 
 				let icon = "";
 				if(facetDef[gk].filters[fk].type == "discrete") {
@@ -1279,7 +1286,7 @@ class FacetManager {
 								}
 							}
 							
-							if(facetExists === false && facetName != "analysis_entity_ages") {
+							if(facetExists === false) {
 								let t = this.sqs.facetManager.getFacetTemplateByFacetId(facetName);
 								var facet = this.sqs.facetManager.makeNewFacet(t);
 								this.sqs.facetManager.addFacet(facet);
