@@ -352,11 +352,35 @@ h1.main-header {
   width: calc(100% - 40px);
 }
 
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
 .cute-little-loading-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
 	background-image: url('../assets/loading-indicator7.svg');
+	background-repeat: no-repeat;
+	background-size: 100%;
+  background-position: center;
+	margin-right: 5px;
+	margin-left: 5px;
+	background-color: transparent;
+  opacity: 0.5;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+}
+
+.cute-little-loading-indicator-light {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+	background-image: url('../assets/loading-indicator7-light.svg');
 	background-repeat: no-repeat;
 	background-size: 100%;
   background-position: center;

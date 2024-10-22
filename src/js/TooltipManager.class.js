@@ -147,7 +147,7 @@ class TooltipManager {
 			if(tt.attached === false) {
 				var found = $(tt.anchor).length;
 				if(found > 1) {
-					console.log("WARN: Multiple anchor targets found when attaching tooltip.");
+					console.log("WARN: Multiple anchor targets found when attaching tooltip.", tt.anchor, $(tt.anchor));
 				}
 
 				if(found == 1) { 

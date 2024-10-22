@@ -346,12 +346,13 @@ class ResultMap extends ResultModule {
 
 
 
+		/*
 		let siteIds = [];
 		this.renderData.forEach((site) => {
 			siteIds.push(site.id);
 		});
 		this.fetchFeatureTypes(siteIds);
-
+		*/
 
 
 		if(this.timeline != null) {
@@ -1331,7 +1332,7 @@ class ResultMap extends ResultModule {
 		};
 
 		menu.items.push({
-			name: "sites",
+			name: "data-type-sites",
 			title: "Sites",
 			tooltip: "",
 			staticSelection: false,
@@ -1342,28 +1343,145 @@ class ResultMap extends ResultModule {
 		});
 
 		menu.items.push({
-			name: "featureTypes",
+			name: "data-type-feature-types",
 			title: "Feature types",
 			tooltip: "",
 			staticSelection: false,
 			selected: false,
 			callback: () => {
-				console.log("Feature types");
-				//this.setMapDataLayer("heatmap");
+				const frag = document.getElementById("result-map-controls-data-type-sub-menu-template");
+				const subMenuContainer = document.importNode(frag.content, true);
+				$("#result-map-controls-data-type-container").append(subMenuContainer);
+				
+				this.fetchAuxDataOverview("/graphs/feature_types", []).then(data => {
+					//sort by name
+					data.feature_types.sort((a, b) => {
+						if(a.name < b.name) { return -1; }
+						if(a.name > b.name) { return 1; }
+						return 0;
+					});
 
-				$("#result-map-controls-data-type-container").append(`
-					<div id='result-map-controls-data-type-sub-menu'>
+					let selectOptions = "";
+					data.feature_types.forEach(featureType => {
+						selectOptions += `<option value="${featureType.feature_type}">${featureType.name} (${featureType.feature_count})</option>`;
+					});
+
+					$("#result-map-controls-data-type-sub-menu").html(`
 						<select>
-							<option>Feature type 1</option>
-							<option>2</option>
+							${selectOptions}
 						</select>
-					</div>
 					`);
 
+
+					$("#result-map-controls-data-type-sub-menu select").on("change", (evt) => {
+						console.log(evt.target.value);
+						let siteIds = this.timeline.getSelectedSites().map(site => site.id);
+						this.renderAuxDataLayer("featureType", evt.target.value, siteIds);
+					});
+				});
+				
 			}
 		});
 
 		return menu;
+	}
+
+	renderAuxDataLayer(dataTypeCategory, dataTypeId, siteIds) {
+		//fetch datatype data of this id
+
+		$.ajax({
+			url: Config.dataServerAddress + "/graphs/feature_types/true",
+			method: "POST",
+			contentType: 'application/json; charset=utf-8',
+			crossDomain: true,
+			data: JSON.stringify(siteIds),
+			success: (data) => {
+				console.log(data);
+				//data now contains data[i] = { site_id: 1, feature_type: "feature_type", feature_count: 1 }
+
+				//let's make this into a data layer
+				let geojson = {
+					"type": "FeatureCollection",
+					"features": []
+				};
+
+			/*
+				data.forEach(feature => {
+					let featureType = this.resultManager.sqs.getFeatureTypeById(feature.feature_type);
+					let featureTypeName = featureType.name;
+					let featureTypeColor = featureType.color;
+					let site = this.resultManager.sqs.getSiteById(feature.site_id);
+					let featureCount = feature.feature_count;
+
+					let featureTypeGeojson = {
+						"type": "Feature",
+						"geometry": {
+							"type": "Point",
+							"coordinates": [site.lng, site.lat]
+						},
+						"properties": {
+							id: site.id,
+							name: site.title,
+							featureType: featureTypeName,
+							featureCount: featureCount
+						}
+					};
+					geojson.features.push(featureTypeGeojson);
+				});
+
+				var gf = new GeoJSON({
+					featureProjection: "EPSG:3857"
+				});
+				var featurePoints = gf.readFeatures(geojson);
+				var pointsSource = new VectorSource({
+					features: featurePoints
+				});
+
+				var layer = new VectorLayer({
+					source: pointsSource,
+					style: (feature, resolution) => {
+						var style = this.getPointStyle(feature);
+						return style;
+					},
+					zIndex: 1
+				});
+
+
+				layer.setProperties({
+					"layerId": "featureType",
+					"type": "dataLayer"
+				});
+
+				this.olMap.addLayer(layer);
+				*/
+
+
+			},
+			error: (err) => {
+				console.log(err);
+			}
+		});
+
+		//this.setMapDataLayer("heatmap");
+	}
+
+	fetchAuxDataOverview(endpoint, siteIds) {
+		console.log(JSON.stringify(siteIds))
+		return new Promise((resolve, reject) => {
+			$.ajax({
+				url: Config.dataServerAddress + endpoint,
+				method: "POST",
+				contentType: 'application/json; charset=utf-8',
+				crossDomain: true,
+				data: JSON.stringify(siteIds),
+				success: (data) => {
+					resolve(data);
+				},
+				error: (err) => {
+					reject(err);
+				}
+			});
+		});
 	}
 
 	/*
