@@ -10,11 +10,18 @@ class Slot {
 	* Parameters:
 	* id - An arbitrary id.
 	*/
-	constructor(sqs, id) {
+	constructor(sqs, id, virtual = false) {
 		this.sqs = sqs;
 		this.id = id;
+		this.virtual = virtual;
 		this.rendered = false;
 		
+		if(!this.virtual) {
+			this.initUi();
+		}
+	}
+
+	initUi() {
 		var slotDomObj = $("#slot-template")[0].cloneNode(true);
 		$(slotDomObj).attr("id", "slot-"+this.id);
 		$(slotDomObj).attr("slot-id", this.id);
@@ -48,7 +55,6 @@ class Slot {
 				//console.log("out");
 			}
 		});
-
 	}
 
 	renderBetweenSlotArrow() {
@@ -87,6 +93,9 @@ class Slot {
 	*
 	*/
 	fitSizeToFacet() {
+		if(this.virtual) {
+			return;
+		}
 		var facet = this.sqs.facetManager.getFacetById(this.sqs.facetManager.getFacetIdBySlotId(this.id));
 		var height = $(facet.domObj).css("height");
 		//console.log("Facet height is:", height);
@@ -97,6 +106,9 @@ class Slot {
 	* Function: destroy
 	*/
 	destroy(instantly = false) {
+		if(this.virtual) {
+			return;
+		}
 		var d = this.getDomRef();
 
 		$(d).droppable('disable');

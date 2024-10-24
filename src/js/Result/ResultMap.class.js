@@ -40,31 +40,8 @@ class ResultMap extends ResultModule {
 		this.includeTimeline = includeTimeline;
 
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
-		if(Config.timelineEnabled && includeTimeline) {
-			$(this.renderIntoNode).append(`
-				<div id='result-timeline-render-container'>
-					<div id='timeline-title-bar'>
-						<h2>Timeline</h2>
-						<div id='timeline-scale-selector-container'>
-							<label>Age</label>
-							<select id='timeline-scale-selector'>
-							</select>
-						</div>
-					</div>
-					<div id='result-timeline'></div>
-					<div id='result-timeline-curtains'>
-						<div id='result-timeline-curtain-left'></div>
-						<div id='result-timeline-curtain-right'></div>
-					</div>
-					<div id='result-timeline-slider'>
-						<input class='range-slider-input' />
-					</div>
-				</div>
-			`);
-		}
-		else {
-			$(".result-map-render-container", this.renderIntoNode).css("height", "100%");
-		}
+
+		//$(".result-map-render-container", this.renderIntoNode).css("height", "100%");
 
 		this.renderMapIntoNode = $(".result-map-render-container", renderIntoNode)[0];
 		
@@ -245,7 +222,7 @@ class ResultMap extends ResultModule {
 			facetTemplate.virtual = true;
 			let mapObject = this;
 			this.timeline = new TimelineFacet(this.sqs, facetId, facetTemplate, mapObject);
-			this.sqs.facetManager.addTimelineFacet(this.timeline);
+			this.sqs.facetManager.addFacet(this.timeline);
 		}
 	}
 

@@ -27,58 +27,72 @@ class TimelineFacet extends Facet {
 		this.sliderElement = null;
 		this.sliderAnchorNode = null;
         this.resizeInterval = null;
-        this.selections = [0, 100];
+        
         this.enabled = true;
-		this.sliderMin = 0;
-		this.sliderMax = 100;
+		this.sliderMin = -100;
+		this.sliderMax = 10000000;
+		this.selections = [this.sliderMin, this.sliderMax];
 
 		let userSettings = this.sqs.getUserSettings();
 		this.selectedScale = userSettings.timelineScale || 6;
 
+		this.datingSystems = [
+			"BP",
+			"AD/BC"
+		];
+		this.selectedDatingSystem = userSettings.timelineDatingSystem || "BP";
+
+		this.bpDiff = new Date().getFullYear() - 1950;
+
 		this.scaleDefinitions = [
 			{
 				id: 1,
-				name: "Modern history (1500 AD)",
-				unit: "year",
+				name: "Modern history (1500  years)",
+				//unit: "year",
 				from: 1500,
-				to: new Date().getFullYear()
+				to: new Date().getFullYear() - this.bpDiff
 			},
 			{
 				id: 2,
-				name: "Historical (900 BC)",
-				unit: "year",
+				name: "Historical (900 years)",
+				//unit: "year",
 				from: -900,
-				to: new Date().getFullYear()
+				to: new Date().getFullYear() - this.bpDiff
 			},
 			{
 				id: 3,
-				name: "Neolithic (10,000 years BP)",
-				unit: "BP",
-				from: 2900,
-				to: 10000
+				name: "Neolithic (10,000 years)",
+				//unit: "BP",
+				from: -10000,
+				to: -2900
 			},
 			{
 				id: 4,
-				name: "Mesolithic (200,000 years BP)",
-				unit: "BP",
-				from: 10000,
-				to: 200000
+				name: "Mesolithic (200,000 years)",
+				//unit: "BP",
+				from: -200000,
+				to: -10000
 			},
 			{
 				id: 5,
-				name: "Paleolithic (2.58 million years BP)",
-				unit: "BP",
-				from: 200000,
-				to: 2580000
+				name: "Paleolithic (2.58 million years)",
+				//unit: "BP",
+				from: -2580000,
+				to: -200000
 			},
 			{
 				id: 6,
-				name: "Pliocene Epoch (5.33 million years BP)",
-				unit: "BP",
-				from: 2580000,
-				to: 5330000
+				name: "Pliocene Epoch (5.33 million years)",
+				//unit: "BP",
+				from: -5330000,
+				to: -2580000
 			}
 		];
+
+		this.datingSystems.forEach((system) => {
+			const selected = system === this.selectedDatingSystem ? 'selected' : '';
+			$("#timeline-dating-system-selector").append(`<option value="${system}" ${selected}>${system}</option>`);
+		});
 
 		this.scaleDefinitions.forEach((scale) => {
 			const selected = scale.id === this.selectedScale ? 'selected' : '';
@@ -107,6 +121,17 @@ class TimelineFacet extends Facet {
 		});
 	}
 
+	setSelectedScale() {
+		if(this.selectedDatingSystem == "AD/BC") {
+			this.sliderMin = this.scaleDefinitions[this.selectedScale - 1].from + this.bpDiff;
+			this.sliderMax = this.scaleDefinitions[this.selectedScale - 1].to + this.bpDiff;
+		}
+		else {
+			this.sliderMin = this.scaleDefinitions[this.selectedScale - 1].from;
+			this.sliderMax = this.scaleDefinitions[this.selectedScale - 1].to;
+		}
+	}
+
 	build() {
 		console.log("Building timeline facet");
 		var x = [];
@@ -128,6 +153,8 @@ class TimelineFacet extends Facet {
             title: 'Timeline',
             plot_bgcolor: this.sqs.color.colors.paneBgColor,
 			paper_bgcolor: this.sqs.color.colors.paneBgColor,
+			//plot_bgcolor: "#FFA07A",
+			//paper_bgcolor: "#FFA07A",
 			autosize: true,
             responsive: true,
             margin: { l: 50, r: 50, t: 0, b: 0 },
@@ -135,10 +162,30 @@ class TimelineFacet extends Facet {
 
         let options = {
             displayModeBar: false,
-            responsive: true
+            responsive: true,
+			staticPlot: true //no interactions
         };
 
         Plotly.newPlot('result-timeline', data, layout, options);
+
+		$("#timeline-dating-system-selector").on("change", (e) => {
+			console.log("Dating system selector changed", e.target.value);
+			this.selectedDatingSystem = e.target.value;
+
+			let userSettings = this.sqs.getUserSettings();
+			userSettings.timelineDatingSystem = this.selectedDatingSystem;
+			this.sqs.storeUserSettings(userSettings);
+
+			this.setSelectedScale();
+
+			//update slider
+			this.slider.data("ionRangeSlider").update({
+				min: this.sliderMin,
+				max: this.sliderMax,
+				from: this.sliderMin,
+				to: this.sliderMax,
+			});
+		});
 
 		$("#timeline-scale-selector").on("change", (e) => {
 			console.log("Scale selector changed", e.target.value);
@@ -161,9 +208,9 @@ class TimelineFacet extends Facet {
 				console.warn("WARN: Could not find selected scale in scale definitions");
 			}
 		});
+
+		this.setSelectedScale();
 		
-		this.sliderMin = this.scaleDefinitions[this.selectedScale - 1].from;
-		this.sliderMax = this.scaleDefinitions[this.selectedScale - 1].to;
         
     	this.slider = $("#result-timeline-slider .range-slider-input").ionRangeSlider({
 			type: "double",
@@ -173,6 +220,22 @@ class TimelineFacet extends Facet {
 			skin: "flat",
 			prettify_enabled: true, // Enables prettify function
 			prettify: (num) => {
+
+				if(this.selectedDatingSystem == "AD/BC") {
+					//if the selected scale is modern history, we actually reverse the displayed numbers since ION cannot handle a larger "from" value than "to"
+					//so the internal logic will be the reverse of what is displayed
+					let suffix = " AD";
+					let pastValue = (num - this.sliderMin);
+					if(this.sliderMax - pastValue < 0) {
+						suffix = " BC";
+					}
+					return this.formatWithSpaces(Math.abs(this.sliderMax - pastValue)) + suffix;
+				}
+				else {
+					return this.formatWithSpaces(Math.abs(num))+" BP";
+				}
+
+				/*
 				if(this.selectedScale == 1) {
 					//if the selected scale is modern history, we actually reverse the displayed numbers since ION cannot handle a larger "from" value than "to"
 					//so the internal logic will be the reverse of what is displayed
@@ -189,6 +252,7 @@ class TimelineFacet extends Facet {
 				else {
 					return this.formatWithSpaces(num)+" BP";
 				}
+				*/
 			},
             onFinish: (data) => {
 				let values = [];
@@ -229,11 +293,33 @@ class TimelineFacet extends Facet {
         });
         
         $(window).on('resize', function() {
-            $("#result-timeline-render-container .range-slider-input").data("ionRangeSlider").update();
+            $("#timeline-container .range-slider-input").data("ionRangeSlider").update();
         });
 	}
 
     setSelections(selections) {
+		//selections is always BP
+		//if the scale display is also BP, then we can just grab the number straight from the slider
+		//the first value is the lower bound, the second value is the upper bound
+		//but if the scale is AD, we need to reverse the numbers since the slider is set up to handle BP
+
+		if(this.selectedScale == 1) {
+			//if the selected scale is modern history, we actually reverse the displayed numbers since ION cannot handle a larger "from" value than "to"
+			//so the internal logic will be the reverse of what is displayed
+			let from = this.sliderMax - (selections[0] - this.sliderMin);
+			let to = this.sliderMax - (selections[1] - this.sliderMin);
+			
+			selections[0] = from;
+			selections[1] = to;
+		
+			//now we also need to convert this to BP (from 1950)
+			selections[0] = 1950 - selections[0];
+			selections[1] = 1950 - selections[1];
+		}
+
+		console.log(selections)
+		
+
 		let selectionsUpdated = false;
 		if(selections.length == 2) {
 			if(selections[0] != null && selections[0] != this.selections[0]) {
@@ -335,17 +421,13 @@ class TimelineFacet extends Facet {
 			error: (respData, textStatus, jqXHR) => {
 				this.showLoadingIndicator(false, true);
 			}
-
 		});
     }
 
     renderData() {
         console.log("Rendering data for timeline");
-
         console.log(this.totalLower, this.totalUpper);
         console.log(this.datasets);
-
-		
     }
 
     importData(importData, overwrite = true) {

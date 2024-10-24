@@ -20,6 +20,15 @@ class FacetManager {
 		this.slots = [];
 		this.facets = [];
 		this.links = [];
+
+		/*
+		this.facetLinkedList = [];
+		this.facetLinkedList.push({
+			next: null,
+			prev: null,
+		});
+		*/
+
 		this.facetId = 0;
 		this.debugMode = false;
 
@@ -57,10 +66,10 @@ class FacetManager {
 				this.chainQueueFacetDataFetch(fetchFromFacet);
 			}
 			
-			if(this.facets.length == 0) {
+			if(this.getCountOfFacetsForSlots() == 0) {
 				$("#facet-show-only-selections-btn").hide();
 				setTimeout(() => {
-					if(this.facets.length == 0) { //If there's still no facet...
+					if(this.getCountOfFacetsForSlots() == 0) { //If there's still no facet...
 						this.renderDemoSlot();
 					}
 				}, 500);
@@ -357,7 +366,7 @@ class FacetManager {
 		}
 	}
 
-	addTimelineFacet(facet) {
+	addVirtualFacet(facet) {
 		//first check if we already have this
 		for(var key in this.facets) {
 			if(this.facets[key].name == facet.name) {
@@ -395,7 +404,8 @@ class FacetManager {
 		}
 		
 		this.facets.push(facet);
-		let slot = this.addSlot();
+
+		let slot = this.addSlot(facet.virtual);
 
 		if(insertIntoSlotPosition != null) {
 			this.facets.forEach((facet) => {
@@ -408,8 +418,10 @@ class FacetManager {
 		}
 
 		this.queueFacetDataFetch(facet);
-		this.showSectionTitle(false);
-		this.updateShowOnlySelectionsControl();
+		if(!facet.virtual) {
+			this.showSectionTitle(false);
+			this.updateShowOnlySelectionsControl();
+		}
 		
 		this.sqs.sqsEventDispatch("sqsFacetPostAdd", facet);
 	}
@@ -558,12 +570,26 @@ class FacetManager {
 		}
 	}
 
+	//gets the count of facets specifically for counting the slots - which means we disregard the timeline facet since it has no slot
+	getCountOfFacetsForSlots() {
+		return this.facets.length;
+		
+		let facetCount = 0;
+		for(let key in this.facets) {
+			if(!this.facets[key].virtual) {
+				facetCount++;
+			}
+		}
+
+		return facetCount;
+	}
+
 	/*
 	* Function: adjustNumberOfSlots
 	* Will adjust the number of slots to match the number of facets.
 	*/
 	adjustNumberOfSlots() {
-		var delta = this.facets.length - this.slots.length;
+		var delta = this.getCountOfFacetsForSlots() - this.slots.length;
 
 		while(delta > 0) {
 			this.addSlot();
@@ -580,9 +606,9 @@ class FacetManager {
 	* Function: addSlot
 	* Adds a slot. How about that.
 	*/
-	addSlot() {
+	addSlot(virtual = false) {
 		let slotId = this.slots.length+1;
-		let slot = new Slot(this.sqs, slotId);
+		let slot = new Slot(this.sqs, slotId, virtual);
 		this.slots.push(slot);
 		return slot;
 	}
@@ -620,7 +646,6 @@ class FacetManager {
 	* moveFacets
 	*/
 	updateLinks(facetId, slotId) {
-
 		let facetFound = false;
 		for(let key in this.links) {
 			if(this.links[key].facetId == facetId) {
