@@ -439,7 +439,11 @@ class Facet {
 	*/
 	updatePosition() {
 
+<<<<<<< HEAD
 		if(this.isBeingDragged || this.virtual) {
+=======
+		if(this.isBeingDragged || this.id == "timeline") {
+>>>>>>> 4dc176afdd13a4a2058e7b162926f5a2e7df4b8c
 			return;
 		}
 

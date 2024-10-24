@@ -2,6 +2,7 @@ import Facet from './Facet.class';
 import Plotly from 'plotly.js-dist-min';
 import "ion-rangeslider";
 import "ion-rangeslider/css/ion.rangeSlider.min.css";
+import Config from '../config/config.json';
 
 
 /**
@@ -259,7 +260,7 @@ class TimelineFacet extends Facet {
 				values.push(data.from);
 				values.push(data.to);
                 //this.setSelections(values);
-				//this.sliderMovedCallback(values);
+				this.sliderMovedCallback(values);
 			},
             onChange: (data) => {
 				this.sliderMax = this.slider.data("ionRangeSlider").options.max;
@@ -295,6 +296,41 @@ class TimelineFacet extends Facet {
         $(window).on('resize', function() {
             $("#timeline-container .range-slider-input").data("ionRangeSlider").update();
         });
+	}
+
+	getCurrentScale() {
+		return this.scaleDefinitions.find((scale) => scale.id == this.selectedScale);
+	}
+
+	sliderMovedCallback(values) {
+		let scale = this.getCurrentScale();
+		let from = values[0];
+		let to = values[1];
+
+		let fromBP = from;
+		let toBP = to;
+
+		if(scale.unit == "year") {
+			from = this.sliderMax - (values[0] - this.sliderMin);
+			to = this.sliderMax - (values[1] - this.sliderMin);
+
+			Config.constants.BP;
+			
+			//convert to BP
+			fromBP = Config.constants.BP - from;
+			toBP = Config.constants.BP - to;
+		}
+		console.log(from, to);
+		console.log(fromBP, toBP);
+
+		if(fromBP < toBP) {
+			this.setSelections([fromBP, toBP]);
+		}
+		else {
+			console.warn("WARN: Slider moved callback called with invalid values, from is greater than to");
+		}
+
+		
 	}
 
     setSelections(selections) {
