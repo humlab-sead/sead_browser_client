@@ -350,9 +350,9 @@ class DendrochronologyDataset extends DatasetModule {
 	}
 	*/
 
-	getDendroMethodDescription(siteData, dendroLookupId) {
+	getDendroMethodDescription(siteData, valueClassId) {
 		for(let key in siteData.lookup_tables.dendro) {
-			if(siteData.lookup_tables.dendro[key].dendro_lookup_id == dendroLookupId) {
+			if(siteData.lookup_tables.dendro[key].value_class_id == valueClassId) {
 				return siteData.lookup_tables.dendro[key]
 			}
 		}
@@ -506,7 +506,7 @@ class DendrochronologyDataset extends DatasetModule {
         });
     
         let extentMax = d3.max(sampleDataObjects, d => {
-            let fellingYear =  this.dl.getOldestFellingYear(d).value;
+            let fellingYear =  this.dl.getOldestFellingYear(d).value; //FIXME: this requires a "complex" value type to function, question is whethe we should even have those anymore
             if(!fellingYear) {
                 fellingYear = this.dl.getYoungestFellingYear(d).value;
             }

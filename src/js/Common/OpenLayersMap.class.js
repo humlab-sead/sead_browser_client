@@ -224,6 +224,7 @@ class OpenLayersMap {
         });
         this.dataLayers.push(dataLayer);
 
+
 		document.addEventListener('mapPopupClick', (event) => {
 			console.log(event);
 		});

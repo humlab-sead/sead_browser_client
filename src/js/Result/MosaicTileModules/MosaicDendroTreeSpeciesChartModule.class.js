@@ -40,7 +40,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         });
         */
 
-        let response = await this.fetch("/dendro/treespecies", requestBody);
+        let response = await super.fetchData("/dendro/treespecies", requestBody);
         if(!response) {
             return false;
         }

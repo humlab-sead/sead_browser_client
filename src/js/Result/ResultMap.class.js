@@ -754,6 +754,32 @@ class ResultMap extends ResultModule {
 		this.olMap.addLayer(layer);
 	}
 
+	renderFeatureTypesLayer(geojson) {
+		var gf = new GeoJSON({
+			featureProjection: "EPSG:3857"
+		});
+		var featurePoints = gf.readFeatures(geojson);
+		var pointsSource = new VectorSource({
+			features: featurePoints
+		});
+
+		var layer = new VectorLayer({
+			source: pointsSource,
+			style: (feature, resolution) => {
+				var style = this.getPointStyle(feature);
+				return style;
+			},
+			zIndex: 1
+		});
+
+		layer.setProperties({
+			"layerId": "featureTypes",
+			"type": "dataLayer"
+		});
+
+		this.olMap.addLayer(layer);
+	}
+
 	/*
 	* Function: renderPointsLayer
 	*/
@@ -1352,18 +1378,40 @@ class ResultMap extends ResultModule {
 				const frag = document.getElementById("result-map-controls-data-type-sub-menu-template");
 				const subMenuContainer = document.importNode(frag.content, true);
 				$("#result-map-controls-data-type-container").append(subMenuContainer);
-				
-				this.fetchAuxDataOverview("/graphs/feature_types", []).then(data => {
+
+				const postData = {
+					siteIds: this.getSelectedSites(),
+					path: "sample_groups.physical_samples.features",
+					idField: "feature_type_id",
+					nameField: "feature_type_name"
+				}
+
+				this.fetchAuxDataOverview("/graphs/custom", postData).then(data => {
 					//sort by name
-					data.feature_types.sort((a, b) => {
+					data.summary_data.sort((a, b) => {
 						if(a.name < b.name) { return -1; }
 						if(a.name > b.name) { return 1; }
 						return 0;
 					});
 
 					let selectOptions = "";
-					data.feature_types.forEach(featureType => {
-						selectOptions += `<option value="${featureType.feature_type}">${featureType.name} (${featureType.feature_count})</option>`;
+					data.summary_data.forEach(featureType => {
+						selectOptions += `<option value="${featureType.id}">${featureType.name} (${featureType.count})</option>`;
+
+						var layer = new VectorLayer();
+						layer.setProperties({
+							"layerId": "featureType-"+featureType.id,
+							"type": "dataLayer",
+							"title": "Feature type: "+featureType.name,
+							renderCallback: () => {
+								console.log("rendering aux data");
+								//this.renderFeatureTypesLayer(geojson);
+								this.setMapDataLayer("featureTypes");
+							},
+							visible: false
+						});
+						this.dataLayers.push(layer);
+					
 					});
 
 					$("#result-map-controls-data-type-sub-menu").html(`
@@ -1374,9 +1422,10 @@ class ResultMap extends ResultModule {
 
 
 					$("#result-map-controls-data-type-sub-menu select").on("change", (evt) => {
-						console.log(evt.target.value);
+						let featureTypeId = parseInt(evt.target.value);
 						let siteIds = this.timeline.getSelectedSites().map(site => site.id);
-						this.renderAuxDataLayer("featureType", evt.target.value, siteIds);
+
+						this.fetchAuxDataLayer("sample_groups.physical_samples.features", "feature_type_id", "feature_type_name", featureTypeId, siteIds);
 					});
 				});
 				
@@ -1386,18 +1435,25 @@ class ResultMap extends ResultModule {
 		return menu;
 	}
 
-	renderAuxDataLayer(dataTypeCategory, dataTypeId, siteIds) {
+	fetchAuxDataLayer(dataPath, dataTypeId, dataTypeName, dataId, siteIds) {
 		//fetch datatype data of this id
+		const postData = {
+			siteIds: siteIds,
+			path: dataPath,
+			idField: dataTypeId,
+			nameField: dataTypeName
+		}
 
 		$.ajax({
-			url: Config.dataServerAddress + "/graphs/feature_types/true",
+			url: Config.dataServerAddress + "/graphs/custom/true",
 			method: "POST",
 			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
-			data: JSON.stringify(siteIds),
+			data: JSON.stringify(postData),
 			success: (data) => {
 				console.log(data);
-				//data now contains data[i] = { site_id: 1, feature_type: "feature_type", feature_count: 1 }
+				console.log(this.data);
+				//data now contains data[i] = { site_id: 1, summary_data: [ { name: '', count: 0, id: 0 }, { name: '', count: 0, id: 0 } ] }
 
 				//let's make this into a data layer
 				let geojson = {
@@ -1405,57 +1461,34 @@ class ResultMap extends ResultModule {
 					"features": []
 				};
 
-			/*
-				data.forEach(feature => {
-					let featureType = this.resultManager.sqs.getFeatureTypeById(feature.feature_type);
-					let featureTypeName = featureType.name;
-					let featureTypeColor = featureType.color;
-					let site = this.resultManager.sqs.getSiteById(feature.site_id);
-					let featureCount = feature.feature_count;
+				data.forEach(siteSummaryData => {
 
-					let featureTypeGeojson = {
-						"type": "Feature",
-						"geometry": {
-							"type": "Point",
-							"coordinates": [site.lng, site.lat]
-						},
-						"properties": {
-							id: site.id,
-							name: site.title,
-							featureType: featureTypeName,
-							featureCount: featureCount
+					//find the site in this.data
+					let site = this.data.find(site => site.id == siteSummaryData.site_id);
+
+					siteSummaryData.summary_data.forEach(sd => {
+						if(sd.id == dataId) {
+							let featureGeoJson = {
+								"type": "Feature",
+								"geometry": {
+									"type": "Point",
+									"coordinates": [site.lng, site.lat]
+								},
+								"properties": {
+									id: sd.id,
+									name: sd.name,
+									count: sd.count
+								}
+							};
+							geojson.features.push(featureGeoJson);
 						}
-					};
-					geojson.features.push(featureTypeGeojson);
+						
+					});
 				});
 
-				var gf = new GeoJSON({
-					featureProjection: "EPSG:3857"
-				});
-				var featurePoints = gf.readFeatures(geojson);
-				var pointsSource = new VectorSource({
-					features: featurePoints
-				});
+				
 
-				var layer = new VectorLayer({
-					source: pointsSource,
-					style: (feature, resolution) => {
-						var style = this.getPointStyle(feature);
-						return style;
-					},
-					zIndex: 1
-				});
-
-
-				layer.setProperties({
-					"layerId": "featureType",
-					"type": "dataLayer"
-				});
-
-				this.olMap.addLayer(layer);
-				*/
-
-
+				//this.olMap.addLayer(layer);
 			},
 			error: (err) => {
 				console.log(err);
@@ -1465,15 +1498,14 @@ class ResultMap extends ResultModule {
 		//this.setMapDataLayer("heatmap");
 	}
 
-	fetchAuxDataOverview(endpoint, siteIds) {
-		console.log(JSON.stringify(siteIds))
+	fetchAuxDataOverview(endpoint, postData) {
 		return new Promise((resolve, reject) => {
 			$.ajax({
 				url: Config.dataServerAddress + endpoint,
 				method: "POST",
 				contentType: 'application/json; charset=utf-8',
 				crossDomain: true,
-				data: JSON.stringify(siteIds),
+				data: JSON.stringify(postData),
 				success: (data) => {
 					resolve(data);
 				},
