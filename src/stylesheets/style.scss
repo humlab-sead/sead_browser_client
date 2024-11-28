@@ -785,7 +785,7 @@ h1.main-header {
 
 #result-container {
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 1fr min-content;
   position: relative;
   background-color: #fff;
   padding: 10px;
@@ -794,6 +794,7 @@ h1.main-header {
   margin-top: 0px;
 }
 
+/*
 .result-export-button {
   display: flex;
   position: absolute;
@@ -804,6 +805,22 @@ h1.main-header {
   padding-right: .5em;
   background: $pane-bg-color;
   color: #333;
+  align-items: center;
+  justify-content: center;
+  font-family: Rajdhani;
+  font-size: 1.2em;
+  z-index: 2;
+}
+*/
+.result-export-button {
+  display: flex;
+  position: relative;
+  margin-top: .1em;
+  padding: .15em;
+  padding-left: .5em;
+  padding-right: .5em;
+  background: $base-color;
+  color: #fff;
   align-items: center;
   justify-content: center;
   font-family: Rajdhani;
@@ -1105,6 +1122,7 @@ h1.main-header {
   top: 0px;
   height: 100%;
   width: 100%;
+  overflow: auto;
 }
 
 .result-content-box {

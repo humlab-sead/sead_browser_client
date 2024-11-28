@@ -66,17 +66,10 @@ class FacetManager {
 				this.chainQueueFacetDataFetch(fetchFromFacet);
 			}
 			
-<<<<<<< HEAD
 			if(this.getCountOfFacetsForSlots() == 0) {
 				$("#facet-show-only-selections-btn").hide();
 				setTimeout(() => {
 					if(this.getCountOfFacetsForSlots() == 0) { //If there's still no facet...
-=======
-			if(this.facets.length < 2) {
-				$("#facet-show-only-selections-btn").hide();
-				setTimeout(() => {
-					if(this.facets.length  < 2) { //If there's still no facet...
->>>>>>> 4dc176afdd13a4a2058e7b162926f5a2e7df4b8c
 						this.renderDemoSlot();
 					}
 				}, 500);
@@ -600,11 +593,7 @@ class FacetManager {
 	* Will adjust the number of slots to match the number of facets.
 	*/
 	adjustNumberOfSlots() {
-<<<<<<< HEAD
 		var delta = this.getCountOfFacetsForSlots() - this.slots.length;
-=======
-		var delta = (this.facets.length-1) - this.slots.length;
->>>>>>> 4dc176afdd13a4a2058e7b162926f5a2e7df4b8c
 
 		while(delta > 0) {
 			this.addSlot();
