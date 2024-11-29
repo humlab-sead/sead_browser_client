@@ -1,13 +1,10 @@
 import Facet from './Facet.class.js';
-//import noUiSlider from "nouislider";
+import noUiSlider from "nouislider";
 //import "nouislider/distribute/nouislider.min.css";
+import "nouislider/dist/nouislider.min.css";
+
 import styles from '../stylesheets/style.scss'
 import { Chart, CategoryScale, LinearScale, BarController, BarElement } from "chart.js";
-//import Config from "../config/config";
-//import { runInThisContext } from 'vm';
-
-import "ion-rangeslider";
-import "ion-rangeslider/css/ion.rangeSlider.min.css";
 /*
 Works like this:
 
@@ -22,8 +19,6 @@ Old request data should be discarded (if a new selection was made while data was
 Data is loaded into "unfiltered" if it was requested without picks - which will give us the entire dataspan, but at low resolution, most importantly it tells us the endpoints
 Data is loaded into "filtered" if it was requested with picks. This gives up the higher resolution data we need for a more zoomed in / narrow view of the data
 
-
-	FIXME: Also, slider doesn't move to proper position when manual input is used
 */
 
 
@@ -421,33 +416,7 @@ class RangeFacet extends Facet {
 		if(startDefault.length < 2) {
 			startDefault = [sliderMin, sliderMax];
 		}
-
-		this.slider = $(".range-slider-input", this.getDomRef()).ionRangeSlider({
-			type: "double",
-			min: sliderMin,
-			max: sliderMax,
-			step: 1,
-			skin: "flat",
-			prettify_enabled: true, // Enables prettify function
-			prettify: (num) => {
-				if(this.unit == "BP") {
-					return this.formatWithSpaces(num)+" BP";
-				}
-				else {
-					return this.formatWithSpaces(num);
-					//return num.toLocaleString();
-				}
-			},
-			onFinish: (data) => {
-				let values = [];
-				values.push(data.from);
-				values.push(data.to);
-				this.sliderMovedCallback(values);
-			}
-		});
-
 		
-		/*
 		var rangesliderContainer = $(".rangeslider-container", this.getDomRef())[0];
 		this.sliderElement = noUiSlider.create(rangesliderContainer, {
 			start: startDefault,
@@ -474,12 +443,14 @@ class RangeFacet extends Facet {
 		var digitSpace = digits*5;
 		$(".slider-manual-input-container", this.domObj).css("width", 20 + digitSpace);
 		$(".range-facet-manual-input", this.domObj).css("width", 18 + digitSpace);
-		$(".rangeslider-container", this.domObj).css("margin-left", 18 + digitSpace);
-		$(".rangeslider-container", this.domObj).css("margin-right", 18 + digitSpace);
-		$(".noUi-handle-lower > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(0-digitSpace)+"px");
 		
+		$(".noUi-handle-lower > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(-7-digitSpace)+"px");
+		$(".noUi-handle-upper > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(13)+"px");
+
 		$(".slider-manual-input-container", this.getDomRef()).show();
-		
+
+		this.upperManualInputNode = $(".noUi-handle-upper .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
+		this.lowerManualInputNode = $(".noUi-handle-lower .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
 
 		$(".slider-manual-input-container", this.getDomRef()).on("change", (evt) => {
 			this.manualInputCallback(evt);
@@ -493,13 +464,53 @@ class RangeFacet extends Facet {
 
 			$(".noUi-handle-lower .range-facet-manual-input", this.getDomRef()).val(highValue);
 			$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(lowValue);
+
+			let overlap = this.getHorizontalOverlap(this.lowerManualInputNode[0], this.upperManualInputNode[0]);
+			this.adjustSliderInputPositions(overlap, this.lowerManualInputNode, this.upperManualInputNode);
 		});
 		this.sliderElement.on("change", (values, slider) => {
 			this.sliderMovedCallback(values, slider);
 		});
-
-		*/
 	}
+
+	adjustSliderInputPositions(overlap, lowerManualInputNode, upperManualInputNode) {
+		const lowerLeftOriginalPosition = (lowerManualInputNode.width() + 8) / 2;
+		const upperLeftOriginalPosition = ((upperManualInputNode.width() + 8) / 2)*-1;
+	
+		let lowerInputLeft = lowerManualInputNode.position().left; // Current `left` position of lower node
+		let upperInputLeft = upperManualInputNode.position().left; // Current `left` position of upper node
+
+		let lowerInputNewLeft = lowerInputLeft; // Initialize to current positions
+		let upperInputNewLeft = upperInputLeft;
+	
+		if (overlap > 0) {
+			// Adjust positions to remove overlap
+			const shiftAmount = overlap / 2; // Split the overlap equally between the two nodes
+			lowerInputNewLeft = lowerInputLeft - shiftAmount; // Move lower node left
+			upperInputNewLeft = upperInputLeft + shiftAmount; // Move upper node right
+			
+		} else {
+			// No overlap, gradually reset to original positions
+			lowerInputNewLeft = lowerInputLeft < lowerLeftOriginalPosition ? lowerInputLeft + 1 : lowerLeftOriginalPosition;
+			upperInputNewLeft = upperInputLeft > upperLeftOriginalPosition ? upperInputLeft - 1 : upperLeftOriginalPosition;
+		}
+	
+		// Update positions with calculated values
+		lowerManualInputNode[0].style.setProperty("left", `${lowerInputNewLeft}px`, "important");
+		upperManualInputNode[0].style.setProperty("left", `${upperInputNewLeft}px`, "important");
+	}
+
+	getHorizontalOverlap(element1, element2) {
+		const rect1 = element1.getBoundingClientRect();
+		const rect2 = element2.getBoundingClientRect();
+	
+		// Check if they overlap horizontally
+		const overlap = Math.min(rect1.right, rect2.right) - Math.max(rect1.left, rect2.left);
+	
+		// Return overlap amount if they overlap, otherwise return 0
+		return overlap > 0 ? overlap : 0;
+	}
+	
 	
 	updateChart(categories, selections) {
 		let chartJSDatasets = this.makeChartJsDataset(categories);

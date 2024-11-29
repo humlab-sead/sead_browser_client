@@ -1429,7 +1429,7 @@ h1.main-header {
 .chart-container {
 	display:none;
 	position:relative;
-	height: 80%;
+	height: 90%;
 	width: 100%;
 }
 
@@ -1892,11 +1892,6 @@ div.facet-sql-btn {
 
 }
 
-#result-info-text-container {
-	text-align: center;
-	padding-left: 100px;
-	padding-right: 100px;
-}
 
 .large-info-text {
 	font-size: 60px;
@@ -1922,11 +1917,18 @@ div.facet-sql-btn {
 }
 
 #result-msg-contents {
-	display:none;
+	display: none;
   position: absolute;
-  top:0;
+  justify-content: center;
+  align-items: center;
 	width: 100%;
 	height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  z-index: 10;
+}
+
+#result-info-text-container {
+	text-align: center;
 }
 
 #result-table-container {
