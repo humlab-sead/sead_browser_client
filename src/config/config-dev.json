@@ -10,7 +10,7 @@
 	"serverAddress":"https://supersead.humlab.umu.se/query",
 	"viewStateServerAddress":"https://supersead.humlab.umu.se/vsapi",
 	"siteReportServerAddress":"https://supersead.humlab.umu.se/postgrest",
-	"dataServerAddress": "http://localhost:8484",
+	"dataServerAddress": "https://supersead.humlab.umu.se/jsonapi",
 	"copilotServerAddress": "wss://supersead.humlab.umu.se/ai-assistant",
 	"defaultResultModule":"mosaic",
 	"resultMapDataLayers": ["clusterPoints", "points", "heatmap"],

@@ -418,6 +418,8 @@ class SeadQuerySystem {
 			},
 		]);
 
+		this.facetManager.addDefaultFacets();
+
 		if(this.config.globeResultModuleEnabled) {
 			this.resultManager.addModule([{
 				name: "globe",

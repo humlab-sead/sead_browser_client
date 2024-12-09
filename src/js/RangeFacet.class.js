@@ -1,6 +1,5 @@
 import Facet from './Facet.class.js';
 import noUiSlider from "nouislider";
-//import "nouislider/distribute/nouislider.min.css";
 import "nouislider/dist/nouislider.min.css";
 
 import styles from '../stylesheets/style.scss'

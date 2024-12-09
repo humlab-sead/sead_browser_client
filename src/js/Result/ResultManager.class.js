@@ -338,9 +338,9 @@ class ResultManager {
 	renderMsg(render = true, msg = {}) {
 		if(render) {
 			var domObj = $("#result-msg-contents-template")[0].cloneNode(true);
-			$(domObj).attr("id", "result-msg-contents").css("display", "grid");
-			$(domObj).find("#result-info-text-container > .large-info-text").text(msg.title);
-			$(domObj).find("#result-info-text-container > .small-info-text").text(msg.body);
+			$(domObj).attr("id", "result-msg-contents").css("display", "flex");
+			$(domObj).find("#result-info-text-container > .large-info-text").html(msg.title);
+			$(domObj).find("#result-info-text-container > .small-info-text").html(msg.body);
 			$("#result-container").append(domObj);
 		}
 		else {
@@ -374,9 +374,11 @@ class ResultManager {
 			if(error) {
 				$("#result-loading-indicator").addClass("result-loading-indicator-error");
 
+				let warningTriangleIcon = "<i style='color:red;' class='fa fa-exclamation-triangle'></i>";
+
 				this.getActiveModule().unrender();
 				this.renderMsg(true, {
-					title: "Error",
+					title: warningTriangleIcon+" Error",
 					body: "An unknown error occurred when loading this data."
 				});
 

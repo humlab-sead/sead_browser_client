@@ -214,16 +214,6 @@ class ResultMap extends ResultModule {
 		this.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
 		this.resultManager.sqs.sqsEventListen("siteReportClosed", () => this.resizeCallback());
-
-		//Create attached timeline object
-		if(Config.timelineEnabled) {
-			let facetId = "timeline";
-			let facetTemplate = this.sqs.facetManager.getFacetTemplateByFacetId("analysis_entity_ages");
-			facetTemplate.virtual = true;
-			let mapObject = this;
-			this.timeline = new TimelineFacet(this.sqs, facetId, facetTemplate, mapObject);
-			this.sqs.facetManager.addFacet(this.timeline);
-		}
 	}
 
 	getSelectedSites() {
@@ -268,6 +258,9 @@ class ResultMap extends ResultModule {
 		if(!active) {
 			$(this.renderIntoNode).hide();
 		}
+		else {
+			$(this.renderIntoNode).show();
+		}
 	}
 
 	/*
@@ -291,6 +284,11 @@ class ResultMap extends ResultModule {
 				//Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 				if(respData.RequestId == this.requestId && this.active) {
 					this.importResultData(respData);
+					if(true) {
+						this.renderMap();
+						this.renderVisibleDataLayers();
+						this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
+					}
 					this.resultManager.showLoadingIndicator(false);
 				}
 				else {
@@ -342,22 +340,6 @@ class ResultMap extends ResultModule {
 		this.renderData = this.resultManager.sqs.sqsOffer("resultMapData", {
 			data: this.renderData
 		}).data;
-
-		if(this.timeline != null) {
-			//this.data = this.timeline.makeFakeTimeData(this.data); //FIXME: REMOVE THIS WHEN THERE IS DATA AVAILABLE
-			this.timeline.fetchTimeData(this.data).then(d => {
-				//this.data = d;
-				if(renderMap) {
-					this.renderMap();
-					this.renderVisibleDataLayers();
-					
-					if(Config.timelineEnabled && this.includeTimeline) {
-						this.timeline.render();
-					}
-					this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
-				}
-			});
-		}
 	}
 
 	async update() {
@@ -643,7 +625,8 @@ class ResultMap extends ResultModule {
 	* Function: renderClusteredPointsLayer
 	*/
 	renderClusteredPointsLayer() {
-		let timeFilteredData = this.timeline.getSelectedSites();
+		//let timeFilteredData = this.timeline.getSelectedSites();
+		let timeFilteredData = this.data;
 		var geojson = this.getDataAsGeoJSON(timeFilteredData);
 
 		var gf = new GeoJSON({

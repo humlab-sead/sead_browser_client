@@ -5,6 +5,8 @@ import DiscreteFacet from './DiscreteFacet.class.js'
 import RangeFacet from './RangeFacet.class.js'
 import MapFacet from './MapFacet.class.js';
 import MultiStageFacet from './MultiStageFacet.class';
+import Config from '../config/config.json';
+import TimelineFacet from './TimelineFacet.class.js';
 /* 
 Class: FacetManager
 The FacetManager handles all things concerning the manipulation of multiple facets, basically anything that has to do with facets that exceeds the scope of the individual facet. For example moving/swapping of facets.
@@ -111,7 +113,17 @@ class FacetManager {
 			
 			this.buildFilterStructure(domainName);
 		});
-		
+	}
+	
+	addDefaultFacets() {
+		if(Config.timelineEnabled) {
+			let facetId = "timeline";
+			let facetTemplate = this.getFacetTemplateByFacetId("analysis_entity_ages");
+			facetTemplate.virtual = true;
+			let mapObject = this;
+			this.timeline = new TimelineFacet(this.sqs, facetId, facetTemplate, mapObject);
+			this.addFacet(this.timeline);
+		}
 	}
 
 	toggleDebug() {
