@@ -32,8 +32,11 @@ class TimelineFacet extends Facet {
         this.resizeInterval = null;
         
         this.enabled = true;
+		
 		this.sliderMin = -10000000;
 		this.sliderMax = 10000000;
+
+		this.currentValues = [this.sliderMin, this.sliderMax];
 		this.selections = [this.sliderMin, this.sliderMax];
 
 		let userSettings = this.sqs.getUserSettings();
@@ -45,48 +48,48 @@ class TimelineFacet extends Facet {
 		];
 		this.selectedDatingSystem = userSettings.timelineDatingSystem || "BP";
 
-		const currentYear = new Date().getFullYear();
-		const yearNowBP = 1950 - currentYear;
+		this.currentYear = new Date().getFullYear();
+		const yearNowBP = (1950 - this.currentYear) * -1;
 		
 		this.bpDiff = new Date().getFullYear() - 1950;
 
-		//these scales are in BP, so when using AD/BC we need to recalculate
+		//these scales are in BP (but minus), so when using AD/BC we need to recalculate
 		this.scaleDefinitions = [
 			{
 				id: 1,
 				name: "500 years",
-				from: 500,
-				to: yearNowBP
+				older: -500,
+				younger: yearNowBP
 			},
 			{
 				id: 2,
 				name: "1000 years",
-				from: 1000,
-				to: yearNowBP
+				older: -1000,
+				younger: yearNowBP
 			},
 			{
 				id: 3,
 				name: "10,000 years",
-				from: 10000,
-				to: 2900
+				older: -10000,
+				younger: yearNowBP
 			},
 			{
 				id: 4,
 				name: "200,000 years",
-				from: 200000,
-				to: 10000
+				older: -200000,
+				younger: yearNowBP
 			},
 			{
 				id: 5,
 				name: "2.58 million years",
-				from: 2580000,
-				to: 200000
+				older: -2580000,
+				younger: yearNowBP
 			},
 			{
 				id: 6,
 				name: "5.33 million years",
-				from: 5330000,
-				to: 2580000
+				older: -5330000,
+				younger: yearNowBP
 			}
 		];
 
@@ -101,6 +104,10 @@ class TimelineFacet extends Facet {
 		});
 
     }
+
+	getSliderValues() {
+		return this.currentValues;
+	}
 
     render() {
 		console.log("Rendering timeline facet");
@@ -120,40 +127,85 @@ class TimelineFacet extends Facet {
     }
 
 	setSliderScale(scale) {
-		console.log("Setting slider scale", scale);
 		this.selectedScale = scale.id;
-		this.setSelectedScale();
-
-		this.slider.updateOptions({
-			range: {
-				'min': this.sliderMin,
-				'max': this.sliderMax,
-			},
-			start: [this.sliderMin, this.sliderMax]
-		});
-
-		/*
-		this.slider.data("ionRangeSlider").update({
-			min: this.sliderMin,
-			max: this.sliderMax,
-			from: this.sliderMin,
-			to: this.sliderMax,
-		});
-		*/
+		this.setSelectedScale(scale);
 	}
 
-	setSelectedScale() {
-		if(this.selectedDatingSystem == "AD/BC") {
-			this.sliderMin = this.getSelectedScale().from + this.bpDiff;
-			this.sliderMax = this.getSelectedScale().to + this.bpDiff;
+	
+	convertBPtoADBC(bpYear) {
+		//the bpYear here is a negative number if it is before 1950 and a positive number if it is after 1950
+		if (bpYear < 0) {
+			// BC year
+			return 1950 - Math.abs(bpYear);
+		} else {
+			// AD year
+			return 1950 + bpYear;
 		}
-		else {
-			this.sliderMin = this.getSelectedScale().from;
-			this.sliderMax = this.getSelectedScale().to;
+	}
+
+	convertADBCtoBP(adbcYear) {
+		//adbcYear is e.g. 2024, or -5000
+
+		if (adbcYear < 0) {
+			// BC year
+			return (1950 + Math.abs(adbcYear)) * -1;
+		} else {
+			// AD year
+			return (1950 - adbcYear) * -1;
+		}
+	}
+
+	setSelectedScale(selectedScale, newDatingSystem = false) {
+		if (this.selectedDatingSystem === "AD/BC") {
+			this.sliderMin = this.currentYear + selectedScale.older;
+			this.sliderMax = this.sqs.config.constants.BP + selectedScale.younger;
+		} else {
+			this.sliderMin = selectedScale.older + this.bpDiff;
+			this.sliderMax = selectedScale.younger;	
 		}
 
-		this.sliderMin *= -1;
-		this.sliderMax *= -1;
+		if(newDatingSystem) {
+			//recalculate the current values to fit the new dating system
+			if(this.selectedDatingSystem === "AD/BC") {
+				//going from BP to AD/BC
+				this.currentValues[0] = this.convertBPtoADBC(this.currentValues[0]);
+				this.currentValues[1] = this.convertBPtoADBC(this.currentValues[1]);
+			}
+			else {
+				//going from AD/BC to BP
+				this.currentValues[0] = this.convertADBCtoBP(this.currentValues[0]);
+				this.currentValues[1] = this.convertADBCtoBP(this.currentValues[1]);
+			}
+		}
+	
+		if(this.slider) {
+			this.slider.updateOptions({
+				range: {
+					'min': this.sliderMin,
+					'max': this.sliderMax,
+				},
+				start: this.currentValues
+			});
+		}
+		else {
+			console.warn("WARN: Slider not initialized yet, cannot set scale");
+		}
+
+		// Trigger any updates or re-rendering needed for the slider
+		this.sliderUpdateCallback(this.currentValues);
+	}
+
+	formatValueForDisplay(value, datingSystem) {
+		if(datingSystem == "BP") {
+			return value * -1;
+		}
+		if(datingSystem == "AD/BC") {
+			if(value < 0) {
+				value = Math.abs(value);
+			}
+		}
+
+		return value;
 	}
 
 	getSelectedScale() {
@@ -164,8 +216,103 @@ class TimelineFacet extends Facet {
 		return $("#timeline-container");
 	}
 
+	sliderUpdateCallback(values, moveSlider = false) {
+		values[0] = parseInt(values[0], 10);
+		values[1] = parseInt(values[1], 10);
+
+		//avoid year zero since it doesn't exist
+		if(values[0] == 0) {
+			values[0] = -1;
+		}
+		if(values[1] == 0) {
+			values[1] = 1;
+		}
+
+		//if current values are not within the slider range, set them to the slider range
+		if(values[0] < this.sliderMin) {
+			console.log("Lower value ("+values[0]+") is below slider min, setting to min");
+			values[0] = this.sliderMin;
+		}
+		if(values[1] > this.sliderMax) {
+			console.log("Upper value ("+values[1]+") is above slider max, setting to max");
+			values[1] = this.sliderMax;
+		}
+
+		//values[0] = this.sliderMin;
+		//values[1] = this.sliderMax;
+		
+		//console.log("Slider values:", values);
+		this.currentValues = values;
+		$(this.lowerManualInputNode).val(this.formatValueForDisplay(this.currentValues[0], this.selectedDatingSystem));
+		$(this.upperManualInputNode).val(this.formatValueForDisplay(this.currentValues[1], this.selectedDatingSystem));
+
+		if (this.selectedDatingSystem === "AD/BC") {
+			let lowerSuffix = this.currentValues[0] > 0 ? "AD" : "BC";
+			let upperSuffix = this.currentValues[1] > 0 ? "AD" : "BC";
+			$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html(lowerSuffix);
+			$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html(upperSuffix);
+		}
+
+		if (this.selectedDatingSystem === "BP") {
+			$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html("BP");
+			$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html("BP");
+		}
+
+		//Adjustments for setting the right size and position of the digit input boxes depending on how big they need to be
+		let digits = this.sliderMax.toString().length > this.sliderMin.toString().length ? this.sliderMax.toString().length : this.sliderMin.toString().length;
+		var digitSpace = digits*5;
+		$(".slider-manual-input-container .range-facet-manual-input", this.domObj).css("width", 10 + digitSpace);
+		
+
+		/* there's some performance degredation to running this code, so it's commented out for now
+		let lowerInput = $(".slider-manual-input-container[endpoint='lower']", this.getDomRef())
+		let upperInput = $(".slider-manual-input-container[endpoint='upper']", this.getDomRef())
+
+		if(lowerInput[0] && upperInput[0]) {
+			console.log(lowerInput, upperInput);
+
+			//detect horizontal overlap between the inputs
+			let lowerInputRect = lowerInput[0].getBoundingClientRect();
+			let upperInputRect = upperInput[0].getBoundingClientRect();
+
+			if(lowerInputRect.right > upperInputRect.left) {
+				//there is overlap, move the lower input to the left
+				let overlap = lowerInputRect.right - upperInputRect.left;
+				let left = lowerInputRect.left - overlap;
+				lowerInput.css("background", "red");
+			}
+			else {
+				lowerInput.css("background", "blue");
+			}
+		}
+		*/
+		
+
+		this.adjustCurtains(values);
+
+		if(moveSlider) {
+			console.log("Moving slider to", values);
+			this.slider.set(values);
+		}
+	}
+
+	adjustCurtains(values) {
+		let from = ((values[0] - this.sliderMin) / (this.sliderMax - this.sliderMin)) * 100;
+		let to = ((values[1] - this.sliderMin) / (this.sliderMax - this.sliderMin)) * 100;
+
+		// Convert the slider values to percentages for the curtains
+		let leftCurtainWidth = parseFloat((from).toFixed(2));  // Convert 'from' percentage
+		let rightCurtainWidth = parseFloat((100 - to).toFixed(2));  // Convert 'to' percentage and subtract from 100
+
+		// Adjust the left curtain's width
+		$("#result-timeline-curtain-left").css('width', leftCurtainWidth + '%');
+
+		// Adjust the right curtain's width
+		$("#result-timeline-curtain-right").css('width', rightCurtainWidth + '%');
+	}
+	
+
 	build() {
-		console.log("Building timeline facet");
 		var x = [];
         for (var i = 0; i < 500; i ++) {
             x[i] = Math.random();
@@ -201,28 +348,17 @@ class TimelineFacet extends Facet {
         Plotly.newPlot('result-timeline', data, layout, options);
 
 		$("#timeline-dating-system-selector").on("change", (e) => {
-			console.log("Dating system selector changed", e.target.value);
 			this.selectedDatingSystem = e.target.value;
 
 			let userSettings = this.sqs.getUserSettings();
 			userSettings.timelineDatingSystem = this.selectedDatingSystem;
 			this.sqs.storeUserSettings(userSettings);
 
-			this.setSelectedScale();
-
-			//update slider
-			/*
-			this.slider.data("ionRangeSlider").update({
-				min: this.sliderMin,
-				max: this.sliderMax,
-				from: this.sliderMin,
-				to: this.sliderMax,
-			});
-			*/
+			const selectedScale = this.getSelectedScale();
+			this.setSelectedScale(selectedScale, true);
 		});
 
 		$("#timeline-scale-selector").on("change", (e) => {
-			console.log("Scale selector changed", e.target.value);
 			this.selectedScale = parseInt(e.target.value);
 
 			//reset curtains
@@ -235,7 +371,7 @@ class TimelineFacet extends Facet {
 
 			//update chart and sliders max/mins to reflect new time span
 			let scale = this.scaleDefinitions.find((scale) => scale.id == this.selectedScale);
-			if(scale != null) {
+			if(scale) {
 				this.setSliderScale(scale);
 			}
 			else {
@@ -243,8 +379,8 @@ class TimelineFacet extends Facet {
 			}
 		});
 
-		this.setSelectedScale();
-
+		
+		//create the slider
 		this.slider = noUiSlider.create($("#result-timeline-slider .range-slider-input")[0], {
 			start: [this.sliderMin, this.sliderMax],
 			range: {
@@ -255,26 +391,18 @@ class TimelineFacet extends Facet {
 			connect: true
 		});
 
+		const selectedScale = this.getSelectedScale();
+		this.setSelectedScale(selectedScale);
+
 		$(".slider-manual-input-container", this.getDomRef()).remove();
 		var upperManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='upper']")[0].cloneNode(true);
 		var lowerManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='lower']")[0].cloneNode(true);
-
-		$(upperManualInputNode).append(`<div class="range-unit">BP</div>`);
 		
 		$("input", upperManualInputNode).val(this.sliderMax);
 		$("input", lowerManualInputNode).val(this.sliderMin);
 
-		$(".noUi-handle-upper", this.getDomRef()).append(upperManualInputNode);
-		$(".noUi-handle-lower", this.getDomRef()).append(lowerManualInputNode);
-		
-		//Lots of adjustments for setting the right size and position of the digit input boxes depending on how big they need to be
-		let digits = this.sliderMax.toString().length > this.sliderMin.toString().length ? this.sliderMax.toString().length : this.sliderMin.toString().length;
-		var digitSpace = digits*5;
-		$(".slider-manual-input-container", this.domObj).css("width", 20 + digitSpace);
-		$(".range-facet-manual-input", this.domObj).css("width", 18 + digitSpace);
-		
-		$(".noUi-handle-lower > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(-7-digitSpace)+"px");
-		$(".noUi-handle-upper > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(13)+"px");
+		$(".noUi-handle-upper", this.getDomRef()).prepend(upperManualInputNode);
+		$(".noUi-handle-lower", this.getDomRef()).prepend(lowerManualInputNode);
 
 		$(".slider-manual-input-container", this.getDomRef()).show();
 
@@ -282,83 +410,115 @@ class TimelineFacet extends Facet {
 		this.lowerManualInputNode = $(".noUi-handle-lower .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
 
 		$(".slider-manual-input-container", this.getDomRef()).on("change", (evt) => {
-			//this.manualInputCallback(evt);
+			let value = evt.target.value;
+
+			//we have to process the value here before we are ready to start using it because there are a few things to consider:
+			//if the scale is AD/BC, we need to convert the value to BP
+
+			//and when the value is BP we need to reverse it since the slider is set up to handle BP in reverse (for technical reasons), so plus is minus and minus should be plus
+
+			if(this.selectedDatingSystem == "BP") {
+				value = value * -1;
+			}
+
+			let tabIndex = $(evt.target).attr("tabindex");
+			if(tabIndex == 1) {
+				//this is the lower value
+
+				if(this.selectedDatingSystem == "AD/BC") {
+					//check if the value has a suffix of "BC" or "AD" (including lowercase)
+					let suffix = value.toString().toLowerCase().replace(/[^a-z]/g, '');
+
+					//strip out any suffix to get the pure number
+					value = value.toString().replace(/[^0-9]/g, '');
+
+					if(suffix && suffix == "bc") {
+						value = value * -1;
+					}
+					if(suffix && suffix == "ad") {
+						value = value * 1;
+					}
+
+					//if this is the lower value AND it's (previously) a BC year, then we assume that new the number is punched in is meant to be a BC year, and the reverse for AD of course
+					if(!suffix && this.currentValues[0] < 0) {
+						//this is negative, it's a BC year
+						value = value * -1;
+					}
+				}
+
+				//check that the value is within the slider range
+				if(value < this.sliderMin) {
+					console.warn("WARN: Lower value is below slider min, setting to min");
+					value = this.sliderMin;
+				}
+
+				//and that the value is a number
+				if(isNaN(value)) {
+					console.warn("WARN: Lower value is not a number, setting to min");
+					value = this.sliderMin;
+				}
+
+				//and that the value is below the upper value
+				if(value > this.currentValues[1]) {
+					console.warn("WARN: Lower value is above upper value, setting to upper value - 1");
+					value = this.currentValues[1] - 1;
+				}
+
+				this.sliderUpdateCallback([value, this.currentValues[1]], true);
+			}
+			if(tabIndex == 2) {
+				//this is the upper value
+				if(this.selectedDatingSystem == "AD/BC") {
+					//check if the value has a suffix of "BC" or "AD" (including lowercase)
+					let suffix = value.toString().toLowerCase().replace(/[^a-z]/g, '');
+
+					//strip out any suffix to get the pure number
+					value = value.toString().replace(/[^0-9]/g, '');
+
+					if(suffix && suffix == "bc") {
+						value = value * -1;
+					}
+					if(suffix && suffix == "ad") {
+						value = value * 1;
+					}
+
+					//if this is the upper value AND it's (previously) a BC year, then we assume that new the number is punched in is meant to be a BC year, and the reverse for AD of course
+					if(!suffix && this.currentValues[1] < 0) {
+						//this is negative, it's a BC year
+						value = value * -1;
+					}
+				}
+
+				//check that the value is within the slider range
+				if(value > this.sliderMax) {
+					console.warn("WARN: Upper value is above slider max, setting to max");
+					value = this.sliderMax;
+				}
+
+				//and that the value is a number
+				if(isNaN(value)) {
+					console.warn("WARN: Upper value is not a number, setting to max");
+					value = this.sliderMax;
+				}
+				//and that the value is above the lower value
+				if(value < this.currentValues[0]) {
+					console.warn("WARN: Upper value is below lower value, setting to lower value + 1");
+					value = this.currentValues[0] + 1;
+				}
+
+				this.sliderUpdateCallback([this.currentValues[0], value], true);
+			}
 		});
 
 
 		this.slider.off("update");
 		this.slider.on("update", (values, slider) => {
-
-			let lowerValue = parseInt(values[0]);
-			let upperValue = parseInt(values[1]);
-
-			lowerValue = Math.abs(lowerValue);
-			upperValue = Math.abs(upperValue);
-
-			if(this.selectedDatingSystem == "AD/BC") {
-				
-			}
-			else {
-				
-			}
-
-			$("input", lowerManualInputNode).val(lowerValue);
-			$("input", upperManualInputNode).val(upperValue);
+			this.sliderUpdateCallback(values);
 		});
 		this.slider.on("change", (values, slider) => {
 			console.log(values);
+			//this.fetchData();
 		});
-        
-		/*
-    	this.slider = $("#result-timeline-slider .range-slider-input").ionRangeSlider({
-			type: "double",
-			min: this.sliderMin,
-			max: this.sliderMax,
-			step: 1,
-			skin: "flat",
-			prettify_enabled: true, // Enables prettify function
-			prettify: (num) => {
-
-				if(this.selectedDatingSystem == "AD/BC") {
-					//if the selected scale is modern history, we actually reverse the displayed numbers since ION cannot handle a larger "from" value than "to"
-					//so the internal logic will be the reverse of what is displayed
-					let suffix = " AD";
-					console.log(this.sliderMax, num);
-					let pastValue = (num - this.sliderMin);
-					if(this.sliderMax - pastValue < 0) {
-						suffix = " BC";
-					}
-					return this.formatWithSpaces(Math.abs(this.sliderMax - pastValue)) + suffix;
-				}
-				else {
-					return this.formatWithSpaces(Math.abs(num))+" BP";
-				}
-			},
-            onFinish: (data) => {
-				let values = [];
-				values.push(data.from);
-				values.push(data.to);
-                //this.setSelections(values);
-				this.sliderMovedCallback(values);
-			},
-            onChange: (data) => {
-				//this.sliderMax = this.slider.data("ionRangeSlider").options.max;
-
-				let from = ((data.from - this.sliderMin) / (this.sliderMax - this.sliderMin)) * 100;
-				let to = ((data.to - this.sliderMin) / (this.sliderMax - this.sliderMin)) * 100;
-
-				// Convert the slider values to percentages for the curtains
-				let leftCurtainWidth = parseFloat((from).toFixed(2));  // Convert 'from' percentage
-				let rightCurtainWidth = parseFloat((100 - to).toFixed(2));  // Convert 'to' percentage and subtract from 100
-
-                // Adjust the left curtain's width
-                $("#result-timeline-curtain-left").css('width', leftCurtainWidth + '%');
-        
-                // Adjust the right curtain's width
-                $("#result-timeline-curtain-right").css('width', rightCurtainWidth + '%');
-            }
-		});
-		*/
 
         // Resize the plotly chart when the window is resized, add a delay to allow the layout to settle, this will not work otherwise, it's stupid, but it is what it is
         window.addEventListener('resize', () => {
@@ -376,45 +536,6 @@ class TimelineFacet extends Facet {
         $(window).on('resize', function() {
             //$("#timeline-container .range-slider-input").data("ionRangeSlider").update();
         });
-
-		/*
-		$("#result-timeline-slider .irs-to").html(`
-			<input type="text" value="100">
-		`);
-		*/
-	}
-
-	getCurrentScale() {
-		return this.scaleDefinitions.find((scale) => scale.id == this.selectedScale);
-	}
-
-	sliderMovedCallback(values) {
-		let scale = this.getCurrentScale();
-		let from = values[0];
-		let to = values[1];
-
-		let fromBP = from;
-		let toBP = to;
-
-		if(scale.unit == "year") {
-			from = this.sliderMax - (values[0] - this.sliderMin);
-			to = this.sliderMax - (values[1] - this.sliderMin);
-
-			Config.constants.BP;
-			
-			//convert to BP
-			fromBP = Config.constants.BP - from;
-			toBP = Config.constants.BP - to;
-		}
-		console.log(from, to);
-		console.log(fromBP, toBP);
-
-		if(fromBP < toBP) {
-			this.setSelections([fromBP, toBP]);
-		}
-		else {
-			console.warn("WARN: Slider moved callback called with invalid values, from is greater than to");
-		}
 	}
 
     setSelections(selections) {
@@ -595,15 +716,7 @@ class TimelineFacet extends Facet {
 			});
 		}
 
-		//set slider max and min values
-		/*
-		this.slider.data("ionRangeSlider").update({
-			min: this.totalLower,
-			max: this.totalUpper,
-			from: setHandles ? this.totalLower : this.selections[0],
-			to: setHandles ? this.totalUpper: this.selections[1]
-		});
-		*/
+		console.log("Imported data for timeline", this.datasets);
 	}
 
     broadcastSelection(filter = null) {

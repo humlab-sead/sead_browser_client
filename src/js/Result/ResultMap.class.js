@@ -1297,12 +1297,12 @@ class ResultMap extends ResultModule {
 	*/
 	resizeCallback() {
 		if(this.olMap != null && this.active) {
-			$(this.renderIntoNode).hide();
+			//$(this.renderIntoNode).hide();
 			if(typeof(this.resizeTimeout) != "undefined") {
 				clearTimeout(this.resizeTimeout);
 			}
 			this.resizeTimeout = setTimeout(() => {
-				$(this.renderIntoNode).show();
+				//$(this.renderIntoNode).show();
 				this.olMap.updateSize();
 			}, 500);
 		}

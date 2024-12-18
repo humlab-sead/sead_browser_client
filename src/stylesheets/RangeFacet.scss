@@ -1,8 +1,5 @@
-
-
 .range-chart-canvas {
 }
-
 
 .range-facet-slider-info-panel {
 	position:relative;
@@ -14,7 +11,6 @@
 	font-family: $special-font;
 }
 
-
 .rangeslider-container-wrapper {
   display:flex;
   justify-content: center;
@@ -22,7 +18,6 @@
 }
 
 .rangeslider-container {
-  /*width: calc(100% - 60px);*/
   width: 100%;
   margin-left: 30px;
   margin-right: 30px;
@@ -48,23 +43,14 @@
 	background: $aux-color !important;
 }
 
-.slider-manual-input-container {
-	display: none;
-	position: relative !important;
-	top: -2px;
-  	margin-left: -4px;
-	width: 30px;
-	height: 30px;
-	text-align: center;
-}
-
 .range-facet-manual-input {
 	position:relative;
-	width: 26px;
 	height: 18px;
 	font-size: 0.80em;
-	top: -20px !important;
-	text-align:center;
+	text-align: center;
+	border-width: 1px;
+	border-right-width: 0;
+	border-color: #666;
 }
 
 .range-facet-slider-info-panel {
@@ -76,7 +62,6 @@
 	font-size:14px;
 	font-family: $special-font;
 }
-
 
 .rangeslider-container-wrapper {
   display:flex;
@@ -95,47 +80,50 @@
 	position:relative;
 	background-color: $inactive-color !important;
 	background-color: transparent !important;
-	height: 4px !important;
-	width: 26px !important;
-	top:-9px !important;
-
-	opacity: 1.0;
-	margin-top:0px;
 	cursor: ew-resize !important;
 	box-shadow: none !important;
-	border-radius: 1px !important;
 	border-width: 0px !important;
-	border-color: $aux-color !important;
+}
+
+.slider-manual-input-container {
+	display: flex;
+	position: relative;
+	justify-content: center;
+  	align-items: center;
+	z-index: 10;
+	top: -21px;
+}
+
+.slider-manual-input-container::after {
+    content: '';
+    position: absolute;
+    bottom: -8px; /* Adjust this to control the distance from the container */
+    left: calc(50% + 1px);
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #666; /* Replace black with your desired color */
+}
+
+.range-unit-box {
+	position: relative;
+	background: $aux-color;
+	color: #fff;
+	font-size: 0.8em;
+	height: 18px;
+	padding: calc(0.2em - 1px);
+	left: -1px;
 	border-style: solid;
-	border-top-width: 0px !important;
-	border-bottom-width: 0px !important;
-	border-left-width: 0px !important;
-	border-right-width: 0px !important;
-}
-
-
-
-.noUi-handle-lower > .slider-manual-input-container {
-  position: relative !important;
-  //left: -37px !important;
-  border-right: 2px solid $aux-color !important;
-}
-
-
-.noUi-handle-upper > .slider-manual-input-container {
-  position: relative !important;
-  //left: 13px !important;
-  border-left: 2px solid $aux-color !important;
-}
-
-.noUi-handle-upper .slider-manual-input-container .range-facet-manual-input {
-	position: relative !important;
-	left: -25px !important;
-}
-
-.noUi-handle-lower .slider-manual-input-container .range-facet-manual-input {
-	position: relative !important;
-	left: 25px !important;
+	border-width: 1px;
+	border-color: #666;
+	border-left-width: 0px;
+	padding-left: 0.3em;
+	padding-right: 0.3em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .noUi-handle:after, .noUi-handle:before {
@@ -145,10 +133,13 @@
 	height: 0px !important;
 }
 
-div.noUi-connect {
+div.noUi-connects > div.noUi-connect {
 	background: $aux-color !important;
+	border-radius: 0px !important;
+	border-width: 0px !important;
+	min-width: 10px !important;
 }
 
 div.noUi-connects {
-	border-radius: 0px !important;
+	width: calc(100% + 1px) !important; //don't ask me why this is needed - but we get a 1 px white gap on the right side of the slider without this
 }

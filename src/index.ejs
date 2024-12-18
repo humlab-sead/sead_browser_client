@@ -186,7 +186,14 @@
               <div id="result-globe-container" class="result-module-container"></div>
               <div id="timeline-container">
                 <div id='timeline-title-bar'>
-                  <h2><i class="fa fa-clock-o" aria-hidden="true"></i>&nbsp;Timeline</h2>
+                  <h2>
+                    <i class="fa fa-clock-o" aria-hidden="true"></i>
+                    &nbsp;Timeline
+                    <div id="timeline-filter-checkbox-container">
+                      <label for="timeline-filter-checkbox" class="timeline-filter-checkbox-label">Use as filter</label>
+                      <input type="checkbox" id="timeline-filter-checkbox" name="timeline-filter-checkbox" />
+                    </div>
+                  </h2>
                   <div id='timeline-scale-selector-container'>
                     <label>Time scale</label>
                     <select id='timeline-scale-selector'></select>
@@ -604,10 +611,12 @@
 
             <!--range-facet-manual-input-container -> slider-manual-input-container  -->
             <div class='slider-manual-input-container' endpoint="upper">
-              <input type='text' maxlength='6' class='range-facet-manual-input' tabindex="2" />
+              <input type='text' maxlength='12' class='range-facet-manual-input' tabindex="2" />
+              <div class="range-unit-box">BP</div>
             </div>
             <div class='slider-manual-input-container' endpoint="lower">
-              <input type='text' maxlength='6' class='range-facet-manual-input' tabindex="1" />
+              <input type='text' maxlength='12' class='range-facet-manual-input' tabindex="1" />
+              <div class="range-unit-box">BP</div>
             </div>
           
 
