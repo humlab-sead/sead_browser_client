@@ -103,6 +103,7 @@ class TimelineFacet extends Facet {
 			$("#timeline-scale-selector").append(`<option value="${scale.id}" ${selected}>${scale.name}</option>`);
 		});
 
+		this.setupResizableSections();
     }
 
 	getSliderValues() {
@@ -537,6 +538,16 @@ class TimelineFacet extends Facet {
             //$("#timeline-container .range-slider-input").data("ionRangeSlider").update();
         });
 	}
+
+	setupResizableSections() {
+		$("#timeline-container").resizable({
+			handles: "n",
+			resize: (event, ui) => {
+				$("#result-map-container").css("height", "calc(100% - "+ui.size.height+"px)");
+			}
+		}).on("resize", (e) => {
+		});
+    }
 
     setSelections(selections) {
 		//selections is always BP
