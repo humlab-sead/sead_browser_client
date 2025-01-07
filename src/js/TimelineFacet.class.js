@@ -103,7 +103,21 @@ class TimelineFacet extends Facet {
 			$("#timeline-scale-selector").append(`<option value="${scale.id}" ${selected}>${scale.name}</option>`);
 		});
 
-		this.setupResizableSections();
+		this.graphDataOptions = [
+			{
+				name: "Sites",
+				endpoint: "sites"
+			}
+		];
+
+		this.graphDataOptions.forEach((option) => {
+			$("#timeline-data-selector").append(`<option value="${option.name}">${option.name}</option>`);
+		});
+
+		$("#timeline-data-selector").on("change", (e) => {
+		});
+
+		//this.setupResizableSections();
     }
 
 	getSliderValues() {

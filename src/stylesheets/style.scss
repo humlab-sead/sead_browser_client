@@ -2088,12 +2088,12 @@ polyline{
   font-size: 0.8em;
 }
 
-#timeline-scale-selector-container {
+.timeline-selector-container {
   display: flex;
   color: #000;
 }
 
-#timeline-scale-selector-container > label {
+.timeline-selector-container > label {
   display: flex;
   align-items: center;
   background: #ddd;
