@@ -660,7 +660,8 @@ class ResultMap extends ResultModule {
 	}
 
 	renderHeatmapLayer() {
-		let timeFilteredData = this.timeline.getSelectedSites();
+		//let timeFilteredData = this.timeline.getSelectedSites();
+		let timeFilteredData = this.data;
 		var geojson = this.getDataAsGeoJSON(timeFilteredData);
 
 		var gf = new GeoJSON({
@@ -694,7 +695,8 @@ class ResultMap extends ResultModule {
 	* Function: renderPointsLayer
 	*/
 	renderPointsLayer() {
-		let timeFilteredData = this.timeline.getSelectedSites();
+		//let timeFilteredData = this.timeline.getSelectedSites();
+		let timeFilteredData = this.data;
 		var geojson = this.getDataAsGeoJSON(timeFilteredData);
 
 		var gf = new GeoJSON({

@@ -68,10 +68,10 @@ class FacetManager {
 				this.chainQueueFacetDataFetch(fetchFromFacet);
 			}
 			
-			if(this.getCountOfFacetsForSlots() == 0) {
+			if(this.getCountOfFacetsForSlots() == 1) {
 				$("#facet-show-only-selections-btn").hide();
 				setTimeout(() => {
-					if(this.getCountOfFacetsForSlots() == 0) { //If there's still no facet...
+					if(this.getCountOfFacetsForSlots() == 1) { //If there's still no facet...
 						this.renderDemoSlot();
 					}
 				}, 500);
@@ -90,7 +90,7 @@ class FacetManager {
 		this.renderDemoSlot();
 		
 		this.sqs.sqsEventListen("sqsFacetPreAdd", () => {
-			if(this.demoSlot != null) {
+			if(this.demoSlot != null && this.getCountOfFacetsForSlots() > 0) {
 				$(".filter-demo-arrow").remove();
 				this.removeSlot(this.demoSlot, true);
 				this.demoSlot = null;

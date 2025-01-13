@@ -15,6 +15,8 @@ class TimelineFacet extends Facet {
 	constructor(sqs, id = null, template = {}, mapObject = null) {
         super(sqs, id, template);
 
+		this.useCurtains = false;
+
         this.totalUpper = null; //Lowest possible value of this filter, without filters applied
 		this.totalLower = null; //Highest possible value of this fulter, without filters applied
 		this.datasets = {
@@ -24,7 +26,6 @@ class TimelineFacet extends Facet {
 		this.selections = [];
 		this.minDataValue = null;
 		this.maxDataValue = null;
-
 		this.map = mapObject;
 		this.chart = null;
 		this.sliderElement = null;
@@ -105,8 +106,8 @@ class TimelineFacet extends Facet {
 
 		this.graphDataOptions = [
 			{
-				name: "Sites",
-				endpoint: "sites"
+				name: "Data points",
+				endpoint: "data_points"
 			}
 		];
 
@@ -115,6 +116,7 @@ class TimelineFacet extends Facet {
 		});
 
 		$("#timeline-data-selector").on("change", (e) => {
+			console.log("Changing data selector", e.target.value);
 		});
 
 		//this.setupResizableSections();
@@ -171,6 +173,8 @@ class TimelineFacet extends Facet {
 	}
 
 	setSelectedScale(selectedScale, newDatingSystem = false) {
+		console.log("Setting selected scale", selectedScale);
+
 		if (this.selectedDatingSystem === "AD/BC") {
 			this.sliderMin = this.currentYear + selectedScale.older;
 			this.sliderMax = this.sqs.config.constants.BP + selectedScale.younger;
@@ -206,8 +210,16 @@ class TimelineFacet extends Facet {
 			console.warn("WARN: Slider not initialized yet, cannot set scale");
 		}
 
+		this.setSelections(this.sliderSelectionsToBP([this.sliderMin, this.sliderMax]));
+
 		// Trigger any updates or re-rendering needed for the slider
 		this.sliderUpdateCallback(this.currentValues);
+
+		this.fetchData();
+	}
+
+	sliderSelectionsToBP(selections) {
+		return [selections[1] * -1, selections[0] * -1];
 	}
 
 	formatValueForDisplay(value, datingSystem) {
@@ -303,7 +315,9 @@ class TimelineFacet extends Facet {
 		*/
 		
 
-		this.adjustCurtains(values);
+		if(this.useCurtains) {
+			this.adjustCurtains(values);
+		}
 
 		if(moveSlider) {
 			console.log("Moving slider to", values);
@@ -326,41 +340,60 @@ class TimelineFacet extends Facet {
 		$("#result-timeline-curtain-right").css('width', rightCurtainWidth + '%');
 	}
 	
+	createChart() {
+		const trace = {
+			x: [],
+            y: [],
+			type: 'scatter',
+			mode: 'lines',
+		};
+	
+		const layout = {
+			title: 'Timeline',
+			plot_bgcolor: this.sqs.color.colors.paneBgColor,
+			paper_bgcolor: this.sqs.color.colors.paneBgColor,
+			autosize: true,
+			responsive: true,
+			margin: { l: 50, r: 50, t: 0, b: 0 },
+		};
+	
+		const options = {
+			displayModeBar: false,
+			responsive: true,
+			staticPlot: true, // no interactions
+		};
+	
+		const data = [trace];
+	
+		Plotly.newPlot('result-timeline', data, layout, options);
+	
+		// Store chart reference if needed
+		this.chartData = data;
+		this.chartLayout = layout;
+	}
+
+	updateChartData(newX, newY) {
+		if (!this.chartData || !this.chartData[0]) {
+			console.error('Chart data not initialized. Call createChart() first.');
+			return;
+		}
+		
+		Plotly.update('result-timeline', {
+			x: [newX],
+			y: [newY],
+		}, {});
+	}
 
 	build() {
-		var x = [];
-        for (var i = 0; i < 500; i ++) {
-            x[i] = Math.random();
-        }
+		this.createChart();
 
-        x.sort((a, b) => a - b);
+		 // Generate random data
+		 const x = Array.from({ length: 500 }, () => Math.random()).sort((a, b) => a - b);
+		 const y = x.map((val, index) => index);
+	 
+		 // Update the chart with the generated data
+		 this.updateChartData(x, y);
 
-        var trace = {
-            x: x,
-            y: x.map((val, index) => index),
-            type: 'scatter',
-            mode: 'lines'
-        };
-        var data = [trace];
-
-        let layout = {
-            title: 'Timeline',
-            plot_bgcolor: this.sqs.color.colors.paneBgColor,
-			paper_bgcolor: this.sqs.color.colors.paneBgColor,
-			//plot_bgcolor: "#FFA07A",
-			//paper_bgcolor: "#FFA07A",
-			autosize: true,
-            responsive: true,
-            margin: { l: 50, r: 50, t: 0, b: 0 },
-        };
-
-        let options = {
-            displayModeBar: false,
-            responsive: true,
-			staticPlot: true //no interactions
-        };
-
-        Plotly.newPlot('result-timeline', data, layout, options);
 
 		$("#timeline-dating-system-selector").on("change", (e) => {
 			this.selectedDatingSystem = e.target.value;
@@ -532,7 +565,9 @@ class TimelineFacet extends Facet {
 		});
 		this.slider.on("change", (values, slider) => {
 			console.log(values);
-			//this.fetchData();
+			//set new selections on this facet
+			let bpValues = this.sliderSelectionsToBP([parseInt(values[0]), parseInt(values[1])]);
+			this.setSelections(bpValues);
 		});
 
         // Resize the plotly chart when the window is resized, add a delay to allow the layout to settle, this will not work otherwise, it's stupid, but it is what it is
@@ -564,13 +599,15 @@ class TimelineFacet extends Facet {
     }
 
     setSelections(selections) {
+		console.log("set selections:", selections);
 		//selections is always BP
+
+		/*
 		//if the scale display is also BP, then we can just grab the number straight from the slider
 		//the first value is the lower bound, the second value is the upper bound
 		//but if the scale is AD, we need to reverse the numbers since the slider is set up to handle BP
-
 		if(this.selectedScale == 1) {
-			//if the selected scale is modern history, we actually reverse the displayed numbers since ION cannot handle a larger "from" value than "to"
+			//if the selected scale is modern history, we actually reverse the displayed numbers since slider cannot handle a larger "from" value than "to"
 			//so the internal logic will be the reverse of what is displayed
 			let from = this.sliderMax - (selections[0] - this.sliderMin);
 			let to = this.sliderMax - (selections[1] - this.sliderMin);
@@ -582,8 +619,7 @@ class TimelineFacet extends Facet {
 			selections[0] = 1950 - selections[0];
 			selections[1] = 1950 - selections[1];
 		}
-
-		console.log(selections)
+		*/
 		
 
 		let selectionsUpdated = false;
@@ -607,9 +643,10 @@ class TimelineFacet extends Facet {
 		}
 	}
 
+	//getSelections() { }
 
     async fetchData(render = true) {
-        console.log("Fetching data for timeline");
+        //console.log("Fetching data for timeline");
 
         if(!this.dataFetchingEnabled) {
 			console.warn("WARN: fetchData called on a facet where dataFetchingEnabled is false. Ignoring.");
@@ -631,7 +668,7 @@ class TimelineFacet extends Facet {
 		}
 		
 		var fs = this.sqs.facetManager.getFacetState();
-		var fc = this.sqs.facetManager.facetStateToDEF(fs, {
+		var facetConfigs = this.sqs.facetManager.facetStateToDEF(fs, {
 			requestType: requestType,
 			targetCode: targetCode,
 			triggerCode: triggerCode
@@ -646,7 +683,7 @@ class TimelineFacet extends Facet {
 			targetCode: targetCode,
 			triggerCode: triggerCode,
 			domainCode: domainCode,
-			facetConfigs: fc
+			facetConfigs: facetConfigs
 		};
 
 		return $.ajax(config.serverAddress+"/api/facets/load", {
@@ -697,9 +734,26 @@ class TimelineFacet extends Facet {
 			this.build();
 		}
 
-        console.log(this.totalLower, this.totalUpper);
-        console.log(this.datasets);
+		this.datasets.filtered;
+
+		const { x, y } = this.convertToChartBins(this.datasets.filtered);
+		//console.log(chartData)
+		this.updateChartData(x, y);
     }
+
+	convertToChartBins(filteredDatasets) {
+		const x = [];
+		const y = [];
+	
+		filteredDatasets.forEach(dataset => {
+			const midpoint = (dataset.min + dataset.max) / 2; // Calculate bin midpoint
+			x.push(midpoint); // X-axis is the midpoint of the bin
+			y.push(dataset.value); // Y-axis is the bin value
+		});
+	
+		return { x, y };
+	}
+	
 
     importData(importData, overwrite = true) {
 		super.importData(importData);

@@ -438,6 +438,7 @@ class RangeFacet extends Facet {
 		$(".noUi-handle-lower", this.getDomRef()).append(lowerManualInputNode);
 		
 		//Lots of adjustments for setting the right size and position of the digit input boxes depending on how big they need to be
+		/*
 		let digits = sliderMax.toString().length > sliderMin.toString().length ? sliderMax.toString().length : sliderMin.toString().length;
 		var digitSpace = digits*5;
 		$(".slider-manual-input-container", this.domObj).css("width", 20 + digitSpace);
@@ -445,11 +446,20 @@ class RangeFacet extends Facet {
 		
 		$(".noUi-handle-lower > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(-7-digitSpace)+"px");
 		$(".noUi-handle-upper > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(13)+"px");
+		*/
+		let digits = this.sliderMax.toString().length > this.sliderMin.toString().length ? this.sliderMax.toString().length : this.sliderMin.toString().length;
+		var digitSpace = digits*5;
+		$(".slider-manual-input-container .range-facet-manual-input", this.domObj).css("width", 10 + digitSpace);
+
+
 
 		$(".slider-manual-input-container", this.getDomRef()).show();
 
 		this.upperManualInputNode = $(".noUi-handle-upper .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
 		this.lowerManualInputNode = $(".noUi-handle-lower .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
+
+		$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html("");
+		$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html("");
 
 		$(".slider-manual-input-container", this.getDomRef()).on("change", (evt) => {
 			this.manualInputCallback(evt);
@@ -468,8 +478,92 @@ class RangeFacet extends Facet {
 			this.adjustSliderInputPositions(overlap, this.lowerManualInputNode, this.upperManualInputNode);
 		});
 		this.sliderElement.on("change", (values, slider) => {
-			this.sliderMovedCallback(values, slider);
+			//this.sliderMovedCallback(values, slider);
+			this.sliderUpdateCallback(values);
 		});
+	}
+
+	sliderUpdateCallback(values, moveSlider = false) {
+		console.log("Slider update callback", values);
+		values[0] = parseInt(values[0], 10);
+		values[1] = parseInt(values[1], 10);
+
+		//avoid year zero since it doesn't exist
+		if(values[0] == 0) {
+			values[0] = -1;
+		}
+		if(values[1] == 0) {
+			values[1] = 1;
+		}
+
+		//if current values are not within the slider range, set them to the slider range
+		if(values[0] < this.sliderMin) {
+			console.log("Lower value ("+values[0]+") is below slider min, setting to min");
+			values[0] = this.sliderMin;
+		}
+		if(values[1] > this.sliderMax) {
+			console.log("Upper value ("+values[1]+") is above slider max, setting to max");
+			values[1] = this.sliderMax;
+		}
+
+		//values[0] = this.sliderMin;
+		//values[1] = this.sliderMax;
+		
+		//console.log("Slider values:", values);
+		this.currentValues = values;
+		$(this.lowerManualInputNode).val(this.formatValueForDisplay(this.currentValues[0], this.selectedDatingSystem));
+		$(this.upperManualInputNode).val(this.formatValueForDisplay(this.currentValues[1], this.selectedDatingSystem));
+
+		if (this.selectedDatingSystem === "AD/BC") {
+			let lowerSuffix = this.currentValues[0] > 0 ? "AD" : "BC";
+			let upperSuffix = this.currentValues[1] > 0 ? "AD" : "BC";
+			$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html(lowerSuffix);
+			$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html(upperSuffix);
+		}
+
+		if (this.selectedDatingSystem === "BP") {
+			$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html("BP");
+			$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html("BP");
+		}
+
+		//Adjustments for setting the right size and position of the digit input boxes depending on how big they need to be
+		let digits = this.sliderMax.toString().length > this.sliderMin.toString().length ? this.sliderMax.toString().length : this.sliderMin.toString().length;
+		var digitSpace = digits*5;
+		$(".slider-manual-input-container .range-facet-manual-input", this.domObj).css("width", 10 + digitSpace);
+		
+
+		/* there's some performance degredation to running this code, so it's commented out for now
+		let lowerInput = $(".slider-manual-input-container[endpoint='lower']", this.getDomRef())
+		let upperInput = $(".slider-manual-input-container[endpoint='upper']", this.getDomRef())
+
+		if(lowerInput[0] && upperInput[0]) {
+			console.log(lowerInput, upperInput);
+
+			//detect horizontal overlap between the inputs
+			let lowerInputRect = lowerInput[0].getBoundingClientRect();
+			let upperInputRect = upperInput[0].getBoundingClientRect();
+
+			if(lowerInputRect.right > upperInputRect.left) {
+				//there is overlap, move the lower input to the left
+				let overlap = lowerInputRect.right - upperInputRect.left;
+				let left = lowerInputRect.left - overlap;
+				lowerInput.css("background", "red");
+			}
+			else {
+				lowerInput.css("background", "blue");
+			}
+		}
+		*/
+		
+
+		if(this.useCurtains) {
+			this.adjustCurtains(values);
+		}
+
+		if(moveSlider) {
+			console.log("Moving slider to", values);
+			this.slider.set(values);
+		}
 	}
 
 	adjustSliderInputPositions(overlap, lowerManualInputNode, upperManualInputNode) {
