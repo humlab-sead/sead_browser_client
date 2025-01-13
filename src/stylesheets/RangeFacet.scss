@@ -63,12 +63,6 @@
 	font-family: $special-font;
 }
 
-.rangeslider-container-wrapper {
-  display:flex;
-  justify-content: center;
-  width: 100%;
-}
-
 .rangeslider-container {
   /*width: calc(100% - 60px);*/
   width: 100%;
@@ -87,11 +81,12 @@
 
 .slider-manual-input-container {
 	display: flex;
-	position: relative;
+	position: absolute;
 	justify-content: center;
   	align-items: center;
 	z-index: 10;
 	top: -21px;
+	left: -11px;
 }
 
 .slider-manual-input-container::after {
