@@ -253,7 +253,6 @@ class ResultMap extends ResultModule {
 		}
 
 		if(this.uiState.dataType == "Feature types") {
-			console.log("Feature types selected");
 			await this.initDataLayerPanel();
 		}
 
@@ -534,7 +533,6 @@ class ResultMap extends ResultModule {
 	}
 
 	fitMapToData(sites) {
-		console.log(sites);
 		let latHigh = this.resultManager.sqs.getExtremePropertyInList(sites, "lat", "high");
 		let latLow = this.resultManager.sqs.getExtremePropertyInList(sites, "lat", "low");
 		let lngHigh = this.resultManager.sqs.getExtremePropertyInList(sites, "lng", "high");
@@ -1655,7 +1653,6 @@ class ResultMap extends ResultModule {
 				clusterDistance = 5;
 				break;
 		}
-		
 
 		var gf = new GeoJSON({
 			featureProjection: "EPSG:3857"
