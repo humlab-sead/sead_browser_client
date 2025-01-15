@@ -2050,6 +2050,7 @@ polyline{
 }
 
 .result-map-render-container {
+  position: relative;
   width: 100%;
   height: 80%;
   background-color: $pane-bg-color;
@@ -2322,23 +2323,28 @@ polyline{
 }
 
 #result-map-controls-data-type-container {
-  display:flex;
-  position:absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 1;
+  position: absolute;
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  top: 70px;
 }
 
 #result-map-controls-data-type-sub-menu {
   display:block;
-  position:absolute;
-  top: 4em;
-  left: 0px;
-  z-index: 1;
+  position:relative;
   background: $base-color;
-  border: 1px solid $inactive-color;
-  border-radius: 0.25em;
   padding: 0.5em;
+  margin-right: 10px;
+}
+
+#result-map-controls-data-type-sub-menu h3 {
+  margin: 0;
+  margin-bottom: 0.5em;
+  padding: 0;
+  font-size: 1.2em;
+  font-weight: normal;
+  color: $white;
 }
 
 #result-map-controls-container {
@@ -2566,8 +2572,8 @@ polyline{
 
 #popover-dialog-frame {
   display: block;
-  max-height: 95vh;
-  max-width: 95vw;
+  max-height: 90vh;
+  max-width: 90vw;
   min-width: 300px;
   min-height: 80px;
   position: relative;
@@ -3152,17 +3158,32 @@ svg text {
 }
 
 .result-map-map-control-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
   background: $base-color;
   position: relative;
   top: 0;
-  padding: 1em;
+  padding: .5em;
+  padding-left: 1em;
+  padding-right: 1em;
   color: $white;
   font-size: 1.2em;
+  border-right: 1px solid $inactive-color;
 }
 
 .result-map-map-control-item:hover {
   background: lighten($base-color, 10%);
   cursor: pointer;
+}
+
+.result-map-map-control-item-subheading {
+  font-size: 0.7em;
+  margin-top: 0.2em;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .content-item-chart-rendering-message {

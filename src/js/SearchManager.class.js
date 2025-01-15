@@ -13,6 +13,16 @@ class SearchManager {
     constructor(sqs) {
         this.sqs = sqs;
         this.searchResults = [];
+
+        console.log("SearchManager constructor");
+
+        if(true) {
+            setTimeout(() => {
+                $("#search-menu").hide();
+                console.log($("#search-menu"));
+            }, 1000);
+            
+        }
     }
 
     async search(searchTerm) {

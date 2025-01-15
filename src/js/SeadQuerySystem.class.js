@@ -1212,7 +1212,10 @@ class SeadQuerySystem {
 	 * @param {*} identificationLevels - idenfication levels in the sead data server format
 	 */
 	 formatTaxon(taxon, identificationLevels = null, html = true, asLink = false) {
-
+		if(!taxon) {
+			this.notificationManager.notify("No taxa!", "error");
+			return "";
+		}
 		let familyName = taxon.family.family_name ? taxon.family.family_name : taxon.family;
 		let genusName = taxon.genus.genus_name ? taxon.genus.genus_name : taxon.genus;
 		let species = taxon.species;

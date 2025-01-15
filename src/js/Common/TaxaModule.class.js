@@ -733,6 +733,11 @@ class TaxaModule {
 		const instance = document.importNode(fragment.content, true);
 
 		let taxonData = await fetch(Config.dataServerAddress+'/taxon/'+this.taxonId).then(response => response.json());
+		if(!taxonData) {
+			this.sqs.notificationManager.notify("Failed to fetch taxon data", "error");
+			this.sqs.dialogManager.hidePopOver();
+			return false;
+		}
 
 		this.renderSpecies(instance, taxonData);
 		//this.renderSpeciesAssociation(instance, taxonData);

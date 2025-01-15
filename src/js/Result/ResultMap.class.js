@@ -39,6 +39,11 @@ class ResultMap extends ResultModule {
 		this.renderIntoNode = renderIntoNode;
 		this.includeTimeline = includeTimeline;
 
+		this.uiState = {
+			dataType: "Sites",
+			presentationMode: "Clustered"
+		};
+
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
 		if(Config.timelineEnabled && includeTimeline) {
 			$(this.renderIntoNode).append("<div class='result-timeline-render-container'></div>");
@@ -227,6 +232,34 @@ class ResultMap extends ResultModule {
 		
 	}
 
+	async renderSelectedDataLayer() {
+		this.fetchingAndRenderingDataLayer = true;
+		//take into account the settings of the map (Data type and Presentation) and then render the appropriate data layer in the appropriate way
+
+		this.removeAllDataLayers();
+
+		if(this.uiState.dataType == "Sites") {
+			switch(this.uiState.presentationMode) {
+				case "Clustered":
+					this.renderClusteredPointsLayer();
+					break;
+				case "Individual":
+					this.renderPointsLayer();
+					break;
+				case "Heatmap":
+					this.renderHeatmapLayer();
+					break;
+			}
+		}
+
+		if(this.uiState.dataType == "Feature types") {
+			console.log("Feature types selected");
+			await this.initDataLayerPanel();
+		}
+
+		this.fetchingAndRenderingDataLayer = false;
+	}
+
 	getSelectedSites() {
 		return this.data.map((site) => {
 			return site.id
@@ -344,8 +377,6 @@ class ResultMap extends ResultModule {
 			data: this.renderData
 		}).data;
 
-
-
 		/*
 		let siteIds = [];
 		this.renderData.forEach((site) => {
@@ -361,7 +392,8 @@ class ResultMap extends ResultModule {
 				this.data = d;
 				if(renderMap) {
 					this.renderMap();
-					this.renderVisibleDataLayers();
+					//this.renderVisibleDataLayers();
+					this.renderSelectedDataLayer();
 					
 					if(Config.timelineEnabled && this.includeTimeline) {
 						this.timeline.render();
@@ -482,29 +514,7 @@ class ResultMap extends ResultModule {
 			this.removeAllDataLayers();
 		}
 
-		let latHigh = this.resultManager.sqs.getExtremePropertyInList(filteredData, "lat", "high");
-		let latLow = this.resultManager.sqs.getExtremePropertyInList(filteredData, "lat", "low");
-		let lngHigh = this.resultManager.sqs.getExtremePropertyInList(filteredData, "lng", "high");
-		let lngLow = this.resultManager.sqs.getExtremePropertyInList(filteredData, "lng", "low");
-
-		let extentNW = null;
-		let extentSE = null;
-		let extent = null;
-		if(latHigh === false || latLow === false || lngHigh === false || lngLow === false) {
-			extent = this.defaultExtent;
-		}
-		else {
-			extentNW = fromLonLat([lngLow.lng, latLow.lat]);
-			extentSE = fromLonLat([lngHigh.lng, latHigh.lat]);
-
-			extent = extentNW.concat(extentSE);
-		}
-
-		this.olMap.getView().fit(extent, {
-			padding: [20, 20, 20, 20],
-			maxZoom: 10,
-			duration: 500
-		});
+		this.fitMapToData(this.data);
 
 		//NOTE: This can not be pre-defined in HTML since the DOM object itself is removed along with the overlay it's attached to when the map is destroyed.
 		let popup = $("<div></div>");
@@ -523,11 +533,36 @@ class ResultMap extends ResultModule {
 		this.olMap.addInteraction(this.selectInteraction);
 	}
 
+	fitMapToData(sites) {
+		console.log(sites);
+		let latHigh = this.resultManager.sqs.getExtremePropertyInList(sites, "lat", "high");
+		let latLow = this.resultManager.sqs.getExtremePropertyInList(sites, "lat", "low");
+		let lngHigh = this.resultManager.sqs.getExtremePropertyInList(sites, "lng", "high");
+		let lngLow = this.resultManager.sqs.getExtremePropertyInList(sites, "lng", "low");
+
+		let extentNW = null;
+		let extentSE = null;
+		let extent = null;
+		if(latHigh === false || latLow === false || lngHigh === false || lngLow === false) {
+			extent = this.defaultExtent;
+		}
+		else {
+			extentNW = fromLonLat([lngLow.lng, latLow.lat]);
+			extentSE = fromLonLat([lngHigh.lng, latHigh.lat]);
+
+			extent = extentNW.concat(extentSE);
+		}
+
+		this.olMap.getView().fit(extent, {
+			padding: [40, 40, 40, 40],
+			maxZoom: 10,
+			duration: 500
+		});
+	}
+
 	removeAllDataLayers() {
 		this.dataLayers.forEach((layer, index, array) => {
-			if(layer.getVisible()) {
-				this.removeLayer(layer.getProperties().layerId)
-			}
+			this.removeLayer(layer.getProperties().layerId)
 		});
 	}
 	
@@ -558,19 +593,30 @@ class ResultMap extends ResultModule {
 		}
 	}
 
-	removeLayer(layerId) {
-		this.olMap.getLayers().forEach((layer, index, array)=> {
-			if(typeof(layer) != "undefined" && layer.getProperties().layerId == layerId) {
+	removeLayer(layerId, removeFromStoredDataLayers = false) {
+		if(removeFromStoredDataLayers) {
+			// Remove the layer from the map and dataLayers in one go
+			this.dataLayers = this.dataLayers.filter(layer => {
+				if (layer.getProperties().layerId === layerId) {
+					this.olMap.removeLayer(layer);  // Remove from the map
+					return false;  // Remove from dataLayers
+				}
+				return true;  // Keep in dataLayers
+			});
+		}
+		
+		this.olMap.getLayers().forEach(layer => {
+			if (layer && layer.getProperties().layerId === layerId) {
 				this.olMap.removeLayer(layer);
 			}
 		});
 	}
 	
+	
 	/*
 	* Function: renderInterface
 	*/
 	renderInterfaceControls() {
-
 		if($("#result-map-controls-container").length == 0) {
 			$(this.renderMapIntoNode).append("<div id='result-map-controls-container'></div>");
 		}
@@ -583,19 +629,37 @@ class ResultMap extends ResultModule {
 		$("#result-map-controls-data-type-container").html("");
 
 		let baseLayersHtml = "<div class='result-map-map-control-item-container'>";
-		baseLayersHtml += "<div id='result-map-baselayer-controls-menu' class='result-map-map-control-item'>Base layers</div>";
+		baseLayersHtml += `<div id='result-map-baselayer-controls-menu' class='result-map-map-control-item'>
+		Base layers
+		<div class='result-map-map-control-item-subheading'>Terrain</div>
+		</div>`;
+		//baseLayersHtml += "<div class='result-map-map-control-item-subheading'>Stamen</div>";
 		baseLayersHtml += "<div id='result-map-baselayer-controls-menu-anchor'></div>";
 		baseLayersHtml += "</div>";
 		$("#result-map-controls-container").append(baseLayersHtml);
 		new SqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlsSqsMenu());
 
-		let dataLayersHtml = "<div class='result-map-map-control-item-container'>";
-		dataLayersHtml += "<div id='result-map-datalayer-controls-menu' class='result-map-map-control-item'>Data layers</div>";
-		dataLayersHtml += "<div id='result-map-datalayer-controls-menu-anchor'></div>";
-		dataLayersHtml += "</div>";
-		$("#result-map-controls-container").append(dataLayersHtml);
-		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
+		let dataTypeHtml = "<div class='result-map-map-control-item-container'>";
+		dataTypeHtml += `<div id='result-map-data-type-controls-menu' class='result-map-map-control-item'>
+		Data type
+		<div class='result-map-map-control-item-subheading'>`+this.uiState.dataType+`</div>
+		</div>`;
+		dataTypeHtml += "<div id='result-map-data-type-controls-menu-anchor'></div>";
+		dataTypeHtml += "</div>";
+		$("#result-map-controls-container").append(dataTypeHtml);
+		new SqsMenu(this.resultManager.sqs, this.resultMapDataTypeControlsSqsMenu());
 
+		let presHtml = "<div class='result-map-map-control-item-container'>";
+		presHtml += `<div id='result-map-presentation-controls-menu' class='result-map-map-control-item'>
+		Presentation
+		<div class='result-map-map-control-item-subheading'>`+this.uiState.presentationMode+`</div>
+		</div>`;
+		presHtml += "<div id='result-map-presentation-controls-menu-anchor'></div>";
+		presHtml += "</div>";
+		$("#result-map-controls-container").append(presHtml);
+		new SqsMenu(this.resultManager.sqs, this.resultMapPresentationControlsSqsMenu());
+
+		/*
 		//add controls for selecting what data type is shown on the map
 		let dataTypeHtml = "<div class='result-map-map-control-item-container'>";
 		dataTypeHtml += "<div id='result-map-data-type-controls-menu' class='result-map-map-control-item'>Data type</div>";
@@ -603,33 +667,6 @@ class ResultMap extends ResultModule {
 		dataTypeHtml += "</div>";
 		$("#result-map-controls-data-type-container").append(dataTypeHtml);
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataTypesControlsSqsMenu());
-
-
-
-		/*
-		d3.select(this.renderMapIntoNode)
-			.append("div")
-			.attr("id", "result-map-controls-container");
-
-		d3.select("#result-map-controls-container")
-			.append("div")
-			.attr("id", "result-map-baselayer-controls-menu");
-		new SqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlssqsMenu());
-
-		d3.select("#result-map-controls-container")
-			.append("div")
-			.attr("id", "result-map-datalayer-controls-menu");
-		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlssqsMenu());
-		
-		
-
-		$(this.renderMapIntoNode).append($("<div></div>").attr("id", "result-map-controls-container"));
-		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-baselayer-controls-menu"));
-		new SqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlsSqsMenu());
-
-		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-datalayer-controls-menu"));
-		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
-
 		*/
 
 		if(this.sqs.config.showResultExportButton) {
@@ -886,7 +923,7 @@ class ResultMap extends ResultModule {
 	getPointStyle(feature, options = { selected: false, highlighted: false }) {
 		var pointSize = 12;
 		var zIndex = 0;
-		var text = "";
+		var text = feature.getProperties().name;
 		
 		//default values if point is not selected and not highlighted
 		var fillColor = this.style.default.fillColor;
@@ -941,7 +978,12 @@ class ResultMap extends ResultModule {
 	* Function: getClusterPointStyle
 	*/
 	getClusterPointStyle(feature, options = { selected: false, highlighted: false }) {
-		var pointsNum = feature.get('features').length;
+		const childFeatures = feature.get('features');
+		if(!childFeatures) {
+			this.sqs.notificationManager.notify("Error: Cluster point has no child features.", "error");
+			return;
+		}
+		var pointsNum = childFeatures.length;
 		var clusterSizeText = pointsNum.toString();
 		if(pointsNum > 999) {
 			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
@@ -1022,6 +1064,10 @@ class ResultMap extends ResultModule {
 	* Function: getSingularPointStyle
 	*/
 	getSingularPointStyle(feature, options = { selected: false, highlighted: false }) {
+		feature.get('features').forEach((f) => {
+			console.log(f.getProperties());
+		});
+
 		var pointsNum = feature.get('features').length;
 		var clusterSizeText = pointsNum.toString();
 		if(pointsNum > 999) {
@@ -1299,45 +1345,8 @@ class ResultMap extends ResultModule {
 		return menu;
 	}
 
-	/*
-	* Function: resultMapDataLayersControlssqsMenu
-	*/
-	resultMapDataLayersControlsSqsMenu() {
-		var menu = {
-			title: "<i class=\"fa fa-map-marker result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Datalayer</span>", //The name of the menu as it will be displayed in the UI
-			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
-			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
-			anchor: "#result-map-datalayer-controls-menu-anchor", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
-			staticSelection: true, //whether a selected item remains highlighted or not, purely visual
-			visible: true, //show this menu by default
-			style: {
-				menuTitleClass: "result-map-control-menu-title",
-				l1TitleClass: "result-map-control-item-title"
-			},
-			items: [ //The menu items contained in this menu
-			],
-			triggers: [{
-				selector: "#result-map-datalayer-controls-menu",
-				on: "click"
-			}]
-		};
 
-		for(var key in this.dataLayers) {
-			var prop = this.dataLayers[key].getProperties();
-
-			menu.items.push({
-				name: prop.layerId, //identifier of this item, should be unique within this menu
-				title: prop.title, //displayed in the UI
-				tooltip: "",
-				staticSelection: prop.visible, //For tabs - highlighting the currently selected
-				selected: prop.visible,
-				callback: this.makeMapControlMenuCallback(prop)
-			});
-		}
-		return menu;
-	}
-
-	resultMapDataTypesControlsSqsMenu() {
+	resultMapDataTypeControlsSqsMenu() {
 		var menu = {
 			title: "<i class=\"fa fa-map-marker result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Data type</span>", //The name of the menu as it will be displayed in the UI
 			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
@@ -1361,10 +1370,18 @@ class ResultMap extends ResultModule {
 			name: "data-type-sites",
 			title: "Sites",
 			tooltip: "",
-			staticSelection: false,
-			selected: false,
+			staticSelection: true,
+			selected: true,
 			callback: () => {
+				this.uiState.dataType = "Sites";
 				console.log("Sites");
+				let subMenu = document.getElementById("result-map-controls-data-type-sub-menu")
+				if(subMenu) {
+					subMenu.remove();
+				}
+				$(".result-map-map-control-item-subheading", "#result-map-data-type-controls-menu").html("Sites");
+
+				this.renderSelectedDataLayer();
 			}
 		});
 
@@ -1372,70 +1389,193 @@ class ResultMap extends ResultModule {
 			name: "data-type-feature-types",
 			title: "Feature types",
 			tooltip: "",
-			staticSelection: false,
+			staticSelection: true,
 			selected: false,
 			callback: () => {
+				this.uiState.dataType = "Feature types";
+
+				if(document.getElementById("result-map-controls-data-type-sub-menu")) {
+					return;
+				}
+
+				$(".result-map-map-control-item-subheading", "#result-map-data-type-controls-menu").html("Feature types");
+
 				const frag = document.getElementById("result-map-controls-data-type-sub-menu-template");
 				const subMenuContainer = document.importNode(frag.content, true);
 				$("#result-map-controls-data-type-container").append(subMenuContainer);
 
-				const postData = {
-					siteIds: this.getSelectedSites(),
-					path: "sample_groups.physical_samples.features",
-					idField: "feature_type_id",
-					nameField: "feature_type_name"
-				}
-
-				this.fetchAuxDataOverview("/graphs/custom", postData).then(data => {
-					//sort by name
-					data.summary_data.sort((a, b) => {
-						if(a.name < b.name) { return -1; }
-						if(a.name > b.name) { return 1; }
-						return 0;
-					});
-
-					let selectOptions = "";
-					data.summary_data.forEach(featureType => {
-						selectOptions += `<option value="${featureType.id}">${featureType.name} (${featureType.count})</option>`;
-
-						var layer = new VectorLayer();
-						layer.setProperties({
-							"layerId": "featureType-"+featureType.id,
-							"type": "dataLayer",
-							"title": "Feature type: "+featureType.name,
-							renderCallback: () => {
-								console.log("rendering aux data");
-								//this.renderFeatureTypesLayer(geojson);
-								this.setMapDataLayer("featureTypes");
-							},
-							visible: false
-						});
-						this.dataLayers.push(layer);
-					
-					});
-
-					$("#result-map-controls-data-type-sub-menu").html(`
-						<select>
-							${selectOptions}
-						</select>
-					`);
-
-
-					$("#result-map-controls-data-type-sub-menu select").on("change", (evt) => {
-						let featureTypeId = parseInt(evt.target.value);
-						let siteIds = this.timeline.getSelectedSites().map(site => site.id);
-
-						this.fetchAuxDataLayer("sample_groups.physical_samples.features", "feature_type_id", "feature_type_name", featureTypeId, siteIds);
-					});
-				});
-				
+				this.renderSelectedDataLayer();	
 			}
 		});
 
 		return menu;
 	}
 
-	fetchAuxDataLayer(dataPath, dataTypeId, dataTypeName, dataId, siteIds) {
+	async initDataLayerPanel() {
+		const postData = {
+			siteIds: this.getSelectedSites(),
+			path: "sample_groups.physical_samples.features",
+			idField: "feature_type_id",
+			nameField: "feature_type_name"
+		}
+
+		// if we are re-initializing this panel, try to keep the current selection
+		this.dataLayerPanelSubMenuSelection = null;
+		if($("#result-map-controls-data-type-sub-menu select")) {
+			this.dataLayerPanelSubMenuSelection = parseInt($("#result-map-controls-data-type-sub-menu select").val());
+		}
+		
+
+		//First we need to fetch an overview of which feature types are available and how many there are in total for the sites currently viewed
+		//this is only used to populate the select input in the sub-menu
+		this.fetchAuxDataOverview("/graphs/custom", postData).then(data => {
+			//sort by name
+			data.summary_data.sort((a, b) => {
+				if(a.name < b.name) { return -1; }
+				if(a.name > b.name) { return 1; }
+				return 0;
+			});
+
+			let selectOptions = "";
+			data.summary_data.forEach(featureType => {
+				// Determine if this option should be selected
+				const isSelected = (this.dataLayerPanelSubMenuSelection === featureType.id) ? 'selected' : '';
+			  
+				// Append the <option> including the conditional `selected`
+				selectOptions += `
+				  <option value="${featureType.id}" ${isSelected}>
+					${featureType.name} (${featureType.count})
+				  </option>
+				`;
+			});
+
+			$("#result-map-controls-data-type-sub-menu").html(`
+				<h3>Feature type</h3>
+				<select>
+					${selectOptions}
+				</select>
+			`);
+
+			this.subMenuSelectionCallback();
+
+			$("#result-map-controls-data-type-sub-menu select").on("change", (evt) => {
+				//disable the select while we're fetching the data
+				$("#result-map-controls-data-type-sub-menu select").prop("disabled", true);
+				this.subMenuSelectionCallback().then(() => {
+					//re-enable the select
+					$("#result-map-controls-data-type-sub-menu select").prop("disabled", false);
+				});
+			});
+		});
+	}
+
+	async subMenuSelectionCallback() {
+		//set loading indicator
+		this.resultManager.showLoadingIndicator(true);
+
+		let subMenuSelection = parseInt($("#result-map-controls-data-type-sub-menu select").val());
+		let featureTypeId = subMenuSelection;
+		let siteIds = this.timeline.getSelectedSites().map(site => site.id);
+		const geojson = await this.fetchAuxDataLayer("sample_groups.physical_samples.features", "feature_type_id", "feature_type_name", featureTypeId, siteIds);
+
+		const layer = this.createOpenLayersGeoJsonLayer(geojson);
+		this.olMap.addLayer(layer);
+		//zoom and center map on the new layer
+		let sites = [];
+		geojson.features.forEach(feature => {
+			sites.push({
+				lat: feature.geometry.coordinates[1],
+				lng: feature.geometry.coordinates[0]
+			});
+		});
+		this.fitMapToData(sites);
+
+		this.resultManager.showLoadingIndicator(false);
+	}
+
+	/*
+	* Function: resultMapDataLayersControlssqsMenu
+	*/
+	resultMapPresentationControlsSqsMenu() {
+		var menu = {
+			title: "<i class=\"fa fa-map-marker result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Presentation</span>", //The name of the menu as it will be displayed in the UI
+			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
+			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
+			anchor: "#result-map-presentation-controls-menu-anchor", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
+			staticSelection: true, //whether a selected item remains highlighted or not, purely visual
+			visible: true, //show this menu by default
+			style: {
+				menuTitleClass: "result-map-control-menu-title",
+				l1TitleClass: "result-map-control-item-title"
+			},
+			items: [ //The menu items contained in this menu
+			],
+			triggers: [{
+				selector: "#result-map-presentation-controls-menu",
+				on: "click"
+			}]
+		};
+
+		menu.items.push({
+			name: "cluster", //identifier of this item, should be unique within this menu
+			title: "Clustered", //displayed in the UI
+			tooltip: "",
+			staticSelection: true, //For tabs - highlighting the currently selected
+			selected: this.uiState.presentationMode == "Clustered",
+			callback: () => {
+				this.uiState.presentationMode = "Clustered";
+				$(".result-map-map-control-item-subheading", "#result-map-presentation-controls-menu").html(this.uiState.presentationMode);
+				this.renderSelectedDataLayer();
+			}
+		});
+
+		menu.items.push({
+			name: "individual", //identifier of this item, should be unique within this menu
+			title: "Individual", //displayed in the UI
+			tooltip: "",
+			staticSelection: true, //For tabs - highlighting the currently selected
+			selected: this.uiState.presentationMode == "Individual",
+			callback: () => {
+				this.uiState.presentationMode = "Individual";
+				$(".result-map-map-control-item-subheading", "#result-map-presentation-controls-menu").html(this.uiState.presentationMode);
+				this.renderSelectedDataLayer();
+			}
+		});
+
+		menu.items.push({
+			name: "heatmap", //identifier of this item, should be unique within this menu
+			title: "Heatmap", //displayed in the UI
+			tooltip: "",
+			staticSelection: true, //For tabs - highlighting the currently selected
+			selected: this.uiState.presentationMode == "Heatmap",
+			callback: () => {
+				this.uiState.presentationMode = "Heatmap";
+				$(".result-map-map-control-item-subheading", "#result-map-presentation-controls-menu").html(this.uiState.presentationMode);
+				this.renderSelectedDataLayer();
+			}
+		});
+
+		//this is a little confusing because what we call "data layer" in SEAD is something other than what they call a "data layer" in OpenLayers
+		//so we use openlayers "data layers" to represent different ways of presenting the data, such as clusters, heatmaps, etc.
+		/*
+		for(var key in this.dataLayers) {
+			var prop = this.dataLayers[key].getProperties();
+
+			menu.items.push({
+				name: prop.layerId, //identifier of this item, should be unique within this menu
+				title: prop.title, //displayed in the UI
+				tooltip: "",
+				staticSelection: prop.visible, //For tabs - highlighting the currently selected
+				selected: prop.visible,
+				callback: () => { }
+				//callback: this.makeMapControlMenuCallback(prop)
+			});
+		}
+		*/
+		return menu;
+	}
+
+	async fetchAuxDataLayer(dataPath, dataTypeId, dataTypeName, dataId, siteIds) {
 		//fetch datatype data of this id
 		const postData = {
 			siteIds: siteIds,
@@ -1444,58 +1584,146 @@ class ResultMap extends ResultModule {
 			nameField: dataTypeName
 		}
 
-		$.ajax({
-			url: Config.dataServerAddress + "/graphs/custom/true",
-			method: "POST",
-			contentType: 'application/json; charset=utf-8',
-			crossDomain: true,
-			data: JSON.stringify(postData),
-			success: (data) => {
-				console.log(data);
-				console.log(this.data);
-				//data now contains data[i] = { site_id: 1, summary_data: [ { name: '', count: 0, id: 0 }, { name: '', count: 0, id: 0 } ] }
-
-				//let's make this into a data layer
-				let geojson = {
-					"type": "FeatureCollection",
-					"features": []
-				};
-
-				data.forEach(siteSummaryData => {
-
-					//find the site in this.data
-					let site = this.data.find(site => site.id == siteSummaryData.site_id);
-
-					siteSummaryData.summary_data.forEach(sd => {
-						if(sd.id == dataId) {
-							let featureGeoJson = {
-								"type": "Feature",
-								"geometry": {
-									"type": "Point",
-									"coordinates": [site.lng, site.lat]
-								},
-								"properties": {
-									id: sd.id,
-									name: sd.name,
-									count: sd.count
-								}
-							};
-							geojson.features.push(featureGeoJson);
-						}
-						
+		return await new Promise((resolve, reject) => {
+			$.ajax({
+				url: Config.dataServerAddress + "/graphs/custom/true",
+				method: "POST",
+				contentType: 'application/json; charset=utf-8',
+				crossDomain: true,
+				data: JSON.stringify(postData),
+				success: (data) => {
+					//data now contains data[i] = { site_id: 1, summary_data: [ { name: '', count: 0, id: 0 }, { name: '', count: 0, id: 0 } ] }
+	
+	
+					//make a json sample of the data where we take the first 5 items
+					//let jsonData = JSON.stringify(data.slice(0, 15), null, 2);
+					//console.log(jsonData);
+	
+	
+					//let's make this into a data layer
+					let geojson = {
+						"type": "FeatureCollection",
+						"features": []
+					};
+	
+					data.forEach(siteSummaryData => {
+	
+						//find the site in this.data
+						let site = this.data.find(site => site.id == siteSummaryData.site_id);
+	
+						siteSummaryData.summary_data.forEach(sd => {
+							if(sd.id == dataId) {
+								let featureGeoJson = {
+									"type": "Feature",
+									"geometry": {
+										"type": "Point",
+										"coordinates": [site.lng, site.lat]
+									},
+									"properties": {
+										id: siteSummaryData.site_id,
+										site_id: siteSummaryData.site_id,
+										name: site.title,
+										site_name: site.title,
+										feature_name: sd.name,
+										count: sd.count
+									}
+								};
+								geojson.features.push(featureGeoJson);
+							}
+							
+						});
 					});
-				});
+	
+					resolve(geojson);
+				},
+				error: (err) => {
+					console.log(err);
+				}
+			});
+		});
+	}
 
-				
+	createOpenLayersGeoJsonLayer(geojson) {
+		this.removeLayer("featureTypes", true);
 
-				//this.olMap.addLayer(layer);
-			},
-			error: (err) => {
-				console.log(err);
-			}
+		let clusterDistance = 5;
+		switch(this.uiState.presentationMode) {
+			case "Clustered":
+				clusterDistance = 35;
+				break;
+			case "Individual":
+				clusterDistance = 5;
+				break;
+		}
+		
+
+		var gf = new GeoJSON({
+			featureProjection: "EPSG:3857"
+		});
+		var featurePoints = gf.readFeatures(geojson);
+
+		var pointsSource = new VectorSource({
+			features: featurePoints
 		});
 
-		//this.setMapDataLayer("heatmap");
+		let layer = null;
+		if(this.uiState.presentationMode != "Heatmap") {
+			var clusterSource = new ClusterSource({
+				distance: clusterDistance,
+				source: pointsSource
+			});
+
+			layer = new VectorLayer({
+				source: clusterSource,
+				style: (feature, resolution) => {
+					var style = null;
+					switch(this.uiState.presentationMode) {
+						case "Clustered":
+							style = this.getClusterPointStyle(feature);
+							break;
+						case "Individual":
+							style = this.getSingularPointStyle(feature);
+							break;
+					}
+
+					return style;
+				},
+				zIndex: 1
+			});
+		}
+
+		if(this.uiState.presentationMode == "Heatmap") {
+			layer = new HeatmapLayer({
+				source: pointsSource,
+				weight: function(feature) {
+					return 1.0;
+				},
+				radius: 10,
+				blur: 30,
+				zIndex: 1
+			});
+		}
+
+		layer.setProperties({
+			"layerId": "featureTypes",
+			"type": "dataLayer"
+		});
+
+		this.dataLayers.push(layer);
+
+		this.setMapDataLayer("featureTypes");
+		this.renderVisibleBaseLayers();
+
+		this.printAllDataLayers();
+
+		return layer;
+	}
+
+	printAllDataLayers() {
+		//print the layerId of each data layer
+		this.dataLayers.forEach(layer => {
+			console.log(layer.getProperties().layerId);
+		});
 	}
 
 	fetchAuxDataOverview(endpoint, postData) {
