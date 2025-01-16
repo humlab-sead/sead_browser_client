@@ -15,9 +15,12 @@ import GeoJSON from 'ol/format/GeoJSON';
 import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
 import { fromLonLat } from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
-import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
+import { Circle as CircleStyle, Fill, Stroke, Style, Text, RegularShape } from 'ol/style.js';
 import { Attribution } from 'ol/control';
-
+import { pointerMove } from 'ol/events/condition';
+import Select from 'ol/interaction/Select';
+import { Point } from 'ol/geom';
+import Icon from 'ol/style/Icon';
 
 /*
 * Class: ResultMap
@@ -1422,7 +1425,6 @@ class ResultMap extends ResultModule {
 		if($("#result-map-controls-data-type-sub-menu select")) {
 			this.dataLayerPanelSubMenuSelection = parseInt($("#result-map-controls-data-type-sub-menu select").val());
 		}
-		
 
 		//First we need to fetch an overview of which feature types are available and how many there are in total for the sites currently viewed
 		//this is only used to populate the select input in the sub-menu
@@ -1476,7 +1478,7 @@ class ResultMap extends ResultModule {
 		let siteIds = this.timeline.getSelectedSites().map(site => site.id);
 		const geojson = await this.fetchAuxDataLayer("sample_groups.physical_samples.features", "feature_type_id", "feature_type_name", featureTypeId, siteIds);
 
-		const layer = this.createOpenLayersGeoJsonLayer(geojson);
+		const layer = this.createOpenLayersGeoJsonLayer(geojson, true);
 		this.olMap.addLayer(layer);
 		//zoom and center map on the new layer
 		let sites = [];
@@ -1641,7 +1643,7 @@ class ResultMap extends ResultModule {
 		});
 	}
 
-	createOpenLayersGeoJsonLayer(geojson) {
+	createOpenLayersGeoJsonLayer(geojson, withHoverInteraction = false) {
 		this.removeLayer("featureTypes", true);
 
 		let clusterDistance = 5;
@@ -1711,10 +1713,109 @@ class ResultMap extends ResultModule {
 		this.setMapDataLayer("featureTypes");
 		this.renderVisibleBaseLayers();
 
-		this.printAllDataLayers();
+		if(withHoverInteraction) {
+			// Create a Select interaction that triggers on pointer move
+			const selectHover = new Select({
+				condition: pointerMove,
+				
+				// Optional if you only want to hover on certain layers:
+				// layers: [iconLayer], 
+			});
+
+			this.olMap.addInteraction(selectHover);
+
+			selectHover.on('select', (e) => {
+				// Revert style on deselected features
+				e.deselected.forEach((deselectedFeature) => {
+				  // Remove the override so it goes back to its default or cluster style
+				  deselectedFeature.setStyle(null);
+				});
+			  
+				// Handle selected (hovered) features
+				const selectedFeatures = e.selected;
+				if (selectedFeatures.length > 0) {
+				  const feature = selectedFeatures[0];
+			  
+				  // If it's a cluster, you may want to handle each sub-feature individually.
+				  // For simplicity, let's assume it's a single geometry:
+				  feature.setStyle((feat, resolution) => {
+					// 50 px from center, 6 circles
+					return this.createRingOfSquaresStyle(feat, resolution, 50, 6, 'PH');
+				  });
+				}
+			  });
+		}
 
 		return layer;
 	}
+
+	createRingOfSquaresStyle(
+		feature,
+		resolution,
+		ringRadiusInPixels = 50,
+		iconCount = 6,
+		label = 'AB'
+	  ) {
+		const styles = [];
+		
+		// 1) Center geometry
+		const center = feature.getGeometry().getCoordinates();
+	  
+		// 2) Convert the ring radius in pixels --> map units (EPSG:3857)
+		const ringDistanceInMapUnits = ringRadiusInPixels * resolution;
+	  
+		// 3) Square at the center
+		styles.push(
+		  new Style({
+			image: new RegularShape({
+			  points: 4,             // 4 corners = square
+			  radius: 10,           // half side of the square in map units
+			  angle: 0,             // 0 means square is aligned with X/Y axes
+			  fill: new Fill({ color: 'blue' }),
+			  stroke: new Stroke({ color: 'white', width: 2 }),
+			}),
+			text: new Text({
+			  text: label,              // "AB" or any two-letter string
+			  fill: new Fill({ color: 'white' }),
+			  stroke: new Stroke({ color: 'black', width: 2 }), // outline the text for clarity
+			}),
+			geometry: new Point(center),
+		  })
+		);
+	  
+		// 4) Squares around the ring
+		for (let i = 0; i < iconCount; i++) {
+		  const angle = (2 * Math.PI * i) / iconCount;
+		  const offsetX = ringDistanceInMapUnits * Math.cos(angle);
+		  const offsetY = ringDistanceInMapUnits * Math.sin(angle);
+		  const ringCoord = [center[0] + offsetX, center[1] + offsetY];
+	  
+		  styles.push(
+			new Style({
+			  image: new RegularShape({
+				points: 4,
+				radius: 20,
+				angle: Math.PI / 4,
+				fill: new Fill({ color: '#875d5d' }),
+			  }),
+			  text: new Text({
+				text: label,
+				font: 'bold 14px "Didact Gothic", sans-serif',
+				fill: new Fill({ color: 'white' }),
+				textAlign: 'center',
+				justify: 'middle',
+				textBaseline: 'middle',
+				scale: 1.0,
+			  }),
+			  geometry: new Point(ringCoord),
+			})
+		  );
+		}
+	  
+		return styles;
+	}
+
+
 
 	printAllDataLayers() {
 		//print the layerId of each data layer
