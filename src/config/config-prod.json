@@ -30,6 +30,7 @@
 	"dendroSiteReportSectionEnabled": true,
 	"showResultExportButton": true,
 	"showMosaicExportButtons": true,
+	"showSearchButton": false,
 	"googleCustomSearchApiKey": "AIzaSyCrvpWj5sLvwQrwvgSN4Env29Y9d6BHkfM",
 	"pageTrackingEnabled": true,
 	"tutorialEnabled": true,
