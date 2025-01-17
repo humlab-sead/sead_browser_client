@@ -845,6 +845,8 @@ class SeadQuerySystem {
 			}
 		});
 
+		
+
 		//Fetch the filters associated with each domain/domain
 		domains.forEach((domain) => {
 			fetchDomainFiltersPromises.push(new Promise((resolve, reject) => {

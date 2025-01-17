@@ -729,7 +729,7 @@
 		},
 		{
 		"name":"isotope",
-		"enabled": true,
+		"enabled": false,
 		"title": "Isotope",
 		"icon":"<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i>",
 		"color":"#690",
