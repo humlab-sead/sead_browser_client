@@ -89,6 +89,10 @@ class AbundanceDataset extends DatasetModule {
 			}
 		});
 		
+		if(ecoCodeBundles.length == 0) {
+			return null;
+		}
+
 		/*
 		X: Environment
 		Y: Abundance / Taxa
@@ -221,6 +225,14 @@ class AbundanceDataset extends DatasetModule {
 			}
 		});
 		
+		if(ecoCodeBundles.length == 0) {
+			return null;
+		}
+
+		if(ecoCodeBundles.length == 1 && ecoCodeBundles[0].ecocodes.length == 0) {
+			return null;
+		}
+
 		/*
 		X: Environment
 		Y: Abundance / Taxa
@@ -666,8 +678,15 @@ class AbundanceDataset extends DatasetModule {
 			let ecoCodeSection = this.getSectionByMethodId(3, sections);
 			if(ecoCodeSection) {
 				//these two get eco codes methods actually return promises, but that's ok, the content-item renderer will handle that
-				ecoCodeSection.contentItems.push(this.getSiteEcoCodeContentItem(siteData));
-				ecoCodeSection.contentItems.push(this.getSamplesEcoCodeContentItem(siteData));
+				let siteEcoCodeContentItem = this.getSiteEcoCodeContentItem(siteData);
+				let sampleEcoCodeContentItem = this.getSamplesEcoCodeContentItem(siteData);
+
+				if(siteEcoCodeContentItem) {
+					ecoCodeSection.contentItems.push(siteEcoCodeContentItem);
+				}
+				if(sampleEcoCodeContentItem) {
+					ecoCodeSection.contentItems.push(sampleEcoCodeContentItem);
+				}
 			}
 			else {
 				console.warn("Tried to insert a contentItem into a section that couldn't be found.");

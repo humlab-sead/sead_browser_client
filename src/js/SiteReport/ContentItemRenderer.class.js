@@ -35,6 +35,10 @@ class ContentItemRenderer {
 			return;
 		}
 
+		if(!this.contentItem) {
+			return;
+		}
+
         var datasetId = "";
 		if(this.contentItem.hasOwnProperty("datasetId")) {
 			datasetId = "<span class='dataset-id'>("+this.contentItem.name+")</span>";
