@@ -1694,6 +1694,7 @@ h1.main-header {
   grid-template-columns: [left] 1fr [right] 0.2fr;
   grid-template-rows: 1fr;
   grid-column-gap: 20px;
+  max-width: 800px;
 }
 
 .viewstate-dialog > button {
