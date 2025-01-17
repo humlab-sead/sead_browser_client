@@ -12,7 +12,8 @@
     "build:dev": "cp src/config/config-dev.json src/config/config.json && webpack --mode=production --progress",
     "build:staging": "cp src/config/config-staging.json src/config/config.json && webpack --mode=production --progress",
     "build:prod": "cp src/config/config-prod.json src/config/config.json && webpack --mode=production --progress",
-    "build:docs": "C:/Program Files (x86)/Natural Docs/NaturalDocs.exe ND-Config"
+    "build:docs": "C:/Program Files (x86)/Natural Docs/NaturalDocs.exe ND-Config",
+    "test": "npx playwright test"
   },
   "browser": {
     "image-size": false
@@ -70,6 +71,8 @@
     "zingtouch": "^1.0.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.7",
     "browser-sync": "^2.27.11",
     "clean-webpack-plugin": "^4.0.0",
     "cross-env": "^5.2.1",

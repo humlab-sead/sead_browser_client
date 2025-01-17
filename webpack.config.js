@@ -137,6 +137,9 @@ module.exports = (env, config) => {
       historyApiFallback:{
           index:'/index.html'
       },
+      client: {
+        overlay: false
+      }
     }
   }
 }
