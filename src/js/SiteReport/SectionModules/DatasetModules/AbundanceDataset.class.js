@@ -39,7 +39,7 @@ class AbundanceDataset extends DatasetModule {
 
 	getSectionByMethodId(methodId, sections) {
 		for(let key in sections) {
-			if(sections[key].name == methodId) {
+			if(sections[key].methodId == methodId) {
 				return sections[key];
 			}
 		}
@@ -424,7 +424,7 @@ class AbundanceDataset extends DatasetModule {
 		//if this is palaeontomoly, generate eco code charts as well, but don't if not
 		let palaeontomolyDatasetFound = false;
 		dataGroups.forEach(dataGroup => {
-			if(dataGroup.method_id == 3) {
+			if(dataGroup.method_ids.includes(3)) {
 				palaeontomolyDatasetFound = true;
 			}
 		})
