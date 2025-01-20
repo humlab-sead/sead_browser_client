@@ -42,6 +42,15 @@ class ResultModule {
 		});
 	}
 
+	setExportButtonLoadingIndicator(active = true) {
+		if(active) {
+			$("#result-container .result-export-button").append("<div class='cute-little-loading-indicator'></div>");
+		}
+		else {
+			$("#result-container .result-export-button .cute-little-loading-indicator").remove();
+		}
+	}
+
 	isVisible() {
 		return true;
 	}
@@ -83,6 +92,8 @@ class ResultModule {
 	bindExportModuleDataToButton(button, module = null) {
 
 		let sitesExportCallback = async () => {
+			module.setExportButtonLoadingIndicator();
+
 			let jsonDownloadButtonId = "json-dl-"+nanoid();
 			let csvDownloadButtonId = "csv-dl-"+nanoid();
 			let xlsxDownloadButtonId = "xlsx-dl-"+nanoid();
@@ -131,6 +142,7 @@ class ResultModule {
 			}
 
 			this.sqs.dialogManager.showPopOver("Export sites", html);
+			module.setExportButtonLoadingIndicator(false);
 
 			if(selectedSites.length > 0) {
 				$("#"+xlsxDownloadButtonId).on("click", () => { this.exportSitesAsXlsx(selectedSites); });
@@ -620,32 +632,43 @@ class ResultModule {
 
 	async exportSitesAsCsv(siteIds) {
 		let sitesExportData = await this.fetchExportData(siteIds);
-
-		let siteExportCsv = "\uFEFF"; //Byte Order Mark (BOM) to force Excel to open the file with UTF-8 encoding
-		siteExportCsv += "Id,Name,National site identifier,Latitude,Longitude,Description\r\n";
-
+	
+		let siteExportCsv = "\uFEFF"; // Byte Order Mark (BOM) to force Excel to open the file with UTF-8 encoding
+		siteExportCsv += `"Id","Name","National site identifier","Latitude","Longitude","Description"\r\n`;
+	
+		// Updated sanitizeForCsv function
 		let sanitizeForCsv = (str) => {
-			if(str == null) {
-				return null;
+			if (str == null) {
+				return '""'; // Return empty quotes if the value is null or undefined
 			}
-			return '"'+str.replace(/"/g, "'")+'"';
-		}
-
+			str = str.toString(); // Ensure the value is a string
+			if (str.startsWith('"') && str.endsWith('"')) {
+				// If already wrapped in quotes, return as-is
+				return str;
+			}
+			// Otherwise, wrap in quotes and replace any existing double quotes with escaped quotes
+			return `"${str.replace(/"/g, '""')}"`;
+		};
+	
 		sitesExportData.forEach(site => {
+			// Sanitize each value in the object
 			site.site_name = sanitizeForCsv(site.site_name);
 			site.site_description = sanitizeForCsv(site.site_description);
 			site.national_site_identifier = sanitizeForCsv(site.national_site_identifier);
-
-			siteExportCsv += site.site_id+","+site.site_name+","+site.national_site_identifier+","+site.latitude_dd+","+site.longitude_dd+","+site.site_description+"\r\n";
+	
+			// Add the sanitized values to the CSV string
+			siteExportCsv += `${sanitizeForCsv(site.site_id)},${site.site_name},${site.national_site_identifier},${sanitizeForCsv(site.latitude_dd)},${sanitizeForCsv(site.longitude_dd)},${site.site_description}\r\n`;
 		});
-
+	
 		this.sqs.dialogManager.hidePopOver();
+	
 		const bytes = new TextEncoder().encode(siteExportCsv);
 		const blob = new Blob([bytes], {
 			type: "text/csv;charset=utf-8"
 		});
 		saveAs(blob, "sead_sites_export.csv");
 	}
+	
 
 	async exportSitesAsXlsx(siteIds) {
 		let workbook = new ExcelJS.Workbook();
