@@ -10,7 +10,8 @@ import { fromLonLat, transform } from 'ol/proj.js';
 import { Select as SelectInteraction, Draw as DrawInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
 import { Attribution } from 'ol/control';
-
+import { click } from 'ol/events/condition.js';
+import countries from "../assets/countries.geo.json";
 import Facet from './Facet.class.js'
 /*
 * Class: MapFacet
@@ -105,6 +106,80 @@ class MapFacet extends Facet {
 		else {
 			$(".map-help-text > .cmd_key_symbol").html("CTRL");
 		}
+
+		this.addCountriesLayer();
+	}
+
+	addCountriesLayer() {
+		const geojsonFormat = new GeoJSON();
+		const features = geojsonFormat.readFeatures(countries, {
+			featureProjection: 'EPSG:3857' 
+		});
+
+		const vectorSource = new VectorSource({
+			features: features
+		});
+
+		const countryLayer = new VectorLayer({
+			source: vectorSource,
+			style: new Style({
+			  stroke: new Stroke({
+				color: '#333333', // Outline color
+				width: 1
+			  }),
+			  fill: new Fill({
+				color: 'rgba(255, 255, 255, 0.2)' // Polygon fill color
+			  })
+			})
+		});
+
+		this.olMap.addLayer(countryLayer);
+
+		// Create a select interaction
+		const selectInteraction = new SelectInteraction({
+			condition: click,
+			// Limit selection to our countryLayer only:
+			layers: [countryLayer]
+		});
+		
+		// Add the select interaction to your map
+		this.olMap.addInteraction(selectInteraction);
+		
+		// Listen for the 'select' event
+		selectInteraction.on('select', (event) => {
+			const selectedFeatures = event.selected;     // array of newly selected features
+			const deselectedFeatures = event.deselected; // array of newly deselected features
+		
+			if (selectedFeatures.length > 0) {
+				const feature = selectedFeatures[0];
+				// Get properties from the first selected feature
+				const props = feature.getProperties();
+				console.log('Selected Country Name:', props.name);
+				console.log('Selected Country Properties:', props);
+
+				let coordinates = feature.getGeometry().getCoordinates()[0][0];
+				console.log(coordinates);
+				const convertedCoordinates = coordinates.map(coord => transform(coord, 'EPSG:3857', 'EPSG:4326'));
+
+				//swap the lat and long values
+				convertedCoordinates.forEach(coord => {
+					coord.reverse();
+				});
+
+				console.log(convertedCoordinates);
+
+				//flatten the convertedCoordinates array
+				const flatCoordinates = convertedCoordinates.flat();
+				this.selections = flatCoordinates;
+
+				console.log(this.selections);
+				this.broadcastSelection();
+			}
+		
+			if (deselectedFeatures.length > 0) {
+				console.log('Deselected some features');
+			}
+		});
 	}
 
 	/*
@@ -124,7 +199,7 @@ class MapFacet extends Facet {
 		});
 
 		this.olMap.addInteraction(this.mapSelect);
-		var selectedFeatures = this.mapSelect.getFeatures();
+		//var selectedFeatures = this.mapSelect.getFeatures();
 
 		var sketch;
 
