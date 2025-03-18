@@ -29,7 +29,7 @@ class DendrochronologyDataset extends DatasetModule {
 		this.buildIsComplete = false;
 		this.methodMetaDataFetchingComplete = false;
 		this.extentMin = null;
-		this.extentMax = null
+		this.extentMax = null;
 
 		this.methodIds = [10];
 		this.metaDataFetchingPromises = [];
@@ -280,13 +280,13 @@ class DendrochronologyDataset extends DatasetModule {
 	* Resolves the dendro mapping from "dendro_lookup_id" to value/variable type. Think of the "lookup_id" as the "variable type id" and it will make more sense.
 	* 
 	*/
-	getDendroValueType(lookupId) {
+	getDendroValueType(valueClassId) {
 		if(typeof this.analysis.dendroDataTypes == "undefined") {
 			console.error("Tried to access dendro data types but it was undefined");
 			return false;
 		}
 		for(let key in this.analysis.dendroDataTypes) {
-			if(this.analysis.dendroDataTypes[key].dendro_lookup_id == lookupId) {
+			if(this.analysis.dendroDataTypes[key].dendro_lookup_id == valueClassId) {
 				return this.analysis.dendroDataTypes[key];
 			}
 		}
@@ -350,9 +350,9 @@ class DendrochronologyDataset extends DatasetModule {
 	}
 	*/
 
-	getDendroMethodDescription(siteData, dendroLookupId) {
+	getDendroMethodDescription(siteData, valueClassId) {
 		for(let key in siteData.lookup_tables.dendro) {
-			if(siteData.lookup_tables.dendro[key].dendro_lookup_id == dendroLookupId) {
+			if(siteData.lookup_tables.dendro[key].value_class_id == valueClassId) {
 				return siteData.lookup_tables.dendro[key]
 			}
 		}
@@ -408,7 +408,8 @@ class DendrochronologyDataset extends DatasetModule {
 			
 			let subTableColumns = [
 				{
-					title: "Dendro lookup id",
+					//title: "Dendro lookup id",
+					title: "Value class id",
 					hidden: true
 				},
 				{
@@ -426,31 +427,27 @@ class DendrochronologyDataset extends DatasetModule {
 				}
 			];
 
+			let estFellingYearVCI = this.dl.getValueClassIdByName("Estimated felling year", siteData);
+			let outerMostTreeRingDateVCI = this.dl.getValueClassIdByName("Outermost tree-ring date", siteData);
+
 			let subTableRows = [];
 			dataGroup.values.forEach(dgValue => {
 				let value = dgValue.value;
 				let tooltip = "";
-
-				/*
-				if(dgValue.id == 134 || dgValue.id == 137) {
-					//This is Estimated felling year or Outermost tree-ring date, these are complex values that needs to be parsed
-					value = this.dl.renderDendroDatingAsString(value, siteData);
-				}
-				*/
-
-				if(dgValue.lookupId == 134 || dgValue.lookupId == 137) {
+				
+				if(dgValue.valueClassId == estFellingYearVCI || dgValue.valueClassId == outerMostTreeRingDateVCI) {
 					value = this.dl.renderDendroDatingAsString(dgValue.data, siteData, true, this.sqs);
 				}
 
 				subTableRows.push([
 					{
 						type: "cell",
-						value: dgValue.lookupId
+						value: dgValue.valueClassId
 					},
 					{
 						type: "cell",
 						value: dgValue.key,
-						tooltip: this.getDendroMethodDescription(siteData, dgValue.lookupId).description
+						tooltip: this.getDendroMethodDescription(siteData, dgValue.valueClassId).description
 					},
 					{
 						type: "cell",
@@ -594,7 +591,6 @@ class DendrochronologyDataset extends DatasetModule {
 								{
 									"title": "Alphabetical",
 									"value": "alphabetical",
-									"selected": true
 								},
 								{
 									"title": "Germination year",
@@ -603,6 +599,7 @@ class DendrochronologyDataset extends DatasetModule {
 								{
 									"title": "Felling year",
 									"value": "felling year",
+									"selected": true
 								},
 								{
 									"title": "Tree species",

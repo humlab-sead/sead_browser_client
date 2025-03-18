@@ -465,6 +465,7 @@ class ResultTable extends ResultModule {
 		return selectedRows.map(row => row.site_link_filtered);
 	}
 
+	/*
 	async fetchAnalysesStackedBar(siteId, siteTdId, rowsNum) {
 		if(!this.wsChan) {
 			this.wsChan = new ApiWsChannel(this.sqs, "ws://localhost:8484").connect().then((chan) => {
@@ -513,7 +514,9 @@ class ResultTable extends ResultModule {
 		
 		}
 	}
+	*/
 
+	/*
 	renderAnalysesStackedBar(row, rowsNum) {
 		let siteId = row.site_link_filtered;
 		let siteTdId = "site-"+siteId;
@@ -526,6 +529,7 @@ class ResultTable extends ResultModule {
 
 		return out;
 	}
+	*/
 
 	update() {
 		this.render();

@@ -42,12 +42,12 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         });
         let data = await response.json();
         
-        data.feature_types.sort((a, b) => {
+        data.summary_data.sort((a, b) => {
             return b.feature_count - a.feature_count;
         });
 
         let chartSeries = [];
-        data.feature_types.forEach((featureType) => {
+        data.summary_data.forEach((featureType) => {
             chartSeries.push({
                 label: featureType.name,
                 value: featureType.feature_count

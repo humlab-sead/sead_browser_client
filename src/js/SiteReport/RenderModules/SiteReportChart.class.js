@@ -1592,7 +1592,28 @@ class SiteReportChart {
 			}
 		});
 
-		let ecocodesSorted = ecocodes; //Just to make it clear what this is for
+		let ecocodesSorted = ecocodes; //Just to make it clear what this is for	
+
+		//figure out percentages 
+		let totalTaxaAgg = 0;
+		let totalAbundanceAgg = 0;
+		ecocodesSorted.forEach(ecocode => {
+			if(ecocode.taxaAgg) {
+				totalTaxaAgg += ecocode.taxaAgg;
+			}
+			if(ecocode.abundanceAgg) {
+				totalAbundanceAgg += ecocode.abundanceAgg;
+			}
+		});
+		
+		ecocodesSorted.forEach(ecocode => {
+			if(ecocode.taxaAgg) {
+				ecocode.taxaAggPercentage = (ecocode.taxaAgg / totalTaxaAgg * 100).toFixed(2);
+			}
+			if(ecocode.abundanceAgg) {
+				ecocode.abundanceAggPercentage = (ecocode.abundanceAgg / totalAbundanceAgg * 100).toFixed(2);
+			}
+		});
 
 		let pkeyCol = null;
 		for(let key in contentItem.data.columns) {
@@ -1625,22 +1646,33 @@ class SiteReportChart {
 			}
 			
 			contentItem.data.rows.forEach(row => {
-				let sampleId = row[pkeyCol].value;
 				let aggAbundance = row[2].value;
 				let aggTaxa = row[3].value;
 				let subTable = row[4].value;
-
-
 
 				subTable.rows.forEach(r => {
 					let rowEcocodeName = r[0].value;
 					let ecocodeDefinitionId = r[3].value;
 					if(rowEcocodeName == ecocode.name) {
-						//console.log(rowEcocodeName+": "+r[yAxisKey].value);
-						dataset.data.push(r[yAxisKey].value);
+
+						let agg = null;
+						switch(yAxisKey) {
+							case 1:
+								agg = aggAbundance;
+								break;
+							case 2:
+								agg = aggTaxa;
+								break;
+						}
+
+						let percentage = (r[yAxisKey].value / agg) * 100;
+
+						dataset.data.push(percentage);
 					}
 				});
 			});
+			
+			
 			datasets.push(dataset);
 		});
 
@@ -1673,7 +1705,17 @@ class SiteReportChart {
 								return contentItem.data.columns[yAxisKey].title+": "+context[0].formattedValue;
 							},
 							label: function(context) {
-								return context.dataset.label;
+								//provide the formattedValue as a percentage of the total
+								console.log(context);
+								console.log(ecocodesSorted)
+
+								let ecocode = ecocodesSorted.find(ecocode => {
+									if(ecocode.name == context.dataset.label) {
+										return ecocode;
+									}
+								});
+
+								return context.dataset.label + ": "+ecocode.abundanceAggPercentage+"%";
 							}
 						}
 					}

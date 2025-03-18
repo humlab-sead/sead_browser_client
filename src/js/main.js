@@ -42,7 +42,6 @@ import "../assets/icons/apple-touch-icon.png";
 window.Config = config;
 window.config = config;
 
-
 $(function() {
     window.sqs = new SeadQuerySystem();
     window.sqs.init();

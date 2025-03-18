@@ -303,7 +303,7 @@ class AbundanceDataset extends DatasetModule {
 								{
 									"title": "Aggregated taxa",
 									"value": 2,
-								}
+								},
 							]
 						},
 						{
