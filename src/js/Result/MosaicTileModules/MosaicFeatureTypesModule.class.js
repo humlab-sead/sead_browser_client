@@ -50,7 +50,7 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         data.summary_data.forEach((featureType) => {
             chartSeries.push({
                 label: featureType.name,
-                value: featureType.feature_count
+                value: featureType.count
             });
         });
 
