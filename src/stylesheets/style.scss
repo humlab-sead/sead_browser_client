@@ -4171,3 +4171,14 @@ tr.free-text-search-result-row:hover {
   background: rgba($pane-bg-color, 0.9);
   padding: 1em;
 }
+
+#show-query-btn {
+  position: absolute;
+  display: none;
+  left: 20px;
+  top: 20px;
+  background: $base-color;
+  color: #fff;
+  padding: 0.5em;
+  cursor: pointer;
+}

@@ -42,6 +42,10 @@ class ResultModule {
 		});
 	}
 
+	getSQL() {
+		return this.sql;
+	}
+
 	setExportButtonLoadingIndicator(active = true) {
 		if(active) {
 			$("#result-container .result-export-button").append("<div class='cute-little-loading-indicator'></div>");

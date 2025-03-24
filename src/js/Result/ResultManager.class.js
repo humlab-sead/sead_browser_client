@@ -20,6 +20,14 @@ class ResultManager {
 		
 		//Event hook-ins below
 		if(this.resultSectionDisabled == false) {
+
+			$("#show-query-btn").on("click", () => {
+				let sql = this.getActiveModule().getSQL();
+				const formattedSQL = sql.replace(/\n/g, "<br/>");
+
+				this.sqs.dialogManager.showPopOver("Result SQL", formattedSQL);
+			});
+
 			$(window).on("seadResultMenuSelection", (event, data) => {
 				this.sqs.storeUserSettings({
 					defaultResultModule: data.selection
@@ -110,9 +118,11 @@ class ResultManager {
 
 		if(this.debugMode) {
 			$("#result-menu .sqs-menu-item-hidden").css("display", "block");
+			$("#result-section #show-query-btn").show();
 		}
 		else {
 			$("#result-menu .sqs-menu-item-hidden").css("display", "none");
+			$("#result-section #show-query-btn").hide();
 		}
 	}
 
