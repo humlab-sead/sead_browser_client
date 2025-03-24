@@ -29,9 +29,23 @@ class MosaicSpeciesModule extends MosaicTileModule {
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         this.sqs.setLoadingIndicator(this.renderIntoNode, true);
+
         
+        let taxaList = await new Promise(async (resolve, reject) => {
+            let response = await this.fetch("/taxa", resultMosaic.sites);
+            if(!response) {
+                reject();
+                return false;
+            }
+            let data = await response.json();
+            resolve(data);
+        });
+
+
+
 
         //Fetch all species found in these sites (resultMosaic.sites)
+        /*
         let taxaList = await new Promise((resolve, reject) => {
             $.ajax({
                 method: "post",
@@ -45,6 +59,7 @@ class MosaicSpeciesModule extends MosaicTileModule {
                 }
             });
         });
+        */
         
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
         //this.chart = resultMosaic.renderPieChart(this.renderIntoNode, chartSeries, "Analysis methods");

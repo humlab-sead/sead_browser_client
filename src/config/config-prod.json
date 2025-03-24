@@ -30,6 +30,7 @@
 	"dendroSiteReportSectionEnabled": true,
 	"showResultExportButton": true,
 	"showMosaicExportButtons": true,
+	"showSearchButton": false,
 	"googleCustomSearchApiKey": "AIzaSyCrvpWj5sLvwQrwvgSN4Env29Y9d6BHkfM",
 	"pageTrackingEnabled": true,
 	"tutorialEnabled": true,
@@ -42,7 +43,7 @@
 	"xyCoordinateDimensionIds": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
 	"zCoordinateDimensionIds": [2, 18, 19, 20, 21, 22, 23, 24, 25, 26],
 	"coordinateSystemPriority": [72, 70, 103, 69, 114, 123, 120],
-	"featureTypesEnabledDomainsList": [],
+	"featureTypesEnabledDomainsList": ["archaeobotany", "geoarchaeology", "isotope", "ceramic"],
 	"keys": {
 		"bingMaps": "At_1FuTga4p88618KkMhqxYZE71lCvBhzEx7ccisF9rShHoLsDLv-5zzGh3l25X5"
 	},
@@ -727,7 +728,7 @@
 		},
 		{
 		"name":"isotope",
-		"enabled": true,
+		"enabled": false,
 		"title": "Isotope",
 		"icon":"<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i>",
 		"color":"#690",

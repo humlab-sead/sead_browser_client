@@ -72,7 +72,7 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         this.render();
     }
 
-    async fetch() {
+    async fetchData() {
         
     }
 

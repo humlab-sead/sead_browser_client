@@ -13,7 +13,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         this.chartType = "plotly";
     }
 
-    async fetch(renderIntoNode = null) {
+    async fetchData(renderIntoNode = null) {
         this.sqs.setNoDataMsg(renderIntoNode, false);
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         if(renderIntoNode) {
@@ -29,6 +29,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
 
         requestBody = JSON.stringify(requestBody);
 
+        /*
         let data = await $.ajax(requestString, {
             method: "post",
             dataType: "json",
@@ -37,6 +38,15 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
                 "Content-Type": "application/json"
             }
         });
+        */
+
+        let response = await this.fetch("/dendro/treespecies", requestBody);
+        if(!response) {
+            return false;
+        }
+
+        let data = await response.json();
+
         
         if(!this.active) {
             return false;
@@ -99,7 +109,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         this.active = true;
         this.renderIntoNode = renderIntoNode;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        let chartSeries = await this.fetch(renderIntoNode);
+        let chartSeries = await this.fetchData(renderIntoNode);
         
         if(chartSeries === false) {
             this.sqs.setNoDataMsg(this.renderIntoNode);
@@ -112,7 +122,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
 
     async update() {
         this.renderComplete = false;
-        let chartSeries = await this.fetch(this.renderIntoNode);
+        let chartSeries = await this.fetchData(this.renderIntoNode);
         if(chartSeries === false) {
             this.sqs.setNoDataMsg(this.renderIntoNode);
         }

@@ -46,7 +46,7 @@ class MosaicCeramicsRelativeAgesModule extends MosaicTileModule {
         
     }
 
-    async fetch() {
+    async fetchData() {
         
     }
 

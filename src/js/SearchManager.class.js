@@ -13,6 +13,10 @@ class SearchManager {
     constructor(sqs) {
         this.sqs = sqs;
         this.searchResults = [];
+
+        if(!this.sqs.config.showSearchButton) {
+            $("#search-menu").remove();
+        }
     }
 
     async search(searchTerm) {

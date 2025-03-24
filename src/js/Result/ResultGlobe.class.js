@@ -44,6 +44,10 @@ class ResultGlobe extends ResultModule {
 				animation: false,
 				timeline: false,
 			});
+
+			this.viewer.scene.skyBox = null;  // Remove stars/spacebox
+			this.viewer.scene.skyAtmosphere = null;  // Remove blue atmospheric glow
+			this.viewer.scene.backgroundColor = Cesium.Color.WHITE;  // Change background to black (or any solid color)
 			this.viewer.clock.shouldAnimate = false;
 
 			this.viewer.camera.setView({
@@ -113,9 +117,6 @@ class ResultGlobe extends ResultModule {
 				});
 			}
 		});
-
-		
-		
 	}
 
 	async renderControlPanel(data) {

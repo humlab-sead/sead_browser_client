@@ -39,6 +39,23 @@ body {
   background-color: $pane-bg-color;
 }
 
+.error-indicator {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.error-indicator h2 {
+  background: transparent;
+  font-size: 2rem;
+  margin-bottom: .5em;
+}
+
+.error-indicator label {
+  display: block;
+  font-size: 1rem;
+}
+
 input {
 
 }
@@ -1584,7 +1601,7 @@ h1.main-header {
 }
 
 .overlay-dialog {
-	display:none;
+  display:none;
 	position:fixed;
 	background-color: #fff;
 	color: #000;
@@ -1682,6 +1699,7 @@ h1.main-header {
   grid-template-columns: [left] 1fr [right] 0.2fr;
   grid-template-rows: 1fr;
   grid-column-gap: 20px;
+  max-width: 800px;
 }
 
 .viewstate-dialog > button {

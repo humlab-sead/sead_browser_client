@@ -836,7 +836,7 @@ class BasicSiteInformation {
 
 		this.setSampleMapData(olMap, siteData);
 
-		olMap.setMapBaseLayer("topoMap");
+		olMap.setMapBaseLayer("osm");
 	}
 
 	setSampleMapData(olMap, siteData, sampleGroupId = null) {

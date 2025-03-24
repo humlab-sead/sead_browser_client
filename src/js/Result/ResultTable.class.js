@@ -237,7 +237,12 @@ class ResultTable extends ResultModule {
 			},
 				sorter: "number",
 			},
-			{
+		];
+
+		let activeDomain = this.sqs.domainManager.getActiveDomain().name;
+
+		if(activeDomain != "dendrochronology") {
+			tableColumns.push({
 				title:"Analyses",
 				field:"analyses",
 				widthGrow:2,
@@ -305,13 +310,10 @@ class ResultTable extends ResultModule {
 					// The initial return is just the loading indicator
 					return cellElement.innerHTML;
 				}
-			}
-		];
-
-		let activeDomain = this.sqs.domainManager.getActiveDomain().name;
-
+			});
+		}
 		
-		if(false && activeDomain == "dendrochronology") {
+		if(activeDomain == "dendrochronology") {
 			tableColumns.push({
 				title:"Dating overview",
 				field:"dating_overview",
@@ -326,17 +328,23 @@ class ResultTable extends ResultModule {
 						currentRenderSlotsTaken++;
 						clearInterval(renderInterval);
 
-						$.ajax(Config.dataServerAddress + "/graphs/dating_overview", {
+						//used to be: "/graphs/dating_overview"
+						$.ajax(Config.dataServerAddress + "/time/sites", {
 							data: JSON.stringify([cell.getData().site_link_filtered]),
 							dataType: "json",
 							method: "post",
 							contentType: 'application/json; charset=utf-8',
 							crossDomain: true
 							}).then(data => {
-								console.log(data.dating_extremes[0].site_id, data.dating_extremes[0].age_older, data.dating_extremes[0].age_younger);
+								console.log(data);
+								if(data.length == 0) {
+									cellElement.innerHTML = "N/A";
+									currentRenderSlotsTaken--;
+									return;
+								}
 
-								let older = data.dating_extremes[0].age_older;
-								let younger = data.dating_extremes[0].age_younger;
+								let older = data[0].age_older;
+								let younger = data[0].age_younger;
 
 								cellElement.innerHTML = "";
 
@@ -457,6 +465,7 @@ class ResultTable extends ResultModule {
 		return selectedRows.map(row => row.site_link_filtered);
 	}
 
+	/*
 	async fetchAnalysesStackedBar(siteId, siteTdId, rowsNum) {
 		if(!this.wsChan) {
 			this.wsChan = new ApiWsChannel(this.sqs, "ws://localhost:8484").connect().then((chan) => {
@@ -505,7 +514,9 @@ class ResultTable extends ResultModule {
 		
 		}
 	}
+	*/
 
+	/*
 	renderAnalysesStackedBar(row, rowsNum) {
 		let siteId = row.site_link_filtered;
 		let siteTdId = "site-"+siteId;
@@ -518,6 +529,7 @@ class ResultTable extends ResultModule {
 
 		return out;
 	}
+	*/
 
 	update() {
 		this.render();

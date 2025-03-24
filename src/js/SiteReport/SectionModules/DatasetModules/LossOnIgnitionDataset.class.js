@@ -173,7 +173,16 @@ class LossOnIgnitionDataset extends DatasetModule {
             }
 
             for(let key in series) {
-				let unit = analysisMethod.unit.unit_abbrev;
+				console.log(analysisMethod);
+
+				let unit = "";
+				if(analysisMethod.unit) {
+					unit = analysisMethod.unit.unit_abbrev;
+				}
+				else {
+					console.warn("No unit found for method", analysisMethod);
+				}
+
 				let value = series[key][1] == null ? "null" : series[key][1];
 
 				let sample = this.getPhysicalSampleByPhysicalSampleId(siteData, series[key][0]);

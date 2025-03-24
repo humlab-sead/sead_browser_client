@@ -35,7 +35,7 @@ class MosaicMapModule extends MosaicTileModule {
         this.renderComplete = true;
     }
 
-    async fetch() {
+    async fetchData() {
 
     }
 

@@ -25,109 +25,6 @@ class DendroChart {
         this.sqs.sqsEventListen("siteReportClosed", () => {
             this.removeInfoTooltip();
 		});
-
-        this.lookupTable = [
-            {
-                name: "Tree species", //What we call it - this is the name we use for internal code references
-                title: "Tree species", //The proper name it should be called (subject to change), this should match up with what is actually in the database
-                dendroLookupId: 121,
-            },
-            {
-                name: "Tree rings",
-                title: "Tree rings",
-                dendroLookupId: 122
-            },
-            {
-                name: "earlywood/late wood",
-                title: "earlywood/late wood",
-                dendroLookupId: 123
-            },
-            {
-                name: "No. of radius ",
-                title: "No. of radius ",
-                dendroLookupId: 124
-            },
-            {
-                name: "3 time series",
-                title: "3 time series",
-                dendroLookupId: 125
-            },
-            {
-                name: "Sapwood (Sp)",
-                title: "Sapwood (Sp)",
-                dendroLookupId: 126
-            },
-            {
-                name: "Bark (B)",
-                title: "Bark (B)",
-                dendroLookupId: 127
-            },
-            {
-                name: "Waney edge (W)",
-                title: "Waney edge (W)",
-                dendroLookupId: 128
-            },
-            {
-                name: "Pith (P)",
-                title: "Pith (P)",
-                dendroLookupId: 129
-            },
-            {
-                name: "Tree age ≥",
-                title: "Tree age ≥",
-                dendroLookupId: 130
-            },
-            {
-                name: "Tree age ≤",
-                title: "Tree age ≤",
-                dendroLookupId: 131
-            },
-            {
-                name: "Inferred growth year ≥",
-                title: "Inferred growth year ≥",
-                dendroLookupId: 132
-            },
-            {
-                name: "Inferred growth year ≤",
-                title: "Inferred growth year ≤",
-                dendroLookupId: 133
-            },
-            {
-                name: "Estimated felling year",
-                title: "Estimated felling year",
-                dendroLookupId: 134
-            },
-            {
-                name: "Estimated felling year, lower accuracy",
-                title: "Estimated felling year, lower accuracy",
-                dendroLookupId: 135
-            },
-            {
-                name: "Provenance",
-                title: "Provenance",
-                dendroLookupId: 136
-            },
-            {
-                name: "Outermost tree-ring date",
-                title: "Outermost tree-ring date",
-                dendroLookupId: 137
-            },
-            {
-                name: "Not dated",
-                title: "Not dated",
-                dendroLookupId: 138
-            },
-            {
-                name: "Date note",
-                title: "Date note",
-                dendroLookupId: 139
-            },
-            {
-                name: "Provenance comment",
-                title: "Provenance comment",
-                dendroLookupId: 140
-            },
-        ];
     }
 
     getSelectedRenderOptionExtra(extraOptionTitle = "Sort") {
@@ -218,34 +115,18 @@ class DendroChart {
             dataObjects.push(dataObject);
         }
         
-        console.log(dataObjects);
         return dataObjects;
     }
 
-    getDendroMeasurementById(dendroLookupId, dataObject) {
+    getDendroMeasurementById(valueClassId, dataObject) {
         for(let key in dataObject.values) {
-            if(dataObject.values[key].lookupId == dendroLookupId) {
+            if(dataObject.values[key].valueClassId == valueClassId) {
                 if(dataObject.values[key].valueType == "complex") {
                     return dataObject.values[key].data;
                 }
                 return dataObject.values[key].value;
             }
         }
-    }
-    
-    getDendroMeasurementByName(name, dataObject) {
-        let dendroLookupId = null;
-        for(let key in this.lookupTable) {
-            if(this.lookupTable[key].name == name) {
-                dendroLookupId = this.lookupTable[key].dendroLookupId;
-            }
-        }
-    
-        if(dendroLookupId == null) {
-            return false;
-        }
-        
-        return this.getDendroMeasurementById(dendroLookupId, dataObject);
     }
     
     getDendroMeasurementTypeById(id) {
@@ -438,7 +319,7 @@ class DendroChart {
     
     stripNonDatedObjects(dataObjects, verbose = false) {
         return dataObjects.filter((dataObject) => {
-            let notDated = this.getDendroMeasurementByName("Not dated", dataObject);
+            let notDated = this.dendroLib.getDendroMeasurementByName("Not dated", dataObject);
             if(typeof notDated != "undefined") {
                 //if we have explicit information that this is not dated...
                 if(verbose) {
@@ -448,7 +329,7 @@ class DendroChart {
             }
             let oldestFellingYear = this.dendroLib.getOldestFellingYear(dataObject);
             let youngestFellingYear = this.dendroLib.getYoungestFellingYear(dataObject);
-            
+
             if(!oldestFellingYear.value || !youngestFellingYear.value) {
                 //Or if we can't find a felling year...
                 if(verbose) {
@@ -653,8 +534,7 @@ class DendroChart {
 
         let colors = [];
         if(this.USE_LOCAL_COLORS) {
-            colors = ['#0074ab', '#005178', '#bfeaff', '#80d6ff', '#ff7900', '#b35500', '#ffdebf', '#ffbc80', '#daff00', '#99b300'];
-            colors = ["#da4167","#899d78","#03440c","#392f5a","#247ba0","#0b3948","#102542"];
+            colors = ["#e63946", "#5a9e2f", "#117733", "#76428a", "#1d70b8", "#2a628f", "#004d73"];
         }
         else {
             colors = this.sqs.color.getColorScheme(7);
@@ -718,8 +598,6 @@ class DendroChart {
         }
         props.x = this.xScale(fellingYear);
 
-
-
         //Width should ideally be from the younger planting year to the older felling year
         let plantingYear = this.getYoungestGerminationYear(d).value;
         if(!plantingYear) {
@@ -728,9 +606,11 @@ class DendroChart {
         props.widthRaw = this.xScale(fellingYear) - this.xScale(plantingYear);
         props.width = (this.xScale(fellingYear) - this.xScale(plantingYear));
 
-
         //make sure the x value is not smaller than the stop-x (width)
-
+        if(props.width < 0) {
+            props.x = props.x + props.width;
+            props.width = Math.abs(props.width);
+        }
 
         return props;
     }
@@ -792,7 +672,6 @@ class DendroChart {
             }
         };
 
-
         let oldestFellingYear = this.dendroLib.getOldestFellingYear(d);
         let youngestFellingYear = this.dendroLib.getYoungestFellingYear(d);
         let youngestGerminationYear = this.dendroLib.getYoungestGerminationYear(d);
@@ -828,7 +707,7 @@ class DendroChart {
 
         //Width
         if(oldestGerminationYear.value == null) {
-            barObject.germinationUncertainty.width.value = null;    
+            barObject.germinationUncertainty.width.value = null;
         }
         else {
             barObject.germinationUncertainty.width.value = this.xScale(youngestGerminationYear.value) - this.xScale(oldestGerminationYear.value);
@@ -852,7 +731,7 @@ class DendroChart {
             .join("rect")
             .classed("dendro-bar", true)
             .attr("fill", (d) => {
-                let treeSpecies = this.getDendroMeasurementByName("Tree species", d);
+                let treeSpecies = this.dendroLib.getDendroMeasurementByName("Tree species", d);
                 if(!treeSpecies) {
                     return "#666";
                 }
@@ -908,7 +787,7 @@ class DendroChart {
             .classed("dendro-bar", true)
             .classed("dendro-sapwood-bar", true)
             .attr("fill", (d) => {
-                let treeSpecies = this.getDendroMeasurementByName("Tree species", d);
+                let treeSpecies = this.dendroLib.getDendroMeasurementByName("Tree species", d);
                 if(!treeSpecies) {
                     return "#ccc";
                 }
@@ -916,7 +795,7 @@ class DendroChart {
             })
             .attr("sample-name", d => d.sample_name)
             .attr("visibility", d => {
-                let estimatedFellingYear = this.getDendroMeasurementByName("Estimated felling year", d);
+                let estimatedFellingYear = this.dendroLib.getDendroMeasurementByName("Estimated felling year", d);
                 if(parseInt(estimatedFellingYear.younger) || parseInt(estimatedFellingYear.older)) {
                     return "hidden";
                 }
@@ -954,7 +833,7 @@ class DendroChart {
             .attr("fill", "url(#uknFellingGradient)")
             .attr("sample-name", d => d.sample_name)
             .attr("visibility", d => {
-                let estimatedFellingYear = this.getDendroMeasurementByName("Estimated felling year", d);
+                let estimatedFellingYear = this.dendroLib.getDendroMeasurementByName("Estimated felling year", d);
                 if(parseInt(estimatedFellingYear.younger) || parseInt(estimatedFellingYear.older)) {
                     return "hidden";
                 }
@@ -1188,9 +1067,9 @@ class DendroChart {
         }
     }
 
-    getDendroMetadataForLookupId(lookupId) {
+    getDendroMetadataForValueClassId(valueClassId) {
         for(let key in this.siteReport.siteData.lookup_tables.dendro) {
-            if(this.siteReport.siteData.lookup_tables.dendro[key].dendro_lookup_id == lookupId) {
+            if(this.siteReport.siteData.lookup_tables.dendro[key].value_class_id == valueClassId) {
                 return this.siteReport.siteData.lookup_tables.dendro[key];
             }
         }
@@ -1229,17 +1108,17 @@ class DendroChart {
         let sampleVars = [];
 
         sampleVars.push({
-            label: "Sample name",
+            key: "Sample name",
             value: dataObject.sample_name
         });
 
         sampleVars.push({
-            label: "Sample group",
+            key: "Sample group",
             value: sg.sample_group_name
         });
 
         sampleVars.push({
-            label: "Sample type",
+            key: "Sample type",
             value: sample.sample_type_name,
             tooltip: sample.sample_type_description
         });
@@ -1252,7 +1131,7 @@ class DendroChart {
         });
         sampleDescriptions = sampleDescriptions.substring(0, sampleDescriptions.length-2);
         sampleVars.push({
-            label: "Sample descriptions",
+            key: "Sample descriptions",
             value: sampleDescriptions
         });
 
@@ -1268,35 +1147,10 @@ class DendroChart {
         sampleLocations += "</tbody></table>";
         if(sample.locations.length > 0) {
             sampleVars.push({
-                label: "Sample locations",
+                key: "Sample locations",
                 value: sampleLocations
             });
         }
-
-
-        //TODO: Sampling contexts exists on a sample group level
-        /*
-        let samplingContexts = "";
-        sample.sampling_context.forEach(samplingContext => {
-
-        });
-        */
-        
-
-         /*
-        let sampleDimensions = "";
-        sample.dimensions.forEach(dim => {
-            let ttId = "value-tooltip-"+nanoid();
-            sampleDimensions += "<span id='"+ttId+"'>"+dim.description+"</span>, "
-            this.sqs.tooltipManager.registerTooltip("#"+ttId, dim.type_description, { drawSymbol: true });
-        });
-        sampleDimensions = sampleDimensions.substring(0, sampleDimensions.length-2);
-        sampleVars.push({
-            label: "Sample dimensions",
-            value: sampleDimensions
-        });
-        */
-
 
         let sampleFeatures = "";
         sample.features.forEach(feature => {
@@ -1309,7 +1163,7 @@ class DendroChart {
         sampleFeatures = sampleFeatures.substring(0, sampleFeatures.length-2);
         if(sampleFeatures.length > 0) {
             sampleVars.push({
-                label: "Sample features",
+                key: "Sample features",
                 value: sampleFeatures
             });
         }
@@ -1320,9 +1174,9 @@ class DendroChart {
                 value = this.dendroLib.renderDendroDatingAsString(dataset.data, this.siteReport.siteData, true, this.sqs);
             }
             
-            let varMeta = this.getDendroMetadataForLookupId(dataset.id);
+            let varMeta = this.getDendroMetadataForValueClassId(dataset.valueClassId);
             sampleVars.push({
-                label: dataset.label,
+                key: dataset.key,
                 value: value,
                 tooltip: varMeta.description
             });
@@ -1340,7 +1194,7 @@ class DendroChart {
         content += "<table class='dendro-chart-tooltip-container-content'>";
         sampleVars.forEach(sv => {
             let dendroVarLabelTooltipId = "dendro-var-"+nanoid();
-            content += "<tr><td id='"+dendroVarLabelTooltipId+"' class='dendro-tooltip-variable-name-text'>"+sv.label+":</td><td>"+sv.value+"</td></tr>";
+            content += "<tr><td id='"+dendroVarLabelTooltipId+"' class='dendro-tooltip-variable-name-text'>"+sv.key+":</td><td>"+sv.value+"</td></tr>";
             if(sv.tooltip) {
                 this.sqs.tooltipManager.registerTooltip("#"+dendroVarLabelTooltipId, sv.tooltip, { drawSymbol: true });
             }
@@ -2152,7 +2006,6 @@ class DendroChart {
 
         let totalNumOfSamples = this.dataObjects.length;
         this.dataObjects = this.stripNonDatedObjects(this.dataObjects);
-        //console.log(this.dataObjects.length+" / "+totalNumOfSamples);
         let undatedSamples = totalNumOfSamples - this.dataObjects.length;
         this.clearSampleWarnings();
 
@@ -2241,6 +2094,8 @@ class DendroChart {
             }
             return fellingYear;
         });
+
+        
 
         //If we couldn't find a single viable dating for any sample, then we can't calculate a range span at all and thus can't draw anything
         if(!extentMin || !extentMax) {

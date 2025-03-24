@@ -102,7 +102,7 @@
                 sodipodi:docname="filter-menu-actual.svg"
                 id="filter-menu-svg"
                 version="1.1"
-                viewBox="0 0 6.558811 43.951031"
+                viewBox="0 0 6.558811 43.551031"
                 preserveAspectRatio="none"
                 height="43.951031mm"
                 width="6.5588112mm"
@@ -138,6 +138,8 @@
                     id="facet-menu"
                     sodipodi:nodetypes="cccccc" />
                 </g>
+                
+
               </svg>
 
               <div id="filter-menu-filter-area"></div>
@@ -373,6 +375,13 @@
         </div>
       </template>
 
+      <template id="error-indicator">
+        <div class="error-indicator overlay-msg-box">
+          <h2><i style="color:red;" class="fa fa-exclamation-triangle" aria-hidden="true"></i>&nbsp;Error</h2>
+          <label></label>
+        </div>
+      </template>
+
       <template id="result-taxon-container-content-template">
         <h1 style="display:inline-block;">Taxon datasheet</h1>
         <div class="taxon-link-container">
@@ -518,8 +527,8 @@
           <div id="viewstate-load-list">
           </div>
   
-  
           <!--<button id="viewstate-load-btn">Load</button>-->
+          
           
           <div id="viewStateLoadGoogleLogin"></div>
         </div>
@@ -528,7 +537,7 @@
       <div id="viewstate-save-dialog" class="viewstate-dialog">
 
           <div style="grid-column: left;">
-            <p>A viewstate functions as a bookmark that saves your currently selected filters and other user interface settings. Viewstates are public and can be viewed by anyone with the link, so can be used for sharing ideas. Please note that they may not persist between interface versions, and so should not be used in publications. We are working on an alternative system for providing permanent identifiers for filter results.</p>
+            <p>A viewstate functions as a bookmark that saves your currently selected filters and other user interface settings. Viewstates are public and can be viewed by anyone with the link. Please do not rely on viewstate links as permanent resources.</p>
             <div>
               <input id="viewstate-save-input" class="viewstate-input" type="text" placeholder="Viewstate name (optional)" />
               <button id="viewstate-save-btn">Save</button>
@@ -577,7 +586,7 @@
           <input class="facet-text-search-input" type="text" />
           <div class="fa fa-database facet-sql-btn facet-head-btn" aria-hidden="true"></div>
           <div class="fa fa-search facet-text-search-btn facet-head-btn" aria-hidden="true"></div>
-          <div class="facet-minimize-btn fa fa-check facet-head-btn facet-size-btn" aria-hidden="true"></div>
+          <div class="facet-minimize-btn fa fa-window-minimize facet-head-btn facet-size-btn" aria-hidden="true"></div>
           <!--<div class="facet-maximize-btn fa fa-window-maximize facet-head-btn facet-size-btn" aria-hidden="true"></div>-->
           <div class="facet-delete-btn fa fa-times facet-head-btn" aria-hidden="true"></div>
 
@@ -784,8 +793,8 @@
             <a href="http://www.idesam.umu.se/english/mal/?languageId=1" target="_blank"><img class="about-section-logo" src="/mal-logo.png" /></a><br />
             <a href="http://www.lu.se/" target="_blank"><img class="about-section-logo" src="/lu-logo.png" /></a>
           </div>
-      </div>
-  
+      </div> 
+      
       </div>
   
       <div id="team-section" class="overlay-dialog">

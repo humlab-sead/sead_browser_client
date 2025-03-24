@@ -39,7 +39,7 @@ class AbundanceDataset extends DatasetModule {
 
 	getSectionByMethodId(methodId, sections) {
 		for(let key in sections) {
-			if(sections[key].name == methodId) {
+			if(sections[key].methodId == methodId) {
 				return sections[key];
 			}
 		}
@@ -89,6 +89,10 @@ class AbundanceDataset extends DatasetModule {
 			}
 		});
 		
+		if(ecoCodeBundles.length == 0) {
+			return null;
+		}
+
 		/*
 		X: Environment
 		Y: Abundance / Taxa
@@ -221,6 +225,14 @@ class AbundanceDataset extends DatasetModule {
 			}
 		});
 		
+		if(ecoCodeBundles.length == 0) {
+			return null;
+		}
+
+		if(ecoCodeBundles.length == 1 && ecoCodeBundles[0].ecocodes.length == 0) {
+			return null;
+		}
+
 		/*
 		X: Environment
 		Y: Abundance / Taxa
@@ -291,7 +303,7 @@ class AbundanceDataset extends DatasetModule {
 								{
 									"title": "Aggregated taxa",
 									"value": 2,
-								}
+								},
 							]
 						},
 						{
@@ -424,7 +436,7 @@ class AbundanceDataset extends DatasetModule {
 		//if this is palaeontomoly, generate eco code charts as well, but don't if not
 		let palaeontomolyDatasetFound = false;
 		dataGroups.forEach(dataGroup => {
-			if(dataGroup.method_id == 3) {
+			if(dataGroup.method_ids.includes(3)) {
 				palaeontomolyDatasetFound = true;
 			}
 		})
@@ -666,8 +678,15 @@ class AbundanceDataset extends DatasetModule {
 			let ecoCodeSection = this.getSectionByMethodId(3, sections);
 			if(ecoCodeSection) {
 				//these two get eco codes methods actually return promises, but that's ok, the content-item renderer will handle that
-				ecoCodeSection.contentItems.push(this.getSiteEcoCodeContentItem(siteData));
-				ecoCodeSection.contentItems.push(this.getSamplesEcoCodeContentItem(siteData));
+				let siteEcoCodeContentItem = this.getSiteEcoCodeContentItem(siteData);
+				let sampleEcoCodeContentItem = this.getSamplesEcoCodeContentItem(siteData);
+
+				if(siteEcoCodeContentItem) {
+					ecoCodeSection.contentItems.push(siteEcoCodeContentItem);
+				}
+				if(sampleEcoCodeContentItem) {
+					ecoCodeSection.contentItems.push(sampleEcoCodeContentItem);
+				}
 			}
 			else {
 				console.warn("Tried to insert a contentItem into a section that couldn't be found.");
