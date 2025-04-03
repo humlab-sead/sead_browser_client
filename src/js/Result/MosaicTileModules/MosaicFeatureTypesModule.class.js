@@ -38,7 +38,7 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(resultMosaic.sites)
+            body: JSON.stringify({ siteIds: resultMosaic.sites })
         });
         let data = await response.json();
         
