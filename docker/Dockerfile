@@ -1,7 +1,7 @@
 FROM debian:bullseye
 
 # Define build-time variables (provided via Docker Compose)
-ARG SBC_REF=main
+ARG SBC_REF=master
 ARG MODE=dev
 
 # Define environment variables for runtime
@@ -30,8 +30,8 @@ RUN git checkout $SBC_REF
 
 RUN npm install && npm run build:dev && cp -R dist/* /var/www/html/
 
-# Install webpack-dev-server for deMODEvelopment
-RUN npm install --save-dev webpack-dev-server
+# Install webpack-dev-server for development
+RUN npm install --save-dev webpack-dev-server webpack webpack-cli
 
 # Build for production, otherwise, start dev server
 CMD ["sh", "-c", "if [ \"$MODE\" = \"dev\" ]; then npm run dev -- --port 80; else nginx -g 'daemon off;'; fi"]
