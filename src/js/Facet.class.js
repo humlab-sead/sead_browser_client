@@ -338,7 +338,7 @@ class Facet {
 			data: JSON.stringify(reqData),
 			dataType: "json",
 			method: "post",
-			contentType: 'application/json; charset=utf-8',
+			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
 				if(this.deleted == false && respData.FacetsConfig.RequestId == this.requestId) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.

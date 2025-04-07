@@ -411,6 +411,9 @@ class RangeFacet extends Facet {
 		let sliderMin = this.totalLower;
 		let sliderMax = this.totalUpper;
 
+		this.sliderMin = sliderMin;
+		this.sliderMax = sliderMax;
+
 		let startDefault = this.getSelections();
 		if(startDefault.length < 2) {
 			startDefault = [sliderMin, sliderMax];
@@ -447,7 +450,7 @@ class RangeFacet extends Facet {
 		$(".noUi-handle-lower > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(-7-digitSpace)+"px");
 		$(".noUi-handle-upper > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(13)+"px");
 		*/
-		let digits = this.sliderMax.toString().length > this.sliderMin.toString().length ? this.sliderMax.toString().length : this.sliderMin.toString().length;
+		let digits = sliderMax.toString().length > sliderMin.toString().length ? sliderMax.toString().length : sliderMin.toString().length;
 		var digitSpace = digits*5;
 		$(".slider-manual-input-container .range-facet-manual-input", this.domObj).css("width", 10 + digitSpace);
 
@@ -564,6 +567,29 @@ class RangeFacet extends Facet {
 			console.log("Moving slider to", values);
 			this.slider.set(values);
 		}
+	}
+
+	formatValueForDisplay(value, datingSystem, prettyPrint = true) {
+		if (datingSystem === "BP") {
+			value = Math.abs(value); // Ensure positive for formatting
+			if (prettyPrint) {
+				if (value >= 1_000_000) {
+					return (value / 1_000_000).toFixed(1) + "m"; // Format as millions
+				} else if (value >= 1_000) {
+					return (value / 1_000).toFixed(1) + "k"; // Format as thousands
+				}
+			}
+			return value; // Return raw value if prettyPrint is false
+		}
+
+		if (datingSystem === "AD/BC") {
+			if (value < 0) {
+				return Math.abs(value) + " BC";
+			}
+			return value + " AD";
+		}
+		
+		return value;
 	}
 
 	adjustSliderInputPositions(overlap, lowerManualInputNode, upperManualInputNode) {

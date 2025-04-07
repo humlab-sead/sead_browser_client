@@ -68,10 +68,10 @@ class FacetManager {
 				this.chainQueueFacetDataFetch(fetchFromFacet);
 			}
 			
-			if(this.getCountOfFacetsForSlots() == 1) {
+			if(this.getCountOfFacetsForSlots() == 0) {
 				$("#facet-show-only-selections-btn").hide();
 				setTimeout(() => {
-					if(this.getCountOfFacetsForSlots() == 1) { //If there's still no facet...
+					if(this.getCountOfFacetsForSlots() == 0) { //If there's still no facet...
 						this.renderDemoSlot();
 					}
 				}, 500);
@@ -90,7 +90,7 @@ class FacetManager {
 		this.renderDemoSlot();
 		
 		this.sqs.sqsEventListen("sqsFacetPreAdd", () => {
-			if(this.demoSlot != null && this.getCountOfFacetsForSlots() > 0) {
+			if(this.demoSlot != null && this.getCountOfFacetsForSlots() == 0) {
 				$(".filter-demo-arrow").remove();
 				this.removeSlot(this.demoSlot, true);
 				this.demoSlot = null;
@@ -116,6 +116,7 @@ class FacetManager {
 	}
 	
 	addDefaultFacets() {
+		/*
 		if(Config.timelineEnabled) {
 			let facetId = "timeline";
 			let facetTemplate = this.getFacetTemplateByFacetId("analysis_entity_ages");
@@ -124,6 +125,7 @@ class FacetManager {
 			this.timeline = new TimelineFacet(this.sqs, facetId, facetTemplate, mapObject);
 			this.addFacet(this.timeline);
 		}
+		*/
 	}
 
 	toggleDebug() {
@@ -378,24 +380,6 @@ class FacetManager {
 		}
 	}
 
-	addVirtualFacet(facet) {
-		//first check if we already have this
-		for(var key in this.facets) {
-			if(this.facets[key].name == facet.name) {
-				console.log("Facet already exists: "+facet.name);
-				return;
-			}
-		}
-		//if we don't, then always add it to the end
-		this.facets.push(facet);
-		let lastSlotId = this.slots[this.slots.length-1].id;
-		this.updateLinks(facet.id, lastSlotId);
-		this.queueFacetDataFetch(facet);
-		console.log(this.facets);
-		console.log(this.slots);
-		console.log(this.links);
-	}
-
 	/*
 	* Function: addFacet
 	* 
@@ -586,18 +570,8 @@ class FacetManager {
 		}
 	}
 
-	//gets the count of facets specifically for counting the slots - which means we disregard the timeline facet since it has no slot
 	getCountOfFacetsForSlots() {
 		return this.facets.length;
-		
-		let facetCount = 0;
-		for(let key in this.facets) {
-			if(!this.facets[key].virtual) {
-				facetCount++;
-			}
-		}
-
-		return facetCount;
 	}
 
 	/*
@@ -1285,10 +1259,6 @@ class FacetManager {
 			};
 			
 			for(var fk in facetDef[gk].filters) {
-				if(facetDef[gk].filters[fk].name == "analysis_entity_ages") {
-					continue;
-				}
-
 				let icon = "";
 				if(facetDef[gk].filters[fk].type == "discrete") {
 					icon = "<span class='sqs-menu-facet-type-icon'><i class=\"fa fa-list-ul\" aria-hidden=\"true\"></i></span>";

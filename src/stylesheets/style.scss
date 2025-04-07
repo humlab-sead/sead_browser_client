@@ -800,6 +800,7 @@ h1.main-header {
   padding: 12px;
 }
 
+
 #result-container {
   display: grid;
   grid-template-rows: 1fr min-content;
@@ -810,6 +811,15 @@ h1.main-header {
   height: calc(100vh - 100px);
   margin-top: 0px;
 }
+
+/*
+#result-container {
+  background-color: #fff;
+  height: 97% !important;
+  padding: 0;
+  margin: 0;
+}
+*/
 
 .result-export-button {
   display: flex;
@@ -1568,6 +1578,7 @@ h1.main-header {
   width: 8px;
 }
 
+
 .ui-resizable-handle:hover {
   background-color: $inactive-color;
   cursor: col-resize;
@@ -1575,6 +1586,15 @@ h1.main-header {
 
 .ui-resizable-handle.ui-resizable-n {
   cursor: row-resize;
+}
+
+//this is because we do NOT want the width attributes to be applied to the handles in the case of the result container gridstack
+#result-container div.ui-resizable-handle.ui-resizable-s {
+  width: auto;
+}
+
+#result-container div.ui-resizable-handle.ui-resizable-e {
+  width: auto;
 }
 
 .menu-symbol-facet {
@@ -4181,4 +4201,40 @@ tr.free-text-search-result-row:hover {
   color: #fff;
   padding: 0.5em;
   cursor: pointer;
+}
+
+.grid-stack {
+  height: 100%;
+  overflow: auto;
+}
+
+.grid-stack-item-content {
+  background: $pane-bg-color;
+  border: 1px solid #ccc;
+}
+
+
+.grid {
+  width: 100%;
+  height: 100vh;
+}
+
+.grid-item {
+  width: calc(50% - 20px);
+  height: calc(50% - 20px);
+  margin: 5px;
+  background-color: rgba(0, 0, 255, 0.5);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.packery-drop-placeholder {
+  outline: 3px dashed #444;
+  outline-offset: -6px;
+  /* transition position changing */
+  -webkit-transition: -webkit-transform 0.2s;
+          transition: transform 0.2s;
 }

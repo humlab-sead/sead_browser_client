@@ -694,6 +694,7 @@ class SeadQuerySystem {
 	}
 
 	importFilters(data) {
+
 		this.experimentalFilters.forEach(filter => {
 			if(filter.enabled) {
 				data.push(filter);

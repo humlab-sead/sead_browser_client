@@ -222,16 +222,26 @@ class TimelineFacet extends Facet {
 		return [selections[1] * -1, selections[0] * -1];
 	}
 
-	formatValueForDisplay(value, datingSystem) {
-		if(datingSystem == "BP") {
-			return value * -1;
-		}
-		if(datingSystem == "AD/BC") {
-			if(value < 0) {
-				value = Math.abs(value);
+	formatValueForDisplay(value, datingSystem, prettyPrint = true) {
+		if (datingSystem === "BP") {
+			value = Math.abs(value); // Ensure positive for formatting
+			if (prettyPrint) {
+				if (value >= 1_000_000) {
+					return (value / 1_000_000).toFixed(1) + "m"; // Format as millions
+				} else if (value >= 1_000) {
+					return (value / 1_000).toFixed(1) + "k"; // Format as thousands
+				}
 			}
+			return value; // Return raw value if prettyPrint is false
 		}
 
+		if (datingSystem === "AD/BC") {
+			if (value < 0) {
+				return Math.abs(value) + " BC";
+			}
+			return value + " AD";
+		}
+		
 		return value;
 	}
 
@@ -364,7 +374,7 @@ class TimelineFacet extends Facet {
 		};
 	
 		const data = [trace];
-	
+
 		Plotly.newPlot('result-timeline', data, layout, options);
 	
 		// Store chart reference if needed
@@ -385,6 +395,7 @@ class TimelineFacet extends Facet {
 	}
 
 	build() {
+		
 		this.createChart();
 
 		 // Generate random data
@@ -728,7 +739,11 @@ class TimelineFacet extends Facet {
     }
 
     renderData() {
-        console.log("Rendering data for timeline");
+        if($("#result-timeline").length == 0) {
+			console.warn("WARN: Timeline element not found, cannot render data");
+			return;
+		}
+		console.log("Rendering data for timeline");
 
 		if(this.slider == null) {
 			this.build();

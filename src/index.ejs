@@ -178,6 +178,7 @@
               <h2 id="result-title">Selected sites</h2>
               <div id="result-menu"></div>
             </div>
+
             <div id="result-container">
               <div id="result-loading-indicator" class="loading-indicator"></div>
               <div id="result-msg-container" class="result-module-container"></div>
@@ -186,6 +187,7 @@
               <div id="result-mosaic-container" class="result-module-container"></div>
               <div id="result-taxon-container" class="result-module-container"></div>
               <div id="result-globe-container" class="result-module-container"></div>
+              <!--
               <div id="timeline-container">
                 <div id='timeline-title-bar'>
                   <h2>
@@ -217,6 +219,7 @@
                   <div class='range-slider-input' />
                 </div>
               </div>
+            -->
             </div>
 
             <div id="show-query-btn" class="fa fa-database result-export-button"></div>
@@ -225,6 +228,39 @@
         </div>
       </div>
       
+      <template id="timeline-template">
+        <div id="timeline-container">
+          <div id='timeline-title-bar'>
+            <h2>
+              <i class="fa fa-clock-o" aria-hidden="true"></i>
+              &nbsp;Timeline
+              <div id="timeline-filter-checkbox-container">
+                <label for="timeline-filter-checkbox" class="timeline-filter-checkbox-label">Use as filter</label>
+                <input type="checkbox" id="timeline-filter-checkbox" name="timeline-filter-checkbox" />
+              </div>
+            </h2>
+            <div id='timeline-data-selector-container' class="timeline-selector-container">
+              <label>Graph data</label>
+              <select id='timeline-data-selector'></select>
+            </div>
+            <div id='timeline-scale-selector-container' class="timeline-selector-container">
+              <label>Time scale</label>
+              <select id='timeline-scale-selector'></select>
+              <select id='timeline-dating-system-selector'></select>
+            </div>
+          </div>
+          <div id='result-timeline'></div>
+
+          <div id='result-timeline-curtains'>
+            <div id='result-timeline-curtain-left'></div>
+            <div id='result-timeline-curtain-right'></div>
+          </div>
+          
+          <div id='result-timeline-slider'>
+            <div class='range-slider-input' />
+          </div>
+        </div>
+      </template>
 
       <div id="site-report-main-container" class="responsive-layout-container">
         <div id="header-container">
