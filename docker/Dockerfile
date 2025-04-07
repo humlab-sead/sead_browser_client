@@ -28,10 +28,9 @@ WORKDIR /sead_browser_client
 
 RUN git checkout $SBC_REF
 
-RUN npm install && npm run build:dev && cp -R dist/* /var/www/html/
+RUN npm install --legacy-peer-deps
 
-# Install webpack-dev-server for development
-RUN npm install --save-dev webpack-dev-server webpack webpack-cli
+RUN npm run build:dev && cp -R dist/* /var/www/html/
 
 # Build for production, otherwise, start dev server
 CMD ["sh", "-c", "if [ \"$MODE\" = \"dev\" ]; then npm run dev -- --port 80; else nginx -g 'daemon off;'; fi"]
