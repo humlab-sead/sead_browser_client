@@ -14,7 +14,7 @@
 	"defaultResultModule":"mosaic",
 	"resultMapDataLayers": ["clusterPoints", "points"],
 	"maxAllowedSitesInAnExport": 20,
-	"facetSectionDefaultWidth":30,
+	"facetSectionDefaultWidth":38.2,
 	"facetBodyHeight":268,
 	"discreteFacetRowHeight":20,
 	"discreteFacetTextSize":10,
@@ -61,6 +61,7 @@
 	"constants": {
 		"BP": 1950
 	},
+	"defaultFilters": [""],
 	"ecocodeColors": [
 		{
 			"ecocode_definition_id": 323,
