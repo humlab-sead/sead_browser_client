@@ -278,7 +278,6 @@ class Timeline extends IOModule {
             this.sliderUpdateCallback(values);
         });
         this.slider.on("change", (values, slider) => {
-            console.log(values);
             //set new selections on this facet
             let bpValues = this.sliderSelectionsToBP([parseInt(values[0]), parseInt(values[1])]);
             this.setSelections(bpValues);
