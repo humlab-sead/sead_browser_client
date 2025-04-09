@@ -405,7 +405,7 @@ class SeadQuerySystem {
 			},
 		]);
 
-		this.facetManager.addDefaultFacets();
+		//this.facetManager.addDefaultFacets();
 
 		if(this.config.globeResultModuleEnabled) {
 			this.resultManager.addModule([{
