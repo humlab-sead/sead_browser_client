@@ -7,6 +7,7 @@ import MapFacet from './MapFacet.class.js';
 import MultiStageFacet from './MultiStageFacet.class';
 import Config from '../config/config.json';
 import TimelineFacet from './TimelineFacet.class.js';
+import Timeline from './IOModules/Timeline.class.js';
 /* 
 Class: FacetManager
 The FacetManager handles all things concerning the manipulation of multiple facets, basically anything that has to do with facets that exceeds the scope of the individual facet. For example moving/swapping of facets.
@@ -113,6 +114,11 @@ class FacetManager {
 			
 			this.buildFilterStructure(domainName);
 		});
+
+		setTimeout(() => {
+			this.addDefaultFacets();
+		}, 500);
+		
 	}
 	
 	addDefaultFacets() {
@@ -126,6 +132,20 @@ class FacetManager {
 			this.addFacet(this.timeline);
 		}
 		*/
+
+		Config.defaultFilters.forEach((facetId) => {
+			let facetTemplate = this.getFacetTemplateByFacetId(facetId);
+			if(!facetTemplate) {
+				console.warn("Facet not found: "+facetId);
+				return;
+			}
+			let facet = this.makeNewFacet(facetTemplate);
+			if(!facet) {
+				console.warn("Facet not found: "+facetId);
+				return;
+			}
+			this.addFacet(facet, false);
+		});
 	}
 
 	toggleDebug() {
@@ -271,6 +291,11 @@ class FacetManager {
 	* The created facet object.
 	*/
 	makeNewFacet(template) {
+		//special case for the timeline facet
+		if(template.name == "analysis_entity_ages") {
+			return new Timeline(this.sqs, this.getNewFacetId(), template);
+		}
+
 		switch(template.type) {
 			case "multistage":
 				return new MultiStageFacet(this.sqs, this.getNewFacetId(), template);

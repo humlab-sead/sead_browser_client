@@ -440,7 +440,7 @@ class TimelineFacet extends Facet {
 
 		
 		//create the slider
-		this.slider = noUiSlider.create($("#result-timeline-slider .range-slider-input")[0], {
+		this.slider = noUiSlider.create($("#timeline-slider .range-slider-input")[0], {
 			start: [this.sliderMin, this.sliderMax],
 			range: {
 				'min': this.sliderMin,
