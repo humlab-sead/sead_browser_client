@@ -1499,6 +1499,10 @@ h1.main-header {
   overflow-x: hidden;
 }
 
+.timeline-container {
+  display: none;
+}
+
 .filter-container {
   position: relative;
   height: 100%;
@@ -2091,6 +2095,17 @@ polyline{
   height: 2em;
 }
 
+.timeline-control-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: auto;
+  color: #fff;
+  font-size: .9em;
+  padding: 0.5em;
+  padding-top: 0.1em;
+}
+
 #timeline-title-bar > h2 > i.fa {
   position: relative;
   top: 1px;
@@ -2128,17 +2143,20 @@ polyline{
 
 .timeline-selector-container {
   display: flex;
+  flex-direction: column;
   color: #000;
+}
+
+.filter-controls-container {
+  display: flex;
+  flex-direction: row;
 }
 
 .timeline-selector-container > label {
   display: flex;
   align-items: center;
-  background: #ddd;
-  border: 1px solid #ccc;
   height: calc(1em + 8px);
-  padding-left: 0.4em;
-  padding-right: 0.4em;
+  font-weight: bold;
 }
 
 #result-timeline {
@@ -2148,11 +2166,11 @@ polyline{
   height: calc(100% - 70px);
 }
 
-#result-timeline-slider {
+.timeline-slider {
   position: absolute;
   bottom: 0;
-  width: calc(100% - 100px);
-  margin-left: 50px;
+  width: calc(100% - 70px);
+  margin-left: 30px;
   margin-bottom: 10px;
 }
 
@@ -2165,7 +2183,7 @@ polyline{
   margin-left: 50px;
 }
 
-#result-timeline-curtain-left {
+#timeline-curtain-left {
   position: absolute;
   top: 0px;
   left: 0px;
