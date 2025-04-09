@@ -22,7 +22,11 @@ class Slot {
 	}
 
 	initUi() {
-		var slotDomObj = $("#slot-template")[0].cloneNode(true);
+		//var slotDomObj = $("#slot-template")[0].cloneNode(true);
+
+		let template = document.getElementById("slot-template");
+        const slotDomObj = template.content.firstElementChild.cloneNode(true);
+
 		$(slotDomObj).attr("id", "slot-"+this.id);
 		$(slotDomObj).attr("slot-id", this.id);
 		$("#facet-section").append(slotDomObj);

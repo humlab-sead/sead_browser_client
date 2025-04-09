@@ -41,7 +41,9 @@ class Facet {
 	}
 
 	initFacetUi() {
-		var facetDomObj = $("#facet-template")[0].cloneNode(true);
+		let template = document.getElementById("facet-template");
+        const facetDomObj = template.content.firstElementChild.cloneNode(true);
+
 		this.domObj = facetDomObj;
 		$(facetDomObj).attr("id", "facet-"+this.id);
 		$(facetDomObj).attr("facet-id", this.id);
