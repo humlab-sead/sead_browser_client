@@ -350,15 +350,6 @@ class DendrochronologyDataset extends DatasetModule {
 	}
 	*/
 
-	getDendroMethodDescription(siteData, valueClassId) {
-		for(let key in siteData.lookup_tables.dendro) {
-			if(siteData.lookup_tables.dendro[key].value_class_id == valueClassId) {
-				return siteData.lookup_tables.dendro[key]
-			}
-		}
-		return null;
-	}
-
 	async makeSection(siteData, sections) {
 		let dendroDatasets = this.claimDatasets(siteData); //even though we do not use the return from this, we still need it to clear the dendro datasets from the stack
 		let dataGroups = siteData.data_groups.filter((dataGroup) => {
@@ -447,7 +438,7 @@ class DendrochronologyDataset extends DatasetModule {
 					{
 						type: "cell",
 						value: dgValue.key,
-						tooltip: this.getDendroMethodDescription(siteData, dgValue.valueClassId).description
+						tooltip: this.getMethodDescription(siteData, "dendro", dgValue.valueClassId).description
 					},
 					{
 						type: "cell",
@@ -671,17 +662,6 @@ class DendrochronologyDataset extends DatasetModule {
 		if(config.dendroSiteReportSectionEnabled) {
 			sections.push(section);
 		}
-	}
-
-	getSampleGroupBySampleName(sampleName, siteData) {
-		for(let key in siteData.sample_groups) {
-			for(let sampleKey in siteData.sample_groups[key].physical_samples) {
-				if(siteData.sample_groups[key].physical_samples[sampleKey].sample_name == sampleName) {
-					return siteData.sample_groups[key]
-				}
-			}
-		}
-		return false;
 	}
 
 	buildContentItemChart(dsGroups) {

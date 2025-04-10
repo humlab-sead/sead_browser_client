@@ -289,6 +289,41 @@ class DatasetModule {
 
 		return datasetGroups;
 	}
+
+	getUnitById(siteData, unit_id) {
+        for(let key in siteData.lookup_tables.units) {
+            let unit = siteData.lookup_tables.units[key];
+            if(unit.unit_id == unit_id) {
+                return unit;
+            }
+        }
+        return null;
+    }
+
+	getMethodDescription(siteData, methodLookupKey, valueClassId) {
+		if (!siteData.lookup_tables[methodLookupKey]) {
+			console.warn(`Method lookup key "${methodLookupKey}" not found in lookup tables.`);
+			return null;
+		}
+	
+		for (let key in siteData.lookup_tables[methodLookupKey]) {
+			if (siteData.lookup_tables[methodLookupKey][key].value_class_id == valueClassId) {
+				return siteData.lookup_tables[methodLookupKey][key];
+			}
+		}
+		return null;
+	}
+
+	getSampleGroupBySampleName(sampleName, siteData) {
+		for(let key in siteData.sample_groups) {
+			for(let sampleKey in siteData.sample_groups[key].physical_samples) {
+				if(siteData.sample_groups[key].physical_samples[sampleKey].sample_name == sampleName) {
+					return siteData.sample_groups[key]
+				}
+			}
+		}
+		return false;
+	}
 }
 
 export default DatasetModule;

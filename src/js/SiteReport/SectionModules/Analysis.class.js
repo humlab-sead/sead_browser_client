@@ -11,6 +11,7 @@ import MagneticSusceptibilityDataset from "./DatasetModules/MagneticSusceptibili
 import LossOnIgnitionDataset from "./DatasetModules/LossOnIgnitionDataset.class";
 import EntityAgesDataset from "./DatasetModules/EntityAgesDataset.class";
 import ESRDataset from "./DatasetModules/ESRDataset.class";
+import AdnaDataset from "./DatasetModules/AdnaDataset.class";
 /*
 * Class: Analysis
 * 
@@ -112,6 +113,9 @@ class Analysis {
 		});
 		this.datasetModules.push({
 			"className": GenericDataset
+		});
+		this.datasetModules.push({
+			"className": AdnaDataset
 		});
 
 		for(let key in this.datasetModules) {
