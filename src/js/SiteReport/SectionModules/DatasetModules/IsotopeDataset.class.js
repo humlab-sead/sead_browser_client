@@ -12,7 +12,7 @@ class IsotopeDataset extends DatasetModule {
 		this.analysis = analysis;
 		this.data = analysis.data;
         this.buildIsComplete = true;
-        this.methodIds = [175];
+        this.methodIds = []; //used to be 175 - but this was overwritten by aDNA
     }
 
     getIsotopeValueSpecifierById(siteData, isotope_value_specifier_id) {

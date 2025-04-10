@@ -1573,9 +1573,9 @@ class SeadQuerySystem {
 	}
 
 	parseStringValueMarkup(value, ttOptions = { drawSymbol: true }) {
-		if(typeof value == "undefined") {
-			//console.warn("An undefined value was passed into parseStringValueMarkup");
-			return undefined;
+		if(typeof value == "undefined" || value == null) {
+			//console.warn("An undefined or null value was passed into parseStringValueMarkup");
+			return value;
 		}
 		value = value.toString();
 		if(typeof value != "string") {
