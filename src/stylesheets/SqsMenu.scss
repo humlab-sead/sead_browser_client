@@ -317,7 +317,7 @@ li.l1-container:hover {
 .sqs-menu-container { /* main container for expanded menu */
   	display: none;
   	position: absolute;
-    z-index: 100;
+    z-index: 10002 !important;
     overflow-x: hidden;
 }
 

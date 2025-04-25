@@ -645,30 +645,35 @@
           <div class="list-container"></div>
           <div class="multistage-container"></div>
           <div class="timeline-container">
-            <div class="timeline-control-bar">
-              <div id='timeline-data-selector-container' class="timeline-selector-container">
-                <label>Graph data</label>
-                <div class="filter-controls-container">
-                  <select id='timeline-data-selector'></select>
+            <div class="timeline-grid-container">
+              <div class="timeline-control-bar">
+                <div id='timeline-data-selector-container' class="timeline-selector-container">
+                  <label>Graph data</label>
+                  <div id="timeline-data-selector-container" class="filter-controls-container">
+                    <div>
+                      <span class="trace-legend"></span><select id='timeline-data-selector'></select>
+                    </div>
+                  </div>
+                </div>
+                <div id='timeline-scale-selector-container' class="timeline-selector-container">
+                  <label>Time scale</label>
+                  <div class="filter-controls-container">
+                    <select id='timeline-scale-selector'></select>
+                    <select id='timeline-dating-system-selector'></select>
+                  </div>
                 </div>
               </div>
-              <div id='timeline-scale-selector-container' class="timeline-selector-container">
-                <label>Time scale</label>
-                <div class="filter-controls-container">
-                  <select id='timeline-scale-selector'></select>
-                  <select id='timeline-dating-system-selector'></select>
-                </div>
+              <div class="timeline-graph"></div>
+              <div class="result-timeline"></div>
+  
+              <div class="result-timeline-curtains">
+                <div class="timeline-curtain-left"></div>
+                <div class="timeline-curtain-right"></div>
               </div>
-            </div>
-            <div class="result-timeline"></div>
-
-            <div class="result-timeline-curtains">
-              <div class="timeline-curtain-left"></div>
-              <div class="timeline-curtain-right"></div>
-            </div>
-
-            <div class="timeline-slider">
-              <div class='range-slider-input' />
+  
+              <div class="timeline-slider">
+                <div class='range-slider-input' />
+              </div>
             </div>
           </div>
           <div class="chart-container">

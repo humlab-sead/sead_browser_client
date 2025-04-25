@@ -3,10 +3,12 @@ FROM debian:bullseye
 # Define build-time variables (provided via Docker Compose)
 ARG SBC_REF=main
 ARG MODE=dev
+ARG DOMAIN
 
 # Define environment variables for runtime
-ENV SBC_REF=$SBC_REF
-ENV MODE=$MODE
+ENV SBC_REF=${SBC_REF}
+ENV MODE=${MODE}
+ENV DOMAIN=${DOMAIN}
 
 RUN apt-get update && apt-get install -y curl
 
@@ -28,7 +30,10 @@ WORKDIR /sead_browser_client
 
 RUN git checkout $SBC_REF
 
-RUN npm install && npm run build:dev && cp -R dist/* /var/www/html/
+# replace all instances of "localhost" with the domain name in src/config/config-prod.json
+RUN sed -i "s/localhost/$DOMAIN/g" src/config/config-prod.json
+
+RUN npm install && npm run build:prod && cp -R dist/* /var/www/html/
 
 # Install webpack-dev-server for deMODEvelopment
 RUN npm install --save-dev webpack-dev-server

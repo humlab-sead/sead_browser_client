@@ -6,11 +6,11 @@
 		"shortName":"CC-BY-4.0",
 		"url":"https://creativecommons.org/licenses/by/4.0/"
 	},
-	"serverRoot":"https://browser.sead.se",
-	"serverAddress":"https://browser.sead.se/query",
-	"viewStateServerAddress":"https://browser.sead.se/vsapi",
-	"siteReportServerAddress":"https://browser.sead.se/postgrest",
-	"dataServerAddress": "https://browser.sead.se/jsonapi",
+	"serverRoot":"https://__DOMAIN__",
+	"serverAddress":"https://__DOMAIN__/query",
+	"viewStateServerAddress":"https://__DOMAIN__/vsapi",
+	"siteReportServerAddress":"https://__DOMAIN__/postgrest",
+	"dataServerAddress": "https://__DOMAIN__/jsonapi",
 	"defaultResultModule":"mosaic",
 	"resultMapDataLayers": ["clusterPoints", "points"],
 	"maxAllowedSitesInAnExport": 20,
@@ -61,7 +61,7 @@
 	"constants": {
 		"BP": 1950
 	},
-	"defaultFilters": [""],
+	"defaultFilters": [],
 	"ecocodeColors": [
 		{
 			"ecocode_definition_id": 323,

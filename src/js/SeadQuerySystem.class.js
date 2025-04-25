@@ -1532,6 +1532,10 @@ class SeadQuerySystem {
 		});
 	}
 
+	setUserSettings(settings, overwrite = true) {
+		this.storeUserSettings(settings, overwrite);
+	}
+
 	storeUserSettings(settings, overwrite = true) {
 		let userSettingsJson = window.localStorage.getItem("sqsUserSettings");
 		let userSettings;
