@@ -99,7 +99,9 @@ class SiteReport {
 			placement: "right"
 		});
 
+		$("#site-report-exit-menu").off();
 		$("#site-report-exit-menu").on("click", () => {
+			console.log("Site report Exit menu clicked");
 			this.siteReportManager.unrenderSiteReport();
 		});
 	}
