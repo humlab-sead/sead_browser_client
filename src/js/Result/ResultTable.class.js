@@ -381,17 +381,17 @@ class ResultTable extends ResultModule {
 						clearInterval(renderInterval);
 
 						$.ajax(Config.dataServerAddress + "/graphs/feature_types", {
-							data: JSON.stringify([cell.getData().site_link_filtered]),
+							data: JSON.stringify({siteIds: [cell.getData().site_link_filtered]}),
 							dataType: "json",
 							method: "post",
 							contentType: 'application/json; charset=utf-8',
 							crossDomain: true
 							}).then(data => {
-								let maxFeatureCount = data.feature_types.reduce((max, ft) => Math.max(max, ft.feature_count), 0);
+								let maxFeatureCount = data.summary_data.reduce((max, ft) => Math.max(max, ft.count), 0);
 
 								//sort feature types by feature count
-								data.feature_types.sort((a, b) => {
-									return b.feature_count - a.feature_count;
+								data.summary_data.sort((a, b) => {
+									return b.count - a.count;
 								});
 
 								const maxDisplayFeaturesCount = 5;
@@ -399,21 +399,21 @@ class ResultTable extends ResultModule {
 								let ftData = "<div class='feature-type-icons'>";
 								let otherFeatureTypes = "";
 
-								if(data.feature_types.length >= maxDisplayFeaturesCount) {
+								if(data.summary_data.length >= maxDisplayFeaturesCount) {
 									//this might seem strange, but it is because if
 									//we are going over the limit, then the last slot will be the "other" slot,
 									//so we need to reduce the amount of availble slots by one
 									displayFeaturesDisplayedCount++;
 								}
 
-								data.feature_types.forEach(ft => {
+								data.summary_data.forEach(ft => {
 									if(displayFeaturesDisplayedCount >= maxDisplayFeaturesCount) {
-										otherFeatureTypes += `${ft.name} (${ft.feature_count}), `;
+										otherFeatureTypes += `${ft.name} (${ft.count}), `;
 										return;
 									}
 									displayFeaturesDisplayedCount++;
 
-									ftData += this.sqs.renderFeatureTypeIcon(ft.name, ft.feature_count, maxFeatureCount);
+									ftData += this.sqs.renderFeatureTypeIcon(ft.name, ft.count, maxFeatureCount);
 								});
 
 								if(displayFeaturesDisplayedCount == maxDisplayFeaturesCount) {
