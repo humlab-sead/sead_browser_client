@@ -14,7 +14,7 @@ class MosaicTileModule {
         this.name = "";
     }
 
-    async fetchData(path, postData) {
+    async fetch(path, postData) {
         return new Promise(async (resolve, reject) => {
             try {
                 let response = await fetch(this.sqs.config.dataServerAddress + path, {
