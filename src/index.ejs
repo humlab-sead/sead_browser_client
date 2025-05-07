@@ -173,85 +173,15 @@
             <div id="result-mosaic-container" class="result-module-container"></div>
             <div id="result-taxon-container" class="result-module-container"></div>
             <div id="result-globe-container" class="result-module-container"></div>
-            <!--
-              <div id="timeline-container">
-                <div id='timeline-title-bar'>
-                  <h2>
-                    <i class="fa fa-clock-o" aria-hidden="true"></i>
-                    &nbsp;Timeline
-                    <div id="timeline-filter-checkbox-container">
-                      <label for="timeline-filter-checkbox" class="timeline-filter-checkbox-label">Use as filter</label>
-                      <input type="checkbox" id="timeline-filter-checkbox" name="timeline-filter-checkbox" />
-                    </div>
-                  </h2>
-                  <div id='timeline-data-selector-container' class="timeline-selector-container">
-                    <label>Graph data</label>
-                    <select id='timeline-data-selector'></select>
-                  </div>
-                  <div id='timeline-scale-selector-container' class="timeline-selector-container">
-                    <label>Time scale</label>
-                    <select id='timeline-scale-selector'></select>
-                    <select id='timeline-dating-system-selector'></select>
-                  </div>
-                </div>
-                <div id='result-timeline'></div>
-      
-                <div id='result-timeline-curtains'>
-                  <div id='result-timeline-curtain-left'></div>
-                  <div id='result-timeline-curtain-right'></div>
-                </div>
-                
-                <div id='result-timeline-slider'>
-                  <div class='range-slider-input' />
-                </div>
-              </div>
-            -->
-
             <div id="show-query-btn" class="fa fa-database result-export-button"></div>
 
           </div>
 
-          
+
 
         </div>
       </div>
     </div>
-
-    <template id="timeline-template">
-      <div id="timeline-container">
-        <div id='timeline-title-bar'>
-          <h2>
-            <i class="fa fa-clock-o" aria-hidden="true"></i>
-            &nbsp;Timeline
-            <div id="timeline-filter-checkbox-container">
-              <label for="timeline-filter-checkbox" class="timeline-filter-checkbox-label">Use as filter</label>
-              <input type="checkbox" id="timeline-filter-checkbox" name="timeline-filter-checkbox" />
-            </div>
-          </h2>
-          <div id='timeline-data-selector-container' class="timeline-selector-container">
-            <label>Graph data</label>
-            <select id='timeline-data-selector'></select>
-          </div>
-          <div id='timeline-scale-selector-container' class="timeline-selector-container">
-            <label>Time scale</label>
-            <div class="filter-controls-container">
-              <select id='timeline-scale-selector'></select>
-              <select id='timeline-dating-system-selector'></select>
-            </div>
-          </div>
-        </div>
-        <div id='result-timeline'></div>
-
-        <div id='result-timeline-curtains'>
-          <div id='result-timeline-curtain-left'></div>
-          <div id='result-timeline-curtain-right'></div>
-        </div>
-
-        <div id='result-timeline-slider'>
-          <div class='range-slider-input' />
-        </div>
-      </div>
-    </template>
 
     <div id="site-report-main-container" class="responsive-layout-container">
       <div id="header-container">
@@ -644,6 +574,24 @@
 
           <div class="list-container"></div>
           <div class="multistage-container"></div>
+          <div class="chart-container">
+            <div class="chart-canvas-container">
+              <canvas class="range-chart-canvas"></canvas>
+            </div>
+            <div class="rangeslider-container-wrapper">
+              <div class="rangeslider-container"></div>
+            </div>
+            
+            <div class="range-facet-slider-info-panel">
+              <span class="range-min-value"></span>
+              <span class="range-filter-low-value"></span>
+              <span class="range-filter-high-value"></span>
+              <span class="range-max-value"></span>
+            </div>
+          </div>
+          <div class="map-container">
+            <div class="map-filter-selection-info"></div>
+          </div>
           <div class="timeline-container">
             <div class="timeline-grid-container">
               <div class="timeline-control-bar">
@@ -651,9 +599,11 @@
                   <label>Graph data</label>
                   <div id="timeline-data-selector-container" class="filter-controls-container">
                     <div>
-                      <span class="trace-legend"></span><select id='timeline-data-selector'></select>
+                      <select id='timeline-data-selector'></select>
+                      <div id="timeline-data-selector-clicked-btn">Add</div>
                     </div>
                   </div>
+                  <div id="timeline-data-selector-traces-list"></div>
                 </div>
                 <div id='timeline-scale-selector-container' class="timeline-selector-container">
                   <label>Time scale</label>
@@ -665,47 +615,16 @@
               </div>
               <div class="timeline-graph"></div>
               <div class="result-timeline"></div>
-  
+
               <div class="result-timeline-curtains">
                 <div class="timeline-curtain-left"></div>
                 <div class="timeline-curtain-right"></div>
               </div>
-  
+
               <div class="timeline-slider">
                 <div class='range-slider-input' />
               </div>
             </div>
-          </div>
-          <div class="chart-container">
-
-            <div class="chart-canvas-container">
-              <canvas class="range-chart-canvas"></canvas>
-            </div>
-
-            <div class="rangeslider-container-wrapper">
-              <div class="rangeslider-container"></div>
-            </div>
-
-            <div class='slider-manual-input-container' endpoint="upper">
-              <input type='text' maxlength='12' class='range-facet-manual-input' tabindex="2" />
-              <div class="range-unit-box">BP</div>
-            </div>
-            <div class='slider-manual-input-container' endpoint="lower">
-              <input type='text' maxlength='12' class='range-facet-manual-input' tabindex="1" />
-              <div class="range-unit-box">BP</div>
-            </div>
-
-
-            <div class="range-facet-slider-info-panel">
-              <span class="range-min-value"></span>
-              <span class="range-filter-low-value"></span>
-              <span class="range-filter-high-value"></span>
-              <span class="range-max-value"></span>
-            </div>
-
-          </div>
-          <div class="map-container">
-            <div class="map-filter-selection-info"></div>
           </div>
 
           <div class='facet-disabled-msg'>
@@ -713,6 +632,17 @@
               <h2>NOT APPLICABLE</h2>
               <h2 class='text'>This filter is not applicable within this domain.</h2>
             </div>
+          </div>
+
+          <div class='slider-manual-input-container' endpoint="upper">
+            <input type='text' class='range-facet-debug-output' />
+            <input type='text' maxlength='12' class='range-facet-manual-input' tabindex="2" />
+            <div class="range-unit-box"></div>
+          </div>
+          <div class='slider-manual-input-container' endpoint="lower">
+            <input type='text' class='range-facet-debug-output' />
+            <input type='text' maxlength='12' class='range-facet-manual-input' tabindex="1" />
+            <div class="range-unit-box"></div>
           </div>
 
         </div>

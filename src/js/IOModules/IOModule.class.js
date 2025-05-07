@@ -215,6 +215,24 @@ export default class IOModule {
         }
     }
 
+	getSelections() {
+		if(this.verboseLogging) {
+			console.log(`IOModule ${this.name} getting selections (${this.selections}).`);
+		}
+		return this.selections;
+	}
+
+	setSelections(selections, triggerUpdate = true) {
+		if(this.verboseLogging) {
+			console.log(`IOModule ${this.name} setting selections (${selections}).`);
+		}
+		this.selections = selections;
+		if(selectionsUpdated && triggerUpdate) {
+			this.sqs.facetManager.queueFacetDataFetch(this);
+			this.broadcastSelection();
+		}
+	}
+
     renderData() {
         //render yourself into your targeted container
         if(this.verboseLogging) {

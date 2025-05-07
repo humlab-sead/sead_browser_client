@@ -41,7 +41,7 @@ class RangeFacet extends Facet {
 		};
 		this.selections = [];
 		this.chart = null;
-		this.sliderElement = null;
+		this.slider = null;
 		this.minDataValue = null;
 		this.maxDataValue = null;
 		
@@ -320,7 +320,7 @@ class RangeFacet extends Facet {
 			this.updateChart(categories, selections);
 		}
 
-		if(this.sliderElement == null) {
+		if(this.slider == null) {
 			this.renderSlider(categories, selections);
 		}
 		else {
@@ -338,9 +338,9 @@ class RangeFacet extends Facet {
 			console.log(this.chart);
 			this.chart.destroy();
 		}
-		if(this.sliderElement != null) {
-			console.log(this.sliderElement);
-			this.sliderElement.destroy();
+		if(this.slider != null) {
+			console.log(this.slider);
+			this.slider.destroy();
 		}
 		$(".facet-body > .chart-container", this.getDomRef()).hide();
 	}
@@ -419,26 +419,54 @@ class RangeFacet extends Facet {
 			startDefault = [sliderMin, sliderMax];
 		}
 		
-		var rangesliderContainer = $(".rangeslider-container", this.getDomRef())[0];
-		this.sliderElement = noUiSlider.create(rangesliderContainer, {
-			start: startDefault,
+		// Access the template element
+		const template = document.getElementById("facet-template");
+		
+		const chartContainer = $(".chart-container", this.getDomRef());
+		chartContainer.show();
+		const sliderContainer = $(".rangeslider-container", this.getDomRef())[0];
+
+		this.slider = noUiSlider.create(sliderContainer, {
+			start: [this.sliderMin, this.sliderMax],
 			range: {
-				'min': sliderMin,
-				'max': sliderMax
+				'min': this.sliderMin,
+				'max': this.sliderMax
 			},
 			step: 1,
 			connect: true
 		});
 
-		$(".slider-manual-input-container", this.getDomRef()).remove();
-		var upperManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='upper']")[0].cloneNode(true);
-		var lowerManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='lower']")[0].cloneNode(true);
-		
-		$("input", upperManualInputNode).val(sliderMax);
-		$("input", lowerManualInputNode).val(sliderMin);
 
-		$(".noUi-handle-upper", this.getDomRef()).append(upperManualInputNode);
-		$(".noUi-handle-lower", this.getDomRef()).append(lowerManualInputNode);
+		$(".slider-manual-input-container", this.getDomRef()).remove();
+
+        var upperManualInputNode;
+        var lowerManualInputNode;
+        if (template && template.content) {
+            var upperManualInputContainer = template.content.querySelector(".slider-manual-input-container[endpoint='upper']");
+            var lowerManualInputContainer = template.content.querySelector(".slider-manual-input-container[endpoint='lower']");
+
+            upperManualInputNode = upperManualInputContainer ? upperManualInputContainer.cloneNode(true) : null;
+            lowerManualInputNode = lowerManualInputContainer ? lowerManualInputContainer.cloneNode(true) : null;
+
+            // Now use upperManualInputNode and lowerManualInputNode
+        } else {
+            console.error("Facet template not found or its content is empty.");
+        }
+
+
+		$("input", upperManualInputNode).val(this.sliderMax);
+        $("input", lowerManualInputNode).val(this.sliderMin);
+
+        $(".noUi-handle-upper", this.getDomRef()).prepend(upperManualInputNode);
+        $(".noUi-handle-lower", this.getDomRef()).prepend(lowerManualInputNode);
+
+        $(".slider-manual-input-container", this.getDomRef()).show();
+
+        this.upperManualInputNode = $(".noUi-handle-upper .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
+        this.lowerManualInputNode = $(".noUi-handle-lower .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
+
+		$(".range-unit-box", this.getDomRef()).hide();
+		$(".slider-manual-input-container > input").css("border-right-width", "1px");
 		
 		//Lots of adjustments for setting the right size and position of the digit input boxes depending on how big they need to be
 		/*
@@ -451,8 +479,8 @@ class RangeFacet extends Facet {
 		$(".noUi-handle-upper > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(13)+"px");
 		*/
 		let digits = sliderMax.toString().length > sliderMin.toString().length ? sliderMax.toString().length : sliderMin.toString().length;
-		var digitSpace = digits*5;
-		$(".slider-manual-input-container .range-facet-manual-input", this.domObj).css("width", 10 + digitSpace);
+		var digitSpace = 30 + digits * 5;
+		$(".slider-manual-input-container .range-facet-manual-input", this.domObj).css("width", digitSpace);
 
 
 
@@ -461,15 +489,16 @@ class RangeFacet extends Facet {
 		this.upperManualInputNode = $(".noUi-handle-upper .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
 		this.lowerManualInputNode = $(".noUi-handle-lower .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
 
-		$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html("");
-		$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html("");
+		//$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).hide();
+		//$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).hide();
+		
 
 		$(".slider-manual-input-container", this.getDomRef()).on("change", (evt) => {
 			this.manualInputCallback(evt);
 		});
 		
-		this.sliderElement.off("update");
-		this.sliderElement.on("update", (values, slider) => {
+		this.slider.off("update");
+		this.slider.on("update", (values, slider) => {
 			
 			let highValue = parseFloat(values[0]);
 			let lowValue = parseFloat(values[1]);
@@ -477,17 +506,16 @@ class RangeFacet extends Facet {
 			$(".noUi-handle-lower .range-facet-manual-input", this.getDomRef()).val(highValue);
 			$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(lowValue);
 
-			let overlap = this.getHorizontalOverlap(this.lowerManualInputNode[0], this.upperManualInputNode[0]);
-			this.adjustSliderInputPositions(overlap, this.lowerManualInputNode, this.upperManualInputNode);
+			//let overlap = this.getHorizontalOverlap(this.lowerManualInputNode[0], this.upperManualInputNode[0]);
+			//this.adjustSliderInputPositions(overlap, this.lowerManualInputNode, this.upperManualInputNode);
 		});
-		this.sliderElement.on("change", (values, slider) => {
+		this.slider.on("change", (values, slider) => {
 			//this.sliderMovedCallback(values, slider);
 			this.sliderUpdateCallback(values);
 		});
 	}
 
 	sliderUpdateCallback(values, moveSlider = false) {
-		console.log("Slider update callback", values);
 		values[0] = parseInt(values[0], 10);
 		values[1] = parseInt(values[1], 10);
 
@@ -528,11 +556,6 @@ class RangeFacet extends Facet {
 			$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html("BP");
 			$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html("BP");
 		}
-
-		//Adjustments for setting the right size and position of the digit input boxes depending on how big they need to be
-		let digits = this.sliderMax.toString().length > this.sliderMin.toString().length ? this.sliderMax.toString().length : this.sliderMin.toString().length;
-		var digitSpace = digits*5;
-		$(".slider-manual-input-container .range-facet-manual-input", this.domObj).css("width", 10 + digitSpace);
 		
 
 		/* there's some performance degredation to running this code, so it's commented out for now
@@ -567,6 +590,8 @@ class RangeFacet extends Facet {
 			console.log("Moving slider to", values);
 			this.slider.set(values);
 		}
+
+		this.sliderMovedCallback(values);
 	}
 
 	formatValueForDisplay(value, datingSystem, prettyPrint = true) {
@@ -639,7 +664,7 @@ class RangeFacet extends Facet {
 	}
 	
 	updateSlider(categories, selections) {
-		this.sliderElement.updateOptions({
+		this.slider.updateOptions({
 				start: selections,
 			},
 			true

@@ -16,14 +16,18 @@ class Timeline extends IOModule {
 		this.sliderMax = 10000000;
 
         this.verboseLogging = true;
+        this.debugValuesInSlider = false;
 
         this.currentValuesInitialized = false;
+        this.datasets = {
+			unfiltered: [],
+			filtered: []
+		};
 
         //the "currentValues" are the values of the slider, it's similar to the "selections" but with the difference that:
         //1. When the selections are being changed, a new filter load and broadbast needs to be performed. currentValues is just the internal state of this module and needs not necessarily be broadcasted when changed.
         //2. The selections should always be in a very specific format - which is years BP. The currentValues can be in an internal "virtual" format, such as a pretend version of BP which might have a reversed polarity, so it's e.g. -20000BP to +75 BP.
 		this.currentValues = [this.sliderMin, this.sliderMax];
-		this.selections = [this.sliderMin, this.sliderMax];
 
 		let userSettings = this.sqs.getUserSettings();
 		this.selectedScale = userSettings.timelineScale || 6;
@@ -41,8 +45,9 @@ class Timeline extends IOModule {
         this.timelineDomId = null;
         this.traceIdCounter = 0;
         this.chartTraces = [];
-        this.chartTraceColors = this.sqs.color.getColorScheme(10, 0.75);
+        this.chartTraceColors = this.sqs.color.generateDistinctColors(10, 0.75);
         this.selectedGraphDataOption = userSettings.timelineGraphDataOption || "δ18O from GISP2 Ice Core";
+        //this.selectedGraphDataOption = userSettings.timelineGraphDataOption || "SEAD data points";
 
         this.timeFormatsForImport = [
             "Years BP",
@@ -68,52 +73,42 @@ class Timeline extends IOModule {
 			},
 			{
 				id: 3,
-				name: "10,000 years",
+				name: "10K years",
 				older: -10000,
 				younger: yearNowBP
 			},
 			{
 				id: 4,
-				name: "200,000 years",
+				name: "200K years",
 				older: -200000,
 				younger: yearNowBP
 			},
 			{
 				id: 5,
-				name: "2.58 million years",
+				name: "2.58M years",
 				older: -2580000,
 				younger: yearNowBP
 			},
 			{
 				id: 6,
-				name: "5.33 million years",
+				name: "5.33M years",
 				older: -5330000,
 				younger: yearNowBP
 			}
 		];
 
-        /*
-        this.graphDataOptions = [
-			{
-				name: "δ18O from GISP2 Ice Core",
-				endpoint: "postgrest",
-                color: this.chartTraceColors.shift(),
-                endpointConfig: {
-                    table: "tbl_temperatures",
-                    xColumn: "years_bp",
-                    yColumn: "d180_gisp2"
-                }
-			},
-            {
-                name: "Nothing",
-                endpoint: null,
-                color: "transparent",
-                endpointConfig: null
-            },
-		];
-        */
+        let scale = this.getSelectedScale();
+        this.setSelections([scale.older, scale.younger], false);
 
         this.graphDataOptions = [
+            /*
+            new GraphDataOption(
+                "SEAD data points",
+                this.chartTraceColors.shift(),
+                "sead_query_api",
+                {}
+            ),
+            */
             new GraphDataOption(
                 "δ18O from GISP2 Ice Core",
                 this.chartTraceColors.shift(),
@@ -125,9 +120,10 @@ class Timeline extends IOModule {
                 }
             ),
             new GraphDataOption(
-                "Nothing",
-                "transparent",
-                null
+                "Import data",
+                this.chartTraceColors.shift(),
+                "",
+                {}
             ),
         ];
 
@@ -135,21 +131,43 @@ class Timeline extends IOModule {
         this.populateScaleDefinitionsSelector();
 		this.populateGraphDataOptionsSelector(this.graphDataOptions);
 
-		$("#timeline-data-selector").on("change", (e) => {
-			console.log("Changing data selector", e.target.value);
+        $("#timeline-data-selector-clicked-btn").on("click", (e) => {
+            let graphDataOption = this.getSelectedGraphDataOption()
 
-            this.selectedGraphDataOption = e.target.value;
+            if(graphDataOption.name == "Import data") {
+                this.openFileDialog();
+                return;
+            }
 
             this.sqs.setUserSettings({
-                timelineGraphDataOption: this.selectedGraphDataOption
+                timelineGraphDataOption: graphDataOption
             });
 
-            this.updateGraph();
-		});
+            this.addAllSelectedTracesToGraph();
+        });
 
         $(".facet-text-search-btn", this.getDomRef()).hide();
     
         this.initDroppable();
+    }
+
+    openFileDialog() {
+        // Create an input element of type 'file'
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = ".csv, .xls, .xlsx"; // Optional: Restrict file types
+    
+        // Add an event listener to handle the file selection
+        fileInput.addEventListener("change", (event) => {
+            const files = event.target.files; // Get the selected files
+            if (files.length > 0) {
+                const file = files[0];
+                this.handleFileImport(file);
+            }
+        });
+    
+        // Programmatically trigger the file dialog
+        fileInput.click();
     }
 
     initDroppable() {
@@ -181,61 +199,88 @@ class Timeline extends IOModule {
     }
 
     async handleFileImport(file) {
-        
+        let importResult = null;
+
         if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
+            importResult = await this.loadExcel(file);
+        } else if(file.name.endsWith(".csv")) {
+            importResult = await this.loadCSV(file);
+        }
+        else {
+            //notify the user that the file is not supported
+            this.sqs.notificationManager.notify("Unsupported file type. Please drop a .xlsx, .xls, or .csv file.", "error");
+        }
+
+        const { jsonData, xColumn, yColumn, timeFormat } = importResult;
+
+        let trace = {
+            x: jsonData.map((row) => row.x),
+            y: jsonData.map((row) => row.y),
+            mode: 'lines',
+            type: 'scatter',
+            name: `${yColumn} (${timeFormat})`,
+            marker: {
+                size: 5,
+                color: this.chartTraceColors[this.traceIdCounter % this.chartTraceColors.length],
+                line: {
+                    width: 0.5,
+                    color: this.chartTraceColors[this.traceIdCounter % this.chartTraceColors.length]
+                }
+            }
+        };
+
+        // Plot the graph with the selected data
+        this.traceIdCounter++;
+        this.addTraceToGraph(trace);
+    }
+
+    async loadExcel(file) {
+        return new Promise((resolve, reject) => {
+            // Handle Excel file import
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const workbook = new ExcelJS.Workbook();
                     await workbook.xlsx.load(e.target.result); // Load the Excel file
-    
+
                     // Render the unified import form and get the parsed data
-                    const importResult = await this.renderImportFormExcel(workbook);
+                    let importResult = await this.renderImportFormExcel(workbook);
                     if (!importResult) {
                         console.warn("Import process was canceled or failed.");
                         return;
                     }
-    
-                    const { jsonData, xColumn, yColumn, timeFormat } = importResult;
-    
-                    // Plot the graph with the selected data
-                    this.traceIdCounter++;
-                    this.addTraceToGrah(jsonData, `${yColumn} (${timeFormat})`, this.chartTraceColors[this.traceIdCounter % this.chartTraceColors.length]);
+                    resolve(importResult);
                 } catch (error) {
                     console.error("ERROR: Failed to parse Excel file:", error);
+                    reject(error);
                 }
             };
             reader.readAsArrayBuffer(file); // Read the file as an ArrayBuffer
-        } else if(file.name.endsWith(".csv")) {
+        });
+    }
+
+    async loadCSV(file) {
+        return new Promise((resolve, reject) => {
             // Handle CSV file import
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const csvContent = e.target.result;
                     const parsedData = this.parseCSV(csvContent);
-                    console.log(parsedData)
                     // Render the unified import form and get the parsed data
-                    const importResult = await this.renderImportFormCsv(parsedData);
+                    let importResult = await this.renderImportFormCsv(parsedData);
                     if (!importResult) {
                         console.warn("Import process was canceled or failed.");
                         return;
                     }
-    
-                    const { jsonData, xColumn, yColumn, timeFormat } = importResult;
-
-                    // Plot the graph with the selected data
-                    this.traceIdCounter++;
-                    this.addTraceToGrah(jsonData, `${yColumn} (${timeFormat})`, this.chartTraceColors[this.traceIdCounter % this.chartTraceColors.length]);
+                    resolve(importResult);
                 } catch (error) {
                     console.error("ERROR: Failed to parse CSV file:", error);
+                    reject(error);
                 }
             };
             reader.readAsText(file); // Read the file as text
-        }
-        else {
-            //notify the user that the file is not supported
-            this.sqs.notificationManager.notify("Unsupported file type. Please drop a .xlsx, .xls, or .csv file.", "error");
-        }
+        });
     }
 
     parseCSV(csvContent) {
@@ -559,7 +604,7 @@ class Timeline extends IOModule {
     populateGraphDataOptionsSelector(graphDataOptions) {
         //populate the graph data options selector
         graphDataOptions.forEach((option) => {
-            const selected = option.name === this.selectedGraphDataOption ? 'selected' : '';
+            const selected = option.name === this.selectedGraphDataOption.name ? 'selected' : '';
             $("#timeline-data-selector").append(`<option value="${option.name}" ${selected}>${option.name}</option>`);
         });
     }
@@ -572,7 +617,12 @@ class Timeline extends IOModule {
         }
 
         this.renderSlider();
-        this.renderGraph();
+        if(this.timelineDomId) {
+            this.updateGraph();
+        }
+        else {
+            this.renderGraph();
+        }
     }
 
     getSelectedGraphDataOption() {
@@ -581,138 +631,233 @@ class Timeline extends IOModule {
         return selectedGraphDataOption;
     }
 
-    updateGraph() {
-        let graphDataOption = this.getSelectedGraphDataOption();
-
-        //remove the trace from the graph
-        this.chartTraces.filter(trace => trace.builtIn).forEach(trace => {
-            this.deletePlotFromGraph(trace.id);
-        });
-
-        if(graphDataOption.name == "Nothing") {
-            //If the user selected "Nothing", AND there's no other traces, then hide the X-axis tick labels
-            /*
-            let otherTraces = this.chartTraces.filter(trace => !trace.builtIn);
-            if(otherTraces.length == 0) {
-                Plotly.relayout(this.timelineDomId, {
-                    'xaxis.showticklabels': false
-                }).then(() => {
-                    console.log(`IOModule ${this.name} graph range updated to: false`);
-                });
-            }
-            */
+    getGraphRange() {
+        let range = [];
+        let datingSystem = this.getSelectedDatingSystem();
+        if(datingSystem == "BP") {
+            range = [this.selections[0]*-1, this.selections[1]*-1];
         }
         else {
-            /*
-            Plotly.relayout(this.timelineDomId, {
-                'xaxis.showticklabels': true
-            }).then(() => {
-                console.log(`IOModule ${this.name} graph range updated to: true`);
-            });
-            */
-
-            const datingSystem = this.getSelectedDatingSystem();
-            let range;
-            if(datingSystem == "AD/BC") {
-                range = [this.selections[1]*-1, this.selections[0]*-1];
-            }
-            else {
-                range = [this.selections[1], this.selections[0]];
-            }
-
-            console.log(range);
-
-            // Update the x-axis range
-            Plotly.relayout(this.timelineDomId, {
-                'xaxis.range': range,
-                'xaxis.autorange': false
-            }).then(() => {
-                console.log(`IOModule ${this.name} graph range updated to: ${range}`);
-            });
-
-            this.fetchGraphData().then(graphTraceData => {
-                this.addTraceToGrah(graphTraceData, graphDataOption.name, graphDataOption.color, true);
-            });
+            range[0] = this.convertADBCtoBP(this.selections[0] * -1);
+            range[1] = this.convertADBCtoBP(this.selections[1] * -1);
         }
+
+        return range;
     }
 
-    async fetchGraphData() {
+    updateGraph() {
+        let range = this.getGraphRange();
+
+        // Update the x-axis range
+        Plotly.relayout(this.timelineDomId, {
+            'xaxis.range': range,
+        }).then(() => {
+            console.log(`IOModule ${this.name} graph range updated to: ${range}`);
+        });
+    }
+
+    updateAllSelectedTraces() {
+        if(this.verboseLogging) {
+            console.log(`IOModule ${this.name} updating all selected traces.`);
+        }
+
+        this.chartTraces.forEach((trace) => {
+            const traceName = trace.trace.name;
+            const graphDataOption = this.getGraphDataOptionByTraceName(traceName);
+            if(graphDataOption) {
+                this.updateTraceInGraph(trace);
+            }
+        });
+    }
+
+    async addAllSelectedTracesToGraph() {
+        if(this.verboseLogging) {
+            console.log(`IOModule ${this.name} adding all selected traces to graph.`);
+        }
+
+        let graphDataOption = this.getSelectedGraphDataOption();
+        if(this.isTraceRendered(graphDataOption.name)) {
+            console.warn(`IOModule ${this.name} graph already rendered, refusing to add another one.`);
+            return;
+        }
+
+        this.chartTraces.forEach((trace) => {
+            if(!trace.hidden) {
+
+            }
+        });
+
+        this.fetchGraphData(graphDataOption).then(graphTrace => {
+            this.addTraceToGraph(graphTrace, true);
+        });
+    }
+
+    isTraceRendered(traceName) {
+        const trace = this.chartTraces.find(t => t.trace.name === traceName);
+        return trace ? true : false;
+    }
+
+    isTraceVisible(traceName) {
+        const trace = this.chartTraces.find(t => t.trace.name === traceName);
+        return trace && !trace.hidden ? true : false;
+    }
+
+    async fetchGraphData(graphDataOption) {
         return new Promise((resolve) => {
             if(this.verboseLogging) {
                 console.log(`IOModule ${this.name} fetching graph data.`);
             }
     
-            let graphDataOption = this.getSelectedGraphDataOption();
-            
-            if(graphDataOption.name == "Nothing") {
-                //remove the trace from the graph
-                console.warn(`TODO: Remove trace from graph.`);
-            }
-    
             let server = this.sqs.config.siteReportServerAddress;
             if(graphDataOption.endpoint == "postgrest") {
                 const fetcher = new PostgRESTFetcher(server, graphDataOption.endpointConfig.table);
-                fetcher.fetchSeriesData(graphDataOption.endpointConfig.xColumn, graphDataOption.endpointConfig.yColumn, this.selections[0], this.selections[1]).then(series => {
-                    resolve(series);
+                let bpValues = this.convertSliderSelectionsToBP(this.selections);
+                fetcher.fetchSeriesData(graphDataOption.endpointConfig.xColumn, graphDataOption.endpointConfig.yColumn, bpValues[0], bpValues[1]).then(series => {
+                    const trace = {
+                        x: series.x,
+                        y: series.y,
+                        mode: 'lines',
+                        type: 'scatter',
+                        name: graphDataOption.name,
+                        marker: {
+                            size: 5,
+                            color: graphDataOption.color,
+                            line: {
+                                width: 0.5,
+                                color: graphDataOption.color
+                            }
+                        }
+                    };
+
+                    resolve(trace);
                 });
+            }
+            if(graphDataOption.endpoint == "sead_query_api") {
+                /*
+                this.datasets.filtered here is in the format:
+                [ 
+                {min: -10000000, max: -9800000, value: 0},
+                {min: -9800000, max: -9600000, value: 0},
+                {min: -9600000, max: -9400000, value: 0},
+                ...
+                ]
+
+                we need to convert it to a series of points for the graph, so we need to create a new array with the x and y values
+                where x is the midpoint of the min and max values, and y is the value
+                */
+                console.log(this.datasets.filtered);
+
+                const trace = {
+                    x: this.datasets.filtered.map((item) => item.min), // Use `min` values for x-axis
+                    y: this.datasets.filtered.map((item) => item.value), // Use `value` for y-axis
+                    type: 'bar', // Set the type to 'bar' for a bar graph
+                    name: graphDataOption.name,
+                    marker: {
+                        color: graphDataOption.color, // Use the color from the graphDataOption
+                    }
+                };
+
+                resolve(trace);
             }
         });
     }
 
-    addTraceToGrah(data, traceName = "Trace", traceColor = "blue", builtIn = false) {
+    importData(importData, overwrite = true) {
+        super.importData(importData);
+
+		this.totalLower = importData.IntervalInfo.FullExtent.DataLow;
+		this.totalUpper = importData.IntervalInfo.FullExtent.DataHigh;
+
+		let filteredData = false;
+		for(let k in importData.Picks) {
+			if(importData.Picks[k].FacetCode == this.name) {
+				//This is a dataset narrowed by a selection, so import it into the filtered section of the dataset
+				filteredData = true;
+			}
+		}
+
+		let targetSection = null;
+		if(filteredData) {
+			this.datasets.filtered = [];
+			targetSection = this.datasets.filtered;
+		}
+		else {
+			this.datasets.unfiltered = [];
+			targetSection = this.datasets.unfiltered;
+		}
+
+		//Create internal format
+		let bins = importData.Items;
+		for(let itemKey in bins) {
+			targetSection.push({
+				//Value spans:
+				min: bins[itemKey].Extent[0], //Greater Than - except for the first item which should be >=
+				max: bins[itemKey].Extent[1], //Lesser Than - except for the last item which should be <=
+				value: bins[itemKey].Count //value/count for this category/span
+			});
+		}
+    }
+
+    updateTraceInGraph(trace) {
+        if (this.verboseLogging) {
+            console.log(`IOModule ${this.name} updating trace in graph.`);
+        }
+
+        const traceId = this.chartTraces.find(t => t.trace.name === trace.name).id;
+        if (traceId !== undefined) {
+            Plotly.update(this.timelineDomId, trace, [traceId]).then(() => {
+                console.log(`IOModule ${this.name} trace updated in graph.`);
+            });
+        } else {
+            console.warn(`Trace with name ${trace.name} not found in chartTraces.`);
+        }
+    }
+
+    addTraceToGraph(trace, builtIn = false, reRenderIfAlreadyExists = false) {
         if (this.verboseLogging) {
             console.log(`IOModule ${this.name} adding plot to graph.`);
         }
+
+        let graphDataOption = this.getGraphDataOptionByTraceName(trace.name);
+        if(graphDataOption && this.isTraceRendered(graphDataOption.name) && !reRenderIfAlreadyExists) {
+            console.warn(`IOModule ${this.name} graph already rendered, refusing to add another one.`);
+            return;
+        }
+        else if(graphDataOption && this.isTraceRendered(graphDataOption.name) && reRenderIfAlreadyExists) {
+            //remove the trace from the graph
+            const traceId = this.chartTraces.find(t => t.trace.name === trace.name).id;
+            this.deleteTraceFromGraph(traceId);
+        }
     
         if (this.timelineDomId) {
-            // Transform the data into the format expected by Plotly
-            let x, y;
-
-            if(isArray(data)) {
-                x = data.map((point) => point.x);
-                y = data.map((point) => point.y);
-            }
-            else {
-                x = data.x;
-                y = data.y;
-            }
 
             //if we are using BP, but displaying in AD/BC, we need to convert the x values
             if(this.selectedDatingSystem == "AD/BC") {
-                x = x.map((value) => this.convertBPtoADBC(value) * -1);
+                trace.x = trace.x.map((value) => this.convertBPtoADBC(value));
             }
-
-            const trace = {
-                x: x,
-                y: y,
-                mode: 'lines',
-                type: 'scatter',
-                name: traceName, // Add a meaningful name for the trace
-                marker: {
-                    size: 5,
-                    color: traceColor,
-                    line: {
-                        width: 0.5,
-                        color: traceColor
-                    }
-                }
-            };
     
             Plotly.addTraces(this.timelineDomId, [trace]).then(t => {
                 const plotDiv = document.getElementById(this.timelineDomId);
                 const newTraceIndex = plotDiv.data.length - 1;
 
-                this.chartTraces.push({
+                // add a ref to this trace in the chartDataOptions array
+                this.graphDataOptions.forEach((option) => {
+                    if (option.name === trace.name) {
+                        option.traceId = newTraceIndex;
+                    }
+                });
+
+                this.addToChartTraces({
                     id: newTraceIndex,
                     trace: trace,
                     builtIn: builtIn,
+                    hidden: false,
                 });
 
                 this.traceIdCounter++;
 
                 // Add a new div for the trace with a delete button
                 this.updateLegend();
-                console.log(this.chartTraces);
             });
     
             
@@ -720,55 +865,145 @@ class Timeline extends IOModule {
             console.warn(`WARN: Timeline graph not initialized, cannot add plot to graph.`);
         }
     }
-
-    updateLegend() {
-        let graphDataOption = this.getSelectedGraphDataOption();
-        $("#timeline-data-selector-container .trace-legend").css("background-color", graphDataOption.color);
-
-        // Update the legend in the timeline graph based on this.chartTraces
-        let importedTraces = this.chartTraces.filter(trace => !trace.builtIn);
-        if(importedTraces.length > 0) {
-            // Check if #timeline-data-selector-additions exists
-            let dataSelectorContainer = $("#timeline-data-selector-additions");
-            if (dataSelectorContainer.length === 0) {
-                // If it doesn't exist, create it and append it to the DOM
-                dataSelectorContainer = $(`<div id="timeline-data-selector-additions" class="timeline-data-selector-container">
-                    <label>Imported</label>
-                    <div id="timeline-data-selector-additions-list"></div>
-                    </div>`);
-                $("#timeline-data-selector-container", this.getDomRef()).append(dataSelectorContainer);
-            }
+    
+    addToChartTraces(trace) {
+        if (this.verboseLogging) {
+            console.log(`IOModule ${this.name} adding trace to chartTraces.`);
         }
-        else {
-            // If it exists, remove it
-            $("#timeline-data-selector-additions").remove();
+
+        //check if it already exists
+        const existingTrace = this.chartTraces.find(t => t.trace.name === trace.name);
+        if (existingTrace) {
+            console.warn(`Trace with name ${trace.name} already exists in chartTraces.`);
             return;
         }
+    
+        this.chartTraces.push(trace);
+    }
 
-        const legendContainer = $("#timeline-data-selector-additions-list");
-        legendContainer.empty(); // Clear existing legend items
-        importedTraces.forEach((trace) => {
+    removeFromChartTracesByName(traceName) {
+        if (this.verboseLogging) {
+            console.log(`IOModule ${this.name} removing trace from chartTraces.`);
+        }
+
+        const traceIndex = this.chartTraces.findIndex(trace => trace.trace.name === traceName);
+        if (traceIndex !== -1) {
+            this.chartTraces.splice(traceIndex, 1);
+        } else {
+            console.warn(`Trace with name ${traceName} not found in chartTraces.`);
+        }   
+    }
+
+    getChartTraceByName(traceName) {
+        return this.chartTraces.find(trace => trace.trace.name === traceName);
+    }
+
+    updateLegend() {
+        // Clear the legend container
+        const legendContainer = $("#timeline-data-selector-traces-list");
+        legendContainer.empty();
+    
+        this.chartTraces.forEach((trace) => {
+            const eyeClass = trace.hidden ? "fa-eye-slash" : "fa-eye";
             const traceDiv = $(`
                 <div class="timeline-trace-item">
                     <span class="trace-legend" style="background-color: ${trace.trace.marker.color};"></span>
                     <span class="trace-name">${trace.trace.name}</span>
-                    <i class="fa fa-trash-o remove-plot" style="color: red; cursor: pointer; margin-left: 8px;" aria-hidden="true"></i>
+                    <i class="fa ${eyeClass} hide-plot" aria-hidden="true"></i>
+                    <i class="fa fa-trash-o remove-plot" aria-hidden="true"></i>
                 </div>
             `);
+    
             // Add delete functionality
-
             traceDiv.find(".remove-plot").on("click", () => {
-                this.deletePlotFromGraph(trace.id);
-                // Remove the trace div from the DOM
+                this.deleteTraceFromGraph(trace.id);
                 traceDiv.remove();
             });
 
+            // Add hide/show functionality
+            traceDiv.find(".hide-plot").on("click", () => {
+                if(!trace.hidden) {
+                    //set .hide-plot to fa-eye-slash
+                    traceDiv.find(".hide-plot").removeClass("fa-eye").addClass("fa-eye-slash");
+                    this.hideTraceFromGraph(trace.id);
+                }
+                else {
+                    //set .hide-plot to fa-eye
+                    traceDiv.find(".hide-plot").removeClass("fa-eye-slash").addClass("fa-eye");
+                    this.showTraceInGraph(trace.id);
+                }
+            });
+    
             // Append the trace div to the container
             legendContainer.append(traceDiv);
         });
     }
 
-    deletePlotFromGraph(traceId) {
+    getGraphDataOptionByTraceName(traceName) {
+        return this.graphDataOptions.find(option => option.name === traceName);
+    }
+
+
+    showTraceInGraph(traceId) {
+        if (this.verboseLogging) {
+            console.log(`IOModule ${this.name} showing trace in graph.`);
+        }
+    
+        // Find the trace in this.chartTraces by its traceId
+        const traceIndex = this.chartTraces.findIndex((trace) => trace.id === traceId);
+    
+        if (traceIndex === -1) {
+            console.warn(`No trace found for traceId: ${traceId}`);
+            return;
+        }
+    
+        // Show the trace in Plotly
+        Plotly.restyle(this.timelineDomId, { visible: true }, [traceIndex]).then(() => {
+            // Update the chartTraces to show that the trace is visible
+            this.chartTraces[traceIndex].hidden = false;
+    
+            // Update the legend to reflect the changes
+            this.updateLegend();
+        }).catch((error) => {
+            console.error(`Failed to show trace with traceId: ${traceId}`, error);
+        });
+    }
+
+    hideTraceFromGraph(traceId) {
+        if (this.verboseLogging) {
+            console.log(`IOModule ${this.name} hiding trace in graph.`);
+        }
+    
+        // Find the trace in this.chartTraces by its traceId
+        const traceIndex = this.chartTraces.findIndex((trace) => trace.id === traceId);
+    
+        if (traceIndex === -1) {
+            console.warn(`No trace found for traceId: ${traceId}`);
+            return;
+        }
+
+        // Hide the trace in Plotly
+        Plotly.restyle(this.timelineDomId, { visible: false }, [traceIndex]).then(() => {
+            // Update the chartTraces to show that the trace is hidden
+            this.chartTraces[traceIndex].hidden = true;
+    
+            // Enforce the fixed range for the x-axis and y-axis
+            const range = this.getGraphRange(); // Ensure this method returns the desired fixed range
+            this.plotlyLayout.xaxis.range = range;
+            Plotly.relayout(this.timelineDomId, this.plotlyLayout);
+    
+            // Update the legend to reflect the changes
+            this.updateLegend();
+        }).catch((error) => {
+            console.error(`Failed to hide trace with traceId: ${traceId}`, error);
+        });
+    }
+
+    deleteTraceFromGraph(traceId) {
+        if(this.verboseLogging) {
+            console.log(`IOModule ${this.name} deleting trace from graph.`);
+        }
+
         // Find the trace in this.chartTraces by its traceId
         const traceIndex = this.chartTraces.findIndex((trace) => trace.id === traceId);
     
@@ -787,6 +1022,13 @@ class Timeline extends IOModule {
                 ...trace,
                 id: index // Update the id to match the new index
             }));
+
+            // If the trace was built-in, set its rendered property to false
+            this.graphDataOptions.forEach((option) => {
+                if (option.name === traceId) {
+                    console.log(option);
+                }
+            });
     
             // Update the legend to reflect the changes
             this.updateLegend();
@@ -795,63 +1037,28 @@ class Timeline extends IOModule {
         });
     }
 
-    deletePlotFromGraphOLD(traceId) {
-        const traceIndex = this.chartTraces.findIndex((trace) => trace.id === traceId);
-    
-        if (traceIndex === -1) {
-            console.warn(`No trace found for traceId: ${traceId}`);
-            return;
-        }
-    
-        // Remove the trace from Plotly
-        Plotly.deleteTraces(this.timelineDomId, traceIndex).then(() => {
-            // Remove the trace from chartTraces
-            this.chartTraces.splice(traceIndex, 1);
-    
-            // Rebuild chartTraces to ensure indices match Plotly's internal data
-            this.chartTraces = this.chartTraces.map((trace, index) => ({
-                ...trace,
-                id: trace.id // Keep the same ID
-            }));
-
-            this.updateLegend();
-        });
-    }
-
     renderGraph() {
         if(this.verboseLogging) {
             console.log(`IOModule ${this.name} rendering graph.`);
         }
-
-        if(this.timelineDomId) {
-            console.warn(`Timeline graph already initialized, skipping initialization.`);
-            this.updateGraph();
-            return;
-        }
-
-        const graphDataOption = this.getSelectedGraphDataOption();
         
         this.timelineDomId = "graph-"+nanoid(6);
         $(".timeline-graph", this.getDomRef()).attr("id", this.timelineDomId);
 
-        const datingSystem = this.getSelectedDatingSystem();
-        let range;
-        if(datingSystem == "AD/BC") {
-            range = [this.selections[1], this.selections[0]];
-        }
-        else {
-            range = [this.selections[1]*-1, this.selections[0]*-1];
-        }
+        let range = this.getGraphRange();
 
         this.plotlyLayout = {
             xaxis: {
                 range: range,
                 showticklabels: true,
-                tickformat: '~s'
+                tickformat: '~s',
+                fixedrange: true,
+                autorange: "reversed"
             },
             yaxis: {
                 showticklabels: false,
-                zeroline: false
+                zeroline: false,
+                fixedrange: true
             },
             margin: {
                 l: 30, // Left margin
@@ -871,7 +1078,9 @@ class Timeline extends IOModule {
 
         Plotly.newPlot(this.timelineDomId, [], this.plotlyLayout, config);
 
-        this.updateGraph();
+        //this.updateGraph();
+
+        this.addAllSelectedTracesToGraph();
 
         this.sqs.sqsEventListen("layoutResize", () => {
             Plotly.Plots.resize(this.timelineDomId);
@@ -901,7 +1110,6 @@ class Timeline extends IOModule {
         this.setSelectedScale(selectedScale, false, false);
 
         $(".slider-manual-input-container", this.getDomRef()).remove();
-        
 
         var upperManualInputNode;
         var lowerManualInputNode;
@@ -929,105 +1137,16 @@ class Timeline extends IOModule {
         this.upperManualInputNode = $(".noUi-handle-upper .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
         this.lowerManualInputNode = $(".noUi-handle-lower .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
 
+        if(this.debugValuesInSlider) {
+            this.upperManualInputNodeDebugOutput = $(".noUi-handle-upper .slider-manual-input-container .range-facet-debug-output", this.getDomRef());
+            this.lowerManualInputNodeDebugOutput = $(".noUi-handle-lower .slider-manual-input-container .range-facet-debug-output", this.getDomRef());
+
+            this.upperManualInputNodeDebugOutput.show();
+            this.lowerManualInputNodeDebugOutput.show();
+        }
+
         $(".slider-manual-input-container", this.getDomRef()).on("change", (evt) => {
-            let value = evt.target.value;
-
-            //we have to process the value here before we are ready to start using it because there are a few things to consider:
-            //if the scale is AD/BC, we need to convert the value to BP
-
-            //and when the value is BP we need to reverse it since the slider is set up to handle BP in reverse (for technical reasons), so plus is minus and minus should be plus
-
-            if(this.selectedDatingSystem == "BP") {
-                value = value * -1;
-            }
-
-            let tabIndex = $(evt.target).attr("tabindex");
-            if(tabIndex == 1) {
-                //this is the lower value
-
-                if(this.selectedDatingSystem == "AD/BC") {
-                    //check if the value has a suffix of "BC" or "AD" (including lowercase)
-                    let suffix = value.toString().toLowerCase().replace(/[^a-z]/g, '');
-
-                    //strip out any suffix to get the pure number
-                    value = value.toString().replace(/[^0-9]/g, '');
-
-                    if(suffix && suffix == "bc") {
-                        value = value * -1;
-                    }
-                    if(suffix && suffix == "ad") {
-                        value = value * 1;
-                    }
-
-                    //if this is the lower value AND it's (previously) a BC year, then we assume that new the number is punched in is meant to be a BC year, and the reverse for AD of course
-                    if(!suffix && this.currentValues[0] < 0) {
-                        //this is negative, it's a BC year
-                        value = value * -1;
-                    }
-                }
-
-                //check that the value is within the slider range
-                if(value < this.sliderMin) {
-                    console.warn("WARN: Lower value is below slider min, setting to min");
-                    value = this.sliderMin;
-                }
-
-                //and that the value is a number
-                if(isNaN(value)) {
-                    console.warn("WARN: Lower value is not a number, setting to min");
-                    value = this.sliderMin;
-                }
-
-                //and that the value is below the upper value
-                if(value > this.currentValues[1]) {
-                    console.warn("WARN: Lower value is above upper value, setting to upper value - 1");
-                    value = this.currentValues[1] - 1;
-                }
-
-                this.sliderUpdateCallback([value, this.currentValues[1]], true);
-            }
-            if(tabIndex == 2) {
-                //this is the upper value
-                if(this.selectedDatingSystem == "AD/BC") {
-                    //check if the value has a suffix of "BC" or "AD" (including lowercase)
-                    let suffix = value.toString().toLowerCase().replace(/[^a-z]/g, '');
-
-                    //strip out any suffix to get the pure number
-                    value = value.toString().replace(/[^0-9]/g, '');
-
-                    if(suffix && suffix == "bc") {
-                        value = value * -1;
-                    }
-                    if(suffix && suffix == "ad") {
-                        value = value * 1;
-                    }
-
-                    //if this is the upper value AND it's (previously) a BC year, then we assume that new the number is punched in is meant to be a BC year, and the reverse for AD of course
-                    if(!suffix && this.currentValues[1] < 0) {
-                        //this is negative, it's a BC year
-                        value = value * -1;
-                    }
-                }
-
-                //check that the value is within the slider range
-                if(value > this.sliderMax) {
-                    console.warn("WARN: Upper value is above slider max, setting to max");
-                    value = this.sliderMax;
-                }
-
-                //and that the value is a number
-                if(isNaN(value)) {
-                    console.warn("WARN: Upper value is not a number, setting to max");
-                    value = this.sliderMax;
-                }
-                //and that the value is above the lower value
-                if(value < this.currentValues[0]) {
-                    console.warn("WARN: Upper value is below lower value, setting to lower value + 1");
-                    value = this.currentValues[0] + 1;
-                }
-
-                this.sliderUpdateCallback([this.currentValues[0], value], true);
-            }
+            this.sliderManualInputCallback(evt);
         });
 
 
@@ -1036,9 +1155,7 @@ class Timeline extends IOModule {
             this.sliderUpdateCallback(values);
         });
         this.slider.on("change", (values, slider) => {
-            //set new selections on this facet
-            let bpValues = this.convertSliderSelectionsToBP([parseInt(values[0]), parseInt(values[1])]);
-            this.setSelections(bpValues);
+            this.setSelections([parseInt(values[0]), parseInt(values[1])]);
         });
 
         // Resize the plotly chart when the window is resized, add a delay to allow the layout to settle, this will not work otherwise, it's stupid, but it is what it is
@@ -1091,6 +1208,167 @@ class Timeline extends IOModule {
         });
     }
 
+    sliderManualInputCallback(evt) {
+        let tabIndex = $(evt.target).attr("tabindex");
+        let value = evt.target.value;
+        let previousValue = this.selections[tabIndex-1];
+        value = this.parseInputValue(value, previousValue);
+
+        if(!value) {
+            console.warn("WARN: Value is not valid, ignoring");
+            return;
+        }
+
+        //if the dating system is BP, we need to reverse the value
+        let datingSystem = this.getSelectedDatingSystem();
+        if(datingSystem == "BP") {
+            value = value * -1;
+        }
+
+        //we have to process the value here before we are ready to start using it because there are a few things to consider:
+        //if the scale is AD/BC, we need to convert the value to BP
+
+        //and when the value is BP we need to reverse it since the slider is set up to handle BP in reverse (for technical reasons), so plus is minus and minus should be plus
+
+        /*
+        if(this.selectedDatingSystem == "BP") {
+            value = value * -1;
+        }
+        */
+
+        
+        if(tabIndex == 1) {
+            //this is the lower value
+
+            if(this.selectedDatingSystem == "AD/BC") {
+                //check if the value has a suffix of "BC" or "AD" (including lowercase)
+                let suffix = value.toString().toLowerCase().replace(/[^a-z]/g, '');
+
+                //strip out any suffix to get the pure number
+                value = value.toString().replace(/[^0-9]/g, '');
+
+                if(suffix && suffix == "bc") {
+                    value = value * -1;
+                }
+                if(suffix && suffix == "ad") {
+                    value = value * 1;
+                }
+
+                //if this is the lower value AND it's (previously) a BC year, then we assume that new the number is punched in is meant to be a BC year, and the reverse for AD of course
+                if(!suffix && this.currentValues[0] < 0) {
+                    //this is negative, it's a BC year
+                    value = value * -1;
+                }
+            }
+
+            //check that the value is within the slider range
+            if(value < this.sliderMin) {
+                console.warn("WARN: Lower value is below slider min, setting to min");
+                value = this.sliderMin;
+            }
+
+            //and that the value is a number
+            if(isNaN(value)) {
+                console.warn("WARN: Lower value is not a number, setting to min");
+                value = this.sliderMin;
+            }
+
+            //and that the value is below the upper value
+            if(value > this.currentValues[1]) {
+                console.warn("WARN: Lower value is above upper value, setting to upper value - 1");
+                value = this.currentValues[1] - 1;
+            }
+
+            this.sliderUpdateCallback([value, this.currentValues[1]], true);
+        }
+        if(tabIndex == 2) {
+            //this is the upper value
+            if(this.selectedDatingSystem == "AD/BC") {
+                //check if the value has a suffix of "BC" or "AD" (including lowercase)
+                let suffix = value.toString().toLowerCase().replace(/[^a-z]/g, '');
+
+                //strip out any suffix to get the pure number
+                value = value.toString().replace(/[^0-9]/g, '');
+
+                if(suffix && suffix == "bc") {
+                    value = value * -1;
+                }
+                if(suffix && suffix == "ad") {
+                    value = value * 1;
+                }
+
+                //if this is the upper value AND it's (previously) a BC year, then we assume that new the number is punched in is meant to be a BC year, and the reverse for AD of course
+                if(!suffix && this.currentValues[1] < 0) {
+                    //this is negative, it's a BC year
+                    value = value * -1;
+                }
+            }
+
+            //check that the value is within the slider range
+            if(value > this.sliderMax) {
+                console.warn("WARN: Upper value is above slider max, setting to max");
+                value = this.sliderMax;
+            }
+
+            //and that the value is a number
+            if(isNaN(value)) {
+                console.warn("WARN: Upper value is not a number, setting to max");
+                value = this.sliderMax;
+            }
+            //and that the value is above the lower value
+            if(value < this.currentValues[0]) {
+                console.warn("WARN: Upper value is below lower value, setting to lower value + 1");
+                value = this.currentValues[0] + 1;
+            }
+
+            this.sliderUpdateCallback([this.currentValues[0], value], true);
+        }
+    }
+
+    parseInputValue(value) {
+        // Ensure the value is a string and clean it up
+        if (value === undefined || value === null) return false;
+    
+        value = value.toString().trim().toLowerCase();
+        value = value.replace(/,/g, '');      // remove commas
+        value = value.replace(/\s+/g, '');    // remove all spaces
+    
+        // Extract era suffix if present: bc, ad, bp
+        const eraMatch = value.match(/(bc|ad|bp)$/);
+        let era = null;
+        if (eraMatch) {
+            era = eraMatch[1];
+            value = value.replace(/(bc|ad|bp)$/, '');
+        }
+    
+        // Handle k/m suffix
+        let multiplier = 1;
+        if (value.endsWith('k')) {
+            multiplier = 1000;
+            value = value.slice(0, -1);
+        } else if (value.endsWith('m')) {
+            multiplier = 1000000;
+            value = value.slice(0, -1);
+        }
+    
+        // Try parsing the numeric part
+        let numeric = parseFloat(value);
+        if (isNaN(numeric)) return false; // Invalid number
+    
+        numeric *= multiplier;
+    
+        // Handle AD/BC
+        if (era === 'bc') {
+            return this.convertADBCtoBP(-numeric);
+        } else if (era === 'ad') {
+            return this.convertADBCtoBP(numeric);
+        } else if (era === 'bp' || era === null) {
+            return numeric;
+        } else {
+            return false; // Unexpected suffix
+        }
+    }
+
     renderSlider() {
         if(this.verboseLogging) {
             console.log(`IOModule ${this.name} rendering slider.`);
@@ -1100,9 +1378,6 @@ class Timeline extends IOModule {
         // Generate random data
         const x = Array.from({ length: 500 }, () => Math.random()).sort((a, b) => a - b);
         const y = x.map((val, index) => index);
-    
-        // Update the chart with the generated data
-        //this.updateChartData(x, y);
         
         //create the slider
         if(this.slider == null) {
@@ -1118,6 +1393,7 @@ class Timeline extends IOModule {
     setSelectedScale(selectedScale, newDatingSystem = false, triggerUpdate = true) {
 		console.log("Setting selected scale", selectedScale, newDatingSystem);
 
+        /*
 		if (this.selectedDatingSystem === "AD/BC") {
 			this.sliderMin = this.currentYear + selectedScale.older;
 			this.sliderMax = this.sqs.config.constants.BP + selectedScale.younger;
@@ -1125,10 +1401,14 @@ class Timeline extends IOModule {
 			this.sliderMin = selectedScale.older + this.bpDiff;
 			this.sliderMax = selectedScale.younger;
 		}
+        */
+        this.sliderMin = selectedScale.older + this.bpDiff;
+        this.sliderMax = selectedScale.younger;
 
 		if(newDatingSystem) {
 			//recalculate the current values to fit the new dating system
-			if(this.selectedDatingSystem === "AD/BC") {
+			/*
+            if(this.selectedDatingSystem === "AD/BC") {
 				//going from BP to AD/BC
 				this.currentValues[0] = this.convertBPtoADBC(this.currentValues[0]);
 				this.currentValues[1] = this.convertBPtoADBC(this.currentValues[1]);
@@ -1138,6 +1418,7 @@ class Timeline extends IOModule {
 				this.currentValues[0] = this.convertADBCtoBP(this.currentValues[0]);
 				this.currentValues[1] = this.convertADBCtoBP(this.currentValues[1]);
 			}
+            */
 		}
 	
 		if(this.slider) {
@@ -1146,7 +1427,7 @@ class Timeline extends IOModule {
 					'min': this.sliderMin,
 					'max': this.sliderMax,
 				},
-				start: this.currentValues
+				//start: this.currentValues
 			});
 		}
 		else {
@@ -1159,7 +1440,7 @@ class Timeline extends IOModule {
             this.currentValues[1] = this.sliderMax;
         }
 
-		this.setSelections(this.convertSliderSelectionsToBP(this.currentValues), triggerUpdate);
+		this.setSelections(this.currentValues, triggerUpdate);
 
         console.log("Setting slider values to", this.currentValues);
         this.sliderUpdateCallback(this.currentValues);
@@ -1169,7 +1450,11 @@ class Timeline extends IOModule {
             this.sliderUpdateCallback(this.currentValues);
 
             this.fetchData();
-            this.fetchGraphData();
+
+            let graphDataOption = this.getSelectedGraphDataOption();
+            this.fetchGraphData(graphDataOption).then(graphTrace => {
+                this.addTraceToGraph(graphTrace, true, true);
+            });
         }
 	}
 
@@ -1183,25 +1468,45 @@ class Timeline extends IOModule {
 		return [selections[1] * -1, selections[0] * -1];
 	}
 
-    formatValueForDisplay(value, datingSystem, prettyPrint = true) {
+    formatValueForDisplay(value, datingSystem, prettyPrint = true, includeDatingSystem = true) {
+        // Convert BP to AD/BC if the AD/BC system is selected
+        if (datingSystem === "AD/BC") {
+            value = this.convertBPtoADBC(value);
+        }
+    
         const absValue = Math.abs(value);
         const isOldEnough = absValue >= 5000;
     
+        let formattedValue;
+    
+        // Apply pretty formatting for large numbers
         if (prettyPrint && isOldEnough) {
             if (absValue >= 1_000_000) {
-                return (absValue / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'm';
+                formattedValue = (absValue / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
             } else if (absValue >= 1_000) {
-                return (absValue / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
+                formattedValue = (absValue / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+            } else {
+                formattedValue = absValue.toString();
             }
+        } else {
+            formattedValue = absValue.toString();
         }
     
-        // Always return as positive number for display
-        return absValue.toString();
+        // Add suffix for AD/BC system
+        if (includeDatingSystem && datingSystem === "AD/BC") {
+            console.log(value);
+            formattedValue += ` ${value > 0 ? "AD" : "BC"}`;
+        } else if (includeDatingSystem) {
+            // Add suffix for BP system
+            formattedValue += " BP";
+        }
+    
+        return formattedValue;
     }
 
     sliderUpdateCallback(values, moveSlider = false) {
         if(this.verboseLogging) {
-            console.log("IOModule "+this.name+" slider update callback", values);
+            //.log("IOModule "+this.name+" slider update callback", values);
         }
 		values[0] = parseInt(values[0], 10);
 		values[1] = parseInt(values[1], 10);
@@ -1223,18 +1528,20 @@ class Timeline extends IOModule {
 			console.log("Upper value ("+values[1]+") is above slider max, setting to max");
 			values[1] = this.sliderMax;
 		}
-
-		//values[0] = this.sliderMin;
-		//values[1] = this.sliderMax;
 		
 		this.currentValues = values;
         this.currentValuesInitialized = true;
-		$(this.lowerManualInputNode).val(this.formatValueForDisplay(this.currentValues[0], this.selectedDatingSystem));
-		$(this.upperManualInputNode).val(this.formatValueForDisplay(this.currentValues[1], this.selectedDatingSystem));
+		$(this.lowerManualInputNode).val(this.formatValueForDisplay(this.currentValues[0], this.selectedDatingSystem, true, false));
+		$(this.upperManualInputNode).val(this.formatValueForDisplay(this.currentValues[1], this.selectedDatingSystem, true, false));
+
+        if(this.debugValuesInSlider) {
+            $(this.lowerManualInputNodeDebugOutput).val(this.currentValues[0]);
+            $(this.upperManualInputNodeDebugOutput).val(this.currentValues[1]);
+        }
 
 		if (this.selectedDatingSystem === "AD/BC") {
-			let lowerSuffix = this.currentValues[0] > 0 ? "AD" : "BC";
-			let upperSuffix = this.currentValues[1] > 0 ? "AD" : "BC";
+            let lowerSuffix = this.convertBPtoADBC(this.currentValues[0]) > 0 ? "AD" : "BC";
+            let upperSuffix = this.convertBPtoADBC(this.currentValues[1]) > 0 ? "AD" : "BC";
 			$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html(lowerSuffix);
 			$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html(upperSuffix);
 		}
@@ -1286,7 +1593,10 @@ class Timeline extends IOModule {
 	}
 
     setSelections(selections, triggerUpdate = true) {
-		
+        if(this.verboseLogging) {
+            console.log(`IOModule ${this.name} setting selections (${selections}).`);
+        }
+
 		let selectionsUpdated = false;
 		if(selections.length == 2) {
 			if(selections[0] != null && selections[0] != this.selections[0]) {
@@ -1300,6 +1610,13 @@ class Timeline extends IOModule {
 		}
 		
 		if(selectionsUpdated && triggerUpdate) {
+            /*
+            let graphDataOption = this.getSelectedGraphDataOption();
+            this.fetchGraphData(graphDataOption).then(graphTrace => {
+                this.addTraceToGraph(graphTrace, true, true);
+            });
+            */
+            
 			this.sqs.facetManager.queueFacetDataFetch(this);
 			this.broadcastSelection();
 		}
@@ -1342,7 +1659,6 @@ class Timeline extends IOModule {
 		this.setSelectedScale(scale);
 	}
 }
-
 
 class PostgRESTFetcher {
     constructor(baseUrl, tableName) {

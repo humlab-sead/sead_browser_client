@@ -87,6 +87,7 @@
 	z-index: 10;
 	top: -21px;
 	left: -13px;
+	opacity: 0.8;
 }
 
 .slider-manual-input-container::after {
@@ -102,12 +103,23 @@
     border-top: 8px solid #666; /* Replace black with your desired color */
 }
 
+.range-facet-debug-output {
+	display: none;
+	position: relative;
+	width: 3em;
+	height: 1em;
+	top: 0px;
+	left: 0px;
+	font-size: 0.8em;
+}
+
 .range-unit-box {
 	position: relative;
 	background: $aux-color;
 	color: #fff;
 	font-size: 0.8em;
 	height: 18px;
+	width: 20px;
 	padding: calc(0.2em - 1px);
 	left: -1px;
 	border-style: solid;

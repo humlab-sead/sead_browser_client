@@ -897,6 +897,9 @@ class FacetManager {
 						group.items[fk].enabled = true;
 					}
 					if(group.items[fk].enabled) {
+						if(group.items[fk].facetCode == "analysis_entity_ages") {
+							group.items[fk].displayTitle = "Timeline";
+						}
 						var filter = {
 							name: group.items[fk].facetCode,
 							title: group.items[fk].displayTitle,

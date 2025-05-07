@@ -1517,7 +1517,7 @@ h1.main-header {
   position: absolute;
   top: 3em;
   width: 100%;
-  height: 100%;
+  height: calc(100% - 2em);
 }
 
 .droppable-dragover {
@@ -2180,6 +2180,64 @@ polyline{
   padding: 0.5em;
   padding-top: 0.1em;
   z-index: 2;
+}
+
+#timeline-data-selector-clicked-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $base-color;
+  color: #fff;
+  border: 1px solid $base-color;
+  cursor: pointer;
+  height: 1.4em;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+}
+
+#timeline-data-selector-clicked-btn:hover {
+  background: lighten($base-color, 10%);
+}
+
+#timeline-data-selector-container {
+  align-items: left;
+}
+
+#timeline-data-selector-container > div {
+  display: flex;
+  align-items: center;
+}
+
+#timeline-data-selector-traces-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.5em;
+}
+
+.timeline-trace-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.5);
+  align-self: flex-start;
+}
+
+.timeline-trace-item .remove-plot {
+  position: relative;
+  top: 1px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.timeline-trace-item .hide-plot {
+  position: relative;
+  top: 1px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.hide-plot.fa-eye-slash {
+  color: red;
 }
 
 .range-slider-input {
