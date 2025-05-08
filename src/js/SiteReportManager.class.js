@@ -30,32 +30,10 @@ class SiteReportManager {
 				this.renderSiteReport(siteId);
 			});
 		});
-		
-		/*
-		this.sqs.sqsEventListen("siteReportClosed", () => {
-			console.log("siteReportClosed button clicked");
-			this.sqs.setActiveView("filters");
-
-			let layoutMode = this.sqs.layoutManager.getMode();
-			if(layoutMode == "mobileMode") {
-				this.sqs.layoutManager.switchSection("right");
-			}
-
-			this.siteReport.hide();
-			this.siteReportLayoutManager.destroy();
-			this.siteReport.destroy();
-			this.siteReport = null;
-			console.log("site report close - push")
-			history.pushState({}, "", "/");
-			if(this.sqs.resultManager.activeModuleId == "none") {
-				this.sqs.resultManager.activeModuleId = Config.defaultResultModule;
-			}
-			this.sqs.resultManager.setActiveModule(this.sqs.resultManager.activeModuleId);
-		});
-		*/
 
 		this.sqs.sqsEventListen("siteReportClosed", () => {
 			console.log("siteReportClosed");
+			this.siteReport.destroy();
 			history.pushState({}, "", "/");
 		});
 	}
