@@ -58,6 +58,9 @@ class DomainManager {
         if(domainName == this.activeDomain.name) {
             return;
         }
+
+        let previousResultModule = this.sqs.resultManager.getActiveModule();
+
         this.activeDomain = this.getDomain(domainName);
         this.updateMenu();
         
@@ -77,7 +80,9 @@ class DomainManager {
 			menu.setSelected(domainName);
 		}
 
-        this.sqs.sqsEventDispatch("domainChanged", domainName);
+        previousResultModule.unrender().then(() => {
+            this.sqs.sqsEventDispatch("domainChanged", domainName);
+        });
     }
     
     updateMenu() {
