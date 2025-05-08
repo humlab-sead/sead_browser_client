@@ -116,7 +116,7 @@ class FacetManager {
 		});
 
 		setTimeout(() => {
-			this.addDefaultFacets();
+			//this.addDefaultFacets();
 		}, 500);
 		
 	}
