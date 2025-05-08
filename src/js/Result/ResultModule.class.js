@@ -75,7 +75,7 @@ class ResultModule {
 		*/
 	}
 
-	unrender() {
+	async unrender() {
 	}
 
 	exportDataDialog() {

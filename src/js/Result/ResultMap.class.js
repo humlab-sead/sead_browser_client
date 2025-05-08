@@ -1268,7 +1268,7 @@ class ResultMap extends ResultModule {
 	/*
 	* Function: unrender
 	*/
-	unrender() {
+	async unrender() {
 		if(this.olMap) {
 			this.olMap.setTarget(null);
 		}
