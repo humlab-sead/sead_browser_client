@@ -15,7 +15,7 @@ class Timeline extends IOModule {
         this.sliderMin = -10000000;
 		this.sliderMax = 10000000;
 
-        this.verboseLogging = true;
+        this.verboseLogging = false;
         this.debugValuesInSlider = false;
 
         this.currentValuesInitialized = false;
