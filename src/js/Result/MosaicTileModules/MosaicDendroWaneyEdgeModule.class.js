@@ -52,7 +52,7 @@ class MosaicDendroWaneyEdgeModule extends MosaicTileModule {
         this.sqs.setLoadingIndicator(this.renderIntoNode, true);
 
 
-        let response = await this.fetch("/dendro/dynamicchart", requestBody);
+        let response = await super.fetchData("/dendro/dynamicchart", requestBody);
         if(!response) {
             return false;
         }

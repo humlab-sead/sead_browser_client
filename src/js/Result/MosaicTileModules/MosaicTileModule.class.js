@@ -14,7 +14,7 @@ class MosaicTileModule {
         this.name = "";
     }
 
-    async fetch(path, postData) {
+    async fetchData(path, postData) {
         return new Promise(async (resolve, reject) => {
             try {
                 let response = await fetch(this.sqs.config.dataServerAddress + path, {
@@ -55,20 +55,14 @@ class MosaicTileModule {
                 if(this.renderComplete) {
                     clearInterval(this.waitForRenderCompleteInterval);
     
-                    if(this.chart != null && !this.chart instanceof Promise && this.chartType == "chartjs") {
-                        this.chart.destroy();
-                        this.chart = null;
+                    if(this.renderIntoNode != null) {
+                        $(this.renderIntoNode).empty();
+                        resolve();
                     }
-    
-                    let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-                    if(this.renderIntoNode != null && this.renderIntoNode.length > 0 && this.chartType == "plotly") {
-                        resultMosaic.unrenderPlotlyChart(this.renderIntoNode);
+                    else {
+                        console.warn("Render into node was null when trying to unrender!");
+                        reject();
                     }
-
-                    this.pendingRequestPromise = null;
-                    this.active = false;
-                    console.log("Unrendered "+this.name+" module")
-                    resolve();
                 }
             }, 100);
         });

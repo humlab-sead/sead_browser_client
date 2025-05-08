@@ -40,7 +40,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         });
         */
 
-        let response = await this.fetch("/dendro/treespecies", requestBody);
+        let response = await super.fetchData("/dendro/treespecies", requestBody);
         if(!response) {
             return false;
         }
@@ -115,7 +115,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
             this.sqs.setNoDataMsg(this.renderIntoNode);
         }
         else {
-            this.chart = resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartSeries);
+            this.chart = resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartSeries, { showlegend: false });
         }
         this.renderComplete = true;
     }

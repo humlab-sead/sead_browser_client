@@ -34,7 +34,6 @@ class MosaicConstructionPurposeModule extends MosaicTileModule {
         //let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         
         this.renderPieChart();
-        
         this.renderComplete = true;
     }
 
