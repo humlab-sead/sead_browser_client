@@ -330,7 +330,7 @@ class ResultTable extends ResultModule {
 
 						//used to be: "/graphs/dating_overview"
 						$.ajax(Config.dataServerAddress + "/time/sites", {
-							data: JSON.stringify([cell.getData().site_link_filtered]),
+							data: JSON.stringify({ siteIds: [cell.getData().site_link_filtered] }),
 							dataType: "json",
 							method: "post",
 							contentType: 'application/json; charset=utf-8',
