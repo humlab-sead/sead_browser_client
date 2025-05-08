@@ -1,7 +1,7 @@
 //import * as d3 from 'd3';
 //import Config from '../../config/config.js'
 import ResultModule from './ResultModule.class.js'
-import Timeline from './Timeline.class.js';
+import TimelineFacet from '../TimelineFacet.class.js';
 import SqsMenu from '../SqsMenu.class';
 
 /*OpenLayers imports*/
@@ -40,17 +40,10 @@ class ResultMap extends ResultModule {
 		this.includeTimeline = includeTimeline;
 
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
-		if(Config.timelineEnabled && includeTimeline) {
-			$(this.renderIntoNode).append("<div class='result-timeline-render-container'></div>");
-		}
-		else {
-			$(".result-map-render-container", this.renderIntoNode).css("height", "100%");
-		}
+
+		//$(".result-map-render-container", this.renderIntoNode).css("height", "100%");
 
 		this.renderMapIntoNode = $(".result-map-render-container", renderIntoNode)[0];
-		if(Config.timelineEnabled && includeTimeline) {
-			this.renderTimelineIntoNode = $(".result-timeline-render-container", renderIntoNode)[0];
-		}
 		
 		this.olMap = null;
 		this.name = "map";
@@ -221,10 +214,6 @@ class ResultMap extends ResultModule {
 		this.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
 		this.resultManager.sqs.sqsEventListen("siteReportClosed", () => this.resizeCallback());
-
-		//Create attached timeline object
-		this.timeline = new Timeline(this);
-		
 	}
 
 	getSelectedSites() {
@@ -259,7 +248,7 @@ class ResultMap extends ResultModule {
 				this.renderInterfaceControls();
 			}
 		}).catch((xhr, textStatus, errorThrown) => { //error
-			console.log("Error fetching data for result map: "+errorThrown);
+			console.log("Error fetching data for result map:", xhr, textStatus, errorThrown);
 		});
 	}
 
@@ -268,6 +257,9 @@ class ResultMap extends ResultModule {
 
 		if(!active) {
 			$(this.renderIntoNode).hide();
+		}
+		else {
+			$(this.renderIntoNode).show();
 		}
 	}
 
@@ -292,6 +284,11 @@ class ResultMap extends ResultModule {
 				//Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 				if(respData.RequestId == this.requestId && this.active) {
 					this.importResultData(respData);
+					if(true) {
+						this.renderMap();
+						this.renderVisibleDataLayers();
+						this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
+					}
 					this.resultManager.showLoadingIndicator(false);
 				}
 				else {
@@ -343,24 +340,6 @@ class ResultMap extends ResultModule {
 		this.renderData = this.resultManager.sqs.sqsOffer("resultMapData", {
 			data: this.renderData
 		}).data;
-
-		if(this.timeline != null) {
-			//this.data = this.timeline.makeFakeTimeData(this.data); //FIXME: REMOVE THIS WHEN THERE IS DATA AVAILABLE
-			this.timeline.fetchTimeData(this.data).then(d => {
-				this.data = d;
-				if(renderMap) {
-					this.renderMap();
-					this.renderVisibleDataLayers();
-					
-					if(Config.timelineEnabled && this.includeTimeline) {
-						this.timeline.render();
-					}
-					this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
-				}
-			});
-		}
-
-		
 	}
 
 	async update() {
@@ -646,7 +625,8 @@ class ResultMap extends ResultModule {
 	* Function: renderClusteredPointsLayer
 	*/
 	renderClusteredPointsLayer() {
-		let timeFilteredData = this.timeline.getSelectedSites();
+		//let timeFilteredData = this.timeline.getSelectedSites();
+		let timeFilteredData = this.data;
 		var geojson = this.getDataAsGeoJSON(timeFilteredData);
 
 		var gf = new GeoJSON({
@@ -680,7 +660,8 @@ class ResultMap extends ResultModule {
 	}
 
 	renderHeatmapLayer() {
-		let timeFilteredData = this.timeline.getSelectedSites();
+		//let timeFilteredData = this.timeline.getSelectedSites();
+		let timeFilteredData = this.data;
 		var geojson = this.getDataAsGeoJSON(timeFilteredData);
 
 		var gf = new GeoJSON({
@@ -714,7 +695,8 @@ class ResultMap extends ResultModule {
 	* Function: renderPointsLayer
 	*/
 	renderPointsLayer() {
-		let timeFilteredData = this.timeline.getSelectedSites();
+		//let timeFilteredData = this.timeline.getSelectedSites();
+		let timeFilteredData = this.data;
 		var geojson = this.getDataAsGeoJSON(timeFilteredData);
 
 		var gf = new GeoJSON({
@@ -1286,7 +1268,7 @@ class ResultMap extends ResultModule {
 	/*
 	* Function: unrender
 	*/
-	unrender() {
+	async unrender() {
 		if(this.olMap) {
 			this.olMap.setTarget(null);
 		}
@@ -1317,12 +1299,12 @@ class ResultMap extends ResultModule {
 	*/
 	resizeCallback() {
 		if(this.olMap != null && this.active) {
-			$(this.renderIntoNode).hide();
+			//$(this.renderIntoNode).hide();
 			if(typeof(this.resizeTimeout) != "undefined") {
 				clearTimeout(this.resizeTimeout);
 			}
 			this.resizeTimeout = setTimeout(() => {
-				$(this.renderIntoNode).show();
+				//$(this.renderIntoNode).show();
 				this.olMap.updateSize();
 			}, 500);
 		}

@@ -1,3 +1,7 @@
+import 'gridstack/dist/gridstack.min.css';
+import { GridStack } from 'gridstack';
+import Packery from 'packery';
+import Draggabilly from 'draggabilly';
 
 /* 
 * Class: ResultManager
@@ -20,6 +24,14 @@ class ResultManager {
 		
 		//Event hook-ins below
 		if(this.resultSectionDisabled == false) {
+
+			$("#show-query-btn").on("click", () => {
+				let sql = this.getActiveModule().getSQL();
+				const formattedSQL = sql.replace(/\n/g, "<br/>");
+
+				this.sqs.dialogManager.showPopOver("Result SQL", formattedSQL);
+			});
+
 			$(window).on("seadResultMenuSelection", (event, data) => {
 				this.sqs.storeUserSettings({
 					defaultResultModule: data.selection
@@ -101,6 +113,7 @@ class ResultManager {
 			this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
 				this.getActiveModule().render();
 			});
+			
 		}
 		
 	}
@@ -110,9 +123,11 @@ class ResultManager {
 
 		if(this.debugMode) {
 			$("#result-menu .sqs-menu-item-hidden").css("display", "block");
+			$("#result-section #show-query-btn").show();
 		}
 		else {
 			$("#result-menu .sqs-menu-item-hidden").css("display", "none");
+			$("#result-section #show-query-btn").hide();
 		}
 	}
 
@@ -338,9 +353,9 @@ class ResultManager {
 	renderMsg(render = true, msg = {}) {
 		if(render) {
 			var domObj = $("#result-msg-contents-template")[0].cloneNode(true);
-			$(domObj).attr("id", "result-msg-contents").css("display", "grid");
-			$(domObj).find("#result-info-text-container > .large-info-text").text(msg.title);
-			$(domObj).find("#result-info-text-container > .small-info-text").text(msg.body);
+			$(domObj).attr("id", "result-msg-contents").css("display", "flex");
+			$(domObj).find("#result-info-text-container > .large-info-text").html(msg.title);
+			$(domObj).find("#result-info-text-container > .small-info-text").html(msg.body);
 			$("#result-container").append(domObj);
 		}
 		else {
@@ -374,9 +389,11 @@ class ResultManager {
 			if(error) {
 				$("#result-loading-indicator").addClass("result-loading-indicator-error");
 
+				let warningTriangleIcon = "<i style='color:red;' class='fa fa-exclamation-triangle'></i>";
+
 				this.getActiveModule().unrender();
 				this.renderMsg(true, {
-					title: "Error",
+					title: warningTriangleIcon+" Error",
 					body: "An unknown error occurred when loading this data."
 				});
 

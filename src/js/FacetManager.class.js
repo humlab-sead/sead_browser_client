@@ -5,6 +5,9 @@ import DiscreteFacet from './DiscreteFacet.class.js'
 import RangeFacet from './RangeFacet.class.js'
 import MapFacet from './MapFacet.class.js';
 import MultiStageFacet from './MultiStageFacet.class';
+import Config from '../config/config.json';
+import TimelineFacet from './TimelineFacet.class.js';
+import Timeline from './IOModules/Timeline.class.js';
 /* 
 Class: FacetManager
 The FacetManager handles all things concerning the manipulation of multiple facets, basically anything that has to do with facets that exceeds the scope of the individual facet. For example moving/swapping of facets.
@@ -20,6 +23,15 @@ class FacetManager {
 		this.slots = [];
 		this.facets = [];
 		this.links = [];
+
+		/*
+		this.facetLinkedList = [];
+		this.facetLinkedList.push({
+			next: null,
+			prev: null,
+		});
+		*/
+
 		this.facetId = 0;
 		this.debugMode = false;
 
@@ -57,10 +69,10 @@ class FacetManager {
 				this.chainQueueFacetDataFetch(fetchFromFacet);
 			}
 			
-			if(this.facets.length == 0) {
+			if(this.getCountOfFacetsForSlots() == 0) {
 				$("#facet-show-only-selections-btn").hide();
 				setTimeout(() => {
-					if(this.facets.length == 0) { //If there's still no facet...
+					if(this.getCountOfFacetsForSlots() == 0) { //If there's still no facet...
 						this.renderDemoSlot();
 					}
 				}, 500);
@@ -79,7 +91,7 @@ class FacetManager {
 		this.renderDemoSlot();
 		
 		this.sqs.sqsEventListen("sqsFacetPreAdd", () => {
-			if(this.demoSlot != null) {
+			if(this.demoSlot != null && this.getCountOfFacetsForSlots() == 0) {
 				$(".filter-demo-arrow").remove();
 				this.removeSlot(this.demoSlot, true);
 				this.demoSlot = null;
@@ -102,7 +114,38 @@ class FacetManager {
 			
 			this.buildFilterStructure(domainName);
 		});
+
+		setTimeout(() => {
+			//this.addDefaultFacets();
+		}, 500);
 		
+	}
+	
+	addDefaultFacets() {
+		/*
+		if(Config.timelineEnabled) {
+			let facetId = "timeline";
+			let facetTemplate = this.getFacetTemplateByFacetId("analysis_entity_ages");
+			facetTemplate.virtual = true;
+			let mapObject = this;
+			this.timeline = new TimelineFacet(this.sqs, facetId, facetTemplate, mapObject);
+			this.addFacet(this.timeline);
+		}
+		*/
+
+		Config.defaultFilters.forEach((facetId) => {
+			let facetTemplate = this.getFacetTemplateByFacetId(facetId);
+			if(!facetTemplate) {
+				console.warn("Facet not found: "+facetId);
+				return;
+			}
+			let facet = this.makeNewFacet(facetTemplate);
+			if(!facet) {
+				console.warn("Facet not found: "+facetId);
+				return;
+			}
+			this.addFacet(facet, false);
+		});
 	}
 
 	toggleDebug() {
@@ -248,6 +291,11 @@ class FacetManager {
 	* The created facet object.
 	*/
 	makeNewFacet(template) {
+		//special case for the timeline facet
+		if(template.name == "analysis_entity_ages") {
+			return new Timeline(this.sqs, this.getNewFacetId(), template);
+		}
+
 		switch(template.type) {
 			case "multistage":
 				return new MultiStageFacet(this.sqs, this.getNewFacetId(), template);
@@ -377,7 +425,12 @@ class FacetManager {
 		}
 		
 		this.facets.push(facet);
-		let slot = this.addSlot();
+
+		let slot = this.addSlot(facet.virtual);
+
+		//move the "timeline" facet to the end of the chain
+		let timelineFacet = this.getFacetById("timeline");
+		this.updateLinks(timelineFacet.id, this.getSlotByFacet(timelineFacet).id+1);
 
 		if(insertIntoSlotPosition != null) {
 			this.facets.forEach((facet) => {
@@ -390,8 +443,10 @@ class FacetManager {
 		}
 
 		this.queueFacetDataFetch(facet);
-		this.showSectionTitle(false);
-		this.updateShowOnlySelectionsControl();
+		if(!facet.virtual) {
+			this.showSectionTitle(false);
+			this.updateShowOnlySelectionsControl();
+		}
 		
 		this.sqs.sqsEventDispatch("sqsFacetPostAdd", facet);
 	}
@@ -540,12 +595,16 @@ class FacetManager {
 		}
 	}
 
+	getCountOfFacetsForSlots() {
+		return this.facets.length;
+	}
+
 	/*
 	* Function: adjustNumberOfSlots
 	* Will adjust the number of slots to match the number of facets.
 	*/
 	adjustNumberOfSlots() {
-		var delta = this.facets.length - this.slots.length;
+		var delta = this.getCountOfFacetsForSlots() - this.slots.length;
 
 		while(delta > 0) {
 			this.addSlot();
@@ -562,9 +621,9 @@ class FacetManager {
 	* Function: addSlot
 	* Adds a slot. How about that.
 	*/
-	addSlot() {
+	addSlot(virtual = false) {
 		let slotId = this.slots.length+1;
-		let slot = new Slot(this.sqs, slotId);
+		let slot = new Slot(this.sqs, slotId, virtual);
 		this.slots.push(slot);
 		return slot;
 	}
@@ -602,7 +661,6 @@ class FacetManager {
 	* moveFacets
 	*/
 	updateLinks(facetId, slotId) {
-
 		let facetFound = false;
 		for(let key in this.links) {
 			if(this.links[key].facetId == facetId) {
@@ -813,6 +871,7 @@ class FacetManager {
 		for(let key in facetDef) {
 			let group = facetDef[key];
 			group.enabled = false;
+			
 			group.items.forEach((facet) => {
 				if(facet.enabled != false) {
 					group.enabled = true;
@@ -838,6 +897,9 @@ class FacetManager {
 						group.items[fk].enabled = true;
 					}
 					if(group.items[fk].enabled) {
+						if(group.items[fk].facetCode == "analysis_entity_ages") {
+							group.items[fk].displayTitle = "Timeline";
+						}
 						var filter = {
 							name: group.items[fk].facetCode,
 							title: group.items[fk].displayTitle,
@@ -1225,7 +1287,6 @@ class FacetManager {
 			};
 			
 			for(var fk in facetDef[gk].filters) {
-
 				let icon = "";
 				if(facetDef[gk].filters[fk].type == "discrete") {
 					icon = "<span class='sqs-menu-facet-type-icon'><i class=\"fa fa-list-ul\" aria-hidden=\"true\"></i></span>";
@@ -1264,6 +1325,9 @@ class FacetManager {
 								let t = this.sqs.facetManager.getFacetTemplateByFacetId(facetName);
 								var facet = this.sqs.facetManager.makeNewFacet(t);
 								this.sqs.facetManager.addFacet(facet);
+							}
+							else {
+								this.sqs.notificationManager.notify("Filter already exists.", "info");
 							}
 						}
 					})()
@@ -1436,6 +1500,7 @@ class FacetManager {
 		}
 
         this.filterDefinitions = this.filterFilters(domainFilterList, this.filterDefinitions);
+
 		this.facetDef = this.importFacetDefinitions(this.filterDefinitions);
 		
         var sqsMenuStruct = this.makesqsMenuFromFacetDef(this.facetDef);

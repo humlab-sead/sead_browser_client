@@ -43,7 +43,7 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         let data = await response.json();
         
         data.summary_data.sort((a, b) => {
-            return b.feature_count - a.feature_count;
+            return b.count - a.count;
         });
 
         let chartSeries = [];

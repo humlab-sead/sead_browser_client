@@ -17,7 +17,7 @@ function chunkArray(array, numChunks) {
 
 // Function to fetch data in series and merge results
 async function fetchDatagroupsInChunks(methodId, selectedSites, dataServerAddress) {
-	const numChunks = 10;
+	const numChunks = 20;
 	const minThreshold = 10; // Minimum threshold to start chunking
 	let siteChunks;
 	if (selectedSites.length < minThreshold) {

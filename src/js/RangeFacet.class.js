@@ -1,13 +1,9 @@
 import Facet from './Facet.class.js';
-//import noUiSlider from "nouislider";
-//import "nouislider/distribute/nouislider.min.css";
+import noUiSlider from "nouislider";
+import "nouislider/dist/nouislider.min.css";
+
 import styles from '../stylesheets/style.scss'
 import { Chart, CategoryScale, LinearScale, BarController, BarElement } from "chart.js";
-//import Config from "../config/config";
-//import { runInThisContext } from 'vm';
-
-import "ion-rangeslider";
-import "ion-rangeslider/css/ion.rangeSlider.min.css";
 /*
 Works like this:
 
@@ -22,8 +18,6 @@ Old request data should be discarded (if a new selection was made while data was
 Data is loaded into "unfiltered" if it was requested without picks - which will give us the entire dataspan, but at low resolution, most importantly it tells us the endpoints
 Data is loaded into "filtered" if it was requested with picks. This gives up the higher resolution data we need for a more zoomed in / narrow view of the data
 
-
-	FIXME: Also, slider doesn't move to proper position when manual input is used
 */
 
 
@@ -47,7 +41,7 @@ class RangeFacet extends Facet {
 		};
 		this.selections = [];
 		this.chart = null;
-		this.sliderElement = null;
+		this.slider = null;
 		this.minDataValue = null;
 		this.maxDataValue = null;
 		
@@ -90,7 +84,6 @@ class RangeFacet extends Facet {
 			this.sqs.facetManager.queueFacetDataFetch(this);
 			this.broadcastSelection();
 		}
-		
 	}
 
 
@@ -139,7 +132,6 @@ class RangeFacet extends Facet {
 				value: bins[itemKey].Count //value/count for this category/span
 			});
 		}
-
 	}
 	
 	reduceResolutionOfDataset(dataset, selections = [], resolution = 100) {
@@ -328,7 +320,7 @@ class RangeFacet extends Facet {
 			this.updateChart(categories, selections);
 		}
 
-		if(this.sliderElement == null) {
+		if(this.slider == null) {
 			this.renderSlider(categories, selections);
 		}
 		else {
@@ -346,9 +338,9 @@ class RangeFacet extends Facet {
 			console.log(this.chart);
 			this.chart.destroy();
 		}
-		if(this.sliderElement != null) {
-			console.log(this.sliderElement);
-			this.sliderElement.destroy();
+		if(this.slider != null) {
+			console.log(this.slider);
+			this.slider.destroy();
 		}
 		$(".facet-body > .chart-container", this.getDomRef()).hide();
 	}
@@ -419,87 +411,250 @@ class RangeFacet extends Facet {
 		let sliderMin = this.totalLower;
 		let sliderMax = this.totalUpper;
 
+		this.sliderMin = sliderMin;
+		this.sliderMax = sliderMax;
+
 		let startDefault = this.getSelections();
 		if(startDefault.length < 2) {
 			startDefault = [sliderMin, sliderMax];
 		}
+		
+		// Access the template element
+		const template = document.getElementById("facet-template");
+		
+		const chartContainer = $(".chart-container", this.getDomRef());
+		chartContainer.show();
+		const sliderContainer = $(".rangeslider-container", this.getDomRef())[0];
 
-		$(".range-slider-input", this.getDomRef()).ionRangeSlider({
-			type: "double",
-			min: sliderMin,
-			max: sliderMax,
-			step: 1,
-			skin: "flat",
-			prettify_enabled: true, // Enables prettify function
-			prettify: (num) => {
-				if(this.unit == "BP") {
-					return this.formatWithSpaces(num)+" BP";
-				}
-				else {
-					return this.formatWithSpaces(num);
-					//return num.toLocaleString();
-				}
-			},
-			onFinish: (data) => {
-				let values = [];
-				values.push(data.from);
-				values.push(data.to);
-				this.sliderMovedCallback(values);
-			}
-		});
-		/*
-		var rangesliderContainer = $(".rangeslider-container", this.getDomRef())[0];
-		this.sliderElement = noUiSlider.create(rangesliderContainer, {
-			start: startDefault,
+		this.slider = noUiSlider.create(sliderContainer, {
+			start: [this.sliderMin, this.sliderMax],
 			range: {
-				'min': sliderMin,
-				'max': sliderMax
+				'min': this.sliderMin,
+				'max': this.sliderMax
 			},
 			step: 1,
 			connect: true
 		});
 
-		$(".slider-manual-input-container", this.getDomRef()).remove();
-		var upperManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='upper']")[0].cloneNode(true);
-		var lowerManualInputNode = $("#facet-template .slider-manual-input-container[endpoint='lower']")[0].cloneNode(true);
-		
-		$("input", upperManualInputNode).val(sliderMax);
-		$("input", lowerManualInputNode).val(sliderMin);
 
-		$(".noUi-handle-upper", this.getDomRef()).append(upperManualInputNode);
-		$(".noUi-handle-lower", this.getDomRef()).append(lowerManualInputNode);
+		$(".slider-manual-input-container", this.getDomRef()).remove();
+
+        var upperManualInputNode;
+        var lowerManualInputNode;
+        if (template && template.content) {
+            var upperManualInputContainer = template.content.querySelector(".slider-manual-input-container[endpoint='upper']");
+            var lowerManualInputContainer = template.content.querySelector(".slider-manual-input-container[endpoint='lower']");
+
+            upperManualInputNode = upperManualInputContainer ? upperManualInputContainer.cloneNode(true) : null;
+            lowerManualInputNode = lowerManualInputContainer ? lowerManualInputContainer.cloneNode(true) : null;
+
+            // Now use upperManualInputNode and lowerManualInputNode
+        } else {
+            console.error("Facet template not found or its content is empty.");
+        }
+
+
+		$("input", upperManualInputNode).val(this.sliderMax);
+        $("input", lowerManualInputNode).val(this.sliderMin);
+
+        $(".noUi-handle-upper", this.getDomRef()).prepend(upperManualInputNode);
+        $(".noUi-handle-lower", this.getDomRef()).prepend(lowerManualInputNode);
+
+        $(".slider-manual-input-container", this.getDomRef()).show();
+
+        this.upperManualInputNode = $(".noUi-handle-upper .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
+        this.lowerManualInputNode = $(".noUi-handle-lower .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
+
+		$(".range-unit-box", this.getDomRef()).hide();
+		$(".slider-manual-input-container > input").css("border-right-width", "1px");
 		
 		//Lots of adjustments for setting the right size and position of the digit input boxes depending on how big they need to be
+		/*
 		let digits = sliderMax.toString().length > sliderMin.toString().length ? sliderMax.toString().length : sliderMin.toString().length;
 		var digitSpace = digits*5;
 		$(".slider-manual-input-container", this.domObj).css("width", 20 + digitSpace);
 		$(".range-facet-manual-input", this.domObj).css("width", 18 + digitSpace);
-		$(".rangeslider-container", this.domObj).css("margin-left", 18 + digitSpace);
-		$(".rangeslider-container", this.domObj).css("margin-right", 18 + digitSpace);
-		$(".noUi-handle-lower > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(0-digitSpace)+"px");
 		
+		$(".noUi-handle-lower > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(-7-digitSpace)+"px");
+		$(".noUi-handle-upper > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(13)+"px");
+		*/
+		let digits = sliderMax.toString().length > sliderMin.toString().length ? sliderMax.toString().length : sliderMin.toString().length;
+		var digitSpace = 30 + digits * 5;
+		$(".slider-manual-input-container .range-facet-manual-input", this.domObj).css("width", digitSpace);
+
+
+
 		$(".slider-manual-input-container", this.getDomRef()).show();
+
+		this.upperManualInputNode = $(".noUi-handle-upper .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
+		this.lowerManualInputNode = $(".noUi-handle-lower .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
+
+		//$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).hide();
+		//$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).hide();
 		
 
 		$(".slider-manual-input-container", this.getDomRef()).on("change", (evt) => {
 			this.manualInputCallback(evt);
 		});
 		
-		this.sliderElement.off("update");
-		this.sliderElement.on("update", (values, slider) => {
+		this.slider.off("update");
+		this.slider.on("update", (values, slider) => {
 			
 			let highValue = parseFloat(values[0]);
 			let lowValue = parseFloat(values[1]);
 
 			$(".noUi-handle-lower .range-facet-manual-input", this.getDomRef()).val(highValue);
 			$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(lowValue);
-		});
-		this.sliderElement.on("change", (values, slider) => {
-			this.sliderMovedCallback(values, slider);
-		});
 
-		*/
+			//let overlap = this.getHorizontalOverlap(this.lowerManualInputNode[0], this.upperManualInputNode[0]);
+			//this.adjustSliderInputPositions(overlap, this.lowerManualInputNode, this.upperManualInputNode);
+		});
+		this.slider.on("change", (values, slider) => {
+			//this.sliderMovedCallback(values, slider);
+			this.sliderUpdateCallback(values);
+		});
 	}
+
+	sliderUpdateCallback(values, moveSlider = false) {
+		values[0] = parseInt(values[0], 10);
+		values[1] = parseInt(values[1], 10);
+
+		//avoid year zero since it doesn't exist
+		if(values[0] == 0) {
+			values[0] = -1;
+		}
+		if(values[1] == 0) {
+			values[1] = 1;
+		}
+
+		//if current values are not within the slider range, set them to the slider range
+		if(values[0] < this.sliderMin) {
+			console.log("Lower value ("+values[0]+") is below slider min, setting to min");
+			values[0] = this.sliderMin;
+		}
+		if(values[1] > this.sliderMax) {
+			console.log("Upper value ("+values[1]+") is above slider max, setting to max");
+			values[1] = this.sliderMax;
+		}
+
+		//values[0] = this.sliderMin;
+		//values[1] = this.sliderMax;
+		
+		//console.log("Slider values:", values);
+		this.currentValues = values;
+		$(this.lowerManualInputNode).val(this.formatValueForDisplay(this.currentValues[0], this.selectedDatingSystem));
+		$(this.upperManualInputNode).val(this.formatValueForDisplay(this.currentValues[1], this.selectedDatingSystem));
+
+		if (this.selectedDatingSystem === "AD/BC") {
+			let lowerSuffix = this.currentValues[0] > 0 ? "AD" : "BC";
+			let upperSuffix = this.currentValues[1] > 0 ? "AD" : "BC";
+			$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html(lowerSuffix);
+			$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html(upperSuffix);
+		}
+
+		if (this.selectedDatingSystem === "BP") {
+			$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html("BP");
+			$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html("BP");
+		}
+		
+
+		/* there's some performance degredation to running this code, so it's commented out for now
+		let lowerInput = $(".slider-manual-input-container[endpoint='lower']", this.getDomRef())
+		let upperInput = $(".slider-manual-input-container[endpoint='upper']", this.getDomRef())
+
+		if(lowerInput[0] && upperInput[0]) {
+			console.log(lowerInput, upperInput);
+
+			//detect horizontal overlap between the inputs
+			let lowerInputRect = lowerInput[0].getBoundingClientRect();
+			let upperInputRect = upperInput[0].getBoundingClientRect();
+
+			if(lowerInputRect.right > upperInputRect.left) {
+				//there is overlap, move the lower input to the left
+				let overlap = lowerInputRect.right - upperInputRect.left;
+				let left = lowerInputRect.left - overlap;
+				lowerInput.css("background", "red");
+			}
+			else {
+				lowerInput.css("background", "blue");
+			}
+		}
+		*/
+		
+
+		if(this.useCurtains) {
+			this.adjustCurtains(values);
+		}
+
+		if(moveSlider) {
+			console.log("Moving slider to", values);
+			this.slider.set(values);
+		}
+
+		this.sliderMovedCallback(values);
+	}
+
+	formatValueForDisplay(value, datingSystem, prettyPrint = true) {
+		if (datingSystem === "BP") {
+			value = Math.abs(value); // Ensure positive for formatting
+			if (prettyPrint) {
+				if (value >= 1_000_000) {
+					return (value / 1_000_000).toFixed(1) + "m"; // Format as millions
+				} else if (value >= 1_000) {
+					return (value / 1_000).toFixed(1) + "k"; // Format as thousands
+				}
+			}
+			return value; // Return raw value if prettyPrint is false
+		}
+
+		if (datingSystem === "AD/BC") {
+			if (value < 0) {
+				return Math.abs(value) + " BC";
+			}
+			return value + " AD";
+		}
+		
+		return value;
+	}
+
+	adjustSliderInputPositions(overlap, lowerManualInputNode, upperManualInputNode) {
+		const lowerLeftOriginalPosition = (lowerManualInputNode.width() + 8) / 2;
+		const upperLeftOriginalPosition = ((upperManualInputNode.width() + 8) / 2)*-1;
+	
+		let lowerInputLeft = lowerManualInputNode.position().left; // Current `left` position of lower node
+		let upperInputLeft = upperManualInputNode.position().left; // Current `left` position of upper node
+
+		let lowerInputNewLeft = lowerInputLeft; // Initialize to current positions
+		let upperInputNewLeft = upperInputLeft;
+	
+		if (overlap > 0) {
+			// Adjust positions to remove overlap
+			const shiftAmount = overlap / 2; // Split the overlap equally between the two nodes
+			lowerInputNewLeft = lowerInputLeft - shiftAmount; // Move lower node left
+			upperInputNewLeft = upperInputLeft + shiftAmount; // Move upper node right
+			
+		} else {
+			// No overlap, gradually reset to original positions
+			lowerInputNewLeft = lowerInputLeft < lowerLeftOriginalPosition ? lowerInputLeft + 1 : lowerLeftOriginalPosition;
+			upperInputNewLeft = upperInputLeft > upperLeftOriginalPosition ? upperInputLeft - 1 : upperLeftOriginalPosition;
+		}
+	
+		// Update positions with calculated values
+		lowerManualInputNode[0].style.setProperty("left", `${lowerInputNewLeft}px`, "important");
+		upperManualInputNode[0].style.setProperty("left", `${upperInputNewLeft}px`, "important");
+	}
+
+	getHorizontalOverlap(element1, element2) {
+		const rect1 = element1.getBoundingClientRect();
+		const rect2 = element2.getBoundingClientRect();
+	
+		// Check if they overlap horizontally
+		const overlap = Math.min(rect1.right, rect2.right) - Math.max(rect1.left, rect2.left);
+	
+		// Return overlap amount if they overlap, otherwise return 0
+		return overlap > 0 ? overlap : 0;
+	}
+	
 	
 	updateChart(categories, selections) {
 		let chartJSDatasets = this.makeChartJsDataset(categories);
@@ -509,7 +664,7 @@ class RangeFacet extends Facet {
 	}
 	
 	updateSlider(categories, selections) {
-		this.sliderElement.updateOptions({
+		this.slider.updateOptions({
 				start: selections,
 			},
 			true

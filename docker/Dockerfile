@@ -30,6 +30,9 @@ WORKDIR /sead_browser_client
 
 RUN git checkout $SBC_REF
 
+# replace all instances of "localhost" with the domain name in src/config/config-prod.json
+RUN sed -i "s/localhost/$DOMAIN/g" src/config/config-prod.json
+
 # echo out DOMAIN so we know it is set
 RUN echo "DOMAIN: $DOMAIN"
 # echo out MODE so we know it is set

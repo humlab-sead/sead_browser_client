@@ -330,13 +330,12 @@ class ResultTable extends ResultModule {
 
 						//used to be: "/graphs/dating_overview"
 						$.ajax(Config.dataServerAddress + "/time/sites", {
-							data: JSON.stringify([cell.getData().site_link_filtered]),
+							data: JSON.stringify({ siteIds: [cell.getData().site_link_filtered] }),
 							dataType: "json",
 							method: "post",
 							contentType: 'application/json; charset=utf-8',
 							crossDomain: true
 							}).then(data => {
-								console.log(data);
 								if(data.length == 0) {
 									cellElement.innerHTML = "N/A";
 									currentRenderSlotsTaken--;
@@ -381,7 +380,7 @@ class ResultTable extends ResultModule {
 						clearInterval(renderInterval);
 
 						$.ajax(Config.dataServerAddress + "/graphs/feature_types", {
-							data: JSON.stringify({siteIds: [cell.getData().site_link_filtered]}),
+							data: JSON.stringify({ siteIds: [cell.getData().site_link_filtered] }),
 							dataType: "json",
 							method: "post",
 							contentType: 'application/json; charset=utf-8',
@@ -542,7 +541,7 @@ class ResultTable extends ResultModule {
 	/*
 	* Function: unrender
 	*/
-	unrender() {
+	async unrender() {
 		if(this.tabulatorTable) {
 			this.tabulatorTable.clearData();
 			this.tabulatorTable.destroy();

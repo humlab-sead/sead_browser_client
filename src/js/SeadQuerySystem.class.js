@@ -378,6 +378,7 @@ class SeadQuerySystem {
 	  	this.tooltipManager = new TooltipManager(this);
 		this.exportManager = new ExportManager(this);
 		this.facetManager = new FacetManager(this, this.filterDefinitions);
+		this.facetManager.buildFilterStructure("general");
 		this.mainMenu = new MainMenu();
 		this.tutorial = new Tutorial(this);
 		this.aiAssistant = new AIAssistant(this);
@@ -403,6 +404,8 @@ class SeadQuerySystem {
 				module: new ResultMosaic(this.resultManager)
 			},
 		]);
+
+		//this.facetManager.addDefaultFacets();
 
 		if(this.config.globeResultModuleEnabled) {
 			this.resultManager.addModule([{
@@ -461,11 +464,6 @@ class SeadQuerySystem {
 		
 		this.menuManager.createMenu(auxMenu);
 		this.menuManager.createMenu(this.searchManager.sqsMenu());
-
-		//this.menuManager.createMenu(this.domainManager.sqsMenu());
-		
-
-		this.facetManager.buildFilterStructure("general");
 
 		if(viewstate != false) {
 			this.stateManager.loadStateById(viewstate);
@@ -696,7 +694,7 @@ class SeadQuerySystem {
 	}
 
 	importFilters(data) {
-		
+
 		this.experimentalFilters.forEach(filter => {
 			if(filter.enabled) {
 				data.push(filter);
@@ -1532,6 +1530,10 @@ class SeadQuerySystem {
 				resolve(rData);
 			});
 		});
+	}
+
+	setUserSettings(settings, overwrite = true) {
+		this.storeUserSettings(settings, overwrite);
 	}
 
 	storeUserSettings(settings, overwrite = true) {

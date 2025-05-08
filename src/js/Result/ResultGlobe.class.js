@@ -362,7 +362,7 @@ class ResultGlobe extends ResultModule {
 		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 	}
 
-    unrender() {
+    async unrender() {
 		$(this.renderIntoNode).hide();
 	}
 

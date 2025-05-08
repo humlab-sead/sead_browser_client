@@ -800,7 +800,10 @@ h1.main-header {
   padding: 12px;
 }
 
+
 #result-container {
+  display: grid;
+  grid-template-rows: 1fr min-content;
   position: relative;
   background-color: #fff;
   padding: 10px;
@@ -809,16 +812,24 @@ h1.main-header {
   margin-top: 0px;
 }
 
+/*
+#result-container {
+  background-color: #fff;
+  height: 97% !important;
+  padding: 0;
+  margin: 0;
+}
+*/
+
 .result-export-button {
   display: flex;
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
+  position: relative;
+  margin-top: .1em;
   padding: .15em;
   padding-left: .5em;
   padding-right: .5em;
-  background: $pane-bg-color;
-  color: #333;
+  background: $base-color;
+  color: #fff;
   align-items: center;
   justify-content: center;
   font-family: Rajdhani;
@@ -1120,6 +1131,7 @@ h1.main-header {
   top: 0px;
   height: 100%;
   width: 100%;
+  overflow: auto;
 }
 
 .result-content-box {
@@ -1426,7 +1438,7 @@ h1.main-header {
 .chart-container {
 	display:none;
 	position:relative;
-	height: 80%;
+	height: 90%;
 	width: 100%;
 }
 
@@ -1485,6 +1497,85 @@ h1.main-header {
   grid-template-columns: 100% 100%;
   grid-template-rows: 1fr;
   overflow-x: hidden;
+}
+
+.timeline-container {
+  display: none;
+  height: 100%;
+}
+
+.timeline-grid-container {
+  display: grid;
+  position: relative;
+  height: 100%;
+  width: 100%;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr auto;
+}
+
+.timeline-graph {
+  position: absolute;
+  top: 3em;
+  width: 100%;
+  height: calc(100% - 2em);
+}
+
+.droppable-dragover {
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.5) 35px, rgba(255,255,255,.5) 70px);
+}
+
+/* Container for the entire form */
+.timeline-import-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Add spacing between elements */
+  padding: 20px;
+}
+
+/* Labels for form fields */
+.timeline-form-label {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+/* Dropdowns and inputs */
+.timeline-form-select {
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+/* Spacing between form sections */
+.timeline-form-spacing {
+  height: 10px;
+}
+
+/* Submit button */
+.timeline-form-submit-btn {
+  align-self: flex-end;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  background-color: $base-color;
+  border: none;
+  cursor: pointer;
+}
+
+.timeline-form-submit-btn:hover {
+  background-color: #0056b3;
+}
+
+.trace-legend {
+  display: inline-block; 
+  width: 12px; 
+  height: 12px;
+  margin-right: 8px; 
+  border: 1px solid #000;
 }
 
 .filter-container {
@@ -1566,11 +1657,24 @@ h1.main-header {
   width: 8px;
 }
 
+
 .ui-resizable-handle:hover {
   background-color: $inactive-color;
   cursor: col-resize;
 }
 
+.ui-resizable-handle.ui-resizable-n {
+  cursor: row-resize;
+}
+
+//this is because we do NOT want the width attributes to be applied to the handles in the case of the result container gridstack
+#result-container div.ui-resizable-handle.ui-resizable-s {
+  width: auto;
+}
+
+#result-container div.ui-resizable-handle.ui-resizable-e {
+  width: auto;
+}
 
 .menu-symbol-facet {
 	position:relative;
@@ -1890,11 +1994,6 @@ div.facet-sql-btn {
 
 }
 
-#result-info-text-container {
-	text-align: center;
-	padding-left: 100px;
-	padding-right: 100px;
-}
 
 .large-info-text {
 	font-size: 60px;
@@ -1920,11 +2019,18 @@ div.facet-sql-btn {
 }
 
 #result-msg-contents {
-	display:none;
+	display: none;
   position: absolute;
-  top:0;
+  justify-content: center;
+  align-items: center;
 	width: 100%;
 	height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  z-index: 10;
+}
+
+#result-info-text-container {
+	text-align: center;
 }
 
 #result-table-container {
@@ -2028,19 +2134,245 @@ polyline{
 
 .result-map-render-container {
   width: 100%;
-  height: 80%;
+  height: 100%;
   background-color: $pane-bg-color;
 }
 
-.result-timeline-render-container {
+#result-map-container {
+  position: relative;
+}
+
+#result-map-container .result-export-button {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  color: #fff;
+}
+
+#timeline-container {
+  position: relative;
+  height: 20vh;
   width: 100%;
-  height: 20%;
-  background-color: $white;
+  background: $pane-bg-color;
   margin-top: 10px;
 }
 
+#timeline-title-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: auto;
+  background: $pane-bg-color;
+  color: #fff;
+  font-size: 1.2em;
+  padding: 0.5em;
+  height: 2em;
+}
+
+.timeline-control-bar {
+  display: flex;
+  align-items: top;
+  justify-content: space-between;
+  width: auto;
+  color: #fff;
+  font-size: .9em;
+  padding: 0.5em;
+  padding-top: 0.1em;
+  z-index: 2;
+}
+
+#timeline-data-selector-clicked-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $base-color;
+  color: #fff;
+  border: 1px solid $base-color;
+  cursor: pointer;
+  height: 1.4em;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+}
+
+#timeline-data-selector-clicked-btn:hover {
+  background: lighten($base-color, 10%);
+}
+
+#timeline-data-selector-container {
+  align-items: left;
+}
+
+#timeline-data-selector-container > div {
+  display: flex;
+  align-items: center;
+}
+
+#timeline-data-selector-traces-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.5em;
+}
+
+.timeline-trace-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.5);
+  align-self: flex-start;
+}
+
+.timeline-trace-item .remove-plot {
+  position: relative;
+  top: 1px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.timeline-trace-item .hide-plot {
+  position: relative;
+  top: 1px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.hide-plot.fa-eye-slash {
+  color: red;
+}
+
+.range-slider-input {
+  height: 1em !important;
+}
+
+#timeline-title-bar > h2 > i.fa {
+  position: relative;
+  top: 1px;
+}
+
+#timeline-title-bar h2 {
+  display: flex;
+  align-items: baseline;
+  background: rgba(0, 0, 0, 0.0);
+  color: #000;
+  font-size: 1em;
+  margin:0;
+  margin-right: 1em;
+}
+
+#timeline-filter-checkbox-container {
+  background: #999;
+  color: #fff;
+  padding: 0.2em;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  border-radius: 0.5em;
+  margin-left: 1em;
+}
+
+#timeline-filter-checkbox {
+  position: relative;
+  top: 2px;
+}
+
+.timeline-filter-checkbox-label {
+  font-weight: normal;
+  font-size: 0.8em;
+}
+
+.timeline-selector-container {
+  display: flex;
+  flex-direction: column;
+  color: #000;
+}
+
+#timeline-scale-selector-container .filter-controls-container {
+  flex-direction: row;
+}
+
+.filter-controls-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-selector-container label {
+  display: flex;
+  align-items: center;
+  height: calc(1em + 8px);
+  font-weight: bold;
+}
+
+#result-timeline {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: calc(100% - 70px);
+}
+
+.timeline-slider {
+  position: absolute;
+  bottom: 0;
+  width: calc(100% - 70px);
+  margin-left: 30px;
+  margin-bottom: 10px;
+}
+
+#result-timeline-curtains {
+  position: absolute;
+  top: 50px;
+  left: 0px;
+  width: calc(100% - 100px);
+  height: calc(100% - 70px);
+  margin-left: 50px;
+}
+
+#timeline-curtain-left {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 0%;
+  height: 100%;
+  background: rgba(128, 128, 128, 0.3);
+}
+
+#result-timeline-curtain-right {
+  position: absolute;
+  top: 0px;
+  right: 0;
+  width: 0%;
+  height: 100%;
+  background: rgba(128, 128, 128, 0.3);
+}
+
+/*
+#result-timeline-render-container > span {
+  position: relative;
+  top: 7.5em;
+  margin-left: auto;
+  margin-right: auto;
+  width: calc(100% - 100px);
+}
+*/
+
+#result-timeline-render-container > span > span.irs-handle.to {
+  /*
+  position: relative;
+  top: -16em;
+  height: 9em;
+  */
+  cursor: ew-resize;
+}
+
+#result-timeline-render-container > span > span.irs-handle.from {
+  /*
+  position: relative;
+  top: -8em;
+  height: 9em;
+  */
+  cursor: ew-resize;
+}
+
 .resultMosaicChart {
-  background-color: #eef;
+  background-color: rgb(32, 32, 34);
 }
 
 .dataTables_filter input[type='search'] {
@@ -3496,6 +3828,8 @@ svg text {
   width: 100%;
   height: 100%;
   padding: 2em;
+  padding-left: 0;
+  padding-right: 0;
   padding-top: 0;
 }
 
@@ -4020,4 +4354,50 @@ tr.free-text-search-result-row:hover {
   padding: 1em;
 }
 
+#show-query-btn {
+  position: absolute;
+  display: none;
+  left: 20px;
+  top: 20px;
+  background: $base-color;
+  color: #fff;
+  padding: 0.5em;
+  cursor: pointer;
+}
+
+.grid-stack {
+  height: 100%;
+  overflow: auto;
+}
+
+.grid-stack-item-content {
+  background: $pane-bg-color;
+  border: 1px solid #ccc;
+}
+
+
+.grid {
+  width: 100%;
+  height: 100vh;
+}
+
+.grid-item {
+  width: calc(50% - 20px);
+  height: calc(50% - 20px);
+  margin: 5px;
+  background-color: rgba(0, 0, 255, 0.5);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.packery-drop-placeholder {
+  outline: 3px dashed #444;
+  outline-offset: -6px;
+  /* transition position changing */
+  -webkit-transition: -webkit-transform 0.2s;
+          transition: transform 0.2s;
+}
 

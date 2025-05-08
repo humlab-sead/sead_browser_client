@@ -51,7 +51,7 @@ class MosaicDendroBarkModule extends MosaicTileModule {
         //set loading indicator
         this.sqs.setLoadingIndicator(this.renderIntoNode, true);
 
-        this.fetchData("/dendro/dynamicchart", requestBody).then(async response => {
+        super.fetchData("/dendro/dynamicchart", requestBody).then(async response => {
             if(!response) {
                 return false;
             }

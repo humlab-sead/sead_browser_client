@@ -47,12 +47,13 @@ class ResultMosaic extends ResultModule {
 
 		
 		//On domain change - unrender/render all tile modules
-		
+		/*
 		this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
-			this.unrender();
-			this.render();
+			this.unrender().then(() => {
+				this.render();
+			});
 		});
-		
+		*/
 
 		this.modules.push({
 			title: "Site map",
@@ -1140,7 +1141,7 @@ class ResultMosaic extends ResultModule {
 
 		Object.assign(layout, layoutConfig);
 		let anchorNodeId = renderIntoNode.substring(1);
-
+		console.log(renderIntoNode);
 		let config = {
 			responsive: true,
 			displayModeBar: false
@@ -1165,13 +1166,13 @@ class ResultMosaic extends ResultModule {
 		let node = $(selector);
 
 		if(node.length == 0) {
-			//console.warn("Bailing on unrenderPlotlyChart because node was not found");
+			console.warn("Bailing on unrenderPlotlyChart because node was not found");
 			return;
 		}
 
 		//check that node is a plotly chart
 		if(typeof node[0].data == "undefined") {
-			//console.warn("Bailing on unrenderPlotlyChart because node was not a plotly chart");
+			console.warn("Bailing on unrenderPlotlyChart because node was not a plotly chart");
 			return;
 		}
 
@@ -1375,18 +1376,23 @@ class ResultMosaic extends ResultModule {
 		return renderCategories;
 	}
 	
-	unrender() {
-		let promises = [];
-		this.modules.forEach(module => {
-			if(module.module != null && typeof module.module.unrender == "function") {
-				promises.push(module.module.unrender());
-			}
-		});
+	async unrender() {
+		return new Promise((resolve) => {
+			let promises = [];
+			this.modules.forEach(module => {
+				if(module.module != null && typeof module.module.unrender == "function") {
+					promises.push(module.module.unrender());
+				}
+			});
 
-		Promise.all(promises).then(() => {
-			$("#result-mosaic-container").html("");
-		});
+			Promise.all(promises).then(() => {
+				this.sqs.sqsEventUnlisten("layoutResize", this);
 
+				console.log("Unrendered all modules, clearing container");
+				$("#result-mosaic-container").html("");
+				resolve();
+			});
+		});
 	}
 
 	exportSettings() {

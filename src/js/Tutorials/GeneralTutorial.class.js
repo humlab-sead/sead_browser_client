@@ -299,9 +299,9 @@ class GeneralTutorial {
             title: 'Analyses',
             text: `
             Go ahead and click on the Palaeoentomology analysis to expand it.`,
-            attachTo: { element: '#site-report-section-3 > h3.site-report-level-title', on: 'right' },
+            attachTo: { element: '#site-report-section-1--3 > h3.site-report-level-title', on: 'right' },
             classes: 'tutorial-container',
-            advanceOn: { selector: '#site-report-section-3 > h3.site-report-level-title', event: 'click' },
+            advanceOn: { selector: '#site-report-section-1--3 > h3.site-report-level-title', event: 'click' },
             buttons: [
             {
                 text: 'Exit tour',

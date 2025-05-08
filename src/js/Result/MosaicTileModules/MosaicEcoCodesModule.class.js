@@ -1,8 +1,25 @@
 import MosaicTileModule from "./MosaicTileModule.class";
 import { nanoid } from "nanoid";
-import { 
-	Chart
- } from "chart.js";
+import {
+    Chart,
+    BarController,
+    BarElement,
+    CategoryScale,
+    LinearScale,
+    Title,
+    Tooltip,
+    Legend
+  } from 'chart.js';
+  
+  Chart.register(
+    BarController,
+    BarElement,
+    CategoryScale,
+    LinearScale,
+    Title,
+    Tooltip,
+    Legend
+  );
 
 class MosaicEcoCodesModule extends MosaicTileModule {
     constructor(sqs) {
@@ -121,20 +138,17 @@ class MosaicEcoCodesModule extends MosaicTileModule {
 		this.chartId = "chart-"+nanoid();
 		var chartContainer = $("<canvas id='"+this.chartId+"' style='padding:1.5em;'></canvas>");
 		$(this.renderIntoNode).append(chartContainer);
-
+        
 		let c = new Chart(
 			document.getElementById(this.chartId),
 			config
 		);
+        
         this.renderComplete = true;
     }
 
     async update() {
         this.render();
-    }
-
-    async fetchData() {
-        
     }
 
 

@@ -42,7 +42,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         });
         */
 
-        let response = await this.fetchData("/graphs/analysis_methods", JSON.stringify(resultMosaic.sites));
+        let response = await super.fetchData("/graphs/analysis_methods", JSON.stringify(resultMosaic.sites));
         if(!response) {
             return false;
         }

@@ -272,7 +272,7 @@ class SiteReport {
 	/*
 	* Function: renderSection
 	*
-	* Renders a single section of the site report structure. Actually it renders all the sections in this render-tree.
+	* Renders all the sections in this render-tree.
 	*
 	* Parameters:
 	* section - The section to render.
@@ -1877,6 +1877,7 @@ class SiteReport {
 	Function: destroy
 	*/
 	destroy() {
+		console.log("Destroying site report module");
 		this.data = null;
 		for(let key in this.modules) {
 			if(typeof(this.modules[key].module.destroy) == "function") {
@@ -1887,6 +1888,10 @@ class SiteReport {
 		this.sqs.sqsEventUnlisten("siteReportSiteInformationBuildComplete", this);
 		this.sqs.sqsEventUnlisten("siteReportSamplesBuildComplete", this);
 		this.sqs.sqsEventUnlisten("siteReportAnalysesBuildComplete", this);
+		this.sqs.sqsEventUnlisten("siteReportSiteNotFound", this);
+		this.sqs.sqsEventUnlisten("siteReportRenderComplete", this);
+
+		$("#site-report-exit-menu").off("click");
 	}
 	
 }

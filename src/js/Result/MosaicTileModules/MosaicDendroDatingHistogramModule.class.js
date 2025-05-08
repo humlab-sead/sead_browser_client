@@ -48,7 +48,7 @@ class MosaicDendroDatingHistogramModule extends MosaicTileModule {
 
         let requestBodyJson = JSON.stringify(requestBody);
 
-        let response = await this.fetch("/dendro/dating-histogram", requestBodyJson);
+        let response = await super.fetchData("/dendro/dating-histogram", requestBodyJson);
         if(!response) {
             return false;
         }

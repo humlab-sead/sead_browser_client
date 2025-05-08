@@ -68,7 +68,11 @@ class Timeline {
 	}
 
 	render() {
+		console.log("Rendering timeline");
 		this.rendered = true;
+
+		this.renderData();
+		/*
 		//Loading the temperature data, which is actually not temperature but instead it's isotope data acting as a proxy for temperature
 		$.ajax(Config.siteReportServerAddress+"/temperatures?order=years_bp.desc", {
 			method: "get",
@@ -83,14 +87,16 @@ class Timeline {
 				this.renderData();
 			}
 		});
+		*/
 	}
 
 	renderData() {
 		let data = this.map.data;
 		//this.setSelection(this.getEarliestSite(data).time.min, this.getLatestSite(data).time.max);
 		this.makeAnchorNodes();
-		this.renderChart(data);
-		this.renderSlider(data);
+		//this.renderChart(data);
+		//this.renderSlider(data);
+		
 	}
 
 	getEarliestSite(data) {

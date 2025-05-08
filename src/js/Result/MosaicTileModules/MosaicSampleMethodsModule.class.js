@@ -29,7 +29,7 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         this.sqs.setLoadingIndicator(this.renderIntoNode, true);
        
-        let response = await this.fetchData("/graphs/sample_methods", JSON.stringify(resultMosaic.sites));
+        let response = await super.fetchData("/graphs/sample_methods", JSON.stringify(resultMosaic.sites));
         if(!response) {
             return false;
         }

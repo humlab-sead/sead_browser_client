@@ -210,11 +210,11 @@ class SqsView {
 	*/
 	toggleToggleButton(show) {
 		if(show) {
-			console.log("show toggle button");
+			//console.log("show toggle button");
 			$(".section-toggle-button", this.anchor).show();
 		}
 		else {
-			console.log("hide toggle button");
+			//console.log("hide toggle button");
 			$(".section-toggle-button", this.anchor).hide();
 		}
 	}

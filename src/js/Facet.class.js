@@ -33,8 +33,17 @@ class Facet {
 		this.enabled = true; //If this facet is not applicable within the current domain, this will be false.
 		this.dataFetchingEnabled = true;
 		this.unit = "";
+		this.virtual = template.virtual; //a virtual facet is not necessarily rendered out into the UI, but it will stil exist in the facet chain and act as a filter.
 
-		var facetDomObj = $("#facet-template")[0].cloneNode(true);
+		if(!this.virtual) {
+			this.initFacetUi();
+		}
+	}
+
+	initFacetUi() {
+		let template = document.getElementById("facet-template");
+        const facetDomObj = template.content.firstElementChild.cloneNode(true);
+
 		this.domObj = facetDomObj;
 		$(facetDomObj).attr("id", "facet-"+this.id);
 		$(facetDomObj).attr("facet-id", this.id);
@@ -331,7 +340,7 @@ class Facet {
 			data: JSON.stringify(reqData),
 			dataType: "json",
 			method: "post",
-			contentType: 'application/json; charset=utf-8',
+			contentType: 'application/json; charset=utf-8',
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
 				if(this.deleted == false && respData.FacetsConfig.RequestId == this.requestId) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
@@ -432,7 +441,7 @@ class Facet {
 	*/
 	updatePosition() {
 
-		if(this.isBeingDragged) {
+		if(this.isBeingDragged || this.virtual) {
 			return;
 		}
 

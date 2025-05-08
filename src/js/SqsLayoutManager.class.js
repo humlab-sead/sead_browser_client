@@ -57,7 +57,7 @@ class sqsLayoutManager {
 	}
 
 	setActiveView(viewName) {
-		console.log("Activated view:", viewName);
+		//console.log("Activated view:", viewName);
 		/*
 		if(false) {
 			var stateObj = {};

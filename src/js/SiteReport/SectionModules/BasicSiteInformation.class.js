@@ -194,7 +194,7 @@ class BasicSiteInformation {
 
 		this.sqs.sqsEventListen("analysisSectionsBuilt", () => {
 			this.renderTimeOverview("site-report-time-overview");
-		});
+		}, this);
 	}
 
 
@@ -629,7 +629,7 @@ class BasicSiteInformation {
 		
 		this.sqs.sqsEventListen("layoutResize", () => {
 			this.olMap.updateSize();
-		});
+		}, this);
 	}
 
 	getMapSampleGroupLocationPointsFromSiteData(olMap, siteData, sampleGroupIdFilter = null) {
@@ -1022,6 +1022,8 @@ class BasicSiteInformation {
 	
 	destroy() {
 		this.sqs.sqsEventUnlisten("fetchBasicSiteInformation", this);
+		this.sqs.sqsEventUnlisten("layoutResize", this);
+		this.sqs.sqsEventUnlisten("analysisSectionsBuilt", this);
 	}
 }
 export { BasicSiteInformation as default }
