@@ -1,7 +1,7 @@
 FROM debian:bullseye
 
 # Define build-time variables (provided via Docker Compose)
-ARG SBC_REF=main
+ARG SBC_REF=master
 ARG MODE=dev
 ARG DOMAIN
 
@@ -32,6 +32,11 @@ RUN git checkout $SBC_REF
 
 # replace all instances of "localhost" with the domain name in src/config/config-prod.json
 RUN sed -i "s/localhost/$DOMAIN/g" src/config/config-prod.json
+
+# echo out DOMAIN so we know it is set
+RUN echo "DOMAIN: $DOMAIN"
+# echo out MODE so we know it is set
+RUN echo "MODE: $MODE"
 
 RUN npm install && npm run build:prod && cp -R dist/* /var/www/html/
 

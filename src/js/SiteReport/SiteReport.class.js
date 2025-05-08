@@ -99,7 +99,9 @@ class SiteReport {
 			placement: "right"
 		});
 
+		$("#site-report-exit-menu").off();
 		$("#site-report-exit-menu").on("click", () => {
+			console.log("Site report Exit menu clicked");
 			this.siteReportManager.unrenderSiteReport();
 		});
 	}
@@ -151,7 +153,8 @@ class SiteReport {
 	}
 
 	async fetchSite() {
-		return await $.get(Config.dataServerAddress+"/site/"+this.siteId);
+		let noCache = "false";
+		return await $.get(Config.dataServerAddress+"/site/"+this.siteId+"/"+noCache);
 	}
 
 	getModuleByName(moduleName) {
