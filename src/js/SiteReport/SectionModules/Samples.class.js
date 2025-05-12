@@ -593,8 +593,8 @@ class Samples {
 				}
 			}
 			let value = "<div class='analyses-tags-container'>";
-			analysisMethodsTags.forEach(methodTag => {
-				value += this.getAnalysisTag(site, methodTag)+" ";
+			analysisMethodsTags.forEach(method => {
+				value += this.getAnalysisTag(method)+" ";
 				
 			});
 			value += "</div>";
@@ -612,12 +612,15 @@ class Samples {
 		});
 	}
 
-	getAnalysisTag(site, method) {
+	getAnalysisTag(method) {
 		let analysisTagId = "analysis-tag-"+nanoid();
 
 		this.sqs.tooltipManager.registerTooltip("#"+analysisTagId, (evt) => {
 			evt.preventDefault();
 			evt.stopPropagation();
+
+			console.log("Clicked on analysis tag: ", method);
+
 			let siteReport = this.sqs.siteReportManager.siteReport;
 			for(let key in siteReport.data.sections) {
 				let section = siteReport.data.sections[key];
