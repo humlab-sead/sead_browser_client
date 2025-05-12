@@ -185,7 +185,56 @@ class ResultTable extends ResultModule {
 			return featureTypeIcons(`./undefined.webp`) 
 		}
 	}
-	
+
+
+	datingAgeFormatter(cell, type) {
+		const row = cell.getRow();
+		const cellElement = cell.getElement();
+		cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
+
+		let renderInterval = setInterval(() => {
+			if (this.maxRenderSlots > this.currentRenderSlotsTaken) {
+				this.currentRenderSlotsTaken++;
+				clearInterval(renderInterval);
+
+				const rowData = row.getData();
+				if (rowData.age_older !== undefined && rowData.age_younger !== undefined) {
+					// Already fetched
+					cellElement.innerText = type === "older" ? rowData.age_older : rowData.age_younger;
+					this.currentRenderSlotsTaken--;
+					return;
+				}
+
+				$.ajax(Config.dataServerAddress + "/time/sites", {
+					data: JSON.stringify({ siteIds: [rowData.site_link_filtered] }),
+					dataType: "json",
+					method: "POST",
+					contentType: 'application/json; charset=utf-8',
+					crossDomain: true
+				}).then(data => {
+					if (data.length === 0) {
+						rowData.age_older = rowData.age_younger = null;
+						cellElement.innerText = "N/A";
+						this.currentRenderSlotsTaken--;
+						return;
+					}
+
+					const { age_older, age_younger } = data[0];
+					rowData.age_older = age_older;
+					rowData.age_younger = age_younger;
+
+					cellElement.innerText = type === "older" ? age_older : age_younger;
+					this.currentRenderSlotsTaken--;
+				}).catch(err => {
+					console.error("Error fetching dating data:", err);
+					cellElement.innerText = "Error";
+					this.currentRenderSlotsTaken--;
+				});
+			}
+		}, 200);
+
+		return cellElement.innerHTML;
+	}
 
 	renderDataTable() {
 		this.resultManager.renderMsg(false);
@@ -205,8 +254,8 @@ class ResultTable extends ResultModule {
 
 		let maxAnalysisEntities = this.data.rows.reduce((max, row) => Math.max(max, row.analysis_entities), 0);
 
-		let maxRenderSlots = 12;
-		let currentRenderSlotsTaken = 0;
+		this.maxRenderSlots = 12;
+		this.currentRenderSlotsTaken = 0;
 
 		let tableColumns = [
 			{title: "Select", widthGrow:-1, formatter: "rowSelection", titleFormatter:"rowSelection", cssClass: "result-table-select-all-checkbox", hozAlign:"center", headerSort:false, cellClick: (evt, cell) => { cell.getRow().toggleSelect(); }},
@@ -242,6 +291,7 @@ class ResultTable extends ResultModule {
 		let activeDomain = this.sqs.domainManager.getActiveDomain().name;
 
 		if(activeDomain != "dendrochronology") {
+
 			tableColumns.push({
 				title:"Analyses",
 				field:"analyses",
@@ -252,8 +302,8 @@ class ResultTable extends ResultModule {
 					cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
 
 					let renderInterval = setInterval(() => {
-					if(maxRenderSlots > currentRenderSlotsTaken) {
-						currentRenderSlotsTaken++;
+					if(this.maxRenderSlots > this.currentRenderSlotsTaken) {
+						this.currentRenderSlotsTaken++;
 						clearInterval(renderInterval);
 
 						$.ajax(Config.dataServerAddress + "/graphs/analysis_methods", {
@@ -302,7 +352,7 @@ class ResultTable extends ResultModule {
 							// Clear the loading indicator before appending the SVG
 							cellElement.innerHTML = '';
 							cellElement.appendChild(svg);
-							currentRenderSlotsTaken--;
+							this.currentRenderSlotsTaken--;
 							});
 						}
 					}, 200);						
@@ -314,54 +364,23 @@ class ResultTable extends ResultModule {
 		}
 		
 		if(activeDomain == "dendrochronology") {
-			tableColumns.push({
-				title:"Dating overview",
-				field:"dating_overview",
-				widthGrow:2,
-				formatter: (cell, formatterParams, onRendered) => {
-					let cellElement = cell.getElement();
-					cellElement.classList.add('stacked-bar-container');
-					cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
 
-					let renderInterval = setInterval(() => {
-					if(maxRenderSlots > currentRenderSlotsTaken) {
-						currentRenderSlotsTaken++;
-						clearInterval(renderInterval);
-
-						//used to be: "/graphs/dating_overview"
-						$.ajax(Config.dataServerAddress + "/time/sites", {
-							data: JSON.stringify({ siteIds: [cell.getData().site_link_filtered] }),
-							dataType: "json",
-							method: "post",
-							contentType: 'application/json; charset=utf-8',
-							crossDomain: true
-							}).then(data => {
-								if(data.length == 0) {
-									cellElement.innerHTML = "N/A";
-									currentRenderSlotsTaken--;
-									return;
-								}
-
-								let older = data[0].age_older;
-								let younger = data[0].age_younger;
-
-								cellElement.innerHTML = "";
-
-								if (older && younger) {
-									cellElement.innerHTML += `<span>${older} - ${younger}</span>`;
-								} else {
-									cellElement.innerHTML = "N/A";
-								}
-
-								currentRenderSlotsTaken--;
-							});
-						}
-					}, 200);						
-				
-					// The initial return is just the loading indicator
-					return cellElement.innerHTML;
+			tableColumns.push(
+				{
+					title: "Age older",
+					field: "age_older",
+					width: 90,
+					formatter: (cell) => this.datingAgeFormatter(cell, "older"),
+					headerSort: false,
+				},
+				{
+					title: "Age younger",
+					field: "age_younger",
+					width: 90,
+					formatter: (cell) => this.datingAgeFormatter(cell, "younger"),
+					headerSort: false,
 				}
-			});
+			);
 		}
 
 		if(this.sqs.config.featureTypesEnabledDomainsList && this.sqs.config.featureTypesEnabledDomainsList.includes(activeDomain)) {
@@ -375,8 +394,8 @@ class ResultTable extends ResultModule {
 					cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
 
 					let renderInterval = setInterval(() => {
-					if(maxRenderSlots > currentRenderSlotsTaken) {
-						currentRenderSlotsTaken++;
+					if(this.maxRenderSlots > this.currentRenderSlotsTaken) {
+						this.currentRenderSlotsTaken++;
 						clearInterval(renderInterval);
 
 						$.ajax(Config.dataServerAddress + "/graphs/feature_types", {
@@ -428,7 +447,7 @@ class ResultTable extends ResultModule {
 								ftData += "</div>";
 
 								cellElement.innerHTML = ftData ? ftData : "";
-								currentRenderSlotsTaken--;
+								this.currentRenderSlotsTaken--;
 							});
 						}
 					}, 200);						
