@@ -257,7 +257,7 @@ class DendrochronologyTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Analyses',
-            text: `The two samples from our selected investigation is shown. It is also possible to select different viewing options and sortings under display options. If the site contains undated samples, these will only be shown under the spreadsheet view. Click on the bar for sample 12710 to see the sample information.`,
+            text: `The two samples from our selected investigation is shown. It is also possible to select different viewing options and sortings under display options. If the site contains undated samples, these will only be shown under the spreadsheet view. Click on the bar for sample 12709 to see the sample information.`,
             attachTo: { element: '#site-report-section-analyses .site-report-level-container', on: 'right' },
             advanceOn: { selector: '.dendro-bar', event: 'click' },
             classes: 'tutorial-container',
