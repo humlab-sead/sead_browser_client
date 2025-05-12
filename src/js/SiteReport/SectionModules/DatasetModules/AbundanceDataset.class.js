@@ -456,12 +456,11 @@ class AbundanceDataset extends DatasetModule {
 			if(analysisMethod) {
 				analysisMethodDescription = "<h4 class='tooltip-header'>"+analysisMethod.method_name+"</h4>"+analysisMethod.method_abbrev_or_alt_name+"<hr>"+analysisMethod.description;
 			}
-
-			let stringifiedMethodIds = dataGroup.method_ids.join("-");
+			
 			let section = this.getSectionByMethodId(dataGroup.method_id, sections);	
 			if(!section) {
 				section = {
-					"name": dataGroup.method_group_id+"--"+stringifiedMethodIds,
+					"name": dataGroup.method_ids[0],
 					"title": dataGroup.method_name,
 					"methodId": analysisMethod ? analysisMethod.method_id : null,
 					"methodDescription": analysisMethodDescription,
