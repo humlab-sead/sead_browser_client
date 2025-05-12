@@ -390,7 +390,6 @@ class ResultMap extends ResultModule {
 		
 		$(this.renderIntoNode).show();
 		
-		this.olMap = null; //FIXME: This is a hotfix hack. The map will otherwise disappear when changing domains.
 		if(this.olMap == null) {
 			$(this.renderMapIntoNode).html("");
 
@@ -1276,6 +1275,7 @@ class ResultMap extends ResultModule {
 		$(this.renderIntoNode).hide();
 		//this.olMap.setTarget(null);
 		$("#map-popup-container").remove();
+		this.olMap = null;
 	}
 
 	/*
