@@ -605,7 +605,7 @@ h1.main-header {
   padding-bottom: 0px;
 
   margin-right: 2px;
-  z-index: 2;
+  //z-index: 2;
   width: 12px;
 }
 
@@ -834,7 +834,6 @@ h1.main-header {
   justify-content: center;
   font-family: Rajdhani;
   font-size: 1.2em;
-  z-index: 2;
 }
 
 .result-export-button:hover {
@@ -1455,7 +1454,7 @@ h1.main-header {
   top: 0px;
   height: 2em;
   color: #444;
-  z-index: 2;
+  //z-index: 2;
 }
 
 .list-container-header-content {
@@ -2110,7 +2109,6 @@ polyline{
 
 .result-mosaic-tile > h2 {
   position:absolute;
-  z-index: 1;
   background-color: $pane-bg-color-dark;
   /*color: #fff;*/
   padding-left: 2px;
@@ -2635,7 +2633,8 @@ polyline{
   position:absolute;
   top: 10px;
   right: 10px;
-  z-index: 1;
+  //z-index: 1;
+  box-shadow: -5px 5px 1em .25em rgba(0, 0, 0, 0.15);
 }
 
 .menu-row-container {
@@ -2848,25 +2847,24 @@ polyline{
   position: fixed;
   top: 0px;
   left: 0px;
-  z-index: 100;
   background: rgba(0, 0, 0, 0.2);
 }
 
 #popover-dialog-frame {
   display: block;
-  max-height: 95vh;
-  max-width: 95vw;
+  max-height: 90vh;
+  max-width: 90vw;
   min-width: 300px;
   min-height: 80px;
   position: relative;
   grid-column: 2;
   grid-row: 2;
-  z-index: 10;
   background: #fff;
   padding: 1.5em;
   box-shadow: 0px 0px 10px 10px $shadow-color;
   border-radius: 3px;
   border-left: .5em solid $aux-color;
+  z-index: 20020;
 }
 
 #popover-dialog-frame > h1 {
@@ -3437,10 +3435,6 @@ svg text {
 }
 
 .result-map-map-control-item-container {
-}
-
-#result-map-controls-container {
-  box-shadow: -5px 5px 1em .25em rgba(0, 0, 0, 0.15);
 }
 
 .result-map-map-control-item {
