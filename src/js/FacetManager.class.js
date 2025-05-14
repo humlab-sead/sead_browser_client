@@ -900,6 +900,9 @@ class FacetManager {
 						if(group.items[fk].facetCode == "analysis_entity_ages") {
 							group.items[fk].displayTitle = "Timeline";
 						}
+						if(group.items[fk].facetCode == "sites_polygon") {
+							group.items[fk].displayTitle = "Map polygon";
+						}
 						var filter = {
 							name: group.items[fk].facetCode,
 							title: group.items[fk].displayTitle,
