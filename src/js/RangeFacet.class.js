@@ -44,6 +44,8 @@ class RangeFacet extends Facet {
 		this.slider = null;
 		this.minDataValue = null;
 		this.maxDataValue = null;
+
+		this.verboseLogging = false;
 		
 		if(template.name == "analysis_entity_ages") {
 			this.unit = "BP";
@@ -65,6 +67,10 @@ class RangeFacet extends Facet {
 	* selections - An array containing exactly 2 values, min & max, where min has index 0 and max index 1
 	*/
 	setSelections(selections) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.setSelections", selections);
+		}
+
 		let selectionsUpdated = false;
 		if(selections.length == 2) {
 			if(selections[0] != null && selections[0] != this.selections[0]) {
@@ -101,6 +107,10 @@ class RangeFacet extends Facet {
 	importData(importData, overwrite = true) {
 		super.importData(importData);
 
+		if(this.verboseLogging) {
+			console.log("RangeFacet.importData", importData);
+		}
+
 		this.totalLower = importData.IntervalInfo.FullExtent.DataLow;
 		this.totalUpper = importData.IntervalInfo.FullExtent.DataHigh;
 
@@ -135,6 +145,9 @@ class RangeFacet extends Facet {
 	}
 	
 	reduceResolutionOfDataset(dataset, selections = [], resolution = 100) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.reduceResolutionOfDataset", dataset);
+		}
 
 		if(dataset.length <= this.numberOfCategories) { //Nothing to do, we can't upscale data resolution, only downscale
 			return dataset;
@@ -203,6 +216,10 @@ class RangeFacet extends Facet {
 	}
 
 	rangeSpanOverlap(point, reference) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.rangeSpanOverlap", point, reference);
+		}
+
 		let binEclipse = point.min >= reference.min && point.max <= reference.max; //Overlap through being eclipsed by bin
 		if(binEclipse) {
 			return true;
@@ -216,6 +233,9 @@ class RangeFacet extends Facet {
 	* Reduce dataset to number of categories/bars we want. Note that this function will create categories which are somewhat "fuzzy" since the dataset from the server will lack som granularity.
 	*/
 	makeCategories(data, selections = []) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.makeCategories", data);
+		}
 
 		//Get highest/lowest data values
 		let min = null; //Starting value for the categories
@@ -289,6 +309,10 @@ class RangeFacet extends Facet {
 	* Renders the chart and the slider. Basically all the content in the facet.
 	*/
 	renderData(selections = []) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.renderData", selections);
+		}
+
 		if(!this.enabled) {
 			//Don't render if this facet is currently disabled
 			return;
@@ -333,7 +357,10 @@ class RangeFacet extends Facet {
 	* Virtual. Every subclass needs to implement this.
 	*/
 	unRenderData() {
-		console.log("unRenderData");
+		if(this.verboseLogging) {
+			console.log("RangeFacet.unRenderData");
+		}
+
 		if(this.chart != null) {
 			console.log(this.chart);
 			this.chart.destroy();
@@ -351,6 +378,10 @@ class RangeFacet extends Facet {
 	 * Renders the chart and only the chart-part of the range facet. Will render whatever is currently in this.data (within selections).
 	 */
 	renderChart(categories, selections) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.renderChart", categories);
+		}
+
 		var chartContainerNode = $(".chart-canvas-container", this.getDomRef());
 		$(".range-chart-canvas", chartContainerNode).remove();
 		chartContainerNode.append($("<canvas></canvas>").attr("id", "facet_"+this.id+"_canvas").addClass("range-chart-canvas"));
@@ -408,6 +439,10 @@ class RangeFacet extends Facet {
 	 * Renders the slider and only the slider-part of the range facet.
 	 */
 	renderSlider(categories, selections) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.renderSlider", categories);
+		}
+
 		let sliderMin = this.totalLower;
 		let sliderMax = this.totalUpper;
 
@@ -494,14 +529,17 @@ class RangeFacet extends Facet {
 		
 
 		$(".slider-manual-input-container", this.getDomRef()).on("change", (evt) => {
+			console.log("Slider manual input change");
 			this.manualInputCallback(evt);
 		});
 		
 		this.slider.off("update");
 		this.slider.on("update", (values, slider) => {
 			
+			
 			let highValue = parseFloat(values[0]);
 			let lowValue = parseFloat(values[1]);
+			console.log("Slider update", values);
 
 			$(".noUi-handle-lower .range-facet-manual-input", this.getDomRef()).val(highValue);
 			$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(lowValue);
@@ -510,12 +548,18 @@ class RangeFacet extends Facet {
 			//this.adjustSliderInputPositions(overlap, this.lowerManualInputNode, this.upperManualInputNode);
 		});
 		this.slider.on("change", (values, slider) => {
+			console.group("Slider change");
 			//this.sliderMovedCallback(values, slider);
 			this.sliderUpdateCallback(values);
 		});
 	}
 
 	sliderUpdateCallback(values, moveSlider = false) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.sliderUpdateCallback", values);
+		}
+
+
 		values[0] = parseInt(values[0], 10);
 		values[1] = parseInt(values[1], 10);
 
@@ -618,6 +662,10 @@ class RangeFacet extends Facet {
 	}
 
 	adjustSliderInputPositions(overlap, lowerManualInputNode, upperManualInputNode) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.adjustSliderInputPositions", overlap);
+		}
+
 		const lowerLeftOriginalPosition = (lowerManualInputNode.width() + 8) / 2;
 		const upperLeftOriginalPosition = ((upperManualInputNode.width() + 8) / 2)*-1;
 	
@@ -657,6 +705,10 @@ class RangeFacet extends Facet {
 	
 	
 	updateChart(categories, selections) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.updateChart", categories);
+		}
+		
 		let chartJSDatasets = this.makeChartJsDataset(categories);
 		this.chart.data.datasets = chartJSDatasets.datasets;
 		this.chart.data.labels = chartJSDatasets.labels;
@@ -664,6 +716,10 @@ class RangeFacet extends Facet {
 	}
 	
 	updateSlider(categories, selections) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.updateSlider", categories);
+		}
+
 		this.slider.updateOptions({
 				start: selections,
 			},
@@ -679,6 +735,9 @@ class RangeFacet extends Facet {
 	}
 	
 	manualInputCallback(evt) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.manualInputCallback", evt);
+		}
 
 		var newValues = {
 			upper: null,
@@ -687,6 +746,9 @@ class RangeFacet extends Facet {
 		
 		var endpointMoved = "";
 		
+		console.log(evt);
+		console.log($("input", evt.currentTarget).val());
+
 		if($(evt.currentTarget).attr("endpoint") == "upper") {
 			endpointMoved = "upper";
 			newValues.upper = $("input", evt.currentTarget).val();
@@ -701,6 +763,8 @@ class RangeFacet extends Facet {
 			newValues.upper = parseFloat(newValues.upper);
 			newValues.lower = parseFloat(newValues.lower);
 		}
+
+		console.log(newValues);
 		
 		let dataEndPoints = this.getDataEndpoints();
 
@@ -724,6 +788,9 @@ class RangeFacet extends Facet {
 	*
 	*/
 	sliderMovedCallback(values, whichSlider = null) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.sliderMovedCallback", values);
+		}
 
 		let highValue = parseFloat(values[0]);
 		let lowValue = parseFloat(values[1]);
@@ -757,6 +824,10 @@ class RangeFacet extends Facet {
 	 * Translates current dataset (in this.data) to the ChartJS format and returns it.
 	 */
 	makeChartJsDataset(categories) {
+		if(this.verboseLogging) {
+			console.log("RangeFacet.makeChartJsDataset", categories);
+		}
+
 		var dataset = [];
 		var labels = [];
 

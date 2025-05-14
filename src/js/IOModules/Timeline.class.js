@@ -101,14 +101,12 @@ class Timeline extends IOModule {
         this.setSelections([scale.older, scale.younger], false);
 
         this.graphDataOptions = [
-            /*
-            new GraphDataOption(
+            /*new GraphDataOption(
                 "SEAD data points",
                 this.chartTraceColors.shift(),
                 "sead_query_api",
                 {}
-            ),
-            */
+            ),*/
             new GraphDataOption(
                 "δ18O from GISP2 Ice Core",
                 this.chartTraceColors.shift(),
@@ -155,7 +153,7 @@ class Timeline extends IOModule {
         // Create an input element of type 'file'
         const fileInput = document.createElement("input");
         fileInput.type = "file";
-        fileInput.accept = ".csv, .xls, .xlsx"; // Optional: Restrict file types
+        fileInput.accept = ".csv, .xlsx"; // Optional: Restrict file types
     
         // Add an event listener to handle the file selection
         fileInput.addEventListener("change", (event) => {
@@ -201,14 +199,14 @@ class Timeline extends IOModule {
     async handleFileImport(file) {
         let importResult = null;
 
-        if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
+        if (file.name.endsWith(".xlsx")) {
             importResult = await this.loadExcel(file);
         } else if(file.name.endsWith(".csv")) {
             importResult = await this.loadCSV(file);
         }
         else {
             //notify the user that the file is not supported
-            this.sqs.notificationManager.notify("Unsupported file type. Please drop a .xlsx, .xls, or .csv file.", "error");
+            this.sqs.notificationManager.notify("Unsupported file type. Please drop a .xlsx or .csv file.", "error");
         }
 
         const { jsonData, xColumn, yColumn, timeFormat } = importResult;
@@ -654,6 +652,8 @@ class Timeline extends IOModule {
         }).then(() => {
             console.log(`IOModule ${this.name} graph range updated to: ${range}`);
         });
+
+        this.updateAllSelectedTraces();
     }
 
     updateAllSelectedTraces() {
@@ -747,15 +747,28 @@ class Timeline extends IOModule {
                 */
                 console.log(this.datasets.filtered);
 
+
+                // Handle the sead_query_api option
                 const trace = {
-                    x: this.datasets.filtered.map((item) => item.min), // Use `min` values for x-axis
-                    y: this.datasets.filtered.map((item) => item.value), // Use `value` for y-axis
-                    type: 'bar', // Set the type to 'bar' for a bar graph
+                    x: [], // Midpoints of the spans
+                    y: [], // Heights of the bars
+                    width: [], // Widths of the bars
+                    type: 'bar', // Bar chart
                     name: graphDataOption.name,
                     marker: {
                         color: graphDataOption.color, // Use the color from the graphDataOption
                     }
                 };
+
+                // Process the filtered dataset
+                this.datasets.filtered.forEach(item => {
+                    const midpoint = (item.min + item.max) / 2; // Calculate the midpoint for the x-axis
+                    const width = item.max - item.min; // Calculate the width of the bar
+
+                    trace.x.push(midpoint);
+                    trace.y.push(item.value);
+                    trace.width.push(width);
+                });
 
                 resolve(trace);
             }
@@ -803,14 +816,25 @@ class Timeline extends IOModule {
             console.log(`IOModule ${this.name} updating trace in graph.`);
         }
 
-        const traceId = this.chartTraces.find(t => t.trace.name === trace.name).id;
-        if (traceId !== undefined) {
-            Plotly.update(this.timelineDomId, trace, [traceId]).then(() => {
-                console.log(`IOModule ${this.name} trace updated in graph.`);
-            });
-        } else {
+        const chartTrace = this.chartTraces.find(t => t.trace.name === trace.trace.name);
+        if(!chartTrace) {
             console.warn(`Trace with name ${trace.name} not found in chartTraces.`);
+            return;
         }
+
+        let traceId = chartTrace.id;
+
+        let graphDataOption = this.getGraphDataOptionByTraceName(trace.trace.name);
+        this.fetchGraphData(graphDataOption).then(newTrace => {
+            trace.trace = newTrace;
+            if (traceId !== undefined) {
+                Plotly.update(this.timelineDomId, trace, [traceId]).then(() => {
+                    console.log(`IOModule ${this.name} trace updated in graph.`);
+                });
+            } else {
+                console.warn(`Trace with name ${trace.name} not found in chartTraces.`);
+            }
+        });
     }
 
     addTraceToGraph(trace, builtIn = false, reRenderIfAlreadyExists = false) {
@@ -1325,6 +1349,23 @@ class Timeline extends IOModule {
         }
     }
 
+    updateSuffixLabels(values) {
+        const domRef = this.getDomRef();
+        const [lower, upper] = values;
+
+        if (this.selectedDatingSystem === "AD/BC") {
+            const lowerSuffix = this.convertBPtoADBC(lower) > 0 ? "AD" : "BC";
+            const upperSuffix = this.convertBPtoADBC(upper) > 0 ? "AD" : "BC";
+
+            $(".slider-manual-input-container[endpoint='lower'] .range-unit-box", domRef).html(lowerSuffix);
+            $(".slider-manual-input-container[endpoint='upper'] .range-unit-box", domRef).html(upperSuffix);
+        } else if (this.selectedDatingSystem === "BP") {
+            $(".slider-manual-input-container[endpoint='lower'] .range-unit-box", domRef).html("BP");
+            $(".slider-manual-input-container[endpoint='upper'] .range-unit-box", domRef).html("BP");
+        }
+    }
+
+
     parseInputValue(value) {
         // Ensure the value is a string and clean it up
         if (value === undefined || value === null) return false;
@@ -1539,17 +1580,7 @@ class Timeline extends IOModule {
             $(this.upperManualInputNodeDebugOutput).val(this.currentValues[1]);
         }
 
-		if (this.selectedDatingSystem === "AD/BC") {
-            let lowerSuffix = this.convertBPtoADBC(this.currentValues[0]) > 0 ? "AD" : "BC";
-            let upperSuffix = this.convertBPtoADBC(this.currentValues[1]) > 0 ? "AD" : "BC";
-			$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html(lowerSuffix);
-			$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html(upperSuffix);
-		}
-
-		if (this.selectedDatingSystem === "BP") {
-			$(".slider-manual-input-container[endpoint='lower'] .range-unit-box", this.getDomRef()).html("BP");
-			$(".slider-manual-input-container[endpoint='upper'] .range-unit-box", this.getDomRef()).html("BP");
-		}
+        this.updateSuffixLabels(values);
 
 		//Adjustments for setting the right size and position of the digit input boxes depending on how big they need to be
 		let digits = this.sliderMax.toString().length > this.sliderMin.toString().length ? this.sliderMax.toString().length : this.sliderMin.toString().length;

@@ -292,11 +292,9 @@ class FacetManager {
 	*/
 	makeNewFacet(template) {
 		//special case for the timeline facet
-		/*
-		if(template.name == "analysis_entity_ages") {
+		if(template.name == "analysis_entity_ages" && Config.timelineEnabled) {
 			return new Timeline(this.sqs, this.getNewFacetId(), template);
 		}
-		*/
 
 		switch(template.type) {
 			case "multistage":

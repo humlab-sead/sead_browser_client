@@ -408,7 +408,7 @@ class ResultModule {
 		this.dataModules.forEach((dataModule) => {
 			tables.push(dataModule.getDataAsTable(methodId, sites));
 		});
-		
+
 		let allNull = true;
 		let workbook = new ExcelJS.Workbook();
 		

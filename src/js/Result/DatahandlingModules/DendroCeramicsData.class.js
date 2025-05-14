@@ -18,7 +18,7 @@ class DendroCeramicsData extends DataHandlingModule {
 
         let table = {
             name: method.method_name,
-            columns: this.commonColumns,
+            columns: [...this.commonColumns], // Create a copy of commonColumns
             rows: []
         }
         
@@ -65,8 +65,8 @@ class DendroCeramicsData extends DataHandlingModule {
                         }
                         if(value && value.valueType == 'complex' && value.methodId == 10) {
                             let rowValue = "";
-                            if(value.value) {
-                                rowValue = this.dendroLib.renderDendroDatingAsString(value.value, site, false, this.sqs);
+                            if(value.data) {
+                                rowValue = this.dendroLib.renderDendroDatingAsString(value.data, site, false, this.sqs);
                             }
                             row.push(rowValue);
                         }

@@ -56,13 +56,10 @@ class MeasuredValuesData extends DataHandlingModule {
 
         let table = {
             name: method.method_name,
-            columns: [],
+            columns: [...this.commonColumns], // Create a copy of commonColumns
             rows: []
         }
-
-        this.commonColumns.forEach((column) => {
-            table.columns.push(column);
-        });
+        
         
         let series = [];
         let plainValueSeries = [];
