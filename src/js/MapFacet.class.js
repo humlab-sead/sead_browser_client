@@ -107,7 +107,7 @@ class MapFacet extends Facet {
 			$(".map-help-text > .cmd_key_symbol").html("CTRL");
 		}
 
-		this.addCountriesLayer();
+		//this.addCountriesLayer();
 	}
 
 	addCountriesLayer() {
