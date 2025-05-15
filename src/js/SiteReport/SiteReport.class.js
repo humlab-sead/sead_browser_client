@@ -948,8 +948,12 @@ class SiteReport {
 			if(section.name == "analyses") {
 				section.sections.forEach(analysisSection => {
 					
-					let worksheet = wb.addWorksheet(analysisSection.title);
-
+					//check if a worksheet with this name already exists
+					let worksheet = wb.getWorksheet(analysisSection.title);
+					if(!worksheet) {
+						worksheet = wb.addWorksheet(analysisSection.title);
+					}
+					
 					let biblioRef = null;
 					let contactIds = new Set();
 					for(let k in siteData.datasets) {
