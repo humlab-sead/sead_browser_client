@@ -1654,6 +1654,7 @@ h1.main-header {
 
 .ui-resizable-handle {
   width: 8px;
+  z-index: 0 !important;
 }
 
 
