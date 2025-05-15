@@ -153,7 +153,7 @@ class SiteReport {
 	}
 
 	async fetchSite() {
-		let noCache = "false";
+		let noCache = "true";
 		return await $.get(Config.dataServerAddress+"/site/"+this.siteId+"/"+noCache);
 	}
 
