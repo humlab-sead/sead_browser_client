@@ -122,6 +122,9 @@ class ResultModule {
 			let datasetSummaries = await this.fetchDatasetSummaries(selectedSites);
 
 			datasetSummaries.sort((a, b) => {
+				if(!a.method_name) { //FIXME: Hotfix due to missing method_id 174.
+					return 1;
+				}
 				return a.method_name.localeCompare(b.method_name);
 			});
 
