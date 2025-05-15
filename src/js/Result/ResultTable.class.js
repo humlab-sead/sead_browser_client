@@ -259,7 +259,7 @@ class ResultTable extends ResultModule {
 
 		let tableColumns = [
 			{title: "Select", widthGrow:-1, formatter: "rowSelection", titleFormatter:"rowSelection", cssClass: "result-table-select-all-checkbox", hozAlign:"center", headerSort:false, cellClick: (evt, cell) => { cell.getRow().toggleSelect(); }},
-			{title:"View site", widthGrow:0, field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
+			{title:"View site", widthGrow:0, headerSort: false, field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
 				cell.getRow().toggleSelect(); //undo selection of row
 				let siteId = parseInt(cell.getValue());
 				if(!siteId) {
@@ -296,6 +296,7 @@ class ResultTable extends ResultModule {
 				title:"Analyses",
 				field:"analyses",
 				widthGrow:2,
+				headerSort: false,
 				formatter: (cell, formatterParams, onRendered) => {
 					let cellElement = cell.getElement();
 					cellElement.classList.add('stacked-bar-container');
@@ -388,6 +389,7 @@ class ResultTable extends ResultModule {
 				title:"Feature types",
 				field:"feature_types",
 				widthGrow:2,
+				headerSort: false,
 				formatter: (cell, formatterParams, onRendered) => {
 					let cellElement = cell.getElement();
 					cellElement.classList.add('stacked-bar-container');
