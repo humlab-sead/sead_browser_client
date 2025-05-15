@@ -600,12 +600,6 @@
 		"result_grid_layout": [2, 2],
 		"result_grid_modules": [
 				{
-					"module_name": "mosaic-dendro-dating-histogram",
-					"grid_row": "2",
-					"grid_column": "1",
-					"default": false
-				},
-				{
 					"module_name": "mosaic-map",
 					"grid_row": "1",
 					"grid_column": "span 2"
@@ -636,7 +630,7 @@
 		"title": "Palaeoentomology",
 		"icon":"<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
 		"color":"#a00",
-		"filterBlacklist": ["geochronology", "relative_age_name", "feature_type"],
+		"filterBlacklist": [],
 		"result_grid_layout": [2, 2],
 		"result_grid_modules": [
 				{
@@ -750,7 +744,7 @@
 		"title": "Ceramic",
 		"icon":"<i class=\"fa fa-beer\" aria-hidden=\"true\"></i>",
 		"color":"#099",
-		"filterBlacklist": ["geochronology", "tbl_biblio_modern", "sample_group_sampling_contexts"],
+		"filterBlacklist": ["tbl_biblio_modern", "sample_group_sampling_contexts"],
 		"result_grid_layout": [2, 2],
 		"result_grid_modules": [
 			{
