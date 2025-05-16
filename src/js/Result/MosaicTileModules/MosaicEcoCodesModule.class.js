@@ -81,7 +81,7 @@ class MosaicEcoCodesModule extends MosaicTileModule {
             let ecoCodeName = ecocode.name;
             ecoCodeNames.push(ecoCodeName);
             datasets[0].data.push(ecocode.totalAbundance);
-            
+
             for(let defKey in this.sqs.bugsEcoCodeDefinitions) {
                 if(this.sqs.bugsEcoCodeDefinitions[defKey].ecocode_definition_id == ecocode.ecocode_definition_id) {
 					datasets[0].backgroundColor.push(this.sqs.bugsEcoCodeDefinitions[defKey].color);
