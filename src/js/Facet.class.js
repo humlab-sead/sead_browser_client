@@ -104,6 +104,7 @@ class Facet {
 				facet.updatePosition();
 				$(facet.getDomRef()).css("box-shadow", "0px 0px 0px 0px rgba(0,0,0,0.2)");
 				$(facet.getDomRef()).css("width", "100%"); //reset width to what we want since jQuery will change this to an absolute value after dragstop
+				$(facet.getDomRef()).css("z-index", "1");
 			}
 		});
 
