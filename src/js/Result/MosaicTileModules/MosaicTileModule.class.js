@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import { Parser } from '@json2csv/plainjs';
 import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 class MosaicTileModule {
     constructor(sqs) {
@@ -91,6 +92,11 @@ class MosaicTileModule {
             html += "<a id='"+pngButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart as image</a>";
         }
 
+        let mapToImageButtonId = nanoid();
+        if(exportFormats.includes("mapToImage")) {
+            html += "<a id='"+mapToImageButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart as image</a>";
+        }
+
         html += "</div>";
         this.sqs.dialogManager.showPopOver("Export chart data", html);
 
@@ -156,6 +162,18 @@ class MosaicTileModule {
                 let data = this.formatDataForExport(this.data, "png");
             });
         }
+
+        if (exportFormats.includes("mapToImage")) {
+            $("#" + mapToImageButtonId).on("click", async () => {
+                const canvas = $(".ol-viewport canvas", this.renderIntoNode)[0];
+                if (canvas) {
+                    canvas.toBlob(function(blob) {
+                        saveAs(blob, "sead_graph_data.png");
+                    }, 'image/png');
+                }
+            });
+        }
+
         
     }
 

@@ -47,6 +47,10 @@ class MosaicMapModule extends MosaicTileModule {
             this.render(this.renderIntoNode);
         }
 	}
+
+    getAvailableExportFormats() {
+        return ["json", "csv", "mapToImage"];
+    }
     
 }
 
