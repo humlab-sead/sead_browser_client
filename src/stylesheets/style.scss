@@ -2539,6 +2539,7 @@ polyline{
   border-radius: 3px;
   padding: 10px;
   box-shadow: 0px 0px 20px 0px $shadow-color;
+  z-index: 3;
 }
 
 #map-popup-container:after, #map-popup-container:before {
