@@ -886,6 +886,9 @@ class SiteReport {
 
 		for(let key in this.sqs.siteReportManager.siteReport.data.sections) {
 			let section = this.sqs.siteReportManager.siteReport.data.sections[key];
+
+			let samplesColumnRowCreated = false;
+
 			if(section.name == "samples") {
 				for(let key2 in section.contentItems) {
 					let contentItem = section.contentItems[key2];
@@ -893,6 +896,7 @@ class SiteReport {
 						let subTableColumnKey = null;
 						let columnKeys = [];
 						let sampleGroupColumns = [];
+
 						contentItem.data.columns.forEach((column, index) => {
 							//we exclude columns with a dataType marked as subtables and components from the export
 							
@@ -905,6 +909,7 @@ class SiteReport {
 								subTableColumnKey = index;
 							}
 						});
+
 
 						if(subTableColumnKey != null) {
 							contentItem.data.rows.forEach(sampleGroupRow => {
@@ -923,11 +928,14 @@ class SiteReport {
 									columns.push(subTableColumn.title);
 								});
 
-								//push a new header row for each of the subtables/samples
-								let columnRow = samplesWorksheet.addRow(columns);
-								columnRow.eachCell((cell) => {
-									cell.font = { bold: true };
-								});
+								if(!samplesColumnRowCreated) {
+									//push a header row for the subtables/samples
+									let columnRow = samplesWorksheet.addRow(columns);
+									columnRow.eachCell((cell) => {
+										cell.font = { bold: true };
+									});
+									samplesColumnRowCreated = true;
+								}
 
 								subTable.rows.forEach(subTableRow => {
 									let excelRow = [...sampleGroupExcelRowValues];
@@ -974,7 +982,6 @@ class SiteReport {
 
 					const contactIdsArr = Array.from(contactIds);
 					let contactString = this.sqs.renderContacts(siteData, contactIdsArr, false);
-
 					
 					if(biblioRef) {
 						let r = worksheet.addRow(["Dataset reference; please cite this dataset as:"]);
@@ -1003,6 +1010,7 @@ class SiteReport {
 					
 					worksheet.addRow([]);
 
+					let analysisColumnRowCreated = false;
 					analysisSection.contentItems.forEach(contentItem => {
 						if(this.sqs.isPromise(contentItem)) {
 							console.warn("Content item is a promise");
@@ -1010,11 +1018,13 @@ class SiteReport {
 						}
 
 						if(contentItem.methodId && (contentItem.methodId == 10 || contentItem.methodId == 171)) {
-							this.insanitySubroutine(worksheet, contentItem);
+							//this is for dendro and ceramic data
+							this.insanitySubroutine(worksheet, contentItem, analysisColumnRowCreated == false);
 						}
 						else {
-							this.sanityPrevails(worksheet, contentItem);
+							this.sanityPrevails(worksheet, contentItem, analysisColumnRowCreated == false);
 						}
+						analysisColumnRowCreated = true;
 					});
 				});
 			}
@@ -1031,7 +1041,7 @@ class SiteReport {
 		return $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
 	}
 
-	sanityPrevails(worksheet, contentItem) {
+	sanityPrevails(worksheet, contentItem, addHeaderRow = false) {
 		let dataTable = contentItem.data;
 
 		let columnRow = [];
@@ -1042,10 +1052,12 @@ class SiteReport {
 				columnRow.push(column.title);
 			}
 		});
-		let headerRow = worksheet.addRow(columnRow);
-		headerRow.eachCell((cell) => {
-			cell.font = { bold: true };
-		});
+		if(addHeaderRow) {
+			let headerRow = worksheet.addRow(columnRow);
+			headerRow.eachCell((cell) => {
+				cell.font = { bold: true };
+			});
+		}
 
 		dataTable.rows.forEach((row, index) => {
 			let excelRow = [];
@@ -1065,7 +1077,7 @@ class SiteReport {
 		});
 	}
 
-	insanitySubroutine(worksheet, contentItem) {
+	insanitySubroutine(worksheet, contentItem, addHeaderRow = false) {
 		let dataTable = contentItem.data;
 		let subTableColumnKey = null;
 		let sampleColumns = [];
@@ -1102,11 +1114,14 @@ class SiteReport {
 						valueColumns.push(subTableColumn.title);
 					}
 				});
-
-				let headersRow = worksheet.addRow(valueColumns);
-				headersRow.eachCell((cell) => {
-					cell.font = { bold: true };
-				});
+				
+				if(addHeaderRow) {
+					let headersRow = worksheet.addRow(valueColumns);
+					headersRow.eachCell((cell) => {
+						cell.font = { bold: true };
+					});
+				}
+				addHeaderRow = false;
 				
 				subTable.rows.forEach(subTableRow => {
 					let excelRow = [...analysisExcelRowValues];
