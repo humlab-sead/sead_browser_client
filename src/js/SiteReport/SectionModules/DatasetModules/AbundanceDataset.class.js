@@ -39,7 +39,13 @@ class AbundanceDataset extends DatasetModule {
 
 	getSectionByMethodId(methodId, sections) {
 		for(let key in sections) {
-			if(sections[key].methodId == methodId) {
+			if(typeof sections[key].methodIds == "undefined") {
+				sections[key].methodIds = [];
+				if(sections[key].methodId) {
+					sections[key].methodIds.push(sections[key].methodId);
+				}
+			}
+			if(sections[key].methodIds.includes(methodId)) {
 				return sections[key];
 			}
 		}
@@ -327,7 +333,6 @@ class AbundanceDataset extends DatasetModule {
 				}
 			]
 		};
-
 		
 		ecoCodeBundles.forEach(ecoCodeBundle => {
 			let subTable = {
@@ -381,10 +386,6 @@ class AbundanceDataset extends DatasetModule {
 				subTable.rows.push(subTableRow);
 			});
 			
-
-			//console.log(ecoCodeBundle);
-			//console.log(subTable);
-			
 			let sampleName = "";
 			siteData.sample_groups.forEach(sg => {
 				sg.physical_samples.forEach(ps => {
@@ -427,6 +428,7 @@ class AbundanceDataset extends DatasetModule {
 		});
 
 		let methodDatasets = this.claimDatasets(siteData);
+		console.log("Method datasets: ", methodDatasets);
 
 		if(methodDatasets.length == 0) {
 			return;
@@ -457,7 +459,10 @@ class AbundanceDataset extends DatasetModule {
 				analysisMethodDescription = "<h4 class='tooltip-header'>"+analysisMethod.method_name+"</h4>"+analysisMethod.method_abbrev_or_alt_name+"<hr>"+analysisMethod.description;
 			}
 			
-			let section = this.getSectionByMethodId(dataGroup.method_id, sections);	
+			if(dataGroup.method_ids.length > 1) {
+				console.warn("Multiple methods found for this dataset. Behaviour is undefined.");
+			}
+			let section = this.getSectionByMethodId(dataGroup.method_ids[0], sections);
 			if(!section) {
 				section = {
 					"name": dataGroup.method_ids[0],
@@ -484,7 +489,7 @@ class AbundanceDataset extends DatasetModule {
 				"title": dataGroup.dataset_name,
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataGroup.id,
-				"methodId": dataGroup.method_id,
+				"methodIds": dataGroup.method_ids,
 				"exportFormats": ["pdf"],
 				"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
 				"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, false),
