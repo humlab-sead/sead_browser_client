@@ -543,17 +543,39 @@ class BasicSiteInformation {
 	}
 	
 	exportSite() {
-		let jsonBtn = this.sqs.siteReportManager.siteReport.getExportButton("json", this.sqs.siteReportManager.siteReport.siteData);
-		let xlsxBtn = this.sqs.siteReportManager.siteReport.getExportButton("xlsxBook", this.sqs.siteReportManager.siteReport.siteData);
-		//let pdfBtn = this.sqs.siteReportManager.siteReport.getExportButton("pdf", this.sqs.siteReportManager.siteReport.siteData);
-
 		let dialogNodeId = nanoid();
 		let dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");
 		this.sqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
 
-		$("#node-"+dialogNodeId).append(jsonBtn);
-		$("#node-"+dialogNodeId).append(xlsxBtn);
-		//$("#node-"+dialogNodeId).append(pdfBtn);
+		let btnId = nanoid();
+		$("#node-"+dialogNodeId).append("<a id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn light-theme-button'>Download JSON</a>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
+			this.sqs.exportManager.getJsonExport(this.data).then(objectUrl => {
+				this.triggerDownload(this.data.site_name+".json", objectUrl);
+			});
+		});
+
+		btnId = nanoid();
+		$("#node-"+dialogNodeId).append("<a id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
+			this.sqs.exportManager.getXlsxBookExport(this.data).then(objectUrl => {
+				this.triggerDownload(this.data.site_name+".xlsx", objectUrl);
+			});
+		});
+
+		btnId = nanoid();
+		$("#node-"+dialogNodeId).append("<a id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn light-theme-button'>Download CSV (ZIP)</a>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
+			this.sqs.exportManager.getCsvExport(this.data).then(objectUrl => {
+				this.triggerDownload(this.data.site_name+".zip", objectUrl);
+			});
+		});
+	}
+
+	triggerDownload(filename, data) {
+		let a = document.createElement("a");
+		a.href = data;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
 	}
 
 	/*
