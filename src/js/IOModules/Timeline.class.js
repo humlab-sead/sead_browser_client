@@ -5,7 +5,6 @@ import { nanoid } from "nanoid";
 import Plotly from "plotly.js-dist-min";
 import ExcelJS from 'exceljs';
 import Papa from 'papaparse';
-import { isArray } from "lodash";
 
 class Timeline extends IOModule {
     constructor(sqs, id, template) {
