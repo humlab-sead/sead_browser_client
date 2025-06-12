@@ -8,6 +8,13 @@ class DatingData extends DataHandlingModule {
         this.methodGroupIds = [19, 20, 3];
         this.excludeMethodIds = [10];
         this.data = [];
+
+        this.excludeColumnsInTable = [
+            "relative_age_id",
+            "relative_date_id",
+            "method_id",
+        ];
+        this.tableColumnRenameMap = {};
     }
 
     setData(data) {
@@ -24,6 +31,21 @@ class DatingData extends DataHandlingModule {
         return keyName;
     }
 
+    collectKeys(dataGroups) {
+        let valueColumnsMap = new Map();
+        dataGroups.forEach((dataGroup) => {
+            dataGroup.values.forEach((value) => {
+                const origKey = value.key;
+                // Exclude unwanted keys
+                if (this.excludeColumnsInTable.includes(origKey)) return;
+                // Use rename if present, otherwise format
+                const displayName = this.tableColumnRenameMap[origKey] || this.formatColumnName(origKey);
+                valueColumnsMap.set(origKey, displayName);
+            });
+        });
+        return valueColumnsMap;
+    }
+
     getDataAsTable(methodId, sites) {
         let method = this.getMethod(sites, methodId);
         if(!method) {
@@ -31,31 +53,31 @@ class DatingData extends DataHandlingModule {
         }
 
         let table = {
-            name: method.method_name,
+            name: this.getSanitizedMethodName(method.method_name),
             columns: [...this.commonColumns], // Create a copy of commonColumns
             rows: []
         }
 
-        let valueColumnsSet = new Set();
+        // First, collect all claimed data groups for the given methodId
+        let claimedDataGroups = [];
         sites.forEach(site => {
             site.data_groups.forEach((dataGroup) => {
                 if(this.claimedDataGroup(dataGroup) && dataGroup.method_ids.includes(methodId)) {
-
-                    dataGroup.values.forEach((value) => {
-                        valueColumnsSet.add(this.formatColumnName(value.key));
-                    });
+                    claimedDataGroups.push(dataGroup);
                 }
             });
         });
 
-        let valueColumns = Array.from(valueColumnsSet);
-        //add to table columns
-        valueColumns.forEach((valueColumn) => {
-            table.columns.push({ header: valueColumn, key: valueColumn, width: 30 });
+        // Now collect keys with renaming/exclusion
+        let valueColumnsMap = this.collectKeys(claimedDataGroups);
+        let valueColumns = Array.from(valueColumnsMap.entries()); // [ [origKey, displayName], ... ]
+
+        // Add to table columns
+        valueColumns.forEach(([origKey, displayName]) => {
+            table.columns.push({ header: displayName, key: origKey, width: 30 });
         });
 
         sites.forEach((site) => {
-
             let siteBiblioIds = this.getSiteBiblioIds(site);
             let siteBiblioAsString = this.getBibliosString(site, siteBiblioIds);
 
@@ -76,6 +98,7 @@ class DatingData extends DataHandlingModule {
 
                         let row = [
                             site.site_id, 
+                            site.site_name,
                             dataGroup.dataset_name, 
                             this.getSampleNameByPhysicalSampleId(site, value.physical_sample_id), 
                             siteBiblioAsString, 
@@ -84,17 +107,14 @@ class DatingData extends DataHandlingModule {
                         ];
                         
                         let valueFound = false;
-                        valueColumns.forEach((valueColumn) => {
-                            let v = dataGroup.values.find((v) => this.formatColumnName(v.key) === valueColumn);
+                        valueColumns.forEach(([origKey, displayName]) => {
+                            let v = dataGroup.values.find((v) => v.key === origKey);
                             let printValue = v ? v.value : '';
-                            if(value) {
+                            if(v) {
                                 valueFound = true;
                                 printValue = this.sqs.tryParseValueAsNumber(printValue);
                             }
-
-                            value.key = this.formatColumnName(value.key);
-
-                            row.push(value ? printValue : '');
+                            row.push(printValue);
                         });
 
                         if(valueFound) {
@@ -110,6 +130,8 @@ class DatingData extends DataHandlingModule {
         if(table.rows.length == 0) {
             return null;
         }
+
+        this.removeEmptyColumnsFromTable(table, this.commonColumns.length);
         return table;
     }
 }

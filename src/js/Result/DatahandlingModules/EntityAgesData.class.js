@@ -31,7 +31,7 @@ class EntityAgesData extends DataHandlingModule {
         }
 
         let table = {
-            name: method.method_name,
+            name: this.getSanitizedMethodName(method.method_name),
             columns: [...this.commonColumns], // Create a copy of commonColumns
             rows: []
         }
@@ -73,6 +73,7 @@ class EntityAgesData extends DataHandlingModule {
                         let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, value.physical_sample_id);
                         let row = [
                             site.site_id, 
+                            site.site_name,
                             dataGroup.dataset_name,
                             this.getSampleNameByPhysicalSampleId(site, value.physical_sample_id), 
                             siteBiblioAsString, 
@@ -108,6 +109,7 @@ class EntityAgesData extends DataHandlingModule {
         if(table.rows.length == 0) {
             return null;
         }
+        this.removeEmptyColumnsFromTable(table, this.commonColumns.length);
         return table;
     }
 }

@@ -7,12 +7,33 @@ class DataHandlingModule {
 
         this.commonColumns = [
             { header: 'Site ID', key: 'site_id', width: 10},
+            { header: 'Site name', key: 'site_name', width: 10},
             { header: 'Dataset name', key: 'dataset_name', width: 30},
             { header: 'Sample name', key: 'sample_name', width: 30},
             { header: 'Site references', key: 'site_reference', width: 30},
             { header: 'Dataset references', key: 'dataset_reference', width: 30},
             { header: 'Sample group references', key: 'sample_group_reference', width: 30},
         ];
+    }
+
+    getSanitizedMethodName(methodName) {
+        return methodName
+        .replace(/[^A-Za-z_]/g, '_') // Only allow letters, numbers, and underscores
+        .replace(/^_+|_+$/g, '')        // Trim leading/trailing underscores
+        .replace(/_{2,}/g, '_')         // Collapse multiple underscores
+        .substring(0, 31);             // Max length
+    }
+
+    getSampleByPhysicalSampleId(site, physicalSampleId) {
+        for (const sampleGroup of site.sample_groups) {
+            const sample = sampleGroup.physical_samples.find(
+                physicalSample => physicalSample.physical_sample_id == physicalSampleId
+            );
+            if (sample) {
+                return sample;
+            }
+        }
+        return null;
     }
 
     getMethod(sites, methodId) {
@@ -230,6 +251,30 @@ class DataHandlingModule {
             biblioString = biblioString.substring(0, biblioString.length - 2);
         }
         return biblioString;
+    }
+
+    removeEmptyColumnsFromTable(table, preserveFirstN = 0) {
+        if (!table || !Array.isArray(table.columns) || !Array.isArray(table.rows)) return;
+
+        const colCount = table.columns.length;
+        const emptyColIndexes = [];
+
+        // Check each column after the preserved ones
+        for (let colIdx = preserveFirstN; colIdx < colCount; colIdx++) {
+            const allEmpty = table.rows.every(row => {
+                const val = row[colIdx];
+                return val === undefined || val === null || val === '';
+            });
+            if (allEmpty) {
+                emptyColIndexes.push(colIdx);
+            }
+        }
+
+        // Remove columns and corresponding cells in reverse order to avoid index shifting
+        emptyColIndexes.reverse().forEach(colIdx => {
+            table.columns.splice(colIdx, 1);
+            table.rows.forEach(row => row.splice(colIdx, 1));
+        });
     }
 }
 

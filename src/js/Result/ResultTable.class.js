@@ -482,6 +482,10 @@ class ResultTable extends ResultModule {
 
 	getSelectedSites() {
 		let selectedRows = this.tabulatorTable.getSelectedData();
+		if (selectedRows.length === 0) {
+			// No selection means all sites are selected
+			return this.data.rows.map(row => row.site_link_filtered);
+		}
 		return selectedRows.map(row => row.site_link_filtered);
 	}
 

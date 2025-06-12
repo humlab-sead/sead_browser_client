@@ -1263,6 +1263,78 @@ class SeadQuerySystem {
 		return tf;
 	}
 
+	formatTaxonFamily(taxon, identificationLevels = null, html = true, asLink = false) {
+		let familyName = taxon.family && taxon.family.family_name ? taxon.family.family_name : taxon.family;
+		if (identificationLevels != null) {
+			for (let key in identificationLevels) {
+				if (
+					identificationLevels[key].identification_level_name == "c.f. Family" ||
+					identificationLevels[key].identification_level_name == "Family"
+				) {
+					familyName = "c.f. " + familyName;
+					break;
+				}
+			}
+		}
+		let tf = "";
+		if (html) {
+			tf += "<span>" + familyName + "</span>";
+		} else {
+			tf += familyName;
+		}
+		if (asLink) {
+			let linkId = "taxon-link-" + taxon.taxon_id;
+			tf = "<span id='" + linkId + "' class='taxon-link' onclick='window.sqs.taxaModule.renderTaxon(" + taxon.taxon_id + ")'>" + tf + "</span>";
+		}
+		return tf;
+	}
+
+	formatTaxonGenus(taxon, identificationLevels = null, html = true, asLink = false) {
+		let genusName = taxon.genus.genus_name ? taxon.genus.genus_name : taxon.genus;
+		let modified = false;
+		if(identificationLevels != null) {
+			for(let key in identificationLevels) {
+				if(identificationLevels[key].identification_level_name == "c.f. Genus" || identificationLevels[key].identification_level_name == "Genus") {
+					genusName = "c.f. "+genusName;
+					modified = true;
+				}
+			}
+		}
+
+		let tf = "";
+		if(html) { tf += "<span style='font-style:italic;'>"; }
+		tf += genusName;
+		if(html) { tf += "</span>"; }
+		if(asLink) {
+			let linkId = "taxon-link-"+taxon.taxon_id;
+			tf = "<span id='"+linkId+"' class='taxon-link' onclick='window.sqs.taxaModule.renderTaxon("+taxon.taxon_id+")'>"+tf+"</span>";
+		}
+		return tf;
+	}
+
+	formatTaxonSpecies(taxon, identificationLevels = null, html = true, asLink = false) {
+		let species = taxon.species;
+		let modified = false;
+		if(identificationLevels != null) {
+			for(let key in identificationLevels) {
+				if(identificationLevels[key].identification_level_name == "c.f. Species" || identificationLevels[key].identification_level_name == "Species") {
+					species = "c.f. "+species;
+					modified = true;
+				}
+			}
+		}
+
+		let tf = "";
+		if(html) { tf += "<span style='font-style:italic;'>"; }
+		tf += species;
+		if(html) { tf += "</span>"; }
+		if(asLink) {
+			let linkId = "taxon-link-"+taxon.taxon_id;
+			tf = "<span id='"+linkId+"' class='taxon-link' onclick='window.sqs.taxaModule.renderTaxon("+taxon.taxon_id+")'>"+tf+"</span>";
+		}
+		return tf;
+	}
+
 	copySiteReportData(obj) {
 		// Check if the input is null or not an object (base case for recursion)
 		if (obj === null || typeof obj !== 'object') {
@@ -1772,6 +1844,360 @@ class SeadQuerySystem {
 		return htmlOutput;
 	}
 	
+	formatCoordinatesForExport(coordinates) {
+		return coordinates.map(coord => {
+			return `${coord.coordinate_method.method_name} ${coord.measurement} ${coord.dimension.dimension_abbrev}; `;
+		}).join(' | ');
+	}
+
+	formatCoordinates(coords, siteData, useHtml = true) {
+
+		let cellValue = "";
+		coords.forEach(coord => {
+			let coordMethod = null;
+			siteData.lookup_tables.methods.forEach(cm => {
+				if(cm.method_id == coord.coordinate_method_id) {
+					coordMethod = cm;
+				}
+			});
+
+			let dimension = null;
+			siteData.lookup_tables.dimensions.forEach(dim => {
+				if(dim.dimension_id == coord.dimension_id) {
+					dimension = dim;
+				}
+			});
+
+			let unit = null;
+			if(siteData.lookup_tables.units) {
+				siteData.lookup_tables.units.forEach(u => {
+					if(u.unit_id == coordMethod.unit_id) {
+						unit = u;
+					}
+				});
+			}
+			
+
+			if(typeof dimension == "undefined" || dimension == null || typeof dimension.dimension_name == "undefined") {
+				console.warn("WARN: Dimension not found for coordinate: ", coord);
+				return;
+			}
+
+			if(typeof coordMethod == "undefined" || coordMethod == null || typeof coordMethod.method_name == "undefined") {
+				console.warn("WARN: Coordinate method not found for coordinate: ", coord);
+				return;
+			}
+
+			if(useHtml) {
+				let ttId = "tt-"+nanoid();
+				if(coord.accuracy != null) {
+					cellValue += "<span id='"+ttId+"'>"+dimension.dimension_name+" "+coord.measurement+" ("+coord.accuracy+")</span>, ";
+				}
+				else {
+					cellValue += "<span id='"+ttId+"'>"+dimension.dimension_name+" "+coord.measurement+"</span>, ";
+				}
+				
+				let ttContent = "<h4 class='tooltip-header'>Coordinate system</h4>"+coordMethod.method_name+"<hr/>"+coordMethod.description;
+				if(typeof unit != "undefined" && unit != null) {
+					ttContent += "<br/><br/><span>Coordinates are specified in "+unit.unit_name+".</span>";
+				}
+				this.tooltipManager.registerTooltip("#"+ttId, ttContent, { drawSymbol: true });
+			}
+			else {
+				if(coord.accuracy != null) {
+					cellValue += dimension.dimension_name+" "+coord.measurement+" ("+coord.accuracy+"), ";
+				}
+				else {
+					cellValue += dimension.dimension_name+" "+coord.measurement+", ";
+				}
+			}
+		});
+		cellValue = cellValue.substring(0, cellValue.length-2);
+
+		return cellValue;
+	}
+
+	formatFeatures(features, siteData, useHtml = true) {
+		let cellValue = "";
+		features.forEach(feature => {
+			// Use feature_type_name and feature_type_description directly from the feature object
+			const featureName = feature.feature_name || "Unnamed Feature";
+			const featureTypeName = feature.feature_type_name || "Unknown";
+			const featureTypeDescription = feature.feature_type_description || "";
+
+			if (useHtml) {
+				let ttId = "tt-" + nanoid();
+				cellValue += `<span id='${ttId}'>${featureTypeName}</span>, `;
+				this.tooltipManager.registerTooltip("#" + ttId, featureTypeDescription, { drawSymbol: true });
+			} else {
+				cellValue += featureName + " (" + featureTypeName + "), ";
+			}
+		});
+		cellValue = cellValue.substring(0, cellValue.length - 2); // Remove trailing comma and space
+
+		return cellValue;
+	}
+
+	formatAbundances(abundances, siteData, useHtml = true) {
+
+		return "";
+	}
+
+	formatPrepMethods(prepMethods, siteData, useHtml = true) {
+		//prepMethod = 82
+
+		//fetch prepMethod from siteData.lookup_tables.methods
+		if (!Array.isArray(prepMethods) || prepMethods.length === 0) {
+			return "";
+		}
+		let cellValue = "";
+		prepMethods.forEach(prepMethodId => {
+			let prepMethod = siteData.lookup_tables.prep_methods.find(method => method.method_id === prepMethodId);
+			if (!prepMethod) {
+				console.warn("Prep method not found for ID:", prepMethodId);
+				return;
+			}
+			if (useHtml) {
+				let ttId = "tt-" + nanoid();
+				cellValue += `<span id='${ttId}'>${prepMethod.method_name}</span>, `;
+				let ttContent = "<h4 class='tooltip-header'>Preparation method</h4>" + prepMethod.description;
+				this.tooltipManager.registerTooltip("#" + ttId, ttContent, { drawSymbol: true });
+			} else {
+				cellValue += prepMethod.method_name + ", ";
+			}
+		});
+		// Remove trailing comma and space
+		cellValue = cellValue.replace(/, $/, "");
+		return cellValue;
+	}
+
+	formatMeasuredValues(measuredValues, siteData, useHtml = true) {
+		//measuredValue = {"measured_value_id":"16699","analysis_entity_id":"21136","date_updated":"2013-11-13T14:33:32.218Z","measured_value":"54.0000000000"}
+
+		if (!Array.isArray(measuredValues) || measuredValues.length === 0) {
+			return "";
+		}
+
+		let cellValue = "";
+		measuredValues.forEach(measuredValue => {
+			if (!measuredValue || !measuredValue.measured_value) {
+				// Skip invalid entries
+				return;
+			}
+			if (useHtml) {
+				let ttId = "tt-" + nanoid();
+				cellValue += `<span id='${ttId}'>${parseFloat(measuredValue.measured_value)}</span>, `;
+				let ttContent = "<h4 class='tooltip-header'>Measured value</h4>";
+				if (measuredValue.analysis_entity_id) {
+					ttContent += `Analysis Entity ID: ${measuredValue.analysis_entity_id}`;
+				}
+				this.tooltipManager.registerTooltip("#" + ttId, ttContent, { drawSymbol: true });
+			} else {
+				cellValue += parseFloat(measuredValue.measured_value) + ", ";
+			}
+		});
+		// Remove trailing comma and space
+		cellValue = cellValue.replace(/, $/, "");
+		return cellValue;
+	}
+
+	formatAltRefs(altRefs, siteData, useHtml = true) {
+		// altRef = {"sample_alt_ref_id":4730,"alt_ref":"22175","alt_ref_type_id":6,"date_updated":"2012-09-21T16:51:47.967Z","physical_sample_id":3965,"alt_ref_type":"Field number","description":"Sampling number used during field survey."}
+
+		if (!Array.isArray(altRefs) || altRefs.length === 0) {
+			return "";
+		}
+		let cellValue = "";
+		altRefs.forEach(altRef => {
+			if (!altRef || !altRef.alt_ref) {
+				// Skip invalid entries
+				return;
+			}
+			if (useHtml) {
+				let ttId = "tt-" + nanoid();
+				cellValue += `<span id='${ttId}'>${altRef.alt_ref}</span>, `;
+				let ttContent = "<h4 class='tooltip-header'>Alternative reference</h4>" + (altRef.description || "");
+				this.tooltipManager.registerTooltip("#" + ttId, ttContent, { drawSymbol: true });
+			} else {
+				cellValue += altRef.alt_ref + " ("+altRef.alt_ref_type+"), ";
+			}
+		});
+		// Remove trailing comma and space
+		cellValue = cellValue.replace(/, $/, "");
+		return cellValue;
+	}
+
+	formatSamplingContext(samplingContexts, siteData, useHtml = true) {
+		if (!Array.isArray(samplingContexts) || samplingContexts.length === 0) {
+			return "";
+		}
+
+		let cellValue = "";
+
+		samplingContexts.forEach(samplingContext => {
+			if (!samplingContext || !samplingContext.sampling_context) {
+				// Skip invalid entries
+				return;
+			}
+			if (useHtml) {
+				let ttId = "tt-" + nanoid();
+				cellValue += `<span id='${ttId}'>${samplingContext.sampling_context}</span>, `;
+				let ttContent = "<h4 class='tooltip-header'>Sampling context</h4>" + (samplingContext.description || "");
+				this.tooltipManager.registerTooltip("#" + ttId, ttContent, { drawSymbol: true });
+			} else {
+				cellValue += samplingContext.sampling_context + ", ";
+			}
+		});
+
+		// Remove trailing comma and space
+		cellValue = cellValue.replace(/, $/, "");
+
+		return cellValue;
+	}
+
+	formatDimensions(dimensions, siteData, useHtml = true) {
+		if (!Array.isArray(dimensions) || dimensions.length === 0) {
+			return "";
+		}
+
+		let cellValue = "";
+
+		dimensions.forEach(dimensionObj => {
+			if (!dimensionObj || !dimensionObj.dimension_id) return;
+
+			// Lookup dimension name
+			let dimension = siteData.lookup_tables.dimensions.find(d => d.dimension_id === dimensionObj.dimension_id);
+			let dimensionName = dimension ? dimension.dimension_name : "Unknown dimension";
+
+			// Lookup unit name
+			let unitName = "";
+			if (dimensionObj.unit_id && siteData.lookup_tables.units) {
+				let unit = siteData.lookup_tables.units.find(u => u.unit_id === dimensionObj.unit_id);
+				unitName = unit ? unit.unit_name : "";
+			}
+
+			// Lookup method
+			let methodName = "";
+			let methodDescription = "";
+			if (dimensionObj.method_id && siteData.lookup_tables.methods) {
+				let method = siteData.lookup_tables.methods.find(m => m.method_id === dimensionObj.method_id);
+				if (method) {
+					methodName = method.method_name;
+					methodDescription = method.description || "";
+				}
+			}
+
+			// Compose value string
+			let valueString = `${dimensionName}: ${parseFloat(dimensionObj.dimension_value)}`;
+			if (unitName) valueString += ` ${unitName}`;
+
+			if (useHtml) {
+				let ttId = "tt-" + nanoid();
+				cellValue += `<span id='${ttId}'>${valueString}</span>, `;
+				let ttContent = `<h4 class='tooltip-header'>Dimension method</h4>${methodName}<hr/>${methodDescription}`;
+				this.tooltipManager.registerTooltip("#" + ttId, ttContent, { drawSymbol: true });
+			} else {
+				cellValue += valueString + ", ";
+			}
+		});
+
+		// Remove trailing comma and space
+		cellValue = cellValue.replace(/, $/, "");
+		return cellValue;
+	}
+
+	formatHorizons(horizons, siteData, useHtml = true) {
+		if (!Array.isArray(horizons) || horizons.length === 0) {
+			return "";
+		}
+
+		let cellValue = "";
+
+		horizons.forEach(horizonId => {
+			// Lookup horizon object
+			let horizon = siteData.lookup_tables.horizons.find(h => h.horizon_id === horizonId || h.horizon_id === horizonId.horizon_id);
+			if (!horizon) {
+				// If not found, skip or print as unknown
+				return;
+			}
+
+			// Lookup method (if any)
+			let methodName = "";
+			let methodDescription = "";
+			if (horizon.method_id && siteData.lookup_tables.methods) {
+				let method = siteData.lookup_tables.methods.find(m => m.method_id === horizon.method_id);
+				if (method) {
+					methodName = method.method_name;
+					methodDescription = method.description || "";
+				}
+			}
+
+			let label = horizon.horizon_name;
+			if (horizon.description && horizon.description.trim() !== "") {
+				label += ` (${horizon.description})`;
+			}
+
+			if (useHtml) {
+				let ttId = "tt-" + nanoid();
+				cellValue += `<span id='${ttId}'>${label}</span>, `;
+				let ttContent = `<h4 class='tooltip-header'>Horizon method</h4>${methodName}<hr/>${methodDescription}`;
+				this.tooltipManager.registerTooltip("#" + ttId, ttContent, { drawSymbol: true });
+			} else {
+				cellValue += label + ", ";
+			}
+		});
+
+		// Remove trailing comma and space
+		cellValue = cellValue.replace(/, $/, "");
+		return cellValue;
+	}
+
+	formatSamplingMethod(samplingMethodId, siteData, useHtml = true) {
+		//here we need to perform a lookup on samplingMethodId in siteData.lookup_tables.methods
+		let samplingMethod = siteData.lookup_tables.methods.find(method => method.method_id === samplingMethodId);
+		if (!samplingMethod) {
+			console.warn("Sampling method not found for ID:", samplingMethodId);
+			return "";
+		}
+
+		let cellValue = "";
+		if (useHtml) {
+			let ttId = "tt-" + nanoid();
+			cellValue += `<span id='${ttId}'>${samplingMethod.method_name}</span>`;
+			let ttContent = "<h4 class='tooltip-header'>Sampling method</h4>" + samplingMethod.description;
+			this.tooltipManager.registerTooltip("#" + ttId, ttContent, { drawSymbol: true });
+		} else {
+			cellValue += samplingMethod.method_name;
+		}
+
+		return cellValue;
+	}
+
+	formatSampleGroupDescriptions(sampleGroupDescriptions, siteData, useHtml = true) {
+		if (!Array.isArray(sampleGroupDescriptions) || sampleGroupDescriptions.length === 0) {
+			return "";
+		}
+		let cellValue = "";
+		sampleGroupDescriptions.forEach(description => {
+			if (!description || !description.description) {
+				// Skip invalid entries
+				return;
+			}
+			if (useHtml) {
+				let ttId = "tt-" + nanoid();
+				cellValue += `<span id='${ttId}'>${description.description}</span>, `;
+				let ttContent = "<h4 class='tooltip-header'>Sample group description</h4>" + (description.type_name+"<hr />"+description.type_description || "");
+				this.tooltipManager.registerTooltip("#" + ttId, ttContent, { drawSymbol: true });
+			} else {
+				cellValue += description.type_name+": "+description.description + ", ";
+			}
+		});
+
+		// Remove trailing comma and space
+		cellValue = cellValue.replace(/, $/, "");
+		
+		return cellValue;
+	}
 
 	renderContactsOLD(siteData, contactIds) {
 

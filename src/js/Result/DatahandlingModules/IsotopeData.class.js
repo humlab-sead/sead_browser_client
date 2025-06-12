@@ -15,7 +15,7 @@ class IsotopeData extends DataHandlingModule {
         }
 
         let table = {
-            name: method.method_name,
+            name: this.getSanitizedMethodName(method.method_name),
             columns: [...this.commonColumns], // Create a copy of commonColumns
             rows: []
         }
@@ -42,7 +42,6 @@ class IsotopeData extends DataHandlingModule {
         sites.forEach(site => {
             site.data_groups.forEach((dataGroup) => {
                 if(this.claimedDataGroup(dataGroup)) {
-                    console.log(dataGroup);
 
                     dataGroup.values.sort((a, b) => {
                         return a.physical_sample_id - b.physical_sample_id;
@@ -80,6 +79,7 @@ class IsotopeData extends DataHandlingModule {
             return null;
         }
 
+        this.removeEmptyColumnsFromTable(table, this.commonColumns.length);
         return table;
     }
 }

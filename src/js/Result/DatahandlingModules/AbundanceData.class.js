@@ -20,16 +20,20 @@ class AbundanceData extends DataHandlingModule {
         }
 
         let table = {
-            name: method.method_name,
+            name: this.getSanitizedMethodName(method.method_name),
             columns: [...this.commonColumns], // Create a copy of commonColumns
             rows: []
         }
 
         table.columns = table.columns.concat([
-            { header: 'Taxon', key: 'taxon', width: 30},
+            { header: 'Features', key: 'features', width: 30},
+            { header: 'Full taxon', key: 'taxon', width: 30},
+            { header: 'Family', key: 'family', width: 20},
+            { header: 'Genus', key: 'genus', width: 20},
+            { header: 'Species', key: 'species', width: 20},
             { header: 'Abundance', key: 'abundance', width: 30},
             { header: 'Modifications', key: 'modifications', width: 30},
-            { header: 'Element type', key: 'element_type', width: 30}
+            { header: 'Element type', key: 'element_type', width: 30},
         ]);
 
         sites.forEach((site) => {
@@ -43,15 +47,28 @@ class AbundanceData extends DataHandlingModule {
                     dataGroup.values.forEach((value) => {
 
                         let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(site, value.physical_sample_id);
+                        let sample = this.getSampleByPhysicalSampleId(site, value.physical_sample_id);
 
                         let row = [
                             site.site_id, 
+                            site.site_name,
                             dataGroup.dataset_name, 
                             this.getSampleNameByPhysicalSampleId(site, value.physical_sample_id), 
                             siteBiblioAsString, 
                             this.getBibliosString(site, dataGroup.biblio_ids), 
                             this.getBibliosString(site, sampleGroupBiblioIds)
                         ];
+
+                        if(!sample) {
+                            console.warn("Could not find sample with physical_sample_id " + value.physical_sample_id + " in site " + site.site_id);
+                        }
+
+                        if(sample && sample.features && sample.features.length > 0) {
+                            row.push(this.sqs.formatFeatures(sample.features, site, false));
+                        }
+                        else {
+                            row.push("");
+                        }
 
                         if(value.valueType == 'complex') {
                             let taxon = this.getTaxonByTaxonId(site, value.data.taxon_id);
@@ -61,6 +78,9 @@ class AbundanceData extends DataHandlingModule {
                             }
                             else {
                                 row.push(this.sqs.formatTaxon(taxon, null, false));
+                                row.push(this.sqs.formatTaxonFamily(taxon, null, false));
+                                row.push(this.sqs.formatTaxonGenus(taxon, null, false));
+                                row.push(this.sqs.formatTaxonSpecies(taxon, null, false));
                             }
                             
                             let modificationsString = "";
@@ -97,6 +117,7 @@ class AbundanceData extends DataHandlingModule {
         if(table.rows.length == 0) {
             return null;
         }
+        this.removeEmptyColumnsFromTable(table, this.commonColumns.length);
         return table;
     }
 }

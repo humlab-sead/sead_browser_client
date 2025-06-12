@@ -51,11 +51,13 @@ class MeasuredValuesData extends DataHandlingModule {
         return prepMethodString;
     }
 
+    
+
     getDataAsTable(methodId, sites) {
         let method = this.getMethod(sites, methodId);
-
+        
         let table = {
-            name: method.method_name,
+            name: this.getSanitizedMethodName(method.method_name),
             columns: [...this.commonColumns], // Create a copy of commonColumns
             rows: []
         }
@@ -68,32 +70,39 @@ class MeasuredValuesData extends DataHandlingModule {
         //there should be pars of values/AEs, one with a prepMethod 82 and one without, both connected to the sample physical_sample
         //these needs to be paired up in 2 series
 
-        let valueGroups = [];
-        let allSiteBiblioIds = new Set();
+        let claimedDataGroups = [];
         sites.forEach((site) => {
             site.data_groups.forEach((dataGroup) => {
-                if(this.claimedDataGroup(dataGroup)) {
-                    
-                    dataGroup.biblio_ids.forEach((biblioId) => {
-                        allSiteBiblioIds.add(biblioId);
+                if(this.claimedDataGroup(dataGroup) && dataGroup.method_ids.includes(methodId)) {
+                    claimedDataGroups.push({
+                        site: site,
+                        datagroup: dataGroup,
                     });
-
-                    //group values by physical_sample_id
-                    
-                    dataGroup.values.forEach((value) => {
-                        let group = valueGroups.find((group) => group.physical_sample_id == value.physical_sample_id);
-                        if(!group) {
-                            group = {
-                                physical_sample_id: value.physical_sample_id,
-                                site: site,
-                                values: []
-                            }
-                            valueGroups.push(group);
-                        }
-                        group.values.push(value);
-                    });
-
                 }
+            });
+        });
+
+        table.dataGroups = claimedDataGroups;
+
+        let valueGroups = [];
+        let allSiteBiblioIds = new Set();
+        claimedDataGroups.forEach((dataGroup) => {
+            dataGroup.datagroup.biblio_ids.forEach((biblioId) => {
+                allSiteBiblioIds.add(biblioId);
+            });
+
+            //group values by physical_sample_id
+            dataGroup.datagroup.values.forEach((value) => {
+                let group = valueGroups.find((group) => group.physical_sample_id == value.physical_sample_id);
+                if(!group) {
+                    group = {
+                        physical_sample_id: value.physical_sample_id,
+                        site: dataGroup.site,
+                        values: []
+                    }
+                    valueGroups.push(group);
+                }
+                group.values.push(value);
             });
         });
 
@@ -114,8 +123,13 @@ class MeasuredValuesData extends DataHandlingModule {
         });
 
         valueGroups.forEach((group) => {
-
+            if(!group.physical_sample_id) {
+                console.warn("MeasuredValuesData: No physical_sample_id found in group", group);
+            }
             let physicalSample = this.getPhysicalSampleByPhysicalSampleId(group.site, group.physical_sample_id);
+            if(!physicalSample) {
+                console.warn("MeasuredValuesData: No physical sample found for physical_sample_id", group.physical_sample_id, "in site", group.site.site_id);
+            }
             let sampleGroupBiblioIds = this.getSampleGroupBiblioIds(group.site, group.physical_sample_id);
 
             let siteBiblioIds = this.getSiteBiblioIds(group.site);
@@ -139,6 +153,7 @@ class MeasuredValuesData extends DataHandlingModule {
 
             let row = [
                 group.site.site_id, 
+                group.site.site_name,
                 datasetName, //datasetname
                 physicalSample.sample_name, 
                 siteBiblioAsString, //site references
@@ -171,6 +186,8 @@ class MeasuredValuesData extends DataHandlingModule {
         if(table.rows.length == 0) {
             return null;
         }
+
+        this.removeEmptyColumnsFromTable(table, this.commonColumns.length);
         return table;
     }
     

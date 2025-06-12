@@ -289,6 +289,32 @@
 
   <div id="templates" style="display:none;">
 
+    <template id="exportOptionsTemplate">
+      <div>
+          This export will contain <span style="font-weight:bold;" data-num-sites></span> sites.<br><br>
+
+        <h3>Export sites</h3>
+          <a id="sites-export-xlsx-dl" class="sites-export-btn light-theme-button">Download XLSX</a>
+          <a id="sites-export-csv-dl" class="sites-export-btn light-theme-button">Download CSV</a>
+          <a id="sites-export-json-dl" class="sites-export-btn light-theme-button">Download JSON</a>
+          
+          <br><br>
+          <h3>Datasets</h3>
+          <div style="max-width: 30em; margin-bottom: 1em; font-size: 0.9em;">
+          The default is to export all datasets, but you can select specific datasets if you wish to reduce the size of the export.
+          </div>
+          <select id="export-datasets" multiple="multiple">
+          </select>
+
+          <div id="export-progress-bar-container">
+            <div class="status-msg">Fetching data...</div>
+            <div id="export-progress-bar">
+                <div class="export-progress-bar-fill"></div>
+            </div>
+          </div>
+      </div>
+  </template>
+
     <template id="notification-box">
       <div class="notification">
         <div class="notification-type-box">

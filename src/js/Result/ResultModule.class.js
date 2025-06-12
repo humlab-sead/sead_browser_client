@@ -11,7 +11,11 @@ import IsotopeData from "./DatahandlingModules/IsotopeData.class.js";
 import MeasuredValuesData from "./DatahandlingModules/MeasuredValuesData.class.js";
 import EntityAgesData from "./DatahandlingModules/EntityAgesData.class.js";
 
+import SiteExportWorker from '../Workers/SiteExport.worker.js';
 import DatasetExportWorker from '../Workers/DatasetExport.worker.js';
+
+import "@nobleclem/jquery-multiselect";
+import "@nobleclem/jquery-multiselect/jquery.multiselect.css";
 
 
 /*
@@ -82,6 +86,17 @@ class ResultModule {
 
 	}
 
+	async fetchSites(siteIds) {
+		return await fetch(Config.dataServerAddress+"/export/sites", {
+			method: 'POST',
+			mode: 'cors',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(siteIds)
+		}).then(res => res.json());
+	}
+
 	async fetchExportData(siteIds) {
 		return await fetch(Config.dataServerAddress+"/export/bulk/sites", {
 			method: 'POST',
@@ -93,9 +108,23 @@ class ResultModule {
 		}).then(res => res.json());
 	}
 
+	getSelectedMethodIdsForExport() {
+		let methodIds = $("#export-datasets").val();
+					
+		if(methodIds && methodIds.length > 0) {
+			methodIds = methodIds.map((id) => parseInt(id));
+		}
+		else {
+			methodIds = [];
+		}
+
+		return methodIds;
+	}
+
 	bindExportModuleDataToButton(button, module = null) {
 
 		let sitesExportCallback = async () => {
+
 			module.setExportButtonLoadingIndicator();
 
 			let jsonDownloadButtonId = "json-dl-"+nanoid();
@@ -109,18 +138,22 @@ class ResultModule {
 				selectedSites = module.getSelectedSites();
 			}
 
-			let html = "";	
-			html += "This export will contain "+selectedSites.length+" sites.<br /><br />";
 
-			html += "<h3>Export list of sites</h3>";
-			html += "<a id='"+xlsxDownloadButtonId+"' class='light-theme-button'>Download XLSX</a>";
-			html += "<a id='"+csvDownloadButtonId+"' class='light-theme-button'>Download CSV</a>";
-			html += "<a id='"+jsonDownloadButtonId+"' class='light-theme-button'>Download JSON</a>";
-			html += "<a id='"+sqlDownloadButtonId+"' class='light-theme-button'>View SQL</a>";
+			const template = document.getElementById('exportOptionsTemplate');
+			if (!template) {
+				console.error("Export options template not found!");
+				return;
+			}
+
+			const clone = document.importNode(template.content, true);
+
+			const numSitesSpan = clone.querySelector('[data-num-sites]');
+			if (numSitesSpan) {
+				numSitesSpan.textContent = selectedSites.length;
+			}
 
 			//fetch dataset summaries for selected sites to see what is available for export
 			let datasetSummaries = await this.fetchDatasetSummaries(selectedSites);
-
 			datasetSummaries.sort((a, b) => {
 				if(!a.method_name) { //FIXME: Hotfix due to missing method_id 174.
 					return 1;
@@ -128,35 +161,72 @@ class ResultModule {
 				return a.method_name.localeCompare(b.method_name);
 			});
 
-			html += "<br /><br /><hr />";
-			let aggregatedExportButtonId = "dataset-dl-"+nanoid();
-			html += "<h3>Export datasets</h3>";
-			html += "<select id='export-datasets'>";
-
-			datasetSummaries.forEach((summary) => {
-				html += "<option value='"+summary.method_id+"'>"+summary.method_name+" ("+summary.siteCount+" sites, "+summary.datasetCount+" datasets)</option>";
-			});
-			html += "</select><br /><br />"
-			html += "<div id='export-controls-container'>";
-			html += `<a id='`+aggregatedExportButtonId+`' class='light-theme-button dataset-export-btn'>Dataset Export</a>`;
-			html += `<div id='export-progress-bar-container'>
-				<div class='export-progress-bar-fill'></div>
-			</div>`;
-			html += "</div>";
-			
-			if(selectedSites.length == 0) {
-				html = "No sites selected!";
+			const selectElement = clone.getElementById('export-datasets');
+			if (selectElement) {
+				// Clear existing options (if any)
+				selectElement.innerHTML = '';
+				// Add new options from your data
+				datasetSummaries.forEach(option => {
+					const opt = document.createElement('option');
+					opt.value = option.method_id;
+					opt.textContent = option.method_name+" ("+option.siteCount+" sites, "+option.datasetCount+" datasets)";
+					selectElement.appendChild(opt);
+				});
 			}
 
-			this.sqs.dialogManager.showPopOver("Export sites", html);
+			if(selectedSites.length == 0) {
+				//this.sqs.dialogManager.showPopOver("Export sites", "No sites selected!");
+				this.sqs.notificationManager.notify("No sites selected!", "warning");
+			}
+			else {
+				this.sqs.dialogManager.showPopOver("Export sites", clone);
+			}
+
+			$('#export-datasets option').prop('selected', true);
+			$('#export-datasets').multiselect({
+				search: true,
+				maxPlaceholderOpts: 1,
+				selectAll: true,
+				texts: {
+					placeholder: 'Select options'
+				}
+			});
+
+			// Close multiselect when clicking outside
+			$(document).on('mousedown', function(event) {
+				// Check if the click is outside any open multiselect menu
+				if (
+					!$(event.target).closest('.ms-options-wrap').length &&
+					!$(event.target).closest('.ms-options').length
+				) {
+					$('.ms-options-wrap.ms-active .ms-options-wrap').each(function() {
+						$(this).removeClass('ms-active');
+					});
+					// Or simply:
+					$('.ms-options-wrap.ms-active').removeClass('ms-active');
+				}
+			});
+			
 			module.setExportButtonLoadingIndicator(false);
 
 			if(selectedSites.length > 0) {
-				$("#"+xlsxDownloadButtonId).on("click", () => { this.exportSitesAsXlsx(selectedSites); });
+				$("#sites-export-xlsx-dl").on("click", () => {
+					this.exportFullSitesAsXlsx(selectedSites, this.getSelectedMethodIdsForExport()).then(() => {});
+				});
 
-				$("#"+csvDownloadButtonId).on("click", async () => { this.exportSitesAsCsv(selectedSites); });
+				$("#sites-export-csv-dl").on("click", () => {
+					this.exportFullSitesAsCsv(selectedSites, this.getSelectedMethodIdsForExport()).then(() => {});
+				});
 
-				$("#"+jsonDownloadButtonId).on("click", async () => { this.exportSitesAsJson(selectedSites); });
+				$("#sites-export-json-dl").on("click", () => {
+					this.exportFullSitesAsJson(selectedSites, this.getSelectedMethodIdsForExport()).then(() => {});
+				});
+
+				$("#xlsx-dl").on("click", () => { this.exportSitesAsXlsx(selectedSites); });
+
+				$("#csv-dl").on("click", async () => { this.exportSitesAsCsv(selectedSites); });
+
+				$("#json-dl").on("click", async () => { this.exportSitesAsJson(selectedSites); });
 
 				$("#"+sqlDownloadButtonId).on("click", async () => {
 					let currentModule = this.resultManager.getActiveModule();
@@ -164,17 +234,18 @@ class ResultModule {
 					this.sqs.dialogManager.showPopOver("Result SQL", formattedSQL);
 				});
 
-				$("#"+aggregatedExportButtonId).on("click", async () => {
+				$("#dataset-dl").on("click", async () => {
 					if(this.exportInProgress) {
 						this.sqs.notificationManager.notify("An export is already in progress. Please wait for it to finish.", "info");
 						return;
 					}
 					this.exportInProgress = true;
 					
-					$("#"+aggregatedExportButtonId).append(`<div class="cute-little-loading-indicator"></div>`);
-					$("#export-progress-bar-container").css("visibility", "visible");
+					$("#dataset-dl").append(`<div class="cute-little-loading-indicator"></div>`);
+					$("#export-progress-bar-container").css("display", "block");
 
 					let methodId = parseInt($("#export-datasets").val());
+					console.log(methodId);
 
 					const worker = new DatasetExportWorker();
 					// Handle messages from the worker
@@ -189,11 +260,11 @@ class ResultModule {
 
 						if (type === 'complete') {
 							this.getDatagroupsAsXlsx(methodId, results); // Use the results
-							$("#export-progress-bar-container").css("visibility", "hidden");
+							$("#export-progress-bar-container").css("display", "none");
 							$(".export-progress-bar-fill").css({
 								width: "0%"
 							});
-							$("#"+aggregatedExportButtonId).find(".cute-little-loading-indicator").remove();
+							$("#dataset-dl").find(".cute-little-loading-indicator").remove();
 							this.exportInProgress = false;
 						}
 					};
@@ -205,7 +276,7 @@ class ResultModule {
 						dataServerAddress: Config.dataServerAddress
 					});
 					
-				 });
+				});
 			}
 		};
 
@@ -675,7 +746,89 @@ class ResultModule {
 		});
 		saveAs(blob, "sead_sites_export.csv");
 	}
+
+	async fetchSites(siteIds) {
+		return new Promise((resolve, reject) => {
+			if(this.exportInProgress) {
+				this.sqs.notificationManager.notify("An export is already in progress. Please wait for it to finish.", "info");
+				return;
+			}
+			this.exportInProgress = true;
+			$("#export-progress-bar-container").css("display", "block");
+
+			const worker = new SiteExportWorker();
+			// Handle messages from the worker
+			worker.onmessage = async (e) => {
+				const { type, progress, total, results } = e.data;
+
+				if (type === 'progress') {
+					$(".export-progress-bar-fill").css({
+						width: (progress / total * 100)+"%"
+					});
+
+					if (progress == total) {
+						$("#export-progress-bar-container .status-msg").text("Formatting data...");
+					}
+					else {
+						$("#export-progress-bar-container .status-msg").text("Fetching data...");
+					}
+				}
+
+				if (type === 'complete') {
+					$("#export-progress-bar-container").css("display", "none");
+					$(".export-progress-bar-fill").css({
+						width: "0%"
+					});
+					this.exportInProgress = false;
+					resolve(results);
+				}
+			};
+
+			// Start the worker with the necessary data
+			worker.postMessage({
+				selectedSites: siteIds,
+				dataServerAddress: Config.dataServerAddress
+			});
+		});
+	}
+
+	async exportFullSitesAsJson(siteIds, methodIds = []) {
+		console.log("Exporting full sites as JSON");
+
+		let sites = await this.fetchSites(siteIds);
+		let jsonData = JSON.stringify(sites, null, 2);
+		this.sqs.dialogManager.hidePopOver();
+		const bytes = new TextEncoder().encode(jsonData);
+		const blob = new Blob([bytes], {
+			type: "application/json;charset=utf-8"
+		});
+		saveAs(blob, "sead_sites_export.json");
+	}
 	
+	async exportFullSitesAsXlsx(siteIds, methodIds = []) {
+		console.log("Exporting full sites as XLSX");
+
+		let sites = await this.fetchSites(siteIds);
+		let objectUrl = await this.sqs.exportManager.getXlsxBookExport(sites, true, methodIds);
+		const a = document.createElement("a");
+		a.href = objectUrl;
+		a.download = "sead_sites_export.xlsx";
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+	}
+
+	async exportFullSitesAsCsv(siteIds, methodIds = []) {
+		console.log("Exporting full sites as CSV");
+		let sites = await this.fetchSites(siteIds);
+		let objectUrl = await this.sqs.exportManager.getCsvExportOfSites(sites, methodIds);
+		const a = document.createElement("a");
+		a.href = objectUrl;
+		a.download = "sead_sites_export.zip";
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+	}
 
 	async exportSitesAsXlsx(siteIds) {
 		let workbook = new ExcelJS.Workbook();

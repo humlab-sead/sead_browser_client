@@ -17,7 +17,7 @@ class DendroCeramicsData extends DataHandlingModule {
         }
 
         let table = {
-            name: method.method_name,
+            name: this.getSanitizedMethodName(method.method_name),
             columns: [...this.commonColumns], // Create a copy of commonColumns
             rows: []
         }
@@ -50,6 +50,7 @@ class DendroCeramicsData extends DataHandlingModule {
 
                     let row = [
                         site.site_id, 
+                        site.site_name,
                         "",  //dataset name
                         dataGroup.sample_name, 
                         siteBiblioAsString, 
@@ -94,6 +95,7 @@ class DendroCeramicsData extends DataHandlingModule {
         });
         */
 
+        this.removeEmptyColumnsFromTable(table, this.commonColumns.length);
         return table;
     }
 
