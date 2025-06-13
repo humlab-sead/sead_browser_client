@@ -556,9 +556,11 @@ class BasicSiteInformation {
 
 		btnId = nanoid();
 		$("#node-"+dialogNodeId).append("<a id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
-			this.sqs.exportManager.getXlsxBookExport(this.data).then(objectUrl => {
+			let methodIds = ["all"];
+			this.sqs.exportManager.getXlsxBookExport(this.data, true, methodIds).then(objectUrl => {
 				this.triggerDownload(this.data.site_name+".xlsx", objectUrl);
 			});
+			
 		});
 
 		btnId = nanoid();

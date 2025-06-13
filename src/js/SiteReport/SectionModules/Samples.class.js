@@ -376,7 +376,7 @@ class Samples {
 				subTable.rows.forEach(row => {
 					if(row[pkeyColumnKey].value == sample.physical_sample_id) {
 						row.push({
-							"value": this.formatCoordinates(sample.coordinates),
+							"value": this.sqs.formatCoordinates(sample.coordinates, siteData),
 							"type": "cell",
 							"tooltip": "",
 							"data": sample.coordinates
@@ -700,7 +700,7 @@ class Samples {
 						"data": sg.coordinates,
 						"clickCallback": (row) => {
 							//this.renderSampleGroupCoordinatesMap(sampleGroups, sg);
-							this.sqs.dialogManager.showPopOver("Sample group coordinates", this.formatCoordinates(sg.coordinates));
+							this.sqs.dialogManager.showPopOver("Sample group coordinates", this.sqs.formatCoordinates(sg.coordinates, siteData));
 						}
 					});
 				}
@@ -759,65 +759,6 @@ class Samples {
 		map.addSelectInteraction(null, false);
 	}
 	*/
-	
-	formatCoordinates(coords) {
-		let siteData = this.sqs.siteReportManager.siteReport.siteData;
-
-		let cellValue = "";
-		coords.forEach(coord => {
-			let coordMethod = null;
-			siteData.lookup_tables.methods.forEach(cm => {
-				if(cm.method_id == coord.coordinate_method_id) {
-					coordMethod = cm;
-				}
-			});
-
-			let dimension = null;
-			siteData.lookup_tables.dimensions.forEach(dim => {
-				if(dim.dimension_id == coord.dimension_id) {
-					dimension = dim;
-				}
-			});
-
-			let unit = null;
-			if(siteData.lookup_tables.units) {
-				siteData.lookup_tables.units.forEach(u => {
-					if(u.unit_id == coordMethod.unit_id) {
-						unit = u;
-					}
-				});
-			}
-			
-
-			if(typeof dimension == "undefined" || dimension == null || typeof dimension.dimension_name == "undefined") {
-				console.warn("WARN: Dimension not found for coordinate: ", coord);
-				return;
-			}
-
-			if(typeof coordMethod == "undefined" || coordMethod == null || typeof coordMethod.method_name == "undefined") {
-				console.warn("WARN: Coordinate method not found for coordinate: ", coord);
-				return;
-			}
-
-			let ttId = "tt-"+nanoid();
-			if(coord.accuracy != null) {
-				cellValue += "<span id='"+ttId+"'>"+dimension.dimension_name+" "+coord.measurement+" ("+coord.accuracy+")</span>, ";
-			}
-			else {
-				cellValue += "<span id='"+ttId+"'>"+dimension.dimension_name+" "+coord.measurement+"</span>, ";
-			}
-			
-			let ttContent = "<h4 class='tooltip-header'>Coordinate system</h4>"+coordMethod.method_name+"<hr/>"+coordMethod.description;
-			if(typeof unit != "undefined" && unit != null) {
-				ttContent += "<br/><br/><span>Coordinates are specified in "+unit.unit_name+".</span>";
-			}
-			this.sqs.tooltipManager.registerTooltip("#"+ttId, ttContent, { drawSymbol: true });
-		
-		});
-		cellValue = cellValue.substring(0, cellValue.length-2);
-
-		return cellValue;
-	}
 
 	insertSampleGroupReferencesIntoTable(table, sampleGroups) {
 		let insertSampleGroupReferensesColumn = false;

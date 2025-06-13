@@ -334,10 +334,12 @@ class ExportManager {
     addAnalysisSheets(workbook, sites, methodIds = []) {
         const datagroupsByMethod = this.groupDatagroupsByMethod(sites);
 
-        //remove all datagroups in datagroupsByMethod that are not in methodIds
-        for (const methodId of datagroupsByMethod.keys()) {
-            if (!methodIds.includes(methodId)) {
-                datagroupsByMethod.delete(methodId);
+        if(methodIds.length > 0 && methodIds[0] != "all") {
+            //remove all datagroups in datagroupsByMethod that are not in methodIds
+            for (const methodId of datagroupsByMethod.keys()) {
+                if (!methodIds.includes(methodId)) {
+                    datagroupsByMethod.delete(methodId);
+                }
             }
         }
 

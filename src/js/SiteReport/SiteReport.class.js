@@ -653,7 +653,7 @@ class SiteReport {
 						parentLevelData[columnName] = sampleRow[key].value;
 						if(key == coordinatesColumnKey) {
 							//not using "columnName" as the key here because then it would just say "Coordinates" and it would not be clear that this is the coordinates for the sample group and not the individual samples
-							parentLevelData["Sample group coordinates"] = this.formatCoordinatesForExport(sampleRow[key].data);
+							parentLevelData["Sample group coordinates"] = this.sqs.formatCoordinatesForExport(sampleRow[key].data);
 						}
 					}
 				}
@@ -703,12 +703,6 @@ class SiteReport {
 		});
 
 		return formattedExcelRows;
-	}
-
-	formatCoordinatesForExport(coordinates) {
-		return coordinates.map(coord => {
-			return `${coord.coordinate_method.method_name} ${coord.measurement} ${coord.dimension.dimension_abbrev}; `;
-		}).join(' | ');
 	}
 	
 	getCsvExport(filename, exportStruct) {
