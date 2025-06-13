@@ -27,8 +27,14 @@ class ExportManager {
         const wb = new ExcelJS.Workbook();
         const sites = Array.isArray(siteData) ? siteData : [siteData];
 
+        console.time("Exporting sites to XLSX");
         this.addSiteSheet(wb, sites);
+        console.timeEnd("Exporting sites to XLSX");
+
+        console.time("Exporting samples to XLSX");
         this.addSamplesSheet(wb, sites);
+        console.timeEnd("Exporting samples to XLSX");
+
         this.addAnalysisSheets(wb, sites, methodIds);
 
         return wb;
@@ -338,6 +344,12 @@ class ExportManager {
         let worksheetNames = new Set();
 
         for (const [methodId, methodGrouping] of datagroupsByMethod.entries()) {
+
+            this.sqs.sqsEventDispatch("exportProgress", {
+                methodId: methodId,
+                methodName: methodGrouping.method_name,
+            });
+
             let tables = [];
             this.dataModules.forEach((dataModule) => {
                 tables.push(dataModule.getDataAsTable(methodId, sites));
@@ -391,7 +403,7 @@ class ExportManager {
                     });
                     column.width = maxLength + 2;
                 });
-                
+
             });
         }
     }

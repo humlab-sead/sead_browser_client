@@ -86,6 +86,7 @@ class ResultModule {
 
 	}
 
+	/*
 	async fetchSites(siteIds) {
 		return await fetch(Config.dataServerAddress+"/export/sites", {
 			method: 'POST',
@@ -96,6 +97,7 @@ class ResultModule {
 			body: JSON.stringify(siteIds)
 		}).then(res => res.json());
 	}
+	*/
 
 	async fetchExportData(siteIds) {
 		return await fetch(Config.dataServerAddress+"/export/bulk/sites", {
@@ -748,6 +750,13 @@ class ResultModule {
 	}
 
 	async fetchSites(siteIds) {
+		this.sqs.sqsEventUnlisten("exportProgress");
+		this.sqs.sqsEventListen("exportProgress", (evt, data) => {
+			//FIXME: This doesn't work, because the rendering loop is blocked by the processsing. We need to conver the processing code to a web worker.
+			//console.log(data.methodName);
+			//$("#export-progress-bar-container .status-msg").text(data.methodName);
+		});
+
 		return new Promise((resolve, reject) => {
 			if(this.exportInProgress) {
 				this.sqs.notificationManager.notify("An export is already in progress. Please wait for it to finish.", "info");
@@ -767,7 +776,7 @@ class ResultModule {
 					});
 
 					if (progress == total) {
-						$("#export-progress-bar-container .status-msg").text("Formatting data...");
+						//$("#export-progress-bar-container .status-msg").text("Formatting data...");
 					}
 					else {
 						$("#export-progress-bar-container .status-msg").text("Fetching data...");
