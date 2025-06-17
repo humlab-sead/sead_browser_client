@@ -1054,6 +1054,11 @@ class SiteReportChart {
 		var xUnitSymbol = "";
 		var yUnitSymbol = "";
 
+		console.log(contentItem)
+		console.log(xAxisRo)
+		console.log(yAxisRo)
+		
+
 		if(xAxisRo.location == "subtable") {
 			contentItem.data.rows.forEach(row => {
 				row.forEach(cell => {
@@ -1068,11 +1073,20 @@ class SiteReportChart {
 			});
 		}
 		else {
-			contentItem.data.rows.forEach(row => {
-				xValues.push(row[xAxisRo.value].value);
-			});
-			if (contentItem.data.columns[xAxisRo.value].hasOwnProperty("unit")) {
-				xUnitSymbol = contentItem.data.columns[xAxisRo.value].unit;
+
+			if(contentItem.dataType == "key-value") {
+				contentItem.data.rows.forEach(row => {
+					console.log(row);
+				});
+			}
+			else {
+				contentItem.data.rows.forEach(row => {
+					xValues.push(row[xAxisRo.value].value);
+				});
+
+				if (contentItem.data.columns[xAxisRo.value].hasOwnProperty("unit")) {
+					xUnitSymbol = contentItem.data.columns[xAxisRo.value].unit;
+				}
 			}
 		}
 
@@ -1090,11 +1104,19 @@ class SiteReportChart {
 			});
 		}
 		else {
-			contentItem.data.rows.forEach(row => {
-				yValues.push(row[yAxisRo.value].value);
-			});
-			if (contentItem.data.columns[yAxisRo.value].hasOwnProperty("unit")) {
-				yUnitSymbol = contentItem.data.columns[yAxisRo.value].unit;
+			if(contentItem.dataType == "key-value") {
+				contentItem.data.rows.forEach(row => {
+					console.log(row);
+				});
+			}
+			else {
+				contentItem.data.rows.forEach(row => {
+					yValues.push(row[yAxisRo.value].value);
+				});
+
+				if (contentItem.data.columns[yAxisRo.value].hasOwnProperty("unit")) {
+					yUnitSymbol = contentItem.data.columns[yAxisRo.value].unit;
+				}
 			}
 		}
 		

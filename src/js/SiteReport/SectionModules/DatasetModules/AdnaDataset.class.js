@@ -39,7 +39,10 @@ class AdnaDataset extends DatasetModule {
 		];
 		let rows = [];
 
+		let analysisVariables = new Map();
+
 		dataGroups.forEach(dataGroup => {
+			console.log(dataGroup);
             let subTableColumns = [
 				{
 					//title: "Dendro lookup id",
@@ -97,6 +100,16 @@ class AdnaDataset extends DatasetModule {
 				"rows": subTableRows
 			};
 
+			if(subTable.meta.dataStructure == "key-value") {
+				subTable.rows.forEach(row => {
+					let key = row[0].value; //value class id
+					let value = row[1].value; //variable name
+
+					analysisVariables.set(key, value);
+				});
+			}
+
+
             rows.push([
 				{
 					type: "subtable",
@@ -137,6 +150,28 @@ class AdnaDataset extends DatasetModule {
 			}
 		});
 
+
+		console.log(analysisVariables);
+
+		//convert axisOptions to array
+		let axisOptionsArray = [];
+		analysisVariables.forEach((value, key) => {
+			axisOptionsArray.push({
+				title: value,
+				value: key,
+				selected: false
+			});
+		});
+
+		console.log(analysisVariables);
+		console.log(axisOptionsArray);
+
+		axisOptionsArray.push({
+			title: "Sample name",
+			value: "sample name",
+			selected: false
+		});
+
         let contentItem = {
 			"name": "aDNA",
 			"title": "Ancient DNA samples",
@@ -146,6 +181,7 @@ class AdnaDataset extends DatasetModule {
 			"titleTooltip": "Name of the dataset",
 			"datasetId": 0,
 			"methodId": 10,
+			"dataType": "key-value",
 			"data": {
 				"columns": columns,
 				"rows": rows,
@@ -157,6 +193,43 @@ class AdnaDataset extends DatasetModule {
 					"selected": "table",
 					"type": "table"
 				},
+				{
+					"name": "Bar chart",
+					"selected": false,
+					"type": "bar",
+					"options": [
+						{
+							"enabled": true,
+							"title": "X axis",
+							"type": "select",
+							"selected": 1,
+							"options": axisOptionsArray
+						},
+						{
+							"enabled": true,
+							"title": "Y axis",
+							"type": "select",
+							"selected": 2,
+							"options": axisOptionsArray
+						},
+						{
+							"enabled": false,
+							"title": "Sort",
+							"type": "select",
+							"options": [
+								{
+									"title": 1,
+									"value": 1,
+								},
+								{
+									"title": 2,
+									"value": 2,
+									"selected": true
+								},
+							]
+						}
+					]
+				}
             ],
         };
 

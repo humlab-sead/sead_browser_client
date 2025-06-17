@@ -382,7 +382,7 @@ class ContentItemRenderer {
 				
 			}
 		}
-
+		
 		optionsContainerNode.html(html);
 		
 		
