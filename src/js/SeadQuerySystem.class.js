@@ -9,6 +9,7 @@ import ResultMap from './Result/ResultMap.class.js'
 import ResultTable from './Result/ResultTable.class.js'
 import ResultMosaic from './Result/ResultMosaic.class.js'
 import ResultGlobe from './Result/ResultGlobe.class.js'
+import ResultLab from './Result/ResultLab.class.js';
 import TaxaModule from './Common/TaxaModule.class.js'
 import StateManager from './StateManager.class.js';
 import DialogManager from './DialogManager.class.js';
@@ -411,6 +412,13 @@ class SeadQuerySystem {
 			this.resultManager.addModule([{
 				name: "globe",
 				module: new ResultGlobe(this.resultManager)
+			}]);
+		}
+
+		if(this.config.dataLabResultModuleEnabled) {
+			this.resultManager.addModule([{
+				name: "lab",
+				module: new ResultLab(this.resultManager)
 			}]);
 		}
 
