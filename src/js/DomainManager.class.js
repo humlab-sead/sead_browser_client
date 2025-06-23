@@ -80,9 +80,15 @@ class DomainManager {
 			menu.setSelected(domainName);
 		}
 
-        previousResultModule.unrender().then(() => {
+        if(previousResultModule) {
+            previousResultModule.unrender().then(() => {
+                this.sqs.sqsEventDispatch("domainChanged", domainName);
+            });
+        }
+        else {
             this.sqs.sqsEventDispatch("domainChanged", domainName);
-        });
+        }
+        
     }
     
     updateMenu() {
