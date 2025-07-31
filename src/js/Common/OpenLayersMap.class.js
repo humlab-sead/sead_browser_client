@@ -24,6 +24,7 @@ import proj4 from "proj4";
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import { extend, createEmpty } from 'ol/extent';
+import Config from '../../config/config.json';
 
 class OpenLayersMap {
     constructor(sqs) {
@@ -93,7 +94,44 @@ class OpenLayersMap {
 			"title": "Terrain",
 			"type": "baseLayer"
 		});
+
+		let stamenTerrainLabelsLayer = new TileLayer({
+			source: new StadiaMaps({
+				layer: 'stamen_terrain',
+				wrapX: true,
+				url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png",
+				attributions: [
+					'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>',
+					'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>',
+					'&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>',
+					'&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>'
+				],
+			}),
+			visible: false
+		});
+		stamenTerrainLabelsLayer.setProperties({
+			"layerId": "stamenTerrain",
+			"title": "Terrain (Labels & Lines)",
+			"type": "baseLayer"
+		});
+
+		let mapboxSatelliteLayer = new TileLayer({
+			source: new XYZ({
+				url: `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=${Config.mapBoxToken}`,
+				attributions: [
+					'© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
+					'© <a href="https://www.openstreetmap.org/about/">OpenStreetMap contributors</a>'
+				]
+			}),
+			visible: false
+		});
+		mapboxSatelliteLayer.setProperties({
+			"layerId": "mapboxSatellite",
+			"title": "Mapbox Satellite",
+			"type": "baseLayer"
+		});
 		
+		/*
 		let bingAerialLayer = new TileLayer({
 			source: new BingMaps({
 				key: 'At_1FuTga4p88618KkMhqxYZE71lCvBhzEx7ccisF9rShHoLsDLv-5zzGh3l25X5',
@@ -123,6 +161,7 @@ class OpenLayersMap {
 			"title": "Bing Aerial + Labels",
 			"type": "baseLayer"
 		});
+		*/
 		
 		let arcticDemLayer = new TileLayer({
 			source: new TileArcGISRest({
@@ -166,13 +205,12 @@ class OpenLayersMap {
 			"type": "baseLayer"
 		});
 
-		
 		this.baseLayers.push(stamenLayer);
-		this.baseLayers.push(bingAerialLayer);
-		this.baseLayers.push(bingAerialLabelsLayer);
+		this.baseLayers.push(stamenTerrainLabelsLayer);
 		this.baseLayers.push(arcticDemLayer);
 		this.baseLayers.push(osmLayer);
 		this.baseLayers.push(openTopoLayer);
+		this.baseLayers.push(mapboxSatelliteLayer);
 		
 		//Define data layers
         let dataLayer = new VectorLayer();
