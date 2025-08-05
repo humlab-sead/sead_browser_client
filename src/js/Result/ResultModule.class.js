@@ -139,8 +139,7 @@ class ResultModule {
 			if(module != null && typeof module.getSelectedSites == "function") {
 				selectedSites = module.getSelectedSites();
 			}
-
-
+			
 			const template = document.getElementById('exportOptionsTemplate');
 			if (!template) {
 				console.error("Export options template not found!");
@@ -795,6 +794,7 @@ class ResultModule {
 
 			// Start the worker with the necessary data
 			worker.postMessage({
+				methods: this.getSelectedMethodIdsForExport(),
 				selectedSites: siteIds,
 				dataServerAddress: Config.dataServerAddress
 			});

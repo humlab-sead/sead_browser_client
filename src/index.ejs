@@ -173,6 +173,29 @@
             <div id="result-mosaic-container" class="result-module-container"></div>
             <div id="result-taxon-container" class="result-module-container"></div>
             <div id="result-globe-container" class="result-module-container"></div>
+            <div id="result-lab-container" class="result-module-container">
+              <div id="result-lab-header">
+                <h2>Select & load data</h2>
+
+                <div id="lab-filter-selections-has-changed-warning">
+                  <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                  <span>Some of your site selections have changed since the last time you loaded data.</span>
+                  <button id="lab-filter-selections-has-changed-warning-btn">Reload data</button>
+                </div>
+
+                <label>Datasets</label>
+                <select id="result-lab-datasets-select" multiple="multiple">
+                </select>
+
+                <div id="lab-progress-bar-container">
+                  <div class="status-msg">Fetching data...</div>
+                  <div id="lab-progress-bar">
+                      <div class="lab-progress-bar-fill"></div>
+                  </div>
+                  <button id="lab-fetch-cancel-button">Cancel</button>
+                </div>
+              </div>
+            </div>
             <div id="show-query-btn" class="fa fa-database result-export-button"></div>
 
           </div>

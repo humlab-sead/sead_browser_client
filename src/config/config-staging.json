@@ -1,6 +1,6 @@
 {
 	"build": "staging",
-	"version": "2025-06.3-dev",
+	"version": "2025-06.4-dev",
 	"dataLicense": {
 		"name":"Creative Commons Attribution 4.0 International",
 		"shortName":"CC-BY-4.0",
@@ -35,6 +35,7 @@
 	"tutorialEnabled": true,
 	"copilotEnabled": false,
 	"globeResultModuleEnabled": true,
+	"dataLabResultModuleEnabled": true,
 	"legalNoticeMsg":"The SEAD system is using cookies to enhance functionality and track usage statistics. If you choose to utilize our viewstate functionality you are also agreeing to us storing a pseudonymized version of your email address for identification purposes. For more information please read our <span id='privacy-policy-link' class='jslink'>full policy regarding cookies & GDPR</span>. By continuing to use the site you are agreeing to this policy.",
 	"indicatorStringsForUnknownSpecies": ["indet.", "indet", "sp.", "spp.", "sp"],
 	"maxEolImageResults": 100,

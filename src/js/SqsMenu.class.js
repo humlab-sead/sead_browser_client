@@ -199,7 +199,7 @@ class sqsMenu {
 			if(item.visible == false) {
 				visibleClass = "sqs-menu-item-hidden";
 			}
-			let firstLevelItem = $("<div menu-item='"+item.name+"'><div class='first-level-item-title "+visibleClass+"'>"+item.title+"</div></div>");
+			let firstLevelItem = $("<div menu-item='"+item.name+"' class=\""+visibleClass+"\"><div class='first-level-item-title'>"+item.title+"</div></div>");
 			firstLevelItem.addClass("first-level-item");
 
 			if(menu.layout == "horizontal") {

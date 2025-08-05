@@ -16,8 +16,8 @@ function chunkArray(array, numChunks) {
 }
 
 // Function to fetch site data in chunks and merge results
-async function fetchSitesInChunks(selectedSites, dataServerAddress) {
-    const numChunks = 20;
+async function fetchSitesInChunks(methods, selectedSites, dataServerAddress) {
+    const numChunks = 100;
     const minThreshold = 10; // Minimum threshold to start chunking
     let siteChunks;
     if (selectedSites.length < minThreshold) {
@@ -38,7 +38,7 @@ async function fetchSitesInChunks(selectedSites, dataServerAddress) {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ siteIds: chunk })
+                body: JSON.stringify({ siteIds: chunk, methods: methods })
             });
             const data = await response.json();
             progress++;
@@ -66,6 +66,6 @@ async function fetchSitesInChunks(selectedSites, dataServerAddress) {
 
 // Listen for messages from the main thread
 onmessage = function(e) {
-    const { selectedSites, dataServerAddress } = e.data;
-    fetchSitesInChunks(selectedSites, dataServerAddress);
+    const { methods, selectedSites, dataServerAddress } = e.data;
+    fetchSitesInChunks(methods, selectedSites, dataServerAddress);
 };

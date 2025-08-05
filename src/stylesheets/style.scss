@@ -4312,6 +4312,50 @@ svg text {
   width: 0%;
 }
 
+#lab-filter-selections-has-changed-warning {
+  display: none;
+}
+
+#lab-filter-selections-has-changed-warning > .fa-exclamation-triangle {
+  color: $warning-color;
+  font-size: 1.2em;
+  line-height: 1.2em;
+  margin-right: 0.25em;
+  margin-bottom: 1em;
+}
+
+#lab-progress-bar-container {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  margin-top: 1em;
+  width: calc(100% - 2px);
+  height: 100%;
+  display: none;
+}
+
+#lab-progress-bar-container .status-msg {
+  margin: 0;
+  padding: 0;
+}
+
+#lab-progress-bar {
+  display: block;
+  margin-top: .5em;
+  width: 100%;
+  height: 26.09px;
+  border: 1px solid #ccc;
+}
+
+.lab-progress-bar-fill {
+  height: 100%;
+  background: $base-color;
+  width: 0%;
+}
+
+
+
+
 .sites-export-btn {
   display: inline-flex;
   align-items: center;
@@ -4365,8 +4409,8 @@ tr.free-text-search-result-row:hover {
 #show-query-btn {
   position: absolute;
   display: none;
-  left: 20px;
-  top: 20px;
+  right: 0px;
+  bottom: 60px;
   background: $base-color;
   color: #fff;
   padding: 0.5em;
@@ -4430,4 +4474,24 @@ a.ms-selectall {
 
 a.ms-selectall:hover {
   text-decoration: none !important;
+}
+
+#result-lab-header {
+  position: relative;
+  margin-left: 1em;
+  margin-bottom: 1em;
+  margin-top: 1em;
+  padding-bottom: 1em;
+  border-bottom: 1px solid $pane-bg-color-dark;
+  background: $pane-bg-color;
+  padding: 1em;
+}
+
+#result-lab-header > h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: $base-color;
+  margin: 0;
+  margin-bottom: 1em;
+  background: transparent;
 }
