@@ -491,6 +491,12 @@ class ResultLab extends ResultModule {
 	}
 
 	guessSemanticType(key, table) {
+		let rowIndex = -1;
+		table.columns.forEach((col, index) => {
+			if(col.key == key) {
+				rowIndex = index;
+			}
+		});
 
 		let typeGuessBasedOnColumnName = "";
 
@@ -500,7 +506,7 @@ class ResultLab extends ResultModule {
 
 		let typeGuessBasesOnValues = "nominal"; // Default to nominal
 		table.rows.forEach((row) => {
-			let value = row[key];
+			let value = row[rowIndex];
 			//check if all the values are numbers or dates or strings
 			if (value !== null && value !== undefined) {
 				if (!isNaN(Number(value))) {
@@ -513,14 +519,20 @@ class ResultLab extends ResultModule {
 			}
 		});
 
-
 		if(typeGuessBasedOnColumnName != typeGuessBasesOnValues) {
-			console.warn("Semantic type guess based on column name ("+typeGuessBasedOnColumnName+") does not match guess based on values ("+typeGuessBasesOnValues+"). Using the one based on values.");
+			console.warn("Semantic type guess based on column name '"+key+"' ("+typeGuessBasedOnColumnName+") does not match guess based on values ("+typeGuessBasesOnValues+"). Using the one based on values.");
 		}
 		return typeGuessBasesOnValues;
 	}
 
 	guessAnalyticType(key, table) {
+		let rowIndex = -1;
+		table.columns.forEach((col, index) => {
+			if(col.key == key) {
+				rowIndex = index;
+			}
+		});
+
 		let typeGuessBasedOnColumnName = "";
 
 		if (key.includes("abundance") || key.includes("count") || key.includes("value")) typeGuessBasedOnColumnName = "measure";
@@ -528,7 +540,7 @@ class ResultLab extends ResultModule {
 
 		let typeGuessBasesOnValues = "dimension"; // Default to dimension
 		table.rows.forEach((row) => {
-			let value = row[key];
+			let value = row[rowIndex];
 			//check if all the values are numbers or dates or strings
 			if (value !== null && value !== undefined) {
 				if (!isNaN(Number(value))) {
@@ -540,7 +552,7 @@ class ResultLab extends ResultModule {
 		});
 
 		if(typeGuessBasedOnColumnName != typeGuessBasesOnValues) {
-			console.warn("Analytic type guess based on column name ("+typeGuessBasedOnColumnName+") does not match guess based on values ("+typeGuessBasesOnValues+"). Using the one based on values.");
+			console.warn("Analytic type guess based on column name '"+key+"' ("+typeGuessBasedOnColumnName+") does not match guess based on values ("+typeGuessBasesOnValues+"). Using the one based on values.");
 		}
 		return typeGuessBasesOnValues;
 	}
