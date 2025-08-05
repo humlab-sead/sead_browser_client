@@ -166,6 +166,13 @@ class ResultModule {
 			if (selectElement) {
 				// Clear existing options (if any)
 				selectElement.innerHTML = '';
+
+				datasetSummaries.sort((a, b) => {
+					if (a.method_name < b.method_name) return -1;
+					if (a.method_name > b.method_name) return 1;
+					return 0;
+				});
+
 				// Add new options from your data
 				datasetSummaries.forEach(option => {
 					const opt = document.createElement('option');
