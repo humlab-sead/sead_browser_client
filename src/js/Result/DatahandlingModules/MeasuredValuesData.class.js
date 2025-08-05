@@ -55,7 +55,7 @@ class MeasuredValuesData extends DataHandlingModule {
 
     getDataAsTable(methodId, sites) {
         let method = this.getMethod(sites, methodId);
-        
+
         let table = {
             name: this.getSanitizedMethodName(method.method_name),
             columns: [...this.commonColumns], // Create a copy of commonColumns
