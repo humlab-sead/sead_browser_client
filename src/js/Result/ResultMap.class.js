@@ -7,9 +7,8 @@ import SqsMenu from '../SqsMenu.class';
 /*OpenLayers imports*/
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Image as ImageLayer } from 'ol/layer';
-import { StadiaMaps, BingMaps, ImageArcGISRest } from 'ol/source';
-import { Group as GroupLayer } from 'ol/layer';
+import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Image as ImageLayer, Group as GroupLayer } from 'ol/layer';
+import { StadiaMaps, ImageArcGISRest, OSM } from 'ol/source';
 import Overlay from 'ol/Overlay';
 import GeoJSON from 'ol/format/GeoJSON';
 import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
@@ -17,6 +16,8 @@ import { fromLonLat } from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
 import { Attribution } from 'ol/control';
+import XYZ from 'ol/source/XYZ';
+import Config from '../../config/config.json';
 
 
 /*
@@ -103,35 +104,72 @@ class ResultMap extends ResultModule {
 			"title": "Terrain",
 			"type": "baseLayer"
 		});
-		
-		let bingAerialLayer = new TileLayer({
-			source: new BingMaps({
-				key: this.sqs.config.keys.bingMaps,
-				imagerySet: "Aerial",
-				wrapX: true
+
+		let stamenTerrainLabelsLayer = new TileLayer({
+			source: new StadiaMaps({
+				layer: 'stamen_terrain',
+				wrapX: true,
+				url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png",
+				attributions: [
+					'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>',
+					'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>',
+					'&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>',
+					'&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>'
+				],
 			}),
 			visible: false
 		});
-		bingAerialLayer.setProperties({
-			"layerId": "bingAerial",
-			"title": "Bing Aerial",
-			"type": "baseLayer"
-		});
-		
-		let bingAerialLabelsLayer = new TileLayer({
-			source: new BingMaps({
-				key: this.sqs.config.keys.bingMaps,
-				imagerySet: "AerialWithLabels",
-				wrapX: true
-			}),
-			visible: false
-		});
-		bingAerialLabelsLayer.setProperties({
-			"layerId": "bingAerialLabels",
-			"title": "Bing Aerial + Labels",
+		stamenTerrainLabelsLayer.setProperties({
+			"layerId": "stamenTerrain",
+			"title": "Terrain (Labels & Lines)",
 			"type": "baseLayer"
 		});
 
+		let osmLayer = new TileLayer({
+			source: new OSM({
+				attributions: [
+					'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>'
+				]
+			}),
+			visible: false
+		});
+		osmLayer.setProperties({
+			"layerId": "osm",
+			"title": "OpenStreetMap",
+			"type": "baseLayer"
+		});
+
+		let mapboxSatelliteLayer = new TileLayer({
+			source: new XYZ({
+				url: `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=${Config.mapBoxToken}`,
+				attributions: [
+					'© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
+					'© <a href="https://www.openstreetmap.org/about/">OpenStreetMap contributors</a>'
+				]
+			}),
+			visible: false
+		});
+		mapboxSatelliteLayer.setProperties({
+			"layerId": "mapboxSatellite",
+			"title": "Mapbox Satellite",
+			"type": "baseLayer"
+		});
+
+		let openTopoLayer = new TileLayer({
+			source: new XYZ({
+				url: 'https://{a-c}.tile.opentopomap.org/{z}/{x}/{y}.png',
+				wrapX: true,
+				attributions: "Baselayer © <a target='_blank' href='https://www.opentopomap.org/'>OpenTopoMap</a>"
+			}),
+			visible: false
+		});
+		openTopoLayer.setProperties({
+			"layerId": "topoMap",
+			"title": "OpenTopoMap",
+			"type": "baseLayer"
+		});
+
+		/*
 		var arcticDemLayer = new ImageLayer({
 			source: new ImageArcGISRest({
 				attributions: "<a target='_blank' href='https://www.pgc.umn.edu/data/arcticdem/'>NSF PGC ArcticDEM</a>",
@@ -158,11 +196,14 @@ class ResultMap extends ResultModule {
 			"title": "PGC ArcticDEM",
 			"type": "baseLayer"
 		});
+		*/
 		
 		this.baseLayers.push(stamenLayer);
-		this.baseLayers.push(bingAerialLayer);
-		this.baseLayers.push(bingAerialLabelsLayer);
-		this.baseLayers.push(arcticDemLayer);
+		this.baseLayers.push(stamenTerrainLabelsLayer);
+		this.baseLayers.push(osmLayer);
+		this.baseLayers.push(mapboxSatelliteLayer);
+		this.baseLayers.push(openTopoLayer);
+		//this.baseLayers.push(arcticDemLayer);
 		
 		if(Config.resultMapDataLayers.includes("clusterPoints")) {
 			//Define data layers

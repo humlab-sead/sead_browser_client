@@ -517,8 +517,6 @@ class RangeFacet extends Facet {
 		var digitSpace = 30 + digits * 5;
 		$(".slider-manual-input-container .range-facet-manual-input", this.domObj).css("width", digitSpace);
 
-
-
 		$(".slider-manual-input-container", this.getDomRef()).show();
 
 		this.upperManualInputNode = $(".noUi-handle-upper .slider-manual-input-container .range-facet-manual-input", this.getDomRef());
@@ -529,14 +527,12 @@ class RangeFacet extends Facet {
 		
 
 		$(".slider-manual-input-container", this.getDomRef()).on("change", (evt) => {
-			console.log("Slider manual input change");
+			console.log("Slider manual input change", evt);
 			this.manualInputCallback(evt);
 		});
 		
 		this.slider.off("update");
 		this.slider.on("update", (values, slider) => {
-			
-			
 			let highValue = parseFloat(values[0]);
 			let lowValue = parseFloat(values[1]);
 			console.log("Slider update", values);
@@ -549,7 +545,6 @@ class RangeFacet extends Facet {
 		});
 		this.slider.on("change", (values, slider) => {
 			console.group("Slider change");
-			//this.sliderMovedCallback(values, slider);
 			this.sliderUpdateCallback(values);
 		});
 	}
@@ -745,26 +740,23 @@ class RangeFacet extends Facet {
 		};
 		
 		var endpointMoved = "";
-		
-		console.log(evt);
-		console.log($("input", evt.currentTarget).val());
 
 		if($(evt.currentTarget).attr("endpoint") == "upper") {
 			endpointMoved = "upper";
-			newValues.upper = $("input", evt.currentTarget).val();
-			newValues.lower = $(".slider-manual-input-container[endpoint='lower'] > input", this.getDomRef()).val();
+			newValues.upper = $("input.range-facet-manual-input", evt.currentTarget).val();
+			newValues.lower = $(".slider-manual-input-container[endpoint='lower'] > input.range-facet-manual-input", this.getDomRef()).val();
 			newValues.upper = parseFloat(newValues.upper);
 			newValues.lower = parseFloat(newValues.lower);
+			console.log("Upper endpoint moved", newValues.upper, newValues.lower);
 		}
 		if($(evt.currentTarget).attr("endpoint") == "lower") {
 			endpointMoved = "lower";
-			newValues.lower = $("input", evt.currentTarget).val();
-			newValues.upper = $(".slider-manual-input-container[endpoint='upper'] > input", this.getDomRef()).val();
+			newValues.lower = $("input.range-facet-manual-input", evt.currentTarget).val();
+			newValues.upper = $(".slider-manual-input-container[endpoint='upper'] > input.range-facet-manual-input", this.getDomRef()).val();
 			newValues.upper = parseFloat(newValues.upper);
 			newValues.lower = parseFloat(newValues.lower);
+			console.log("Lower endpoint moved", newValues.lower, newValues.upper);
 		}
-
-		console.log(newValues);
 		
 		let dataEndPoints = this.getDataEndpoints();
 
@@ -777,10 +769,7 @@ class RangeFacet extends Facet {
 			newValues.lower = dataEndPoints.min;
 		}
 
-		this.setSelections([newValues.lower, newValues.upper]);
-		let categories = this.makeCategories(this.data, this.getSelections());
-		this.updateChart(categories, this.getSelections());
-		this.updateSlider(categories, this.getSelections());
+		this.sliderUpdateCallback([newValues.lower, newValues.upper], true);
 	}
 	
 	/*

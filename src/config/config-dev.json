@@ -1,6 +1,6 @@
 {
 	"build": "staging",
-	"version": "2025-06.2-dev",
+	"version": "2025-06.4-dev",
 	"dataLicense": {
 		"name":"Creative Commons Attribution 4.0 International",
 		"shortName":"CC-BY-4.0",
@@ -49,6 +49,7 @@
 	"keys": {
 		"bingMaps": "At_1FuTga4p88618KkMhqxYZE71lCvBhzEx7ccisF9rShHoLsDLv-5zzGh3l25X5"
 	},
+	"mapBoxToken": "pk.eyJ1Ijoiam9oYW52b25ib2VyIiwiYSI6ImNqMWRmeGhoMjAwMTIycW50bGpwdnl4MmEifQ.9HuIuHG4feaeElfWWVMn4A",
 	"keyColors":[
 		"5B83AD",
 		"A02000",

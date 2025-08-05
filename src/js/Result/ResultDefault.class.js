@@ -22,6 +22,9 @@ class ResultDefault {
 		$("#result-container").append(domObj);
 	}
 
+	update() {
+	}
+
 	unrender() {
 		$("#result-default-contents").remove();
 	}
