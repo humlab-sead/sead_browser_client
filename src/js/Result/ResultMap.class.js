@@ -41,6 +41,10 @@ class ResultMap extends ResultModule {
 		this.includeTimeline = includeTimeline;
 
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
+		$(this.renderIntoNode).append(`<div class='result-map-legend-container'>
+			<h4>Legend</h4>
+			<div class='result-map-legend-content'></div>
+			</div>`);
 
 		//$(".result-map-render-container", this.renderIntoNode).css("height", "100%");
 
@@ -194,7 +198,9 @@ class ResultMap extends ResultModule {
 		sguTopoLayer.setProperties({
 			"layerId": "sguTopo",
 			"title": "SGU",
-			"type": "auxLayer"
+			"type": "auxLayer",
+			"legend": true,
+			"pendingMetaDataLoad": true
 		});
 
 		this.fetchWmsLayerInfo(sguTopoLayerUrl).then(layers => {
@@ -202,7 +208,8 @@ class ResultMap extends ResultModule {
 			layers.sort((a, b) => a.title.localeCompare(b.title));
 
 			sguTopoLayer.setProperties({
-				"subLayers": layers
+				"subLayers": layers,
+				"pendingMetaDataLoad": false
 			});
 		});
 
@@ -230,7 +237,9 @@ class ResultMap extends ResultModule {
 			"layerId": "msbFlooding",
 			"title": "MSB Flooding",
 			"type": "auxLayer",
-			"subLayers": []
+			"subLayers": [],
+			"legend": false,
+			"pendingMetaDataLoad": true
 		});
 
 
@@ -242,7 +251,8 @@ class ResultMap extends ResultModule {
 			layers.sort((a, b) => a.title.localeCompare(b.title));
 
 			msbFloodingLayer.setProperties({
-				"subLayers": layers
+				"subLayers": layers,
+				"pendingMetaDataLoad": false
 			});
 
 			if(msbFloodingLayer.getProperties().subLayers.length > 0) {
@@ -346,6 +356,38 @@ class ResultMap extends ResultModule {
 		this.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
 		this.resultManager.sqs.sqsEventListen("siteReportClosed", () => this.resizeCallback());
+	}
+
+	updateLegend(layer, selectedSubLayers) {
+		$(".result-map-legend-content", this.renderIntoNode).html("");
+		this.showLegend();
+		$(".result-map-legend-title", this.renderIntoNode).text(layer.getProperties().title);
+		$(".result-map-legend-description", this.renderIntoNode).text(layer.getProperties().description);
+		
+		let addedLegends = 0;
+		layer.getProperties().subLayers.forEach((subLayer) => {
+			//for each selected subLayer, we should draw the legend icon
+			if(selectedSubLayers.includes(subLayer.name)) {
+				$(".result-map-legend-content", this.renderIntoNode).append(`
+					<div class="result-map-legend-item">
+						<img src="${subLayer.legendUrl}" alt="${subLayer.title}" class="result-map-legend-icon">
+					</div>
+				`);
+				addedLegends++;
+			}
+		});
+
+		if(addedLegends == 0) {
+			$(".result-map-legend-container", this.renderIntoNode).hide();
+		}
+	}
+
+	hideLegend() {
+		$(".result-map-legend-container", this.renderIntoNode).hide();
+	}
+
+	showLegend() {
+		$(".result-map-legend-container", this.renderIntoNode).show();
 	}
 
 	getSelectedSites() {
@@ -731,6 +773,17 @@ class ResultMap extends ResultModule {
 		});
 	}
 
+	async waitForMetaDataLoadOnLayer(layer) {
+		return new Promise((resolve, reject) => {
+			setInterval(() => {
+				if(!layer.getProperties().pendingMetaDataLoad) {
+					clearInterval();
+					resolve();
+				}
+			}, 100);
+		});
+	}
+
 	setMapAuxLayer(auxLayerId) {
 		if(auxLayerId == "none") {
 			this.auxLayers.forEach((layer, index, array) => {
@@ -739,13 +792,17 @@ class ResultMap extends ResultModule {
 			this.unrenderSubLayerSelectionPanel();
 		}
 
-		this.auxLayers.forEach((layer, index, array) => {
-			console.log(layer.getProperties().layerId, auxLayerId);
+		this.auxLayers.forEach(async (layer, index, array) => {
 			if(layer.getProperties().layerId == auxLayerId) {
 				console.log("Setting aux layer "+auxLayerId+" visible");
 				layer.setVisible(true);
 				//make sure it's on top
 				layer.setZIndex(1);
+
+				if(layer.getProperties().pendingMetaDataLoad) {
+					console.log("Waiting for metadata to load on layer "+auxLayerId);
+					await this.waitForMetaDataLoadOnLayer(layer);
+				}
 
 				//check if the layer has subLayers
 				if(layer.getProperties().subLayers) {
@@ -870,6 +927,14 @@ class ResultMap extends ResultModule {
 
 		// Update the WMS source with the selected layers
 		this.updateLayerSource(layer, selectedLayers);
+
+
+		if(layer.getProperties().legend) {
+			this.updateLegend(layer, selectedLayers);
+		}
+		else {
+			this.hideLegend();
+		}
 	}
 
 	updateLayerSource(layer, selectedLayers) {
@@ -953,6 +1018,7 @@ class ResultMap extends ResultModule {
 	}
 
 	unrenderSubLayerSelectionPanel() {
+		this.hideLegend();
 		$("#result-map-sub-layer-selection-panel").remove();
 	}
 
@@ -1787,16 +1853,32 @@ class ResultMap extends ResultModule {
 	}
 
 	parseWmsCapabilities(xmlDoc, {
-		filterNumericNames = false,   // keep your old behavior but optional
-		sortByName = true,            // default: sort lexicographically
-		fallbackIfEmpty = true        // if numeric filter yields nothing, fall back to all
-		} = {}) {
+		filterNumericNames = false,
+		sortByName = true,
+		fallbackIfEmpty = true
+	} = {}) {
 		const WMS_NS = xmlDoc.documentElement?.namespaceURI || 'http://www.opengis.net/wms';
+		const XLINK_NS = 'http://www.w3.org/1999/xlink';
 
-		// Prefer namespace-aware; fall back to non-NS if needed
 		const get = (el, tag) =>
 			(el.getElementsByTagNameNS?.(WMS_NS, tag)[0] ||
 			el.getElementsByTagName(tag)[0]) ?? null;
+
+		const getLegendUrl = (layerEl) => {
+			const legendEls = layerEl.getElementsByTagNameNS?.(WMS_NS, 'LegendURL') || layerEl.getElementsByTagName('LegendURL');
+			if (!legendEls || legendEls.length === 0) return null;
+			for (let legendEl of legendEls) {
+				const onlineResource = legendEl.getElementsByTagNameNS?.(XLINK_NS, 'OnlineResource')[0]
+					|| legendEl.getElementsByTagName('OnlineResource')[0];
+				if (onlineResource) {
+					// Try xlink:href, fallback to href
+					return onlineResource.getAttributeNS
+						? onlineResource.getAttributeNS(XLINK_NS, 'href')
+						: onlineResource.getAttribute('xlink:href') || onlineResource.getAttribute('href');
+				}
+			}
+			return null;
+		};
 
 		const layerEls = Array.from(
 			(xmlDoc.getElementsByTagNameNS?.(WMS_NS, 'Layer') || xmlDoc.getElementsByTagName('Layer'))
@@ -1809,32 +1891,31 @@ class ResultMap extends ResultModule {
 
 			const titleEl = get(layerEl, 'Title');
 			const abstractEl = get(layerEl, 'Abstract');
+			const legendUrl = getLegendUrl(layerEl);
 
 			allLayers.push({
-			name: nameEl.textContent.trim(),
-			title: (titleEl?.textContent ?? nameEl.textContent).trim(),
-			abstract: (abstractEl?.textContent ?? '').trim(),
-			queryable: /^(1|true)$/i.test(layerEl.getAttribute('queryable') || '')
+				name: nameEl.textContent.trim(),
+				title: (titleEl?.textContent ?? nameEl.textContent).trim(),
+				abstract: (abstractEl?.textContent ?? '').trim(),
+				queryable: /^(1|true)$/i.test(layerEl.getAttribute('queryable') || ''),
+				legendUrl: legendUrl
 			});
 		}
 
-		// Optional numeric-only filter (ArcGIS MapServer style)
+		// ...existing filtering and sorting logic...
 		let layers = filterNumericNames
 			? allLayers.filter(l => /^\d+$/.test(l.name))
 			: allLayers;
 
-		// If user wanted numeric but none found (like this Lantmäteriet WMS), fall back
 		if (filterNumericNames && fallbackIfEmpty && layers.length === 0) {
 			layers = allLayers;
 		}
 
-		// Sorting
 		if (sortByName) {
-			// If all names are numeric, sort numerically; otherwise, locale sort (Swedish)
 			const allNumeric = layers.length > 0 && layers.every(l => /^\d+$/.test(l.name));
 			layers.sort(allNumeric
-			? (a, b) => Number(a.name) - Number(b.name)
-			: (a, b) => a.name.localeCompare(b.name, 'sv'));
+				? (a, b) => Number(a.name) - Number(b.name)
+				: (a, b) => a.name.localeCompare(b.name, 'sv'));
 		}
 
 		return layers;
