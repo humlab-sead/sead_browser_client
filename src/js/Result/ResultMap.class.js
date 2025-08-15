@@ -8,7 +8,7 @@ import SqsMenu from '../SqsMenu.class';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Image as ImageLayer, Group as GroupLayer } from 'ol/layer';
-import { StadiaMaps, ImageArcGISRest, OSM } from 'ol/source';
+import { StadiaMaps, ImageArcGISRest, OSM, TileWMS } from 'ol/source';
 import Overlay from 'ol/Overlay';
 import GeoJSON from 'ol/format/GeoJSON';
 import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
@@ -52,6 +52,7 @@ class ResultMap extends ResultModule {
 		this.icon = "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>";
 		this.baseLayers = [];
 		this.dataLayers = [];
+		this.auxLayers = [];
         this.currentZoomLevel = 4;
 		this.selectPopupOverlay = null;
 		this.selectInteraction = null;
@@ -169,6 +170,91 @@ class ResultMap extends ResultModule {
 			"type": "baseLayer"
 		});
 
+		let sguTopoLayerUrl = "https://maps3.sgu.se/geoserver/wms";
+		let sguTopoLayer = new TileLayer({
+			source: new TileWMS({
+				url: sguTopoLayerUrl,
+				params: {
+					'LAYERS': '', // jord:SE.GOV.SGU.JORD.GRUNDLAGER.1M
+					'TILED': false,
+					'FORMAT': 'image/png',
+					'TRANSPARENT': true,
+					'SRS': 'EPSG:3857', // Web Mercator for OpenLayers compatibility
+					'STYLES': '' //JORD_1M_Grundlager
+				},
+				serverType: 'geoserver',
+				attributions: [
+					'© <a href="https://www.sgu.se/" target="_blank">Sveriges geologiska undersökning (SGU)</a>',
+					'© <a href="https://www.lantmateriet.se/" target="_blank">Lantmäteriet</a>'
+				]
+			}),
+			visible: false
+		});
+
+		sguTopoLayer.setProperties({
+			"layerId": "sguTopo",
+			"title": "SGU",
+			"type": "auxLayer"
+		});
+
+		this.fetchWmsLayerInfo(sguTopoLayerUrl).then(layers => {
+			//sort layers by title
+			layers.sort((a, b) => a.title.localeCompare(b.title));
+
+			sguTopoLayer.setProperties({
+				"subLayers": layers
+			});
+		});
+
+
+		// Aux layers
+		let msbFloodingLayerUrl = "https://gisapp.msb.se/arcgis/services/Oversvamningskarteringar/karteringar/MapServer/WmsServer";
+		const msbFloodingLayer = new TileLayer({
+			source: new TileWMS({
+				url: msbFloodingLayerUrl,
+				params: {
+					'LAYERS': '6', // adjust per capabilities
+					'TILED': true,
+					'FORMAT': 'image/png'
+				},
+				serverType: 'geoserver', // or 'mapserver', etc.
+				attributions: [
+					'© <a href="https://www.msb.se/" target="_blank">MSB</a>'
+				]
+			}),
+			visible: false
+		});
+
+
+		msbFloodingLayer.setProperties({
+			"layerId": "msbFlooding",
+			"title": "MSB Flooding",
+			"type": "auxLayer",
+			"subLayers": []
+		});
+
+
+		this.fetchWmsLayerInfo(msbFloodingLayerUrl).then(layers => {
+			//remove the layer at index 0, because it's empty - this is assuming msb floods 
+			layers.shift();
+
+			//sort layers by title
+			layers.sort((a, b) => a.title.localeCompare(b.title));
+
+			msbFloodingLayer.setProperties({
+				"subLayers": layers
+			});
+
+			if(msbFloodingLayer.getProperties().subLayers.length > 0) {
+				//set a default subLayer
+				msbFloodingLayer.setProperties({
+					"selectedSubLayer": 15 //set 15 as the default, which is "Översvämningskarterade vattendrag, översikt"
+				});
+			}
+		});
+
+		
+
 		/*
 		var arcticDemLayer = new ImageLayer({
 			source: new ImageArcGISRest({
@@ -203,7 +289,12 @@ class ResultMap extends ResultModule {
 		this.baseLayers.push(osmLayer);
 		this.baseLayers.push(mapboxSatelliteLayer);
 		this.baseLayers.push(openTopoLayer);
+		
 		//this.baseLayers.push(arcticDemLayer);
+
+		
+		this.auxLayers.push(msbFloodingLayer);
+		this.auxLayers.push(sguTopoLayer);
 		
 		if(Config.resultMapDataLayers.includes("clusterPoints")) {
 			//Define data layers
@@ -439,13 +530,15 @@ class ResultMap extends ResultModule {
 				collapsible: false,
 				collapsed: false,
 			});
+
+			const allBaseAndAuxLayers = [...this.baseLayers, ...this.auxLayers];
 			
 			this.olMap = new Map({
 				target: this.renderMapIntoNode,
 				attribution: true,
 				controls: [attribution], //Override default controls and set NO controls
 				layers: new GroupLayer({
-					layers: this.baseLayers
+					layers: allBaseAndAuxLayers
 				}),
 				
 				view: new View({
@@ -581,6 +674,13 @@ class ResultMap extends ResultModule {
 		$("#result-map-controls-container").append(dataLayersHtml);
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
 
+		let auxLayersHtml = "<div class='result-map-map-control-item-container'>";
+		auxLayersHtml += "<div id='result-map-auxlayer-controls-menu' class='result-map-map-control-item'>Overlays</div>";
+		auxLayersHtml += "<div id='result-map-auxlayer-controls-menu-anchor'></div>";
+		auxLayersHtml += "</div>";
+		$("#result-map-controls-container").append(auxLayersHtml);
+		new SqsMenu(this.resultManager.sqs, this.resultMapAuxLayersControlsSqsMenu());
+
 
 		/*
 		d3.select(this.renderMapIntoNode)
@@ -631,11 +731,237 @@ class ResultMap extends ResultModule {
 		});
 	}
 
+	setMapAuxLayer(auxLayerId) {
+		if(auxLayerId == "none") {
+			this.auxLayers.forEach((layer, index, array) => {
+				layer.setVisible(false);
+			});
+			this.unrenderSubLayerSelectionPanel();
+		}
+
+		this.auxLayers.forEach((layer, index, array) => {
+			console.log(layer.getProperties().layerId, auxLayerId);
+			if(layer.getProperties().layerId == auxLayerId) {
+				console.log("Setting aux layer "+auxLayerId+" visible");
+				layer.setVisible(true);
+				//make sure it's on top
+				layer.setZIndex(1);
+
+				//check if the layer has subLayers
+				if(layer.getProperties().subLayers) {
+					this.renderSubLayerSelectionPanel(layer);
+				}
+				else {
+					this.unrenderSubLayerSelectionPanel();
+				}
+			}
+			else {
+				layer.setVisible(false);
+			}
+		});
+	}
+
+	renderSubLayerSelectionPanel(layer) {
+		//remove if it exists
+		this.unrenderSubLayerSelectionPanel();
+
+		$(this.renderMapIntoNode).append("<div id='result-map-sub-layer-selection-panel'></div>");
+
+		//set to the same width as the #result-map-auxlayer-controls-menu and account for 1em padding
+		//const auxMenuWidth = $("#result-map-auxlayer-controls-menu").outerWidth();
+		//$("#result-map-sub-layer-selection-panel").css("width", `calc(${auxMenuWidth}px - 2em)`);
+		$("#result-map-sub-layer-selection-panel").css("width", `20em`);
+
+		// Add title
+		const titleHtml = `
+			<div class="sub-layer-header">
+				<h4>Select Layers</h4>
+				<button type="button" id="minimize-sublayer-panel" class="minimize-btn" title="Minimize panel">
+					<i class="fa fa-minus" aria-hidden="true"></i>
+				</button>
+			</div>
+		`;
+		$("#result-map-sub-layer-selection-panel").append(titleHtml);
+
+		$("#result-map-sub-layer-selection-panel").append("<div id='sub-layer-content'></div>");
+
+		//the content shall consist of a list of checkboxes corresponding to the subLayers in the layer
+		let content = "<div class='result-map-sub-layer-selection'>";
+
+		layer.getProperties().subLayers.forEach((subLayer) => {
+			// Check if this sublayer is currently selected (in the selected layers array)
+			const selectedLayers = layer.getProperties().selectedSubLayers || [];
+			const checked = selectedLayers.includes(subLayer.name) ? "checked" : "";
+
+			content += `
+				<label class="sub-layer-label">
+					<input type="checkbox" class="sub-layer-checkbox" name="sub-layer" value="${subLayer.name}" ${checked}>
+					<span class="sub-layer-title">${subLayer.title}</span>
+					${subLayer.abstract ? `<div class="sub-layer-description">${subLayer.abstract}</div>` : ''}
+				</label>
+			`;
+		});
+
+		content += "</div>";
+
+		// Add "Select All" and "Clear All" buttons
+		content += `
+			<div class="sub-layer-controls">
+				<button type="button" id="select-all-sublayers" class="sub-layer-btn">Select All</button>
+				<button type="button" id="clear-all-sublayers" class="sub-layer-btn">Clear All</button>
+			</div>
+		`;
+
+		$("#sub-layer-content").append(content);
+
+		// Add event listeners for checkbox changes
+		$("[name='sub-layer']").on("change", (event) => {
+			this.updateSelectedSubLayers(layer);
+		});
+
+		// Add event listeners for control buttons
+		$("#select-all-sublayers").on("click", () => {
+			$("[name='sub-layer']").prop("checked", true);
+			this.updateSelectedSubLayers(layer);
+		});
+
+		$("#clear-all-sublayers").on("click", () => {
+			$("[name='sub-layer']").prop("checked", false);
+			this.updateSelectedSubLayers(layer);
+		});
+
+		// Add event listener for minimize button
+		$("#minimize-sublayer-panel").on("click", () => {
+			const content = $("#sub-layer-content");
+			const button = $("#minimize-sublayer-panel");
+			const icon = button.find("i");
+			
+			if (content.is(":visible")) {
+				// Minimize
+				content.slideUp(200);
+				icon.removeClass("fa-minus").addClass("fa-plus");
+				button.attr("title", "Expand panel");
+			} else {
+				// Expand
+				content.slideDown(200);
+				icon.removeClass("fa-plus").addClass("fa-minus");
+				button.attr("title", "Minimize panel");
+			}
+		});
+
+		// Initialize with current selection
+		this.updateSelectedSubLayers(layer);
+	}
+
+	updateSelectedSubLayers(layer) {
+		const selectedLayers = [];
+		
+		// Collect all checked sublayers
+		$("[name='sub-layer']:checked").each(function() {
+			selectedLayers.push($(this).val());
+		});
+
+		// Update layer properties
+		layer.setProperties({ 
+			selectedSubLayers: selectedLayers,
+			// Keep backwards compatibility with single selection
+			selectedSubLayer: selectedLayers.length > 0 ? selectedLayers[0] : null
+		});
+
+		// Update the WMS source with the selected layers
+		this.updateLayerSource(layer, selectedLayers);
+	}
+
+	updateLayerSource(layer, selectedLayers) {
+		if (selectedLayers.length === 0) {
+			// If no layers selected, hide the layer
+			layer.setVisible(false);
+			return;
+		}
+
+		// Make layer visible if it has selected sublayers
+		layer.setVisible(true);
+
+		// Get the layer source and update LAYERS parameter
+		const source = layer.getSource();
+		const currentParams = source.getParams();
+		
+		// Join multiple layer names with comma (WMS standard)
+		const layersParam = selectedLayers.join(',');
+		
+		source.updateParams({
+			...currentParams,
+			'LAYERS': layersParam
+		});
+
+		console.log(`Updated layer with sublayers: ${layersParam}`);
+
+		// Refresh the layer to apply changes
+		source.refresh();
+	}
+
+	renderSubLayerSelectionPanelOLD(layer) {
+		//remove if it exists
+		this.unrenderSubLayerSelectionPanel();
+
+		$(this.renderMapIntoNode).append("<div id='result-map-sub-layer-selection-panel'></div>");
+
+		//set to the same width as the #result-map-auxlayer-controls-menu and account for 1em padding
+		const auxMenuWidth = $("#result-map-auxlayer-controls-menu").outerWidth();
+		$("#result-map-sub-layer-selection-panel").css("width", `calc(${auxMenuWidth}px - 2em)`);
+
+		//the content shall consist of a list of radio buttons correspond to the subLayers in the layer
+		let content = "<div class='result-map-sub-layer-selection'>";
+
+		layer.getProperties().subLayers.forEach((subLayer) => {
+
+			let checked = "";
+			if(layer.getProperties().selectedSubLayer == subLayer.name) {
+				checked = "checked";
+			}
+
+			content += `
+				<label class="sub-layer-label">
+					<input type="radio" class="sub-layer-radio-btn" name="sub-layer" value="${subLayer.name}" ${checked}>
+					${subLayer.title}
+				</label>
+			`;
+		});
+
+		content += "</div>";
+
+		$("#result-map-sub-layer-selection-panel").append(content);
+
+		$("[name='sub-layer']").on("change", (event) => {
+			let selectedSubLayer = $(event.target).val();
+			this.setSelectedSubLayer(layer, selectedSubLayer);
+		});
+
+		this.setSelectedSubLayer(layer, layer.getProperties().selectedSubLayer);
+	}
+
+	setSelectedSubLayer(layer, selectedSubLayer) {
+		// Convert single selection to array format
+		const selectedLayers = Array.isArray(selectedSubLayer) ? selectedSubLayer : [selectedSubLayer];
+		
+		layer.setProperties({ 
+			selectedSubLayers: selectedLayers,
+			selectedSubLayer: selectedLayers[0] // Keep backwards compatibility
+		});
+
+		this.updateLayerSource(layer, selectedLayers);
+	}
+
+	unrenderSubLayerSelectionPanel() {
+		$("#result-map-sub-layer-selection-panel").remove();
+	}
+
 	/*
 	* Function: setMapDataLayer
 	*/
 	setMapDataLayer(dataLayerId) {
 		this.clearSelections();
+
 		this.dataLayers.forEach((layer, index, array) => {
 			if(layer.getProperties().layerId == dataLayerId && layer.getVisible() == false) {
 				layer.setVisible(true);
@@ -1287,6 +1613,66 @@ class ResultMap extends ResultModule {
 				callback: this.makeMapControlMenuCallback(prop)
 			});
 		}
+
+		//add a special 'none' menu item
+		menu.items.push({
+			name: "none",
+			title: "None",
+			tooltip: "Disable all data layers",
+			staticSelection: false,
+			selected: false,
+			callback: this.makeMapControlMenuCallback({
+				layerId: "none",
+				type: "dataLayer"
+			})
+		});
+
+		return menu;
+	}
+
+	resultMapAuxLayersControlsSqsMenu() {
+		var menu = {
+			title: "<i class=\"fa fa-cogs result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Auxiliary layers</span>", //The name of the menu as it will be displayed in the UI
+			layout: "vertical", //"horizontal" or "vertical" - the flow director of the menu items
+			collapsed: true, //whether the menu expands on mouseover (like a dropdown) or it's always expanded (like tabs or buttons)
+			anchor: "#result-map-auxlayer-controls-menu-anchor", //the attachment point of the menu in the DOM. Must be a valid DOM selector of a single element, such as a div.
+			staticSelection: true, //whether a selected item remains highlighted or not, purely visual
+			visible: true, //show this menu by default
+			style: {
+				menuTitleClass: "result-map-control-menu-title",
+				l1TitleClass: "result-map-control-item-title"
+			},
+			items: [ //The menu items contained in this menu
+			],
+			triggers: [{
+				selector: "#result-map-auxlayer-controls-menu",
+				on: "click"
+			}]
+		};
+
+		for(var key in this.auxLayers) {
+			var prop = this.auxLayers[key].getProperties();
+			menu.items.push({
+				name: prop.layerId, //identifier of this item, should be unique within this menu
+				title: prop.title, //displayed in the UI
+				tooltip: "",
+				staticSelection: prop.visible, //For tabs - highlighting the currently selected
+				selected: prop.visible,
+				callback: this.makeMapControlMenuCallback(prop)
+			});
+		}
+		//add a special 'none' menu item
+		menu.items.push({
+			name: "none",
+			title: "None",
+			tooltip: "Disable all overlays",
+			staticSelection: false,
+			selected: false,
+			callback: this.makeMapControlMenuCallback({
+				layerId: "none",
+				type: "auxLayer"
+			})
+		});
 		return menu;
 	}
 
@@ -1301,6 +1687,9 @@ class ResultMap extends ResultModule {
 					break;
 				case "baseLayer":
 					this.setMapBaseLayer(layerProperties.layerId);
+					break;
+				case "auxLayer":
+					this.setMapAuxLayer(layerProperties.layerId);
 					break;
 			}
 		}
@@ -1350,6 +1739,105 @@ class ResultMap extends ResultModule {
 				this.olMap.updateSize();
 			}, 500);
 		}
+	}
+
+	async fetchWmsLayerInfo(baseUrl, options = {}) {
+		const defaultOptions = {
+			version: '1.3.0',
+			filterNumericNames: false,
+			sortByName: true
+		};
+		
+		const config = { ...defaultOptions, ...options };
+		
+		try {
+			// Construct capabilities URL
+			const capabilitiesUrl = `${baseUrl}?SERVICE=WMS&REQUEST=GetCapabilities&VERSION=${config.version}`;
+			
+			console.log(`Fetching WMS capabilities from: ${capabilitiesUrl}`);
+			
+			// Fetch capabilities
+			const response = await fetch(capabilitiesUrl);
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+			}
+			
+			const xmlText = await response.text();
+			
+			// Parse the XML
+			const parser = new DOMParser();
+			const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+			
+			// Check for XML parsing errors
+			const parserError = xmlDoc.querySelector('parsererror');
+			if (parserError) {
+				throw new Error(`XML parsing error: ${parserError.textContent}`);
+			}
+			
+			// Extract layer information
+			const layers = this.parseWmsCapabilities(xmlDoc, config);
+			
+			console.log(`Successfully parsed ${layers.length} layers from WMS service`);
+			return layers;
+			
+		} catch (error) {
+			console.error(`Failed to fetch WMS capabilities from ${baseUrl}:`, error);
+			throw error;
+		}
+	}
+
+	parseWmsCapabilities(xmlDoc, {
+		filterNumericNames = false,   // keep your old behavior but optional
+		sortByName = true,            // default: sort lexicographically
+		fallbackIfEmpty = true        // if numeric filter yields nothing, fall back to all
+		} = {}) {
+		const WMS_NS = xmlDoc.documentElement?.namespaceURI || 'http://www.opengis.net/wms';
+
+		// Prefer namespace-aware; fall back to non-NS if needed
+		const get = (el, tag) =>
+			(el.getElementsByTagNameNS?.(WMS_NS, tag)[0] ||
+			el.getElementsByTagName(tag)[0]) ?? null;
+
+		const layerEls = Array.from(
+			(xmlDoc.getElementsByTagNameNS?.(WMS_NS, 'Layer') || xmlDoc.getElementsByTagName('Layer'))
+		);
+
+		const allLayers = [];
+		for (const layerEl of layerEls) {
+			const nameEl = get(layerEl, 'Name');
+			if (!nameEl) continue; // skip root/group layers
+
+			const titleEl = get(layerEl, 'Title');
+			const abstractEl = get(layerEl, 'Abstract');
+
+			allLayers.push({
+			name: nameEl.textContent.trim(),
+			title: (titleEl?.textContent ?? nameEl.textContent).trim(),
+			abstract: (abstractEl?.textContent ?? '').trim(),
+			queryable: /^(1|true)$/i.test(layerEl.getAttribute('queryable') || '')
+			});
+		}
+
+		// Optional numeric-only filter (ArcGIS MapServer style)
+		let layers = filterNumericNames
+			? allLayers.filter(l => /^\d+$/.test(l.name))
+			: allLayers;
+
+		// If user wanted numeric but none found (like this Lantmäteriet WMS), fall back
+		if (filterNumericNames && fallbackIfEmpty && layers.length === 0) {
+			layers = allLayers;
+		}
+
+		// Sorting
+		if (sortByName) {
+			// If all names are numeric, sort numerically; otherwise, locale sort (Swedish)
+			const allNumeric = layers.length > 0 && layers.every(l => /^\d+$/.test(l.name));
+			layers.sort(allNumeric
+			? (a, b) => Number(a.name) - Number(b.name)
+			: (a, b) => a.name.localeCompare(b.name, 'sv'));
+		}
+
+		return layers;
 	}
 
 }

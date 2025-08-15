@@ -9,7 +9,8 @@
   "scripts": {
     "prepare-config": "node prepare-config.js",
     "build": "npm run prepare-config && webpack --progress --mode production --devtool source-map",
-    "dev": "npm run prepare-config && webpack serve --progress --mode development --allowed-hosts localhost --devtool source-map",
+    "dev": "npm run prepare-config && webpack serve --progress --mode development --allowed-hosts all --devtool source-map",
+    "watch": "npm run prepare-config && webpack --watch --progress --mode development --devtool source-map",
     "build:dev": "npm run prepare-config && webpack --mode=production --progress",
     "build:staging": "npm run prepare-config && webpack --mode=production --progress",
     "build:prod": "npm run prepare-config && webpack --mode=production --progress",

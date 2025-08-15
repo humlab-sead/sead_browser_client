@@ -44,5 +44,5 @@ RUN npm install && npm run build:prod && cp -R dist/* /var/www/html/
 RUN npm install --save-dev webpack-dev-server
 
 # Build for production, otherwise, start dev server
-CMD ["sh", "-c", "if [ \"$MODE\" = \"dev\" ]; then npm run dev -- --port 80; else nginx -g 'daemon off;'; fi"]
+CMD ["sh", "-c", "if [ \"$MODE\" = \"dev\" ]; then npm run dev -- --port 8090; else nginx -g 'daemon off;'; fi"]
 
