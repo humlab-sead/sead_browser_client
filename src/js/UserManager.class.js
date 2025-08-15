@@ -6,17 +6,44 @@ class UserManager {
 
 		this.sqs.sqsEventListen("seadSaveStateClicked", () => {
 			this.sqs.stateManager.setViewStateDialog("save");
-			this.renderGoogleLogin();
+			this.renderGenericLogin();
+			this.checkSigninStatus();
 		});
 
 		this.sqs.sqsEventListen("seadLoadStateClicked", () => {
 			this.sqs.stateManager.setViewStateDialog("load");
-			this.renderGoogleLogin();
+			this.renderGenericLogin();
+			this.checkSigninStatus();
 		});
 
 		this.sqs.sqsEventListen("popOverClosed", () => {
-			this.unRenderGoogeLogin();
+			this.unrenderGenericLogin();
 		});
+
+		
+	}
+
+	getUser() {
+		//the user object is expected to contain the at least the following properties:
+		//displayName, email, provider
+		return this.user;
+	}
+
+	async checkSigninStatus() {
+		const response = await fetch(this.sqs.config.dataServerAddress+'/auth/status', {
+			credentials: 'include' // Important: send cookies!
+		});
+		const data = await response.json();
+		console.log(data);
+		if (data.loggedIn) {
+			// User is logged in, data.user contains user info
+			this.user = data.user;
+			this.renderLoggedIn();
+		} else {
+			// Not logged in
+			this.user = null;
+			this.renderLoggedOut();
+		}
 	}
 
 	googleLogin() {
@@ -40,38 +67,83 @@ class UserManager {
 		
 	}
 
-	renderGoogleLogin() {
+	renderLoggedIn() {
 
+		console.log(this.user);
+
+		let userImage = this.user.photos && this.user.photos.length > 0 ? this.user.photos[0].value : "";
+
+		let providerCapitalized = this.user.provider.charAt(0).toUpperCase() + this.user.provider.slice(1);
+
+		document.getElementById("login-status-container").innerHTML = `
+		Logged in with ${providerCapitalized}<br /><br />
+		<div class="user-profile">
+			<img src="${userImage}" alt="User Image" class="user-profile-image" />
+			<span style='font-weight:bold;'>${this.user.displayName}</span>
+		</div>`;
+
+		document.getElementById("login-status-container").style.display = "block";
+		document.getElementById("login-options-container").style.display = "none";
+
+		document.getElementById("logout-button").style.display = "block";
+		document.getElementById("logout-button").onclick = () => {
+			console.log("Logout clicked");
+			fetch(this.sqs.config.dataServerAddress + '/auth/logout', {
+				method: 'POST',
+				credentials: 'include' // Important: send cookies!
+			}).then(() => {
+				this.user = null;
+				console.log("User logged out");
+				this.renderLoggedOut();
+			}).catch(error => {
+				console.error('Logout failed:', error);
+			});
+		}
+
+		document.getElementById("viewstate-save-input").style.display = "block";
+		document.getElementById("viewstate-save-btn").style.display = "block";
+	}
+
+	renderLoggedOut() {
+		document.getElementById("login-status-container").innerHTML = "Not logged in";
+		document.getElementById("login-status-container").style.display = "none";
+		document.getElementById("login-options-container").style.display = "block";
+
+		document.getElementById("logout-button").style.display = "none";
+	}
+
+	renderGenericLogin() {
 		let dialog = this.sqs.stateManager.getViewStateDialog();
 		let dialogNodeId = "";
 		if(dialog == "save") {
-			dialogNodeId = "#viewStateSaveGoogleLogin";
+			dialogNodeId = "#viewStateSaveLogin";
 		}
 		if(dialog == "load") {
-			dialogNodeId = "#viewStateLoadGoogleLogin";
+			dialogNodeId = "#viewStateLoadLogin";
 		}
 
-		let googleLoginNode = $("#googleLoginTemplate")[0].cloneNode(true);
-		$(googleLoginNode).attr("id", "googleLoginContainer").show();
-		$(dialogNodeId).append(googleLoginNode);
+		const template = document.getElementById('login-template');
+		const clone = template.content.cloneNode(true);
+		$(dialogNodeId).append(clone);
 
-		this.googleLogin();
+		$(".login-button").on("click", (event) => {
+			const provider = $(event.currentTarget).attr("provider");
+			const popup = window.open(this.sqs.config.dataServerAddress + `/auth/${provider}`, `${provider}Login`, "width=500,height=600");
 
-		if(this.user != null) {
-			this.renderUserLoggedIn();
-		}
-		else {
-			this.renderUserLoggedOut(dialog);
-		}
-
-		this.googleLoginRendered = true;
+			window.addEventListener("message", (event) => {
+				if (event.origin !== window.location.origin) return; // Security check
+				if (event.data.type === "login-success" && event.data.provider === provider) {
+					this.user = event.data.user;
+					this.renderLoggedIn();
+					popup.close();
+				}
+			});
+		});
 	}
 
-	unRenderGoogeLogin() {
-		if(this.googleLoginRendered) {
-			$("#googleLoginContainer").remove();
-			this.googleLoginRendered = false;
-		}
+	unrenderGenericLogin() {
+		$("#google-login-button").off("click");
+		$("#login-container").remove();
 	}
 
 	renderUserLoggedIn() {
@@ -102,71 +174,6 @@ class UserManager {
 			$("#googleLoginRecommendationLoad").show();
 			$("#googleLoginRecommendationSave").hide();
 		}
-	}
-
-	activateGoogleLoginButton() {
-		console.log("activateGoogleLoginButton");
-		let googleLoginNode = $("#googleLoginTemplate")[0].cloneNode(true);
-		$(googleLoginNode).attr("id", "googleLogin");
-		$("#viewStateSaveGoogleLogin").html(googleLoginNode);
-
-		gapi.signin2.render('google-signin', {
-			'scope': 'profile email',
-			'width': 240,
-			'height': 50,
-			'longtitle': false,
-			'theme': 'dark',
-			'onsuccess': this.googleLoginSuccess,
-			'onfailure': this.googleLoginFail
-		});
-	}
-
-	googleLoginSuccess(googleUser) {
-
-		var profile = googleUser.getBasicProfile();
-
-		window.sqs.userManager.user = {
-			"id": profile.getId(),
-			"name": profile.getName(),
-			"email": profile.getEmail(),
-			"image": profile.getImageUrl(),
-			"id_token":  googleUser.getAuthResponse().id_token
-		};
-
-		window.sqs.userManager.renderUserLoggedIn();
-		window.sqs.sqsEventDispatch("userLoggedIn", window.sqs.userManager.user);
-	}
-
-	googleLoginFail(error) {
-		console.log("googleLoginFail", error);
-	}
-
-	googleLogout() {
-		let auth2 = gapi.auth2.getAuthInstance();
-		auth2.signOut().then(() => {
-			//"this" is NOT the UserManager here
-			window.sqs.userManager.user = null;
-			let dialog = window.sqs.stateManager.getViewStateDialog();
-			if(dialog == "save") {
-				$("#googleLoginContainer #googleLoginRecommendationSave").show();
-				$("#googleLoginContainer #googleLoginRecommendationLoad").hide();
-			}
-			if(dialog == "load") {
-				$("#googleLoginContainer #googleLoginRecommendationLoad").show();
-				$("#googleLoginContainer #googleLoginRecommendationSave").hide();
-			}
-			
-			$("#googleLoginInformation").hide();
-			$("#viewstate-load-list").hide();
-			$("#googleLoginContainer #google-signin").show();
-			$("#viewstate-load-list").hide();
-			$("#viewstate-save-input").hide();
-			$("#viewstate-save-btn").hide();
-		});
-
-		//auth2.disconnect(); //Revokes all of the scopes that the user granted.
-
-		window.sqs.sqsEventDispatch("userLoggedOut");
 	}
 
 	sqsMenu() {

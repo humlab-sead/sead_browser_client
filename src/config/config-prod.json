@@ -8,7 +8,6 @@
 	},
 	"serverRoot":"https://__DOMAIN__",
 	"serverAddress":"https://__DOMAIN__/query",
-	"viewStateServerAddress":"https://__DOMAIN__/vsapi",
 	"siteReportServerAddress":"https://__DOMAIN__/postgrest",
 	"dataServerAddress": "https://__DOMAIN__/jsonapi",
 	"defaultResultModule":"mosaic",

@@ -1731,6 +1731,14 @@ h1.main-header {
 	color: $aux-color;
 }
 
+.viewstate-dialog-content-container {
+  display: grid;
+  grid-template-columns: 1.618fr 1fr;
+  grid-template-rows: auto;
+  grid-column-gap: 20px;
+  grid-row-gap: 10px;
+}
+
 #logo-section {
 	margin-top: 20px;
   display: flex;
@@ -1793,37 +1801,16 @@ h1.main-header {
   color: $aux-color;
 }
 
-.viewstate-dialog {
-  display:grid;
-  grid-template-columns: [left] 1fr [right] 0.2fr;
-  grid-template-rows: 1fr;
-  grid-column-gap: 20px;
-  max-width: 800px;
-}
-
-.viewstate-dialog > button {
-	margin-top: 20px;
-	max-width: 10%;
-	min-width: 80px;
-	max-height: 10%;
-	min-height: 45px;
-	font-size: 20px;
-}
-
-.viewstate-dialog > h1 {
-	margin-top:0px;
-}
-
 #viewstate-save-btn {
-  display:none; //Hidden by default, shown when logged in
-  width: 120px;
-  height: 35px;
-  background: $aux-color;
-  border: 1px solid #ccc;
+  display: none;
+  background-color: $base-color;
   color: #fff;
-  font-weight: bold;
+  font-size: 1.2em;
+  padding: 0.5em 1em;
+  border: none;
+  border-radius: 4px;
   cursor: pointer;
-  margin-top:10px;
+  margin-top: 1em;
 }
 
 #viewstate-save-input {
@@ -3012,16 +2999,37 @@ polyline{
   padding-left: 7px;
 }
 
+.user-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  height: 100%;
+}
+
 .google-user-display {
   display: grid;
   grid-template-columns: [image] 50px [info] 1fr;
   grid-template-rows: 1;
 }
 
-.google-user-profile-image {
-  grid-column: image;
-  width: 50px;
-  height: 50px;
+.login-provider-icon {
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
+  margin-right: 5px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  margin:0;
+  padding:0;
+  position: relative;
+  top: 1px;
+}
+
+.user-profile-image {
+  max-width: 100px;
+  max-height: 100px;
 }
 
 .google-user-profile-email {
@@ -4494,4 +4502,24 @@ a.ms-selectall:hover {
   margin: 0;
   margin-bottom: 1em;
   background: transparent;
+}
+
+.login-button {
+  display: inline-block;
+  background: $base-color;
+  color: #fff;
+  padding: 0.5em 1em;
+  margin-bottom: 1em;
+  border-radius: 0.25em;
+  text-decoration: none;
+  font-size: 1.2em;
+}
+
+.login-button:hover {
+  background: lighten($base-color, 10%);
+  cursor: pointer;
+}
+
+#logout-button {
+  margin-top: 1em;
 }

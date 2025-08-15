@@ -80,6 +80,51 @@ class DialogManager {
 		return $("#popover-dialog-frame > .popover-content");
 	}
 
+	showPopOverFragment(title, fragment, options = {}) {
+		$("#popover-dialog").css("grid-template-columns", "5% 1fr 5%");
+		$("#popover-dialog").css("grid-template-rows", "5% 1fr 5%");
+
+		if(options.width) {
+			$("#popover-dialog-frame").css("width", options.width);
+		}
+		if(options.height) {
+			$("#popover-dialog-frame").css("height", options.height);
+		}
+		if(options.margin) {
+			$("#popover-dialog").css("grid-template-columns", options.margin+" 1fr "+options.margin);
+			$("#popover-dialog").css("grid-template-rows", options.margin+" 1fr "+options.margin);
+		}
+
+		if(title == "") {
+			$("#popover-dialog-frame > h1").hide();
+		}
+		else {
+			$("#popover-dialog-frame > h1").text(title);
+			$("#popover-dialog-frame > h1").show();
+		}
+
+		// Clear previous content and append the fragment/node
+		const contentContainer = $("#popover-dialog-frame > .popover-content");
+		contentContainer.empty();
+		// If fragment is a DocumentFragment or Node, append it
+		if (fragment instanceof DocumentFragment || fragment instanceof Node) {
+			contentContainer[0].appendChild(fragment);
+		} else if (typeof fragment === "string") {
+			// fallback: if a string is passed, set as HTML
+			contentContainer.html(fragment);
+		}
+
+		$("#popover-dialog").css("display", "grid");
+		$("#popover-dialog").show();
+
+		this.sqs.sqsEventDispatch("popOverOpened", {
+			title: title,
+			content: fragment
+		});
+
+		return contentContainer;
+	}
+
 	hidePopOver() {
 		$("#popover-dialog").hide();
 		$("#popover-dialog-frame").css("width", "");

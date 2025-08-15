@@ -8,7 +8,6 @@
 	},
 	"serverRoot":"http://__DOMAIN__:8080",
 	"serverAddress":"http://__DOMAIN__:8080/query",
-	"viewStateServerAddress":"http://__DOMAIN__:8080/vsapi",
 	"siteReportServerAddress":"http://__DOMAIN__:8080/postgrest",
 	"dataServerAddress": "http://__DOMAIN__:8080/jsonapi",
 	"copilotServerAddress": "wss://__DOMAIN__:8080/ai-assistant",

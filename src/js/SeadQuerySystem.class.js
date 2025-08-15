@@ -27,6 +27,8 @@ import AIAssistant from './AIAssistant.class.js';
 import { nanoid } from 'nanoid';
 import ApiWsChannel from './ApiWsChannel.class.js';
 
+import "../assets/icons/orcid.logo.icon.svg";
+
 //import css from '../stylesheets/style.scss';
 
 /* 
@@ -600,7 +602,7 @@ class SeadQuerySystem {
 				dataType: "json",
 				timeout: Config.preloadTimeout,
 				success: (data) => {
-					this.apiVersion = data[0]+data[1];
+					this.apiVersion = data.join(".");
 					resolve(data);
 				},
 				error: (e) => {

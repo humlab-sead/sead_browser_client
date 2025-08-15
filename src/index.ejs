@@ -38,17 +38,6 @@
   <meta name="msapplication-config" content="assets/icons/browserconfig.xml">
   <meta name="theme-color" content="#ffffff">
 
-  <meta name="google-signin-client_id"
-    content="989880823583-jmp43kmh4puojj41t6klg867uk486sfr.apps.googleusercontent.com">
-  <script>function googleInit() {
-      let interval = setInterval(() => {
-        if (typeof sqs != "undefined" && typeof sqs.userManager != "undefined") {
-          clearInterval(interval);
-        }
-      }, 100);
-    }</script>
-  <script src="https://apis.google.com/js/platform.js?onload=googleInit" async defer></script>
-
   <!-- Matomo -->
   <script>
     var _paq = window._paq = window._paq || [];
@@ -312,6 +301,38 @@
 
   <div id="templates" style="display:none;">
 
+    <template id="login-template">
+      <div class="login-container">
+        <div class="login-header">
+        </div>
+        <div id="login-status-container">
+          
+        </div>
+        <div id="login-options-container">
+          <div id="google-login-button" class="login-button" provider="google">
+            <i class="fa fa-google login-provider-icon" aria-hidden="true"></i>
+              <span>Login with Google</span>
+          </div>
+
+          <div id="orcid-login-button" class="login-button" provider="orcid">
+              <img src="orcid.logo.icon.svg" alt="ORCID Logo" class="login-provider-icon" />
+              <span>Login with ORCID</span>
+          </div>
+
+          <div id="github-login-button" class="login-button" provider="github">
+              <i class="fa fa-github login-provider-icon" aria-hidden="true"></i>
+              <span>Login with GitHub</span>
+          </div>
+        </div>
+
+        <div id="logout-button" class="login-button">
+          <i class="fa fa-sign-out" aria-hidden="true"></i>
+          <span>Logout</span>
+        </div>
+        
+      </div>
+    </template>
+
     <template id="exportOptionsTemplate">
       <div>
           This export will contain <span style="font-weight:bold;" data-num-sites></span> sites.<br><br>
@@ -530,26 +551,38 @@
     </template>
 
 
-    <div id="viewstate-load-dialog" class="viewstate-dialog overlay-dialog">
-      <div class="overlay-dialog-close-btn fa fa-times"></div>
-      <h1>Load viewstate</h1>
-      <div class="overlay-dialog-content">
-        <!--
-          <select id="viewstate-load-list">
-          </select>
-          -->
-
-        <div id="viewstate-load-list">
+    <template id="viewstate-load-template">
+      <div id="viewstate-load-dialog" class="viewstate-dialog">
+        <div class="overlay-dialog-content viewstate-dialog-content-container">
+          <div id="viewstate-load-list"></div>
+          <div id="viewStateLoadLogin"></div>
         </div>
-
-        <!--<button id="viewstate-load-btn">Load</button>-->
-
-
-        <div id="viewStateLoadGoogleLogin"></div>
       </div>
-    </div>
+    </template>
 
-    <div id="viewstate-save-dialog" class="viewstate-dialog">
+    <template id="viewstate-save-template">
+      <div id="viewstate-save-dialog" class="viewstate-dialog">
+        <div class="overlay-dialog-content viewstate-dialog-content-container">
+
+          <div>
+            <p>A viewstate functions as a bookmark that saves your currently selected filters and other user interface
+              settings. Viewstates are public and can be viewed by anyone with the link. Please do not rely on viewstate
+              links as permanent resources.</p>
+
+          
+            <input id="viewstate-save-input" class="viewstate-input" type="text"
+              placeholder="Viewstate name (optional)" />
+            <button id="viewstate-save-btn">Save</button>
+          </div>
+
+          <div id="viewStateSaveLogin"></div>
+
+        </div>
+      </div>
+    </template>
+
+
+    <div id="viewstate-save-dialog" class="viewstate-dialog overlay-dialog">
       <div style="grid-column: left;">
         <p>A viewstate functions as a bookmark that saves your currently selected filters and other user interface
           settings. Viewstates are public and can be viewed by anyone with the link. Please do not rely on viewstate
@@ -561,7 +594,7 @@
         </div>
       </div>
 
-      <div id="viewStateSaveGoogleLogin"></div>
+      <div id="viewStateSaveLogin"></div>
     </div>
 
     <div id="viewstate-post-save-dialog" class="viewstate-dialog overlay-dialog">
@@ -763,6 +796,8 @@
         </ul>
       </div>
     </div>
+
+    
 
     <div id="googleLoginTemplate">
       <!--

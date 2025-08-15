@@ -32,16 +32,9 @@ class StateManager {
 	}
 
 	renderSaveViewstateDialog() {
-		//let content = $("#templates > #viewstate-save-dialog").html();
-		let content = $("#templates > #viewstate-save-dialog")[0].cloneNode(true);
-		this.sqs.dialogManager.showPopOver("Save viewstate", content.outerHTML);
-
-
-
-		/*
-		var content = $("#viewstate-save-dialog > .overlay-dialog-content").html();
-		this.sqs.dialogManager.showPopOver("Save viewstate", content);
-		*/
+		let frag = $("#viewstate-save-template")[0].content.cloneNode(true);
+		this.sqs.dialogManager.showPopOverFragment("Save viewstate", frag);
+		
 		$("#viewstate-save-btn").on("click", () => {
 			let state = this.saveState();
 			this.sendState(state).then(() => {
@@ -56,8 +49,8 @@ class StateManager {
 	}
 
 	renderLoadViewstateDialog() {
-		var content = $("#viewstate-load-dialog > .overlay-dialog-content").html();
-		this.sqs.dialogManager.showPopOver("Load viewstate", content);
+		let frag = $("#viewstate-load-template")[0].content.cloneNode(true);
+		this.sqs.dialogManager.showPopOverFragment("Load viewstate", frag);
 	}
 
 	/*
@@ -161,11 +154,12 @@ class StateManager {
 
 		//viewstates = this.makeListUniqueByProperty(viewstates, "id");
 
+		let user = this.sqs.userManager.getUser();
+		console.log("User:", user);
 
 		//If user is logged in, fetch viewstates from server
-		if(typeof this.sqs.userManager != "undefined" && this.sqs.userManager.user != null) {
-
-			$.ajax(this.sqs.config.viewStateServerAddress+"/viewstates/"+this.sqs.userManager.user.id_token, {
+		if(user != null) {
+			$.ajax(this.sqs.config.dataServerAddress+"/viewstates/"+user.id_token, {
 				method: "get",
 				success: (viewstates) => {
 					if(!Config.requireLoginForViewstateStorage) {
@@ -240,7 +234,7 @@ class StateManager {
 	}
 
 	deleteViewstate(viewstateId) {
-		$.ajax(this.sqs.config.viewStateServerAddress+"/viewstate/"+viewstateId+"/"+this.sqs.userManager.user.id_token, {
+		$.ajax(this.sqs.config.dataServerAddress+"/viewstate/"+viewstateId+"/"+this.sqs.userManager.user.id_token, {
 			method: "delete",
 			success: () => {
 				$(".viewstate-load-item > .vs-id[vsid='"+viewstateId+"']").parent().slideUp(500);
@@ -259,7 +253,7 @@ class StateManager {
 	fetchState(stateId) {
 		
 		//var address = Config.serverAddress;
-		$.ajax(Config.viewStateServerAddress+"/viewstate/"+stateId, {
+		$.ajax(Config.dataServerAddress+"/viewstate/"+stateId, {
 			method: "GET",
 			dataType: "json",
 			error: function(jqXHR, textStatus, errorThrown) {
@@ -305,7 +299,7 @@ class StateManager {
 
 		upload = JSON.stringify(upload);
 		//var address = Config.serverAddress;
-		var address = Config.viewStateServerAddress;
+		var address = Config.dataServerAddress;
 		$.ajax(address+"/viewstate", {
 			method: "POST",
 			processData: true,
@@ -386,9 +380,11 @@ class StateManager {
 
 		window.localStorage.setItem("viewstate-"+stateId, JSON.stringify(state));
 
+		/*
 		window.history.pushState(state,
 			"SEAD",
 			"/viewstate/"+stateId);
+		*/
 
 		this.updateLoadStateDialog();
 		return state;
@@ -473,6 +469,8 @@ class StateManager {
 			layout: "vertical",
 			collapsed: true,
 			anchor: "#help-menu",
+			items: []
+			/*
 			items: [
 				{
 					name: "save",
@@ -490,6 +488,7 @@ class StateManager {
 				}
 				
 			]
+			*/
 		};
 	}
 }
