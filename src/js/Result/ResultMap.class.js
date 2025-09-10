@@ -204,11 +204,206 @@ class ResultMap extends ResultModule {
 		});
 
 		this.fetchWmsLayerInfo(sguTopoLayerUrl).then(layers => {
-			//sort layers by title
-			layers.sort((a, b) => a.title.localeCompare(b.title));
+
+			const sguKeepList = [
+				"strandforskjmodell_bp100_vy",
+				"strandforskjmodell_bp200_vy",
+				"strandforskjmodell_bp300_vy",
+				"strandforskjmodell_bp400_vy",
+				"strandforskjmodell_bp500_vy",
+				"strandforskjmodell_bp600_vy",
+				"strandforskjmodell_bp700_vy",
+				"strandforskjmodell_bp800_vy",
+				"strandforskjmodell_bp900_vy",
+				"strandforskjmodell_bp1000_vy",
+				"strandforskjmodell_bp1200_vy",
+				"strandforskjmodell_bp1300_vy",
+				"strandforskjmodell_bp1400_vy",
+				"strandforskjmodell_bp1500_vy",
+				"strandforskjmodell_bp1600_vy",
+				"strandforskjmodell_bp1700_vy",
+				"strandforskjmodell_bp1800_vy",
+				"strandforskjmodell_bp1900_vy",
+				"strandforskjmodell_bp2000_vy",
+				"strandforskjmodell_bp2100_vy",
+				"strandforskjmodell_bp2200_vy",
+				"strandforskjmodell_bp2300_vy",
+				"strandforskjmodell_bp2400_vy",
+				"strandforskjmodell_bp2500_vy",
+				"strandforskjmodell_bp2600_vy",
+				"strandforskjmodell_bp2700_vy",
+				"strandforskjmodell_bp2800_vy",
+				"strandforskjmodell_bp2900_vy",
+				"strandforskjmodell_bp3000_vy",
+				"strandforskjmodell_bp3100_vy",
+				"strandforskjmodell_bp3200_vy",
+				"strandforskjmodell_bp3300_vy",
+				"strandforskjmodell_bp3400_vy",
+				"strandforskjmodell_bp3500_vy",
+				"strandforskjmodell_bp3600_vy",
+				"strandforskjmodell_bp3700_vy",
+				"strandforskjmodell_bp3800_vy",
+				"strandforskjmodell_bp3900_vy",
+				"strandforskjmodell_bp4000_vy",
+				"strandforskjmodell_bp4100_vy",
+				"strandforskjmodell_bp4200_vy",
+				"strandforskjmodell_bp4300_vy",
+				"strandforskjmodell_bp4400_vy",
+				"strandforskjmodell_bp4500_vy",
+				"strandforskjmodell_bp4600_vy",
+				"strandforskjmodell_bp4700_vy",
+				"strandforskjmodell_bp4800_vy",
+				"strandforskjmodell_bp4900_vy",
+				"strandforskjmodell_bp5000_vy",
+				"strandforskjmodell_bp5100_vy",
+				"strandforskjmodell_bp5200_vy",
+				"strandforskjmodell_bp5300_vy",
+				"strandforskjmodell_bp5400_vy",
+				"strandforskjmodell_bp5500_vy",
+				"strandforskjmodell_bp5600_vy",
+				"strandforskjmodell_bp5700_vy",
+				"strandforskjmodell_bp5800_vy",
+				"strandforskjmodell_bp5900_vy",
+				"strandforskjmodell_bp6000_vy",
+				"strandforskjmodell_bp6100_vy",
+				"strandforskjmodell_bp6200_vy",
+				"strandforskjmodell_bp6300_vy",
+				"strandforskjmodell_bp6400_vy",
+				"strandforskjmodell_bp6500_vy",
+				"strandforskjmodell_bp6600_vy",
+				"strandforskjmodell_bp6700_vy",
+				"strandforskjmodell_bp6800_vy",
+				"strandforskjmodell_bp6900_vy",
+				"strandforskjmodell_bp7000_vy",
+				"strandforskjmodell_bp7100_vy",
+				"strandforskjmodell_bp7200_vy",
+				"strandforskjmodell_bp7300_vy",
+				"strandforskjmodell_bp7400_vy",
+				"strandforskjmodell_bp7500_vy",
+				"strandforskjmodell_bp7600_vy",
+				"strandforskjmodell_bp7700_vy",
+				"strandforskjmodell_bp7800_vy",
+				"strandforskjmodell_bp7900_vy",
+				"strandforskjmodell_bp8000_vy",
+				"strandforskjmodell_bp8100_vy",
+				"strandforskjmodell_bp8200_vy",
+				"strandforskjmodell_bp8300_vy",
+				"strandforskjmodell_bp8400_vy",
+				"strandforskjmodell_bp8500_vy",
+				"strandforskjmodell_bp8600_vy",
+				"strandforskjmodell_bp8700_vy",
+				"strandforskjmodell_bp8800_vy",
+				"strandforskjmodell_bp8900_vy",
+				"strandforskjmodell_bp9000_vy",
+				"strandforskjmodell_bp9100_vy",
+				"strandforskjmodell_bp9200_vy",
+				"strandforskjmodell_bp9300_vy",
+				"strandforskjmodell_bp9400_vy",
+				"strandforskjmodell_bp9500_vy",
+				"strandforskjmodell_bp9600_vy",
+				"strandforskjmodell_bp9700_vy",
+				"strandforskjmodell_bp9800_vy",
+				"strandforskjmodell_bp9900_vy",
+				"strandforskjmodell_bp10000_vy",
+				"strandforskjmodell_bp10100_vy",
+				"strandforskjmodell_bp10200_vy",
+				"strandforskjmodell_bp10300_vy",
+				"strandforskjmodell_bp10400_vy",
+				"strandforskjmodell_bp10500_vy",
+				"strandforskjmodell_bp10600_vy",
+				"strandforskjmodell_bp10700_vy",
+				"strandforskjmodell_bp10800_vy",
+				"strandforskjmodell_bp10900_vy",
+				"strandforskjmodell_bp11000_vy",
+				"strandforskjmodell_bp11100_vy",
+				"strandforskjmodell_bp11200_vy",
+				"strandforskjmodell_bp11300_vy",
+				"strandforskjmodell_bp11400_vy",
+				"strandforskjmodell_bp11500_vy",
+				"strandforskjmodell_bp11600_vy",
+				"strandforskjmodell_bp11700_vy",
+				"strandforskjmodell_bp11800_vy",
+				"strandforskjmodell_bp11900_vy",
+				"strandforskjmodell_bp12000_vy",
+				"strandforskjmodell_bp12100_vy",
+				"strandforskjmodell_bp12200_vy",
+				"strandforskjmodell_bp12300_vy",
+				"strandforskjmodell_bp12400_vy",
+				"strandforskjmodell_bp12500_vy",
+				"strandforskjmodell_bp12600_vy",
+				"strandforskjmodell_bp12700_vy",
+				"strandforskjmodell_bp12800_vy",
+				"strandforskjmodell_bp12900_vy",
+				"strandforskjmodell_bp13000_vy",
+				"strandforskjmodell_bp13100_vy",
+				"strandforskjmodell_bp13200_vy",
+				"strandforskjmodell_bp13300_vy",
+				"strandforskjmodell_bp13400_vy",
+				"strandforskjmodell_bp13500_vy",
+				"bekv_kartform_vy",
+				"bekv_bkvv_vy",
+				"stre_erof_prognos_vy",
+				"stre_eros_index_vy_v2",
+				"stre_eros_skydd_vy",
+				"stre_eros_skydd_v2_vy",
+				"landform_poly_fluvial_vy",
+				"v_er_fossil_fuel_resource",
+				"v_geologicunit_surficial_25_100_poly",
+				"v_geologicunit_surficial_25_100_point",
+				"v_geologicunit_surficial_750_poly",
+				"jkar_abcdg_jg2_genomslapp_vy",
+				"plan_undersokningsomrade_geofysik_vy",
+				"plan_undersokningsomrade_geokemi_vy",
+				"stre_nnh_moh_1_vy_v2",
+				"stre_nnh_moh_15_vy",
+				"stre_nnh_moh_15_vy_v2",
+				"stre_nnh_moh_2_vy",
+				"stre_nnh_moh_2_vy_v2",
+				"stre_nnh_moh_3_vy",
+				"stre_nnh_moh_3_vy_v2",
+				"skugga",
+				"genomslapplighet_berg",
+				"malo_sont_vy",
+				"mare_sont_vy",
+				"bark_brunnar_icke_energi_vy",
+				"malm_malmer_ferrous_metals_vy",
+				"jkar_abcdg_jg2_stre_vy",
+				"jdjupmod_und_djup_min_vy",
+				"blab_kemi_ree_y_tot_vy",
+				"mark_moran_salpeter_icpms_sr_vy",
+				"bmod_struktur_textursymbol_vy",
+				"made_matl_vy"
+			];
+
+
+			console.log(layers);
+
+			layers.flat.filter(layer => !sguKeepList.includes(layer.abstract)).forEach(layer => {
+				let index = layers.flat.indexOf(layer);
+				if (index > -1) {
+					layers.flat.splice(index, 1);
+				}
+			});
+
+			layers.layers.filter(layer => !sguKeepList.includes(layer.abstract)).forEach(layer => {
+				let index = layers.layers.indexOf(layer);
+				if (index > -1) {
+					layers.layers.splice(index, 1);
+				}
+			});
+
+			layers.tree.forEach(layerGroup => {
+				layerGroup.children.filter(layer => !sguKeepList.includes(layer.abstract)).forEach(layer => {
+					let index = layerGroup.children.indexOf(layer);
+					if (index > -1) {
+						layerGroup.children.splice(index, 1);
+					}
+				});
+			});
 
 			sguTopoLayer.setProperties({
-				"subLayers": layers,
+				"subLayers": layers.flat,
+				"subLayersTree": layers.tree,
 				"pendingMetaDataLoad": false
 			});
 		});
@@ -242,16 +437,13 @@ class ResultMap extends ResultModule {
 			"pendingMetaDataLoad": true
 		});
 
-
 		this.fetchWmsLayerInfo(msbFloodingLayerUrl).then(layers => {
 			//remove the layer at index 0, because it's empty - this is assuming msb floods 
-			layers.shift();
-
-			//sort layers by title
-			layers.sort((a, b) => a.title.localeCompare(b.title));
+			//layers.shift();
 
 			msbFloodingLayer.setProperties({
-				"subLayers": layers,
+				"subLayers": layers.flat,
+				"subLayersTree": layers.tree,
 				"pendingMetaDataLoad": false
 			});
 
@@ -263,7 +455,402 @@ class ResultMap extends ResultModule {
 			}
 		});
 
-		
+		let raaWmsUrl = "https://pub.raa.se/visning/uppdrag_v1/wms";
+		const raaWmsLayer = new TileLayer({
+			source: new TileWMS({
+				url: raaWmsUrl,
+				params: {
+					'LAYERS': '', // Will be set by sublayer selection
+					'TILED': true,
+					'FORMAT': 'image/png',
+					'TRANSPARENT': true,
+					'SRS': 'EPSG:3857'
+				},
+				serverType: 'geoserver',
+				attributions: [
+					'© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
+				]
+			}),
+			visible: false
+		});
+
+		raaWmsLayer.setProperties({
+			"layerId": "raaWms",
+			"title": "RAÄ Arkeologiska uppdrag",
+			"type": "auxLayer",
+			"subLayers": [],
+			"legend": true,
+			"pendingMetaDataLoad": true
+		});
+
+		this.fetchWmsLayerInfo(raaWmsUrl).then(layers => {
+			console.log(layers);
+			// Remove the first layer if it's a group/root layer with no name
+			if (layers.length && !layers[0].name) layers.shift();
+			raaWmsLayer.setProperties({
+				"subLayers": layers.flat,
+				"subLayersTree": layers.tree,
+				"pendingMetaDataLoad": false
+			});
+			// Optionally set a default sublayer
+			if (raaWmsLayer.getProperties().subLayers.length > 0) {
+				raaWmsLayer.setProperties({
+					"selectedSubLayer": raaWmsLayer.getProperties().subLayers[0].name
+				});
+			}
+		});
+
+		let raaBebyggelseWmsUrl = "https://pub.raa.se/visning/bebyggelse_kulturhistoriskt_inventerad_v1/wms";
+		const raaBebyggelseLayer = new TileLayer({
+			source: new TileWMS({
+				url: raaBebyggelseWmsUrl,
+				params: {
+					'LAYERS': '', // Will be set by sublayer selection
+					'TILED': true,
+					'FORMAT': 'image/png',
+					'TRANSPARENT': true,
+					'SRS': 'EPSG:3857',
+				},
+				serverType: 'geoserver',
+				attributions: [
+					'© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
+				]
+			}),
+			visible: false
+		});
+
+		raaBebyggelseLayer.setProperties({
+			"layerId": "raaBebyggelse",
+			"title": "RAÄ Kulturhistoriskt inventerad bebyggelse",
+			"type": "auxLayer",
+			"subLayers": [],
+			"legend": true,
+			"pendingMetaDataLoad": true
+		});
+
+		this.fetchWmsLayerInfo(raaBebyggelseWmsUrl).then(layers => {
+			// Remove the first layer if it's a group/root layer with no name
+			if (layers.length && !layers[0].name) layers.shift();
+			raaBebyggelseLayer.setProperties({
+				"subLayers": layers.flat,
+				"subLayersTree": layers.tree,
+				"pendingMetaDataLoad": false
+			});
+			// Optionally set a default sublayer
+			if (raaBebyggelseLayer.getProperties().subLayers.length > 0) {
+				raaBebyggelseLayer.setProperties({
+					"selectedSubLayer": raaBebyggelseLayer.getProperties().subLayers[0].name
+				});
+			}
+		});
+
+		const raaByggnadsminnenSkyddsomradenUrl = "https://pub.raa.se/visning/enskilda_och_statliga_byggnadsminnen_skyddsomraden_v1/wms";
+		const raaByggnadsminnenSkyddsomradenLayer = new TileLayer({
+			source: new TileWMS({
+				url: raaByggnadsminnenSkyddsomradenUrl,
+				params: {
+					'LAYERS': '', // Will be set by sublayer selection
+					'TILED': true,
+					'FORMAT': 'image/png',
+					'TRANSPARENT': true,
+					'SRS': 'EPSG:3857'
+				},
+				serverType: 'geoserver',
+				attributions: [
+					'© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
+				]
+			}),
+			visible: false
+		});
+
+		raaByggnadsminnenSkyddsomradenLayer.setProperties({
+			"layerId": "raaByggnadsminnenSkyddsomraden",
+			"title": "RAÄ Byggnadsminnen och skyddsområden",
+			"type": "auxLayer",
+			"subLayers": [],
+			"legend": true,
+			"pendingMetaDataLoad": true
+		});
+
+		this.fetchWmsLayerInfo(raaByggnadsminnenSkyddsomradenUrl).then(layers => {
+			// Remove the first layer if it's a group/root layer with no name
+			if (layers.length && !layers[0].name) layers.shift();
+			raaByggnadsminnenSkyddsomradenLayer.setProperties({
+				"subLayers": layers.flat,
+				"subLayersTree": layers.tree,
+				"pendingMetaDataLoad": false
+			});
+			// Optionally set a default sublayer
+			if (raaByggnadsminnenSkyddsomradenLayer.getProperties().subLayers.length > 0) {
+				raaByggnadsminnenSkyddsomradenLayer.setProperties({
+					"selectedSubLayer": raaByggnadsminnenSkyddsomradenLayer.getProperties().subLayers[0].name
+				});
+			}
+		});
+
+		let raaBuildingsAndChurchesUrl = "https://inspire-raa.metria.se/geoserver/Byggnader/ows";
+        const raaBuildingsAndChurchesLayer = new TileLayer({
+            source: new TileWMS({
+                url: raaBuildingsAndChurchesUrl,
+                params: {
+                    'LAYERS': '', // Will be set by sublayer selection
+                    'TILED': true,
+                    'FORMAT': 'image/png',
+                    'TRANSPARENT': true,
+                    'SRS': 'EPSG:3857'
+                },
+                serverType: 'geoserver',
+                attributions: [
+                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
+                ]
+            }),
+            visible: false
+        });
+
+        raaBuildingsAndChurchesLayer.setProperties({
+            "layerId": "raaBuildingsAndChurches",
+            "title": "RAÄ Byggnader och kyrkor",
+            "type": "auxLayer",
+            "subLayers": [],
+            "legend": true,
+            "pendingMetaDataLoad": true
+        });
+
+        this.fetchWmsLayerInfo(raaBuildingsAndChurchesUrl).then(layers => {
+            // Remove the first layer if it's a group/root layer with no name
+            if (layers.length && !layers[0].name) layers.shift();
+            raaBuildingsAndChurchesLayer.setProperties({
+                "subLayers": layers.flat,
+				"subLayersTree": layers.tree,
+                "pendingMetaDataLoad": false
+            });
+            // Optionally set a default sublayer
+            if (raaBuildingsAndChurchesLayer.getProperties().subLayers.length > 0) {
+                raaBuildingsAndChurchesLayer.setProperties({
+                    "selectedSubLayer": raaBuildingsAndChurchesLayer.getProperties().subLayers[0].name
+                });
+            }
+        });
+
+		let raaBuildingsRuinsUrl = "https://inspire-raa.metria.se/geoserver/ByggnaderRuiner/ows";
+        const raaBuildingsRuinsLayer = new TileLayer({
+            source: new TileWMS({
+                url: raaBuildingsRuinsUrl,
+                params: {
+                    'LAYERS': '', // Will be set by sublayer selection
+                    'TILED': true,
+                    'FORMAT': 'image/png',
+                    'TRANSPARENT': true,
+                    'SRS': 'EPSG:3857'
+                },
+                serverType: 'geoserver',
+                attributions: [
+                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
+                ]
+            }),
+            visible: false
+        });
+
+        raaBuildingsRuinsLayer.setProperties({
+            "layerId": "raaBuildingsRuins",
+            "title": "RAÄ Byggnader och ruiner",
+            "type": "auxLayer",
+            "subLayers": [],
+            "legend": true,
+            "pendingMetaDataLoad": true
+        });
+
+        this.fetchWmsLayerInfo(raaBuildingsRuinsUrl).then(layers => {
+            // Remove the first layer if it's a group/root layer with no name
+            if (layers.length && !layers[0].name) layers.shift();
+            raaBuildingsRuinsLayer.setProperties({
+                "subLayers": layers.flat,
+				"subLayersTree": layers.tree,
+                "pendingMetaDataLoad": false
+            });
+            // Optionally set a default sublayer
+            if (raaBuildingsRuinsLayer.getProperties().subLayers.length > 0) {
+                raaBuildingsRuinsLayer.setProperties({
+                    "selectedSubLayer": raaBuildingsRuinsLayer.getProperties().subLayers[0].name
+                });
+            }
+        });
+
+		let raaKulturarvUrl = "https://inspire-raa.metria.se/geoserver/Kulturarv/ows";
+        const raaKulturarvLayer = new TileLayer({
+            source: new TileWMS({
+                url: raaKulturarvUrl,
+                params: {
+                    'LAYERS': '', // Will be set by sublayer selection
+                    'TILED': true,
+                    'FORMAT': 'image/png',
+                    'TRANSPARENT': true,
+                    'SRS': 'EPSG:3857'
+                },
+                serverType: 'geoserver',
+                attributions: [
+                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
+                ]
+            }),
+            visible: false
+        });
+
+        raaKulturarvLayer.setProperties({
+            "layerId": "raaKulturarv",
+            "title": "RAÄ Kulturarv",
+            "type": "auxLayer",
+            "subLayers": [],
+            "legend": true,
+            "pendingMetaDataLoad": true
+        });
+
+        this.fetchWmsLayerInfo(raaKulturarvUrl).then(layers => {
+            // Remove the first layer if it's a group/root layer with no name
+            if (layers.length && !layers[0].name) layers.shift();
+            raaKulturarvLayer.setProperties({
+                "subLayers": layers.flat,
+				"subLayersTree": layers.tree,
+                "pendingMetaDataLoad": false
+            });
+            // Optionally set a default sublayer
+            if (raaKulturarvLayer.getProperties().subLayers.length > 0) {
+                raaKulturarvLayer.setProperties({
+                    "selectedSubLayer": raaKulturarvLayer.getProperties().subLayers[0].name
+                });
+            }
+        });
+
+		let raaFornlamningarUrl = "https://inspire-raa.metria.se/geoserver/Fornlamningar/ows";
+        const raaFornlamningarLayer = new TileLayer({
+            source: new TileWMS({
+                url: raaFornlamningarUrl,
+                params: {
+                    'LAYERS': '', // Will be set by sublayer selection
+                    'TILED': true,
+                    'FORMAT': 'image/png',
+                    'TRANSPARENT': true,
+                    'SRS': 'EPSG:3857'
+                },
+                serverType: 'geoserver',
+                attributions: [
+                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
+                ]
+            }),
+            visible: false
+        });
+
+        raaFornlamningarLayer.setProperties({
+            "layerId": "raaFornlamningar",
+            "title": "RAÄ Fornlämningar",
+            "type": "auxLayer",
+            "subLayers": [],
+            "legend": true,
+            "pendingMetaDataLoad": true
+        });
+
+        this.fetchWmsLayerInfo(raaFornlamningarUrl).then(layers => {
+            // Remove the first layer if it's a group/root layer with no name
+            if (layers.length && !layers[0].name) layers.shift();
+            raaFornlamningarLayer.setProperties({
+                "subLayers": layers.flat,
+				"subLayersTree": layers.tree,
+                "pendingMetaDataLoad": false
+            });
+            // Optionally set a default sublayer
+            if (raaFornlamningarLayer.getProperties().subLayers.length > 0) {
+                raaFornlamningarLayer.setProperties({
+                    "selectedSubLayer": raaFornlamningarLayer.getProperties().subLayers[0].name
+                });
+            }
+        });
+
+		let raaVarldsarvUrl = "https://inspire-raa.metria.se/geoserver/Varldsarv/ows";
+        const raaVarldsarvLayer = new TileLayer({
+            source: new TileWMS({
+                url: raaVarldsarvUrl,
+                params: {
+                    'LAYERS': '', // Will be set by sublayer selection
+                    'TILED': true,
+                    'FORMAT': 'image/png',
+                    'TRANSPARENT': true,
+                    'SRS': 'EPSG:3857'
+                },
+                serverType: 'geoserver',
+                attributions: [
+                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
+                ]
+            }),
+            visible: false
+        });
+
+        raaVarldsarvLayer.setProperties({
+            "layerId": "raaVarldsarv",
+            "title": "RAÄ Världsarv",
+            "type": "auxLayer",
+            "subLayers": [],
+            "legend": true,
+            "pendingMetaDataLoad": true
+        });
+
+        this.fetchWmsLayerInfo(raaVarldsarvUrl).then(layers => {
+            // Remove the first layer if it's a group/root layer with no name
+            if (layers.length && !layers[0].name) layers.shift();
+            raaVarldsarvLayer.setProperties({
+                "subLayers": layers.flat,
+				"subLayersTree": layers.tree,
+                "pendingMetaDataLoad": false
+            });
+            // Optionally set a default sublayer
+            if (raaVarldsarvLayer.getProperties().subLayers.length > 0) {
+                raaVarldsarvLayer.setProperties({
+                    "selectedSubLayer": raaVarldsarvLayer.getProperties().subLayers[0].name
+                });
+            }
+        });
+
+		let raaLamningarUrl = "https://pub.raa.se/visning/lamningar_v1/wms";
+        const raaLamningarLayer = new TileLayer({
+            source: new TileWMS({
+                url: raaLamningarUrl,
+                params: {
+                    'LAYERS': '', // Will be set by sublayer selection
+                    'TILED': true,
+                    'FORMAT': 'image/png',
+                    'TRANSPARENT': true,
+                    'SRS': 'EPSG:3857'
+                },
+                serverType: 'geoserver',
+                attributions: [
+                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
+                ]
+            }),
+            visible: false
+        });
+
+        raaLamningarLayer.setProperties({
+            "layerId": "raaLamningar",
+            "title": "RAÄ Kulturhistoriska lämningar",
+            "type": "auxLayer",
+            "subLayers": [],
+            "legend": true,
+            "pendingMetaDataLoad": true
+        });
+
+        this.fetchWmsLayerInfo(raaLamningarUrl).then(layers => {
+            // Remove the first layer if it's a group/root layer with no name
+            if (layers.length && !layers[0].name) layers.shift();
+            raaLamningarLayer.setProperties({
+                "subLayers": layers.flat,
+				"subLayersTree": layers.tree,
+                "pendingMetaDataLoad": false
+            });
+            // Optionally set a default sublayer
+            if (raaLamningarLayer.getProperties().subLayers.length > 0) {
+                raaLamningarLayer.setProperties({
+                    "selectedSubLayer": raaLamningarLayer.getProperties().subLayers[0].name
+                });
+            }
+        });
 
 		/*
 		var arcticDemLayer = new ImageLayer({
@@ -305,7 +892,16 @@ class ResultMap extends ResultModule {
 		
 		this.auxLayers.push(msbFloodingLayer);
 		this.auxLayers.push(sguTopoLayer);
-		
+		this.auxLayers.push(raaWmsLayer);
+		this.auxLayers.push(raaBebyggelseLayer);
+		this.auxLayers.push(raaByggnadsminnenSkyddsomradenLayer);
+		this.auxLayers.push(raaBuildingsAndChurchesLayer);
+		this.auxLayers.push(raaBuildingsRuinsLayer);
+		this.auxLayers.push(raaKulturarvLayer);
+		this.auxLayers.push(raaFornlamningarLayer);
+		this.auxLayers.push(raaVarldsarvLayer);
+		this.auxLayers.push(raaLamningarLayer);
+
 		if(Config.resultMapDataLayers.includes("clusterPoints")) {
 			//Define data layers
 			let dataLayer = new VectorLayer();
@@ -368,6 +964,10 @@ class ResultMap extends ResultModule {
 		layer.getProperties().subLayers.forEach((subLayer) => {
 			//for each selected subLayer, we should draw the legend icon
 			if(selectedSubLayers.includes(subLayer.name)) {
+				if(subLayer.isGroup) {
+					//skip group layers
+					return;
+				}
 				$(".result-map-legend-content", this.renderIntoNode).append(`
 					<div class="result-map-legend-item">
 						<img src="${subLayer.legendUrl}" alt="${subLayer.title}" class="result-map-legend-icon">
@@ -702,6 +1302,13 @@ class ResultMap extends ResultModule {
 		
 		$("#result-map-controls-container").html("");
 
+		let auxLayersHtml = "<div class='result-map-map-control-item-container'>";
+		auxLayersHtml += "<div id='result-map-auxlayer-controls-menu' class='result-map-map-control-item'>Overlays</div>";
+		auxLayersHtml += "<div id='result-map-auxlayer-controls-menu-anchor'></div>";
+		auxLayersHtml += "</div>";
+		$("#result-map-controls-container").append(auxLayersHtml);
+		new SqsMenu(this.resultManager.sqs, this.resultMapAuxLayersControlsSqsMenu());
+
 		let baseLayersHtml = "<div class='result-map-map-control-item-container'>";
 		baseLayersHtml += "<div id='result-map-baselayer-controls-menu' class='result-map-map-control-item'>Base layers</div>";
 		baseLayersHtml += "<div id='result-map-baselayer-controls-menu-anchor'></div>";
@@ -715,13 +1322,6 @@ class ResultMap extends ResultModule {
 		dataLayersHtml += "</div>";
 		$("#result-map-controls-container").append(dataLayersHtml);
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
-
-		let auxLayersHtml = "<div class='result-map-map-control-item-container'>";
-		auxLayersHtml += "<div id='result-map-auxlayer-controls-menu' class='result-map-map-control-item'>Overlays</div>";
-		auxLayersHtml += "<div id='result-map-auxlayer-controls-menu-anchor'></div>";
-		auxLayersHtml += "</div>";
-		$("#result-map-controls-container").append(auxLayersHtml);
-		new SqsMenu(this.resultManager.sqs, this.resultMapAuxLayersControlsSqsMenu());
 
 
 		/*
@@ -819,64 +1419,101 @@ class ResultMap extends ResultModule {
 	}
 
 	renderSubLayerSelectionPanel(layer) {
-		//remove if it exists
+		// Remove if it exists
 		this.unrenderSubLayerSelectionPanel();
 
 		$(this.renderMapIntoNode).append("<div id='result-map-sub-layer-selection-panel'></div>");
-
-		//set to the same width as the #result-map-auxlayer-controls-menu and account for 1em padding
-		//const auxMenuWidth = $("#result-map-auxlayer-controls-menu").outerWidth();
-		//$("#result-map-sub-layer-selection-panel").css("width", `calc(${auxMenuWidth}px - 2em)`);
 		$("#result-map-sub-layer-selection-panel").css("width", `20em`);
 
-		// Add title
 		const titleHtml = `
 			<div class="sub-layer-header">
-				<h4>Select Layers</h4>
-				<button type="button" id="minimize-sublayer-panel" class="minimize-btn" title="Minimize panel">
-					<i class="fa fa-minus" aria-hidden="true"></i>
-				</button>
+			<h4>Select Layers</h4>
+			<button type="button" id="minimize-sublayer-panel" class="minimize-btn" title="Minimize panel">
+				<i class="fa fa-minus" aria-hidden="true"></i>
+			</button>
 			</div>
 		`;
 		$("#result-map-sub-layer-selection-panel").append(titleHtml);
 
 		$("#result-map-sub-layer-selection-panel").append("<div id='sub-layer-content'></div>");
 
-		//the content shall consist of a list of checkboxes corresponding to the subLayers in the layer
+		// Pull data from layer props
+		const layersTree = layer.getProperties().subLayersTree || layer.getProperties().subLayers || [];
+		const selectedLayers = layer.getProperties().selectedSubLayers || [];
+
+		// --- NEW: Flatten to leaves only (no groups rendered) ---
+		function flattenLeaves(nodes, acc = []) {
+			if (!Array.isArray(nodes)) return acc;
+			for (const node of nodes) {
+			const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+			if (hasChildren) {
+				flattenLeaves(node.children, acc);
+			} else {
+				acc.push(node);
+			}
+			}
+			return acc;
+		}
+
+		const leafNodes = flattenLeaves(layersTree);
+
+		// Build max-scale info snippet
+		function maxScaleHtml(node) {
+			if (!node.maxScaleDenominator) return "";
+			const scale = node.maxScaleDenominator;
+			let scaleText = "";
+			if (scale >= 1_000_000) {
+			scaleText = Math.round(scale / 1_000_000) + "m";
+			} else if (scale >= 1_000) {
+			scaleText = (scale / 1_000) + "k";
+			} else {
+			scaleText = scale;
+			}
+			return `<span class="legend-zoom-info" title="Layer visible at scale 1:${scale.toLocaleString()}">Visibility scale ≤ 1:${scaleText}</span>`;
+		}
+
+		// Render a flat list of leaf layers
+		function renderFlatLeafList(leaves, selectedLayers) {
+			let html = `<ul class='sub-layer-list' style='margin-left: 0'>`;
+			for (const node of leaves) {
+				const checked = selectedLayers.includes(node.name) ? "checked" : "";
+				const showAbstract = node.abstract && node.abstract !== node.title; // ✅ skip if identical
+
+				html += `
+				<li class="sub-layer-leaf">
+					<label class="sub-layer-label">
+					<input type="checkbox" class="sub-layer-checkbox" name="sub-layer" value="${node.name}" ${checked}>
+					<span class="sub-layer-title">${node.title ?? node.name}</span>
+					${showAbstract ? `<div class="sub-layer-description">${node.abstract}</div>` : ""}
+					${maxScaleHtml(node)}
+					</label>
+				</li>
+				`;
+			}
+			html += `</ul>`;
+			return html;
+		}
+
+
 		let content = "<div class='result-map-sub-layer-selection'>";
-
-		layer.getProperties().subLayers.forEach((subLayer) => {
-			// Check if this sublayer is currently selected (in the selected layers array)
-			const selectedLayers = layer.getProperties().selectedSubLayers || [];
-			const checked = selectedLayers.includes(subLayer.name) ? "checked" : "";
-
-			content += `
-				<label class="sub-layer-label">
-					<input type="checkbox" class="sub-layer-checkbox" name="sub-layer" value="${subLayer.name}" ${checked}>
-					<span class="sub-layer-title">${subLayer.title}</span>
-					${subLayer.abstract ? `<div class="sub-layer-description">${subLayer.abstract}</div>` : ''}
-				</label>
-			`;
-		});
-
+		content += renderFlatLeafList(leafNodes, selectedLayers);
 		content += "</div>";
 
-		// Add "Select All" and "Clear All" buttons
+		// Controls
 		content += `
 			<div class="sub-layer-controls">
-				<button type="button" id="select-all-sublayers" class="sub-layer-btn">Select All</button>
-				<button type="button" id="clear-all-sublayers" class="sub-layer-btn">Clear All</button>
+			<button type="button" id="select-all-sublayers" class="sub-layer-btn">Select All</button>
+			<button type="button" id="clear-all-sublayers" class="sub-layer-btn">Clear All</button>
 			</div>
 		`;
 
 		$("#sub-layer-content").append(content);
 
-		// Add event listeners for checkbox changes
-		$("[name='sub-layer']").on("change", (event) => {
+		// Events
+		$("[name='sub-layer']").on("change", () => {
 			this.updateSelectedSubLayers(layer);
 		});
 
-		// Add event listeners for control buttons
 		$("#select-all-sublayers").on("click", () => {
 			$("[name='sub-layer']").prop("checked", true);
 			this.updateSelectedSubLayers(layer);
@@ -887,28 +1524,26 @@ class ResultMap extends ResultModule {
 			this.updateSelectedSubLayers(layer);
 		});
 
-		// Add event listener for minimize button
 		$("#minimize-sublayer-panel").on("click", () => {
 			const content = $("#sub-layer-content");
 			const button = $("#minimize-sublayer-panel");
 			const icon = button.find("i");
-			
+
 			if (content.is(":visible")) {
-				// Minimize
-				content.slideUp(200);
-				icon.removeClass("fa-minus").addClass("fa-plus");
-				button.attr("title", "Expand panel");
+			content.slideUp(200);
+			icon.removeClass("fa-minus").addClass("fa-plus");
+			button.attr("title", "Expand panel");
 			} else {
-				// Expand
-				content.slideDown(200);
-				icon.removeClass("fa-plus").addClass("fa-minus");
-				button.attr("title", "Minimize panel");
+			content.slideDown(200);
+			icon.removeClass("fa-plus").addClass("fa-minus");
+			button.attr("title", "Minimize panel");
 			}
 		});
 
 		// Initialize with current selection
 		this.updateSelectedSubLayers(layer);
 	}
+
 
 	updateSelectedSubLayers(layer) {
 		const selectedLayers = [];
@@ -939,70 +1574,31 @@ class ResultMap extends ResultModule {
 
 	updateLayerSource(layer, selectedLayers) {
 		if (selectedLayers.length === 0) {
-			// If no layers selected, hide the layer
 			layer.setVisible(false);
 			return;
 		}
-
-		// Make layer visible if it has selected sublayers
 		layer.setVisible(true);
-
-		// Get the layer source and update LAYERS parameter
 		const source = layer.getSource();
 		const currentParams = source.getParams();
-		
-		// Join multiple layer names with comma (WMS standard)
-		const layersParam = selectedLayers.join(',');
-		
+
+		const subLayers = layer.getProperties().subLayers || [];
+		const styles = selectedLayers.map(layerName => {
+			const sub = subLayers.find(l => l.name === layerName);
+			// Find a style that matches the sublayer name, or fallback to first style
+			if (sub && sub.styles && sub.styles.length > 0) {
+				// Try to match style name to sublayer name
+				const match = sub.styles.find(s => s.name.includes(layerName));
+				return match ? match.name : sub.styles[0].name;
+			}
+			return '';
+		});
+
 		source.updateParams({
 			...currentParams,
-			'LAYERS': layersParam
+			'LAYERS': selectedLayers.join(','),
+			'STYLES': styles.join(',')
 		});
-
-		console.log(`Updated layer with sublayers: ${layersParam}`);
-
-		// Refresh the layer to apply changes
 		source.refresh();
-	}
-
-	renderSubLayerSelectionPanelOLD(layer) {
-		//remove if it exists
-		this.unrenderSubLayerSelectionPanel();
-
-		$(this.renderMapIntoNode).append("<div id='result-map-sub-layer-selection-panel'></div>");
-
-		//set to the same width as the #result-map-auxlayer-controls-menu and account for 1em padding
-		const auxMenuWidth = $("#result-map-auxlayer-controls-menu").outerWidth();
-		$("#result-map-sub-layer-selection-panel").css("width", `calc(${auxMenuWidth}px - 2em)`);
-
-		//the content shall consist of a list of radio buttons correspond to the subLayers in the layer
-		let content = "<div class='result-map-sub-layer-selection'>";
-
-		layer.getProperties().subLayers.forEach((subLayer) => {
-
-			let checked = "";
-			if(layer.getProperties().selectedSubLayer == subLayer.name) {
-				checked = "checked";
-			}
-
-			content += `
-				<label class="sub-layer-label">
-					<input type="radio" class="sub-layer-radio-btn" name="sub-layer" value="${subLayer.name}" ${checked}>
-					${subLayer.title}
-				</label>
-			`;
-		});
-
-		content += "</div>";
-
-		$("#result-map-sub-layer-selection-panel").append(content);
-
-		$("[name='sub-layer']").on("change", (event) => {
-			let selectedSubLayer = $(event.target).val();
-			this.setSelectedSubLayer(layer, selectedSubLayer);
-		});
-
-		this.setSelectedSubLayer(layer, layer.getProperties().selectedSubLayer);
 	}
 
 	setSelectedSubLayer(layer, selectedSubLayer) {
@@ -1807,6 +2403,55 @@ class ResultMap extends ResultModule {
 		}
 	}
 
+	async fetchWfsFeatureTypes(baseUrl, options = {}) {
+		const defaultOptions = {
+			version: '2.0.0',
+			sortByName: true
+		};
+		const config = { ...defaultOptions, ...options };
+
+		try {
+			const capabilitiesUrl = `${baseUrl}?SERVICE=WFS&REQUEST=GetCapabilities&VERSION=${config.version}`;
+			console.log(`Fetching WFS capabilities from: ${capabilitiesUrl}`);
+
+			const response = await fetch(capabilitiesUrl);
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+			}
+			const xmlText = await response.text();
+			const parser = new DOMParser();
+			const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+			const WFS_NS = xmlDoc.documentElement?.namespaceURI || 'http://www.opengis.net/wfs';
+
+			const featureTypeEls = Array.from(
+				xmlDoc.getElementsByTagNameNS?.(WFS_NS, 'FeatureType') || xmlDoc.getElementsByTagName('FeatureType')
+			);
+
+			const featureTypes = featureTypeEls.map(ftEl => {
+				const nameEl = ftEl.getElementsByTagNameNS?.(WFS_NS, 'Name')[0] || ftEl.getElementsByTagName('Name')[0];
+				const titleEl = ftEl.getElementsByTagNameNS?.(WFS_NS, 'Title')[0] || ftEl.getElementsByTagName('Title')[0];
+				const abstractEl = ftEl.getElementsByTagNameNS?.(WFS_NS, 'Abstract')[0] || ftEl.getElementsByTagName('Abstract')[0];
+				return {
+					name: nameEl ? nameEl.textContent.trim() : '',
+					title: titleEl ? titleEl.textContent.trim() : '',
+					abstract: abstractEl ? abstractEl.textContent.trim() : ''
+				};
+			});
+
+			if (config.sortByName) {
+				featureTypes.sort((a, b) => a.title.localeCompare(b.title, 'sv'));
+			}
+
+			console.log(`Parsed ${featureTypes.length} WFS feature types`);
+			return featureTypes;
+
+		} catch (error) {
+			console.error(`Failed to fetch WFS capabilities from ${baseUrl}:`, error);
+			throw error;
+		}
+	}
+
 	async fetchWmsLayerInfo(baseUrl, options = {}) {
 		const defaultOptions = {
 			version: '1.3.0',
@@ -1842,6 +2487,7 @@ class ResultMap extends ResultModule {
 			
 			// Extract layer information
 			const layers = this.parseWmsCapabilities(xmlDoc, config);
+			layers.flat.sort((a, b) => a.title.localeCompare(b.title));
 			
 			console.log(`Successfully parsed ${layers.length} layers from WMS service`);
 			return layers;
@@ -1852,74 +2498,189 @@ class ResultMap extends ResultModule {
 		}
 	}
 
-	parseWmsCapabilities(xmlDoc, {
-		filterNumericNames = false,
-		sortByName = true,
-		fallbackIfEmpty = true
-	} = {}) {
+	parseWmsCapabilities(
+		xmlDoc,
+		{
+			filterNumericNames = false,
+			sortByName = true,
+			fallbackIfEmpty = true
+		} = {}
+	) {
 		const WMS_NS = xmlDoc.documentElement?.namespaceURI || 'http://www.opengis.net/wms';
 		const XLINK_NS = 'http://www.w3.org/1999/xlink';
 
-		const get = (el, tag) =>
+		const q = (el, tag) =>
 			(el.getElementsByTagNameNS?.(WMS_NS, tag)[0] ||
 			el.getElementsByTagName(tag)[0]) ?? null;
 
-		const getLegendUrl = (layerEl) => {
-			const legendEls = layerEl.getElementsByTagNameNS?.(WMS_NS, 'LegendURL') || layerEl.getElementsByTagName('LegendURL');
-			if (!legendEls || legendEls.length === 0) return null;
-			for (let legendEl of legendEls) {
-				const onlineResource = legendEl.getElementsByTagNameNS?.(XLINK_NS, 'OnlineResource')[0]
-					|| legendEl.getElementsByTagName('OnlineResource')[0];
-				if (onlineResource) {
-					// Try xlink:href, fallback to href
-					return onlineResource.getAttributeNS
-						? onlineResource.getAttributeNS(XLINK_NS, 'href')
-						: onlineResource.getAttribute('xlink:href') || onlineResource.getAttribute('href');
-				}
+		const qAll = (el, tag) =>
+			Array.from(el.getElementsByTagNameNS?.(WMS_NS, tag) || el.getElementsByTagName(tag) || []);
+
+		// Legend URL under the given element (Layer or Style)
+		const getLegendUrl = (el) => {
+			const legendEls = qAll(el, 'LegendURL');
+			for (const legendEl of legendEls) {
+			const online =
+				legendEl.getElementsByTagName('OnlineResource')[0] ||
+				legendEl.getElementsByTagNameNS?.(WMS_NS, 'OnlineResource')?.[0];
+			if (!online) continue;
+			const href = online.getAttributeNS
+				? online.getAttributeNS(XLINK_NS, 'href')
+				: (online.getAttribute('xlink:href') || online.getAttribute('href'));
+			if (href) return href;
 			}
 			return null;
 		};
 
-		const layerEls = Array.from(
-			(xmlDoc.getElementsByTagNameNS?.(WMS_NS, 'Layer') || xmlDoc.getElementsByTagName('Layer'))
-		);
-
-		const allLayers = [];
-		for (const layerEl of layerEls) {
-			const nameEl = get(layerEl, 'Name');
-			if (!nameEl) continue; // skip root/group layers
-
-			const titleEl = get(layerEl, 'Title');
-			const abstractEl = get(layerEl, 'Abstract');
-			const legendUrl = getLegendUrl(layerEl);
-
-			allLayers.push({
-				name: nameEl.textContent.trim(),
-				title: (titleEl?.textContent ?? nameEl.textContent).trim(),
-				abstract: (abstractEl?.textContent ?? '').trim(),
-				queryable: /^(1|true)$/i.test(layerEl.getAttribute('queryable') || ''),
-				legendUrl: legendUrl
+		// Styles array; first style is conventionally the default in GeoServer
+		const getStyles = (layerEl) => {
+			const styleEls = qAll(layerEl, 'Style');
+			return styleEls.map((styleEl) => {
+			const name = (q(styleEl, 'Name')?.textContent || '').trim();
+			const title = (q(styleEl, 'Title')?.textContent || name).trim();
+			const abstract = (q(styleEl, 'Abstract')?.textContent || '').trim();
+			return { name, title, abstract, legendUrl: getLegendUrl(styleEl) };
 			});
-		}
+		};
 
-		// ...existing filtering and sorting logic...
-		let layers = filterNumericNames
-			? allLayers.filter(l => /^\d+$/.test(l.name))
-			: allLayers;
+		const getScale = (layerEl, tag) => {
+			const el = q(layerEl, tag);
+			const val = el ? parseFloat(el.textContent.trim()) : NaN;
+			return Number.isFinite(val) ? val : null;
+		};
 
-		if (filterNumericNames && fallbackIfEmpty && layers.length === 0) {
-			layers = allLayers;
+		const getCrsList = (layerEl) => qAll(layerEl, 'CRS').map(n => n.textContent.trim());
+
+		// Convert OGC ScaleDenominator → OL resolution (m/px). 0.28 mm px size per spec.
+		const scaleToResolution = (scaleDenom) =>
+			Number.isFinite(scaleDenom) ? scaleDenom * 0.00028 : null;
+
+		// Create a node object from a <Layer> element
+		const buildNode = (layerEl) => {
+			const nameEl = q(layerEl, 'Name');            // may be null for group layers
+			const titleEl = q(layerEl, 'Title');
+
+			const name = nameEl ? nameEl.textContent.trim() : null;
+			const title = (titleEl?.textContent || name || '').trim();
+			const abstract = (q(layerEl, 'Abstract')?.textContent || '').trim();
+			const queryable = /^(1|true)$/i.test(layerEl.getAttribute('queryable') || '');
+			const styles = getStyles(layerEl);
+			const defaultStyle = styles[0]?.name || '';
+			const legendUrl = styles[0]?.legendUrl || getLegendUrl(layerEl) || null;
+
+			const minScaleDenominator = getScale(layerEl, 'MinScaleDenominator');
+			const maxScaleDenominator = getScale(layerEl, 'MaxScaleDenominator');
+
+			return {
+				name,
+				title,
+				abstract,
+				queryable,
+				styles,
+				defaultStyle,
+				legendUrl,
+				crsList: getCrsList(layerEl),
+				minScaleDenominator,
+				maxScaleDenominator,
+				// Convenience for OL visibility:
+				minResolution: scaleToResolution(maxScaleDenominator) ?? null, // Note: MaxScale → minResolution
+				maxResolution: scaleToResolution(minScaleDenominator) ?? null, // Note: MinScale → maxResolution
+				children: [],
+				isGroup: false
+			};
+		};
+
+		// Recursively walk the <Layer> tree
+		const walk = (layerEl) => {
+			const node = buildNode(layerEl);
+			const childEls = qAll(layerEl, 'Layer').filter(child => child !== layerEl);
+			for (const child of childEls) {
+				node.children.push(walk(child));
+			}
+
+			node.isGroup = node.children.length > 0;
+
+			return node;
+		};
+
+		// Find all top-level <Layer> elements under <Capability>
+		const topLayerEls = (() => {
+			const caps = q(xmlDoc, 'Capability') || xmlDoc; // fallback: whole doc
+			// Only direct children Layers of Capability (avoid duplicating deeper nodes)
+			const direct = [];
+			const layersAll = qAll(caps, 'Layer');
+			for (const lay of layersAll) {
+			const parent = lay.parentElement;
+			if (parent === caps) direct.push(lay);
+			}
+			// If the server wraps everything in a single top Layer, accept that one
+			return direct.length ? direct : qAll(xmlDoc, 'Layer').slice(0, 1);
+		})();
+
+		// Build the tree forest (often a single root group)
+		const tree = topLayerEls.map(walk);
+
+		// Now produce a flat list with parent relationships and readable paths
+		const flat = [];
+		const indexByName = new Map();
+
+		const traverse = (node, parentId = null, pathParts = []) => {
+			const id = node.name || `__group__:${pathParts.length}:${node.title || 'Group'}`;
+
+			const path = [...pathParts, node.title || node.name || 'Layer'].filter(Boolean);
+			const entry = {
+				id,
+				name: node.name, // null for groups
+				title: node.title,
+				abstract: node.abstract,
+				queryable: node.queryable,
+				styles: node.styles,
+				defaultStyle: node.defaultStyle,
+				legendUrl: node.legendUrl,
+				crsList: node.crsList,
+				minScaleDenominator: node.minScaleDenominator,
+				maxScaleDenominator: node.maxScaleDenominator,
+				minResolution: node.minResolution,
+				maxResolution: node.maxResolution,
+				parentId,
+				path,                     // e.g. ['Arkeologiska uppdrag', 'Undersökningsområde']
+				isGroup: node.children.length > 0,
+			};
+
+			flat.push(entry);
+			if (node.name) indexByName.set(node.name, entry);
+
+			node.children.forEach(child =>
+			traverse(child, id, path));
+
+			return entry;
+		};
+
+		tree.forEach(root => traverse(root, null, []));
+
+		// Filter/sort on the FLAT list of **named** layers (actual requestable layers)
+		let requestable = flat.filter(l => !l.children && l.name);
+
+		if (filterNumericNames) {
+			const onlyNumeric = requestable.filter(l => /^\d+$/.test(l.name));
+			requestable = onlyNumeric.length || !fallbackIfEmpty ? onlyNumeric : requestable;
 		}
 
 		if (sortByName) {
-			const allNumeric = layers.length > 0 && layers.every(l => /^\d+$/.test(l.name));
-			layers.sort(allNumeric
-				? (a, b) => Number(a.name) - Number(b.name)
-				: (a, b) => a.name.localeCompare(b.name, 'sv'));
+			const allNumeric = requestable.length > 0 && requestable.every(l => /^\d+$/.test(l.name));
+			requestable.sort(allNumeric
+			? (a, b) => Number(a.name) - Number(b.name)
+			: (a, b) => a.name.localeCompare(b.name, 'sv'));
 		}
 
-		return layers;
+		return {
+			tree,           // full hierarchy (groups + children)
+			flat,           // everything (groups + layers) with parentId/path
+			layers: requestable, // only requestable named layers, filtered/sorted per options
+			byName: indexByName  // Map<string, entry> for quick lookups
+		};
 	}
+
 
 }
 
