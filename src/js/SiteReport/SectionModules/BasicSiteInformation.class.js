@@ -934,7 +934,7 @@ class BasicSiteInformation {
 			combinedExtent = olMap.combineExtents(sampleGroupsExtent, samplesExtent);
 		}
 		
-		let padding = 30;
+		let padding = 60;
 		let maxZoom = renderBaseLayer ? 16 : 100;
 		olMap.olMap.getView().fit(combinedExtent, {
 			padding: [padding, padding, padding, padding],
