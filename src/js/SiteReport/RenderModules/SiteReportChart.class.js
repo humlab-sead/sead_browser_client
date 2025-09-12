@@ -743,165 +743,192 @@ class SiteReportChart {
 		Plotly.newPlot(this.chartId, traces, layout);
 	}
 
-	/*
-	* Function: renderMultistack
-	*
-	* WARNING: This function is currently hard-coded to only handle abundances and requires the data in a specific way.
-	* Specified X/Y-axis will be ignored.
-	 */
 	async renderMultistack(chartTitle = "Abundances") {
-		var contentItem = this.contentItem;
-		let cir = this.siteReport.getContentItemRenderer(contentItem);
-		var ro = cir.getSelectedRenderOption(contentItem);
+		const contentItem = this.contentItem;
+		const cir = this.siteReport.getContentItemRenderer(contentItem);
+		const ro = cir.getSelectedRenderOption(contentItem);
 
-		let xAxisKey = null;
-		let yAxisKey = null;
-		let sortKey = null;
+		// Pull selected options (kept for parity, not heavily used below)
+		let xAxisKey = null, yAxisKey = null, sortKey = null;
+		for (const key in ro.options) {
+			const opt = ro.options[key];
+			if (opt.function === "xAxis")  xAxisKey = opt.selected;
+			if (opt.function === "yAxis")  yAxisKey = opt.selected;
+			if (opt.function === "sort")   sortKey = opt.selected;
+		}
 
-		for(let key in ro.options) {
+		// Column keys
+		const taxonIdColKey     = this.getTableColumnKeyByTitle("Taxon id");
+		const taxonNameColKey   = this.getTableColumnKeyByTitle("Taxon");
+		const abundanceColKey   = this.getTableColumnKeyByTitle("Abundance count");
+		const sampleIdColKey    = this.getTableColumnKeyByTitle("Sample id");
+		const sampleNameColKey  = this.getTableColumnKeyByTitle("Sample name");
 
-			if(ro.options[key].function == "xAxis") {
-				xAxisKey = ro.options[key].selected;
+		// Optional unit for abundance
+		const abundanceUnit = contentItem?.data?.columns?.[abundanceColKey]?.unit || "";
+
+		// 1) Build ordered unique sample ids & names (in encounter order)
+		const samples = [];      // sampleId order
+		const sampleNames = [];  // sampleName order (same indexing as samples)
+		const seenSampleIds = new Set();
+		const seenSampleNames = new Set();
+
+		for (const row of contentItem.data.rows) {
+			const sid = row[sampleIdColKey].value;
+			const sname = row[sampleNameColKey].value;
+
+			if (!seenSampleIds.has(sid)) {
+			seenSampleIds.add(sid);
+			samples.push(sid);
 			}
-			if(ro.options[key].function == "yAxis") {
-				yAxisKey = ro.options[key].selected;
-			}
-			if(ro.options[key].function == "sort") {
-				sortKey = ro.options[key].selected;
+			if (!seenSampleNames.has(sname)) {
+			seenSampleNames.add(sname);
+			sampleNames.push(sname);
 			}
 		}
 
-		var config = this.getMultiStackConfig(chartTitle, false);
-		
-		//Aggregate so that a taxon contains all the sample abundances
-		this.taxa = []; //should maybe be called something like stackCategory to make it more generic?
-		var samples = [];
-		let sampleNames = [];
+		// 2) Aggregate rows into taxa map: taxonId -> { taxonName, samples: [{sampleId, sampleName, abundance}] }
+		const taxa = {};
+		for (const row of contentItem.data.rows) {
+			const taxonId   = row[taxonIdColKey].value;
+			const taxonName = row[taxonNameColKey].value;
+			const abundance = Number(row[abundanceColKey].value) || 0;
+			const sampleId  = row[sampleIdColKey].value;
+			const sampleName= row[sampleNameColKey].value;
 
-		let taxonIdColKey = this.getTableColumnKeyByTitle("Taxon id");
-		let taxonNameColKey = this.getTableColumnKeyByTitle("Taxon");
-		let abundanceColKey = this.getTableColumnKeyByTitle("Abundance count");
-		let sampleIdColKey = this.getTableColumnKeyByTitle("Sample id");
-		let sampleNameColKey = this.getTableColumnKeyByTitle("Sample name");
-
-		//This is the list of samples we're going to use and IN THIS ORDER - VERY IMPORTANT
-		for(var key in contentItem.data.rows) {
-			var sampleId = contentItem.data.rows[key][sampleIdColKey].value;
-			let sampleName = contentItem.data.rows[key][sampleNameColKey].value;
-
-			//Get unique sample Ids
-			var sampleFound = false;
-			for(var sk in samples) {
-				if(samples[sk] == sampleId) {
-					sampleFound = true;
-				}
+			if (!taxa[taxonId]) {
+			taxa[taxonId] = { taxonId, taxonName, samples: [] };
 			}
-			if(sampleFound === false) {
-				samples.push(sampleId);
-			}
-
-			//Get unique sample names
-			let sampleNameFound = false;
-			for(var sk in sampleNames) {
-				if(sampleNames[sk] == sampleName) {
-					sampleNameFound = true;
-				}
-			}
-			if(sampleNameFound === false) {
-				sampleNames.push(sampleName);
-			}
+			taxa[taxonId].samples.push({ abundance, sampleId, sampleName });
 		}
-		
-		
-		//Build data structure where the taxon is top/master, because that's the twisted weird logic that zingchart uses for rendering...
-		var taxonCount = 0;
 
-		for(var key in contentItem.data.rows) {
-			var taxonId = contentItem.data.rows[key][taxonIdColKey].value;
-			var taxonName = contentItem.data.rows[key][taxonNameColKey].value;
-			var abundance = contentItem.data.rows[key][abundanceColKey].value;
-			var sampleId = contentItem.data.rows[key][sampleIdColKey].value;
-			var sampleName = contentItem.data.rows[key][sampleNameColKey].value;
-			
-			if(typeof(this.taxa[taxonId]) == "undefined") {
-				this.taxa[taxonId] = {
-					taxonId: taxonId,
-					taxonName: taxonName,
-					samples: []
-				};
-				taxonCount++;
-			}
+		// 3) Determine color palette
+		const taxonIds = Object.keys(taxa);
+		const taxonCount = taxonIds.length;
+		const colors = (this.sqs?.color?.getColorScheme?.(taxonCount, false)) || undefined;
 
-			this.taxa[taxonId].samples.push({
-				abundance: abundance,
-				sampleId: sampleId,
-				sampleName: sampleName
+		// 4) Normalize each taxon to match the full ordered sample list (missing -> 0)
+		//    Build Plotly traces: one trace per taxon, oriented horizontally (stacked)
+		const traces = [];
+		let colorIdx = 0;
+		for (const taxonId of taxonIds) {
+			const t = taxa[taxonId];
+			const values = samples.map(sampleId => {
+			const entry = t.samples.find(s => s.sampleId === sampleId);
+			return entry ? Number(entry.abundance) || 0 : 0;
 			});
-		}
-		
-		
-		var colors = [];
-		//colors = this.sqs.color.getMonoColorScheme(taxonCount);
-		colors = this.sqs.color.getColorScheme(taxonCount, false);
-		//colors = this.sqs.color.getVariedColorScheme(taxonCount);
-		
-		//Normalize the taxa structure so that each taxon contains all the samples but with zero abundance where non-existant
-		var colorKey = 0;
-		for(var key in this.taxa) {
-			var values = [];
-			for(var k in samples) {
-				var sampleId = samples[k];
-				
-				var sampleValue = 0;
-				for(var sk in this.taxa[key].samples) {
-					if(this.taxa[key].samples[sk].sampleId == sampleId) {
-						sampleValue = this.taxa[key].samples[sk].abundance;
-					}
-				}
-				
-				values.push(sampleValue);
-			}
 
-			config.series.push({
-				stack: 1,
-				values: values, //This is one taxon, each array item is for one sample - in order
-				//text: taxa[key].taxonName+",<br> "+taxa[key].elementType, //Taxon name,
-				text: this.taxa[key].taxonName,
-				backgroundColor: colors[colorKey++],
-				borderColor: "#888",
-				borderWidth: "1px",
-				valueBox: {
-					fontColor: "#000000"
-				}
+			traces.push({
+			type: "bar",
+			orientation: "h",
+			name: t.taxonName,
+			y: sampleNames,       // categories on Y (one stacked bar per sample)
+			x: values,            // abundance per sample
+			marker: {
+				color: colors ? colors[colorIdx % colors.length] : undefined,
+				line: { color: "#888", width: 1 }
+			},
+			hovertemplate:
+				"Sample %{y}<br>%{fullData.name}: %{x}" +
+				(abundanceUnit ? ` ${abundanceUnit}` : "") +
+				"<extra></extra>"
 			});
+			colorIdx++;
 		}
 
-		for(var k in sampleNames) {
-			config.scaleX.labels.push(sampleNames[k]);
-		}
-		
-		this.chartId = "chart-"+nanoid();
-		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
+		// 5) Layout & sizing (match your dynamic height: 130 + 40px per sample)
+		const chartHeight = 130 + (samples.length * 40);
+		const layout = {
+			barmode: "stack",
+			title: { text: chartTitle, x: 0, xanchor: "left" },
+			height: chartHeight,
+			margin: { l: 120, r: 20, t: 40, b: 40 },
+			xaxis: {
+			title: { text: `Abundance${abundanceUnit ? ` (${abundanceUnit})` : ""}` },
+			zeroline: true,
+			automargin: true
+			},
+			yaxis: {
+			title: { text: "Sample" },
+			type: "category",
+			categoryorder: "array",
+			categoryarray: sampleNames,
+			automargin: true
+			},
+			// Start with hidden legend
+			showlegend: false,
+			legend: {
+			orientation: "v",
+			xanchor: "left",
+			yanchor: "top",
+			x: 1.02,
+			y: 1,
+			bgcolor: "rgba(255,255,255,0.95)",
+			bordercolor: "#ccc",
+			borderwidth: 1
+			},
+			hovermode: "closest",
+			paper_bgcolor: "white",
+			plot_bgcolor: "white"
+		};
+
+		const config = {
+			responsive: true,
+			displaylogo: false,
+			toImageButtonOptions: { format: "png", scale: 2 }
+		};
+
+		// 6) Mount container & render
+		this.chartId = "chart-" + nanoid();
+		const chartContainer = $(
+			`<div id="${this.chartId}" class="site-report-chart-container">
+			<div id="${this.chartId}-chart" style="width:100%;"></div>
+			</div>`
+		);
 		$(this.anchorNodeSelector).append(chartContainer);
 
-		var chartHeight = 130 + (samples.length * 40);
+		// Optional "Rendering..." message
+		$(`#${this.chartId}`).html(
+			`<div class='content-item-chart-rendering-message'>Rendering... <div class='mini-loading-indicator' style='display:inline-block;'></div></div>`
+		);
 
-		$("#"+this.chartId).html("<div class='content-item-chart-rendering-message'>Rendering... <div class='mini-loading-indicator' style='display:inline-block;'></div></div>");
-		setTimeout(() => {
-			$("#"+this.chartId).html("");
-			zingchart.render({
-				id: this.chartId,
-				data: config,
-				defaults: this.chartTheme,
-				height: chartHeight,
-				events: {
-					click: (evt, stuff) => {
-						console.log("zingchart click evt");
-					}
-				}
+		setTimeout(async () => {
+			$(`#${this.chartId}`).empty();
+			await Plotly.newPlot(this.chartId, traces, layout, config);
+
+			// Save a reference for later exports / interactions
+			this.plotlyGd = document.getElementById(this.chartId);
+			
+			// Add legend toggle button
+			const buttonId = `${this.chartId}-legend-toggle`;
+			const buttonContainer = $(`
+			<div class="site-report-chart-legend-toggle" style="margin-top:10px; text-align:right;">
+				<button id="${buttonId}" class="light-theme-button">
+				<i class="fa fa-list-ul" aria-hidden="true"></i> Show Legend
+				</button>
+			</div>
+			`);
+			
+			$(`#${this.chartId}`).append(buttonContainer);
+			
+			// Set up the toggle functionality
+			let legendVisible = false;
+			$(`#${buttonId}`).on('click', () => {
+				legendVisible = !legendVisible;
+				
+				// Update button text
+				$(`#${buttonId}`).html(
+					legendVisible ? 
+					`<i class="fa fa-list-ul" aria-hidden="true"></i> Hide Taxa Legend` : 
+					`<i class="fa fa-list-ul" aria-hidden="true"></i> Show Taxa Legend`
+				);
+				
+				// Update chart layout to show/hide legend
+				Plotly.relayout(this.plotlyGd, {
+					'showlegend': legendVisible
+				});
 			});
-		}, 200);
-		
+		}, 0);
 	}
 
 	getSelectedRenderOptionExtra(extraOptionTitle = "Sort") {
@@ -1766,121 +1793,107 @@ class SiteReportChart {
 	}
 
 	renderMagneticSusceptibilityBarChart() {
-		let contentItem = this.contentItem;
-		
-		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
-		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
-		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
+		const contentItem = this.contentItem;
 
-		var xUnitSymbol = "";
-		var yUnitSymbol = "";
-		
-		if(contentItem.data.columns[xAxisKey].hasOwnProperty("unit")) {
-			xUnitSymbol = contentItem.data.columns[xAxisKey].unit;
-		}
-		if(contentItem.data.columns[yAxisKey].hasOwnProperty("unit")) {
-			yUnitSymbol = contentItem.data.columns[yAxisKey].unit;
-		}
+		const xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
+		const yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value; // kept for unit lookup
+		const sortCol   = this.getSelectedRenderOptionExtra("Sort").value;
 
-		contentItem.data.rows.sort((a, b) => {
-			if(a[sortCol].value > b[sortCol].value) {
-				return 1;
-			}
-			else {
-				return -1;
-			}
-		});
+		let xUnitSymbol = "";
+		let yUnitSymbol = "";
 
-		let sampleNames = [];
-		let datasets = [];
-		datasets.push({
-			label: "Unburned",
-			backgroundColor: "darkblue",
-			data: []
-		});
-		datasets.push({
-			label: "Burned",
-			backgroundColor: "red",
-			data: []
-		});
+		if (contentItem.data.columns[xAxisKey]?.unit) xUnitSymbol = contentItem.data.columns[xAxisKey].unit;
+		if (contentItem.data.columns[yAxisKey]?.unit) yUnitSymbol = contentItem.data.columns[yAxisKey].unit;
 
-		//get column key for title "Unburned"
+		// Sort rows by selected column
+		contentItem.data.rows.sort((a, b) => (a[sortCol].value > b[sortCol].value ? 1 : -1));
+
+		// Find the columns titled "Unburned" and "Burned"
 		let unburnedColKey = null;
 		let burnedColKey = null;
 		contentItem.data.columns.forEach((col, colKey) => {
-			if(col.title == "Unburned") {
-				unburnedColKey = colKey;
-			}
-			if(col.title == "Burned") {
-				burnedColKey = colKey;
-			}
+			if (col.title === "Unburned") unburnedColKey = colKey;
+			if (col.title === "Burned")   burnedColKey = colKey;
 		});
-		
-		for(var key in contentItem.data.rows) {
-			let row = contentItem.data.rows[key];
-			let sampleName = row[xAxisKey].value;
+
+		// Build arrays for Plotly
+		const sampleNames = [];
+		const unburned = [];
+		const burned = [];
+
+		for (const row of contentItem.data.rows) {
+			const sampleName = row[xAxisKey].value;
 			sampleNames.push(sampleName);
-			let unburned = row[unburnedColKey].value;
-			let burned = row[burnedColKey].value;
-			
-			datasets[0].data.push(unburned);
-			datasets[1].data.push(burned);
+			unburned.push(Number(row[unburnedColKey]?.value) ?? null);
+			burned.push(Number(row[burnedColKey]?.value) ?? null);
 		}
 
-		const data = {
-			labels: sampleNames,
-			datasets: datasets
+		// Traces (colors match your Chart.js config)
+		const traces = [
+			{
+			type: "bar",
+			name: "Unburned",
+			x: sampleNames,
+			y: unburned,
+			marker: { color: "darkblue" },
+			hovertemplate:
+				"Sample %{x}<br>Unburned: %{y}" + (yUnitSymbol ? ` ${yUnitSymbol}` : "") + "<extra></extra>"
+			},
+			{
+			type: "bar",
+			name: "Burned",
+			x: sampleNames,
+			y: burned,
+			marker: { color: "red" },
+			hovertemplate:
+				"Sample %{x}<br>Burned: %{y}" + (yUnitSymbol ? ` ${yUnitSymbol}` : "") + "<extra></extra>"
+			}
+		];
+
+		// Layout with grouped barmode instead of stacked
+		const layout = {
+			barmode: "group", // Changed from "stack" to "group" for side-by-side bars
+			margin: { l: 60, r: 20, t: 10, b: 60 },
+			xaxis: {
+			title: { text: "Sample" + (xUnitSymbol ? ` (${xUnitSymbol})` : "") },
+			type: "category",
+			categoryorder: "array",
+			categoryarray: sampleNames,
+			automargin: true
+			},
+			yaxis: {
+			title: { text: yUnitSymbol ? yUnitSymbol : "" },
+			zeroline: true,
+			automargin: true
+			},
+			legend: {
+			orientation: "h",
+			x: 0,
+			y: 1.12,
+			xanchor: "left",
+			yanchor: "bottom"
+			},
+			hovermode: "closest" // per-point like Chart.js default
 		};
 
-		let config = {
-			type: 'bar',
-			data: data,
-			options: {
-				plugins: {
-					legend: {
-						position: 'top',
-					},
-					tooltip: {
-						enabled: true,
-						callbacks: {
-							title: function(context) {
-								return "Sample "+context[0].label;
-							},
-							label: function(context) {
-								return context.dataset.label+": "+context.formattedValue;
-							}
-						}
-					}
-				},
-				responsive: true,
-				scales: {
-					x: {
-						stacked: true,
-						title: {
-							display: true,
-							text: 'Sample' // Label for the x-axis
-						}
-					},
-					y: {
-						stacked: true,
-						title: {
-							display: true,
-							text: '' // Label for the y-axis
-						}
-					}
-				}
-			}
-		  };
-		
-		  
-		this.chartId = "chart-"+nanoid();
-		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
+		// Plotly config (responsive, with modebar download button)
+		const config = {
+			responsive: true,
+			displaylogo: false
+		};
+
+		// Create/append container (div, not canvas)
+		this.chartId = "chart-" + nanoid();
+		const chartContainer = $(
+			`<div id="${this.chartId}" class="site-report-chart-container"></div>`
+		);
 		$(this.anchorNodeSelector).append(chartContainer);
 
-		new Chart(
-			document.getElementById(this.chartId),
-			config
-		);
+		// Render
+		Plotly.newPlot(this.chartId, traces, layout, config);
+
+		// Keep a reference to the graph div for later exports
+		this.plotlyGd = document.getElementById(this.chartId);
 	}
 
 	renderPieChart() {

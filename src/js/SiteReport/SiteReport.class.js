@@ -567,12 +567,14 @@ class SiteReport {
 						for(let sk in this.modules[k].module.section.sections) {
 							for(let cik in this.modules[k].module.section.sections[sk].contentItems) {
 								let ci = this.modules[k].module.section.sections[sk].contentItems[cik];
+								
 								if(ci.name == exportStruct.meta.dataset) {
 									let chartId = $("#contentItem-"+ci.datasetId+" .site-report-chart-container").attr("id");
 
 									Plotly.downloadImage(chartId, {
-										format: 'png', // You can use 'jpeg', 'png', 'webp', 'svg', or 'pdf'
+										format: 'png', // You can use 'jpeg', 'png', 'webp', 'svg'
 										filename: "site_"+exportStruct.meta.site+"-"+exportStruct.meta.section,
+										scale: 4,
 									});
 									/*
 									zingchart.exec(chartId, 'getimagedata', {
@@ -582,6 +584,34 @@ class SiteReport {
 										}
 									});
 									*/
+								}
+							}
+						}
+					}
+				}
+			});
+		}
+
+		if(exportFormat == "svg") {
+			node = $("<a id='site-report-svg-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download SVG</a>");
+
+			$(node).on("click", (evt) => {
+				for(let k in this.modules) {
+					if(this.modules[k].name == "analysis") {
+						for(let sk in this.modules[k].module.section.sections) {
+							for(let cik in this.modules[k].module.section.sections[sk].contentItems) {
+								let ci = this.modules[k].module.section.sections[sk].contentItems[cik];
+								
+								if(ci.name == exportStruct.meta.dataset) {
+									let chartId = $("#contentItem-"+ci.datasetId+" .site-report-chart-container").attr("id");
+
+									Plotly.downloadImage(chartId, {
+										format: 'svg',
+										filename: "site_"+exportStruct.meta.site+"-"+exportStruct.meta.section,
+										scale: 1,
+										width: 1920,
+										height: 1080
+									});
 								}
 							}
 						}
@@ -1336,12 +1366,10 @@ class SiteReport {
 				$("#node-"+dialogNodeId).append(btn);
 			});
 		}
-		/*
 		if(formats.indexOf("png") != -1) {
-			var pngBtn = this.getExportButton("png", exportStruct);
+			var pngBtn = await this.getExportButton("png", exportStruct);
 			$("#node-"+dialogNodeId).append(pngBtn);
 		}
-		*/
 		if(formats.indexOf("pdf") != -1) {
 			this.getExportButton("pdf", exportStruct).then((btn) => {
 				$("#node-"+dialogNodeId).append(btn);
