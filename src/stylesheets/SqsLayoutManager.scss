@@ -1,80 +1,151 @@
 @import "colors.scss";
 
 .responsive-layout-container {
-	display: none;
-	position: absolute;
-	left: 0;
-	top: 0;
-
-	margin: 0px;
-	padding: 0px;
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0px;
+    padding: 0px;
 }
 
 #site-report-main-container .section-left {
-	height: calc(100vh - 87px - 21px);
+    height: calc(100vh - 87px - 21px);
 }
 
 #site-report-main-container .section-right {
-	height: calc(100vh - 87px - 21px);
+    height: calc(100vh - 87px - 21px);
 }
 
 .section-left {
-	border-top: 0px solid $inactive-color;
-	background-color: #fff;
-	margin: 0px;
-	
-	max-width: 70vw; //FIXME: This should not be hard-coded
-	min-width: 30vw; //FIXME: This should not be hard-coded
-	
-	overflow-x: hidden;
-	overflow-y: auto;
-	height: calc(100vh - 0px);
+    border-top: 0px solid $inactive-color;
+    background-color: #fff;
+    margin: 0px;
+    position: relative;
+    
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: calc(100vh - 0px);
+    transition: min-width 0.3s ease, max-width 0.3s ease;
 }
 
 .section-right {
-	margin: 0px;
-	max-width: 70vw; //FIXME: This should not be hard-coded
-	min-width: 30vw; //FIXME: This should not be hard-coded
-	
-	border-left-style:solid;
-	border-left-width: 1px;
-	border-left-color: rgba(6, 6, 9, 0.1);
+    margin: 0px;
+    
+    border-left-style: solid;
+    border-left-width: 1px;
+    border-left-color: rgba(6, 6, 9, 0.1);
 
-	overflow-x: hidden;
-	overflow-y: auto;
-	height: calc(100vh - 0px);
-	//height: calc(100vh - 108px);
-	//height: 100vh;
-  	width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: calc(100vh - 0px);
+    width: 100%;
+    transition: min-width 0.3s ease, max-width 0.3s ease;
+}
+
+/* Custom resize handle */
+.custom-resize-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 100%;
+    background-color: transparent;
+    cursor: col-resize;
+    z-index: 1001;  /* Increased z-index */
+    transition: background-color 0.2s ease;
+}
+
+/* Add hover effect for normal state */
+.custom-resize-handle:hover {
+    background-color: $inactive-color;
+}
+
+/* Also make it visible during active dragging */
+body.resizing .custom-resize-handle {
+    background-color: $inactive-color;
+}
+
+/* Style for when the section is collapsed */
+.handle-collapsed {
+    position: fixed; /* Change from absolute to fixed positioning */
+    right: auto;
+    left: 0;  /* Position at the left edge of viewport when collapsed */
+    background-color: rgba(150, 150, 150, 0.5); /* Make slightly more visible */
+    width: 8px;
+    height: 100vh; /* Full viewport height */
+    z-index: 1002; /* Ensure it's above other elements */
+}
+
+/* Make the handle more visible when hovered */
+.handle-collapsed:hover {
+    background-color: $inactive-color;
+    width: 10px; /* Slightly wider on hover for better usability */
+}
+
+body.resizing {
+    cursor: col-resize !important;
+    user-select: none;
 }
 
 .section-toggle-button {
-	display:none;
-	position:fixed;
-	background-color: $aux-color;
-	transform: rotate(90deg);
-	text-align:center;
+    display: none;
+    position: fixed;
+    background-color: $aux-color;
+    text-align: center;
+    left: 0px;
+    top: 50vh;
+    transform: translateY(-50%);
+    padding: 12px 8px;
+    color: #fff;
+    cursor: pointer;
+    z-index: 1000;
+    border-radius: 0 4px 4px 0;
+    box-shadow: 2px 0px 5px rgba(0,0,0,0.2);
+    transition: left 0.3s ease;
+}
+
+.section-toggle-button:hover {
+    background-color: lighten($aux-color, 10%);
+}
+
+#filter-section-toggle-button {
+	visibility: hidden;
+	position: absolute;
 	right: 0px;
-	margin-right:-48px;
-	padding: 5px;
-	padding-top: 25px;
-	top: 50vh;
-	height: 28px;
-	width: 120px;
-	/*border-radius: 5px;*/
-	color: #fff;
-	cursor: pointer;
-	z-index: 10;
+	top: 0px;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#filter-toggle-icon {
+    font-size: 1.2em;
+}
+
+#filter-toggle-text {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 0.9em;
+    font-weight: bold;
 }
 
 .full-section {
-	/*position:fixed;*/ /* probably want to used fixed where for maps, otherwise absolute */
-	position: absolute;
-	width: 100vw !important;
-	max-width: 100vw !important;
+    position: absolute;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    transition: all 0.3s ease;
 }
 
 .hidden-section {
-	display:none !important;
-	min-width: 0vw !important; /*FIXME: I think this should be max-width*/
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    border: none !important;
+    opacity: 0;
+    transition: all 0.3s ease;
 }

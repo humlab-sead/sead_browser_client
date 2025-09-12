@@ -278,40 +278,38 @@ class SqsView {
     * Function: setSectionSizes
     */
 	setSectionSizes(leftSize, rightSize, animate = true) {
-		//console.log("setSectionSizes", leftSize, rightSize);
-
 		this.leftLastSize = leftSize;
-		this.righLastSize = rightSize;
+		this.rightLastSize = rightSize;
+
+		const leftSection = $(this.anchor + " > .section-left");
+		const rightSection = $(this.anchor + " > .section-right");
+		const dragHandle = leftSection.find(".custom-resize-handle");
 
 		if(animate) {
-			$(this.anchor+" > .section-left").animate(
-				{
-					width: leftSize+"vw"
-				},
-				250,
-				"easeOutCubic"
-			);
+			leftSection.css('transition', 'width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease');
+			rightSection.css('transition', 'width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease');
+		}
+		else {
+			leftSection.css('transition', 'none');
+			rightSection.css('transition', 'none');
+		}
 
-			$(this.anchor+" > .section-right").animate(
-				{
-					width: rightSize+"vw"
-				},
-				250,
-				"easeOutCubic"
-			);
-		}
-		else {
-			$(this.anchor+" > .section-left").css("width", leftSize+"vw");
-			$(this.anchor+" > .section-right").css("width", rightSize+"vw");
-		}
+		leftSection.css("width", leftSize + "vw");
+		rightSection.css("width", rightSize + "vw");
 		
+		// Update handle position and appearance based on left section size
+		if(leftSize === 0) {
+			// Section is collapsed - position handle at the left edge
+			dragHandle.addClass('handle-collapsed');
+		} else {
+			dragHandle.removeClass('handle-collapsed');
+		}
+
 		if(rightSize == 0) {
-			$(this.anchor+" > .section-right").css("display", "none");
-			$(".ui-resizable-handle").hide();
+			rightSection.css("display", "none");
 		}
 		else {
-			$(this.anchor+" > .section-right").css("display", "block");
-			$(".ui-resizable-handle").show();
+			rightSection.css("display", "block");
 		}
 	}
 
@@ -336,28 +334,133 @@ class SqsView {
 	* Does what it says on the tin.
 	**/
 	setupResizableSections() {
-		$(this.anchor+" > .section-left").resizable({
-			handles: "e",
-			resize: (event, ui) => {
-				//Slave right section to being the inverse size of the left section
-				var wp = this.calculateWidthsAsPercentage();
-				$(this.anchor+" > .section-left").css("width", wp.left+"vw");
-				$(this.anchor+" > .section-right").css("width", wp.right+"vw");
+		// Create a custom drag handle
+		const dragHandle = $('<div class="custom-resize-handle"></div>');
+		$(this.anchor + " > .section-left").append(dragHandle);
+
+		// Check if the left section is already collapsed and position the handle accordingly
+		if (this.leftLastSize === 0) {
+			dragHandle.addClass('handle-collapsed');
+		}
+
+		let isDragging = false;
+		let initialX, initialLeftWidth;
+		const container = $(this.anchor);
+		const leftSection = $(this.anchor + " > .section-left");
+		const rightSection = $(this.anchor + " > .section-right");
+		
+		// Function to disable transitions during drag
+		const setTransitionsEnabled = (enabled) => {
+			if (enabled) {
+				leftSection.css('transition', 'min-width 0.3s ease, max-width 0.3s ease');
+				rightSection.css('transition', 'min-width 0.3s ease, max-width 0.3s ease');
+			} else {
+				leftSection.css('transition', 'none');
+				rightSection.css('transition', 'none');
 			}
-		}).on("resize", (e) => {
-			this.sqs.sqsEventDispatch("layoutResize", e);
+		};
+		
+		// Mouse down event - start dragging
+		dragHandle.on('mousedown', (e) => {
+			isDragging = true;
+			initialX = e.clientX;
+			initialLeftWidth = leftSection.outerWidth();
 			
-			//This was to prevent an issue with section-resize events being propagated as window-resize events
-			e.stopPropagation();
-			var wp = this.calculateWidthsAsPercentage();
-			this.leftLastSize = wp.left;
-			this.rightLastSize = wp.right;
+			// Disable transitions during drag
+			setTransitionsEnabled(false);
+			
+			// Add dragging class to body for cursor styling
+			$('body').addClass('resizing');
+			
+			e.preventDefault();
 		});
 		
+		// Mouse move event - update section widths during drag
+		$(document).on('mousemove', (e) => {
+			if (!isDragging) return;
+			
+			const deltaX = e.clientX - initialX;
+			const totalWidth = container.width();
+			
+			// Check if we're starting from a collapsed state
+			const isExpandingFromCollapsed = this.leftLastSize === 0;
+			
+			// Calculate new widths
+			let newLeftWidth, leftWidthPercent, rightWidthPercent;
+			
+			if (isExpandingFromCollapsed) {
+				// When expanding from collapsed, we want positive movement to expand
+				newLeftWidth = Math.max(0, deltaX);
+				leftWidthPercent = (newLeftWidth / totalWidth) * 100;
+			} else {
+				newLeftWidth = initialLeftWidth + deltaX;
+				leftWidthPercent = (newLeftWidth / totalWidth) * 100;
+			}
+			
+			rightWidthPercent = 100 - leftWidthPercent;
+			
+			// Handle minimum threshold for collapsing
+			if(leftWidthPercent < 8 && !isExpandingFromCollapsed) {
+				leftSection.css('width', '0vw');
+				rightSection.css('width', '100vw');
+				this.leftLastSize = 0;
+				this.rightLastSize = 100;
+				// Make sure the handle stays visible
+				dragHandle.addClass('handle-collapsed');
+				return;
+			}
+			
+			if(rightWidthPercent < 8) {
+				rightSection.css('width', '0vw');
+				leftSection.css('width', '100vw');
+				this.leftLastSize = 100;
+				this.rightLastSize = 0;
+				return;
+			}
+			
+			// Update widths
+			leftSection.css('width', leftWidthPercent + 'vw');
+			rightSection.css('width', rightWidthPercent + 'vw');
+			
+			// If we're expanding from collapsed, update handle position
+			if (isExpandingFromCollapsed && leftWidthPercent > 0) {
+				dragHandle.removeClass('handle-collapsed');
+			}
+			
+			// Store the new values
+			this.leftLastSize = leftWidthPercent;
+			this.rightLastSize = rightWidthPercent;
+		});
+		
+		// Mouse up event - stop dragging
+		$(document).on('mouseup', (e) => {
+			if (isDragging) {
+				isDragging = false;
+				
+				// Re-enable transitions after drag
+				setTransitionsEnabled(true);
+				
+				// Remove dragging class
+				$('body').removeClass('resizing');
+				
+				// Dispatch resize event
+				this.sqs.sqsEventDispatch("layoutResize", e);
+				
+				// Calculate and store final widths
+				const wp = this.calculateWidthsAsPercentage();
+				this.leftLastSize = wp.left;
+				this.rightLastSize = wp.right;
+			}
+		});
+		
+		// Window resize event
 		$(window).on("resize", (evt) => {
 			this.sqs.sqsEventDispatch("layoutResize", evt);
 		});
-    }
+		
+		// Remove the jQuery UI handle if it exists
+		$(".ui-resizable-handle", this.anchor).remove();
+	}
     
     /*
     * Function: setDefaultOptionValue

@@ -49,6 +49,45 @@ class sqsLayoutManager {
 				}
 			}
 		});
+
+		// Initialize filter section toggle button
+        this.initFilterToggle();
+	}
+
+	initFilterToggle() {
+		// Wait for DOM to be ready
+		$(document).ready(() => {
+			const toggleIcon = $('#filter-toggle-icon');
+			const toggleText = $('#filter-toggle-text');
+			
+			// Set up click handler
+			toggleBtn.on('click', () => {
+				// Get the active view
+				const activeView = this.getActiveView();
+				if (!activeView) return;
+				
+				// Check current sizes
+				const isCollapsed = activeView.leftLastSize === 0;
+				
+				if (isCollapsed) {
+					// Expand the left section
+					const leftSize = activeView.leftInitSize || 30;
+					const rightSize = 100 - leftSize;
+					activeView.setSectionSizes(leftSize, rightSize, true);
+					
+					// Update button icon and text
+					toggleIcon.removeClass('fa-chevron-right').addClass('fa-chevron-left');
+					toggleText.text('Hide Filters');
+				} else {
+					// Collapse the left section
+					activeView.setSectionSizes(0, 100, true);
+					
+					// Update button icon and text
+					toggleIcon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
+					toggleText.text('Show Filters');
+				}
+			});
+		});
 	}
 
 	createView(anchor, name, leftSize = 70, rightSize = 30, options = {}) {
