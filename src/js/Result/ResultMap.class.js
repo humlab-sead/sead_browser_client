@@ -1226,11 +1226,16 @@ class ResultMap extends ResultModule {
 			groups[groupName].push(layer);
 		});
 		
-		// Filter out empty groups (though we don't really need to)
+		// Filter out empty groups and sort layers alphabetically within each group
 		const result = {};
 		for (const [key, value] of Object.entries(groups)) {
 			if (value.length > 0) {
-				result[key] = value;
+				// Sort layers within the group alphabetically by title
+				result[key] = value.sort((a, b) => {
+					const titleA = a.getProperties().title || '';
+					const titleB = b.getProperties().title || '';
+					return titleA.localeCompare(titleB);
+				});
 			}
 		}
 		

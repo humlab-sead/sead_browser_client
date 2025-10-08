@@ -692,7 +692,7 @@ export default class ResultMapLayers {
             transparent: true,
             srs: 'EPSG:3857',
             attributions: [],
-            layerIdPrefix: groupName, // Optional prefix for layer IDs
+            //layerIdPrefix: groupName, // Optional prefix for layer IDs
             wmsParams: {}, // Additional WMS parameters
         };
 
@@ -740,21 +740,33 @@ export default class ResultMapLayers {
                 visible: false
             });
             layer.setZIndex(10);
-            
-            // Generate layer ID
-            const layerId = config.layerIdPrefix 
-                ? `${config.layerIdPrefix}_${layerDef.name || layerDef.id}`
-                : layerDef.name || layerDef.id;
+
+            //layerId should be a hashed combo of the layerUrl and the layerDef.id
+            const layerId = this.getLayerId(`${layerUrl}_${layerDef.id}`);
 
                 //check that no other previous layer has the same id, and if so, warn about it
             if (this.layers.some(l => l.get('layerId') === layerId) || olLayers.some(l => l.get('layerId') === layerId)) {
-                console.warn(`Duplicate layer ID detected: ${layerId}. Consider using a different layerIdPrefix.`);
+                console.warn(`Duplicate layer ID detected: ${layerId}.`);
+            }
+
+            let layerTitle = layerDef.title;
+            
+            //For these layers, add more info to the title based on the layerUrl since they are different layers with the same title
+            if(layerTitle == "Anmälningsplikt" || layerTitle == "Byggnadsminne") {
+                switch(layerUrl) {
+                    case "https://pub.raa.se/visning/bebyggelse_kulturhistoriskt_inventerad_v1/wms":
+                        layerTitle = layerTitle + " (kulturhistoriskt inventerad)";
+                        break;
+                    case "https://pub.raa.se/visning/enskilda_och_statliga_byggnadsminnen_skyddsomraden_v1/wms":
+                        layerTitle = layerTitle + " (enskilda och statliga byggnadsminnen)";
+                        break;
+                }
             }
 
             // Set layer properties
             layer.setProperties({
                 "layerId": layerId,
-                "title": layerDef.title,
+                "title": layerTitle,
                 "clarifyingName": layerDef.name ? this.translateProperty(layerDef.name) : '',
                 "type": "auxLayer",
                 "legend": layerDef.legendUrl ? true : false,
@@ -795,5 +807,15 @@ export default class ResultMapLayers {
 
         // Return empty string if no translation found
         return '';
+    }
+
+    getLayerId(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash |= 0; // Convert to 32bit integer
+        }
+        return `layer_${Math.abs(hash)}`; // Ensure positive and prefix with 'layer_'
     }
 }
