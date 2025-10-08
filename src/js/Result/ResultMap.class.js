@@ -15,9 +15,10 @@ import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
 import { fromLonLat } from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
-import { Attribution } from 'ol/control';
+import { Attribution, Zoom } from 'ol/control';
 import XYZ from 'ol/source/XYZ';
 import Config from '../../config/config.json';
+import ResultMapLayers from './ResultMap/ResultMapLayers.class.js';
 
 
 /*
@@ -37,8 +38,11 @@ class ResultMap extends ResultModule {
 	*/
 	constructor(resultManager, renderIntoNode = "#result-map-container", includeTimeline = true) {
 		super(resultManager);
+		this.sqs = this.resultManager.sqs;
 		this.renderIntoNode = renderIntoNode;
 		this.includeTimeline = includeTimeline;
+		this.auxLayersInitialized = false;
+		this.resultMapLayers = new ResultMapLayers(this.sqs);
 
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
 		$(this.renderIntoNode).append(`<div class='result-map-legend-container'>
@@ -54,15 +58,13 @@ class ResultMap extends ResultModule {
 		this.name = "map";
 		this.prettyName = "Geographic";
 		this.icon = "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>";
-		this.baseLayers = [];
-		this.dataLayers = [];
-		this.auxLayers = [];
         this.currentZoomLevel = 4;
 		this.selectPopupOverlay = null;
 		this.selectInteraction = null;
 		this.timeline = null;
+		this.layers = [];
 		this.defaultExtent = [-9240982.715065815, -753638.6533165146, 11461833.521917604, 19264301.810231723];
-		
+
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			if(data.selection != this.name) {
 				$("#result-map-container").hide();
@@ -91,862 +93,9 @@ class ResultMap extends ResultModule {
 			}
 		}
 
-		//Define base layers
-		let stamenLayer = new TileLayer({
-			source: new StadiaMaps({
-				layer: 'stamen_terrain_background',
-				wrapX: true,
-				url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}.png",
-				attributions: ['&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>', 
-					'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>',
-					'&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>',
-					'&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>'],
-			}),
-			visible: true
-		});
-		stamenLayer.setProperties({
-			"layerId": "stamen",
-			"title": "Terrain",
-			"type": "baseLayer"
-		});
+		this.layers = this.resultMapLayers.initBaseLayers();
 
-		let stamenTerrainLabelsLayer = new TileLayer({
-			source: new StadiaMaps({
-				layer: 'stamen_terrain',
-				wrapX: true,
-				url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png",
-				attributions: [
-					'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>',
-					'&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>',
-					'&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>',
-					'&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>'
-				],
-			}),
-			visible: false
-		});
-		stamenTerrainLabelsLayer.setProperties({
-			"layerId": "stamenTerrain",
-			"title": "Terrain (Labels & Lines)",
-			"type": "baseLayer"
-		});
-
-		let osmLayer = new TileLayer({
-			source: new OSM({
-				attributions: [
-					'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>'
-				]
-			}),
-			visible: false
-		});
-		osmLayer.setProperties({
-			"layerId": "osm",
-			"title": "OpenStreetMap",
-			"type": "baseLayer"
-		});
-
-		let mapboxSatelliteLayer = new TileLayer({
-			source: new XYZ({
-				url: `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=${Config.mapBoxToken}`,
-				attributions: [
-					'© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
-					'© <a href="https://www.openstreetmap.org/about/">OpenStreetMap contributors</a>'
-				]
-			}),
-			visible: false
-		});
-		mapboxSatelliteLayer.setProperties({
-			"layerId": "mapboxSatellite",
-			"title": "Mapbox Satellite",
-			"type": "baseLayer"
-		});
-
-		let openTopoLayer = new TileLayer({
-			source: new XYZ({
-				url: 'https://{a-c}.tile.opentopomap.org/{z}/{x}/{y}.png',
-				wrapX: true,
-				attributions: "Baselayer © <a target='_blank' href='https://www.opentopomap.org/'>OpenTopoMap</a>"
-			}),
-			visible: false
-		});
-		openTopoLayer.setProperties({
-			"layerId": "topoMap",
-			"title": "OpenTopoMap",
-			"type": "baseLayer"
-		});
-
-		let sguTopoLayerUrl = "https://maps3.sgu.se/geoserver/wms";
-		let sguTopoLayer = new TileLayer({
-			source: new TileWMS({
-				url: sguTopoLayerUrl,
-				params: {
-					'LAYERS': '', // jord:SE.GOV.SGU.JORD.GRUNDLAGER.1M
-					'TILED': false,
-					'FORMAT': 'image/png',
-					'TRANSPARENT': true,
-					'SRS': 'EPSG:3857', // Web Mercator for OpenLayers compatibility
-					'STYLES': '' //JORD_1M_Grundlager
-				},
-				serverType: 'geoserver',
-				attributions: [
-					'© <a href="https://www.sgu.se/" target="_blank">Sveriges geologiska undersökning (SGU)</a>',
-					'© <a href="https://www.lantmateriet.se/" target="_blank">Lantmäteriet</a>'
-				]
-			}),
-			visible: false
-		});
-
-		sguTopoLayer.setProperties({
-			"layerId": "sguTopo",
-			"title": "SGU",
-			"type": "auxLayer",
-			"legend": true,
-			"pendingMetaDataLoad": true
-		});
-
-		this.fetchWmsLayerInfo(sguTopoLayerUrl).then(layers => {
-
-			const sguKeepList = [
-				"strandforskjmodell_bp100_vy",
-				"strandforskjmodell_bp200_vy",
-				"strandforskjmodell_bp300_vy",
-				"strandforskjmodell_bp400_vy",
-				"strandforskjmodell_bp500_vy",
-				"strandforskjmodell_bp600_vy",
-				"strandforskjmodell_bp700_vy",
-				"strandforskjmodell_bp800_vy",
-				"strandforskjmodell_bp900_vy",
-				"strandforskjmodell_bp1000_vy",
-				"strandforskjmodell_bp1200_vy",
-				"strandforskjmodell_bp1300_vy",
-				"strandforskjmodell_bp1400_vy",
-				"strandforskjmodell_bp1500_vy",
-				"strandforskjmodell_bp1600_vy",
-				"strandforskjmodell_bp1700_vy",
-				"strandforskjmodell_bp1800_vy",
-				"strandforskjmodell_bp1900_vy",
-				"strandforskjmodell_bp2000_vy",
-				"strandforskjmodell_bp2100_vy",
-				"strandforskjmodell_bp2200_vy",
-				"strandforskjmodell_bp2300_vy",
-				"strandforskjmodell_bp2400_vy",
-				"strandforskjmodell_bp2500_vy",
-				"strandforskjmodell_bp2600_vy",
-				"strandforskjmodell_bp2700_vy",
-				"strandforskjmodell_bp2800_vy",
-				"strandforskjmodell_bp2900_vy",
-				"strandforskjmodell_bp3000_vy",
-				"strandforskjmodell_bp3100_vy",
-				"strandforskjmodell_bp3200_vy",
-				"strandforskjmodell_bp3300_vy",
-				"strandforskjmodell_bp3400_vy",
-				"strandforskjmodell_bp3500_vy",
-				"strandforskjmodell_bp3600_vy",
-				"strandforskjmodell_bp3700_vy",
-				"strandforskjmodell_bp3800_vy",
-				"strandforskjmodell_bp3900_vy",
-				"strandforskjmodell_bp4000_vy",
-				"strandforskjmodell_bp4100_vy",
-				"strandforskjmodell_bp4200_vy",
-				"strandforskjmodell_bp4300_vy",
-				"strandforskjmodell_bp4400_vy",
-				"strandforskjmodell_bp4500_vy",
-				"strandforskjmodell_bp4600_vy",
-				"strandforskjmodell_bp4700_vy",
-				"strandforskjmodell_bp4800_vy",
-				"strandforskjmodell_bp4900_vy",
-				"strandforskjmodell_bp5000_vy",
-				"strandforskjmodell_bp5100_vy",
-				"strandforskjmodell_bp5200_vy",
-				"strandforskjmodell_bp5300_vy",
-				"strandforskjmodell_bp5400_vy",
-				"strandforskjmodell_bp5500_vy",
-				"strandforskjmodell_bp5600_vy",
-				"strandforskjmodell_bp5700_vy",
-				"strandforskjmodell_bp5800_vy",
-				"strandforskjmodell_bp5900_vy",
-				"strandforskjmodell_bp6000_vy",
-				"strandforskjmodell_bp6100_vy",
-				"strandforskjmodell_bp6200_vy",
-				"strandforskjmodell_bp6300_vy",
-				"strandforskjmodell_bp6400_vy",
-				"strandforskjmodell_bp6500_vy",
-				"strandforskjmodell_bp6600_vy",
-				"strandforskjmodell_bp6700_vy",
-				"strandforskjmodell_bp6800_vy",
-				"strandforskjmodell_bp6900_vy",
-				"strandforskjmodell_bp7000_vy",
-				"strandforskjmodell_bp7100_vy",
-				"strandforskjmodell_bp7200_vy",
-				"strandforskjmodell_bp7300_vy",
-				"strandforskjmodell_bp7400_vy",
-				"strandforskjmodell_bp7500_vy",
-				"strandforskjmodell_bp7600_vy",
-				"strandforskjmodell_bp7700_vy",
-				"strandforskjmodell_bp7800_vy",
-				"strandforskjmodell_bp7900_vy",
-				"strandforskjmodell_bp8000_vy",
-				"strandforskjmodell_bp8100_vy",
-				"strandforskjmodell_bp8200_vy",
-				"strandforskjmodell_bp8300_vy",
-				"strandforskjmodell_bp8400_vy",
-				"strandforskjmodell_bp8500_vy",
-				"strandforskjmodell_bp8600_vy",
-				"strandforskjmodell_bp8700_vy",
-				"strandforskjmodell_bp8800_vy",
-				"strandforskjmodell_bp8900_vy",
-				"strandforskjmodell_bp9000_vy",
-				"strandforskjmodell_bp9100_vy",
-				"strandforskjmodell_bp9200_vy",
-				"strandforskjmodell_bp9300_vy",
-				"strandforskjmodell_bp9400_vy",
-				"strandforskjmodell_bp9500_vy",
-				"strandforskjmodell_bp9600_vy",
-				"strandforskjmodell_bp9700_vy",
-				"strandforskjmodell_bp9800_vy",
-				"strandforskjmodell_bp9900_vy",
-				"strandforskjmodell_bp10000_vy",
-				"strandforskjmodell_bp10100_vy",
-				"strandforskjmodell_bp10200_vy",
-				"strandforskjmodell_bp10300_vy",
-				"strandforskjmodell_bp10400_vy",
-				"strandforskjmodell_bp10500_vy",
-				"strandforskjmodell_bp10600_vy",
-				"strandforskjmodell_bp10700_vy",
-				"strandforskjmodell_bp10800_vy",
-				"strandforskjmodell_bp10900_vy",
-				"strandforskjmodell_bp11000_vy",
-				"strandforskjmodell_bp11100_vy",
-				"strandforskjmodell_bp11200_vy",
-				"strandforskjmodell_bp11300_vy",
-				"strandforskjmodell_bp11400_vy",
-				"strandforskjmodell_bp11500_vy",
-				"strandforskjmodell_bp11600_vy",
-				"strandforskjmodell_bp11700_vy",
-				"strandforskjmodell_bp11800_vy",
-				"strandforskjmodell_bp11900_vy",
-				"strandforskjmodell_bp12000_vy",
-				"strandforskjmodell_bp12100_vy",
-				"strandforskjmodell_bp12200_vy",
-				"strandforskjmodell_bp12300_vy",
-				"strandforskjmodell_bp12400_vy",
-				"strandforskjmodell_bp12500_vy",
-				"strandforskjmodell_bp12600_vy",
-				"strandforskjmodell_bp12700_vy",
-				"strandforskjmodell_bp12800_vy",
-				"strandforskjmodell_bp12900_vy",
-				"strandforskjmodell_bp13000_vy",
-				"strandforskjmodell_bp13100_vy",
-				"strandforskjmodell_bp13200_vy",
-				"strandforskjmodell_bp13300_vy",
-				"strandforskjmodell_bp13400_vy",
-				"strandforskjmodell_bp13500_vy",
-				"bekv_kartform_vy",
-				"bekv_bkvv_vy",
-				"stre_erof_prognos_vy",
-				"stre_eros_index_vy_v2",
-				"stre_eros_skydd_vy",
-				"stre_eros_skydd_v2_vy",
-				"landform_poly_fluvial_vy",
-				"v_er_fossil_fuel_resource",
-				"v_geologicunit_surficial_25_100_poly",
-				"v_geologicunit_surficial_25_100_point",
-				"v_geologicunit_surficial_750_poly",
-				"jkar_abcdg_jg2_genomslapp_vy",
-				"plan_undersokningsomrade_geofysik_vy",
-				"plan_undersokningsomrade_geokemi_vy",
-				"stre_nnh_moh_1_vy_v2",
-				"stre_nnh_moh_15_vy",
-				"stre_nnh_moh_15_vy_v2",
-				"stre_nnh_moh_2_vy",
-				"stre_nnh_moh_2_vy_v2",
-				"stre_nnh_moh_3_vy",
-				"stre_nnh_moh_3_vy_v2",
-				"skugga",
-				"genomslapplighet_berg",
-				"malo_sont_vy",
-				"mare_sont_vy",
-				"bark_brunnar_icke_energi_vy",
-				"malm_malmer_ferrous_metals_vy",
-				"jkar_abcdg_jg2_stre_vy",
-				"jdjupmod_und_djup_min_vy",
-				"blab_kemi_ree_y_tot_vy",
-				"mark_moran_salpeter_icpms_sr_vy",
-				"bmod_struktur_textursymbol_vy",
-				"made_matl_vy"
-			];
-
-
-			console.log(layers);
-
-			layers.flat.filter(layer => !sguKeepList.includes(layer.abstract)).forEach(layer => {
-				let index = layers.flat.indexOf(layer);
-				if (index > -1) {
-					layers.flat.splice(index, 1);
-				}
-			});
-
-			layers.layers.filter(layer => !sguKeepList.includes(layer.abstract)).forEach(layer => {
-				let index = layers.layers.indexOf(layer);
-				if (index > -1) {
-					layers.layers.splice(index, 1);
-				}
-			});
-
-			layers.tree.forEach(layerGroup => {
-				layerGroup.children.filter(layer => !sguKeepList.includes(layer.abstract)).forEach(layer => {
-					let index = layerGroup.children.indexOf(layer);
-					if (index > -1) {
-						layerGroup.children.splice(index, 1);
-					}
-				});
-			});
-
-			sguTopoLayer.setProperties({
-				"subLayers": layers.flat,
-				"subLayersTree": layers.tree,
-				"pendingMetaDataLoad": false
-			});
-		});
-
-
-		// Aux layers
-		let msbFloodingLayerUrl = "https://gisapp.msb.se/arcgis/services/Oversvamningskarteringar/karteringar/MapServer/WmsServer";
-		const msbFloodingLayer = new TileLayer({
-			source: new TileWMS({
-				url: msbFloodingLayerUrl,
-				params: {
-					'LAYERS': '6', // adjust per capabilities
-					'TILED': true,
-					'FORMAT': 'image/png'
-				},
-				serverType: 'geoserver', // or 'mapserver', etc.
-				attributions: [
-					'© <a href="https://www.msb.se/" target="_blank">MSB</a>'
-				]
-			}),
-			visible: false
-		});
-
-
-		msbFloodingLayer.setProperties({
-			"layerId": "msbFlooding",
-			"title": "MSB Flooding",
-			"type": "auxLayer",
-			"subLayers": [],
-			"legend": false,
-			"pendingMetaDataLoad": true
-		});
-
-		this.fetchWmsLayerInfo(msbFloodingLayerUrl).then(layers => {
-			//remove the layer at index 0, because it's empty - this is assuming msb floods 
-			//layers.shift();
-
-			msbFloodingLayer.setProperties({
-				"subLayers": layers.flat,
-				"subLayersTree": layers.tree,
-				"pendingMetaDataLoad": false
-			});
-
-			if(msbFloodingLayer.getProperties().subLayers.length > 0) {
-				//set a default subLayer
-				msbFloodingLayer.setProperties({
-					"selectedSubLayer": 15 //set 15 as the default, which is "Översvämningskarterade vattendrag, översikt"
-				});
-			}
-		});
-
-		let raaWmsUrl = "https://pub.raa.se/visning/uppdrag_v1/wms";
-		const raaWmsLayer = new TileLayer({
-			source: new TileWMS({
-				url: raaWmsUrl,
-				params: {
-					'LAYERS': '', // Will be set by sublayer selection
-					'TILED': true,
-					'FORMAT': 'image/png',
-					'TRANSPARENT': true,
-					'SRS': 'EPSG:3857'
-				},
-				serverType: 'geoserver',
-				attributions: [
-					'© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-				]
-			}),
-			visible: false
-		});
-
-		raaWmsLayer.setProperties({
-			"layerId": "raaWms",
-			"title": "RAÄ Arkeologiska uppdrag",
-			"type": "auxLayer",
-			"subLayers": [],
-			"legend": true,
-			"pendingMetaDataLoad": true
-		});
-
-		this.fetchWmsLayerInfo(raaWmsUrl).then(layers => {
-			console.log(layers);
-			// Remove the first layer if it's a group/root layer with no name
-			if (layers.length && !layers[0].name) layers.shift();
-			raaWmsLayer.setProperties({
-				"subLayers": layers.flat,
-				"subLayersTree": layers.tree,
-				"pendingMetaDataLoad": false
-			});
-			// Optionally set a default sublayer
-			if (raaWmsLayer.getProperties().subLayers.length > 0) {
-				raaWmsLayer.setProperties({
-					"selectedSubLayer": raaWmsLayer.getProperties().subLayers[0].name
-				});
-			}
-		});
-
-		let raaBebyggelseWmsUrl = "https://pub.raa.se/visning/bebyggelse_kulturhistoriskt_inventerad_v1/wms";
-		const raaBebyggelseLayer = new TileLayer({
-			source: new TileWMS({
-				url: raaBebyggelseWmsUrl,
-				params: {
-					'LAYERS': '', // Will be set by sublayer selection
-					'TILED': true,
-					'FORMAT': 'image/png',
-					'TRANSPARENT': true,
-					'SRS': 'EPSG:3857',
-				},
-				serverType: 'geoserver',
-				attributions: [
-					'© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-				]
-			}),
-			visible: false
-		});
-
-		raaBebyggelseLayer.setProperties({
-			"layerId": "raaBebyggelse",
-			"title": "RAÄ Kulturhistoriskt inventerad bebyggelse",
-			"type": "auxLayer",
-			"subLayers": [],
-			"legend": true,
-			"pendingMetaDataLoad": true
-		});
-
-		this.fetchWmsLayerInfo(raaBebyggelseWmsUrl).then(layers => {
-			// Remove the first layer if it's a group/root layer with no name
-			if (layers.length && !layers[0].name) layers.shift();
-			raaBebyggelseLayer.setProperties({
-				"subLayers": layers.flat,
-				"subLayersTree": layers.tree,
-				"pendingMetaDataLoad": false
-			});
-			// Optionally set a default sublayer
-			if (raaBebyggelseLayer.getProperties().subLayers.length > 0) {
-				raaBebyggelseLayer.setProperties({
-					"selectedSubLayer": raaBebyggelseLayer.getProperties().subLayers[0].name
-				});
-			}
-		});
-
-		const raaByggnadsminnenSkyddsomradenUrl = "https://pub.raa.se/visning/enskilda_och_statliga_byggnadsminnen_skyddsomraden_v1/wms";
-		const raaByggnadsminnenSkyddsomradenLayer = new TileLayer({
-			source: new TileWMS({
-				url: raaByggnadsminnenSkyddsomradenUrl,
-				params: {
-					'LAYERS': '', // Will be set by sublayer selection
-					'TILED': true,
-					'FORMAT': 'image/png',
-					'TRANSPARENT': true,
-					'SRS': 'EPSG:3857'
-				},
-				serverType: 'geoserver',
-				attributions: [
-					'© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-				]
-			}),
-			visible: false
-		});
-
-		raaByggnadsminnenSkyddsomradenLayer.setProperties({
-			"layerId": "raaByggnadsminnenSkyddsomraden",
-			"title": "RAÄ Byggnadsminnen och skyddsområden",
-			"type": "auxLayer",
-			"subLayers": [],
-			"legend": true,
-			"pendingMetaDataLoad": true
-		});
-
-		this.fetchWmsLayerInfo(raaByggnadsminnenSkyddsomradenUrl).then(layers => {
-			// Remove the first layer if it's a group/root layer with no name
-			if (layers.length && !layers[0].name) layers.shift();
-			raaByggnadsminnenSkyddsomradenLayer.setProperties({
-				"subLayers": layers.flat,
-				"subLayersTree": layers.tree,
-				"pendingMetaDataLoad": false
-			});
-			// Optionally set a default sublayer
-			if (raaByggnadsminnenSkyddsomradenLayer.getProperties().subLayers.length > 0) {
-				raaByggnadsminnenSkyddsomradenLayer.setProperties({
-					"selectedSubLayer": raaByggnadsminnenSkyddsomradenLayer.getProperties().subLayers[0].name
-				});
-			}
-		});
-
-		let raaBuildingsAndChurchesUrl = "https://inspire-raa.metria.se/geoserver/Byggnader/ows";
-        const raaBuildingsAndChurchesLayer = new TileLayer({
-            source: new TileWMS({
-                url: raaBuildingsAndChurchesUrl,
-                params: {
-                    'LAYERS': '', // Will be set by sublayer selection
-                    'TILED': true,
-                    'FORMAT': 'image/png',
-                    'TRANSPARENT': true,
-                    'SRS': 'EPSG:3857'
-                },
-                serverType: 'geoserver',
-                attributions: [
-                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-                ]
-            }),
-            visible: false
-        });
-
-        raaBuildingsAndChurchesLayer.setProperties({
-            "layerId": "raaBuildingsAndChurches",
-            "title": "RAÄ Byggnader och kyrkor",
-            "type": "auxLayer",
-            "subLayers": [],
-            "legend": true,
-            "pendingMetaDataLoad": true
-        });
-
-        this.fetchWmsLayerInfo(raaBuildingsAndChurchesUrl).then(layers => {
-            // Remove the first layer if it's a group/root layer with no name
-            if (layers.length && !layers[0].name) layers.shift();
-            raaBuildingsAndChurchesLayer.setProperties({
-                "subLayers": layers.flat,
-				"subLayersTree": layers.tree,
-                "pendingMetaDataLoad": false
-            });
-            // Optionally set a default sublayer
-            if (raaBuildingsAndChurchesLayer.getProperties().subLayers.length > 0) {
-                raaBuildingsAndChurchesLayer.setProperties({
-                    "selectedSubLayer": raaBuildingsAndChurchesLayer.getProperties().subLayers[0].name
-                });
-            }
-        });
-
-		let raaBuildingsRuinsUrl = "https://inspire-raa.metria.se/geoserver/ByggnaderRuiner/ows";
-        const raaBuildingsRuinsLayer = new TileLayer({
-            source: new TileWMS({
-                url: raaBuildingsRuinsUrl,
-                params: {
-                    'LAYERS': '', // Will be set by sublayer selection
-                    'TILED': true,
-                    'FORMAT': 'image/png',
-                    'TRANSPARENT': true,
-                    'SRS': 'EPSG:3857'
-                },
-                serverType: 'geoserver',
-                attributions: [
-                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-                ]
-            }),
-            visible: false
-        });
-
-        raaBuildingsRuinsLayer.setProperties({
-            "layerId": "raaBuildingsRuins",
-            "title": "RAÄ Byggnader och ruiner",
-            "type": "auxLayer",
-            "subLayers": [],
-            "legend": true,
-            "pendingMetaDataLoad": true
-        });
-
-        this.fetchWmsLayerInfo(raaBuildingsRuinsUrl).then(layers => {
-            // Remove the first layer if it's a group/root layer with no name
-            if (layers.length && !layers[0].name) layers.shift();
-            raaBuildingsRuinsLayer.setProperties({
-                "subLayers": layers.flat,
-				"subLayersTree": layers.tree,
-                "pendingMetaDataLoad": false
-            });
-            // Optionally set a default sublayer
-            if (raaBuildingsRuinsLayer.getProperties().subLayers.length > 0) {
-                raaBuildingsRuinsLayer.setProperties({
-                    "selectedSubLayer": raaBuildingsRuinsLayer.getProperties().subLayers[0].name
-                });
-            }
-        });
-
-		let raaKulturarvUrl = "https://inspire-raa.metria.se/geoserver/Kulturarv/ows";
-        const raaKulturarvLayer = new TileLayer({
-            source: new TileWMS({
-                url: raaKulturarvUrl,
-                params: {
-                    'LAYERS': '', // Will be set by sublayer selection
-                    'TILED': true,
-                    'FORMAT': 'image/png',
-                    'TRANSPARENT': true,
-                    'SRS': 'EPSG:3857'
-                },
-                serverType: 'geoserver',
-                attributions: [
-                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-                ]
-            }),
-            visible: false
-        });
-
-        raaKulturarvLayer.setProperties({
-            "layerId": "raaKulturarv",
-            "title": "RAÄ Kulturarv",
-            "type": "auxLayer",
-            "subLayers": [],
-            "legend": true,
-            "pendingMetaDataLoad": true
-        });
-
-        this.fetchWmsLayerInfo(raaKulturarvUrl).then(layers => {
-            // Remove the first layer if it's a group/root layer with no name
-            if (layers.length && !layers[0].name) layers.shift();
-            raaKulturarvLayer.setProperties({
-                "subLayers": layers.flat,
-				"subLayersTree": layers.tree,
-                "pendingMetaDataLoad": false
-            });
-            // Optionally set a default sublayer
-            if (raaKulturarvLayer.getProperties().subLayers.length > 0) {
-                raaKulturarvLayer.setProperties({
-                    "selectedSubLayer": raaKulturarvLayer.getProperties().subLayers[0].name
-                });
-            }
-        });
-
-		let raaFornlamningarUrl = "https://inspire-raa.metria.se/geoserver/Fornlamningar/ows";
-        const raaFornlamningarLayer = new TileLayer({
-            source: new TileWMS({
-                url: raaFornlamningarUrl,
-                params: {
-                    'LAYERS': '', // Will be set by sublayer selection
-                    'TILED': true,
-                    'FORMAT': 'image/png',
-                    'TRANSPARENT': true,
-                    'SRS': 'EPSG:3857'
-                },
-                serverType: 'geoserver',
-                attributions: [
-                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-                ]
-            }),
-            visible: false
-        });
-
-        raaFornlamningarLayer.setProperties({
-            "layerId": "raaFornlamningar",
-            "title": "RAÄ Fornlämningar",
-            "type": "auxLayer",
-            "subLayers": [],
-            "legend": true,
-            "pendingMetaDataLoad": true
-        });
-
-        this.fetchWmsLayerInfo(raaFornlamningarUrl).then(layers => {
-            // Remove the first layer if it's a group/root layer with no name
-            if (layers.length && !layers[0].name) layers.shift();
-            raaFornlamningarLayer.setProperties({
-                "subLayers": layers.flat,
-				"subLayersTree": layers.tree,
-                "pendingMetaDataLoad": false
-            });
-            // Optionally set a default sublayer
-            if (raaFornlamningarLayer.getProperties().subLayers.length > 0) {
-                raaFornlamningarLayer.setProperties({
-                    "selectedSubLayer": raaFornlamningarLayer.getProperties().subLayers[0].name
-                });
-            }
-        });
-
-		let raaVarldsarvUrl = "https://inspire-raa.metria.se/geoserver/Varldsarv/ows";
-        const raaVarldsarvLayer = new TileLayer({
-            source: new TileWMS({
-                url: raaVarldsarvUrl,
-                params: {
-                    'LAYERS': '', // Will be set by sublayer selection
-                    'TILED': true,
-                    'FORMAT': 'image/png',
-                    'TRANSPARENT': true,
-                    'SRS': 'EPSG:3857'
-                },
-                serverType: 'geoserver',
-                attributions: [
-                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-                ]
-            }),
-            visible: false
-        });
-
-        raaVarldsarvLayer.setProperties({
-            "layerId": "raaVarldsarv",
-            "title": "RAÄ Världsarv",
-            "type": "auxLayer",
-            "subLayers": [],
-            "legend": true,
-            "pendingMetaDataLoad": true
-        });
-
-        this.fetchWmsLayerInfo(raaVarldsarvUrl).then(layers => {
-            // Remove the first layer if it's a group/root layer with no name
-            if (layers.length && !layers[0].name) layers.shift();
-            raaVarldsarvLayer.setProperties({
-                "subLayers": layers.flat,
-				"subLayersTree": layers.tree,
-                "pendingMetaDataLoad": false
-            });
-            // Optionally set a default sublayer
-            if (raaVarldsarvLayer.getProperties().subLayers.length > 0) {
-                raaVarldsarvLayer.setProperties({
-                    "selectedSubLayer": raaVarldsarvLayer.getProperties().subLayers[0].name
-                });
-            }
-        });
-
-		let raaLamningarUrl = "https://pub.raa.se/visning/lamningar_v1/wms";
-        const raaLamningarLayer = new TileLayer({
-            source: new TileWMS({
-                url: raaLamningarUrl,
-                params: {
-                    'LAYERS': '', // Will be set by sublayer selection
-                    'TILED': true,
-                    'FORMAT': 'image/png',
-                    'TRANSPARENT': true,
-                    'SRS': 'EPSG:3857'
-                },
-                serverType: 'geoserver',
-                attributions: [
-                    '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-                ]
-            }),
-            visible: false
-        });
-
-        raaLamningarLayer.setProperties({
-            "layerId": "raaLamningar",
-            "title": "RAÄ Kulturhistoriska lämningar",
-            "type": "auxLayer",
-            "subLayers": [],
-            "legend": true,
-            "pendingMetaDataLoad": true
-        });
-
-        this.fetchWmsLayerInfo(raaLamningarUrl).then(layers => {
-            // Remove the first layer if it's a group/root layer with no name
-            if (layers.length && !layers[0].name) layers.shift();
-            raaLamningarLayer.setProperties({
-                "subLayers": layers.flat,
-				"subLayersTree": layers.tree,
-                "pendingMetaDataLoad": false
-            });
-            // Optionally set a default sublayer
-            if (raaLamningarLayer.getProperties().subLayers.length > 0) {
-                raaLamningarLayer.setProperties({
-                    "selectedSubLayer": raaLamningarLayer.getProperties().subLayers[0].name
-                });
-            }
-        });
-
-		/*
-		var arcticDemLayer = new ImageLayer({
-			source: new ImageArcGISRest({
-				attributions: "<a target='_blank' href='https://www.pgc.umn.edu/data/arcticdem/'>NSF PGC ArcticDEM</a>",
-			  	url: 'https://di-pgc.img.arcgis.com/arcgis/rest/services/arcticdem_rel2210/ImageServer',
-			  	params: {
-					'format': 'jpgpng',
-					'renderingRule': JSON.stringify({
-						'rasterFunction': 'Hillshade Gray',
-						'rasterFunctionArguments': {
-							'ZFactor': 10.0
-						}
-					}),
-					'mosaicRule': JSON.stringify({
-						'where': 'acqdate1 IS NULL',
-						'ascending': false
-					})
-			  	},
-			}),
-			visible: false
-		});
-
-		arcticDemLayer.setProperties({
-			"layerId": "arcticDem",
-			"title": "PGC ArcticDEM",
-			"type": "baseLayer"
-		});
-		*/
-		
-		this.baseLayers.push(stamenLayer);
-		this.baseLayers.push(stamenTerrainLabelsLayer);
-		this.baseLayers.push(osmLayer);
-		this.baseLayers.push(mapboxSatelliteLayer);
-		this.baseLayers.push(openTopoLayer);
-		
-		//this.baseLayers.push(arcticDemLayer);
-
-		
-		this.auxLayers.push(msbFloodingLayer);
-		this.auxLayers.push(sguTopoLayer);
-		this.auxLayers.push(raaWmsLayer);
-		this.auxLayers.push(raaBebyggelseLayer);
-		this.auxLayers.push(raaByggnadsminnenSkyddsomradenLayer);
-		this.auxLayers.push(raaBuildingsAndChurchesLayer);
-		this.auxLayers.push(raaBuildingsRuinsLayer);
-		this.auxLayers.push(raaKulturarvLayer);
-		this.auxLayers.push(raaFornlamningarLayer);
-		this.auxLayers.push(raaVarldsarvLayer);
-		this.auxLayers.push(raaLamningarLayer);
-
-		if(Config.resultMapDataLayers.includes("clusterPoints")) {
-			//Define data layers
-			let dataLayer = new VectorLayer();
-			dataLayer.setProperties({
-				layerId: "clusterPoints",
-				title: "Clustered",
-				type: "dataLayer",
-				renderCallback: () => {
-					this.renderClusteredPointsLayer();
-				},
-				visible: true
-			});
-			this.dataLayers.push(dataLayer);
-		}
-
-		if(Config.resultMapDataLayers.includes("clusterPoints")) {
-			dataLayer = new VectorLayer();
-			dataLayer.setProperties({
-				layerId: "points",
-				title: "Individual",
-				type: "dataLayer",
-				renderCallback: () => {
-					this.renderPointsLayer();
-				},
-				visible: false
-			});
-			this.dataLayers.push(dataLayer);	
-		}
-		
-		if(Config.resultMapDataLayers.includes("heatmap")) {
-			//Heatmap
-			dataLayer = new HeatmapLayer({
-				opacity: 0.5
-			});
-			dataLayer.setProperties({
-				layerId: "heatmap",
-				title: "Heatmap",
-				type: "dataLayer",
-				renderCallback: () => {
-					this.renderHeatmapLayer();
-				},
-				visible: false
-			});
-			this.dataLayers.push(dataLayer);
-		}
+		this.initializeDataLayers();
 
 		//Set up viewport resize event handlers
 		this.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
@@ -954,32 +103,540 @@ class ResultMap extends ResultModule {
 		this.resultManager.sqs.sqsEventListen("siteReportClosed", () => this.resizeCallback());
 	}
 
-	updateLegend(layer, selectedSubLayers) {
+	updateLegend() {
+		// Clear the current legend content
 		$(".result-map-legend-content", this.renderIntoNode).html("");
-		this.showLegend();
-		$(".result-map-legend-title", this.renderIntoNode).text(layer.getProperties().title);
-		$(".result-map-legend-description", this.renderIntoNode).text(layer.getProperties().description);
 		
-		let addedLegends = 0;
-		layer.getProperties().subLayers.forEach((subLayer) => {
-			//for each selected subLayer, we should draw the legend icon
-			if(selectedSubLayers.includes(subLayer.name)) {
-				if(subLayer.isGroup) {
-					//skip group layers
-					return;
-				}
-				$(".result-map-legend-content", this.renderIntoNode).append(`
-					<div class="result-map-legend-item">
-						<img src="${subLayer.legendUrl}" alt="${subLayer.title}" class="result-map-legend-icon">
+		// Get all visible layers from the unified layers array
+		const visibleLayers = this.layers.filter(layer => layer.getVisible());
+		
+		// If no visible layers at all, hide the legend
+		if (visibleLayers.length === 0) {
+			this.hideLegend();
+			return;
+		}
+		
+		// Create a single container for all legend items
+		const allLegendItems = $(`
+			<div class="result-map-legend-items sortable-legend"></div>
+		`);
+		
+		// Sort layers by z-index (higher z-index = appears first/on top)
+		visibleLayers.sort((a, b) => {
+			const zIndexA = typeof a.getZIndex === 'function' ? (a.getZIndex() || 0) : 0;
+			const zIndexB = typeof b.getZIndex === 'function' ? (b.getZIndex() || 0) : 0;
+			return zIndexB - zIndexA; // Sort in descending order (higher z-index first)
+		});
+		
+		// Process layers in z-index order
+		visibleLayers.forEach(layer => {
+			const props = layer.getProperties();
+			const layerType = props.type;
+			const groupName = props.group || "Other";
+			
+			if (layerType === "dataLayer") {
+				// Add data layer with expandable legend item
+				const legendItem = this.createLegendItem({
+					layerId: props.layerId,
+					layerType: "data",
+					title: props.title,
+					subtitle: "[Data]",
+					zIndex: layer.getZIndex() || 0,
+					canClose: true,
+					canExpand: true
+				});
+				allLegendItems.append(legendItem);
+			} 
+			else if (layerType === "baseLayer") {
+				// Add base layer
+				const visibleBaseLayers = this.layers.filter(l => l.getProperties().type === "baseLayer" && l.getVisible());
+				const isLastBaseLayer = visibleBaseLayers.length === 1;
+				
+				const legendItem = this.createLegendItem({
+					layerId: props.layerId,
+					layerType: "base",
+					title: props.title,
+					subtitle: "[Base]",
+					zIndex: layer.getZIndex() || 0,
+					canClose: !isLastBaseLayer,
+					canExpand: true
+				});
+				allLegendItems.append(legendItem);
+			}
+			else if (layerType === "auxLayer") {
+				console.log("Adding aux layer to legend:", props.title);
+				// Add auxiliary layer - each layer is now a first-class object
+				const legendItem = this.createLegendItem({
+					layerId: props.layerId,
+					layerType: "aux",
+					layerGroup: groupName,
+					title: props.title,
+					subtitle: `[${groupName}]`,
+					zIndex: layer.getZIndex() || 0,
+					canClose: true,
+					canExpand: true
+				});
+				allLegendItems.append(legendItem);
+			}
+		});
+		
+		// Add the unified legend items to the legend content
+		$(".result-map-legend-content", this.renderIntoNode).append(allLegendItems);
+		
+		// Show the legend
+		this.showLegend();
+
+		// Bind event handlers after adding to DOM
+		this.bindLegendEventHandlers();
+
+		this.makeLegendSortable();
+
+		// Update aux layer zoom indicators after legend is built
+		if (this.olMap) {
+			this.updateAuxLayerZoomIndicators();
+		}
+	}
+
+	createLegendItem(options) {
+		const {
+			layerId,
+			layerType,
+			layerGroup = null,
+			title,
+			subtitle,
+			zIndex,
+			canClose = true,
+			canExpand = true
+		} = options;
+
+		const dataAttributes = [
+			`data-layer-id="${layerId}"`,
+			`data-layer-type="${layerType}"`,
+			`data-z-index="${zIndex}"`,
+			layerGroup ? `data-layer-group="${layerGroup}"` : ''
+		].filter(Boolean).join(' ');
+
+		// Add zoom indicator for aux layers
+		const zoomIndicator = layerType === 'aux' ? 
+			'<div class="layer-zoom-indicator zoom-visible" title="Layer visibility depends on zoom level"><i class="fa fa-search" aria-hidden="true"></i></div>' : '';
+
+		return $(`
+			<div class="result-map-legend-item" ${dataAttributes}>
+				<div class="result-map-legend-item-header">
+					<div class="result-map-legend-item-expand-control">
+						${canExpand ? '<div class="legend-item-expand" title="Expand/Collapse"><i class="fa fa-chevron-down" aria-hidden="true"></i></div>' : ''}
 					</div>
-				`);
-				addedLegends++;
+					<div class="result-map-legend-item-info">
+						<div class="result-map-legend-sublayer-title">${title}</div>
+						<div class="result-map-legend-layer-type">${subtitle}</div>
+					</div>
+					<div class="result-map-legend-item-controls">
+						${zoomIndicator}
+						<div class="result-map-legend-item-close-control">
+							${canClose ? '<div class="legend-item-close" title="Remove layer"><i class="fa fa-times" aria-hidden="true"></i></div>' : ''}
+						</div>
+					</div>
+				</div>
+				<div class="result-map-legend-item-content" style="display: none;">
+					<div class="legend-content-placeholder">
+						Layer details will appear here...
+					</div>
+				</div>
+			</div>
+		`);
+	}
+
+	bindLegendEventHandlers() {
+
+		// Handle zoom indicator clicks for aux layers
+		$(".layer-zoom-indicator", this.renderIntoNode).off("click").on("click", (evt) => {
+			evt.stopPropagation();
+			const $legendItem = $(evt.target).closest(".result-map-legend-item");
+			const layerId = $legendItem.attr("data-layer-id");
+			const layer = this.layers.find(l => l.getProperties().layerId === layerId);
+			
+			if (!layer || !this.olMap) return;
+			
+			const props = layer.getProperties();
+			const maxScaleDenominator = props.maxScaleDenominator;
+			
+			if (maxScaleDenominator && $(evt.target).closest(".layer-zoom-indicator").hasClass("zoom-hidden")) {
+				// Calculate required zoom level to make layer visible
+				const metersPerUnit = this.olMap.getView().getProjection().getMetersPerUnit();
+				const requiredResolution = maxScaleDenominator / (metersPerUnit * (96 / 0.0254));
+				const targetZoom = this.olMap.getView().getZoomForResolution(requiredResolution) + 0.5; // Add small buffer
+				
+				// Animate to the appropriate zoom level
+				this.olMap.getView().animate({
+					zoom: Math.max(targetZoom, this.olMap.getView().getMinZoom()),
+					duration: 500
+				});
 			}
 		});
 
-		if(addedLegends == 0) {
-			$(".result-map-legend-container", this.renderIntoNode).hide();
+		// Handle expand/collapse buttons
+		$(".legend-item-expand").off("click").on("click", (evt) => {
+			evt.stopPropagation();
+			const parentEl = $(evt.target).closest(".result-map-legend-item");
+			const content = parentEl.find(".result-map-legend-item-content");
+			const icon = $(evt.target).closest(".legend-item-expand").find("i");
+
+			if (content.is(":visible")) {
+				// Collapse
+				content.slideUp();
+				icon.removeClass("fa-chevron-up").addClass("fa-chevron-down");
+			} else {
+				// Expand
+				content.slideDown();
+				icon.removeClass("fa-chevron-down").addClass("fa-chevron-up");
+				// Load content when expanded
+				this.loadLegendContent(parentEl);
+			}
+		});
+
+		// Handle close buttons
+		$(".legend-item-close").off("click").on("click", (evt) => {
+			evt.stopPropagation(); // Prevent event bubbling
+			const parentEl = $(evt.target).closest(".result-map-legend-item");
+			const layerId = parentEl.attr("data-layer-id");
+
+			// Find the layer in the unified layers array
+			const layer = this.layers.find(l => l.getProperties().layerId === layerId);
+			if (!layer) {
+				console.warn("Layer not found for removal:", layerId);
+				return;
+			}
+
+			const layerType = layer.getProperties().type;
+
+			switch(layerType) {
+				case "baseLayer":
+					// Check if it's the last base layer
+					const visibleBaseLayers = this.layers.filter(l => 
+						l.getProperties().type === "baseLayer" && l.getVisible());
+					if (visibleBaseLayers.length <= 1) {
+						console.log("Cannot remove the last base layer");
+						return;
+					}
+					layer.setVisible(false);
+					break;
+					
+				case "dataLayer":
+					console.log("Deselecting data layer");
+					this.setMapDataLayer("none");
+					break;
+					
+				case "auxLayer":
+					console.log("Deselecting auxiliary layer");
+					let layerId = layer.getProperties().layerId;
+					this.hideMapAuxLayer(layerId);
+					break;
+			}
+
+			// Update the legend after changes
+			this.updateLegend();
+		});
+	}
+
+	loadLegendContent(legendItem) {
+		const content = legendItem.find(".result-map-legend-item-content");
+		const layerId = legendItem.attr("data-layer-id");
+		const layerType = legendItem.attr("data-layer-type");
+		
+		// Check if content is already loaded
+		if (content.find(".legend-content-loaded").length > 0) {
+			return;
 		}
+		
+		// Show loading state
+		content.html(`
+			<div class="legend-content-loading">
+				<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Loading legend...
+			</div>
+		`);
+		
+		// Find the layer in the unified array
+		const layer = this.layers.find(l => l.getProperties().layerId === layerId);
+		
+		// Simulate loading delay and then show content based on layer type
+		setTimeout(() => {
+			let legendContent = '';
+			
+			switch(layerType) {
+				case 'data':
+					legendContent = `
+						<div class="legend-content-loaded">
+							<h5>Legend</h5>
+							<div class="legend-symbols">
+								<div class="legend-symbol-row">
+									<div class="legend-symbol" style="background-color: ${this.style.default.fillColor}; width: 12px; height: 12px; border-radius: 50%; display: inline-block;"></div>
+									<span>Site location</span>
+								</div>
+								<div class="legend-symbol-row">
+									<div class="legend-symbol" style="background-color: ${this.style.selected.fillColor}; width: 12px; height: 12px; border-radius: 50%; display: inline-block;"></div>
+									<span>Selected site</span>
+								</div>
+							</div>
+						</div>
+					`;
+					break;
+					
+				case 'base':
+					legendContent = `
+						<div class="legend-content-loaded">
+							<h5>Base</h5>
+							<p>This is the background map layer providing geographical context.</p>
+						</div>
+					`;
+					break;
+					
+				case 'aux':
+					const layerProps = layer ? layer.getProperties() : {};
+					legendContent = `
+						<div class="legend-content-loaded">
+							<h5>Legend</h5>
+							${layerProps.legendUrl ? 
+								`<img src="${layerProps.legendUrl}" alt="Layer legend" style="max-width: 100%; height: auto;" onerror="this.style.display='none';">` : 
+								'<p><em>No legend image available</em></p>'
+							}
+						</div>
+					`;
+					break;
+					
+				default:
+					legendContent = `
+						<div class="legend-content-loaded">
+							<p>Legend information for this layer type is not available.</p>
+						</div>
+					`;
+			}
+			
+			content.html(legendContent);
+		}, 500); // Simulate 500ms loading time
+	}
+
+
+	makeLegendSortable() {
+		// Make the legend items sortable
+		let container = $(".sortable-legend", this.renderIntoNode);
+		
+		// Flag to prevent automatic reordering during programmatic updates
+		this.isUserSorting = false;
+		
+		container.sortable({
+			items: ".result-map-legend-item",
+			placeholder: "result-map-legend-item-placeholder",
+			helper: function(e, item) {
+				// Create clone with exact dimensions
+				const helper = item.clone();
+				helper.css({
+					'width': item.outerWidth() + 'px',
+					'height': item.outerHeight() + 'px'
+				});
+				return helper;
+			},
+			start: (e, ui) => {
+				// Flag that user is actively sorting
+				this.isUserSorting = true;
+				
+				// Store original dimensions
+				const width = ui.item.outerWidth();
+				const height = ui.item.outerHeight();
+				
+				// Set placeholder to exact dimensions
+				ui.placeholder.css({
+					'width': width + 'px',
+					'height': height + 'px'
+				});
+				
+				// Preserve original item's size
+				ui.item.data('original-size', {
+					width: width,
+					height: height
+				});
+				
+				// Temporarily fix original item size to prevent container collapse
+				ui.item.css({
+					'width': width + 'px',
+					'height': height + 'px'
+				});
+			},
+			stop: (e, ui) => {
+				// Restore original item's flexibility
+				ui.item.css({
+					'width': '',
+					'height': ''
+				});
+			},
+			update: (event, ui) => {
+				// Only reorder if this is a user-initiated sort, not a programmatic update
+				if (!this.isUserSorting) {
+					console.log("Skipping automatic reorder - not user initiated");
+					return;
+				}
+				
+				console.log("User reordered layers - applying custom order");
+				
+				// Get the new order from the legend (ignore hierarchy for user sorting)
+				const newOrder = [];
+				$(".sortable-legend .result-map-legend-item").each(function() {
+					const layerId = $(this).data("layer-id");
+					newOrder.push(layerId);
+				});
+				
+				// Apply z-indexes based on legend order (user override)
+				newOrder.forEach((layerId, index) => {
+					const layer = this.layers.find(l => l.getProperties().layerId === layerId);
+					if (layer) {
+						const zIndex = 1000 - index; // Top item gets highest z-index
+						layer.setZIndex(zIndex);
+					}
+				});
+				
+				console.log("User-defined layer order applied:");
+				newOrder.forEach((layerId, index) => {
+					const layer = this.layers.find(l => l.getProperties().layerId === layerId);
+					if (layer) {
+						const props = layer.getProperties();
+						console.log(`${index + 1}. [${props.type}] ${props.title} - zIndex: ${1000 - index}`);
+					}
+				});
+				
+				// Sync the map layer order
+				this.syncLayersToZIndex();
+				
+				// Reset flag
+				this.isUserSorting = false;
+			}
+		});
+	}
+
+	getLayerById(layerId) {
+		let layer = this.layers.find(l => l.getProperties().layerId === layerId);
+		return layer;
+	}
+
+
+
+	/**
+	 * Gets all layers sorted by hierarchy rules and current legend order
+	 * Returns layers in order from top to bottom (highest z-index to lowest)
+	 */
+	getSortedLayersByHierarchy() {
+		// Get visible layers and group by type
+		const layersByType = {
+			dataLayer: [],
+			auxLayer: [],
+			baseLayer: []
+		};
+		
+		this.layers.filter(layer => layer.getVisible()).forEach(layer => {
+			const layerType = layer.getProperties().type;
+			if (layersByType[layerType]) {
+				layersByType[layerType].push(layer);
+			}
+		});
+		
+		// Sort each group by current z-index (preserves user sorting within groups)
+		Object.keys(layersByType).forEach(type => {
+			layersByType[type].sort((a, b) => {
+				const zIndexA = typeof a.getZIndex === 'function' ? (a.getZIndex() || 0) : 0;
+				const zIndexB = typeof b.getZIndex === 'function' ? (b.getZIndex() || 0) : 0;
+				return zIndexB - zIndexA; // Descending order (higher z-index first)
+			});
+		});
+		
+		// Combine groups in hierarchy order: data -> aux -> base
+		return [
+			...layersByType.dataLayer,
+			...layersByType.auxLayer,
+			...layersByType.baseLayer
+		];
+	}
+
+	/**
+	 * Recalculates z-indexes for all layers based on hierarchy and current order
+	 * Rules: dataLayer (top) > auxLayer (middle) > baseLayer (bottom)
+	 * Within each group, layers maintain their relative order from the legend
+	 */
+	updateAllLayerZIndexes() {
+		// Get all layers sorted by hierarchy and current order
+		const allLayers = this.getSortedLayersByHierarchy();
+		
+		// Assign z-indexes counting down from 1000
+		allLayers.forEach((layer, index) => {
+			const newZIndex = 1000 - index;
+			layer.setZIndex(newZIndex);
+		});
+		
+		/*
+		console.log("All layer z-indexes updated:");
+		allLayers.forEach((layer, index) => {
+			const props = layer.getProperties();
+			console.log(`${index + 1}. [${props.type}] ${props.title} - zIndex: ${1000 - index}`);
+		});
+		*/
+	}
+
+	/**
+	 * Checks if an aux layer is visible at the current zoom level
+	 * Uses maxScaleDenominator property to determine visibility
+	 */
+	isAuxLayerVisibleAtCurrentZoom(layer) {
+		if (!this.olMap || layer.getProperties().type !== "auxLayer") {
+			return true; // Non-aux layers or no map - assume visible
+		}
+
+		const props = layer.getProperties();
+		const maxScaleDenominator = props.maxScaleDenominator;
+		
+		if (!maxScaleDenominator) {
+			return true; // No scale constraint - always visible
+		}
+
+		const currentResolution = this.olMap.getView().getResolution();
+		const metersPerUnit = this.olMap.getView().getProjection().getMetersPerUnit();
+		const currentScaleDenominator = currentResolution * metersPerUnit * (96 / 0.0254); // 96 DPI standard
+
+		// Layer is visible if current scale is smaller than max scale (more zoomed in)
+		return currentScaleDenominator <= maxScaleDenominator;
+	}
+
+	/**
+	 * Updates zoom visibility indicators for all aux layers in the legend
+	 */
+	updateAuxLayerZoomIndicators() {
+		// Update each aux layer legend item
+		$(".result-map-legend-item[data-layer-type='aux']", this.renderIntoNode).each((index, element) => {
+			const $legendItem = $(element);
+			const layerId = $legendItem.attr("data-layer-id");
+			const layer = this.layers.find(l => l.getProperties().layerId === layerId);
+			
+			if (!layer) return;
+
+			const isVisibleAtZoom = this.isAuxLayerVisibleAtCurrentZoom(layer);
+			const $zoomIndicator = $legendItem.find(".layer-zoom-indicator");
+			
+			const props = layer.getProperties();
+			const maxScaleDenominator = props.maxScaleDenominator;
+
+			if (isVisibleAtZoom) {
+				$zoomIndicator.removeClass("zoom-hidden").addClass("zoom-visible");
+				$zoomIndicator.attr("title", "Layer is visible at current zoom level");
+				$legendItem.removeClass("layer-zoom-limited");
+			} else {
+				$zoomIndicator.removeClass("zoom-visible").addClass("zoom-hidden");
+				if (maxScaleDenominator) {
+					const currentRes = this.olMap.getView().getResolution();
+					const metersPerUnit = this.olMap.getView().getProjection().getMetersPerUnit();
+					const currentScale = Math.round(currentRes * metersPerUnit * (96 / 0.0254));
+					$zoomIndicator.attr("title", `Zoom in further to see this layer (current scale: 1:${currentScale.toLocaleString()}, max scale: 1:${maxScaleDenominator.toLocaleString()}). Click to zoom.`);
+				} else {
+					$zoomIndicator.attr("title", "Zoom in further to see this layer. Click to zoom.");
+				}
+				$legendItem.addClass("layer-zoom-limited");
+			}
+		});
 	}
 
 	hideLegend() {
@@ -1058,11 +715,9 @@ class ResultMap extends ResultModule {
 				//Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 				if(respData.RequestId == this.requestId && this.active) {
 					this.importResultData(respData);
-					if(true) {
-						this.renderMap();
-						this.renderVisibleDataLayers();
-						this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
-					}
+					this.renderMap();
+					this.renderVisibleDataLayers();
+					this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 					this.resultManager.showLoadingIndicator(false);
 				}
 				else {
@@ -1173,16 +828,20 @@ class ResultMap extends ResultModule {
 				collapsed: false,
 			});
 
-			const allBaseAndAuxLayers = [...this.baseLayers, ...this.auxLayers];
-			
+			//create zoom control with slider
+			const zoomControl = new Zoom({
+				className: 'ol-zoom',
+				zoomInLabel: '+',
+				zoomOutLabel: '−',
+				zoomInTipLabel: 'Zoom in',
+				zoomOutTipLabel: 'Zoom out'
+			});
+
 			this.olMap = new Map({
 				target: this.renderMapIntoNode,
 				attribution: true,
-				controls: [attribution], //Override default controls and set NO controls
-				layers: new GroupLayer({
-					layers: allBaseAndAuxLayers
-				}),
-				
+				controls: [attribution, zoomControl], //Add attribution and zoom controls
+				layers: this.layers,
 				view: new View({
 					center: fromLonLat([12.41, 48.82]),
 					zoom: this.currentZoomLevel,
@@ -1192,10 +851,48 @@ class ResultMap extends ResultModule {
 				loadTilesWhileAnimating: true
 			});
 
+			this.resultMapLayers.initAuxLayers().then((layers) => {
+				this.layers = this.layers.concat(layers);
+				this.layers.forEach((layer, index, array) => {
+					//check that this layer has not already been added
+					let layerExists = false;
+
+					if(!this.olMap) {
+						console.warn("olMap not initialized yet, cannot add layers");
+						return;
+					}
+
+					this.olMap.getLayers().forEach((existingLayer, index, array) => {
+						if(existingLayer.getProperties().layerId == layer.getProperties().layerId) {
+							layerExists = true;
+						}
+					});
+
+					if(!layerExists) {
+						// Set visibility based on layer type BEFORE adding to map
+						const layerProps = layer.getProperties();
+						if(layerProps.type === "auxLayer") {
+							layer.setVisible(false);
+						}
+						
+						// Add layer to map
+						this.olMap.addLayer(layer);
+						
+						// Recalculate ALL layer z-indexes using unified system
+						this.updateAllLayerZIndexes();
+					}
+				});
+
+				this.auxLayersInitialized = true;
+			});
+
 			this.olMap.on("moveend", () => {
 				var newZoomLevel = this.olMap.getView().getZoom();
 				if (newZoomLevel != this.currentZoomLevel) {
 					this.currentZoomLevel = newZoomLevel;
+					
+					// Update aux layer zoom indicators when zoom changes
+					this.updateAuxLayerZoomIndicators();
 				}
 			});
 		}
@@ -1203,9 +900,11 @@ class ResultMap extends ResultModule {
 			this.olMap.updateSize();
 		}
 
+		/*
 		if(removeAllDataLayers) {
 			this.removeAllDataLayers();
 		}
+		*/
 
 		let latHigh = this.resultManager.sqs.getExtremePropertyInList(filteredData, "lat", "high");
 		let latLow = this.resultManager.sqs.getExtremePropertyInList(filteredData, "lat", "low");
@@ -1249,43 +948,41 @@ class ResultMap extends ResultModule {
 	}
 
 	removeAllDataLayers() {
-		this.dataLayers.forEach((layer, index, array) => {
-			if(layer.getVisible()) {
+		this.layers.forEach((layer, index, array) => {
+			if(layer.getProperties().type == "dataLayer" && layer.getVisible()) {
 				this.removeLayer(layer.getProperties().layerId)
 			}
 		});
 	}
-	
 
 	/*
 	* Function: renderVisibleDataLayers
 	*/
 	renderVisibleBaseLayers() {
-		for(var k in this.baseLayers) {
-			var layerProperties = this.baseLayers[k].getProperties();
-			if(layerProperties.visible) {
-				this.baseLayers[k].setVisible(false); //Set to invisible while rendering and then when the function below will call the render function it will be set to visible again
-				this.setMapBaseLayer(layerProperties.layerId);
+		this.layers.forEach((layer, index, array) => {
+			if(layer.getProperties().type == "baseLayer" && layer.getVisible()) {
+				layer.setVisible(false); //Set to invisible while rendering and then when the function below will call the render function it will be set to visible again
+				this.removeLayer(layer.getProperties().layerId)
 			}
-		}
+		});
 	}
 
 	/*
 	* Function: renderVisibleDataLayers
 	*/
 	renderVisibleDataLayers() {
-		for(var k in this.dataLayers) {
-			var layerProperties = this.dataLayers[k].getProperties();
-			if(layerProperties.visible) {
-				this.dataLayers[k].setVisible(false); //Set to invisible while rendering and then when the function below will call the render function it will be set to visible again
-				this.setMapDataLayer(layerProperties.layerId);
+		this.layers.forEach((layer, index, array) => {
+			if(layer.getProperties().type == "dataLayer" && layer.getVisible()) {
+				layer.setVisible(false); //Set to invisible while rendering and then when the function below will call the render function it will be set to visible again
+				this.setMapDataLayer(layer.getProperties().layerId);
 			}
-		}
+		});
 	}
 
 	removeLayer(layerId) {
 		this.olMap.getLayers().forEach((layer, index, array)=> {
 			if(typeof(layer) != "undefined" && layer.getProperties().layerId == layerId) {
+				layer.setVisible(false); //set the layer to invisible first, because otherwise it might still show due to caching of layer tiles for the current zoom level
 				this.olMap.removeLayer(layer);
 			}
 		});
@@ -1295,7 +992,6 @@ class ResultMap extends ResultModule {
 	* Function: renderInterface
 	*/
 	renderInterfaceControls() {
-
 		if($("#result-map-controls-container").length == 0) {
 			$(this.renderMapIntoNode).append("<div id='result-map-controls-container'></div>");
 		}
@@ -1307,7 +1003,16 @@ class ResultMap extends ResultModule {
 		auxLayersHtml += "<div id='result-map-auxlayer-controls-menu-anchor'></div>";
 		auxLayersHtml += "</div>";
 		$("#result-map-controls-container").append(auxLayersHtml);
+
 		new SqsMenu(this.resultManager.sqs, this.resultMapAuxLayersControlsSqsMenu());
+
+
+		// Instead of creating an SqsMenu, add a direct click handler
+		/*
+		$("#result-map-auxlayer-controls-menu").on("click", () => {
+			this.renderAllAuxLayersPanel();
+		});
+		*/
 
 		let baseLayersHtml = "<div class='result-map-map-control-item-container'>";
 		baseLayersHtml += "<div id='result-map-baselayer-controls-menu' class='result-map-map-control-item'>Base layers</div>";
@@ -1323,36 +1028,213 @@ class ResultMap extends ResultModule {
 		$("#result-map-controls-container").append(dataLayersHtml);
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
 
-
-		/*
-		d3.select(this.renderMapIntoNode)
-			.append("div")
-			.attr("id", "result-map-controls-container");
-
-		d3.select("#result-map-controls-container")
-			.append("div")
-			.attr("id", "result-map-baselayer-controls-menu");
-		new SqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlssqsMenu());
-
-		d3.select("#result-map-controls-container")
-			.append("div")
-			.attr("id", "result-map-datalayer-controls-menu");
-		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlssqsMenu());
-		
-		
-
-		$(this.renderMapIntoNode).append($("<div></div>").attr("id", "result-map-controls-container"));
-		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-baselayer-controls-menu"));
-		new SqsMenu(this.resultManager.sqs, this.resultMapBaseLayersControlsSqsMenu());
-
-		$("#result-map-controls-container").append($("<div></div>").attr("id", "result-map-datalayer-controls-menu"));
-		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
-
-		*/
-
 		if(this.sqs.config.showResultExportButton) {
 			this.renderExportButton();
 		}
+	}
+
+	unrenderAllAuxLayersPanel() {
+		$("#result-map-sub-layer-selection-panel").remove();
+	}
+
+	renderAuxLayersPanel() {
+		// Remove any existing panel
+		this.unrenderAuxLayersPanel();
+
+		// Create the panel container
+		$(this.renderMapIntoNode).append("<div id='result-map-sub-layer-selection-panel'></div>");
+		
+		// Set fixed width to prevent shrinking when minimized
+		$("#result-map-sub-layer-selection-panel").css({
+			"width": "25em",
+			"min-width": "25em"
+		});
+
+		const titleHtml = `
+			<div class="sub-layer-header">
+				<h3 class='aux-layer-title'>Overlay Layers</h3>
+				<div class="sub-layer-header-buttons">
+					<input class="header-text-search-input" type="text" />
+					<div id="search-sublayer-panel" class="header-btn" title="Search layers">
+						<i class="fa fa-search" aria-hidden="true"></i>
+					</div>
+					<div id="minimize-sublayer-panel" class="header-btn" title="Minimize panel">
+						<i class="fa fa-window-minimize" aria-hidden="true"></i>
+					</div>
+					<div id="close-sublayer-panel" class="header-btn" title="Close panel">
+						<i class="fa fa-times" aria-hidden="true"></i>
+					</div>
+				</div>
+			</div>
+		`;
+		$("#result-map-sub-layer-selection-panel").append(titleHtml);
+		$("#result-map-sub-layer-selection-panel").append("<div id='sub-layer-content'></div>");
+
+
+		$("#result-map-sub-layer-selection-panel .header-text-search-input").on("change keyup paste", (evt) => {
+			evt.stopPropagation();
+			const searchTerm = $(evt.currentTarget).val().toLowerCase();
+
+			$(".sub-layer-leaf").each((index, element) => {
+				const layerTitle = $(element).find(".sub-layer-title").text().toLowerCase();
+				if(layerTitle.includes(searchTerm)) {
+					$(element).show();
+				} else {
+					$(element).hide();
+				}
+			});
+		});
+
+		$("#search-sublayer-panel").on("click", (evt) => {
+			evt.stopPropagation();
+
+			//toggle visibility of the search input
+			$("#result-map-sub-layer-selection-panel .header-text-search-input").toggle();
+
+			//if opened, focus the input
+			if($("#result-map-sub-layer-selection-panel .header-text-search-input").is(":visible")) {
+				$("#result-map-sub-layer-selection-panel .header-text-search-input").focus();
+			}
+
+			//if closed, it should also be cleared and all layers shown
+			if(!$("#result-map-sub-layer-selection-panel .header-text-search-input").is(":visible")) {
+				$("#result-map-sub-layer-selection-panel .header-text-search-input").val("");
+				$(".sub-layer-leaf").show();
+			}
+		});
+
+		$("#close-sublayer-panel").on("click", (evt) => {
+			evt.stopPropagation();
+			this.unrenderAuxLayersPanel();
+		});
+
+		$("#minimize-sublayer-panel").on("click", (evt) => {
+			evt.stopPropagation();
+			
+			//toggle class .header-btn-active when clicked
+			$("#minimize-sublayer-panel").toggleClass("header-btn-active");
+
+			const panel = $("#result-map-sub-layer-selection-panel");
+			const content = $("#sub-layer-content");
+			const button = $("#minimize-sublayer-panel");
+			const icon = button.find("i");
+			
+			if (content.is(":visible")) {
+				// Minimize the panel
+				content.hide();
+				icon.removeClass("fa-minus").addClass("fa-plus");
+				button.attr("title", "Expand panel");
+				panel.addClass("minimized");
+			} else {
+				// Expand the panel
+				content.show();
+				icon.removeClass("fa-plus").addClass("fa-minus");
+				button.attr("title", "Minimize panel");
+				panel.removeClass("minimized");
+			}
+		});
+
+		// Group layers by provider
+		const groupedLayers = this.groupAuxLayersByProvider();
+		
+		let content = "<div class='result-map-sub-layer-selection'>";
+		
+		// Add each provider group
+		for (const [provider, layers] of Object.entries(groupedLayers)) {
+			if (layers.length > 0) {
+				content += `<h5>${provider}</h5>`;
+				content += `<ul class='sub-layer-list'>`;
+				
+				layers.forEach(layer => {
+					const props = layer.getProperties();
+					const isVisible = layer.getVisible();
+
+					const checked = isVisible ? "checked" : "";
+					let layerName = props.title;
+					if (props.clarifyingName && props.clarifyingName.length > 0) {
+						layerName = props.clarifyingName + " " + layerName;
+					}
+					content += `
+					<li class="sub-layer-leaf">
+						<label class="sub-layer-label">
+							<input type="checkbox" class="aux-layer-checkbox" name="aux-layer" 
+								value="${props.layerId}" ${checked} data-has-sublayers="false">
+							<span class="sub-layer-title">${layerName}</span>
+						</label>
+					</li>`;
+				});
+				
+				content += `</ul>`;
+			}
+		}
+		
+		content += "</div>";
+		
+		$("#sub-layer-content").append(content);
+
+		$(".sub-layer-leaf").on("change", (evt) => {
+			evt.stopPropagation(); //Prevent event bubbling
+			const checkbox = $(evt.currentTarget).find("input.aux-layer-checkbox");
+			const layerId = checkbox.val();
+
+			if(checkbox.is(":checked")) {
+				console.log("Showing aux layer:", layerId);
+				this.setMapAuxLayer(layerId);
+			}
+			else {
+				console.log("Hiding aux layer:", layerId);
+				this.hideMapAuxLayer(layerId);
+			}
+		});
+
+	}
+
+	getSelectedAuxLayers() {
+		const selectedLayers = [];
+		this.layers.forEach(layer => {
+			if (layer.getProperties().type !== "auxLayer") {
+				return;
+			}
+			const props = layer.getProperties();
+			if (layer.getVisible() && props.selectedSubLayers) {
+				selectedLayers.push(...props.selectedSubLayers);
+			}
+		});
+		return selectedLayers;
+	}
+
+	groupAuxLayersByProvider() {
+		// Create a regular object instead of a Map
+		const groups = {};
+		
+		this.layers.forEach(layer => {
+			const props = layer.getProperties();
+
+			if(!props.type || props.type !== "auxLayer") {
+				return; // Only group aux layers
+			}
+
+			// Use the group property, or fallback to "Other" if not defined
+			const groupName = props.group || "Other";
+			
+			// Initialize the group array if it doesn't exist yet
+			if (!groups[groupName]) {
+				groups[groupName] = [];
+			}
+			
+			// Add this layer to its group
+			groups[groupName].push(layer);
+		});
+		
+		// Filter out empty groups (though we don't really need to)
+		const result = {};
+		for (const [key, value] of Object.entries(groups)) {
+			if (value.length > 0) {
+				result[key] = value;
+			}
+		}
+		
+		return result;
 	}
 
 	/*
@@ -1363,277 +1245,152 @@ class ResultMap extends ResultModule {
 			this.sqs.notificationManager.notify("ArcticDEM is a partial map only covering the northern arctic region.", "info", 5000);
 		}
 
-		this.baseLayers.forEach((layer, index, array) => {
-			if(layer.getProperties().layerId == baseLayerId) {
-				layer.setVisible(true);
-			}
-			else {
-				layer.setVisible(false);
-			}
-		});
-	}
+		let layer = this.layers.find(l => l.getProperties().layerId === baseLayerId);
+		if(!layer) {
+			console.warn("Base layer not found:", baseLayerId);
+		}
+		layer.setVisible(true);
 
-	async waitForMetaDataLoadOnLayer(layer) {
-		return new Promise((resolve, reject) => {
-			setInterval(() => {
-				if(!layer.getProperties().pendingMetaDataLoad) {
-					clearInterval();
-					resolve();
-				}
-			}, 100);
+		this.layers.forEach((layer, index, array) => {
+			if(layer.getProperties().type == "baseLayer" && layer.getVisible() && layer.getProperties().layerId != baseLayerId) {
+				layer.setVisible(false); //Set to invisible while rendering and then when the function below will call the render function it will be set to visible again
+				this.removeLayer(layer.getProperties().layerId)
+			}
 		});
+
+		this.syncLayersToZIndex()
 	}
 
 	setMapAuxLayer(auxLayerId) {
+		let auxLayers = this.layers.filter(l => l.getProperties().type === "auxLayer");
 		if(auxLayerId == "none") {
-			this.auxLayers.forEach((layer, index, array) => {
+			console.log("Hiding all aux layers");
+			auxLayers.forEach((layer, index, array) => {
 				layer.setVisible(false);
 			});
-			this.unrenderSubLayerSelectionPanel();
+			this.unrenderAuxLayersPanel();
 		}
-
-		this.auxLayers.forEach(async (layer, index, array) => {
+		
+		auxLayers.forEach(async (layer, index, array) => {
 			if(layer.getProperties().layerId == auxLayerId) {
 				console.log("Setting aux layer "+auxLayerId+" visible");
 				layer.setVisible(true);
-				//make sure it's on top
-				layer.setZIndex(1);
-
-				if(layer.getProperties().pendingMetaDataLoad) {
-					console.log("Waiting for metadata to load on layer "+auxLayerId);
-					await this.waitForMetaDataLoadOnLayer(layer);
-				}
-
-				//check if the layer has subLayers
-				if(layer.getProperties().subLayers) {
-					this.renderSubLayerSelectionPanel(layer);
-				}
-				else {
-					this.unrenderSubLayerSelectionPanel();
-				}
 			}
-			else {
+		});
+
+		// Recalculate ALL layer z-indexes using unified system
+		this.updateAllLayerZIndexes();
+		this.syncLayersToZIndex();
+		
+		// Update zoom indicators since aux layer visibility changed
+		this.updateAuxLayerZoomIndicators();
+	}
+
+	hideMapAuxLayer(auxLayerId) {
+		let auxLayers = this.layers.filter(l => l.getProperties().type === "auxLayer");
+		auxLayers.forEach(async (layer, index, array) => {
+			if(layer.getProperties().layerId == auxLayerId) {
+				console.log("Setting aux layer "+auxLayerId+" invisible");
 				layer.setVisible(false);
 			}
 		});
-	}
 
-	renderSubLayerSelectionPanel(layer) {
-		// Remove if it exists
-		this.unrenderSubLayerSelectionPanel();
-
-		$(this.renderMapIntoNode).append("<div id='result-map-sub-layer-selection-panel'></div>");
-		$("#result-map-sub-layer-selection-panel").css("width", `20em`);
-
-		const titleHtml = `
-			<div class="sub-layer-header">
-			<h4>Select Layers</h4>
-			<button type="button" id="minimize-sublayer-panel" class="minimize-btn" title="Minimize panel">
-				<i class="fa fa-minus" aria-hidden="true"></i>
-			</button>
-			</div>
-		`;
-		$("#result-map-sub-layer-selection-panel").append(titleHtml);
-
-		$("#result-map-sub-layer-selection-panel").append("<div id='sub-layer-content'></div>");
-
-		// Pull data from layer props
-		const layersTree = layer.getProperties().subLayersTree || layer.getProperties().subLayers || [];
-		const selectedLayers = layer.getProperties().selectedSubLayers || [];
-
-		// --- NEW: Flatten to leaves only (no groups rendered) ---
-		function flattenLeaves(nodes, acc = []) {
-			if (!Array.isArray(nodes)) return acc;
-			for (const node of nodes) {
-			const hasChildren = Array.isArray(node.children) && node.children.length > 0;
-			if (hasChildren) {
-				flattenLeaves(node.children, acc);
-			} else {
-				acc.push(node);
-			}
-			}
-			return acc;
-		}
-
-		const leafNodes = flattenLeaves(layersTree);
-
-		// Build max-scale info snippet
-		function maxScaleHtml(node) {
-			if (!node.maxScaleDenominator) return "";
-			const scale = node.maxScaleDenominator;
-			let scaleText = "";
-			if (scale >= 1_000_000) {
-			scaleText = Math.round(scale / 1_000_000) + "m";
-			} else if (scale >= 1_000) {
-			scaleText = (scale / 1_000) + "k";
-			} else {
-			scaleText = scale;
-			}
-			return `<span class="legend-zoom-info" title="Layer visible at scale 1:${scale.toLocaleString()}">Visibility scale ≤ 1:${scaleText}</span>`;
-		}
-
-		// Render a flat list of leaf layers
-		function renderFlatLeafList(leaves, selectedLayers) {
-			let html = `<ul class='sub-layer-list' style='margin-left: 0'>`;
-			for (const node of leaves) {
-				const checked = selectedLayers.includes(node.name) ? "checked" : "";
-				const showAbstract = node.abstract && node.abstract !== node.title; // ✅ skip if identical
-
-				html += `
-				<li class="sub-layer-leaf">
-					<label class="sub-layer-label">
-					<input type="checkbox" class="sub-layer-checkbox" name="sub-layer" value="${node.name}" ${checked}>
-					<span class="sub-layer-title">${node.title ?? node.name}</span>
-					${showAbstract ? `<div class="sub-layer-description">${node.abstract}</div>` : ""}
-					${maxScaleHtml(node)}
-					</label>
-				</li>
-				`;
-			}
-			html += `</ul>`;
-			return html;
-		}
-
-
-		let content = "<div class='result-map-sub-layer-selection'>";
-		content += renderFlatLeafList(leafNodes, selectedLayers);
-		content += "</div>";
-
-		// Controls
-		content += `
-			<div class="sub-layer-controls">
-			<button type="button" id="select-all-sublayers" class="sub-layer-btn">Select All</button>
-			<button type="button" id="clear-all-sublayers" class="sub-layer-btn">Clear All</button>
-			</div>
-		`;
-
-		$("#sub-layer-content").append(content);
-
-		// Events
-		$("[name='sub-layer']").on("change", () => {
-			this.updateSelectedSubLayers(layer);
-		});
-
-		$("#select-all-sublayers").on("click", () => {
-			$("[name='sub-layer']").prop("checked", true);
-			this.updateSelectedSubLayers(layer);
-		});
-
-		$("#clear-all-sublayers").on("click", () => {
-			$("[name='sub-layer']").prop("checked", false);
-			this.updateSelectedSubLayers(layer);
-		});
-
-		$("#minimize-sublayer-panel").on("click", () => {
-			const content = $("#sub-layer-content");
-			const button = $("#minimize-sublayer-panel");
-			const icon = button.find("i");
-
-			if (content.is(":visible")) {
-			content.slideUp(200);
-			icon.removeClass("fa-minus").addClass("fa-plus");
-			button.attr("title", "Expand panel");
-			} else {
-			content.slideDown(200);
-			icon.removeClass("fa-plus").addClass("fa-minus");
-			button.attr("title", "Minimize panel");
-			}
-		});
-
-		// Initialize with current selection
-		this.updateSelectedSubLayers(layer);
-	}
-
-
-	updateSelectedSubLayers(layer) {
-		const selectedLayers = [];
+		this.syncLayersToZIndex();
 		
-		// Collect all checked sublayers
-		$("[name='sub-layer']:checked").each(function() {
-			selectedLayers.push($(this).val());
-		});
+		// Update zoom indicators since aux layer visibility changed
+		this.updateAuxLayerZoomIndicators();
 
-		// Update layer properties
-		layer.setProperties({ 
-			selectedSubLayers: selectedLayers,
-			// Keep backwards compatibility with single selection
-			selectedSubLayer: selectedLayers.length > 0 ? selectedLayers[0] : null
-		});
-
-		// Update the WMS source with the selected layers
-		this.updateLayerSource(layer, selectedLayers);
-
-
-		if(layer.getProperties().legend) {
-			this.updateLegend(layer, selectedLayers);
-		}
-		else {
-			this.hideLegend();
-		}
+		//make sure the .sub-layer-leaf is unchecked in the aux layers panel if it's open
+		$(`.aux-layer-checkbox[value='${auxLayerId}']`).prop("checked", false);
 	}
 
-	updateLayerSource(layer, selectedLayers) {
-		if (selectedLayers.length === 0) {
-			layer.setVisible(false);
+	printOlMapLayers() {
+		if(!this.olMap) {
+			console.warn("No OL map to print layers from");
 			return;
 		}
-		layer.setVisible(true);
-		const source = layer.getSource();
-		const currentParams = source.getParams();
-
-		const subLayers = layer.getProperties().subLayers || [];
-		const styles = selectedLayers.map(layerName => {
-			const sub = subLayers.find(l => l.name === layerName);
-			// Find a style that matches the sublayer name, or fallback to first style
-			if (sub && sub.styles && sub.styles.length > 0) {
-				// Try to match style name to sublayer name
-				const match = sub.styles.find(s => s.name.includes(layerName));
-				return match ? match.name : sub.styles[0].name;
-			}
-			return '';
+		console.log("Current OL map layers:");
+		this.olMap.getLayers().forEach((layer, index, array) => {
+			console.log(layer.getProperties().layerId, layer.getVisible(), layer.getZIndex());
 		});
-
-		source.updateParams({
-			...currentParams,
-			'LAYERS': selectedLayers.join(','),
-			'STYLES': styles.join(',')
-		});
-		source.refresh();
+		console.log("End of OL map layers");
 	}
 
-	setSelectedSubLayer(layer, selectedSubLayer) {
-		// Convert single selection to array format
-		const selectedLayers = Array.isArray(selectedSubLayer) ? selectedSubLayer : [selectedSubLayer];
-		
-		layer.setProperties({ 
-			selectedSubLayers: selectedLayers,
-			selectedSubLayer: selectedLayers[0] // Keep backwards compatibility
-		});
-
-		this.updateLayerSource(layer, selectedLayers);
-	}
-
-	unrenderSubLayerSelectionPanel() {
-		this.hideLegend();
+	unrenderAuxLayersPanel() {
 		$("#result-map-sub-layer-selection-panel").remove();
 	}
 
-	/*
-	* Function: setMapDataLayer
-	*/
+	syncLayersToZIndex() {
+		// Get all layers that should be considered for ordering
+		const allLayers = this.layers.filter(layer => layer.getVisible());
+
+		// Sort layers by z-index (ascending order for OpenLayers)
+		allLayers.sort((a, b) => {
+			const zIndexA = typeof a.getZIndex === 'function' ? (a.getZIndex() || 0) : 0;
+			const zIndexB = typeof b.getZIndex === 'function' ? (b.getZIndex() || 0) : 0;
+			return zIndexA - zIndexB; // Ascending order for map rendering
+		});
+
+		// Update the OpenLayers map layer order
+		if (this.olMap) {
+			const layerGroup = this.olMap.getLayerGroup();
+			const layerCollection = layerGroup.getLayers();
+			
+			// Clear the current layers
+			layerCollection.clear();
+			
+			// Add layers back in the correct z-index order
+			allLayers.forEach(layer => {
+				layerCollection.push(layer);
+			});
+		}
+
+		// Update the legend to reflect the new order
+		this.updateLegend();
+	}
+
+	printLayerStackOrder() {
+
+		let allLayers = this.layers.filter(layer => layer.getVisible());
+
+		// Sort layers by z-index descending for display
+		allLayers.sort((a, b) => {
+			const zIndexA = typeof a.getZIndex === 'function' ? (a.getZIndex() || 0) : 0;
+			const zIndexB = typeof b.getZIndex === 'function' ? (b.getZIndex() || 0) : 0;
+			return zIndexB - zIndexA; // Descending order for display
+		});
+
+		console.log("=== Current Layer Stack Order (top to bottom) ===");
+		allLayers.forEach((layer, index) => {
+			const props = layer.getProperties();
+			const zIndex = typeof layer.getZIndex === 'function' ? layer.getZIndex() : 0;
+			console.log(`${index + 1}. [${props.type}] ${props.title} (${props.layerId}) - zIndex: ${zIndex}`);
+		});
+		console.log("==============================================");
+
+	}
+
 	setMapDataLayer(dataLayerId) {
 		this.clearSelections();
 
-		this.dataLayers.forEach((layer, index, array) => {
+		let dataLayers = this.layers.filter(l => l.getProperties().type === "dataLayer");
+
+		dataLayers.forEach((layer, index, array) => {
 			if(layer.getProperties().layerId == dataLayerId && layer.getVisible() == false) {
 				layer.setVisible(true);
+				console.log("Setting data layer "+dataLayerId+" visible");
 				layer.getProperties().renderCallback(this);
 			}
 			if(layer.getProperties().layerId != dataLayerId && layer.getVisible() == true) {
-				this.removeLayer(layer.getProperties().layerId);
 				layer.setVisible(false);
 			}
 		});
+
+		// Recalculate ALL layer z-indexes using unified system
+		this.updateAllLayerZIndexes();
+		this.syncLayersToZIndex();
+
+		this.sqs.sqsEventDispatch("MAP_LAYER_VISIBILITY_CHANGED", { layerId: dataLayerId });
 	}
 
 	/*
@@ -1650,145 +1407,247 @@ class ResultMap extends ResultModule {
 		});
 	}
 
-	/*
-	* Function: renderClusteredPointsLayer
-	*/
 	renderClusteredPointsLayer() {
-		//let timeFilteredData = this.timeline.getSelectedSites();
-		let timeFilteredData = this.data;
-		var geojson = this.getDataAsGeoJSON(timeFilteredData);
+		console.log("Rendering clustered points layer");
 
-		var gf = new GeoJSON({
+		const clusterLayer = this.getLayerById("clusterPoints");
+		
+		if (!clusterLayer) {
+			console.error("Cluster layer not found - it should have been initialized");
+			return;
+		}
+		
+		// Get the data
+		const timeFilteredData = this.data;
+		const geojson = this.getDataAsGeoJSON(timeFilteredData);
+		
+		// Parse GeoJSON features
+		const gf = new GeoJSON({
 			featureProjection: "EPSG:3857"
 		});
-		var featurePoints = gf.readFeatures(geojson);
-		var pointsSource = new VectorSource({
-			features: featurePoints
+		const featurePoints = gf.readFeatures(geojson);
+		
+		// Update the source
+		const clusterSource = clusterLayer.getSource();
+		const vectorSource = clusterSource.getSource();
+		
+		// Clear existing features and add new ones
+		vectorSource.clear();
+		vectorSource.addFeatures(featurePoints);
+		
+		// Make sure the layer is visible
+		clusterLayer.setVisible(true);
+	}
+
+	// Update the renderPointsLayer method
+	renderPointsLayer() {
+		console.log("Rendering points layer");
+		
+		// Find the points layer
+		const pointsLayer = this.layers.find(layer => 
+			layer.getProperties().layerId === "points");
+		
+		if (!pointsLayer) {
+			console.error("Points layer not found - it should have been initialized");
+			return;
+		}
+		
+		// Get the data
+		const timeFilteredData = this.data;
+		const geojson = this.getDataAsGeoJSON(timeFilteredData);
+		
+		// Parse GeoJSON features
+		const gf = new GeoJSON({
+			featureProjection: "EPSG:3857"
+		});
+		const featurePoints = gf.readFeatures(geojson);
+		
+		// Update the source
+		const clusterSource = pointsLayer.getSource();
+		const vectorSource = clusterSource.getSource();
+		
+		// Clear existing features and add new ones
+		vectorSource.clear();
+		vectorSource.addFeatures(featurePoints);
+		
+		// Make sure the layer is visible
+		pointsLayer.setVisible(true);
+	}
+
+	// Update the renderHeatmapLayer method
+	renderHeatmapLayer() {
+		console.log("Rendering heatmap layer");
+		
+		// Find the heatmap layer
+		const heatmapLayer = this.layers.find(layer => 
+			layer.getProperties().layerId === "heatmap");
+		
+		if (!heatmapLayer) {
+			console.error("Heatmap layer not found - it should have been initialized");
+			return;
+		}
+		
+		// Get the data
+		const timeFilteredData = this.data;
+		const geojson = this.getDataAsGeoJSON(timeFilteredData);
+		
+		// Parse GeoJSON features
+		const gf = new GeoJSON({
+			featureProjection: "EPSG:3857"
+		});
+		const featurePoints = gf.readFeatures(geojson);
+		
+		// Update the source
+		const source = heatmapLayer.getSource();
+		
+		// Clear existing features and add new ones
+		source.clear();
+		source.addFeatures(featurePoints);
+		
+		// Make sure the layer is visible
+		heatmapLayer.setVisible(true);
+	}
+
+	// Add this method to initialize all data layers at map creation time
+	initializeDataLayers() {
+		console.log("Initializing data layers...");
+		this.layers.push(this.initClusteredPointsLayer());
+		this.layers.push(this.initPointsLayer());
+		this.layers.push(this.initHeatmapLayer());
+	}
+
+	// Initialize the clustered points layer with empty source
+	initClusteredPointsLayer() {
+		console.log("Initializing clustered points layer");
+
+		let layerConfig = new VectorLayer();
+		layerConfig.setProperties({
+			layerId: "clusterPoints",
+			title: "Clustered sites",
+			type: "dataLayer",
+			renderCallback: () => {
+				this.renderClusteredPointsLayer();
+			},
+			visible: true
 		});
 		
-		var clusterSource = new ClusterSource({
+		// Create empty vector source
+		const pointsSource = new VectorSource();
+		
+		// Create cluster source with the empty vector source
+		const clusterSource = new ClusterSource({
 			distance: 35,
 			source: pointsSource
 		});
 		
-		var clusterLayer = new VectorLayer({
+		// Create vector layer with the cluster source
+		const clusterLayer = new VectorLayer({
 			source: clusterSource,
 			style: (feature, resolution) => {
-				var style = this.getClusterPointStyle(feature);
-				return style;
+				return this.getClusterPointStyle(feature);
 			},
-			zIndex: 1
+			zIndex: 200,
+			visible: layerConfig.getProperties().visible
 		});
 		
+		// Set properties
 		clusterLayer.setProperties({
 			"layerId": "clusterPoints",
-			"type": "dataLayer"
+			"title": layerConfig.getProperties().title,
+			"type": "dataLayer",
+			"renderCallback": () => this.renderClusteredPointsLayer()
 		});
 		
-		this.olMap.addLayer(clusterLayer);
+		return clusterLayer;
 	}
 
-	renderHeatmapLayer() {
-		//let timeFilteredData = this.timeline.getSelectedSites();
-		let timeFilteredData = this.data;
-		var geojson = this.getDataAsGeoJSON(timeFilteredData);
+	// Initialize the points layer with empty source
+	initPointsLayer() {
+		console.log("Initializing points layer");
 
-		var gf = new GeoJSON({
-			featureProjection: "EPSG:3857"
+		const layerConfig = new VectorLayer();
+		layerConfig.setProperties({
+			layerId: "points",
+			title: "Individual sites",
+			type: "dataLayer",
+			renderCallback: () => {
+				this.renderPointsLayer();
+			},
+			visible: false
 		});
-		var featurePoints = gf.readFeatures(geojson);
-
-		var pointsSource = new VectorSource({
-			features: featurePoints
+		
+		// Create empty vector source
+		const pointsSource = new VectorSource();
+		
+		// Create cluster source with distance 0 (no clustering)
+		const clusterSource = new ClusterSource({
+			distance: 0,
+			source: pointsSource
 		});
+		
+		// Create vector layer
+		const pointsLayer = new VectorLayer({
+			source: clusterSource,
+			style: (feature, resolution) => {
+				return this.getSingularPointStyle(feature);
+			},
+			zIndex: 200,
+			visible: layerConfig.getProperties().visible
+		});
+		
+		// Set properties
+		pointsLayer.setProperties({
+			"layerId": "points",
+			"title": layerConfig.getProperties().title,
+			"type": "dataLayer",
+			"renderCallback": () => this.renderPointsLayer()
+		});
+		
+		return pointsLayer;
+	}
 
-		var layer = new HeatmapLayer({
+	// Initialize the heatmap layer with empty source
+	initHeatmapLayer() {
+		console.log("Initializing heatmap layer");
+
+		const layerConfig = new HeatmapLayer({
+			opacity: 0.5
+		});
+		layerConfig.setProperties({
+			layerId: "heatmap",
+			title: "Heatmap",
+			type: "dataLayer",
+			renderCallback: () => {
+				this.renderHeatmapLayer();
+			},
+			visible: false
+		});
+		
+		// Create empty vector source
+		const pointsSource = new VectorSource();
+		
+		// Create heatmap layer
+		const heatmapLayer = new HeatmapLayer({
 			source: pointsSource,
 			weight: function(feature) {
 				return 1.0;
 			},
 			radius: 10,
 			blur: 30,
-			zIndex: 1
+			zIndex: 200,
+			visible: layerConfig.getProperties().visible,
+			opacity: 0.5
 		});
 		
-		layer.setProperties({
+		// Set properties
+		heatmapLayer.setProperties({
 			"layerId": "heatmap",
-			"type": "dataLayer"
+			"title": layerConfig.getProperties().title,
+			"type": "dataLayer",
+			"renderCallback": () => this.renderHeatmapLayer()
 		});
 		
-		this.olMap.addLayer(layer);
-	}
-
-	/*
-	* Function: renderPointsLayer
-	*/
-	renderPointsLayer() {
-		//let timeFilteredData = this.timeline.getSelectedSites();
-		let timeFilteredData = this.data;
-		var geojson = this.getDataAsGeoJSON(timeFilteredData);
-
-		var gf = new GeoJSON({
-			featureProjection: "EPSG:3857"
-		});
-		var featurePoints = gf.readFeatures(geojson);
-		var pointsSource = new VectorSource({
-			features: featurePoints
-		});
-		
-		var clusterSource = new ClusterSource({
-			distance: 0,
-			source: pointsSource
-		});
-		
-		var clusterLayer = new VectorLayer({
-			source: clusterSource,
-			style: (feature, resolution) => {
-				var style = this.getSingularPointStyle(feature);
-				return style;
-			},
-			zIndex: 1
-		});
-		
-		clusterLayer.setProperties({
-			"layerId": "points",
-			"type": "dataLayer"
-		});
-		
-		this.olMap.addLayer(clusterLayer);
-	}
-
-	/*
-	* Function: renderPointsLayer
-	*/
-	renderPointsLayerOLD() {
-		let timeFilteredData = this.timeline.getSelectedSites();
-		var geojson = this.getDataAsGeoJSON(timeFilteredData);
-
-		var gf = new GeoJSON({
-			featureProjection: "EPSG:3857"
-		});
-		var featurePoints = gf.readFeatures(geojson);
-		
-		var pointsSource = new VectorSource({
-			features: featurePoints
-		});
-		
-		var layer = new VectorLayer({
-			source: pointsSource,
-			style: (feature, resolution) => {
-				var style = this.getPointStyle(feature);
-				return style;
-			},
-			zIndex: 1
-		});
-		
-		layer.setProperties({
-			"layerId": "points",
-			"type": "dataLayer"
-		});
-
-		this.olMap.addLayer(layer);
+		return heatmapLayer;
 	}
 
 	/*
@@ -1837,13 +1696,13 @@ class ResultMap extends ResultModule {
 		if(options.highlighted) {
 			fillColor = this.style.highlighted.fillColor;
 			strokeColor = this.style.highlighted.strokeColor;
-			zIndex = 10;
+			zIndex = 200;
 		}
 		//if point is selected (clicked on)
 		if(options.selected) {
 			fillColor = this.style.selected.fillColor;
 			strokeColor = this.style.selected.strokeColor;
-			zIndex = 10;
+			zIndex = 200;
 		}
 
 		var styles = [];
@@ -1901,14 +1760,14 @@ class ResultMap extends ResultModule {
 			fillColor = this.style.highlighted.fillColor;
 			strokeColor = this.style.highlighted.strokeColor;
 			textColor = this.style.highlighted.textColor;
-			zIndex = 10;
+			zIndex = 200;
 		}
 		//if point is selected (clicked on)
 		if(options.selected) {
 			fillColor = this.style.selected.fillColor;
 			strokeColor = this.style.selected.strokeColor;
 			textColor = this.style.selected.textColor;
-			zIndex = 10;
+			zIndex = 200;
 		}
 
 		var styles = [];
@@ -2118,67 +1977,14 @@ class ResultMap extends ResultModule {
 	* Function: getVisibleDataLayer
 	*/
 	getVisibleDataLayer() {
-		for(var key in this.dataLayers) {
-			if(this.dataLayers[key].getProperties().visible) {
-				return this.dataLayers[key];
+		let dataLayers = this.layers.filter(l => l.getProperties().type === "dataLayer");
+
+		for(var key in dataLayers) {
+			if(dataLayers[key].getProperties().visible) {
+				return dataLayers[key];
 			}
 		}
 		return false;
-	}
-
-	/*
-	* Function: getVisibleDataLayers
-	*/
-	getVisibleDataLayers() {
-		var visibleLayers = [];
-		for(var key in this.dataLayers) {
-			if(this.dataLayers[key].getProperties().visible) {
-				visibleLayers.push(this.dataLayers[key]);
-			}
-		}
-		return visibleLayers;
-	}
-
-	/*
-	* Function: getVisibleBaseLayers
-	*/
-	getVisibleBaseLayers() {
-		var visibleLayers = [];
-		for(var key in this.baseLayers) {
-			if(this.baseLayers[key].getProperties().visible) {
-				visibleLayers.push(this.baseLayers[key]);
-			}
-		}
-		return visibleLayers;
-	}
-
-	/*
-	* Function: exportSettings
-	*/
-	exportSettings() {
-		var struct = {};
-		if(this.olMap != null) {
-			struct = {
-				center: this.olMap.getView().getCenter(),
-				zoom: this.olMap.getView().getZoom(),
-				baseLayers: [],
-				dataLayers: []
-			};
-
-			var baseLayers = this.getVisibleBaseLayers();
-			for(var key in baseLayers) {
-				struct.baseLayers.push(baseLayers[key].getProperties().layerId);
-			}
-			var dataLayers = this.getVisibleDataLayers();
-			for(var key in dataLayers) {
-				struct.dataLayers.push(dataLayers[key].getProperties().layerId);
-			}
-		}
-		else {
-			return false;
-		}
-
-		return struct;
 	}
 	
 	/*
@@ -2226,16 +2032,19 @@ class ResultMap extends ResultModule {
 			}]
 		};
 
-		for(var key in this.baseLayers) {
-			var prop = this.baseLayers[key].getProperties();
-			menu.items.push({
-				name: prop.layerId, //identifier of this item, should be unique within this menu
-				title: prop.title, //displayed in the UI
-				tooltip: "",
-				staticSelection: prop.visible, //For tabs - highlighting the currently selected
-				selected: prop.visible,
-				callback: this.makeMapControlMenuCallback(prop)
-			});
+		for (let key in this.layers) {
+			const layer = this.layers[key];
+			const prop = layer.getProperties();
+			if (prop.type === "baseLayer") {
+				menu.items.push({
+					name: prop.layerId, //identifier of this item, should be unique within this menu
+					title: prop.title, //displayed in the UI
+					tooltip: "",
+					staticSelection: prop.visible, //For tabs - highlighting the currently selected
+					selected: prop.visible,
+					callback: this.makeMapControlMenuCallback(prop)
+				});
+			}
 		}
 		return menu;
 	}
@@ -2263,17 +2072,19 @@ class ResultMap extends ResultModule {
 			}]
 		};
 
-		for(var key in this.dataLayers) {
-			var prop = this.dataLayers[key].getProperties();
-
-			menu.items.push({
-				name: prop.layerId, //identifier of this item, should be unique within this menu
-				title: prop.title, //displayed in the UI
-				tooltip: "",
-				staticSelection: prop.visible, //For tabs - highlighting the currently selected
-				selected: prop.visible,
-				callback: this.makeMapControlMenuCallback(prop)
-			});
+		for (let key in this.layers) {
+			const layer = this.layers[key];
+			const prop = layer.getProperties();
+			if (prop.type === "dataLayer") {
+				menu.items.push({
+					name: prop.layerId, //identifier of this item, should be unique within this menu
+					title: prop.title, //displayed in the UI
+					tooltip: "",
+					staticSelection: prop.visible, //For tabs - highlighting the currently selected
+					selected: prop.visible,
+					callback: this.makeMapControlMenuCallback(prop)
+				});
+			}
 		}
 
 		//add a special 'none' menu item
@@ -2304,14 +2115,42 @@ class ResultMap extends ResultModule {
 				menuTitleClass: "result-map-control-menu-title",
 				l1TitleClass: "result-map-control-item-title"
 			},
-			items: [ //The menu items contained in this menu
-			],
+			items: [],
+			/*
+			callback: () => {
+				this.renderAuxLayersPanel();
+			},
+			offCallback: () => {
+				this.unrenderAllAuxLayersPanel();
+			},
+			*/
+			selected: false,
+			callbacks: [{
+                selector: "#result-map-auxlayer-controls-menu",
+                on: "click",
+                callback: () => {
+                    //make sure all the auxLayer metadata is loaded, then render the renderAllAuxLayersPanel
+					if(!this.auxLayersInitialized) {
+						console.log("Waiting for auxLayer metadata to load...");
+						let waitForMetaDataLoad = setInterval(() => {
+							if(this.auxLayersInitialized) {
+								clearInterval(waitForMetaDataLoad);
+								this.renderAuxLayersPanel();
+							}
+						}, 100);
+					} else {
+						this.renderAuxLayersPanel();
+					}
+
+                }
+            }],
 			triggers: [{
 				selector: "#result-map-auxlayer-controls-menu",
 				on: "click"
 			}]
 		};
-
+		
+		/*
 		for(var key in this.auxLayers) {
 			var prop = this.auxLayers[key].getProperties();
 			menu.items.push({
@@ -2335,6 +2174,8 @@ class ResultMap extends ResultModule {
 				type: "auxLayer"
 			})
 		});
+		*/
+		
 		return menu;
 	}
 
@@ -2371,23 +2212,6 @@ class ResultMap extends ResultModule {
 	}
 
 	/*
-	* Function: getLayerById
-	*/
-	getLayerById(layerId) {
-		for(let k in this.dataLayers) {
-			if(this.dataLayers[k].getProperties().layerId == layerId) {
-				return this.dataLayers[k];
-			}
-		}
-		for(let k in this.baseLayers) {
-			if(this.baseLayers[k].getProperties().layerId == layerId) {
-				return this.baseLayers[k];
-			}
-		}
-		return false;
-	}
-
-	/*
 	* Function: resizeCallback
 	*/
 	resizeCallback() {
@@ -2403,283 +2227,7 @@ class ResultMap extends ResultModule {
 		}
 	}
 
-	async fetchWfsFeatureTypes(baseUrl, options = {}) {
-		const defaultOptions = {
-			version: '2.0.0',
-			sortByName: true
-		};
-		const config = { ...defaultOptions, ...options };
-
-		try {
-			const capabilitiesUrl = `${baseUrl}?SERVICE=WFS&REQUEST=GetCapabilities&VERSION=${config.version}`;
-			console.log(`Fetching WFS capabilities from: ${capabilitiesUrl}`);
-
-			const response = await fetch(capabilitiesUrl);
-			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-			}
-			const xmlText = await response.text();
-			const parser = new DOMParser();
-			const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-
-			const WFS_NS = xmlDoc.documentElement?.namespaceURI || 'http://www.opengis.net/wfs';
-
-			const featureTypeEls = Array.from(
-				xmlDoc.getElementsByTagNameNS?.(WFS_NS, 'FeatureType') || xmlDoc.getElementsByTagName('FeatureType')
-			);
-
-			const featureTypes = featureTypeEls.map(ftEl => {
-				const nameEl = ftEl.getElementsByTagNameNS?.(WFS_NS, 'Name')[0] || ftEl.getElementsByTagName('Name')[0];
-				const titleEl = ftEl.getElementsByTagNameNS?.(WFS_NS, 'Title')[0] || ftEl.getElementsByTagName('Title')[0];
-				const abstractEl = ftEl.getElementsByTagNameNS?.(WFS_NS, 'Abstract')[0] || ftEl.getElementsByTagName('Abstract')[0];
-				return {
-					name: nameEl ? nameEl.textContent.trim() : '',
-					title: titleEl ? titleEl.textContent.trim() : '',
-					abstract: abstractEl ? abstractEl.textContent.trim() : ''
-				};
-			});
-
-			if (config.sortByName) {
-				featureTypes.sort((a, b) => a.title.localeCompare(b.title, 'sv'));
-			}
-
-			console.log(`Parsed ${featureTypes.length} WFS feature types`);
-			return featureTypes;
-
-		} catch (error) {
-			console.error(`Failed to fetch WFS capabilities from ${baseUrl}:`, error);
-			throw error;
-		}
-	}
-
-	async fetchWmsLayerInfo(baseUrl, options = {}) {
-		const defaultOptions = {
-			version: '1.3.0',
-			filterNumericNames: false,
-			sortByName: true
-		};
-		
-		const config = { ...defaultOptions, ...options };
-		
-		try {
-			// Construct capabilities URL
-			const capabilitiesUrl = `${baseUrl}?SERVICE=WMS&REQUEST=GetCapabilities&VERSION=${config.version}`;
-			
-			console.log(`Fetching WMS capabilities from: ${capabilitiesUrl}`);
-			
-			// Fetch capabilities
-			const response = await fetch(capabilitiesUrl);
-			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-			}
-			
-			const xmlText = await response.text();
-			
-			// Parse the XML
-			const parser = new DOMParser();
-			const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-			
-			// Check for XML parsing errors
-			const parserError = xmlDoc.querySelector('parsererror');
-			if (parserError) {
-				throw new Error(`XML parsing error: ${parserError.textContent}`);
-			}
-			
-			// Extract layer information
-			const layers = this.parseWmsCapabilities(xmlDoc, config);
-			layers.flat.sort((a, b) => a.title.localeCompare(b.title));
-			
-			console.log(`Successfully parsed ${layers.length} layers from WMS service`);
-			return layers;
-			
-		} catch (error) {
-			console.error(`Failed to fetch WMS capabilities from ${baseUrl}:`, error);
-			throw error;
-		}
-	}
-
-	parseWmsCapabilities(
-		xmlDoc,
-		{
-			filterNumericNames = false,
-			sortByName = true,
-			fallbackIfEmpty = true
-		} = {}
-	) {
-		const WMS_NS = xmlDoc.documentElement?.namespaceURI || 'http://www.opengis.net/wms';
-		const XLINK_NS = 'http://www.w3.org/1999/xlink';
-
-		const q = (el, tag) =>
-			(el.getElementsByTagNameNS?.(WMS_NS, tag)[0] ||
-			el.getElementsByTagName(tag)[0]) ?? null;
-
-		const qAll = (el, tag) =>
-			Array.from(el.getElementsByTagNameNS?.(WMS_NS, tag) || el.getElementsByTagName(tag) || []);
-
-		// Legend URL under the given element (Layer or Style)
-		const getLegendUrl = (el) => {
-			const legendEls = qAll(el, 'LegendURL');
-			for (const legendEl of legendEls) {
-			const online =
-				legendEl.getElementsByTagName('OnlineResource')[0] ||
-				legendEl.getElementsByTagNameNS?.(WMS_NS, 'OnlineResource')?.[0];
-			if (!online) continue;
-			const href = online.getAttributeNS
-				? online.getAttributeNS(XLINK_NS, 'href')
-				: (online.getAttribute('xlink:href') || online.getAttribute('href'));
-			if (href) return href;
-			}
-			return null;
-		};
-
-		// Styles array; first style is conventionally the default in GeoServer
-		const getStyles = (layerEl) => {
-			const styleEls = qAll(layerEl, 'Style');
-			return styleEls.map((styleEl) => {
-			const name = (q(styleEl, 'Name')?.textContent || '').trim();
-			const title = (q(styleEl, 'Title')?.textContent || name).trim();
-			const abstract = (q(styleEl, 'Abstract')?.textContent || '').trim();
-			return { name, title, abstract, legendUrl: getLegendUrl(styleEl) };
-			});
-		};
-
-		const getScale = (layerEl, tag) => {
-			const el = q(layerEl, tag);
-			const val = el ? parseFloat(el.textContent.trim()) : NaN;
-			return Number.isFinite(val) ? val : null;
-		};
-
-		const getCrsList = (layerEl) => qAll(layerEl, 'CRS').map(n => n.textContent.trim());
-
-		// Convert OGC ScaleDenominator → OL resolution (m/px). 0.28 mm px size per spec.
-		const scaleToResolution = (scaleDenom) =>
-			Number.isFinite(scaleDenom) ? scaleDenom * 0.00028 : null;
-
-		// Create a node object from a <Layer> element
-		const buildNode = (layerEl) => {
-			const nameEl = q(layerEl, 'Name');            // may be null for group layers
-			const titleEl = q(layerEl, 'Title');
-
-			const name = nameEl ? nameEl.textContent.trim() : null;
-			const title = (titleEl?.textContent || name || '').trim();
-			const abstract = (q(layerEl, 'Abstract')?.textContent || '').trim();
-			const queryable = /^(1|true)$/i.test(layerEl.getAttribute('queryable') || '');
-			const styles = getStyles(layerEl);
-			const defaultStyle = styles[0]?.name || '';
-			const legendUrl = styles[0]?.legendUrl || getLegendUrl(layerEl) || null;
-
-			const minScaleDenominator = getScale(layerEl, 'MinScaleDenominator');
-			const maxScaleDenominator = getScale(layerEl, 'MaxScaleDenominator');
-
-			return {
-				name,
-				title,
-				abstract,
-				queryable,
-				styles,
-				defaultStyle,
-				legendUrl,
-				crsList: getCrsList(layerEl),
-				minScaleDenominator,
-				maxScaleDenominator,
-				// Convenience for OL visibility:
-				minResolution: scaleToResolution(maxScaleDenominator) ?? null, // Note: MaxScale → minResolution
-				maxResolution: scaleToResolution(minScaleDenominator) ?? null, // Note: MinScale → maxResolution
-				children: [],
-				isGroup: false
-			};
-		};
-
-		// Recursively walk the <Layer> tree
-		const walk = (layerEl) => {
-			const node = buildNode(layerEl);
-			const childEls = qAll(layerEl, 'Layer').filter(child => child !== layerEl);
-			for (const child of childEls) {
-				node.children.push(walk(child));
-			}
-
-			node.isGroup = node.children.length > 0;
-
-			return node;
-		};
-
-		// Find all top-level <Layer> elements under <Capability>
-		const topLayerEls = (() => {
-			const caps = q(xmlDoc, 'Capability') || xmlDoc; // fallback: whole doc
-			// Only direct children Layers of Capability (avoid duplicating deeper nodes)
-			const direct = [];
-			const layersAll = qAll(caps, 'Layer');
-			for (const lay of layersAll) {
-			const parent = lay.parentElement;
-			if (parent === caps) direct.push(lay);
-			}
-			// If the server wraps everything in a single top Layer, accept that one
-			return direct.length ? direct : qAll(xmlDoc, 'Layer').slice(0, 1);
-		})();
-
-		// Build the tree forest (often a single root group)
-		const tree = topLayerEls.map(walk);
-
-		// Now produce a flat list with parent relationships and readable paths
-		const flat = [];
-		const indexByName = new Map();
-
-		const traverse = (node, parentId = null, pathParts = []) => {
-			const id = node.name || `__group__:${pathParts.length}:${node.title || 'Group'}`;
-
-			const path = [...pathParts, node.title || node.name || 'Layer'].filter(Boolean);
-			const entry = {
-				id,
-				name: node.name, // null for groups
-				title: node.title,
-				abstract: node.abstract,
-				queryable: node.queryable,
-				styles: node.styles,
-				defaultStyle: node.defaultStyle,
-				legendUrl: node.legendUrl,
-				crsList: node.crsList,
-				minScaleDenominator: node.minScaleDenominator,
-				maxScaleDenominator: node.maxScaleDenominator,
-				minResolution: node.minResolution,
-				maxResolution: node.maxResolution,
-				parentId,
-				path,                     // e.g. ['Arkeologiska uppdrag', 'Undersökningsområde']
-				isGroup: node.children.length > 0,
-			};
-
-			flat.push(entry);
-			if (node.name) indexByName.set(node.name, entry);
-
-			node.children.forEach(child =>
-			traverse(child, id, path));
-
-			return entry;
-		};
-
-		tree.forEach(root => traverse(root, null, []));
-
-		// Filter/sort on the FLAT list of **named** layers (actual requestable layers)
-		let requestable = flat.filter(l => !l.children && l.name);
-
-		if (filterNumericNames) {
-			const onlyNumeric = requestable.filter(l => /^\d+$/.test(l.name));
-			requestable = onlyNumeric.length || !fallbackIfEmpty ? onlyNumeric : requestable;
-		}
-
-		if (sortByName) {
-			const allNumeric = requestable.length > 0 && requestable.every(l => /^\d+$/.test(l.name));
-			requestable.sort(allNumeric
-			? (a, b) => Number(a.name) - Number(b.name)
-			: (a, b) => a.name.localeCompare(b.name, 'sv'));
-		}
-
-		return {
-			tree,           // full hierarchy (groups + children)
-			flat,           // everything (groups + layers) with parentId/path
-			layers: requestable, // only requestable named layers, filtered/sorted per options
-			byName: indexByName  // Map<string, entry> for quick lookups
-		};
-	}
+	
 
 
 }

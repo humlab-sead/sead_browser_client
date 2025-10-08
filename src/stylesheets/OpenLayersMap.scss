@@ -1,0 +1,319 @@
+.sub-layer-list {
+  margin:0;
+  padding:0;
+  list-style-type: none;
+}
+
+.sub-layer-leaf {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.sub-layer-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 0.25em;
+}
+
+.sublayers-container {
+    margin-left: 1.5em;
+    padding: 0.5em;
+    border-left: 2px solid #eee;
+}
+
+.result-map-sub-layer-selection h5 {
+    margin-bottom: 0.5em;
+    margin-top: 1em;
+    font-weight: bold;
+    border-bottom: 1px solid #888;
+    padding-bottom: 0.3em;
+}
+
+.sub-layer-group {
+    display: flex;
+    align-items: center;
+    padding: 0.5em 0.25em;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.sub-layer-group:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.sub-layer-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5em;
+    height: 1.5em;
+    margin-right: 0.5em;
+}
+
+.sub-layer-toggle i {
+    font-size: 0.8em;
+}
+
+.sub-layer-title {
+    flex-grow: 1;
+}
+
+.sublayers-container {
+    margin-left: 1.5em;
+    padding: 0.5em;
+    border-left: 2px solid #eee;
+}
+
+.sub-layer-group {
+    display: flex;
+    align-items: center;
+    padding: 0.5em 0.25em;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.sub-layer-group:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Add this to your CSS */
+.sortable-legend {
+    list-style: none;
+    padding: 0;
+}
+
+.result-map-legend-layer-type {
+    font-size: 0.8em;
+    color: #666;
+    opacity: 0.7;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    width: 100%;
+    display: block;
+    margin-top: 2px;
+}
+
+.result-map-legend-sublayer-title {
+    color: #000;
+    font-weight: 500;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    width: 100%;
+    display: block;
+}
+
+.result-map-legend-icon {
+    max-width: 100%;
+    margin-top: 5px;
+}
+
+/* For when dragging */
+.result-map-legend-item.ui-sortable-helper {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.result-map-legend-item {
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    margin: 3px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    cursor: move;
+    position: relative;
+    box-sizing: border-box !important;
+    /* Fixed width for all legend items */
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    /* Prevent flex from causing sizing issues */
+    flex-shrink: 0;
+    max-height: 20em;
+    overflow: auto;
+    color: #333;
+}
+
+.legend-item-close {
+    position: relative;
+    top: 0px;
+    right: 0px;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    line-height: 14px;
+    font-size: 16px;
+    text-align: center;
+    background: transparent;
+    border: none;
+    color: #666;
+    border-radius: 50%;
+}
+
+.legend-item-close:hover {
+    color: #000;
+    background-color: rgba(0,0,0,0.1);
+}
+
+.legend-item-expand {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    line-height: 14px;
+    font-size: 12px;
+    text-align: center;
+    background: transparent;
+    border: none;
+    color: #666;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.legend-item-expand:hover {
+    color: #000;
+    background-color: rgba(0,0,0,0.1);
+}
+
+
+/* Placeholder styling to match original items */
+.result-map-legend-item-placeholder {
+    border: 1px dashed #999;
+    background-color: #f8f8f8;
+    visibility: visible !important;
+    /* Force box-sizing to match other items */
+    box-sizing: border-box !important;
+    /* Ensure content doesn't affect sizing */
+    overflow: hidden;
+    /* Match exactly the styling of regular items */
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    padding-right: 20px;
+    margin: 3px 0;
+    border-radius: 4px;
+
+    border: 1px dashed #999;
+    background-color: #f8f8f8;
+    box-sizing: border-box;
+}
+
+.result-map-legend-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 24px;
+    gap: 8px;
+}
+
+.result-map-legend-item-info {
+    flex: 1;
+    min-width: 0; /* Allow shrinking below content size */
+    overflow: hidden;
+}
+
+.result-map-legend-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0; /* Don't shrink the control buttons */
+}
+
+.result-map-legend-item-expand-control {
+    padding-left: 4px;
+    padding-right: 4px;
+    cursor: pointer;
+}
+
+.result-map-legend-item-close-control {
+    padding-left: 4px;
+    padding-right: 4px;
+    cursor: pointer;
+}
+
+.result-map-legend-item-content {
+    overflow: auto;
+}
+
+/* Zoom visibility indicators for aux layers */
+.layer-zoom-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 4px;
+    margin-right: 4px;
+    border-radius: 3px;
+    font-size: 11px;
+    transition: all 0.2s ease;
+    cursor: help;
+
+    &.zoom-visible {
+        color: #4caf50;
+        background-color: rgba(76, 175, 80, 0.1);
+        border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+
+    &.zoom-hidden {
+        color: #ff9800;
+        background-color: rgba(255, 152, 0, 0.1);
+        border: 1px solid rgba(255, 152, 0, 0.3);
+        cursor: pointer; // Make it clear this is clickable
+        
+        &:hover {
+            background-color: rgba(255, 152, 0, 0.2);
+            border-color: rgba(255, 152, 0, 0.5);
+            transform: scale(1.05);
+        }
+    }
+}
+
+#minimize-sublayer-panel {
+    display: none;
+}
+
+/* Style adjustment for layers with zoom limitations */
+.result-map-legend-item.layer-zoom-limited {
+    opacity: 0.7;
+    
+    .result-map-legend-sublayer-title {
+        color: #ff9800;
+    }
+}
+
+/* Ensure helper element maintains exact dimensions */
+.ui-sortable-helper {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    opacity: 0.9;
+    background-color: #fff;
+    box-sizing: border-box !important;
+}
+
+/* Position zoom control on the right side */
+.ol-zoom {
+    position: absolute !important;
+    left: auto !important;
+    right: 0.5em !important;
+    top: 50% !important;
+    transform: translateY(-50%);
+    
+    /* Fallback positioning for browsers that don't support transform */
+    @supports not (transform: translateY(-50%)) {
+        top: auto !important;
+        bottom: 2em !important;
+    }
+}
+
+/* Ensure zoom control buttons are properly styled when positioned on the right */
+.ol-zoom button {
+    display: block;
+    width: 2.2em;
+    height: 2.2em;
+    margin: 0.1em 0;
+    opacity: 0.8;
+}

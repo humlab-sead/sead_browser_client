@@ -144,10 +144,7 @@
 
           <div id="facet-section">
           </div>
-          <div id="filter-section-toggle-button">
-            <i id="filter-toggle-icon" class="fa fa-chevron-left"></i>
-            <span id="filter-toggle-text">Hide Filters</span>
-          </div>
+          
         </div>
       </div>
 
@@ -194,11 +191,17 @@
             <div id="show-query-btn" class="fa fa-database result-export-button"></div>
 
           </div>
+        </div>
 
+      </div>
 
-
+      <div id="filter-section-toggle-button">
+        <div id="filter-toggle-icon-container">
+          <i class="filter-toggle-icon fa fa-chevron-left"></i>
+          <i class="filter-toggle-icon fa fa-chevron-left"></i>
         </div>
       </div>
+      
     </div>
 
     <div id="site-report-main-container" class="responsive-layout-container">
@@ -283,7 +286,7 @@
     </div>
     <div id="cookie-consent-content"></div>
 
-    <div id="chatbox-icon">
+    <div id="chatbox-icon" style="display:none;">
       <i class="fa fa-comment-o chat-icon" aria-hidden="true"></i>
       <div id="chatbox-inner-panel">
         <div id="chatbox-header">
@@ -306,6 +309,18 @@
   <!--<div id="popper"></div>-->
 
   <div id="templates" style="display:none;">
+
+
+    <template id="result-map-legend-item-template">
+      <div class="result-map-legend-item" data-layer-id="" data-layer-type="data" data-z-index="">
+        <div class='result-map-legend-item-overview'>
+          <button class="legend-item-close" title="Remove layer">×</button>
+          <div class="result-map-legend-sublayer-title"></div>
+          <div class="result-map-legend-layer-type"></div>
+        </div>
+        <div class='result-map-legend-hidden'></div>
+      </div>
+    </template>
 
     <template id="login-template">
       <div class="login-container">

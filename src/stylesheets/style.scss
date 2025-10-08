@@ -8,6 +8,7 @@ $sead-font: 'Exo 2';
 
 @import "SiteReport.scss";
 @import "RangeFacet.scss";
+@import "OpenLayersMap.scss";
 
 html {
 	height: 100%;
@@ -476,7 +477,6 @@ h1.main-header {
 
 .facet-header > div {
   font-weight: normal !important;
-  
 }
 
 .facet-title {
@@ -1427,8 +1427,14 @@ h1.main-header {
 }
 
 .result-map-legend-content {
-  overflow-y: auto;
+  overflow: hidden;
   max-height: 50%;
+  padding: 0.5em;
+}
+
+.legend-content-loaded h5 {
+  font-size: 1.0em;
+  margin-bottom: 1em;
 }
 
 .ol-overlaycontainer-stopevent button[type=button] {
@@ -2132,26 +2138,35 @@ polyline{
 .result-map-legend-container {
   display: none;
   position: absolute;
-  left: 1em;
-  top: 1em;
-  border: 1px solid $base-color;
-  background: rgba($base-color, 0.8);
-  padding: 1em;
+  right: 10px;
+  top: 10px;
+  background: $pane-bg-color;
+  padding: 0em;
+  padding-bottom: .2em;
   overflow: auto;
   overflow-x: hidden;
   color: #fff;
-  box-shadow: 0px 5px 10px 3px rgba(0, 0, 0, 0.25);
   max-height: 90%;
   max-width: 40%;
+  box-shadow: 0px 5px 10px 3px rgba(0, 0, 0, 0.25);
 }
 
 .result-map-legend-container h4 {
   margin: 0;
-  margin-bottom: 1em;
-  padding: 0;
-  font-size: 1.2rem;
   color: #fff;
+  background: $base-color;
+  flex: 1;
+	font-weight: normal;
+	font-size:1.3em;
+	padding-left:8px;
+	padding-top:4px;
+  padding-bottom: 4px;
+	line-height:1.2em;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
+
 
 #result-map-container {
   position: relative;
@@ -2650,7 +2665,7 @@ polyline{
   display:flex;
   position:absolute;
   top: 10px;
-  right: 10px;
+  left: 10px;
   //z-index: 1;
   box-shadow: -5px 5px 1em .25em rgba(0, 0, 0, 0.15);
 }
@@ -3974,207 +3989,6 @@ svg text {
   margin-right: .5em;
 }
 
-.site-report-subtable td {
-  border-top: 2px solid transparent;
-  border-bottom: 2px solid transparent;
-}
-
-.highlighted-table-row {
-  animation: gradientAnimation .5s ease-out 5;
-}
-
-.highlighted-table-row td {
-  animation: gradientAnimation .5s ease-out 5;
-}
-
-#chatbox-icon {
-  position: fixed;
-  display: none; //Flex
-  align-items: center;
-  justify-content: center;
-  bottom: 0;
-  right: 0;
-  background: $aux-color;
-  color: #fff;
-  border-radius: 50%;
-  padding: .5em;
-  font-size: 3.0em;
-  margin: .5em;
-  box-shadow: 0px 0px 10px 2px $shadow-color;
-  z-index: 2;
-  width: 1em;
-  height: 1em;
-  transition: all 0.3s ease-in-out;
-}
-
-#chatbox-loading-indicator {
-  display:inline-block;
-  position: relative;
-  top: 0em;
-  width: 3em;
-  height: 1em;
-  align-self: center;
-  background-image: url('../assets/loading-indicator8.svg');
-  background-repeat: no-repeat;
-  background-size: 100%;
-}
-
-#chatbox-icon:hover {
-  background: lighten($aux-color, 10%);
-  cursor: pointer;
-}
-
-#chatbox-icon.expanded {
-  width: 25vw;
-  height: 30vh;
-  border-radius: .1em;
-  cursor: auto;
-  padding: 0em;
-  resize: both;
-  overflow: auto;
-}
-
-#chatbox-inner-panel {
-  display: none;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-}
-
-#chatbox-input-controls {
-  display: flex;
-  width: 100%;
-}
-
-#chatbox-input-controls button {
-  border: none;
-  background: $base-color;
-  color: #fff;
-  padding-left: 0.5em;
-  padding-right: 0.5em;
-  font-size: 1.2rem;
-  cursor: pointer;
-}
-
-#chatbox-input {
-  padding: 0.5em;
-  border: none;
-  border-top: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
-  font-size: 1.2rem;
-  width: 100%;
-  background: #fff;
-}
-
-#chatbox-input:disabled {
-  background: #ccc;
-  color: #666;
-  cursor: not-allowed;
-}
-
-#chatbox-messages {
-  display: block;
-  height: 100%;
-  width: auto;
-  background: #fff;
-  color: #000;
-  font-size: 1.0rem;
-  padding: 1.0rem;
-  overflow: auto;
-}
-
-.assistant-message {
-  color: green;
-  font-weight: bold;
-}
-
-.user-message {
-  color: blue;
-  font-weight: bold;
-}
-
-#chatbox-header {
-  display: none;
-  justify-content: space-between;
-  align-items: center;
-  background: $pane-bg-color-dark;
-  height: 2.0rem;
-  font-size: 1.2rem;
-  cursor: move;
-}
-
-#chatbox-close-btn {
-  border: none;
-  color: #000;
-  font-size: 1.2rem;
-  margin-right: 0.5em;
-  cursor: pointer;
-}
-
-#chatbox-close-btn:hover {
-  color: #666;
-}
-
-#chatbox-header h3 {
-  font-size: 1.2rem;
-  color: #000;
-  margin-left: 0.5em;
-}
-
-@keyframes gradientAnimation {
-  0% {
-    background: #c6c6c6;
-    border-top: 2px solid #fff;
-    border-bottom: 2px solid #fff;
-  }
-  25%, 50%, 75% {
-    background: #fff; /* Change to the color you want for the flash */
-  }
-  100% {
-    background: #c6c6c6;
-    border-top: 2px solid transparent;
-    border-bottom: 2px solid transparent;
-  }
-}
-
-.stacked-bar-outer-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.stacked-bar-container > svg {
-  height: calc(26px - 4px);
-}
-
-.stacked-bar-container {
-  display: flex;
-  min-height: 1em;
-  height: 1em;
-  align-items: center;
-  width: 100%;
-}
-
-.stacked-bar-container > svg {
-  vertical-align: middle;
-}
-
-.stacked-bar-container > .stacked-segment {
-  height: 100%;
-  flex-grow: 0;
-  flex-shrink: 0;
-  background: $pane-bg-color-dark;
-}
-
-.stacked-bar-container-numerical-readout {
-  position: absolute;
-  display: inline-block;
-  font-size: 0.8em;
-}
-
 .site-report-table-button {
   display: flex;
   align-items: center;
@@ -4553,25 +4367,4 @@ a.ms-selectall:hover {
   margin-top: 1em;
 }
 
-.legend-zoom-info {
-  background: rgba(255, 255, 255, 0.5);
-  color: #000;
-  padding-left: 0.2em;
-  padding-right: 0.2em;
-  border-radius: 0.2em;
-  font-size: 0.8em;
-}
 
-#result-map-auxlayer-controls-menu-anchor {
-}
-
-.sub-layer-list {
-  margin:0;
-  padding:0;
-  list-style-type: none;
-}
-
-.sub-layer-leaf {
-  margin-top: 0.25em;
-  margin-bottom: 0.25em;
-}

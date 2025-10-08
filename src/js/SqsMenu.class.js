@@ -268,6 +268,29 @@ class sqsMenu {
 			$(callback.selector).on(callback.on, callback.callback);
 		});
 
+		//if the menu object itself has a callback defined, bind it to the first trigger
+		if(menu.callback) {
+			if(menu.triggers.length == 0) {
+				console.warn("No triggers defined for menu with callback, cannot bind callback.");
+				return;
+			}
+			$(menu.triggers[0].selector).on("click", () => {
+				
+				//toggle state selected if staticSelection is true
+				menu.selected = !menu.selected;
+				if(menu.staticSelection && menu.selected) {
+					menu.callback();
+					$(menu.triggers[0].selector).addClass("sqs-menu-selected");
+				}
+				else if(menu.staticSelection && !menu.selected) {
+					if(menu.offCallback) {
+						menu.offCallback();
+					}
+					$(menu.triggers[0].selector).removeClass("sqs-menu-selected");
+				}
+			});
+		}
+
 		$("body").on("click", (evt) => {
 			if(this.sqs.tutorial.isRunning()) {
 				//if tutorial is active, ignore body clicks

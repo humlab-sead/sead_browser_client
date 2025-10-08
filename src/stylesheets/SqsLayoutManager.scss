@@ -30,6 +30,7 @@
 }
 
 .section-right {
+    position: relative;
     margin: 0px;
     
     border-left-style: solid;
@@ -110,18 +111,26 @@ body.resizing {
 }
 
 #filter-section-toggle-button {
-	visibility: hidden;
+    display: none; //flex
+	visibility: visible;
 	position: absolute;
-	right: 0px;
-	top: 0px;
+	left: 0px;
+	top: 50vh;
     height: auto;
-    display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
 }
 
-#filter-toggle-icon {
+.filter-toggle-icon {
     font-size: 1.2em;
+    position: relative;
+}
+
+.filter-toggle-icon:first-child {
+    left: 5px;
 }
 
 #filter-toggle-text {
