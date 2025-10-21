@@ -36,19 +36,22 @@ class ResultMap extends ResultModule {
 	/*
 	* Function: constructor
 	*/
-	constructor(resultManager, renderIntoNode = "#result-map-container", includeTimeline = true) {
+	constructor(resultManager, renderIntoNode = "#result-map-container", includeTimeline = true, minimalMap = false) {
 		super(resultManager);
 		this.sqs = this.resultManager.sqs;
 		this.renderIntoNode = renderIntoNode;
 		this.includeTimeline = includeTimeline;
+		this.minimalMap = minimalMap;
 		this.auxLayersInitialized = false;
 		this.resultMapLayers = new ResultMapLayers(this.sqs);
 
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
-		$(this.renderIntoNode).append(`<div class='result-map-legend-container'>
+		if(!this.minimalMap) {
+			$(this.renderIntoNode).append(`<div class='result-map-legend-container'>
 			<h4>Legend</h4>
 			<div class='result-map-legend-content'></div>
 			</div>`);
+		}
 
 		//$(".result-map-render-container", this.renderIntoNode).css("height", "100%");
 
@@ -1005,7 +1008,13 @@ class ResultMap extends ResultModule {
 		$("#result-map-controls-container").append(auxLayersHtml);
 
 		new SqsMenu(this.resultManager.sqs, this.resultMapAuxLayersControlsSqsMenu());
-
+		$("#result-map-auxlayer-controls-menu").addClass("disabled");
+		this.checkAuxLayersLoadedInterval = setInterval(() => {
+			if(this.auxLayersInitialized) {
+				$("#result-map-auxlayer-controls-menu").removeClass("disabled");
+				clearInterval(this.checkAuxLayersLoadedInterval);
+			}
+		}, 250);
 
 		// Instead of creating an SqsMenu, add a direct click handler
 		/*

@@ -3505,6 +3505,13 @@ svg text {
   cursor: pointer;
 }
 
+.result-map-map-control-item.disabled {
+  background: $inactive-color;
+  cursor: not-allowed;
+  position: relative;
+  overflow: hidden;
+}
+
 .content-item-chart-rendering-message {
   font-size: 1.2em;
   margin: 1em;
