@@ -1,16 +1,16 @@
 {
 	"build": "staging",
-	"version": "2025-10.1-dev",
+	"version": "2025-10.2-dev",
 	"dataLicense": {
 		"name":"Creative Commons Attribution 4.0 International",
 		"shortName":"CC-BY-4.0",
 		"url":"https://creativecommons.org/licenses/by/4.0/"
 	},
-	"serverRoot":"http://__DOMAIN__:8080",
-	"serverAddress":"http://__DOMAIN__:8080/query",
-	"siteReportServerAddress":"http://__DOMAIN__:8080/postgrest",
-	"dataServerAddress": "http://__DOMAIN__:8080/jsonapi",
-	"copilotServerAddress": "wss://__DOMAIN__:8080/ai-assistant",
+	"serverRoot":"http://__DOMAIN__:8010",
+	"serverAddress":"http://__DOMAIN__:8010/query",
+	"siteReportServerAddress":"http://__DOMAIN__:8010/postgrest",
+	"dataServerAddress": "http://__DOMAIN__:8010/jsonapi",
+	"copilotServerAddress": "wss://__DOMAIN__:8010/ai-assistant",
 	"defaultResultModule":"mosaic",
 	"resultMapDataLayers": ["clusterPoints", "points", "heatmap"],
 	"maxAllowedSitesInAnExport": 20,
