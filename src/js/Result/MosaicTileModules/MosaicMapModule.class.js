@@ -22,7 +22,7 @@ class MosaicMapModule extends MosaicTileModule {
         this.renderIntoNode = renderIntoNode;
         
         if(this.resultMap == null) {
-            this.resultMap = new ResultMap(this.sqs.resultManager, renderIntoNode, false);
+            this.resultMap = new ResultMap(this.sqs.resultManager, renderIntoNode, false, true);
         }
         
         await this.resultMap.fetchData();
