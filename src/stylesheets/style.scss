@@ -2144,9 +2144,10 @@ polyline{
   padding: 0em;
   padding-bottom: .2em;
   overflow: auto;
+  overflow-x: hidden;
   color: #fff;
   max-height: 90%;
-  width: fit-content;
+  max-width: 40%;
   box-shadow: 0px 5px 10px 3px rgba(0, 0, 0, 0.25);
 }
 
@@ -2164,7 +2165,6 @@ polyline{
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
-  cursor: move;
 }
 
 
@@ -3508,8 +3508,6 @@ svg text {
 .result-map-map-control-item.disabled {
   background: $inactive-color;
   cursor: not-allowed;
-  position: relative;
-  overflow: hidden;
 }
 
 .content-item-chart-rendering-message {
@@ -4374,4 +4372,33 @@ a.ms-selectall:hover {
   margin-top: 1em;
 }
 
+.ui-draggable-handle {
+  cursor: move;
+}
 
+.sub-layer-list-collapsed {
+  display: none;
+}
+
+.sub-layer-list-toggle {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sub-layer-list-toggle .toggle-icon {
+  font-family: 'FontAwesome', Arial, sans-serif;
+  font-size: 1em;
+  margin-left: 0.5em;
+  float: right;
+  transition: transform 0.2s;
+}
+
+.sub-layer-list-toggle.collapsed .toggle-icon {
+  transform: rotate(-90deg);
+}
+
+.sub-layer-list-toggle h5 {
+    width: 100%;
+}

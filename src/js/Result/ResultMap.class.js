@@ -48,9 +48,15 @@ class ResultMap extends ResultModule {
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
 		if(!this.minimalMap) {
 			$(this.renderIntoNode).append(`<div class='result-map-legend-container'>
-			<h4>Legend</h4>
+			<h4>Layers</h4>
 			<div class='result-map-legend-content'></div>
 			</div>`);
+
+			//make it draggable
+			$(".result-map-legend-container", this.renderIntoNode).draggable({
+				handle: "h4",
+				containment: "parent"
+			});
 		}
 
 		//$(".result-map-render-container", this.renderIntoNode).css("height", "100%");
@@ -1151,8 +1157,11 @@ class ResultMap extends ResultModule {
 		// Add each provider group
 		for (const [provider, layers] of Object.entries(groupedLayers)) {
 			if (layers.length > 0) {
-				content += `<h5>${provider}</h5>`;
-				content += `<ul class='sub-layer-list'>`;
+				   content += `<div class="sub-layer-list-toggle" data-provider="${provider}">
+					   <h5 style="display:inline;">${provider}</h5>
+					   <span class="toggle-icon" aria-label="Toggle sub-layers">&#xf078;</span>
+				   </div>`;
+				   content += `<ul class='sub-layer-list'>`;
 				
 				layers.forEach(layer => {
 					const props = layer.getProperties();
@@ -1173,13 +1182,30 @@ class ResultMap extends ResultModule {
 					</li>`;
 				});
 				
-				content += `</ul>`;
+				   content += `</ul>`;
 			}
 		}
 		
 		content += "</div>";
 		
-		$("#sub-layer-content").append(content);
+		   $("#sub-layer-content").append(content);
+
+		   // Collapse/expand logic for sub-layer lists
+		   $(".sub-layer-list-toggle").each(function(idx, el) {
+			   const $toggle = $(el);
+			   const $nextList = $toggle.next(".sub-layer-list");
+			   // Start expanded
+			   $toggle.removeClass("collapsed");
+			   $nextList.removeClass("sub-layer-list-collapsed");
+		   });
+
+		   $(".sub-layer-list-toggle").on("click", function() {
+			   const $toggle = $(this);
+			   const $icon = $toggle.find('.toggle-icon');
+			   const $list = $toggle.next(".sub-layer-list");
+			   $toggle.toggleClass("collapsed");
+			   $list.toggleClass("sub-layer-list-collapsed");
+		   });
 
 		$(".sub-layer-leaf").on("change", (evt) => {
 			evt.stopPropagation(); //Prevent event bubbling

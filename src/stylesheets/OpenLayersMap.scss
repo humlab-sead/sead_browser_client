@@ -128,10 +128,6 @@
     cursor: ns-resize;
     position: relative;
     box-sizing: border-box !important;
-    /* Fixed width for all legend items */
-    width: 280px;
-    min-width: 280px;
-    max-width: 280px;
     /* Prevent flex from causing sizing issues */
     flex-shrink: 0;
     max-height: 20em;
@@ -209,7 +205,7 @@
     justify-content: space-between;
     width: 100%;
     min-height: 24px;
-    gap: 8px;
+    gap: 1em;
 }
 
 .result-map-legend-item-info {
