@@ -45,8 +45,7 @@ class Timeline extends IOModule {
         this.traceIdCounter = 0;
         this.chartTraces = [];
         this.chartTraceColors = this.sqs.color.generateDistinctColors(10, 0.75);
-        this.selectedGraphDataOption = userSettings.timelineGraphDataOption || "δ18O from GISP2 Ice Core";
-        //this.selectedGraphDataOption = userSettings.timelineGraphDataOption || "SEAD data points";
+        this.selectedGraphDataOption = userSettings.timelineGraphDataOption || "GISP2 Ice Core";
 
         this.timeFormatsForImport = [
             "Years BP",
@@ -100,27 +99,70 @@ class Timeline extends IOModule {
         this.setSelections([scale.older, scale.younger], false);
 
         this.graphDataOptions = [
-            /*new GraphDataOption(
+            /*new SEADQueryGraphDataOption(
+                this,
                 "SEAD data points",
                 this.chartTraceColors.shift(),
-                "sead_query_api",
-                {}
+                {},
+                null
             ),*/
-            new GraphDataOption(
-                "δ18O from GISP2 Ice Core",
+            new GISP2GraphDataOption(
+                this,
+                "GISP2 Ice Core",
                 this.chartTraceColors.shift(),
-                "postgrest",
                 {
                     table: "tbl_temperatures",
                     xColumn: "years_bp",
                     yColumn: "d180_gisp2"
+                },
+                {
+                    title: "δ18O from GISP2 Ice Core",
+                    description: "Oxygen isotope data from the Greenland Ice Sheet Project 2 (GISP2) ice core.",
+                    source: "GISP2 Ice Core Project",
+                    citation: "Grootes, P.M. and Stuiver, M., 1997. Oxygen 18/16 variability in Greenland snow and ice with 10-3 to 105-year time resolution. Journal of Geophysical Research, 102(C12), pp.26455-26470.",
+                    url: "https://www.ncei.noaa.gov/products/paleoclimatology"
                 }
             ),
-            new GraphDataOption(
-                "Import data",
+            new LR04GraphDataOption(
+                this,
+                "LR04 Benthic Stack",
                 this.chartTraceColors.shift(),
-                "",
-                {}
+                {
+                    file: "assets/data/lr04.json",
+                    xColumn: "time_ka",
+                    yColumn: "benthic_d18O_permil"
+                },
+                {
+                    title: "LR04 Benthic Stack",
+                    description: "A globally distributed stack of 57 benthic δ18O records spanning 0-5.3 Ma.",
+                    source: "Lisiecki and Raymo (2005)",
+                    citation: `Lisiecki, L. E., and M. E. Raymo (2005), A Pliocene-
+Pleistocene stack of 57 globally distributed benthic d18O records, 
+Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
+                    url: "https://doi.org/10.1029/2004PA001071"
+                }
+            ),
+            new Spratt2016GraphDataOption(
+                this,
+                "Spratt2016 Sea Level",
+                this.chartTraceColors.shift(),
+                {
+                    file: "assets/data/spratt2016-noaa.txt",
+                    xColumn: "age_calkaBP",
+                    yColumn: "SeaLev_longPC1"
+                },
+                {
+                    title: "Global Sea Level Reconstruction (Spratt & Lisiecki 2016)",
+                    description: "Late Pleistocene sea level stack based on marine sediment core data (foraminiferal carbonate δ18O) spanning 0-798 ka.",
+                    source: "Spratt, R.M. and Lisiecki, L.E. (2016)",
+                    citation: "Spratt, R.M. and Lisiecki, L.E., 2016. A Late Pleistocene sea level stack. Climate of the Past, 12, pp.1079-1092. doi:10.5194/cp-12-1079-2016. Accessed November 12, 2025. NOAA National Centers for Environmental Information. https://www.ncei.noaa.gov/access/paleo-search/study/19982",
+                    url: "https://www.ncei.noaa.gov/access/paleo-search/study/19982"
+                }
+            ),
+            new ImportDataGraphDataOption(
+                this,
+                "Import data",
+                this.chartTraceColors.shift()
             ),
         ];
 
@@ -137,7 +179,7 @@ class Timeline extends IOModule {
             }
 
             this.sqs.setUserSettings({
-                timelineGraphDataOption: graphDataOption
+                timelineGraphDataOption: graphDataOption.name,
             });
 
             this.addAllSelectedTracesToGraph();
@@ -216,6 +258,7 @@ class Timeline extends IOModule {
             mode: 'lines',
             type: 'scatter',
             name: `${yColumn} (${timeFormat})`,
+            hoverlayer: 'above',  // Ensure hover appears above all traces
             marker: {
                 size: 5,
                 color: this.chartTraceColors[this.traceIdCounter % this.chartTraceColors.length],
@@ -652,21 +695,8 @@ class Timeline extends IOModule {
             console.log(`IOModule ${this.name} graph range updated to: ${range}`);
         });
 
-        this.updateAllSelectedTraces();
-    }
-
-    updateAllSelectedTraces() {
-        if(this.verboseLogging) {
-            console.log(`IOModule ${this.name} updating all selected traces.`);
-        }
-
-        this.chartTraces.forEach((trace) => {
-            const traceName = trace.trace.name;
-            const graphDataOption = this.getGraphDataOptionByTraceName(traceName);
-            if(graphDataOption) {
-                this.updateTraceInGraph(trace);
-            }
-        });
+        // Update all traces with filtered data from the new range
+        this.updateAllTracesWithCurrentRange();
     }
 
     async addAllSelectedTracesToGraph() {
@@ -677,6 +707,7 @@ class Timeline extends IOModule {
         let graphDataOption = this.getSelectedGraphDataOption();
         if(this.isTraceRendered(graphDataOption.name)) {
             console.warn(`IOModule ${this.name} graph already rendered, refusing to add another one.`);
+            this.sqs.notificationManager.notify("Graph already rendered");
             return;
         }
 
@@ -686,7 +717,8 @@ class Timeline extends IOModule {
             }
         });
 
-        this.fetchGraphData(graphDataOption).then(graphTrace => {
+        // Fetch full range of data when initially adding a trace
+        this.fetchGraphData(graphDataOption, true).then(graphTrace => {
             this.addTraceToGraph(graphTrace, true);
         });
     }
@@ -701,77 +733,18 @@ class Timeline extends IOModule {
         return trace && !trace.hidden ? true : false;
     }
 
-    async fetchGraphData(graphDataOption) {
-        return new Promise((resolve) => {
-            if(this.verboseLogging) {
-                console.log(`IOModule ${this.name} fetching graph data.`);
-            }
-    
-            let server = this.sqs.config.siteReportServerAddress;
-            if(graphDataOption.endpoint == "postgrest") {
-                const fetcher = new PostgRESTFetcher(server, graphDataOption.endpointConfig.table);
-                let bpValues = this.convertSliderSelectionsToBP(this.selections);
-                fetcher.fetchSeriesData(graphDataOption.endpointConfig.xColumn, graphDataOption.endpointConfig.yColumn, bpValues[0], bpValues[1]).then(series => {
-                    const trace = {
-                        x: series.x,
-                        y: series.y,
-                        mode: 'lines',
-                        type: 'scatter',
-                        name: graphDataOption.name,
-                        marker: {
-                            size: 5,
-                            color: graphDataOption.color,
-                            line: {
-                                width: 0.5,
-                                color: graphDataOption.color
-                            }
-                        }
-                    };
+    async fetchGraphData(graphDataOption, fetchFullRange = false) {
+        if(this.verboseLogging) {
+            console.log(`IOModule ${this.name} fetching graph data.`);
+        }
 
-                    resolve(trace);
-                });
-            }
-            if(graphDataOption.endpoint == "sead_query_api") {
-                /*
-                this.datasets.filtered here is in the format:
-                [ 
-                {min: -10000000, max: -9800000, value: 0},
-                {min: -9800000, max: -9600000, value: 0},
-                {min: -9600000, max: -9400000, value: 0},
-                ...
-                ]
-
-                we need to convert it to a series of points for the graph, so we need to create a new array with the x and y values
-                where x is the midpoint of the min and max values, and y is the value
-                */
-                console.log(this.datasets.filtered);
-
-
-                // Handle the sead_query_api option
-                const trace = {
-                    x: [], // Midpoints of the spans
-                    y: [], // Heights of the bars
-                    width: [], // Widths of the bars
-                    type: 'bar', // Bar chart
-                    name: graphDataOption.name,
-                    marker: {
-                        color: graphDataOption.color, // Use the color from the graphDataOption
-                    }
-                };
-
-                // Process the filtered dataset
-                this.datasets.filtered.forEach(item => {
-                    const midpoint = (item.min + item.max) / 2; // Calculate the midpoint for the x-axis
-                    const width = item.max - item.min; // Calculate the width of the bar
-
-                    trace.x.push(midpoint);
-                    trace.y.push(item.value);
-                    trace.width.push(width);
-                });
-
-                resolve(trace);
-            }
-        });
+        // Delegate to the graphDataOption subclass
+        try {
+            return await graphDataOption.fetchData(fetchFullRange);
+        } catch (error) {
+            console.error(`Failed to fetch graph data for ${graphDataOption.name}:`, error);
+            return { x: [], y: [], name: graphDataOption.name };
+        }
     }
 
     importData(importData, overwrite = true) {
@@ -844,6 +817,7 @@ class Timeline extends IOModule {
         let graphDataOption = this.getGraphDataOptionByTraceName(trace.name);
         if(graphDataOption && this.isTraceRendered(graphDataOption.name) && !reRenderIfAlreadyExists) {
             console.warn(`IOModule ${this.name} graph already rendered, refusing to add another one.`);
+            this.sqs.notificationManager.notify("Graph already rendered");
             return;
         }
         else if(graphDataOption && this.isTraceRendered(graphDataOption.name) && reRenderIfAlreadyExists) {
@@ -851,15 +825,21 @@ class Timeline extends IOModule {
             const traceId = this.chartTraces.find(t => t.trace.name === trace.name).id;
             this.deleteTraceFromGraph(traceId);
         }
-    
-        if (this.timelineDomId) {
 
-            //if we are using BP, but displaying in AD/BC, we need to convert the x values
+        if (this.timelineDomId) {
+            // Clone the trace to avoid modifying the original
+            let displayTrace = JSON.parse(JSON.stringify(trace));
+
+            // Assign a unique y-axis for this trace
+            const yAxisIndex = this.chartTraces.length + 1; // 1-based: y, y2, y3, ...
+            displayTrace.yaxis = yAxisIndex === 1 ? 'y' : `y${yAxisIndex}`;
+
+            // If we are using BP, but displaying in AD/BC, we need to convert the x values
             if(this.selectedDatingSystem == "AD/BC") {
-                trace.x = trace.x.map((value) => this.convertBPtoADBC(value));
+                displayTrace.x = displayTrace.x.map((value) => this.convertBPtoADBC(value));
             }
-    
-            Plotly.addTraces(this.timelineDomId, [trace]).then(t => {
+
+            Plotly.addTraces(this.timelineDomId, [displayTrace]).then(t => {
                 const plotDiv = document.getElementById(this.timelineDomId);
                 const newTraceIndex = plotDiv.data.length - 1;
 
@@ -872,21 +852,63 @@ class Timeline extends IOModule {
 
                 this.addToChartTraces({
                     id: newTraceIndex,
-                    trace: trace,
+                    trace: trace, // Store the original full trace data
                     builtIn: builtIn,
                     hidden: false,
                 });
 
                 this.traceIdCounter++;
 
+                // Update layout with new y-axis
+                this.updatePlotlyLayoutWithYAxes();
+
                 // Add a new div for the trace with a delete button
                 this.updateLegend();
+
+                // --- FIX: Force x-axis range after adding trace ---
+                let range = this.getGraphRange();
+                Plotly.relayout(this.timelineDomId, {'xaxis.range': range});
             });
-    
-            
         } else {
             console.warn(`WARN: Timeline graph not initialized, cannot add plot to graph.`);
         }
+    }
+
+    updatePlotlyLayoutWithYAxes() {
+        // Always keep xaxis as is, but add separate y-axes for each trace
+        if (!this.plotlyLayout) return;
+        // Remove all yaxis/yaxis2... except yaxis
+        Object.keys(this.plotlyLayout).forEach(key => {
+            if (/^yaxis\d+$/.test(key)) delete this.plotlyLayout[key];
+        });
+
+        // For each trace, add a y-axis definition (no labels or titles)
+        let n = this.chartTraces.length;
+        for (let i = 0; i < n; i++) {
+            const axisName = i === 0 ? 'yaxis' : `yaxis${i+1}`;
+            if (i === 0) {
+                // Primary y-axis - no overlaying
+                this.plotlyLayout[axisName] = {
+                    showticklabels: false,
+                    zeroline: false,
+                    fixedrange: true,
+                    title: ''
+                };
+            } else {
+                // Additional y-axes - overlay on primary but with proper layering
+                this.plotlyLayout[axisName] = {
+                    showticklabels: false,
+                    zeroline: false,
+                    fixedrange: true,
+                    overlaying: 'y',
+                    side: i % 2 === 0 ? 'left' : 'right',
+                    position: i % 2 === 0 ? 0.05 * i : 1 - 0.05 * i,
+                    title: '',
+                    layer: 'below traces'  // Ensure grid lines appear below traces
+                };
+            }
+        }
+        Plotly.relayout(this.timelineDomId, this.plotlyLayout);
     }
     
     addToChartTraces(trace) {
@@ -901,7 +923,18 @@ class Timeline extends IOModule {
             return;
         }
     
-        this.chartTraces.push(trace);
+        // Store the full dataset separately from the displayed trace
+        // The trace passed in should contain the full data range
+        const fullDataTrace = {
+            ...trace,
+            fullData: {
+                x: [...trace.trace.x], // Deep copy of x data
+                y: [...trace.trace.y], // Deep copy of y data
+                text: trace.trace.text ? [...trace.trace.text] : undefined // Deep copy of text if exists
+            }
+        };
+    
+        this.chartTraces.push(fullDataTrace);
     }
 
     removeFromChartTracesByName(traceName) {
@@ -917,8 +950,75 @@ class Timeline extends IOModule {
         }   
     }
 
+    filterTraceDataByRange(chartTrace, minX, maxX) {
+        if (!chartTrace.fullData) {
+            console.warn("No full data available for trace, returning trace as-is");
+            return chartTrace.trace;
+        }
+
+        const fullX = chartTrace.fullData.x;
+        const fullY = chartTrace.fullData.y;
+        const fullText = chartTrace.fullData.text;
+
+        const filteredX = [];
+        const filteredY = [];
+        const filteredText = fullText ? [] : undefined;
+
+        for (let i = 0; i < fullX.length; i++) {
+            if (fullX[i] >= minX && fullX[i] <= maxX) {
+                filteredX.push(fullX[i]);
+                filteredY.push(fullY[i]);
+                if (filteredText) {
+                    filteredText.push(fullText[i]);
+                }
+            }
+        }
+
+        // Return a new trace object with filtered data
+        const filteredTrace = {
+            ...chartTrace.trace,
+            x: filteredX,
+            y: filteredY
+        };
+
+        if (filteredText) {
+            filteredTrace.text = filteredText;
+        }
+
+        return filteredTrace;
+    }
+
     getChartTraceByName(traceName) {
         return this.chartTraces.find(trace => trace.trace.name === traceName);
+    }
+
+    updateAllTracesWithCurrentRange() {
+        if (this.verboseLogging) {
+            console.log(`IOModule ${this.name} updating all traces with current range.`);
+        }
+
+        const range = this.getGraphRange();
+        const minX = Math.min(range[0], range[1]);
+        const maxX = Math.max(range[0], range[1]);
+
+        this.chartTraces.forEach((chartTrace, index) => {
+            if (!chartTrace.fullData) {
+                console.warn(`No full data for trace ${chartTrace.trace.name}, skipping update`);
+                return;
+            }
+
+            // Filter the full data to the current range
+            const filteredTrace = this.filterTraceDataByRange(chartTrace, minX, maxX);
+            
+            // Update the displayed trace in Plotly
+            Plotly.restyle(this.timelineDomId, {
+                x: [filteredTrace.x],
+                y: [filteredTrace.y],
+                text: filteredTrace.text ? [filteredTrace.text] : undefined
+            }, [index]).catch((error) => {
+                console.error(`Failed to update trace ${chartTrace.trace.name}:`, error);
+            });
+        });
     }
 
     updateLegend() {
@@ -931,8 +1031,10 @@ class Timeline extends IOModule {
             const traceDiv = $(`
                 <div class="timeline-trace-item">
                     <span class="trace-legend" style="background-color: ${trace.trace.marker.color};"></span>
-                    <span class="trace-name">${trace.trace.name}</span>
+                    <span class="trace-name" title="${trace.trace.name}">${trace.trace.name}</span>
+                    
                     <i class="fa ${eyeClass} hide-plot" aria-hidden="true"></i>
+                    <i class="fa fa-info-circle info-plot" aria-hidden="true"></i>
                     <i class="fa fa-trash-o remove-plot" aria-hidden="true"></i>
                 </div>
             `);
@@ -955,6 +1057,11 @@ class Timeline extends IOModule {
                     traceDiv.find(".hide-plot").removeClass("fa-eye-slash").addClass("fa-eye");
                     this.showTraceInGraph(trace.id);
                 }
+            });
+
+            // Add info functionality
+            traceDiv.find(".info-plot").on("click", () => {
+                this.showTraceAttribution(trace);
             });
     
             // Append the trace div to the container
@@ -1060,6 +1167,36 @@ class Timeline extends IOModule {
         });
     }
 
+    showTraceAttribution(trace) {
+        // Find the graph data option for this trace
+        const graphDataOption = this.getGraphDataOptionByTraceName(trace.trace.name);
+        
+        if (!graphDataOption || !graphDataOption.attribution) {
+            // If no attribution data is available, show a default message
+            const content = `
+                <div class="trace-attribution">
+                    <p>No attribution information available for this trace.</p>
+                </div>
+            `;
+            this.sqs.dialogManager.showPopOver("Attribution Information", content);
+            return;
+        }
+
+        const attr = graphDataOption.attribution;
+        
+        // Build the attribution content
+        let content = `
+            <div class="trace-attribution">
+                ${attr.description ? `<p><strong>Description:</strong> ${attr.description}</p>` : ''}
+                ${attr.source ? `<p><strong>Source:</strong> ${attr.source}</p>` : ''}
+                ${attr.citation ? `<p><strong>Citation:</strong> ${attr.citation}</p>` : ''}
+                ${attr.url ? `<p><strong>URL:</strong> <a href="${attr.url}" target="_blank">${attr.url}</a></p>` : ''}
+            </div>
+        `;
+
+        this.sqs.dialogManager.showPopOver(attr.title || "Attribution Information", content);
+    }
+
     renderGraph() {
         if(this.verboseLogging) {
             console.log(`IOModule ${this.name} rendering graph.`);
@@ -1090,6 +1227,7 @@ class Timeline extends IOModule {
                 b: 70  // Bottom margin
             },
             showlegend: false,
+            hovermode: 'x',  // Show hover for all traces at the same x-value
             paper_bgcolor: 'rgba(0,0,0,0)', // Transparent background for the outer area
             plot_bgcolor: 'rgba(0,0,0,0)'   // Transparent background for the plot area
         };
@@ -1479,22 +1617,29 @@ class Timeline extends IOModule {
             this.currentValues[0] = this.sliderMin;
             this.currentValues[1] = this.sliderMax;
         }
+        else {
+            // When changing scales, update currentValues to the full new range
+            // so that data is fetched for the entire new scale
+            this.currentValues[0] = this.sliderMin;
+            this.currentValues[1] = this.sliderMax;
+        }
+        
 
 		this.setSelections(this.currentValues, triggerUpdate);
 
         console.log("Setting slider values to", this.currentValues);
-        this.sliderUpdateCallback(this.currentValues);
 
         if(triggerUpdate) {
             // Trigger any updates or re-rendering needed for the slider
-            this.sliderUpdateCallback(this.currentValues);
+            // Pass true to moveSlider to update the slider position
+            this.sliderUpdateCallback(this.currentValues, true);
 
             this.fetchData();
 
-            let graphDataOption = this.getSelectedGraphDataOption();
-            this.fetchGraphData(graphDataOption).then(graphTrace => {
-                this.addTraceToGraph(graphTrace, true, true);
-            });
+            // Update all existing traces with the new range filtered from their full data
+            if (this.chartTraces.length > 0) {
+                this.updateAllTracesWithCurrentRange();
+            }
         }
 	}
 
@@ -1743,13 +1888,262 @@ class PostgRESTFetcher {
 }
   
 
-  class GraphDataOption {
-    constructor(name, color, endpoint, endpointConfig) {
+class GraphDataOption {
+    constructor(name, color, endpoint, endpointConfig, attribution = null) {
         this.name = name;
         this.endpoint = endpoint;
         this.color = color;
         this.endpointConfig = endpointConfig;
+        this.attribution = attribution;
+        this.reverseYAxis = false;
+    }
+
+    // Base class fetchData - should be overridden by subclasses
+    async fetchData(fetchFullRange = false) {
+        throw new Error("fetchData must be implemented by subclass");
     }
 }
 
-  export default Timeline;
+class GISP2GraphDataOption extends GraphDataOption {
+    constructor(timeline, name, color, endpointConfig, attribution = null) {
+        super(name, color, "postgrest", endpointConfig, attribution);
+        this.timeline = timeline;
+        this.reverseYAxis = true; // GISP2 data should be reversed
+    }
+
+    async fetchData(fetchFullRange = false) {
+        const server = this.timeline.sqs.config.siteReportServerAddress;
+        const fetcher = new PostgRESTFetcher(server, this.endpointConfig.table);
+        
+        let bpValues;
+        if (fetchFullRange) {
+            // Fetch the maximum possible range
+            bpValues = [-10000000, 10000000];
+        } else {
+            bpValues = this.timeline.convertSliderSelectionsToBP(this.timeline.selections);
+        }
+        
+        const series = await fetcher.fetchSeriesData(
+            this.endpointConfig.xColumn, 
+            this.endpointConfig.yColumn, 
+            bpValues[0], 
+            bpValues[1]
+        );
+        
+        const trace = {
+            x: series.x,
+            y: this.reverseYAxis ? series.y.map(v => v * -1) : series.y,
+            mode: 'lines',
+            type: 'scatter',
+            name: this.name,
+            hoverlayer: 'above',
+            marker: {
+                size: 5,
+                color: this.color,
+                line: {
+                    width: 0.5,
+                    color: this.color
+                }
+            },
+            // Add custom hover text to show original values when reversed
+            text: this.reverseYAxis 
+                ? series.y.map(v => `${v}`) 
+                : undefined,
+            hovertemplate: this.reverseYAxis
+                ? '<b>%{text}</b><extra></extra>'
+                : undefined
+        };
+        
+        return trace;
+    }
+}
+
+class LR04GraphDataOption extends GraphDataOption {
+    constructor(timeline, name, color, endpointConfig, attribution = null) {
+        super(name, color, "lr04_json", endpointConfig, attribution);
+        this.timeline = timeline;
+    }
+
+    async fetchData(fetchFullRange = false) {
+        try {
+            const response = await fetch(this.endpointConfig.file);
+            const json = await response.json();
+            
+            const xIdx = json.columns.indexOf(this.endpointConfig.xColumn);
+            const yIdx = json.columns.indexOf(this.endpointConfig.yColumn);
+            
+            let filtered;
+            if (fetchFullRange) {
+                // Use all data
+                filtered = json.data;
+            } else {
+                // Filter data by slider range
+                let bpValues = this.timeline.convertSliderSelectionsToBP(this.timeline.selections);
+                // time_ka is in thousands of years before present, so convert BP to ka for filtering
+                let minKa = Math.min(bpValues[0], bpValues[1]) / 1000;
+                let maxKa = Math.max(bpValues[0], bpValues[1]) / 1000;
+                filtered = json.data.filter(row => row[xIdx] >= minKa && row[xIdx] <= maxKa);
+            }
+            
+            // Convert x values from ka to BP (years before present)
+            const trace = {
+                x: filtered.map(row => row[xIdx] * 1000),
+                y: filtered.map(row => row[yIdx]),
+                mode: 'lines',
+                type: 'scatter',
+                name: this.name,
+                hoverlayer: 'above',
+                marker: {
+                    size: 5,
+                    color: this.color,
+                    line: {
+                        width: 0.5,
+                        color: this.color
+                    }
+                }
+            };
+            
+            return trace;
+        } catch (err) {
+            console.error('Failed to load LR04 JSON:', err);
+            return { x: [], y: [], name: this.name };
+        }
+    }
+}
+
+class SEADQueryGraphDataOption extends GraphDataOption {
+    constructor(timeline, name, color, endpointConfig, attribution = null) {
+        super(name, color, "sead_query_api", endpointConfig, attribution);
+        this.timeline = timeline;
+    }
+
+    async fetchData(fetchFullRange = false) {
+        // Handle the sead_query_api option
+        const trace = {
+            x: [], // Midpoints of the spans
+            y: [], // Heights of the bars
+            width: [], // Widths of the bars
+            type: 'bar', // Bar chart
+            name: this.name,
+            marker: {
+                color: this.color,
+            }
+        };
+
+        // Process the filtered dataset
+        this.timeline.datasets.filtered.forEach(item => {
+            const midpoint = (item.min + item.max) / 2; // Calculate the midpoint for the x-axis
+            const width = item.max - item.min; // Calculate the width of the bar
+
+            trace.x.push(midpoint);
+            trace.y.push(item.value);
+            trace.width.push(width);
+        });
+
+        return trace;
+    }
+}
+
+class Spratt2016GraphDataOption extends GraphDataOption {
+    constructor(timeline, name, color, endpointConfig, attribution = null) {
+        super(name, color, "spratt2016_txt", endpointConfig, attribution);
+        this.timeline = timeline;
+    }
+
+    async fetchData(fetchFullRange = false) {
+        try {
+            const response = await fetch(this.endpointConfig.file);
+            const text = await response.text();
+            
+            // Parse the tab-delimited text file
+            const lines = text.split('\n');
+            const data = [];
+            
+            // Find the header line (starts with age_calkaBP)
+            let headerIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].startsWith('age_calkaBP')) {
+                    headerIndex = i;
+                    break;
+                }
+            }
+            
+            if (headerIndex === -1) {
+                throw new Error('Could not find header line in Spratt2016 data file');
+            }
+            
+            const headers = lines[headerIndex].split('\t');
+            const xColumnIndex = headers.indexOf(this.endpointConfig.xColumn);
+            const yColumnIndex = headers.indexOf(this.endpointConfig.yColumn);
+            
+            if (xColumnIndex === -1 || yColumnIndex === -1) {
+                throw new Error(`Could not find columns ${this.endpointConfig.xColumn} or ${this.endpointConfig.yColumn}`);
+            }
+            
+            // Parse data lines (after header, skip empty lines and comments)
+            for (let i = headerIndex + 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line === '' || line.startsWith('#')) continue;
+                
+                const values = line.split('\t');
+                const xValue = parseFloat(values[xColumnIndex]);
+                const yValue = parseFloat(values[yColumnIndex]);
+                
+                if (!isNaN(xValue) && !isNaN(yValue) && yValue !== 'NaN') {
+                    data.push({ x: xValue, y: yValue });
+                }
+            }
+            
+            // Filter data by range if needed
+            let filtered;
+            if (fetchFullRange) {
+                filtered = data;
+            } else {
+                // Get BP values from slider
+                let bpValues = this.timeline.convertSliderSelectionsToBP(this.timeline.selections);
+                // age_calkaBP is in kiloyears, so convert BP to ka for filtering
+                let minKa = Math.min(bpValues[0], bpValues[1]) / 1000;
+                let maxKa = Math.max(bpValues[0], bpValues[1]) / 1000;
+                filtered = data.filter(row => row.x >= minKa && row.x <= maxKa);
+            }
+            
+            // Convert x values from ka to BP (years before present)
+            const trace = {
+                x: filtered.map(row => row.x * 1000),
+                y: filtered.map(row => -row.y),
+                mode: 'lines',
+                type: 'scatter',
+                name: this.name,
+                hoverlayer: 'above',
+                marker: {
+                    size: 5,
+                    color: this.color,
+                    line: {
+                        width: 0.5,
+                        color: this.color
+                    }
+                }
+            };
+            
+            return trace;
+        } catch (err) {
+            console.error('Failed to load Spratt2016 data:', err);
+            return { x: [], y: [], name: this.name };
+        }
+    }
+}
+
+class ImportDataGraphDataOption extends GraphDataOption {
+    constructor(timeline, name, color) {
+        super(name, color, "import", {}, null);
+        this.timeline = timeline;
+    }
+
+    async fetchData(fetchFullRange = false) {
+        // Import data doesn't fetch - it triggers a file dialog
+        // This method should not be called for import data
+        throw new Error("Import data does not support fetchData - use openFileDialog instead");
+    }
+}
+
+export default Timeline;

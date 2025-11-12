@@ -46,9 +46,8 @@ class FacetManager {
 			this.batchAddFacets(data.state.facets);
 			this.setFacetDataFetchingSuspended(false); //Turn data fetching back on, this will trigger queued requests to the sent. Or in other words: UNLEASH THE DOGS OF WAR
 		});
-		
-		$(window).on("seadFacetSelection", (event, data) => {
 
+		this.sqs.sqsEventListen("seadFacetSelection", (evt, data) => {
 			if(typeof data.filter != "undefined" && data.filter != null) {
 				this.chainQueueFacetDataFetch(data.facet);
 			}
@@ -58,9 +57,8 @@ class FacetManager {
 					this.chainQueueFacetDataFetch(facet);
 				}
 			}
-			
 		});
-		
+
 		$(window).on("seadFacetDeletion", (event, data) => {
 			var fetchFromFacet = this.getNextFacetFromFacet(data.facet);
 			this.removeFacet(data.facet);
@@ -118,7 +116,13 @@ class FacetManager {
 		setTimeout(() => {
 			//this.addDefaultFacets();
 		}, 500);
-		
+
+		//on keydown for 'l' we should print the links to console
+		$(document).on("keydown", (evt) => {
+			if(evt.key === "l") {
+				console.log("Links: ", this.links);
+			}
+		});
 	}
 	
 	addDefaultFacets() {

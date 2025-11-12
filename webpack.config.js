@@ -59,6 +59,7 @@ module.exports = (env, config) => {
           { from: path.join(cesiumSource, 'Assets'), to: 'Assets', globOptions: { nodir: true } },
           { from: path.join(cesiumSource, 'Widgets'), to: 'Widgets', globOptions: { nodir: true } },
           { from: path.join(cesiumSource, 'ThirdParty'), to: 'ThirdParty', globOptions: { nodir: true } },
+          { from: path.resolve(__dirname, 'src/assets/data'), to: 'assets/data', globOptions: { nodir: true } },
         ],
       }),
       new webpack.ProvidePlugin({

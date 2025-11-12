@@ -285,7 +285,11 @@ class Facet {
 	* Destroys/removes and cleans up after this facet.
 	*/
 	destroy() {
+		console.log("Destroying facet", this.name);
 		this.deleted = true;
+
+		this.sqs.sqsEventUnlisten("seadFacetSelection", this);
+
 		this.broadcastDeletion();
 		$(this.getDomRef()).remove();
 	}
@@ -344,9 +348,9 @@ class Facet {
 			crossDomain: true,
 			success: (respData, textStatus, jqXHR) => {
 				if(this.deleted == false && respData.FacetsConfig.RequestId == this.requestId) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
-					this.importData(respData);
+					let importedData = this.importData(respData);
 					if(render && this.minimized == false) {
-						this.renderData();
+						this.renderData(importedData);
 						//dispatch event that this facet has been rendered
 						this.sqs.sqsEventDispatch("facetDataRendered", {
 							facet: this
@@ -397,7 +401,7 @@ class Facet {
 	* This should be called whenever something is selected or deselected in a facet. Broadcasts an event letting other components respond to this action.
 	*/
 	broadcastSelection(filter = null) {
-		$.event.trigger("seadFacetSelection", {
+		this.sqs.sqsEventDispatch("seadFacetSelection", {
 			facet: this,
 			filter: filter
 		});

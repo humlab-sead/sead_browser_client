@@ -814,7 +814,7 @@ class TimelineFacet extends Facet {
 	}
 
     broadcastSelection(filter = null) {
-		$.event.trigger("seadFacetSelection", {
+		this.sqs.sqsEventDispatch("seadFacetSelection", {
 			facet: this,
 			filter: filter
 		});

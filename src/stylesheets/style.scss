@@ -2231,6 +2231,7 @@ polyline{
 
 #timeline-data-selector-container {
   align-items: left;
+  align-self: flex-start;
 }
 
 #timeline-data-selector-container > div {
@@ -2245,14 +2246,28 @@ polyline{
 }
 
 .timeline-trace-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1em 12em 1em 1em 1em;
+  column-gap: 5px;
   background: rgba(255, 255, 255, 0.5);
   align-self: flex-start;
 }
 
+.timeline-trace-item .trace-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
 .timeline-trace-item .remove-plot {
+  position: relative;
+  top: 1px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.timeline-trace-item .info-plot {
   position: relative;
   top: 1px;
   cursor: pointer;
@@ -2881,6 +2896,7 @@ polyline{
   top: 0px;
   left: 0px;
   background: rgba(0, 0, 0, 0.2);
+  z-index: 5;
 }
 
 #popover-dialog-frame {
@@ -2897,7 +2913,7 @@ polyline{
   box-shadow: 0px 0px 10px 10px $shadow-color;
   border-radius: 3px;
   border-left: .5em solid $aux-color;
-  z-index: 5;
+  z-index: 6;
 }
 
 #popover-dialog-frame > h1 {
@@ -4064,6 +4080,12 @@ svg text {
 
 .result-table-select-all-checkbox .tabulator-col-content {
   text-align: center;
+}
+
+.site-name-cell {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mosaic-dynamic-chart-form {

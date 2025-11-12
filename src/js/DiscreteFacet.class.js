@@ -51,11 +51,11 @@ class DiscreteFacet extends Facet {
 			this.updateRenderData(data);
 		});
 
-		//on seadFacetSelection
-		$(document).on("seadFacetSelection", (evt, data) => {
+		//on seadFacetSelectionsite-report-sample-map-container
+		this.sqs.sqsEventListen("seadFacetSelection", (evt, data) => {
 			this.visibleData = this.determineVisibleData();
 			this.renderData(this.visibleData);
-		});
+		}, this);
 
 		this.registerTextSearchEvents();
 		this.registerSortEvents();
@@ -213,7 +213,6 @@ class DiscreteFacet extends Facet {
 		}
 		return true;
 	}
-
 	
 	/*
 	* Function: addSelection
@@ -293,6 +292,7 @@ class DiscreteFacet extends Facet {
 	*
 	*/
 	updateRenderData(data = null) {
+		console.log("updateRenderData called: ", this.id, this.name);
 		if(this.minimized) {
 			//this.renderData(this.getSelectionsAsDataItems());
 			this.renderMinimizedView(this.getSelectionsAsDataItems());
@@ -306,6 +306,7 @@ class DiscreteFacet extends Facet {
 	}
 
 	renderMinimizedView(renderData = []) {
+		console.log("renderMinimizedView called: ", this.id, this.name);
 
 		let displayTitle = "";
 		if(renderData.length == 1) {
@@ -347,10 +348,8 @@ class DiscreteFacet extends Facet {
 	* Returns:
 	* 
 	*/
-	renderData(renderData = null) {
-		if(renderData == null) {
-			renderData = this.data;
-		}
+	renderData(renderData = []) {
+		console.log("renderData called: ", this.id, this.name);
 		
 		if(renderData.length == 0 && this.minimized == false) {
 			console.log("No data to render")
@@ -429,18 +428,6 @@ class DiscreteFacet extends Facet {
 		
 		$(".list-container-header", this.domObj).css("display", "block");
 
-		/*
-		let listContainer = $(".list-container", this.getDomRef());
-		listContainer.html("");
-		if(!this.minimized) {
-			listContainer.append(topBlankSpace);
-		}
-		listContainer.append(out);
-		if(!this.minimized) {
-			listContainer.append(bottomBlankSpace);
-		}
-		listContainer.show();
-		*/
 		
 		$(".list-container", this.domObj)
 			.html("")
@@ -534,6 +521,7 @@ class DiscreteFacet extends Facet {
 		}
 
 		if(this.minimized) {
+			console.log("re-rendering data");
 			this.renderData(this.getSelectionsAsDataItems()); //Re-render data to remove now unselected rows
 			this.minimize(); //Recalcuate height by running the minimize routine again
 		}
@@ -558,7 +546,7 @@ class DiscreteFacet extends Facet {
 	* Function: minimize
 	*/
 	minimize(changeFacetSize = true) {
-		changeFacetSize = false; //discrete facets should not change size when minimized
+		changeFacetSize = true;
 
 		this.scrollPosition = this.getScrollPos();
 		super.minimize(changeFacetSize);
@@ -573,10 +561,18 @@ class DiscreteFacet extends Facet {
 			let subHeaderHeight = $(".list-container-header", this.domObj).height();
 			let facetHeight = headerHeight + subHeaderHeight + this.selections.length * this.rowHeight + 6;
 			let facetBodyHeight = subHeaderHeight + this.selections.length * this.rowHeight + 6;
-			
+
 			if(facetHeight > Config.facetBodyHeight+headerHeight) {
 				facetHeight = Config.facetBodyHeight+headerHeight;
 			}
+
+			console.log(Config.facetBodyHeight);
+
+			if(facetBodyHeight > Config.facetBodyHeight) {
+				facetBodyHeight = Config.facetBodyHeight;
+			}
+
+			console.log(facetHeight, facetBodyHeight);
 
 			$(this.domObj).css("height", facetHeight+"px");
 			$(".facet-body", this.domObj).css("height", facetBodyHeight+"px");
@@ -645,9 +641,9 @@ class DiscreteFacet extends Facet {
 	* data - The data package from the server.
 	*/
 	importData(data) {
+		console.log("Importing data", this.name);
 		super.importData(data);
 		this.data = [];
-		var i = 0;
 		for(var key in data.Items) {
 			this.data.push({
 				id: data.Items[key].Category,

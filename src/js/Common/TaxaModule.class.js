@@ -40,13 +40,13 @@ class TaxaModule {
 		});
 		*/
 
-		$(window).on("seadFacetSelection", (event, evtObject) => {
-			if(evtObject.facet.name == "species") {
-				if(evtObject.facet.selections.length > 0) {
-					this.taxonId = parseInt(evtObject.facet.selections[0]);
+		this.sqs.sqsEventListen("seadFacetSelection", (evt, data) => {
+			if(data.facet.name == "species") {
+				if(data.facet.selections.length > 0) {
+					this.taxonId = parseInt(data.facet.selections[0]);
 				}
 			}
-		});
+		}, this);
 
 		$(window).on("beforeprint", (event) => {
 			console.log("beforeprint");

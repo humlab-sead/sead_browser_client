@@ -38,11 +38,11 @@ class ResultManager {
 				});
 				this.sqs.resultManager.setActiveModule(data.selection);
 			});
-			
-			$(window).on("seadFacetSelection", (event, data) => {
+
+			this.sqs.sqsEventListen("seadFacetSelection", (evt, data) => {
 				this.updateResultView(data.facet);
 			});
-			
+
 			$(window).on("seadFacetMove", (event, data) => {
 				this.updateResultView(data.facet);
 			});
