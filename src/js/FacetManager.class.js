@@ -6,7 +6,6 @@ import RangeFacet from './RangeFacet.class.js'
 import MapFacet from './MapFacet.class.js';
 import MultiStageFacet from './MultiStageFacet.class';
 import Config from '../config/config.json';
-import TimelineFacet from './TimelineFacet.class.js';
 import Timeline from './IOModules/Timeline.class.js';
 /* 
 Class: FacetManager
@@ -219,7 +218,15 @@ class FacetManager {
 	 */
 	renderDemoSlot() {
 		this.demoSlot = this.addSlot();
-		let filterText = "<span><span id='demo-slot-menu-link' class='jslink-alt'>Add filters</span> here to reduce the result data (shown on the right) down to what you are interested in seeing</span>";
+		let filterText = `
+		<span>
+		<span id='demo-slot-menu-link' class='jslink-alt'>
+		Add filters
+		</span> 
+		here to reduce the result data (shown on the right) down to what you are interested in seeing.
+		<br /><br />
+		How about adding a <i class="fa fa-clock-o"></i> <span id='demo-slot-timeline-link' class='jslink-alt'>Timeline filter</span> to get started?
+		</span>`;
 		$(this.demoSlot.getDomRef()).html(filterText);
 		$(this.demoSlot.getDomRef()).addClass("slot-visible");
 		
@@ -231,6 +238,13 @@ class FacetManager {
 				filterMenu.rebindTriggers();
 			}, 100);
 		}
+
+		// Use event delegation on a parent element that persists to handle clicks on dynamically created elements
+		$("#facet-section").off("click", "#demo-slot-timeline-link").on("click", "#demo-slot-timeline-link", () => {
+			let facetTemplate = this.getFacetTemplateByFacetId("analysis_entity_ages");
+			let facet = this.makeNewFacet(facetTemplate);
+			this.addFacet(facet, true);
+		});
 	}
 	
 	/*

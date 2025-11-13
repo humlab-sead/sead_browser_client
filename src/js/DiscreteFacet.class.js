@@ -143,6 +143,20 @@ class DiscreteFacet extends Facet {
 		});
 	}
 
+	/*
+	* Function: recalculateViewportCapacity
+	* 
+	* Recalculates how many rows can fit in the current viewport based on the facet body height.
+	* This should be called whenever the facet is resized.
+	*/
+	recalculateViewportCapacity() {
+		const listContainerHeight = $(".list-container", this.domObj).height();
+		if (listContainerHeight > 0 && this.rowHeight > 0) {
+			this.viewportItemCapacity = Math.floor(listContainerHeight / this.rowHeight) - 1;
+			console.log("Recalculated viewportItemCapacity: " + this.viewportItemCapacity);
+		}
+	}
+
 	determineVisibleData() {
 		this.visibleData = [];
 		if(this.textFilterString.length > 0) {
@@ -299,7 +313,12 @@ class DiscreteFacet extends Facet {
 		}
 		else {
 			if(data == null) {
-				data = this.data;
+				// Check if there's an active text filter
+				if(this.textFilterString.length > 0 || $(this.getDomRef()).find(".facet-text-search-input").val().length > 0) {
+					data = this.visibleData.length > 0 ? this.visibleData : this.determineVisibleData();
+				} else {
+					data = this.data;
+				}
 			}
 			this.renderData(data);
 		}

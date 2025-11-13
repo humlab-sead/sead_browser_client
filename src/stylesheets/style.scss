@@ -260,7 +260,6 @@ div:focus {
 }
 
 .section-divider {
-  background: red;
   width: 0px;
 }
 
@@ -454,6 +453,34 @@ h1.main-header {
 	background-color: $pane-bg-color;
 	margin: 0px;
 	padding: 0px;
+}
+
+.facet-resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  cursor: ns-resize;
+  z-index: 10;
+  transition: background-color 0.2s ease;
+}
+
+.facet-resize-handle:hover {
+  background: $inactive-color;
+}
+
+.facet-resizing {
+  user-select: none;
+}
+
+body.facet-resizing {
+  cursor: ns-resize !important;
+  user-select: none;
+}
+
+body.facet-resizing * {
+  cursor: ns-resize !important;
 }
 
 .facet-locked {
@@ -1453,7 +1480,7 @@ h1.main-header {
 .chart-container {
 	display:none;
 	position:relative;
-	height: 90%;
+  height: calc(100% - 2em);
 	width: 100%;
 }
 

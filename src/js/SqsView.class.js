@@ -248,6 +248,16 @@ class SqsView {
 		else {
 			rightSection.css("display", "block");
 		}
+
+		//send event - but wait for css animation to complete
+		if(animate) {
+			setTimeout(() => {
+				this.sqs.sqsEventDispatch("layoutResize");
+			}, 300);
+		}
+		else {
+			this.sqs.sqsEventDispatch("layoutResize");
+		}
 	}
 
     /*
@@ -313,6 +323,7 @@ class SqsView {
 
 	initShowOnlyLeftSectionToggle() {
 		const toggleBtn = $('#filter-section-toggle-button-left');
+		toggleBtn.show();
 		toggleBtn.on('click', () => {
 			// Check current sizes
 			const isCollapsed = this.leftLastSize === 0;
@@ -332,6 +343,7 @@ class SqsView {
 
 	initShowOnlyRightSectionToggle() {
 		const toggleBtn = $('#filter-section-toggle-button-right');
+		toggleBtn.show();
 		toggleBtn.on('click', () => {
 			// Check current sizes
 			const isCollapsed = this.rightLastSize === 0;

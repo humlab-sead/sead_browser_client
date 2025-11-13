@@ -45,7 +45,7 @@ class Timeline extends IOModule {
         this.traceIdCounter = 0;
         this.chartTraces = [];
         this.chartTraceColors = this.sqs.color.generateDistinctColors(10, 0.75);
-        this.selectedGraphDataOption = userSettings.timelineGraphDataOption || "GISP2 Ice Core";
+        this.selectedGraphDataOption = null;
 
         this.timeFormatsForImport = [
             "Years BP",
@@ -99,7 +99,8 @@ class Timeline extends IOModule {
         this.setSelections([scale.older, scale.younger], false);
 
         this.graphDataOptions = [
-            /*new SEADQueryGraphDataOption(
+            /*
+            new SEADQueryGraphDataOption(
                 this,
                 "SEAD data points",
                 this.chartTraceColors.shift(),
@@ -644,7 +645,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
     populateGraphDataOptionsSelector(graphDataOptions) {
         //populate the graph data options selector
         graphDataOptions.forEach((option) => {
-            const selected = option.name === this.selectedGraphDataOption.name ? 'selected' : '';
+            const selected = option.name === this.selectedGraphDataOption ? 'selected' : '';
             $("#timeline-data-selector").append(`<option value="${option.name}" ${selected}>${option.name}</option>`);
         });
     }
@@ -1197,6 +1198,16 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         this.sqs.dialogManager.showPopOver(attr.title || "Attribution Information", content);
     }
 
+    resizeCallback() {
+        if(this.verboseLogging) {
+            console.log(`IOModule ${this.name} resizing graph.`);
+        }
+
+        if (this.timelineDomId) {
+            Plotly.Plots.resize(this.timelineDomId);
+        }
+	}
+
     renderGraph() {
         if(this.verboseLogging) {
             console.log(`IOModule ${this.name} rendering graph.`);
@@ -1239,13 +1250,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
         Plotly.newPlot(this.timelineDomId, [], this.plotlyLayout, config);
 
-        //this.updateGraph();
-
-        this.addAllSelectedTracesToGraph();
-
-        this.sqs.sqsEventListen("layoutResize", () => {
-            Plotly.Plots.resize(this.timelineDomId);
-        });
+        //this.addAllSelectedTracesToGraph();
     }
 
     initSlider() {
@@ -1833,6 +1838,27 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 		this.selectedScale = scale.id;
 		this.setSelectedScale(scale);
 	}
+
+    destroy() {
+        if(this.verboseLogging) {
+            console.log(`IOModule ${this.name} destroying module.`);
+        }
+
+        // Clean up slider
+        if (this.slider) {
+            this.slider.destroy();
+            this.slider = null;
+        }
+
+        // Clean up Plotly chart
+        if (this.timelineDomId) {
+            Plotly.purge(this.timelineDomId);
+            this.timelineDomId = null;
+        }
+
+        // Call the base class destroy method
+        super.destroy();
+    }
 }
 
 class PostgRESTFetcher {

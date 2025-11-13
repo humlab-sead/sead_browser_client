@@ -112,6 +112,87 @@ class Facet {
 			const formattedSQL = this.sql.replace(/\n/g, "<br/>");
 			this.sqs.dialogManager.showPopOver("Filter SQL", formattedSQL);
 		});
+
+		// Initialize resize functionality
+		this.initResizeHandle();
+	}
+
+	initResizeHandle() {
+		const resizeHandle = $(this.getDomRef()).find(".facet-resize-handle");
+		let startY = 0;
+		let startHeight = 0;
+		let isResizing = false;
+		const minHeight = 100; // Minimum facet height in pixels
+
+		resizeHandle.on("mousedown", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			
+			isResizing = true;
+			startY = e.clientY;
+			startHeight = $(this.getDomRef()).height();
+			
+			// Add class to prevent text selection during resize
+			$(this.getDomRef()).addClass("facet-resizing");
+			$("body").addClass("facet-resizing");
+
+			// Attach mousemove and mouseup to document for better tracking
+			$(document).on("mousemove.facetResize", (e) => {
+				if (!isResizing) return;
+
+				const deltaY = e.clientY - startY;
+				let newHeight = startHeight + deltaY;
+
+				// Enforce minimum height
+				if (newHeight < minHeight) {
+					newHeight = minHeight;
+				}
+
+				// Update facet height
+				$(this.getDomRef()).css("height", newHeight + "px");
+				
+				// Update facet body height (subtract header height)
+				const headerHeight = $(".facet-header", this.getDomRef()).outerHeight();
+				const newBodyHeight = newHeight - headerHeight;
+				$(".facet-body", this.getDomRef()).css("height", newBodyHeight + "px");
+				
+				// Update the slot size to match
+				let slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+				this.sqs.facetManager.updateSlotSize(slotId);
+				
+				// Update positions of all facets below this one
+				this.sqs.facetManager.updateAllFacetPositions();
+				
+				// If this is a discrete facet, recalculate viewport capacity and re-render
+				if (typeof this.recalculateViewportCapacity === 'function') {
+					this.recalculateViewportCapacity();
+					if (this.isDataLoaded && !this.minimized) {
+						this.updateRenderData();
+					}
+				}
+				
+				// Dispatch resize event for other parts of the system
+				this.sqs.sqsEventDispatch("facetResize", {
+					facet: this
+				});
+			});
+
+			$(document).on("mouseup.facetResize", () => {
+				if (isResizing) {
+					isResizing = false;
+					$(this.getDomRef()).removeClass("facet-resizing");
+					$("body").removeClass("facet-resizing");
+					
+					// Clean up event handlers
+					$(document).off("mousemove.facetResize");
+					$(document).off("mouseup.facetResize");
+					
+					// Store the new height as the default height
+					this.defaultHeight = $(this.getDomRef()).css("height");
+					this.bodyHeight = $(".facet-body", this.getDomRef()).css("height");
+				}
+			});
+		});
 	}
 
 	showSqlButton(show = true) {
@@ -196,6 +277,14 @@ class Facet {
 		this.sqs.facetManager.updateSlotSize(slotId);
 		this.sqs.facetManager.updateAllFacetPositions();
 		this.sqs.facetManager.updateShowOnlySelectionsControl();
+		
+		// If this is a discrete facet, recalculate viewport capacity and re-render
+		if (typeof this.recalculateViewportCapacity === 'function') {
+			this.recalculateViewportCapacity();
+			if (this.isDataLoaded) {
+				this.updateRenderData();
+			}
+		}
 	}
 
 	/*
@@ -230,6 +319,11 @@ class Facet {
 		this.sqs.facetManager.updateSlotSize(slotId);
 		this.sqs.facetManager.updateAllFacetPositions();
 		this.sqs.facetManager.updateShowOnlySelectionsControl();
+		
+		// If this is a discrete facet, recalculate viewport capacity for minimized view
+		if (typeof this.recalculateViewportCapacity === 'function') {
+			this.recalculateViewportCapacity();
+		}
 	}
 
 	/*
