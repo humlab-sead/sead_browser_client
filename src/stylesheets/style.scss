@@ -267,6 +267,7 @@ div:focus {
   display: flex;
   flex-direction: column;
   visibility: hidden;
+  z-index: 2;
 }
 
 #site-report-grid-container {
@@ -277,7 +278,7 @@ div:focus {
   grid-template-columns: 2fr 0fr 1fr;
   grid-template-rows: 1fr;
   grid-template-areas:
-    "section-left section-right";
+    "section-left section-divider section-right";
 }
 
 .site-report-information-item {
