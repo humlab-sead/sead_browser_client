@@ -305,9 +305,9 @@ class SqsView {
 
 			// Reset titles
 			const leftFilterIconContainer = leftToggleBtn.find('.filter-toggle-icon-container');
-			leftFilterIconContainer.attr('title', 'Show only filter section');
+			leftFilterIconContainer.attr('title', 'Show only result section');
 			const rightFilterIconContainer = rightToggleBtn.find('.filter-toggle-icon-container');
-			rightFilterIconContainer.attr('title', 'Show only result section');
+			rightFilterIconContainer.attr('title', 'Show only filter section');
 		}
 	}
 
