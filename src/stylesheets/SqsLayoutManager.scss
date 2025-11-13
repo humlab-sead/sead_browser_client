@@ -61,6 +61,10 @@
     background-color: $inactive-color;
 }
 
+.custom-resize-handle.hover-highlight {
+    background-color: $inactive-color;
+}
+
 /* Also make it visible during active dragging */
 body.resizing .custom-resize-handle {
     background-color: $inactive-color;
@@ -109,27 +113,61 @@ body.resizing {
     background-color: lighten($aux-color, 10%);
 }
 
-#filter-section-toggle-button {
-    display: none; //flex
+.filter-section-toggle-button {
+    display: flex; //flex
 	visibility: visible;
-	position: absolute;
-	left: 0px;
-	top: 50vh;
+	position: relative;
+	top: calc(50vh - 2em);
+    left: 5px;
     height: auto;
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    cursor: pointer;
-}
-
-.filter-toggle-icon {
     font-size: 1.2em;
-    position: relative;
+    cursor: pointer;
+    z-index: 2;
+    padding-top: 0em;
+    padding-bottom: 0em;
 }
 
-.filter-toggle-icon:first-child {
-    left: 5px;
+.only-left-section-active {
+    transform: scaleX(-1);
+    position: relative;
+    margin-left: 17px;
+}
+
+.only-right-section-active {
+    left: 8px;
+}
+
+.filter-section-toggle-button:hover {
+    color: $aux-color;
+}
+
+.filter-section-toggle-button:hover .filter-toggle-icon path {
+    fill: $aux-color !important;
+}
+
+#filter-section-toggle-button-right {
+    margin-top: -15px;
+}
+
+.only-right-section-active .filter-toggle-icon {
+    transform: scaleX(-1);
+}
+
+.filter-toggle-icon-container {
+    position: relative;
+    left: 6px;
+}
+
+#filter-section-toggle-button-left .filter-toggle-icon {
+    transform: scaleX(-1);
+    
+}
+
+#filter-section-toggle-button-left.flipped .filter-toggle-icon {
+    transform: scaleX(1);
 }
 
 #filter-toggle-text {

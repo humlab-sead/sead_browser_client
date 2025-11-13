@@ -31,7 +31,8 @@ class SqsView {
 		this.leftLastSize = leftSize;
 		this.righLastSize = rightSize;
 		this.options = options;
-		this.visibleSection = "both";
+		this.visibleSection = "both"; //enum "left", "right", "both"
+		this.minSectionWidth = 8; //Minimum width of a section in viewport percentage terms
         
         this.setDefaultOptionValue("display", true);
         this.setDefaultOptionValue("collapseIntoVertial", false);
@@ -47,90 +48,11 @@ class SqsView {
 		this.setupResizableSections();
 		this.setSectionSizes(leftSize, rightSize, false);
 
-
-
-		/*
-		enquire.register(this.mobileBreakpointMediaQuery, {
-			match : () => {
-                this.mode = "mobileMode";
-                console.log("Mobile mode enabled", this.anchor);
-                this.apply();
-				return;
-				
-
-				
-				
-				//$("#sead-logo").removeClass("sead-logo-large").addClass("sead-logo-small");
-				//$("#sead-logo").hide();
-				$("#aux-menu").hide();
-				this.sqs.sqsEventDispatch("layoutChange", this.mode);
-				
-				//$("#facetMenu").hide();
-				//$(".facetMenuItemsContainer").css("position", "relative").css("box-shadow", "none");
-				//$("#facet-menu-mobile-container").show();
-				this.sqs.sqsEventDispatch("layoutResize");
-			},
-			unmatch : () => {
-				this.mode = "desktopMode";
-                console.log("Desktop mode enabled");
-                this.apply();
-                
-
-				if(this.options.collapseIntoVertial === true) {
-					let rightContents = $("#site-report-right-container", this.anchor);
-					console.log(rightContents);
-					$(".section-right", this.anchor).append(rightContents);
-				}
-				else {
-					this.toggleToggleButton(false);
-				}
-				this.switchSection("both");
-				$(".ui-resizable-handle").show();
-				this.setSectionSizes(this.leftInitSize, this.rightInitSize, false);
-				//$("#sead-logo").removeClass("sead-logo-small").addClass("sead-logo-large");
-				$("#sead-logo").show();
-				
-				//FIXME: The hiding/showing of these needs to be handled on a case-by-base basis
-				//$("#aux-menu").show();
-				//$("#facet-menu").show();
-				
-				
-				this.sqs.sqsEventDispatch("layoutChange", this.mode);
-				this.sqs.sqsEventDispatch("layoutResize");
-			}
-		});
-		*/
-		
-		//Bind actions for clicking on the panel toggle button
-		$(".section-toggle-button", this.anchor).on("click", () => {
-			//Just toggles which section is shown based on which one is currently shown/hidden
-			if($(this.anchor+" > .section-right").css("display") == "none") {
-				this.switchSection("right");
-			}
-			else {
-				this.switchSection("left");
-			}
-		});
-
-		/*
-		$(window).on("seadStateLoad", (event, data) =>  {
-			this.setSectionSizes(data.state.layout.left, 100-data.state.layout.left, false);
-		});
-		*/
+		this.initShowOnlyLeftSectionToggle();
+		this.initShowOnlyRightSectionToggle();
 
 		//React to resize event to collapse header when necessary
 		this.sqs.sqsEventListen("layoutResize", () => {
-			/*
-			let headerWidth = $("#header-space").width();
-			console.log(headerWidth);
-			if(headerWidth < 350) {
-				//Switch to smaller logo
-				$("#sead-logo").removeClass("sead-logo-large").addClass("sead-logo-small");
-			}
-			else {
-				$("#sead-logo").removeClass("sead-logo-small").addClass("sead-logo-large");
-			}
-			*/
 		});
     }
     
@@ -278,6 +200,7 @@ class SqsView {
     * Function: setSectionSizes
     */
 	setSectionSizes(leftSize, rightSize, animate = true) {
+		console.log("Set section sizes:", leftSize, rightSize);
 		this.leftLastSize = leftSize;
 		this.rightLastSize = rightSize;
 
@@ -292,6 +215,20 @@ class SqsView {
 		else {
 			leftSection.css('transition', 'none');
 			rightSection.css('transition', 'none');
+		}
+
+		if(leftSize < this.minSectionWidth) {
+			leftSize = 0;
+			rightSize = 100;
+			this.visibleSection = "right";
+		}
+		else if(rightSize < this.minSectionWidth) {
+			rightSize = 0;
+			leftSize = 100;
+			this.visibleSection = "left";
+		}
+		else {
+			this.visibleSection = "both";
 		}
 
 		leftSection.css("width", leftSize + "vw");
@@ -327,6 +264,89 @@ class SqsView {
 			left: leftWidthPercent,
 			right: rightWidthPercent
 		};
+	}
+
+	updateSectionCollapseButtons() {
+		console.log("updateSectionCollapseButtons", this.visibleSection);
+		const leftToggleBtn = $('#filter-section-toggle-button-left');
+		const rightToggleBtn = $('#filter-section-toggle-button-right');
+		
+		if (this.visibleSection === "left") {
+			// Right section is collapsed
+			rightToggleBtn.addClass('only-left-section-active');
+			leftToggleBtn.removeClass('only-right-section-active');
+			rightToggleBtn.css('left', '-1.0em');
+			leftToggleBtn.css('visibility', 'hidden');
+
+			//find .filter-toggle-icon-container in rightToggleBtn and set title
+			const filterIconContainer = rightToggleBtn.find('.filter-toggle-icon-container');
+			filterIconContainer.attr('title', 'Show both sections');
+		} 
+		else if (this.visibleSection === "right") {
+			// Left section is collapsed
+			leftToggleBtn.addClass('flipped');
+			leftToggleBtn.addClass('only-right-section-active');
+			rightToggleBtn.removeClass('only-left-section-active');
+			rightToggleBtn.css('left', '.3em');
+			rightToggleBtn.css('visibility', 'hidden');
+			
+			//find .filter-toggle-icon-container in leftToggleBtn and set title 
+			const filterIconContainer = leftToggleBtn.find('.filter-toggle-icon-container');
+			filterIconContainer.attr('title', 'Show both sections');
+		} 
+		else {
+			// Both sections visible
+			leftToggleBtn.removeClass('flipped');
+			leftToggleBtn.css('visibility', 'visible');
+			rightToggleBtn.css('left', '.3em');
+			rightToggleBtn.css('visibility', 'visible');
+			leftToggleBtn.removeClass('only-right-section-active');
+			rightToggleBtn.removeClass('only-left-section-active');
+
+			// Reset titles
+			const leftFilterIconContainer = leftToggleBtn.find('.filter-toggle-icon-container');
+			leftFilterIconContainer.attr('title', 'Show only filter section');
+			const rightFilterIconContainer = rightToggleBtn.find('.filter-toggle-icon-container');
+			rightFilterIconContainer.attr('title', 'Show only result section');
+		}
+	}
+
+	initShowOnlyLeftSectionToggle() {
+		const toggleBtn = $('#filter-section-toggle-button-left');
+		toggleBtn.on('click', () => {
+			// Check current sizes
+			const isCollapsed = this.leftLastSize === 0;
+			
+			if (isCollapsed) {
+				// Expand the left section
+				const leftSize = this.leftInitSize || 30;
+				const rightSize = 100 - leftSize;
+				this.setSectionSizes(leftSize, rightSize, true);
+			} else {
+				// Collapse the left section
+				this.setSectionSizes(0, 100, true);
+			}
+			this.updateSectionCollapseButtons();
+		});
+	}
+
+	initShowOnlyRightSectionToggle() {
+		const toggleBtn = $('#filter-section-toggle-button-right');
+		toggleBtn.on('click', () => {
+			// Check current sizes
+			const isCollapsed = this.rightLastSize === 0;
+			
+			if (isCollapsed) {
+				// Expand the right section
+				const rightSize = this.rightInitSize || 30;
+				const leftSize = 100 - rightSize;
+				this.setSectionSizes(leftSize, rightSize, true);
+			} else {
+				// Collapse the right section
+				this.setSectionSizes(100, 0, true);
+			}
+			this.updateSectionCollapseButtons();
+		});
 	}
 
 	/**
@@ -400,7 +420,7 @@ class SqsView {
 			rightWidthPercent = 100 - leftWidthPercent;
 			
 			// Handle minimum threshold for collapsing
-			if(leftWidthPercent < 8 && !isExpandingFromCollapsed) {
+			if(leftWidthPercent < this.minSectionWidth && !isExpandingFromCollapsed) {
 				leftSection.css('width', '0vw');
 				rightSection.css('width', '100vw');
 				this.leftLastSize = 0;
@@ -409,8 +429,7 @@ class SqsView {
 				dragHandle.addClass('handle-collapsed');
 				return;
 			}
-			
-			if(rightWidthPercent < 8) {
+			if(rightWidthPercent < this.minSectionWidth) {
 				rightSection.css('width', '0vw');
 				leftSection.css('width', '100vw');
 				this.leftLastSize = 100;
@@ -450,6 +469,17 @@ class SqsView {
 				const wp = this.calculateWidthsAsPercentage();
 				this.leftLastSize = wp.left;
 				this.rightLastSize = wp.right;
+
+				if(wp.left < this.minSectionWidth) {
+					this.visibleSection = "right";
+				}
+				else if(wp.right < this.minSectionWidth) {
+					this.visibleSection = "left";
+				}
+				else {
+					this.visibleSection = "both";
+				}
+				this.updateSectionCollapseButtons();
 			}
 		});
 		

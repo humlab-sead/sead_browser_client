@@ -253,10 +253,15 @@ div:focus {
 #filter-view-main-container {
   display: grid;
   visibility: hidden;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr 0px 2fr;
   grid-template-rows: 1fr;
   grid-template-areas:
-    "section-left section-right";
+    "section-left section-divider section-right";
+}
+
+.section-divider {
+  background: red;
+  width: 0px;
 }
 
 #site-report-main-container {
@@ -270,7 +275,7 @@ div:focus {
   width: calc(100vw - 2em);
   margin: 1em;
   grid-gap: 1em;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 2fr 0fr 1fr;
   grid-template-rows: 1fr;
   grid-template-areas:
     "section-left section-right";
