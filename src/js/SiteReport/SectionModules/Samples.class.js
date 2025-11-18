@@ -668,36 +668,37 @@ class Samples {
 		table.rows.forEach(row => {
 			let sampleGroupId = row[1].value;
 			sampleGroups.forEach(sg => {
-				if(sg.sample_group_id == sampleGroupId && sg.coordinates.length) {
+				if(sg.sample_group_id == sampleGroupId) {
+					if(sg.coordinates.length) {
+						//link up coordinate methods and dimensions to each coordinate
+						sg.coordinates.forEach(coord => {
+							siteData.lookup_tables.methods.forEach(cm => {
+								if(cm.method_id == coord.coordinate_method_id) {
+									coord.coordinate_method = cm;
+								}
+							});
+			
+							siteData.lookup_tables.dimensions.forEach(dim => {
+								if(dim.dimension_id == coord.dimension_id) {
+									coord.dimension = dim;
+								}
+							});
+						});
 
-					//link up coordinate methods and dimensions to each coordinate
-					sg.coordinates.forEach(coord => {
-						siteData.lookup_tables.methods.forEach(cm => {
-							if(cm.method_id == coord.coordinate_method_id) {
-								coord.coordinate_method = cm;
+						//sort coordinates by dimension name
+						sg.coordinates.sort((a, b) => {
+							if(a.dimension.dimension_name < b.dimension.dimension_name) {
+								return -1;
 							}
 						});
-		
-						siteData.lookup_tables.dimensions.forEach(dim => {
-							if(dim.dimension_id == coord.dimension_id) {
-								coord.dimension = dim;
-							}
-						});
-					});
-
-					//sort coordinates by dimension name
-					sg.coordinates.sort((a, b) => {
-						if(a.dimension.dimension_name < b.dimension.dimension_name) {
-							return -1;
-						}
-					});
+					}
 
 					row.push({
 						"value": "<i style=\"font-size: 1.5em;width:100%;text-align:center;\" class=\"fa fa-info-circle clickable\" aria-hidden=\"true\"></i>",
 						//"value": this.formatCoordinatesAsMarker(sg.coordinates),
 						"type": "cell",
 						//"tooltip": this.formatCoordinates(sg.coordinates),
-						"data": sg.coordinates,
+						"data": sg.coordinates ? sg.coordinates : [],
 						"clickCallback": (row) => {
 							//this.renderSampleGroupCoordinatesMap(sampleGroups, sg);
 							this.sqs.dialogManager.showPopOver("Sample group coordinates", this.sqs.formatCoordinates(sg.coordinates, siteData));
@@ -991,16 +992,13 @@ class Samples {
 					"value": samplingMethod.method_name,
 					"tooltip": samplingMethod.description == null ? "" : samplingMethod.description
 				},
+				{
+					"type": "cell",
+					"value": sampleGroupDescriptionsStringValue ? sampleGroupDescriptionsStringValue : "",
+				}
 			];
 
-			if(siteHasSampleGroupDescriptions) {
-				sampleGroupRow.push({
-					"type": "cell",
-					"value": sampleGroupDescriptionsStringValue, //descriptions
-				});
-			}
-
-			sampleGroupRows.push(sampleGroupRow);	
+			sampleGroupRows.push(sampleGroupRow);
 		}
 
 		this.insertSampleAnalysesIntoTable(sampleGroupTable, siteData);

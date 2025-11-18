@@ -154,7 +154,6 @@ class SiteReportTable {
 				//this.resetAllSubTableExpansions();
 			}
 		});
-		
 	
 		//Needed to make the table responsive
 		$(this.tableNode).css("width", "100%");

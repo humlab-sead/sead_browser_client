@@ -1924,6 +1924,10 @@ class SeadQuerySystem {
 		});
 		cellValue = cellValue.substring(0, cellValue.length-2);
 
+		if(cellValue == null || cellValue == "") {
+			return "No coordinates found";
+		}
+
 		return cellValue;
 	}
 
