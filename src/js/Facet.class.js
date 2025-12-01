@@ -443,8 +443,15 @@ class Facet {
 			success: (respData, textStatus, jqXHR) => {
 				if(this.deleted == false && respData.FacetsConfig.RequestId == this.requestId) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 					let importedData = this.importData(respData);
-					if(render && this.minimized == false) {
-						this.renderData(importedData);
+					if(render) {
+						if(this.minimized == false) {
+							this.renderData(importedData);
+						} else {
+							// If minimized, we still need to update the render to show current selections
+							if(typeof this.updateRenderData === 'function') {
+								this.updateRenderData(importedData);
+							}
+						}
 						//dispatch event that this facet has been rendered
 						this.sqs.sqsEventDispatch("facetDataRendered", {
 							facet: this
