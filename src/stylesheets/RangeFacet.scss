@@ -88,13 +88,14 @@
 	top: -21px;
 	left: -13px;
 	opacity: 0.8;
+	--arrow-offset: 0px; // CSS variable for arrow offset compensation
 }
 
 .slider-manual-input-container::after {
     content: '';
     position: absolute;
     bottom: -8px; /* Adjust this to control the distance from the container */
-    left: calc(50% + 1px);
+    left: calc(50% + 1px + var(--arrow-offset)); // Apply offset to counteract container translation
     transform: translateX(-50%);
     width: 0;
     height: 0;

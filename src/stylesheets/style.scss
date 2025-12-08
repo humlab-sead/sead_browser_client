@@ -2394,6 +2394,36 @@ polyline{
   margin-bottom: 10px;
 }
 
+.timeline-grid-container {
+  position: relative;
+}
+
+.chart-container {
+  position: relative;
+}
+
+/* Override noUiSlider z-index to allow canvas to appear on top */
+.range-slider-input .noUi-base,
+.range-slider-input .noUi-handle {
+  z-index: 0 !important;
+}
+
+.timeline-slider-line-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Override noUiSlider z-index to allow canvas to appear on top */
+.timeline-slider .noUi-base,
+.timeline-slider .noUi-handle {
+  z-index: 0 !important;
+}
+
 #result-timeline-curtains {
   position: absolute;
   top: 50px;

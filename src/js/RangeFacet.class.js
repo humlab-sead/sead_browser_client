@@ -41,26 +41,27 @@ class RangeFacet extends Facet {
 		};
 		this.selections = [];
 		this.chart = null;
-		this.slider = null;
-		this.minDataValue = null;
-		this.maxDataValue = null;
+	this.slider = null;
+	this.minDataValue = null;
+	this.maxDataValue = null;
 
-		this.verboseLogging = false;
-		
-		if(template.name == "analysis_entity_ages") {
-			this.unit = "BP";
-		}
-		
-		//this.numberOfCategories = 50; //Number of categories (bars) we want to abstract dataset
-		$(".facet-text-search-btn", this.getDomRef()).hide(); //range facets do not have text searching...
-
-		Chart.register(CategoryScale);
-		Chart.register(LinearScale);
-		Chart.register(BarController);
-		Chart.register(BarElement);
+	this.verboseLogging = false;
+	this.overlapSeparation = 0; // Current separation distance due to overlap
+	this.targetSeparation = 0; // Target separation distance
+	
+	if(template.name == "analysis_entity_ages") {
+		this.unit = "BP";
 	}
+	
+	//this.numberOfCategories = 50; //Number of categories (bars) we want to abstract dataset
+	$(".facet-text-search-btn", this.getDomRef()).hide(); //range facets do not have text searching...
 
-	/*
+	Chart.register(CategoryScale);
+	Chart.register(LinearScale);
+	Chart.register(BarController);
+	Chart.register(BarElement);
+
+}	/*
 	* Function: setSelections
 	* 
 	* Parameters:
@@ -401,7 +402,7 @@ class RangeFacet extends Facet {
 			layout: {
 				padding: {
 					left: 0,
-					right: 0,
+					right: 50,
 					top: 0,
 					bottom: 10
 				}
@@ -416,6 +417,15 @@ class RangeFacet extends Facet {
 				x: {
 					ticks: {
 						display: false  // This will hide the x-axis labels
+					}
+				},
+				y: {
+					title: {
+						display: true,
+						text: 'Data points',
+						font: {
+							size: 14
+						}
 					}
 				}
 			}
@@ -460,6 +470,15 @@ class RangeFacet extends Facet {
 		const chartContainer = $(".chart-container", this.getDomRef());
 		chartContainer.show();
 		const sliderContainer = $(".rangeslider-container", this.getDomRef())[0];
+
+		// Add anchor points if they don't exist
+		const wrapperContainer = $(".rangeslider-container-wrapper", this.getDomRef());
+		if ($("#slider-visual-aid-anchor-point-left", wrapperContainer).length === 0) {
+			wrapperContainer.append(`
+				<div id='slider-visual-aid-anchor-point-left' class='slider-visual-aid-anchor-point'></div>
+				<div id='slider-visual-aid-anchor-point-right' class='slider-visual-aid-anchor-point'></div>
+			`);
+		}
 
 		this.slider = noUiSlider.create(sliderContainer, {
 			start: [this.sliderMin, this.sliderMax],
@@ -514,7 +533,7 @@ class RangeFacet extends Facet {
 		$(".noUi-handle-upper > .slider-manual-input-container", this.getDomRef()).css("left", Math.round(13)+"px");
 		*/
 		let digits = sliderMax.toString().length > sliderMin.toString().length ? sliderMax.toString().length : sliderMin.toString().length;
-		var digitSpace = 30 + digits * 5;
+		var digitSpace = 38 + digits * 5;
 		$(".slider-manual-input-container .range-facet-manual-input", this.domObj).css("width", digitSpace);
 
 		$(".slider-manual-input-container", this.getDomRef()).show();
@@ -540,8 +559,7 @@ class RangeFacet extends Facet {
 			$(".noUi-handle-lower .range-facet-manual-input", this.getDomRef()).val(highValue);
 			$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(lowValue);
 
-			//let overlap = this.getHorizontalOverlap(this.lowerManualInputNode[0], this.upperManualInputNode[0]);
-			//this.adjustSliderInputPositions(overlap, this.lowerManualInputNode, this.upperManualInputNode);
+			this.checkAndHandleOverlap();
 		});
 		this.slider.on("change", (values, slider) => {
 			console.group("Slider change");
@@ -697,7 +715,61 @@ class RangeFacet extends Facet {
 		// Return overlap amount if they overlap, otherwise return 0
 		return overlap > 0 ? overlap : 0;
 	}
-	
+
+	checkAndHandleOverlap() {
+		const lowerContainer = $(".slider-manual-input-container[endpoint='lower']", this.getDomRef())[0];
+		const upperContainer = $(".slider-manual-input-container[endpoint='upper']", this.getDomRef())[0];
+		
+		if (!lowerContainer || !upperContainer) return;
+		
+		const overlap = this.getHorizontalOverlap(lowerContainer, upperContainer);
+		
+		if (overlap > 0) {
+			// Overlapping - push apart by half the overlap distance each (collision prevention)
+			this.targetSeparation = overlap / 2;
+		} else {
+			// Not overlapping - return to original position
+			this.targetSeparation = 0;
+		}
+		
+		// Smooth animation towards target
+		this.animateOverlapSeparation();
+	}
+
+	animateOverlapSeparation() {
+		const lowerContainer = $(".slider-manual-input-container[endpoint='lower']", this.getDomRef());
+		const upperContainer = $(".slider-manual-input-container[endpoint='upper']", this.getDomRef());
+		
+		if (!lowerContainer[0] || !upperContainer[0]) return;
+		
+		// Smooth interpolation (rubber-band effect)
+		const ease = 0.3; // Higher = faster animation
+		const diff = this.targetSeparation - this.overlapSeparation;
+		
+		if (Math.abs(diff) > 0.1) {
+			this.overlapSeparation += diff * ease;
+			
+			// Apply transform for smooth sub-pixel animation to containers
+			lowerContainer.css('transform', `translateX(-${this.overlapSeparation}px)`);
+			upperContainer.css('transform', `translateX(${this.overlapSeparation}px)`);
+			
+			// Counter-transform the ::after arrow elements to keep them pointing at the handle
+			// We do this by adjusting the CSS custom property that the ::after can use
+			lowerContainer.css('--arrow-offset', `${this.overlapSeparation}px`);
+			upperContainer.css('--arrow-offset', `${-this.overlapSeparation}px`);
+			
+			// Continue animation
+			requestAnimationFrame(() => this.animateOverlapSeparation());
+		} else {
+			// Snap to final position
+			this.overlapSeparation = this.targetSeparation;
+			lowerContainer.css('transform', `translateX(-${this.overlapSeparation}px)`);
+			upperContainer.css('transform', `translateX(${this.overlapSeparation}px)`);
+			lowerContainer.css('--arrow-offset', `${this.overlapSeparation}px`);
+			upperContainer.css('--arrow-offset', `${-this.overlapSeparation}px`);
+		}
+	}
+
 	
 	updateChart(categories, selections) {
 		if(this.verboseLogging) {
@@ -884,25 +956,24 @@ class RangeFacet extends Facet {
 		$(".rangeslider-container-wrapper", this.getDomRef()).css("margin-top", "0px").css("margin-bottom", "0px");
 		$(".chart-canvas-container", this.getDomRef()).show();
 		
-		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
-		this.sqs.facetManager.updateSlotSize(slotId);
-		this.sqs.facetManager.updateAllFacetPositions();
+	var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
+	this.sqs.facetManager.updateSlotSize(slotId);
+	this.sqs.facetManager.updateAllFacetPositions();
 
 
-		if(this.hasSelection()) {
-			this.data = this.sqs.copyObject(this.datasets.filtered);
-		}
-		else {
-			this.data = this.sqs.copyObject(this.datasets.unfiltered);
-		}
-		
-		let categories = this.data;
-		//let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());
-
-		this.renderChart(categories, this.getSelections());
+	if(this.hasSelection()) {
+		this.data = this.sqs.copyObject(this.datasets.filtered);
 	}
+	else {
+		this.data = this.sqs.copyObject(this.datasets.unfiltered);
+	}
+	
+	let categories = this.data;
+	//let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());
 
-	showLoadingIndicator(on = true, error = false) {
+	this.renderChart(categories, this.getSelections());
+	
+}	showLoadingIndicator(on = true, error = false) {
 		super.showLoadingIndicator(on, error);
 		if(on) {
 			$(".chart-container", this.domObj).css("opacity", 0.5);
