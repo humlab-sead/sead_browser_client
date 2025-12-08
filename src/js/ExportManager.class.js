@@ -110,53 +110,6 @@ class ExportManager {
         });
     }
 
-    addSamplesSheetOLD(wb, sites) {
-        const samplesWorksheet = wb.addWorksheet("Samples");
-
-        // Get arrays of {key, title} objects
-        const { sampleGroupKeys, physicalSampleKeys } = this.collectSampleKeys(sites);
-
-        // Compose columns: always start with Site ID and Site name
-        let sampleSheetColumns = [
-            { key: "site_id", title: "Site ID" },
-            { key: "site_name", title: "Site name" },
-            ...sampleGroupKeys,
-            ...physicalSampleKeys
-        ];
-
-        // Add header row with display titles
-        samplesWorksheet.addRow(sampleSheetColumns.map(col => col.title)).eachCell(cell => cell.font = { bold: true });
-
-        // Add data rows
-        sites.forEach(site => {
-            if (!Array.isArray(site.sample_groups)) return;
-            site.sample_groups.forEach(sampleGroup => {
-                if (Array.isArray(sampleGroup.physical_samples)) {
-                    sampleGroup.physical_samples.forEach(physicalSample => {
-                        let row = [
-                            site.site_id ?? this.siteId,
-                            site.site_name ?? ""
-                        ];
-                        sampleSheetColumns.slice(2).forEach(col => {
-                            let value;
-                            // Prefer physicalSample, then sampleGroup
-                            if (col.key in physicalSample) {
-                                value = physicalSample[col.key];
-                            } else if (col.key in sampleGroup) {
-                                value = sampleGroup[col.key];
-                            } else {
-                                value = "";
-                            }
-                            value = this.formatCellValue(value, col.key, site);
-                            row.push(value !== undefined ? value : "");
-                        });
-                        samplesWorksheet.addRow(row);
-                    });
-                }
-            });
-        });
-    }
-
     addSamplesSheet(wb, sites) {
         const samplesWorksheet = wb.addWorksheet("Samples");
 
@@ -182,19 +135,21 @@ class ExportManager {
                             site.site_id ?? this.siteId,
                             site.site_name ?? ""
                         ];
-                        sampleSheetColumns.slice(2).forEach(col => {
-                            let value;
-                            // Prefer physicalSample, then sampleGroup
-                            if (col.key in physicalSample) {
-                                value = physicalSample[col.key];
-                            } else if (col.key in sampleGroup) {
-                                value = sampleGroup[col.key];
-                            } else {
-                                value = "";
-                            }
+                        
+                        // Process sampleGroup columns - only from sampleGroup
+                        sampleGroupKeys.forEach(col => {
+                            let value = sampleGroup[col.key] ?? "";
                             value = this.formatCellValue(value, col.key, site);
                             row.push(value !== undefined ? value : "");
                         });
+                        
+                        // Process physicalSample columns - only from physicalSample
+                        physicalSampleKeys.forEach(col => {
+                            let value = physicalSample[col.key] ?? "";
+                            value = this.formatCellValue(value, col.key, site);
+                            row.push(value !== undefined ? value : "");
+                        });
+                        
                         dataRows.push(row);
                     });
                 }
@@ -241,7 +196,6 @@ class ExportManager {
             method_id: "Sample group method id",
             notes: "Sample group notes",
             sampling_context: "Sample group sampling context",
-            sampling_method_id: "Sample group sampling method",
         };
         const physicalSampleKeyTitleMap = {
             alt_ref_type_id: "Sample alt ref type id",

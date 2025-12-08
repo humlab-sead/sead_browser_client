@@ -560,7 +560,6 @@ class BasicSiteInformation {
 			this.sqs.exportManager.getXlsxBookExport(this.data, true, methodIds).then(objectUrl => {
 				this.triggerDownload(this.data.site_name+".xlsx", objectUrl);
 			});
-			
 		});
 
 		btnId = nanoid();
