@@ -1518,6 +1518,7 @@ class SiteReportChart {
 		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
 
 		let ecoCodeNames = [];
+		let rawValues = [];
 		let datasets = [];
 		
 		datasets.push({
@@ -1526,11 +1527,24 @@ class SiteReportChart {
 			backgroundColor: []
 		});
 
+		// First pass: collect raw values and calculate total
+		let total = 0;
+		for(var key in contentItem.data.rows) {
+			let row = contentItem.data.rows[key];
+			let value = row[yAxisKey].value;
+			rawValues.push(value);
+			total += value;
+		}
+
+		// Second pass: convert to percentages and build chart data
 		for(var key in contentItem.data.rows) {
 			let row = contentItem.data.rows[key];
 			let ecoCodeName = row[0].value;
 			ecoCodeNames.push(ecoCodeName);
-			datasets[0].data.push(row[yAxisKey].value);
+			
+			// Calculate percentage
+			let percentage = total > 0 ? (rawValues[key] / total) * 100 : 0;
+			datasets[0].data.push(percentage);
 			
 			//Find the color for this ecocode
 			for(let defKey in this.sqs.bugsEcoCodeDefinitions) {
@@ -1566,7 +1580,7 @@ class SiteReportChart {
 								return context[0].label;
 							},
 							label: function(context) {
-								return contentItem.data.columns[yAxisKey].title+": "+context.formattedValue;
+								return contentItem.data.columns[yAxisKey].title+": "+context.formattedValue+"%";
 							}
 						}
 					}
@@ -1577,7 +1591,16 @@ class SiteReportChart {
 						stacked: true,
 					},
 					y: {
-						stacked: true
+						stacked: true,
+						title: {
+							display: true,
+							text: 'Percentage (%)'
+						},
+						ticks: {
+							callback: function(value) {
+								return value + '%';
+							}
+						}
 					}
 				}
 			}
