@@ -131,6 +131,7 @@ class DiscreteFacet extends Facet {
 				if($(this.getDomRef()).find(".facet-text-search-input").val().length > 0) {
 					$(this.getDomRef()).find(".facet-text-search-input").val("");
 					$(this.getDomRef()).find(".facet-text-search-btn").removeClass("facet-control-active");
+					this.textFilterString = "";
 					this.renderData(this.data);
 				}
 				$(this.getDomRef()).find(".facet-text-search-input").fadeOut(100);
@@ -138,7 +139,7 @@ class DiscreteFacet extends Facet {
 		});
 		
 		$(this.getDomRef()).find(".facet-text-search-btn").show();
-		$(this.getDomRef()).find(".facet-text-search-input").on("keyup", (evt) =>  {
+		$(this.getDomRef()).find(".facet-text-search-input").on("keyup", (evt) => {
 			this.textSearch(evt);
 		});
 	}
