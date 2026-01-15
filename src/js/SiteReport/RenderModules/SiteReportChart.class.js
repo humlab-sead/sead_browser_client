@@ -778,39 +778,49 @@ class SiteReportChart {
 			const sname = row[sampleNameColKey].value;
 
 			if (!seenSampleIds.has(sid)) {
-			seenSampleIds.add(sid);
-			samples.push(sid);
+				seenSampleIds.add(sid);
+				samples.push(sid);
 			}
 			if (!seenSampleNames.has(sname)) {
-			seenSampleNames.add(sname);
-			sampleNames.push(sname);
+				seenSampleNames.add(sname);
+				sampleNames.push(sname);
 			}
 		}
 
 		// 2) Aggregate rows into taxa map: taxonId -> { taxonName, samples: [{sampleId, sampleName, abundance}] }
 		const taxa = {};
 		for (const row of contentItem.data.rows) {
+			let familyName = row[taxonNameColKey].rawValue.family.family_name;
+			let genusName = row[taxonNameColKey].rawValue.genus.genus_name;
+			let speciesName = row[taxonNameColKey].rawValue.species;
+			
 			const taxonId   = row[taxonIdColKey].value;
 			const taxonName = row[taxonNameColKey].value;
 			const abundance = Number(row[abundanceColKey].value) || 0;
 			const sampleId  = row[sampleIdColKey].value;
 			const sampleName= row[sampleNameColKey].value;
 
+			// Generate color based on taxonomic hierarchy
+			const taxonColor = this.sqs.color.getTaxonomicColor(familyName, genusName, speciesName);
+
 			if (!taxa[taxonId]) {
-			taxa[taxonId] = { taxonId, taxonName, samples: [] };
+				taxa[taxonId] = { 
+					taxonId, 
+					taxonName, 
+					samples: [],
+					familyName,
+					genusName,
+					speciesName,
+					color: taxonColor
+				};
 			}
 			taxa[taxonId].samples.push({ abundance, sampleId, sampleName });
 		}
-
-		// 3) Determine color palette
+		
+		// 3) Build Plotly traces: one trace per taxon, oriented horizontally (stacked)
+		//    Colors are now based on taxonomic hierarchy (already computed and stored in taxa)
 		const taxonIds = Object.keys(taxa);
-		const taxonCount = taxonIds.length;
-		const colors = (this.sqs?.color?.getColorScheme?.(taxonCount, false)) || undefined;
-
-		// 4) Normalize each taxon to match the full ordered sample list (missing -> 0)
-		//    Build Plotly traces: one trace per taxon, oriented horizontally (stacked)
 		const traces = [];
-		let colorIdx = 0;
 		for (const taxonId of taxonIds) {
 			const t = taxa[taxonId];
 			const values = samples.map(sampleId => {
@@ -825,7 +835,7 @@ class SiteReportChart {
 			y: sampleNames,       // categories on Y (one stacked bar per sample)
 			x: values,            // abundance per sample
 			marker: {
-				color: colors ? colors[colorIdx % colors.length] : undefined,
+				color: t.color,
 				line: { color: "#888", width: 1 }
 			},
 			hovertemplate:
@@ -833,31 +843,30 @@ class SiteReportChart {
 				(abundanceUnit ? ` ${abundanceUnit}` : "") +
 				"<extra></extra>"
 			});
-			colorIdx++;
-		}
+	}
 
-		// 5) Layout & sizing (match your dynamic height: 130 + 40px per sample)
-		const chartHeight = 130 + (samples.length * 40);
-		const layout = {
-			barmode: "stack",
-			title: { text: chartTitle, x: 0, xanchor: "left" },
-			height: chartHeight,
-			margin: { l: 120, r: 20, t: 40, b: 40 },
-			xaxis: {
+	// 4) Layout & sizing (match your dynamic height: 130 + 40px per sample)
+	const chartHeight = 130 + (samples.length * 40);
+	const layout = {
+		barmode: "stack",
+		title: { text: chartTitle, x: 0, xanchor: "left" },
+		height: chartHeight,
+		margin: { l: 120, r: 20, t: 40, b: 40 },
+		xaxis: {
 			title: { text: `Abundance${abundanceUnit ? ` (${abundanceUnit})` : ""}` },
 			zeroline: true,
 			automargin: true
-			},
-			yaxis: {
+		},
+		yaxis: {
 			title: { text: "Sample" },
 			type: "category",
 			categoryorder: "array",
 			categoryarray: sampleNames,
 			automargin: true
-			},
-			// Start with hidden legend
-			showlegend: false,
-			legend: {
+		},
+		// Start with hidden legend
+		showlegend: false,
+		legend: {
 			orientation: "v",
 			xanchor: "left",
 			yanchor: "top",
@@ -866,13 +875,13 @@ class SiteReportChart {
 			bgcolor: "rgba(255,255,255,0.95)",
 			bordercolor: "#ccc",
 			borderwidth: 1
-			},
-			hovermode: "closest",
-			paper_bgcolor: "white",
-			plot_bgcolor: "white"
-		};
+		},
+		hovermode: "closest",
+		paper_bgcolor: "white",
+		plot_bgcolor: "white"
+	};
 
-		const config = {
+	const config = {
 			responsive: true,
 			displaylogo: false,
 			toImageButtonOptions: { format: "png", scale: 2 }

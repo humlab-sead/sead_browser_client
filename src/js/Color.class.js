@@ -127,6 +127,42 @@ class Color {
 		}
 		return colors;
 	}
+
+	/**
+	 * Generate a color based on taxonomic hierarchy (family/genus/species)
+	 * Taxa from the same family will have similar hues, same genus will be even closer,
+	 * and species will vary in lightness.
+	 */
+	getTaxonomicColor(familyName, genusName, speciesName) {
+		// Simple hash function to convert string to number
+		const hashString = (str) => {
+			if (!str) return 0;
+			let hash = 0;
+			for (let i = 0; i < str.length; i++) {
+				hash = ((hash << 5) - hash) + str.charCodeAt(i);
+				hash = hash & hash; // Convert to 32bit integer
+			}
+			return Math.abs(hash);
+		};
+
+		// Base hue from family name (0-360)
+		const familyHash = hashString(familyName);
+		const baseHue = familyHash % 360;
+
+		// Genus creates a small variation in hue (±20 degrees)
+		const genusHash = hashString(genusName);
+		const genusOffset = (genusHash % 40) - 20;
+		const hue = (baseHue + genusOffset + 360) % 360;
+
+		// Species affects lightness (40-70% range for good visibility)
+		const speciesHash = hashString(speciesName);
+		const lightness = 40 + (speciesHash % 30);
+
+		// Keep saturation relatively high (60-85%)
+		const saturation = 60 + (genusHash % 25);
+
+		return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+	}
 }
 
 export { Color as default }
