@@ -13,6 +13,7 @@ import { Attribution } from 'ol/control';
 import { click } from 'ol/events/condition.js';
 import countries from "../assets/countries.geo.json";
 import Facet from './Facet.class.js'
+import OpenLayersMap from './Common/OpenLayersMap.class.js'
 /*
 * Class: MapFacet
 */
@@ -22,6 +23,7 @@ class MapFacet extends Facet {
 	*/
 	constructor(sqs, id = null, template = {}) {
 		super(sqs, id, template);
+		this.olMapWrapper = null;
 		this.olMap = null;
 		this.domObj = this.getDomRef();
 		this.dataFetchingEnabled = true;
@@ -54,37 +56,36 @@ class MapFacet extends Facet {
 
 		$(".facet-body", this.domObj).css("padding", "0px");
 
-		const attribution = new Attribution({
-			collapsible: false,
-			collapsed: false,
+		let mapMenu = `
+		<div class='base-layer-select-container'>
+			<select class='base-layer-select'>
+			</select>
+		</div>
+		`;
+
+		// Create OpenLayersMap wrapper
+		this.olMapWrapper = new OpenLayersMap(this.sqs);
+		this.olMapWrapper.render("#facet-"+this.id+" .map-container");
+		this.olMap = this.olMapWrapper.olMap;
+
+		// Add standard base layers
+		this.olMapWrapper.addStandardBaseLayers();
+		this.olMapWrapper.setMapBaseLayer("stamen");
+
+		$("#facet-"+this.id+" .map-container").append(mapMenu);
+
+		// Render base layer select options
+		this.olMapWrapper.getBaseLayers().forEach((layer, name) => {
+			$("#facet-"+this.id+" .base-layer-select").append("<option value='"+layer.getProperties().layerId+"'>"+layer.get('title')+"</option>");
 		});
 
-		this.olMap = new Map({
-			//target: 'chart-container',
-			attribution: true,
-			controls: [attribution],
-			layers: [
-			  new TileLayer({
-	            source: new StadiaMaps({
-	              layer: 'stamen_terrain_background',
-				  url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}.png",
-				  attributions: `&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>
-					&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>
-					&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>
-					&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>`
-	            })
-	          })
-			],
-			view: new View({
-			  center: fromLonLat([12.41, 48.82]),
-			  zoom: 3,
-			}),
-			loadTilesWhileInteracting: true,
-			loadTilesWhileAnimating: true
+		// Handle base layer selection change
+		$("#facet-"+this.id+" .base-layer-select").on("change", (event) => {
+			let selectedLayerName = $(event.currentTarget).val();
+			this.olMapWrapper.setMapBaseLayer(selectedLayerName);
 		});
 
 		$("#facet-"+this.id).find(".map-container").show();
-		this.olMap.setTarget($("#facet-"+this.id).find(".map-container")[0]);
 		
 		$("#facet-"+this.id).find(".map-container").bind("mouseover", () => {
 			this.drawInteraction.setActive(true);

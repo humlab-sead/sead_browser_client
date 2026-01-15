@@ -2756,6 +2756,13 @@ polyline{
   z-index: 1;
 }
 
+.base-layer-select-container {
+  background: $base-color;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 .menu-row-item {
   background: $base-color;
   position: relative;

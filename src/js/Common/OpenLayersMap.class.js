@@ -207,7 +207,7 @@ class OpenLayersMap {
 
 		this.baseLayers.push(stamenLayer);
 		this.baseLayers.push(stamenTerrainLabelsLayer);
-		this.baseLayers.push(arcticDemLayer);
+		//this.baseLayers.push(arcticDemLayer);
 		this.baseLayers.push(osmLayer);
 		this.baseLayers.push(openTopoLayer);
 		this.baseLayers.push(mapboxSatelliteLayer);
@@ -266,6 +266,10 @@ class OpenLayersMap {
 			console.log(event);
 		});
     }
+
+	getBaseLayers() {
+		return this.baseLayers;
+	}
 
 	getFeatureStyle(name = null) {
 		if(name == null) {
