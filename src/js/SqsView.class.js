@@ -32,7 +32,7 @@ class SqsView {
 		this.righLastSize = rightSize;
 		this.options = options;
 		this.visibleSection = "both"; //enum "left", "right", "both"
-		this.minSectionWidth = 8; //Minimum width of a section in viewport percentage terms
+		this.minSectionWidth = 12; //Minimum width of a section in viewport percentage terms
         
         this.setDefaultOptionValue("display", true);
         this.setDefaultOptionValue("collapseIntoVertial", false);
@@ -277,7 +277,6 @@ class SqsView {
 	}
 
 	updateSectionCollapseButtons() {
-		console.log("updateSectionCollapseButtons", this.visibleSection);
 		const leftToggleBtn = $('#filter-section-toggle-button-left');
 		const rightToggleBtn = $('#filter-section-toggle-button-right');
 		
