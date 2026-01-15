@@ -218,6 +218,7 @@ class FacetManager {
 	 */
 	renderDemoSlot() {
 		this.demoSlot = this.addSlot();
+		/*
 		let filterText = `
 		<span>
 		<span id='demo-slot-menu-link' class='jslink-alt'>
@@ -227,6 +228,15 @@ class FacetManager {
 		<br /><br />
 		How about adding a <i class="fa fa-clock-o"></i> <span id='demo-slot-timeline-link' class='jslink-alt'>Timeline filter</span> to get started?
 		</span>`;
+		*/
+		let filterText = `
+		<span>
+		<span id='demo-slot-menu-link' class='jslink-alt'>
+		Add filters
+		</span> 
+		here to reduce the result data (shown on the right) down to what you are interested in seeing.
+		</span>`;
+
 		$(this.demoSlot.getDomRef()).html(filterText);
 		$(this.demoSlot.getDomRef()).addClass("slot-visible");
 		
@@ -1091,7 +1101,6 @@ class FacetManager {
 		let currentFilterPosition = 1;
 		for(var key in this.facets) {
 			if((excludeDeletedFacets === true && this.facets[key].deleted === false) || excludeDeletedFacets === false) {
-				
 				if(typeof this.facets[key].filters != "undefined" && this.facets[key].filters.length > 1) {
 					for(let filterKey in this.facets[key].filters) {
 						let filter = this.facets[key].filters[filterKey];
@@ -1117,6 +1126,9 @@ class FacetManager {
 					});	
 				}
 				
+			}
+			else {
+				console.log("Excluding deleted facet from facet state:", this.facets[key].name);
 			}
 		}
 
