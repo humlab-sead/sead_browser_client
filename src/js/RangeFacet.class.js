@@ -674,37 +674,6 @@ class RangeFacet extends Facet {
 		return value;
 	}
 
-	adjustSliderInputPositions(overlap, lowerManualInputNode, upperManualInputNode) {
-		if(this.verboseLogging) {
-			console.log("RangeFacet.adjustSliderInputPositions", overlap);
-		}
-
-		const lowerLeftOriginalPosition = (lowerManualInputNode.width() + 8) / 2;
-		const upperLeftOriginalPosition = ((upperManualInputNode.width() + 8) / 2)*-1;
-	
-		let lowerInputLeft = lowerManualInputNode.position().left; // Current `left` position of lower node
-		let upperInputLeft = upperManualInputNode.position().left; // Current `left` position of upper node
-
-		let lowerInputNewLeft = lowerInputLeft; // Initialize to current positions
-		let upperInputNewLeft = upperInputLeft;
-	
-		if (overlap > 0) {
-			// Adjust positions to remove overlap
-			const shiftAmount = overlap / 2; // Split the overlap equally between the two nodes
-			lowerInputNewLeft = lowerInputLeft - shiftAmount; // Move lower node left
-			upperInputNewLeft = upperInputLeft + shiftAmount; // Move upper node right
-			
-		} else {
-			// No overlap, gradually reset to original positions
-			lowerInputNewLeft = lowerInputLeft < lowerLeftOriginalPosition ? lowerInputLeft + 1 : lowerLeftOriginalPosition;
-			upperInputNewLeft = upperInputLeft > upperLeftOriginalPosition ? upperInputLeft - 1 : upperLeftOriginalPosition;
-		}
-	
-		// Update positions with calculated values
-		lowerManualInputNode[0].style.setProperty("left", `${lowerInputNewLeft}px`, "important");
-		upperManualInputNode[0].style.setProperty("left", `${upperInputNewLeft}px`, "important");
-	}
-
 	getHorizontalOverlap(element1, element2) {
 		const rect1 = element1.getBoundingClientRect();
 		const rect2 = element2.getBoundingClientRect();
@@ -972,7 +941,7 @@ class RangeFacet extends Facet {
 	//let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());
 
 	this.renderChart(categories, this.getSelections());
-	
+
 }	showLoadingIndicator(on = true, error = false) {
 		super.showLoadingIndicator(on, error);
 		if(on) {
