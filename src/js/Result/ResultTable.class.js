@@ -23,7 +23,7 @@ class ResultTable extends ResultModule {
 	constructor(resultManager) {
 		super(resultManager);
 		this.name = "table";
-		this.prettyName = "Spreadsheet";
+		this.prettyName = "Table";
 		this.icon = "<i class=\"fa fa-table\" aria-hidden=\"true\"></i>";
 		this.maxRenderCount = 100000;
 		this.hasCurrentData = false;

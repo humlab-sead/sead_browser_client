@@ -65,7 +65,7 @@ class ResultMap extends ResultModule {
 		
 		this.olMap = null;
 		this.name = "map";
-		this.prettyName = "Geographic";
+		this.prettyName = "Map";
 		this.icon = "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>";
         this.currentZoomLevel = 4;
 		this.selectPopupOverlay = null;

@@ -2141,7 +2141,7 @@ polyline{
 
 .result-mosaic-tile > h2 {
   position:absolute;
-  background-color: $pane-bg-color-dark;
+  background-color: $pane-bg-color;
   /*color: #fff;*/
   padding-left: 2px;
   padding-right: 2px;
@@ -2160,6 +2160,8 @@ polyline{
 
 .result-mosaic-tile-chart-selector {
   width: 100%;
+  font-size: 0.8em;
+  background-color: $pane-bg-color;
 }
 
 .result-map-render-container {
@@ -2171,8 +2173,8 @@ polyline{
 .result-map-legend-container {
   display: none;
   position: absolute;
-  right: 10px;
-  top: 10px;
+  right: 5px;
+  top: 5px;
   background: $pane-bg-color;
   padding: 0em;
   padding-bottom: .2em;
@@ -2742,8 +2744,8 @@ polyline{
 #result-map-controls-container {
   display:flex;
   position:absolute;
-  top: 10px;
-  left: 10px;
+  top: 5px;
+  left: 5px;
   //z-index: 1;
   box-shadow: -5px 5px 1em .25em rgba(0, 0, 0, 0.15);
 }
@@ -3060,14 +3062,14 @@ polyline{
   color:$sead-brown;
   background-color: #fff;
   position:relative;
-  top: 7px;
+  top: 0px;
   font-size: 1.6rem;
   padding: 0px;
   padding-top:5px;
   padding-left: 15px;
   padding-right: 15px;
   font-family: $sead-font;
-  height:36px;
+  height:38px;
 }
 
 #googleLoginContainer {
@@ -3582,6 +3584,8 @@ svg text {
   position: relative;
   top: 0;
   padding: 1em;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
   color: $white;
   font-size: 1.2em;
 }
