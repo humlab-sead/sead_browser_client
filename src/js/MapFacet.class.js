@@ -27,6 +27,8 @@ class MapFacet extends Facet {
 		this.olMap = null;
 		this.domObj = this.getDomRef();
 		this.dataFetchingEnabled = true;
+		this.countryLayer = null;
+		this.countryLayerMaxZoom = 5; // Only show country borders at zoom level 5 or below
 
 		$(".facet-text-search-btn", this.domObj).hide();
 
@@ -108,7 +110,7 @@ class MapFacet extends Facet {
 			$(".map-help-text > .cmd_key_symbol").html("CTRL");
 		}
 
-		//this.addCountriesLayer();
+		this.addCountriesLayer();
 	}
 
 	addCountriesLayer() {
@@ -121,7 +123,7 @@ class MapFacet extends Facet {
 			features: features
 		});
 
-		const countryLayer = new VectorLayer({
+		this.countryLayer = new VectorLayer({
 			source: vectorSource,
 			style: new Style({
 			  stroke: new Stroke({
@@ -134,15 +136,24 @@ class MapFacet extends Facet {
 			})
 		});
 
-		this.olMap.addLayer(countryLayer);
+		this.olMap.addLayer(this.countryLayer);
+
+		// Set initial visibility based on zoom level
+		this.updateCountryLayerVisibility();
+
+		// Listen for zoom changes to show/hide country layer
+		this.olMap.getView().on('change:resolution', () => {
+			this.updateCountryLayerVisibility();
+		});
 
 		// Create a select interaction
 		const selectInteraction = new SelectInteraction({
 			condition: click,
 			// Limit selection to our countryLayer only:
-			layers: [countryLayer]
+			layers: [this.countryLayer]
 		});
 		
+		/*
 		// Add the select interaction to your map
 		this.olMap.addInteraction(selectInteraction);
 		
@@ -181,6 +192,23 @@ class MapFacet extends Facet {
 				console.log('Deselected some features');
 			}
 		});
+		*/
+	}
+
+	/*
+	* Function: updateCountryLayerVisibility
+	* 
+	* Shows or hides the country borders layer based on zoom level.
+	* Only shows borders when zoomed out enough to see multiple European countries.
+	*/
+	updateCountryLayerVisibility() {
+		if (!this.countryLayer) {
+			return;
+		}
+		
+		const zoom = this.olMap.getView().getZoom();
+		const visible = zoom <= this.countryLayerMaxZoom;
+		this.countryLayer.setVisible(visible);
 	}
 
 	/*
