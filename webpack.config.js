@@ -152,6 +152,7 @@ module.exports = (env, config) => {
     devServer: {
       host: '0.0.0.0',
       port: 8080,
+      allowedHosts: 'all',
       hot: true,
       liveReload: true,
       historyApiFallback: {
