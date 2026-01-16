@@ -14,7 +14,7 @@ import { Cluster as ClusterSource, Vector as VectorSource, VectorTile as VectorT
 import { fromLonLat, toLonLat, get as getProjection } from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
-import { Attribution } from 'ol/control';
+import { Attribution, Zoom } from 'ol/control';
 import { getTopLeft } from 'ol/extent';
 import { createXYZ } from 'ol/tilegrid';
 import TileGrid from 'ol/tilegrid/TileGrid.js';
@@ -1484,10 +1484,16 @@ class OpenLayersMap {
 			collapsed: false,
 		});
 
+		//create zoom control
+		const zoomControl = new Zoom({
+			zoomInTipLabel: 'Zoom in',
+			zoomOutTipLabel: 'Zoom out'
+		});
+
         this.olMap = new Map({
             target: renderTarget,
 			attribution: true,
-            controls: [attribution], //Override default controls and set NO controls
+            controls: [attribution, zoomControl], //Add attribution and zoom controls
             /*
 			layers: new GroupLayer({
                 layers: this.baseLayers
@@ -1911,165 +1917,200 @@ class OpenLayersMap {
 	}
 
 	preparePlanarCoordinates(coordinatePairs) {
-		//Define projections
-		proj4.defs("EPSG:3006", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
-		proj4.defs("EPSG:3018", "+proj=tmerc +lat_0=0 +lon_0=14.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
-		proj4.defs("EPSG:3019", "+proj=tmerc +lat_0=0 +lon_0=15.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
-		proj4.defs("EPSG:3021", "+proj=tmerc +lat_0=0 +lon_0=18.05827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
-		proj4.defs("EPSG:3024", "+proj=tmerc +lat_0=0 +lon_0=20.80827777777778 +k=1 +x_0=1500000 +y_0=0 +ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs");
-		proj4.defs("EPSG:3007","+proj=tmerc +lat_0=0 +lon_0=12 +k=1 +x_0=150000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs");
-		proj4.defs("SWEREF99_LAT_LONG_TO_1200", "+proj=pipeline +step +proj=latlong +ellps=GRS80 +step +inv +proj=utm +zone=12 +ellps=GRS80 +units=m +no_defs");
-		proj4.defs("SWEREF99_LAT_LONG_TO_3006", "+proj=pipeline +step +proj=latlong +ellps=GRS80 +step +inv +proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
-		proj4.defs("gothenburg-local", "+proj=tmerc +lat_0=0 +lon_0=11.304996 +k=1.00000867 +x_0=-6370680.1969 +y_0=-80.0124 +ellps=GRS80 +units=m +no_defs");
-		proj4.defs("EPSG:3021", '+proj=tmerc +lat_0=0 +lon_0=12 +k=1 +x_0=150000 +y_0=0 +ellps=GRS80 +units=m +no_defs');
-		proj4.defs("EPSG:9999", "+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs");
+		// ---------------------------------------------------------------------------
+		// Projections (define once)
+		// ---------------------------------------------------------------------------
+		if (!this._projDefsInitialized) {
+			// WGS84 (EPSG:4326) – explicit, for clarity/consistency
+			proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs");
 
-		let workingCoordinates = {
-			x: null,
-			y: null,
-			method: null
+			// SWEREF99 TM (EPSG:3006) – correct definition (NOT UTM zone 33)
+			// Central meridian 15, scale 0.9996, false easting 500000.
+			proj4.defs(
+			"EPSG:3006",
+			"+proj=tmerc +lat_0=0 +lon_0=15 +k=0.9996 +x_0=500000 +y_0=0 " +
+				"+ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+			);
+
+			// RT90 family (Bessel + 7-param Helmert to WGS84)
+			proj4.defs(
+			"EPSG:3018", // RT90 0.0 gon V
+			"+proj=tmerc +lat_0=0 +lon_0=18.0582777777778 +k=1 +x_0=1500000 +y_0=0 " +
+				"+ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs"
+			);
+			proj4.defs(
+			"EPSG:3019", // RT90 2.5 gon V?  (Do NOT rely on this label; see below.)
+			"+proj=tmerc +lat_0=0 +lon_0=11.3082777777778 +k=1 +x_0=1500000 +y_0=0 " +
+				"+ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs"
+			);
+			proj4.defs(
+			"EPSG:3020", // RT90 5 gon V  (this is the one you asked about)
+			"+proj=tmerc +lat_0=0 +lon_0=13.5582777777778 +k=1 +x_0=1500000 +y_0=0 " +
+				"+ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs"
+			);
+			proj4.defs(
+			"EPSG:3021", // RT90 2.5 gon V
+			"+proj=tmerc +lat_0=0 +lon_0=15.8082777777778 +k=1 +x_0=1500000 +y_0=0 " +
+				"+ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs"
+			);
+			proj4.defs(
+			"EPSG:3024", // RT90 0 gon
+			"+proj=tmerc +lat_0=0 +lon_0=20.8082777777778 +k=1 +x_0=1500000 +y_0=0 " +
+				"+ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs"
+			);
+
+			// UTM helpers used in your switch (leave as inline strings in calls, or define)
+			proj4.defs(
+			"EPSG:32632",
+			"+proj=utm +zone=32 +datum=WGS84 +units=m +no_defs"
+			);
+			proj4.defs(
+			"EPSG:32633",
+			"+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
+			);
+
+			// Keep any local grids you actually use
+			proj4.defs(
+			"gothenburg-local",
+			"+proj=tmerc +lat_0=0 +lon_0=11.304996 +k=1.00000867 " +
+				"+x_0=-6370680.1969 +y_0=-80.0124 +ellps=GRS80 +units=m +no_defs"
+			);
+
+			this._projDefsInitialized = true;
 		}
 
-		//select a coordinate pair to use for the map
+		// ---------------------------------------------------------------------------
+		// Select best coordinate pair based on configured priority
+		// ---------------------------------------------------------------------------
 		const coordinateSystemPriority = this.sqs.config.coordinateSystemPriority;
-
 		let selectedCoordinates = null;
-		coordinatePairs.forEach(pair => {
-			//choose the highest priority coordinate system based on pair[0].coordinate_method_id
-			if(selectedCoordinates == null || coordinateSystemPriority.indexOf(pair[0].coordinate_method.method_id) < coordinateSystemPriority.indexOf(selectedCoordinates[0].coordinate_method.method_id)) {
-				selectedCoordinates = pair;
-			}
-		});
-		
-		//pick out the x/y
-		selectedCoordinates.forEach(coordinate => {
-			if(coordinate.dimension.dimension_name == "X/North") {
-				workingCoordinates.y = coordinate;
-			}
-			if(coordinate.dimension.dimension_name == "Y/East") {
-				workingCoordinates.x = coordinate;
-			}
-			if(coordinate.dimension.dimension_name == "X/East") {
-				workingCoordinates.x = coordinate;
-			}
-			if(coordinate.dimension.dimension_name == "Y/North") {
-				workingCoordinates.y = coordinate;
+
+		coordinatePairs.forEach((pair) => {
+			if (
+			selectedCoordinates == null ||
+			coordinateSystemPriority.indexOf(pair[0].coordinate_method.method_id) <
+				coordinateSystemPriority.indexOf(
+				selectedCoordinates[0].coordinate_method.method_id
+				)
+			) {
+			selectedCoordinates = pair;
 			}
 		});
 
-		workingCoordinates.method = workingCoordinates.x.coordinate_method;
+		if (!selectedCoordinates || selectedCoordinates.length === 0) return null;
 
-		if(workingCoordinates.x == null || workingCoordinates.y == null) {
-			//this will trigger if we are fed z-coords only, which can absolutely happen, so don't even warn about it
+		// ---------------------------------------------------------------------------
+		// Normalize axes: workingCoordinates.x = Easting, workingCoordinates.y = Northing
+		// ---------------------------------------------------------------------------
+		const workingCoordinates = { x: null, y: null, method: null };
+
+		selectedCoordinates.forEach((coordinate) => {
+			const dn = coordinate.dimension.dimension_name;
+
+			// Your naming is inconsistent across sources; handle all four labels.
+			if (dn === "X/North" || dn === "Y/North") workingCoordinates.y = coordinate;
+			if (dn === "Y/East" || dn === "X/East") workingCoordinates.x = coordinate;
+		});
+
+		if (!workingCoordinates.x || !workingCoordinates.y) {
+			// Happens e.g. if only Z is present.
 			return null;
 		}
 
+		workingCoordinates.method = workingCoordinates.x.coordinate_method;
+
+		// IMPORTANT: proj4 expects [x,y] = [easting, northing] for projected CRS.
+		const XY = [
+			Number(workingCoordinates.x.measurement),
+			Number(workingCoordinates.y.measurement),
+		];
+
 		let outputCoords = null;
-		let sweref99Coords = null;
 		let coordinateSystem = null;
 
-		switch(workingCoordinates.x.coordinate_method.method_id) {
-			case 113: //"Malmö stads koordinatnät"
-				outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
-				coordinateSystem = "local";
-				break;
-			case 105: //"Local grid" 
-				outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
-				coordinateSystem = "local";
-				break;
-			case 108: //"Göteborgs kommuns koordinatsystem" - we treat this as a local grid, for now
-				outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
-				coordinateSystem = "local";
-				break;
-			case 103: //"RT90 5 gon V"
-				let rt90Coords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
-				sweref99Coords = proj4("EPSG:3019", "EPSG:3006", rt90Coords);
-				outputCoords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-				coordinateSystem = "EPSG:4326";
-				break;
-			case 69: //"RT90 2.5 gon V"
-				let rt9025Coords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
-				sweref99Coords = proj4("EPSG:3021", "EPSG:3006", rt9025Coords);
-				outputCoords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-				coordinateSystem = "EPSG:4326";
-				break;
-			case 78: //"Height from datum"
-				break;
-			case 80: //"Height from surface"
-				break;
-			case 77: //"Depth from reference level"
-				break;
-			case 76: //"Altitude above sea level"
-				break;
-			case 79: //"Depth from surface"
-				break;
-			case 72: //"WGS84"
-				outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
-				coordinateSystem = "EPSG:4326";
-				break;
-			case 70: //"SWEREF 99 TM (Swedish)"
-				sweref99Coords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
-				outputCoords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-				coordinateSystem = "EPSG:4326";
-				break;
-			case 121: //"Rikets höjdsystem 1900"
-				break;
-			case 102: //"RH70"
-				break;
-			case 114: //"WGS84 UTM zone 32"
-				//wgs84Coords = proj4('+proj=utm +zone=32 +ellps=WGS84', "EPSG:4326", [coordinateTrio.x.measurement, coordinateTrio.y.measurement]);
-				outputCoords = proj4('+proj=utm +zone=32 +ellps=WGS84 +datum=WGS84 +units=m +no_defs', "EPSG:4326", [workingCoordinates.x.measurement, workingCoordinates.y.measurement]);
-				coordinateSystem = "EPSG:4326";
-				break;
-			case 115: //"Depth from surface lower sample boundary"
-				break;
-			case 116: //"Depth from surface upper sample boundry "
-				break;
-			case 122: //"Depth from surface lower sample boundary "
-				break;
-			case 123: //"UTM U32 euref89"
-				outputCoords = proj4("+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs", "EPSG:4326", [workingCoordinates.y.measurement, workingCoordinates.x.measurement]);
-				coordinateSystem = "EPSG:4326";
-				break;
-			case 125: //"Upper sample boundary"
-				break;
-			case 126: //"Lower sample boundary depth"
-				break;
-			case 120: //"WGS84 UTM zone 33N"
-				outputCoords = proj4('+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs', "EPSG:4326", [workingCoordinates.y.measurement, workingCoordinates.x.measurement]);
-				coordinateSystem = "EPSG:4326";
-				break;
-			default:
-				console.warn("WARN: Support for coordinate method not implemented: "+workingCoordinates.x.coordinate_method.method_name);
-		}
+		switch (workingCoordinates.x.coordinate_method.method_id) {
+			case 113: // "Malmö stads koordinatnät"
+			case 105: // "Local grid"
+			case 108: // "Göteborgs kommuns koordinatsystem" (treat as local)
+			outputCoords = XY;
+			coordinateSystem = "local";
+			break;
 
-		//These don't actually (currently) exist in the database, but here they are for reference
-		/*
-		case "RT90 7.5 gon V":
-			let rt9075Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-			var sweref99Coords = proj4("EPSG:3018", "EPSG:3006", rt9075Coords);
-			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-			return wgs84Coords;
-		case "RT90 0 gon":
-			let rt900Coords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-			var sweref99Coords = proj4("EPSG:3024", "EPSG:3006", rt900Coords);
-			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-			return wgs84Coords;
-		case "RT90 2.5 gon O":
-			let rt9025oCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-			var sweref99Coords = proj4("EPSG:3018", "EPSG:3006", rt9025oCoords);
-			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-			return wgs84Coords;
-		case "RT90 5 gon O":
-			let rt905oCoords = [coordinateTrio.x.measurement, coordinateTrio.y.measurement];
-			var sweref99Coords = proj4("EPSG:3019", "EPSG:3006", rt905oCoords);
-			var wgs84Coords = proj4("EPSG:3006", "EPSG:4326", sweref99Coords);
-			return wgs84Coords;
-		*/
+			case 103: // "RT90 5 gon V"
+			// FIX: Use EPSG:3020 (RT90 5 gon V), not 3019
+			outputCoords = proj4("EPSG:3020", "EPSG:4326", XY); // => [lon, lat]
+			coordinateSystem = "EPSG:4326";
+			break;
+
+			case 69: // "RT90 2.5 gon V"
+			// Use EPSG:3021; ensure you do not redefine EPSG:3021 elsewhere
+			outputCoords = proj4("EPSG:3021", "EPSG:4326", XY);
+			coordinateSystem = "EPSG:4326";
+			break;
+
+			case 72: // "WGS84" (already lon/lat in many systems; assumes [lon,lat] stored as X=lon, Y=lat)
+			// If your storage is [lat,lon], swap here—do not guess. This preserves your prior behavior.
+			outputCoords = [workingCoordinates.x.measurement, workingCoordinates.y.measurement];
+			coordinateSystem = "EPSG:4326";
+			break;
+
+			case 70: // "SWEREF 99 TM (Swedish)"
+			// FIX: EPSG:3006 is SWEREF99 TM; our definition is corrected above
+			outputCoords = proj4("EPSG:3006", "EPSG:4326", XY);
+			coordinateSystem = "EPSG:4326";
+			break;
+
+			case 114: // "WGS84 UTM zone 32"
+			// FIX: do not swap axes; XY is [E,N]
+			outputCoords = proj4("EPSG:32632", "EPSG:4326", XY);
+			coordinateSystem = "EPSG:4326";
+			break;
+
+			case 120: // "WGS84 UTM zone 33N"
+			// FIX: do not swap axes; XY is [E,N]
+			outputCoords = proj4("EPSG:32633", "EPSG:4326", XY);
+			coordinateSystem = "EPSG:4326";
+			break;
+
+			case 123: // "UTM U32 euref89" (commonly ETRS89 / UTM 32N)
+			// ETRS89 is practically WGS84 for most mapping use; keep GRS80 ellipsoid.
+			outputCoords = proj4(
+				"+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs",
+				"EPSG:4326",
+				XY
+			);
+			coordinateSystem = "EPSG:4326";
+			break;
+
+			// Heights/depths etc. are intentionally ignored here (no planar output)
+			case 78: // "Height from datum"
+			case 80: // "Height from surface"
+			case 77: // "Depth from reference level"
+			case 76: // "Altitude above sea level"
+			case 79: // "Depth from surface"
+			case 121: // "Rikets höjdsystem 1900"
+			case 102: // "RH70"
+			case 115: // "Depth from surface lower sample boundary"
+			case 116: // "Depth from surface upper sample boundary"
+			case 122: // "Depth from surface lower sample boundary "
+			case 125: // "Upper sample boundary"
+			case 126: // "Lower sample boundary depth"
+			outputCoords = null;
+			coordinateSystem = null;
+			break;
+
+			default:
+			console.warn(
+				"WARN: Support for coordinate method not implemented: " +
+				workingCoordinates.x.coordinate_method.method_name
+			);
+			outputCoords = null;
+			coordinateSystem = null;
+		}
 
 		return {
 			coordinates: outputCoords,
-			coordinateSystem: coordinateSystem
+			coordinateSystem,
 		};
 	}
 
