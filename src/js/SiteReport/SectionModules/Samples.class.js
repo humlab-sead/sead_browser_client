@@ -662,6 +662,9 @@ class Samples {
 				"role": "coordinates",
 			});
 		}
+		else {
+			return;
+		}
 
 		let siteData = this.sqs.siteReportManager.siteReport.siteData;
 
@@ -991,19 +994,22 @@ class Samples {
 					"type": "cell",
 					"value": samplingMethod.method_name,
 					"tooltip": samplingMethod.description == null ? "" : samplingMethod.description
-				},
-				{
-					"type": "cell",
-					"value": sampleGroupDescriptionsStringValue ? sampleGroupDescriptionsStringValue : "",
 				}
 			];
+
+			if(siteHasSampleGroupDescriptions) {
+				sampleGroupRow.push({
+					"type": "cell",
+					"value": sampleGroupDescriptionsStringValue ? sampleGroupDescriptionsStringValue : "",
+				});
+			}
 
 			sampleGroupRows.push(sampleGroupRow);
 		}
 
 		this.insertSampleAnalysesIntoTable(sampleGroupTable, siteData);
 		this.insertSampleGroupFeatureTypesIntoTable(sampleGroupTable, siteData);
-		//this.insertSampleGroupReferencesIntoTable(sampleGroupTable, siteData.sample_groups); //we include this information in the "datasetReference" property of the section instead
+		this.insertSampleGroupReferencesIntoTable(sampleGroupTable, siteData.sample_groups); //we include this information in the "datasetReference" property of the section instead
 		this.insertSampleGroupCoordinatesIntoTable(sampleGroupTable, siteData.sample_groups);
 
 		var section = {
