@@ -812,12 +812,14 @@ class ResultMosaic extends ResultModule {
 				automargin: true,
 			},
 			responsive: true,
-			displayModeBar: false
+			displayModeBar: true
 		};
 
 		let config = {
 			responsive: true,
-			displayModeBar: false
+			displayModeBar: true,
+			displaylogo: false,
+			modeBarButtons: [['toImage']]
 		}
 
 		return Plotly.newPlot($(renderIntoNode)[0], data, layout, config);
@@ -1056,7 +1058,7 @@ class ResultMosaic extends ResultModule {
 				  size: 22
 				},
 			},
-			displayModeBar: false,
+			displayModeBar: true,
 			margin: {
 				l: 50,
 				r: 50,
@@ -1071,7 +1073,7 @@ class ResultMosaic extends ResultModule {
 
 		let config = {
 			responsive: true,
-			displayModeBar: false
+			displayModeBar: true
 		}
 
 		Object.assign(config, configConfig);
@@ -1128,7 +1130,7 @@ class ResultMosaic extends ResultModule {
 				  size: 22
 				},
 			},
-			displayModeBar: false,
+			displayModeBar: true,
 			margin: {
 				l: 50,
 				r: 50,
@@ -1141,10 +1143,9 @@ class ResultMosaic extends ResultModule {
 
 		Object.assign(layout, layoutConfig);
 		let anchorNodeId = renderIntoNode.substring(1);
-		console.log(renderIntoNode);
 		let config = {
 			responsive: true,
-			displayModeBar: false
+			displayModeBar: true
 		}
 
 		let plot = await Plotly.newPlot(anchorNodeId, chartData, layout, config);

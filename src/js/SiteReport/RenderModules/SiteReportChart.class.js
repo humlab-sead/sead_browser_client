@@ -684,7 +684,7 @@ class SiteReportChart {
 		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 
-		Plotly.newPlot(this.chartId, data, layout, {responsive: true, displayModeBar: false});
+		Plotly.newPlot(this.chartId, data, layout, {responsive: true, displayModeBar: true});
 	}
 
 	async renderMultistackPlotly3(chartTitle = "Abundances") {
@@ -1296,7 +1296,7 @@ class SiteReportChart {
 		var chartContainer = $("<div id='" + this.chartId + "' class='site-report-chart-container'></div>");
 		$(this.anchorNodeSelector).append(chartContainer);
 	  
-		Plotly.newPlot(this.chartId, data, layout, {responsive: true, displayModeBar: false});
+		Plotly.newPlot(this.chartId, data, layout, {responsive: true, displayModeBar: true});
 	}
 	  
 	
