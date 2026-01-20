@@ -1944,7 +1944,7 @@ class OpenLayersMap {
 				"+ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs"
 			);
 			proj4.defs(
-			"EPSG:3020", // RT90 5 gon V  (this is the one you asked about)
+			"EPSG:3020", // RT90 5 gon V 
 			"+proj=tmerc +lat_0=0 +lon_0=13.5582777777778 +k=1 +x_0=1500000 +y_0=0 " +
 				"+ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs"
 			);
@@ -1959,7 +1959,7 @@ class OpenLayersMap {
 				"+ellps=bessel +towgs84=414.1,41.3,603.1,-0.855,2.141,-7.023,0 +units=m +no_defs"
 			);
 
-			// UTM helpers used in your switch (leave as inline strings in calls, or define)
+			// UTM helpers
 			proj4.defs(
 			"EPSG:32632",
 			"+proj=utm +zone=32 +datum=WGS84 +units=m +no_defs"
@@ -1969,7 +1969,7 @@ class OpenLayersMap {
 			"+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
 			);
 
-			// Keep any local grids you actually use
+			// local grids
 			proj4.defs(
 			"gothenburg-local",
 			"+proj=tmerc +lat_0=0 +lon_0=11.304996 +k=1.00000867 " +
