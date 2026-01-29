@@ -1,4 +1,4 @@
-FROM debian:trixie
+FROM docker.io/debian:trixie
 
 # Define build-time variables (provided via Docker Compose)
 ARG SBC_REF=master
