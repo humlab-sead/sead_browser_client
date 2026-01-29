@@ -1,14 +1,7 @@
-@import "colors.scss";
-@import "fonts.scss";
-
-$header-font: 'Rajdhani';
-$normal-font: 'Didact Gothic';
-$special-font: 'Rajdhani';
-$sead-font: 'Exo 2';
-
-@import "SiteReport.scss";
-@import "RangeFacet.scss";
-@import "OpenLayersMap.scss";
+@use "sass:color";
+@use "colors.scss";
+@use "fonts.scss";
+@use "variables" as *;
 
 html {
 	height: 100%;
@@ -22,7 +15,7 @@ h1 {
 }
 
 h2 {
-	background-color: $inactive-color;
+	background-color: colors.$inactive-color;
 	margin-top:0px;
 }
 
@@ -37,7 +30,7 @@ body {
   padding: 0px;
   margin: 0px;
   height: 100%;
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
 }
 
 .error-indicator {
@@ -115,7 +108,7 @@ div:focus {
 
 .sead-logo-text {
   font-size: 2em;
-  color: $sead-brown;
+  color: colors.$sead-brown;
   font-family: $header-font;
   font-weight: bold;
 }
@@ -229,7 +222,7 @@ div:focus {
   min-width: 30vw;
   display: none;
   z-index: 100;
-  box-shadow: 0px .5em .5em .25em $shadow-color;
+  box-shadow: 0px .5em .5em .25em colors.$shadow-color;
   overflow-y: auto;
 }
 
@@ -238,7 +231,7 @@ div:focus {
   width: 100%;
   display: none;
   z-index: 100;
-  box-shadow: 0px .5em .5em .25em $shadow-color;
+  box-shadow: 0px .5em .5em .25em colors.$shadow-color;
 }
 
 #main-container {
@@ -247,7 +240,7 @@ div:focus {
   height:100vh;
 	padding:0px;
   margin:0px;
-  background-color: $main-background-color;
+  background-color: colors.$main-background-color;
 }
 
 #filter-view-main-container {
@@ -335,7 +328,7 @@ h1.main-header {
 
 	border-bottom-style:solid;
 	border-bottom-width: 1px;
-	border-bottom-color: $pane-bg-color;
+	border-bottom-color: colors.$pane-bg-color;
 }
 
 .header-compressed {
@@ -412,7 +405,7 @@ h1.main-header {
 }
 
 #result-section {
-	background-color: $pane-bg-color-dark;
+	background-color: colors.$pane-bg-color-dark;
   padding:20px;
   //height: calc(100vh - 129px);
   height: calc(100vh - 40px);
@@ -433,13 +426,13 @@ h1.main-header {
 }
 
 #facet-show-only-selections-btn {
-  color: $inactive-color;
+  color: colors.$inactive-color;
   padding-right: 5px;
   padding-bottom: 5px;
 }
 
 #facet-show-only-selections-btn:hover {
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
   cursor:pointer;
 }
 
@@ -451,7 +444,7 @@ h1.main-header {
 	position: absolute;
 	height: 300px;
 	width: 100%;
-	background-color: $pane-bg-color;
+	background-color: colors.$pane-bg-color;
 	margin: 0px;
 	padding: 0px;
 }
@@ -468,7 +461,7 @@ h1.main-header {
 }
 
 .facet-resize-handle:hover {
-  background: $inactive-color;
+  background: colors.$inactive-color;
 }
 
 .facet-resizing {
@@ -497,14 +490,14 @@ body.facet-resizing * {
 }
 
 .facet-locked > .facet-body > .list-container > .facet-row  {
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   cursor:not-allowed;
 }
 
 .facet-header {
 	display:flex;
 	cursor:move;
-  background: $inactive-color;
+  background: colors.$inactive-color;
   color: #fff;
 }
 
@@ -555,7 +548,7 @@ body.facet-resizing * {
   overflow: hidden;
   white-space: nowrap;
   text-align: right;
-  color: $aux-color;
+  color: colors.$aux-color;
 }
 
 
@@ -563,7 +556,7 @@ body.facet-resizing * {
 	margin-top:1px;
 	margin-bottom:0px;
 	width:97%;
-	background-color: $aux-color;
+	background-color: colors.$aux-color;
 }
 
 .facet-body {
@@ -595,7 +588,7 @@ body.facet-resizing * {
   left: 0px;
   width: 100%;
   height: 80px;
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   background-color: rgba(60, 60, 60, 0.9);
   background-color: lightgray;
   background-image: repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.25) 35px, rgba(255,255,255,.25) 70px);
@@ -610,14 +603,14 @@ body.facet-resizing * {
   display:block;
   color: #fff;
   font-size: 1.4rem;
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   padding: 2px;
   padding-top: 2px;
   padding-bottom: 2px;
 }
 
 .facet-disabled-msg .text {
-  color: $inactive-color;
+  color: colors.$inactive-color;
   background-color: transparent;
   font-size: 0.9rem;
   padding: 2px;
@@ -643,7 +636,7 @@ body.facet-resizing * {
 }
 
 .facet-head-btn:hover {
-	background-color: lighten($inactive-color, 10%);
+	background-color: color.adjust(colors.$inactive-color, $lightness: 10%);
 }
 
 .facet-minimize-btn {
@@ -654,7 +647,7 @@ body.facet-resizing * {
 }
 
 .facet-control-active {
-  color: $aux-color;
+  color: colors.$aux-color;
 }
 
 .facet-text-search-input {
@@ -680,7 +673,7 @@ body.facet-resizing * {
 }
 
 .facet-row:hover {
-	background-color: $pane-bg-color-dark;
+	background-color: colors.$pane-bg-color-dark;
 	cursor:pointer;
 }
 
@@ -690,7 +683,7 @@ body.facet-resizing * {
 }
 
 .facet-row-selected:hover {
-	background-color: $pane-bg-color-dark;
+	background-color: colors.$pane-bg-color-dark;
 	color: #fff;
 }
 
@@ -762,7 +755,7 @@ body.facet-resizing * {
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
-  color: $pane-bg-color-dark;
+  color: colors.$pane-bg-color-dark;
   background-color:transparent;
   height: 300px;
   padding: 0px;
@@ -773,19 +766,19 @@ body.facet-resizing * {
 }
 
 .slot-visible {
-  border: 4px solid $pane-bg-color;
+  border: 4px solid colors.$pane-bg-color;
   font-size: 1.0rem;
   padding-left: 20%;
   padding-right: 20%;
   text-align: center;
-  color: $inactive-color;
+  color: colors.$inactive-color;
 }
 
 .filter-demo-arrow {
   font-size: 7.5rem;
   text-align:center;
   width: 100%;
-  color: $pane-bg-color-dark;
+  color: colors.$pane-bg-color-dark;
 }
 
 .result-module-title {
@@ -802,11 +795,11 @@ body.facet-resizing * {
 }
 
 #result-tabs-container > ul > li.result-module-tabs-title {
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
 }
 
 #result-tabs-container > ul > li.result-module-tabs-title:hover {
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   cursor: default;
 }
 
@@ -829,7 +822,7 @@ body.facet-resizing * {
   color: #fff;
   margin-left: 0px;
   margin-right: 0px;
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   padding: 12px;
 }
 
@@ -861,7 +854,7 @@ body.facet-resizing * {
   padding: .15em;
   padding-left: .5em;
   padding-right: .5em;
-  background: $base-color;
+  background: colors.$base-color;
   color: #fff;
   align-items: center;
   justify-content: center;
@@ -871,18 +864,18 @@ body.facet-resizing * {
 
 .result-export-button:hover {
   cursor:pointer;
-  background: darken($pane-bg-color, 10%);
+  background: color.adjust(colors.$pane-bg-color, $lightness: -10%);
 }
 
 .result-export-button-mosaic {
   display: flex;
   position: absolute;
-  bottom: 0em;
-  left: 0em;
+  top: 0.25em;
+  right: 0.25em;
   padding: .15em;
   padding-left: .5em;
   padding-right: .5em;
-  background: $pane-bg-color;
+  background: transparent;
   color: #333;
   align-items: center;
   justify-content: center;
@@ -892,7 +885,7 @@ body.facet-resizing * {
 
 .result-export-button-mosaic:hover {
   cursor:pointer;
-  background: darken($pane-bg-color, 10%);
+  background: color.adjust(colors.$pane-bg-color, $lightness: -10%);
 }
 
 .result-taxon-grid-container {
@@ -1033,7 +1026,7 @@ body.facet-resizing * {
   display: inline-block;
   display: none;
   font-size: 1.0rem;
-  background: lighten($inactive-color, 60%);
+  background: color.adjust(colors.$inactive-color, $lightness: 60%);
   text-decoration: none;
   width: auto;
   padding: .25rem;
@@ -1322,7 +1315,7 @@ body.facet-resizing * {
   left: 0px;
   width: 100%;
   height: 2em;
-  background: $pane-bg-color;
+  background: colors.$pane-bg-color;
   color: #000;
   padding: 0em;
   font-size: 1.2em;
@@ -1516,7 +1509,7 @@ body.facet-resizing * {
 }
 
 .list-container-header-item:hover {
-  color: lighten(#444, 10%);
+  color: color.adjust(#444, $lightness: 10%);
 }
 
 .list-container {
@@ -1604,7 +1597,7 @@ body.facet-resizing * {
   font-size: 14px;
   font-weight: bold;
   color: #fff;
-  background-color: $base-color;
+  background-color: colors.$base-color;
   border: none;
   cursor: pointer;
 }
@@ -1642,7 +1635,7 @@ body.facet-resizing * {
   height: 1.5em;
   width: 2em;
   padding: 0;
-  background: $sead-brown;
+  background: colors.$sead-brown;
 }
 
 .feature-type-icon {
@@ -1663,7 +1656,7 @@ body.facet-resizing * {
   position: absolute;
   bottom: 0;
   display:inline-block;
-  background: $aux-color;
+  background: colors.$aux-color;
   width: 4px;
   margin: 0;
   padding: 0;
@@ -1691,7 +1684,7 @@ body.facet-resizing * {
 }
 */
 .scroll-selection-indicator {
-  background-color: $aux-color;
+  background-color: colors.$aux-color;
   height: 100%;
   width: 5px;
 }
@@ -1703,7 +1696,7 @@ body.facet-resizing * {
 
 
 .ui-resizable-handle:hover {
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   cursor: col-resize;
 }
 
@@ -1723,7 +1716,7 @@ body.facet-resizing * {
 .menu-symbol-facet {
 	position:relative;
 	display:inline-block;
-	background-color:$pane-bg-color;
+	background-color:colors.$pane-bg-color;
 	width: 12px;
 	height: 12px;
 	margin-right:4px;
@@ -1754,10 +1747,10 @@ body.facet-resizing * {
 
 	width: 80vw;
 	max-height: 80vh;
-	box-shadow: 0px 0px 20px $pane-bg-color;
+	box-shadow: 0px 0px 20px colors.$pane-bg-color;
 	border-width: 1px;
 	border-style: solid;
-	border-color: $pane-bg-color-dark;
+	border-color: colors.$pane-bg-color-dark;
 	padding: 30px;
 	z-index: 10;
 	overflow:auto;
@@ -1772,7 +1765,7 @@ body.facet-resizing * {
 
 .overlay-dialog-close-btn:hover {
 	cursor:pointer;
-	color: $aux-color;
+	color: colors.$aux-color;
 }
 
 .viewstate-dialog-content-container {
@@ -1836,18 +1829,18 @@ body.facet-resizing * {
 }
 
 .viewstate-load-item:hover {
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
   cursor:pointer;
   font-weight: bold;
 }
 
 .viewstate-delete-btn:hover {
-  color: $aux-color;
+  color: colors.$aux-color;
 }
 
 #viewstate-save-btn {
   display: none;
-  background-color: $base-color;
+  background-color: colors.$base-color;
   color: #fff;
   font-size: 1.2em;
   padding: 0.5em 1em;
@@ -1946,7 +1939,7 @@ div.facet-sql-btn {
 }
 
 .tabulator-row:hover {
-	background-color: lighten(rgba(45, 94, 141, 0.15), 20%) !important;
+	background-color: color.adjust(rgba(45, 94, 141, 0.15), $lightness: 20%) !important;
 	color: #000 !important;
 }
 
@@ -1962,7 +1955,7 @@ div.facet-sql-btn {
   	font-weight: normal;
 	border-radius: 0px;
 	color: #000;
-	border-color: $inactive-color;
+	border-color: colors.$inactive-color;
 	border-width: 2px;
 	z-index: 20 !important;
 	padding-top:4px !important;
@@ -1971,22 +1964,22 @@ div.facet-sql-btn {
 .notifyjs-bootstrap-info {
   background-color: #fff;
   background-image: none;
-  border-color: $inactive-color;
+  border-color: colors.$inactive-color;
   padding: 5px;
   padding-top: 2px;
 }
 
 .notifyjs-bootstrap-warn {
-  background-color: $warning-color;
+  background-color: colors.$warning-color;
   background-image: none;
-  border-color: $inactive-color;
+  border-color: colors.$inactive-color;
   padding: 5px;
 }
 
 .notifyjs-bootstrap-error {
-  background-color: $error-color;
+  background-color: colors.$error-color;
   background-image: none;
-  border-color: $inactive-color;
+  border-color: colors.$inactive-color;
   padding: 5px;
 }
 
@@ -2011,7 +2004,7 @@ div.facet-sql-btn {
 .result-info-text {
 	font-size: 50px;
 	font-weight: bold;
-	color: $inactive-color;
+	color: colors.$inactive-color;
 	grid-column-start: 2;
 	grid-column-end: 2;
 	grid-row-start: 2;
@@ -2028,7 +2021,7 @@ div.facet-sql-btn {
 
 .large-info-text {
 	font-size: 60px;
-	color: $inactive-color;
+	color: colors.$inactive-color;
   margin-bottom:20px;
 }
 
@@ -2039,7 +2032,7 @@ div.facet-sql-btn {
 
 .section-title {
 	font-size: 30px;
-	color: $pane-bg-color-dark;
+	color: colors.$pane-bg-color-dark;
 	white-space: nowrap;
 }
 
@@ -2096,13 +2089,14 @@ polyline{
   display: none; /*should be 'grid' when active*/
   grid-template-columns: repeat(2, 1fr [mosaic-column]);
   grid-template-rows: repeat(2, 1fr [mosaic-row]);
-  grid-gap: 10px;
+  grid-gap: 1em;
   justify-items: center;
   align-items: center;
-  width: 100%;
-  height:100%;
+  width: calc(100% - 2em);
+  height: calc(100% - 2em);
   background: #fff;
   overflow: hidden;
+  padding: 1em;
 }
 
 .result-mosaic-loading-indicator-container {
@@ -2137,12 +2131,13 @@ polyline{
   position: relative;
   width: 100%;
   height: 100%;
-  background-color: #eee;
+  background-color: #fff;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.15);
 }
 
 .result-mosaic-tile > h2 {
   position:absolute;
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
   /*color: #fff;*/
   padding-left: 2px;
   padding-right: 2px;
@@ -2154,21 +2149,20 @@ polyline{
 
 .result-mosaic-graph-container {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  background-color: $pane-bg-color;
+  width: calc(100% - 2em);
+  height: calc(100% - 2em);
+  padding: 1em;
 }
 
 .result-mosaic-tile-chart-selector {
   width: 100%;
   font-size: 0.8em;
-  background-color: $pane-bg-color;
 }
 
 .result-map-render-container {
   width: 100%;
   height: 100%;
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
 }
 
 .result-map-legend-container {
@@ -2176,7 +2170,7 @@ polyline{
   position: absolute;
   right: 5px;
   top: 5px;
-  background: $pane-bg-color;
+  background: colors.$pane-bg-color;
   padding: 0em;
   padding-bottom: .2em;
   overflow: auto;
@@ -2190,7 +2184,7 @@ polyline{
 .result-map-legend-container h4 {
   margin: 0;
   color: #fff;
-  background: $base-color;
+  background: colors.$base-color;
   flex: 1;
 	font-weight: normal;
 	font-size:1.3em;
@@ -2219,7 +2213,7 @@ polyline{
   position: relative;
   height: 20vh;
   width: 100%;
-  background: $pane-bg-color;
+  background: colors.$pane-bg-color;
   margin-top: 10px;
 }
 
@@ -2229,7 +2223,7 @@ polyline{
   align-items: center;
   justify-content: space-between;
   width: auto;
-  background: $pane-bg-color;
+  background: colors.$pane-bg-color;
   color: #fff;
   font-size: 1.2em;
   padding: 0.5em;
@@ -2252,9 +2246,9 @@ polyline{
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $base-color;
+  background: colors.$base-color;
   color: #fff;
-  border: 1px solid $base-color;
+  border: 1px solid colors.$base-color;
   cursor: pointer;
   height: 1.4em;
   padding-left: 0.5em;
@@ -2262,7 +2256,7 @@ polyline{
 }
 
 #timeline-data-selector-clicked-btn:hover {
-  background: lighten($base-color, 10%);
+  background: color.adjust(colors.$base-color, $lightness: 10%);
 }
 
 #timeline-data-selector-container {
@@ -2486,6 +2480,489 @@ polyline{
   background-color: rgb(32, 32, 34);
 }
 
+/* Dendro Dashboard Styles */
+.dendro-dashboard-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: colors.$pane-bg-color;
+  padding: 0.5%;
+  box-sizing: border-box;
+}
+
+.dendro-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 15px;
+  padding: 0.5%;
+  width: 100%;
+  box-sizing: border-box;
+  
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  @media (min-width: 1600px) {
+    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  }
+  
+  @media (min-width: 2000px) {
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+    gap: 20px;
+  }
+}
+
+.dendro-dashboard-variable-half-height {
+  min-height: 140px !important;
+  max-height: 180px !important;
+}
+
+.dendro-dashboard-variable {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: #fff;
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+  min-height: 280px;
+  max-height: 320px;
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.dendro-dashboard-variable-categorical {
+  min-height: 350px;
+  
+  @media (min-width: 1200px) {
+    grid-column: span 2;
+  }
+}
+
+.dendro-dashboard-variable-mirrored {
+  min-height: 380px;
+}
+
+// Container for splitting a grid slot vertically into two half-height charts
+.dendro-dashboard-split-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  
+  .dendro-dashboard-variable {
+    margin: 0;
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+.dendro-dashboard-variable-label {
+  font-weight: 600;
+  font-size: 1em;
+  color: #333;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dendro-dashboard-chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  row-gap: 10px;
+  min-height: 0;
+  height: 100%;
+  margin-left: 1em;
+  margin-right: 1em;
+}
+
+.label-with-info-symbol {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.grid-variable-chart-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  
+  canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+.dendro-dashboard-stacked-bar-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60px;
+  width: 100%;
+  max-width: 600px;
+  position: relative;
+}
+
+.dendro-dashboard-info-icon {
+  display: inline-block;
+  color: #333;
+  font-size: 1em;
+  cursor: help;
+  flex-shrink: 0;
+  margin-left: 6px;
+  transition: color 0.2s ease, transform 0.2s ease;
+  
+  &:hover {
+    color: #444;
+    transform: scale(1.15);
+  }
+}
+
+.dendro-dashboard-download-btn {
+  background: transparent;
+  border: 1px solid #333;
+  color: #333;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  
+  &:hover {
+    background: #333;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  i {
+    font-size: 0.9em;
+  }
+}
+
+/* Numeric Range Styles */
+.dendro-dashboard-numeric-range {
+  margin-top: 8px;
+  padding: 20px 5px 5px 5px;
+}
+
+.dendro-dashboard-range-bar {
+  position: relative;
+  height: 80px;
+  background: #f0f0f0;
+  border-radius: 5px;
+  margin-bottom: 12px;
+  overflow: visible;
+}
+
+.dendro-dashboard-distribution {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  padding: 0;
+}
+
+.dendro-dashboard-distribution-bar {
+  flex: 1;
+  background: rgba(45, 94, 141, 0.25);
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  
+  &:hover {
+    background: rgba(45, 94, 141, 0.45);
+  }
+  
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.dendro-dashboard-range-fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4CAF50 0%, #FFC107 50%, #FF5722 100%);
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.dendro-dashboard-range-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 11px;
+  height: 11px;
+  background: #fff;
+  border: 2px solid #333;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 2;
+  
+  &:hover {
+    width: 15px;
+    height: 15px;
+    border-width: 3px;
+  }
+}
+
+.dendro-dashboard-marker-min {
+  border-color: #4CAF50;
+}
+
+.dendro-dashboard-marker-median {
+  border-color: #FFC107;
+  width: 13px;
+  height: 13px;
+}
+
+.dendro-dashboard-marker-max {
+  border-color: #FF5722;
+}
+
+.dendro-dashboard-marker-label {
+  position: absolute;
+  top: -27px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 0.8em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.dendro-dashboard-marker-text {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7em;
+  color: #666;
+  white-space: nowrap;
+  pointer-events: none;
+  font-weight: 500;
+}
+
+.dendro-dashboard-range-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85em;
+  color: #666;
+  margin-top: 5px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dendro-dashboard-stat {
+  background: #f5f5f5;
+  padding: 3px 9px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* Binary and Categorical Bar Styles */
+.dendro-dashboard-binary-bar,
+.dendro-dashboard-categorical-bar {
+  display: flex;
+  height: 36px;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.dendro-dashboard-bar-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 10%;
+    height: 80%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.dendro-dashboard-bar-label {
+  color: #fff;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dendro-dashboard-binary-legend,
+.dendro-dashboard-categorical-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.85em;
+}
+
+.dendro-dashboard-binary-legend {
+  justify-content: space-around;
+}
+
+.dendro-dashboard-categorical-legend {
+  flex-direction: column;
+  gap: 5px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.dendro-dashboard-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #555;
+}
+
+.dendro-dashboard-legend-color {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.dendro-dashboard-legend-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.dendro-dashboard-legend-value {
+  color: #777;
+  font-size: 0.85em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Horizontal Bar Chart for Tree Species */
+.dendro-dashboard-horizontal-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dendro-dashboard-horizontal-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dendro-dashboard-horizontal-bar-label {
+  min-width: 100px;
+  font-size: 0.9em;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dendro-dashboard-horizontal-bar-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.dendro-dashboard-horizontal-bar-fill {
+  height: 24px;
+  border-radius: 4px;
+  transition: width 0.3s ease, opacity 0.2s ease;
+  position: relative;
+  min-width: 2px;
+  
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+.dendro-dashboard-horizontal-bar-value {
+  font-size: 0.85em;
+  color: #666;
+  font-weight: 600;
+  min-width: 35px;
+  text-align: right;
+}
+
+/* Count Variable Styles */
+.dendro-dashboard-variable-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.dendro-dashboard-count-card {
+  text-align: center;
+  padding: 10px;
+}
+
+.dendro-dashboard-count-value {
+  font-size: 2.5em;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 7px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dendro-dashboard-count-label {
+  font-size: 1em;
+  font-weight: 400;
+  opacity: 0.95;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
 .dataTables_filter input[type='search'] {
 
 }
@@ -2616,7 +3093,7 @@ polyline{
   background: rgba(255, 255, 255, 1.0);
   border-radius: 3px;
   padding: 10px;
-  box-shadow: 0px 0px 20px 0px $shadow-color;
+  box-shadow: 0px 0px 20px 0px colors.$shadow-color;
 }
 
 .map-popup-container:after, .map-popup-container:before {
@@ -2650,7 +3127,7 @@ polyline{
   background: rgba(255, 255, 255, 1.0);
   border-radius: 3px;
   padding: 10px;
-  box-shadow: 0px 0px 20px 0px $shadow-color;
+  box-shadow: 0px 0px 20px 0px colors.$shadow-color;
   z-index: 3;
 }
 
@@ -2691,7 +3168,7 @@ polyline{
 }
 
 .jslink-alt {
-	color: $aux-color;
+	color: colors.$aux-color;
 	cursor:pointer;
 }
 
@@ -2705,7 +3182,7 @@ polyline{
 
 .sample-map-tooltip-link:hover {
   cursor:pointer;
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
 }
 
 .sample-map-tooltip-text {
@@ -2732,14 +3209,14 @@ polyline{
   cursor:pointer;
   color: white; /* Text color */
   text-shadow: 
-    -1px -1px 4px $sead-brown,
-     1px -1px 4px $sead-brown,
-    -1px  1px 4px $sead-brown,
-     1px  1px 4px $sead-brown; /* Outline effect */
+    -1px -1px 4px colors.$sead-brown,
+     1px -1px 4px colors.$sead-brown,
+    -1px  1px 4px colors.$sead-brown,
+     1px  1px 4px colors.$sead-brown; /* Outline effect */
 }
 
 .site-report-link :hover {
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
 }
 
 #result-map-controls-container {
@@ -2755,42 +3232,42 @@ polyline{
   display:flex;
   position:absolute;
   top: 0px;
-  right: 0px;
+  left: 0px;
   z-index: 1;
 }
 
 .base-layer-select-container {
-  background: $base-color;
+  background: colors.$base-color;
   position: absolute;
   top: 0;
   left: 0;
 }
 
 .menu-row-item {
-  background: $base-color;
+  background: colors.$base-color;
   position: relative;
   top: 0;
   padding: .5em;
-  color: $white;
+  color: colors.$white;
   font-size: 1.2em;
 }
 
 .menu-row-item:hover {
-  background: lighten($base-color, 10%);
+  background: color.adjust(colors.$base-color, $lightness: 10%);
   cursor: pointer;
 }
 
 .menu-row-item-divider {
   width: 1px;
   height: 2.5;
-  background: $inactive-color;
+  background: colors.$inactive-color;
 }
 
 .menu-row-item-toggle {
-  background: $base-color;
+  background: colors.$base-color;
   position: relative;
   top: .4em;
-  color: $white;
+  color: colors.$white;
   font-size: 1.0em;
 }
 
@@ -2805,7 +3282,7 @@ polyline{
 }
 
 #facet-menu > .sqs-menu-block-vertical-large {
-  background-color: $base-color !important;
+  background-color: colors.$base-color !important;
 }
 /*
 #facet-menu:hover  {
@@ -2857,12 +3334,12 @@ polyline{
 }
 
 .popper {
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
   background-color: #fff;
-  border: 1px solid $inactive-color;
+  border: 1px solid colors.$inactive-color;
   border-radius: 0.25em;
   padding: 10px;
-  box-shadow: 0px 0px 10px 2px $shadow-color;
+  box-shadow: 0px 0px 10px 2px colors.$shadow-color;
   max-width: 40%;
 }
 
@@ -2875,7 +3352,7 @@ polyline{
 .tooltip-anchor-highlight {
   animation-duration: 0.5s;
   animation-name: tooltip-anchor-highlight;
-  background-color: $aux-color;
+  background-color: colors.$aux-color;
 }
 
 @keyframes tooltip-anchor-highlight {
@@ -2884,7 +3361,7 @@ polyline{
   }
 
   to {
-	background-color: $aux-color;
+	background-color: colors.$aux-color;
   }
 }
 
@@ -2931,7 +3408,7 @@ polyline{
 
 .team-member-name::after {
   content: "";
-  border-bottom: 1px solid $pane-bg-color-dark;
+  border-bottom: 1px solid colors.$pane-bg-color-dark;
   position:relative;
   display:block;
   top: 0px;
@@ -2946,7 +3423,7 @@ polyline{
   margin: 10px;
   padding: 10px;
   padding-bottom: 20px;
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
   font-size: 14px;
   width: 200px;
   height: 150px;
@@ -2983,9 +3460,9 @@ polyline{
   grid-row: 2;
   background: #fff;
   padding: 1.5em;
-  box-shadow: 0px 0px 10px 10px $shadow-color;
+  box-shadow: 0px 0px 10px 10px colors.$shadow-color;
   border-radius: 3px;
-  border-left: .5em solid $aux-color;
+  border-left: .5em solid colors.$aux-color;
   z-index: 6;
 }
 
@@ -3016,12 +3493,12 @@ polyline{
 .popup-dialog {
   position: fixed;
   z-index: 100;
-  border: 1px solid $pane-bg-color-dark;
+  border: 1px solid colors.$pane-bg-color-dark;
   padding: 1em;
   max-width: 500px;
   max-height: 500px;
   overflow: auto;
-  box-shadow: 0px .5em .5em .25em $shadow-color;
+  box-shadow: 0px .5em .5em .25em colors.$shadow-color;
   border-radius: .0em;
   background: #fff;
 }
@@ -3060,7 +3537,7 @@ polyline{
 }
 
 #result-title {
-  color:$sead-brown;
+  color:colors.$sead-brown;
   background-color: #fff;
   position:relative;
   top: 0px;
@@ -3232,7 +3709,7 @@ polyline{
   border-radius: 1em;
   padding: 0.5em;
   border: 1px solid #ccc;
-  box-shadow: 0px 0px .5em .25em $shadow-color;
+  box-shadow: 0px 0px .5em .25em colors.$shadow-color;
 }
 
 #preload-failed-indicator {
@@ -3477,7 +3954,7 @@ svg text {
   padding: 1em;
   background: #fff;
   border: 1px solid #ccc;
-  box-shadow: 0px 0px 10px 2px $shadow-color;
+  box-shadow: 0px 0px 10px 2px colors.$shadow-color;
 }
 
 .dendro-chart-tooltip-container-content td {
@@ -3487,7 +3964,7 @@ svg text {
 }
 
 .dendro-chart-tooltip-container-content tr:hover {
-  background: $pane-bg-color;
+  background: colors.$pane-bg-color;
 }
 
 
@@ -3549,7 +4026,7 @@ svg text {
 }
 
 .site-reference-box {
-  background: $pane-bg-color;
+  background: colors.$pane-bg-color;
   padding: 1em;
   margin-bottom: 1em;
 }
@@ -3573,7 +4050,7 @@ svg text {
 }
 
 .filter-special-function-link:hover {
-  color: $aux-color;
+  color: colors.$aux-color;
   cursor: zoom-in;
 }
 
@@ -3581,23 +4058,23 @@ svg text {
 }
 
 .result-map-map-control-item {
-  background: $base-color;
+  background: colors.$base-color;
   position: relative;
   top: 0;
   padding: 1em;
   padding-top: 0.5em;
   padding-bottom: 0.5em;
-  color: $white;
+  color: colors.$white;
   font-size: 1.2em;
 }
 
 .result-map-map-control-item:hover {
-  background: lighten($base-color, 10%);
+  background: color.adjust(colors.$base-color, $lightness: 10%);
   cursor: pointer;
 }
 
 .result-map-map-control-item.disabled {
-  background: $inactive-color;
+  background: colors.$inactive-color;
   cursor: not-allowed;
 }
 
@@ -3643,7 +4120,7 @@ svg text {
   margin-right: 1em;
   margin-top: 1em;
   font-size: 1.2em;
-  box-shadow: 0px 0px 10px 2px $shadow-color;
+  box-shadow: 0px 0px 10px 2px colors.$shadow-color;
   animation: slide-in 0.25s ease-in-out;
   display: flex;
   align-items: center;
@@ -3679,15 +4156,15 @@ svg text {
 }
 
 .notification-level-info {
-  background: $info-color;
+  background: colors.$info-color;
 }
 
 .notification-level-warning {
-  background: $warning-color;
+  background: colors.$warning-color;
 }
 
 .notification-level-error {
-  background: $error-color;
+  background: colors.$error-color;
 }
 
 .dismiss-btn {
@@ -3745,7 +4222,7 @@ svg text {
 
 .tab-button {
   border: none;
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
   color: #000;
   cursor: pointer;
   font-size: 1em;
@@ -3754,7 +4231,7 @@ svg text {
 }
 
 .tab-button.active {
-  background-color: $base-color;
+  background-color: colors.$base-color;
   color: #fff;
 }
 
@@ -3767,7 +4244,7 @@ svg text {
 }
 
 .taxon-link {
-  color: $base-color;
+  color: colors.$base-color;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -3809,9 +4286,9 @@ svg text {
   animation-duration: 0.5s;
   animation-delay: 2s;
   animation-fill-mode: forwards;
-  box-shadow: 0px 0px 10px 10px $shadow-color;
+  box-shadow: 0px 0px 10px 10px colors.$shadow-color;
   border-radius: 3px;
-  border-left: .5em solid $aux-color;
+  border-left: .5em solid colors.$aux-color;
 }
 
 #tutorial-select-form-container {
@@ -3830,11 +4307,11 @@ svg text {
 
 .tutorial-dialog button:hover {
   cursor: pointer;
-  background: lighten($base-color, 10%);
+  background: color.adjust(colors.$base-color, $lightness: 10%);
 }
 
 .tutorial-dialog .yes-button {
-  background: $base-color;
+  background: colors.$base-color;
   color: #fff;
   border: none;
   padding: .5em;
@@ -3844,7 +4321,7 @@ svg text {
 }
 
 .tutorial-dialog .no-button {
-  background: $inactive-color;
+  background: colors.$inactive-color;
   color: #fff;
   border: none;
   padding: .5em;
@@ -3854,11 +4331,11 @@ svg text {
 
 .tutorial-container {
   border-radius: 0 !important;
-  box-shadow: 0px 0px 10px 10px $shadow-color !important;
+  box-shadow: 0px 0px 10px 10px colors.$shadow-color !important;
 }
 
 .shepherd-footer button.yes-button {
-  background: $base-color !important;
+  background: colors.$base-color !important;
   color: #fff !important;
   border: none !important;
   padding: .5em !important;
@@ -3867,7 +4344,7 @@ svg text {
 }
 
 .shepherd-footer button.no-button {
-  background: $inactive-color !important;
+  background: colors.$inactive-color !important;
   color: #fff !important;
   border: none !important;
   padding: .5em !important;
@@ -3876,7 +4353,7 @@ svg text {
 }
 
 .tutorial-container .shepherd-header {
-  background: $base-color !important;
+  background: colors.$base-color !important;
   border-radius: 0 !important;
 }
 
@@ -3908,7 +4385,7 @@ svg text {
 }
 
 .tutorial-container .shepherd-button {
-  background: $base-color !important;
+  background: colors.$base-color !important;
   color: #fff !important;
   border: none !important;
   border-radius: 0 !important;
@@ -3959,7 +4436,7 @@ svg text {
   height: calc(100% - 5em);
   overflow: hidden;
   padding: 2em;
-  padding-top: 3em;
+  padding-top: 2em;
 }
 
 .mosaic-top-taxa-table-container {
@@ -3988,11 +4465,11 @@ svg text {
   top: 0;
   padding: .5em;
   text-align: left;
-  background: $pane-bg-color;
+  background: colors.$pane-bg-color;
 }
 
 .taxa-table td {
-  border: 1px solid $pane-bg-color-dark;
+  border: 1px solid colors.$pane-bg-color-dark;
   border-right-width: 0;
   border-left-width: 0;
   padding: .5em;
@@ -4062,12 +4539,12 @@ svg text {
 .popup-dialog {
   position: fixed;
   z-index: 100;
-  border: 1px solid $pane-bg-color-dark;
+  border: 1px solid colors.$pane-bg-color-dark;
   padding: 1em;
   max-width: 500px;
   max-height: 500px;
   overflow: auto;
-  box-shadow: 0px .5em .5em .25em $shadow-color;
+  box-shadow: 0px .5em .5em .25em colors.$shadow-color;
   border-radius: .0em;
   background: #fff;
 }
@@ -4088,7 +4565,7 @@ svg text {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $base-color;
+  background: colors.$base-color;
   position: relative;
   top: 0;
   color: #fff;
@@ -4107,12 +4584,12 @@ svg text {
 }
 
 .site-report-table-button:hover {
-  background: $pane-bg-color-dark;
+  background: colors.$pane-bg-color-dark;
   cursor: pointer;
 }
 
 .tabulator .tabulator-row.tabulator-selected {
-  background-color: $pane-bg-color !important;
+  background-color: colors.$pane-bg-color !important;
 }
 
 .tabulator .tabulator-row:nth-child(odd) {
@@ -4143,7 +4620,7 @@ svg text {
 }
 .tabulator-col {
   font-size: 1.0em;
-  background: $inactive-color !important;
+  background: colors.$inactive-color !important;
   color: #fff;
 }
 
@@ -4185,7 +4662,7 @@ svg text {
 
 .thin-divider-line {
   border: 0; 
-  border-top: 1px solid $aux-color;
+  border-top: 1px solid colors.$aux-color;
 }
 
 .mosaic-dynamic-chart-form > div {
@@ -4213,7 +4690,7 @@ svg text {
   align-items: center;
   justify-content: center;
   margin-top: 2em;
-  background: $base-color;
+  background: colors.$base-color;
   color: #fff;
   padding: 1em;
 }
@@ -4260,7 +4737,7 @@ svg text {
 
 .export-progress-bar-fill {
   height: 100%;
-  background: $base-color;
+  background: colors.$base-color;
   width: 0%;
 }
 
@@ -4269,7 +4746,7 @@ svg text {
 }
 
 #lab-filter-selections-has-changed-warning > .fa-exclamation-triangle {
-  color: $warning-color;
+  color: colors.$warning-color;
   font-size: 1.2em;
   line-height: 1.2em;
   margin-right: 0.25em;
@@ -4301,7 +4778,7 @@ svg text {
 
 .lab-progress-bar-fill {
   height: 100%;
-  background: $base-color;
+  background: colors.$base-color;
   width: 0%;
 }
 
@@ -4314,7 +4791,7 @@ svg text {
   justify-content: center;
   cursor: pointer;
   width: auto;
-  background: $base-color;
+  background: colors.$base-color;
   color: #fff;
 }
 
@@ -4340,7 +4817,7 @@ svg text {
 }
 
 tr.free-text-search-result-row:hover {
-  background: $pane-bg-color;
+  background: colors.$pane-bg-color;
 }
 
 #aux-menus-container {
@@ -4354,7 +4831,7 @@ tr.free-text-search-result-row:hover {
 #result-globe-control-panel {
   position: absolute;
   top: 4em;
-  background: rgba($pane-bg-color, 0.9);
+  background: rgba(colors.$pane-bg-color, 0.9);
   padding: 1em;
 }
 
@@ -4363,7 +4840,7 @@ tr.free-text-search-result-row:hover {
   display: none;
   right: 0px;
   bottom: 60px;
-  background: $base-color;
+  background: colors.$base-color;
   color: #fff;
   padding: 0.5em;
   cursor: pointer;
@@ -4375,7 +4852,7 @@ tr.free-text-search-result-row:hover {
 }
 
 .grid-stack-item-content {
-  background: $pane-bg-color;
+  background: colors.$pane-bg-color;
   border: 1px solid #ccc;
 }
 
@@ -4419,7 +4896,7 @@ a.ms-selectall {
   cursor: pointer;
   text-decoration: none !important;
   color: #fff;
-  background: $base-color;
+  background: colors.$base-color;
   padding: 0.25em;
   text-transform: none !important
 }
@@ -4434,15 +4911,15 @@ a.ms-selectall:hover {
   margin-bottom: 1em;
   margin-top: 1em;
   padding-bottom: 1em;
-  border-bottom: 1px solid $pane-bg-color-dark;
-  background: $pane-bg-color;
+  border-bottom: 1px solid colors.$pane-bg-color-dark;
+  background: colors.$pane-bg-color;
   padding: 1em;
 }
 
 #result-lab-header > h2 {
   font-size: 1.5em;
   font-weight: bold;
-  color: $base-color;
+  color: colors.$base-color;
   margin: 0;
   margin-bottom: 1em;
   background: transparent;
@@ -4450,7 +4927,7 @@ a.ms-selectall:hover {
 
 .login-button {
   display: inline-block;
-  background: $base-color;
+  background: colors.$base-color;
   color: #fff;
   padding: 0.5em 1em;
   margin-bottom: 1em;
@@ -4460,7 +4937,7 @@ a.ms-selectall:hover {
 }
 
 .login-button:hover {
-  background: lighten($base-color, 10%);
+  background: color.adjust(colors.$base-color, $lightness: 10%);
   cursor: pointer;
 }
 
@@ -4497,4 +4974,51 @@ a.ms-selectall:hover {
 
 .sub-layer-list-toggle h5 {
     width: 100%;
+}
+
+.dendro-mini-chart-label {
+  font-size: 0.8em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dendro-mini-chart-percentage {
+  font-size: 0.8em;
+  color: #555;
+  font-weight: 600;
+  flex-shrink: 0;
+  min-width: 50px;
+  text-align: right;
+}
+
+.dendro-mini-chart-container {
+  display: flex;
+  gap: 1em;
+  padding: 0;
+  margin: 0;
+  align-items: center;
+  width: 100%;
+}
+
+.dendro-mini-chart-wrapper {
+  flex: 1;
+  min-width: 0;
+  
+  canvas {
+    width: 100% !important;
+    display: block;
+  }
+}
+
+.dendro-tile-container {
+  height: 100%;
+  
+}
+
+.dendro-tile-chart {
+  height: 100%;
+}
+
+.dendro-tile-chart-canvas-wrapper {
+  height: calc(80% - 2em);
 }

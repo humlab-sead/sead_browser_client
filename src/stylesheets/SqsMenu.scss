@@ -1,7 +1,9 @@
-@import "style.scss";
+@use "sass:color";
+@use "colors";
+@use "variables" as *;
 
 .sqs-menu-block-active {
-  background-color: $base-color-light !important;
+  background-color: colors.$base-color-light !important;
 }
 
 .header-vertical-divider {
@@ -9,7 +11,7 @@
   top:0px;
   left:0px;
   margin-left:0px;
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
   width: 1px;
   height: 90px;
 }
@@ -19,7 +21,7 @@
   display:grid;
   width: 100px;
   height: 100px;
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   color: #fff;
   font-family: 'Didact Gothic';
   font-weight:bold;
@@ -32,7 +34,7 @@
   align-items: center;
 
   &:hover {
-    background-color: $base-color-light;
+    background-color: colors.$base-color-light;
     cursor:pointer;
     }
 }
@@ -121,7 +123,7 @@
 .l1-container { /* .menu-category */
   position: relative;
   cursor:pointer;
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   //background-color: #ddd;
   color: #333;
   padding: 0px;
@@ -180,14 +182,14 @@
 */
 
 #facet-menu .l2-title {
-  background-color: $pane-bg-color !important;
+  background-color: colors.$pane-bg-color !important;
   /*
   border-left: 2px solid #fff;
   */
 }
 
 .l1-container-level-vertical .l1-container .l1-title:hover {
-  background-color: $base-color-light !important;
+  background-color: colors.$base-color-light !important;
   color: #fff !important;
   cursor: pointer;
 }
@@ -210,7 +212,7 @@
 }
 
 .l1-container-level-vertical .l1-title:hover {
-  background-color: $base-color-light;
+  background-color: colors.$base-color-light;
   color: #fff;
 }
 
@@ -248,11 +250,11 @@ ul.l1-container-level {
 }
 
 .l1-container.l1-inactive:hover {
-  background-color: $base-color-light !important;
+  background-color: colors.$base-color-light !important;
 }
 
 li.l1-container:hover {
-  background-color: $base-color-light;
+  background-color: colors.$base-color-light;
 }
 
 .l2-level { /* .menu-item-level */
@@ -260,10 +262,10 @@ li.l1-container:hover {
   position:static; /*change to static for mobile */
   padding-left:0px;
   margin-top:0px;
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   border-left-width: 0px;
   border-left-style: solid;
-  border-left-color: $base-color-light;
+  border-left-color: colors.$base-color-light;
   padding-left: 0px;
   padding-right: 0px;
   /*width: 189px;*/
@@ -295,7 +297,7 @@ li.l1-container:hover {
 }
 
 .l2-title:hover {
-  background-color: $base-color-light;
+  background-color: colors.$base-color-light;
   color: #fff;
 }
 
@@ -306,12 +308,12 @@ li.l1-container:hover {
   padding: 1em;
   background-color: rgba(238, 238, 238, 1);
   width: fit-content;
-  box-shadow: 2px 12px 10px 5px $shadow-color;
+  box-shadow: 2px 12px 10px 5px colors.$shadow-color;
   border-radius: 0.2em;
 }
 
 .sqs-menu-static-selection {
-  background-color: $base-color;
+  background-color: colors.$base-color;
 }
 
 .sqs-menu-container { /* main container for expanded menu */
@@ -346,34 +348,34 @@ li.l1-container:hover {
 
 #domain-menu {
   .sqs-menu-title-container {
-    background: $base-color;
+    background: colors.$base-color;
   }
   .l1-container {
     background-color: #ddd;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   }
   .l1-container:hover {
-    background-color: $base-color-light;
+    background-color: colors.$base-color-light;
   }
   .l1-container .l1-title:hover {
-    background-color: $base-color-light;
+    background-color: colors.$base-color-light;
   }
   .l1-container:hover .l1-title {
-    background-color: $base-color-light;
+    background-color: colors.$base-color-light;
     color: #fff;
   }
 
   .sqs-menu-static-selection {
-    background-color: $base-color;
+    background-color: colors.$base-color;
   }
   .sqs-menu-static-selection .l1-title {
-    background-color: $base-color;
+    background-color: colors.$base-color;
     color: #fff;
   }
 }
 
 #aux-menu {
-  box-shadow: 0px .5em .5em .25em $shadow-color;
+  box-shadow: 0px .5em .5em .25em colors.$shadow-color;
   position: fixed;
   z-index: 91;
 }
@@ -422,21 +424,21 @@ li.l1-container:hover {
     font-size: 1.0rem;
   }
   .l1-container:hover {
-    background-color: $base-color-light;
+    background-color: colors.$base-color-light;
   }
   .l1-container .l1-title:hover {
-    background-color: $base-color-light;
+    background-color: colors.$base-color-light;
   }
   .l1-container:hover .l1-title {
-    background-color: $base-color-light;
+    background-color: colors.$base-color-light;
     color: #fff;
   }
 
   .sqs-menu-static-selection {
-    background-color: $base-color;
+    background-color: colors.$base-color;
   }
   .sqs-menu-static-selection .l1-title {
-    background-color: $base-color;
+    background-color: colors.$base-color;
     color: #fff;
   }
 }
@@ -445,7 +447,7 @@ li.l1-container:hover {
   position: absolute;
   top: 3.5em;
   left: 5px;
-  background: rgba($pane-bg-color, 1.0);
+  background: rgba(colors.$pane-bg-color, 1.0);
   min-width: 15em;
   max-height: 50vh;
   height: auto;
@@ -470,7 +472,7 @@ li.l1-container:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: $base-color;
+  background: colors.$base-color;
   color: #fff;
   margin: 0;
   padding: 0;
@@ -506,11 +508,11 @@ li.l1-container:hover {
 }
 
 .header-btn-active {
-  color: $aux-color;
+  color: colors.$aux-color;
 }
 
 .header-btn:hover {
-	background-color: lighten($base-color, 10%);
+	background-color: color.adjust(colors.$base-color, $lightness: 10%);
 }
 
 .header-text-search-input {
@@ -609,7 +611,7 @@ li.l1-container:hover {
 }
 
 .sqs-menu-selected {
-  background-color: lighten($base-color, 10%) !important;
+  background-color: color.adjust(colors.$base-color, $lightness: 10%) !important;
   color: #fff !important;
 }
 

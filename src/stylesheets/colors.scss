@@ -1,12 +1,13 @@
+@use 'sass:color';
 $main-background-color: #ffffff;
 $white: #ffffff;
 $inactive-color: #444444;
-$inactive-color-light: scale-color($inactive-color, $lightness: +10%);
+$inactive-color-light: color.scale($inactive-color, $lightness: 10%);
 $base-color:rgb(45, 94, 141);
-$base-color-light: scale-color($base-color, $lightness: +10%);
+$base-color-light: color.scale($base-color, $lightness: 10%);
 $aux-color: #ff6600;
 $pane-bg-color: #eeeeee;
-$pane-bg-color-dark: scale-color($pane-bg-color, $lightness: -10%);
+$pane-bg-color-dark: color.scale($pane-bg-color, $lightness: -10%);
 $sead-brown: #875d5d;
 $shadow-color: rgba(0, 0, 0, 0.3);
 $error-color: rgba(190, 28, 28, 0.85);

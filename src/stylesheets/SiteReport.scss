@@ -1,11 +1,13 @@
-
+@use "colors";
+@use "sass:color";
+@use "variables" as *;
 
 #site-report-panel {
 }
 
 #site-report-exit-menu {
   display: block;
-  background-color: $sead-brown;
+  background-color: colors.$sead-brown;
   width: auto;
   font-size: 4em;
   padding: .25em;
@@ -14,13 +16,13 @@
 }
 
 #site-report-exit-menu:hover {
-  background-color: lighten($base-color, 10%);
+  background-color: color.adjust(colors.$base-color, $lightness: 10%);
   cursor: pointer;
 }
 
 .site-report-level-content > h3 {
   margin-top: 0px;
-  color: $inactive-color;
+  color: colors.$inactive-color;
 }
 
 .site-report-level-container {
@@ -33,7 +35,7 @@
 
 .site-report-level-title {
   cursor: pointer;
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   background-color: transparent;
   border-radius: 0px;
   color: #000;
@@ -51,7 +53,7 @@
 
 .site-report-level-title:hover {
   background-color: #eee;
-  border-left-color: $aux-color;
+  border-left-color: colors.$aux-color;
   transition: border-left-color 0.2s;
 }
 
@@ -63,13 +65,13 @@
   border-bottom: 0px solid #ccc;
   //background-color: #a00;
   //background: linear-gradient(to right, $aux-color, transparent);
-  background: $base-color;
+  background: colors.$base-color;
 }
 
 .site-report-level-title-static:hover {
   background-color: #ddd;
   transition: background-color 0.2s, border-left-color 0.2s;
-  border-left-color: $aux-color;
+  border-left-color: colors.$aux-color;
 }
 
 .site-report-level-content {
@@ -81,7 +83,7 @@
   margin-left: 22px;
   background-color: #fff;
   border-width: 0px 0px 0px 0px;
-  border-color: $base-color;
+  border-color: colors.$base-color;
   border-style: solid;
 
   padding-bottom: 1em;
@@ -157,7 +159,7 @@
   margin-right: 5px;
   min-width: 60px;
   text-align:left;
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   color: #fff;
 }
 
@@ -191,7 +193,7 @@
 }
 
 .site-report-chart-tooltip > h4 {
-  color: $aux-color;
+  color: colors.$aux-color;
   font-size: 0.75rem;
   display: inline-block;
 }
@@ -294,8 +296,8 @@ h5 {
 }
 
 .site-report-aux-header-container-expandable:hover {
-  background-color: $inactive-color;
-  border-left: 5px solid $aux-color;
+  background-color: colors.$inactive-color;
+  border-left: 5px solid colors.$aux-color;
   cursor:pointer;
 }
 
@@ -319,7 +321,7 @@ h5 {
 }
 
 .site-report-table thead {
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   color: #fff;
 
   background-color: #eee;
@@ -327,20 +329,20 @@ h5 {
 }
 
 .site-report-table tbody td {
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   color: #fff;
 }
 
 table.site-report-table > tbody > tr.site-report-table-row:hover > td {
-  background-color:$pane-bg-color;
+  background-color:colors.$pane-bg-color;
 }
 
 table.site-report-table > tbody > tr.site-report-table-row-with-subtable:hover > td {
-  background-color:$pane-bg-color;
+  background-color:colors.$pane-bg-color;
 }
 
 table.site-report-table tr.table-row-expanded > td {
-  background-color: lighten($base-color, 10%) !important;
+  background-color: color.adjust(colors.$base-color, $lightness: 10%) !important;
 }
 
 .site-report-table tbody th, table.dataTable tbody td {
@@ -359,17 +361,17 @@ thead > tr > td {
 }
 
 .site-report-table tbody .site-report-table-row-with-subtable td {
-  background-color: $inactive-color !important;
+  background-color: colors.$inactive-color !important;
   color: #fff !important;
 }
 
 tr.site-report-table-row-with-subtable:hover td {
   cursor:pointer;
-  background-color:$base-color !important;
+  background-color:colors.$base-color !important;
 }
 
 .site-report-subtable > tbody > tr:hover > td {
-  background-color:$pane-bg-color !important;
+  background-color:colors.$pane-bg-color !important;
 }
 
 
@@ -398,7 +400,7 @@ tr.site-report-table-row-with-subtable:hover td {
 }
 
 .site-report-table tbody td {
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   color: #fff;
 }
 
@@ -521,7 +523,7 @@ tr.site-report-table-row-with-subtable:hover td {
 
 .site-report-toolbar-btn {
   margin-left: 0px;
-  background-color: $inactive-color;
+  background-color: colors.$inactive-color;
   background-color: transparent;
   color: #333;
   padding: 2px;
@@ -534,7 +536,7 @@ tr.site-report-table-row-with-subtable:hover td {
 
 .site-report-toolbar-btn:hover {
   cursor: pointer;
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
   transition: background-color 0.2s;
 }
 
@@ -562,7 +564,7 @@ tr.site-report-table-row-with-subtable:hover td {
 }
 
 .site-report-export-download-btn:hover {
-  background-color: $aux-color;
+  background-color: colors.$aux-color;
   color: #fff;
   transition: background-color 0.1s, color 0.1s;
 }
@@ -580,7 +582,7 @@ tr.site-report-table-row-with-subtable:hover td {
 
 .light-theme-button:hover {
   cursor:pointer;
-  background-color: $aux-color;
+  background-color: colors.$aux-color;
   color: #fff;
   transition: background-color 0.1s, color 0.1s;
 }
@@ -599,14 +601,14 @@ tr.site-report-table-row-with-subtable:hover td {
   margin-right:5px;
   padding-right:0px;
   font-size: 20px;
-  border-left: 4px solid $base-color;
+  border-left: 4px solid colors.$base-color;
   padding-left: 4px;
 
   border-right: 0px solid #ccc;
   margin-top: 5px;
 
   text-decoration: none;
-  text-decoration-color: $base-color;
+  text-decoration-color: colors.$base-color;
 }
 
 .content-item-header-divider {
@@ -629,11 +631,11 @@ tr.site-report-table-row-with-subtable:hover td {
 }
 
 .siteReportError {
-  color: $error-color;
+  color: colors.$error-color;
 }
 
 .site-report-analysis-unknown-warning {
-  color: $warning-color;
+  color: colors.$warning-color;
 }
 
 .small-auxiliary-header-text {
@@ -705,7 +707,7 @@ tr.site-report-table-row-with-subtable:hover td {
 
 .sample-group-analysis-infobox {
   display: inline-block;
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
   border-radius: 3px;
   margin-left: 2px;
   margin-right: 2px;
@@ -715,7 +717,7 @@ tr.site-report-table-row-with-subtable:hover td {
 }
 
 .sample-group-analysis-infobox:hover {
-  background-color: $aux-color;
+  background-color: colors.$aux-color;
   cursor:pointer;
 }
 
@@ -726,7 +728,7 @@ tr.site-report-table-row-with-subtable:hover td {
 .sr-ref-item {
   display:block;
   margin-bottom: 10px;
-  background-color: $pane-bg-color;
+  background-color: colors.$pane-bg-color;
   padding: 10px;
 }
 
@@ -772,8 +774,8 @@ tr.site-report-table-row-with-subtable:hover td {
 }
 
 .sample-group-analysis-tag:hover {
-  background: lighten(#eee, 10%);
-  border-left: 0.3em solid $aux-color;
+  background: color.adjust(#eee, $lightness: 10%);
+  border-left: 0.3em solid colors.$aux-color;
 }
 
 .site-report-reference-title {
