@@ -13,6 +13,7 @@ class MosaicTileModule {
         this.renderComplete = false;
         this.chartType = "";
         this.name = "";
+        this.showChartSelector = true; // Controls whether chart selector dropdown is shown
     }
 
     async fetchData(path, postData) {

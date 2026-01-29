@@ -1,12 +1,12 @@
 import MosaicTileModule from "./MosaicTileModule.class";
 
-class MosaicTaxaListModule extends MosaicTileModule {
+class MosaicArchaeobotanyTaxaListModule extends MosaicTileModule {
     constructor(sqs) {
         super();
         this.sqs = sqs;
         this.title = "Top taxa";
-		this.name = "mosaic-taxa-list";
-		this.domains = ["general", "palaeo", "archaeobotany"];
+        this.name = "mosaic-archaeobotany-taxa-list";
+        this.domains = ["archaeobotany"];
         this.pendingRequestPromise = null;
         this.active = true;
         this.data = null;
@@ -46,7 +46,7 @@ class MosaicTaxaListModule extends MosaicTileModule {
 
         this.sqs.setLoadingIndicator(`#${tableContainerId}`, true);
 
-        let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/toptaxa", {
+        let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/toptaxa/8", {
             method: "POST",
             mode: "cors",
             headers: {
@@ -66,35 +66,59 @@ class MosaicTaxaListModule extends MosaicTileModule {
 
         let renderMaxCount = 15;
 
-        //render the data as a table
+        // calculate maximum abundance so we can show a proportional background bar per row
+        let maxAbundance = 0;
+        if(Array.isArray(data) && data.length) {
+            maxAbundance = data.reduce((m, it) => {
+                const v = Number(it.abundance) || 0;
+                return v > m ? v : m;
+            }, 0);
+        }
+
+        // render the data as a compact div list with integrated thin bars under each item
         let out = "";
         out += "<div class='mosaic-top-taxa-container'>";
-        out += "<div class='mosaic-top-taxa-table-container'>";
-        out += "<table class='taxa-table'>";
-        out += "<thead>";
-        out += "<tr>";
-        out += "<th>Taxon</th>";
-        out += "<th>Count</th>";
-        out += "</thead>";
-        out += "<tbody>";
+        out += "<div class='mosaic-top-taxa-list-container' style='width:100%;'>";
+        // header row
+        out += "<div style='display:flex; justify-content:space-between; font-weight:600; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.06);'>";
+        out += "<div>Taxon</div>";
+        out += "<div>Count</div>";
+        out += "</div>";
+
+        // items
         data.forEach((item) => {
             if(renderMaxCount-- <= 0) {
                 return;
             }
-            out += "<tr>";
+
+            // compute percentage of the max abundance (0-100)
+            let pct = 0;
+            if(maxAbundance > 0) {
+                pct = (Number(item.abundance) || 0) / maxAbundance * 100;
+                pct = Math.min(100, Math.round(pct * 100) / 100);
+            }
+
+            out += "<div class='taxa-item' style='padding:2px 0; border-bottom:1px solid rgba(0,0,0,0.03);'>";
+            out += "<div style='display:flex; justify-content:space-between; align-items:center;'>";
             if(item.family && item.genus && item.species) {
-                out += "<td>"+this.sqs.formatTaxon(item, null, true, true)+"</td>";
+                out += "<div style='flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'>"+this.sqs.formatTaxon(item, null, true, false)+"</div>";
             }
             else {
-                out += "<td>Taxon id "+item.taxon_id+"</td>";
+                out += "<div style='flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'>Taxon id "+item.taxon_id+"</div>";
             }
-            out += "<td>"+item.abundance.toLocaleString(navigator.language)+"</td>";
-                out += "</tr>";
+            out += "<div style='margin-left:12px; flex:0 0 auto; text-align:right; white-space:nowrap;'>"+item.abundance.toLocaleString(navigator.language)+"</div>";
+            out += "</div>";
+
+            // integrated ultra-thin bar (2px) with minimal spacing so it takes almost no extra space
+            out += "<div style='margin-top:2px; height:2px; display:block; overflow:visible;'>";
+            out += "<div style='height:2px; width:"+pct+"%; background: rgba(0,123,255,0.8); border-radius:1px;'></div>";
+            out += "</div>";
+
+            out += "</div>";
         });
-        out += "</tbody>";
-        out += "</table>";
-        out += "</div>";
-        out += "</div>";
+
+        out += "</div>"; // .mosaic-top-taxa-list-container
+        out += "</div>"; // .mosaic-top-taxa-container
 
         this.sqs.setLoadingIndicator(`#${tableContainerId}`, false);
         $(`#${tableContainerId}`).html(out);
@@ -106,7 +130,7 @@ class MosaicTaxaListModule extends MosaicTileModule {
     }
 
     async fetchData() {
-        
+        // Not implemented
     }
 
     formatDataForExport(data, format = "json") {
@@ -127,4 +151,4 @@ class MosaicTaxaListModule extends MosaicTileModule {
     }
 }
 
-export default MosaicTaxaListModule;
+export default MosaicArchaeobotanyTaxaListModule;

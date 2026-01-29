@@ -13,6 +13,7 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         this.plot = null;
         this.renderComplete = false;
         this.chartType = "plotly";
+        this.showChartSelector = false;
     }
 
     async render(renderIntoNode = null) {
@@ -27,8 +28,26 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         }
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        this.sqs.setLoadingIndicator(this.renderIntoNode, true);
-       
+
+        // Clear previous content
+        $(this.renderIntoNode).empty();
+
+        // Create a container with a header/title bar and a dedicated chart container for Plotly
+        const varId = (typeof nanoid === 'function') ? nanoid() : Math.random().toString(36).substr(2, 9);
+        const chartContainerId = `chart-container-${varId}`;
+        const tileHtml = `
+            <div class="sample-methods-tile-container" id="${varId}" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
+                <div class="sample-methods-tile-header" style="flex: 0 0 auto;">
+                    <h3 class="sample-methods-tile-title" style="margin: 0; font-size: 1.2em;">${this.title}</h3>
+                </div>
+                <div class="sample-methods-tile-chart" id="${chartContainerId}" style="flex: 1 1 0; min-height: 200px; width: 100%;"></div>
+            </div>
+        `;
+        $(this.renderIntoNode).append(tileHtml);
+
+        // Show loading indicator on the chart container only
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);
+
         let response = await super.fetchData("/graphs/sample_methods", JSON.stringify(resultMosaic.sites));
         if(!response) {
             return false;
@@ -37,9 +56,9 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         let data = await response.json();
         this.data = data.sample_methods_sample_groups;
 
-        let colors = this.sqs.color.getColorScheme(data.sample_methods_sample_groups.length);
+        let colors = this.sqs.color.getNiceColorScheme(data.sample_methods_sample_groups.length);
 
-        let  chartData = [{
+        let chartData = [{
             labels: [],
             values: [],
             customdata: [],
@@ -56,12 +75,12 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         }];
 
         data.sample_methods_sample_groups.sort((a, b) => {
-             if(a.sample_groups_count > b.sample_groups_count) {
+            if(a.sample_groups_count > b.sample_groups_count) {
                 return -1;
-             }
-             else {
+            }
+            else {
                 return 1;
-             }
+            }
         });
 
         data.sample_methods_sample_groups.forEach(method => {
@@ -70,25 +89,10 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
             chartData[0].customdata.push(method.method_meta.method_name);
         });
 
-        this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false }).then(plot => {
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
+        resultMosaic.renderPieChartPlotly(`#${chartContainerId}`, chartData, { showlegend: false }).then(plot => {
             this.plot = plot;
         })
-
-
-        /*
-        const promiseData = await resultMosaicModule.fetchSiteData(resultMosaicModule.sites, "qse_methods", resultMosaicModule.requestBatchId);
-        if(promiseData.requestId < resultMosaicModule.requestBatchId) {
-            return false;
-        }
-
-        this.data = promiseData.data;
-        console.log(this.data);
-
-        let chartSeries = resultMosaicModule.prepareChartData("method_id", "method_name", promiseData.data);
-        console.log(chartSeries);
-        */
-        //this.chart = resultMosaicModule.renderPieChart(this.renderIntoNode, chartSeries, "Sampling methods");
         this.renderComplete = true;
     }
 

@@ -16,10 +16,24 @@ import MosaicDendroTreeSpeciesChartModule from "./MosaicTileModules/MosaicDendro
 import MosaicDendroConstructionPurposeModule from "./MosaicTileModules/MosaicDendroConstructionPurposeModule.class";
 import MosaicTemporalDistributionModule from "./MosaicTileModules/MosaicTemporalDistributionModule.class";
 import MosaicTaxaListModule from "./MosaicTileModules/MosaicTaxaListModule.class";
+import MosaicArchaeobotanyTaxaListModule from "./MosaicTileModules/MosaicArchaeobotanyTaxaListModule.class.js";
 import MosaicEcoCodesModule from './MosaicTileModules/MosaicEcoCodesModule.class.js';
 import MosaicDynamicChartModule from './MosaicTileModules/MosaicDynamicChartModule.class.js';
 import MosaicDendroWaneyEdgeModule from './MosaicTileModules/MosaicDendroWaneyEdgeModule.class.js';
 import MosaicDendroBarkModule from './MosaicTileModules/MosaicDendroBarkModule.class.js';
+import MosaicDendroDashboard from './MosaicTileModules/MosaicDendroDashboard.class.js';
+import MosaicDendroTreeSpecies from './MosaicTileModules/MosaicDendroTreeSpecies.class.js';
+import MosaicDendroSampleTypes from './MosaicTileModules/MosaicDendroSampleTypes.class.js';
+import MosaicDendroTreeAge from './MosaicTileModules/MosaicDendroTreeAge.class.js';
+import MosaicDendroSapwood from './MosaicTileModules/MosaicDendroSapwood.class.js';
+import MosaicDendroPith from './MosaicTileModules/MosaicDendroPith.class.js';
+import MosaicDendroTreeRings from './MosaicTileModules/MosaicDendroTreeRings.class.js';
+import MosaicDendroAnalysedRadii from './MosaicTileModules/MosaicDendroAnalysedRadii.class.js';
+import MosaicDendroBark from './MosaicTileModules/MosaicDendroBark.class.js';
+import MosaicDendroEwLwMeasurements from './MosaicTileModules/MosaicDendroEwLwMeasurements.class.js';
+import MosaicDendroWaneyEdge from './MosaicTileModules/MosaicDendroWaneyEdge.class.js';
+import MosaicDatedSitesModule from './MosaicTileModules/MosaicDatedSites.class.js';
+import MosaicDomainSamples from './MosaicTileModules/MosaicDomainSamples.class.js';
 import { nanoid } from 'nanoid';
 import Plotly from "plotly.js-dist-min";
 
@@ -128,6 +142,12 @@ class ResultMosaic extends ResultModule {
 			module: null
 		});
 		this.modules.push({
+			title: "Top archaeobotanical taxa",
+			className: "MosaicArchaeobotanyTaxaListModule",
+			classTemplate: MosaicArchaeobotanyTaxaListModule,
+			module: null
+		});
+		this.modules.push({
 			title: "BUGS eco codes",
 			className: "MosaicEcoCodesModule",
 			classTemplate: MosaicEcoCodesModule,
@@ -155,6 +175,84 @@ class ResultMosaic extends ResultModule {
 			title: "Bark",
 			className: "MosaicDendroBarkModule",
 			classTemplate: MosaicDendroBarkModule,
+			module: null
+		});
+		this.modules.push({
+			title: "Dendro Dashboard",
+			className: "MosaicDendroDashboard",
+			classTemplate: MosaicDendroDashboard,
+			module: null
+		});
+		this.modules.push({
+			title: "Tree Species",
+			className: "MosaicDendroTreeSpecies",
+			classTemplate: MosaicDendroTreeSpecies,
+			module: null
+		});
+		this.modules.push({
+			title: "Sample Types",
+			className: "MosaicDendroSampleTypes",
+			classTemplate: MosaicDendroSampleTypes,
+			module: null
+		});
+		this.modules.push({
+			title: "Tree Age Distribution",
+			className: "MosaicDendroTreeAge",
+			classTemplate: MosaicDendroTreeAge,
+			module: null
+		});
+		this.modules.push({
+			title: "Sapwood",
+			className: "MosaicDendroSapwood",
+			classTemplate: MosaicDendroSapwood,
+			module: null
+		});
+		this.modules.push({
+			title: "Pith",
+			className: "MosaicDendroPith",
+			classTemplate: MosaicDendroPith,
+			module: null
+		});
+		this.modules.push({
+			title: "Tree Rings",
+			className: "MosaicDendroTreeRings",
+			classTemplate: MosaicDendroTreeRings,
+			module: null
+		});
+		this.modules.push({
+			title: "Analysed Radii",
+			className: "MosaicDendroAnalysedRadii",
+			classTemplate: MosaicDendroAnalysedRadii,
+			module: null
+		});
+		this.modules.push({
+			title: "Bark",
+			className: "MosaicDendroBark",
+			classTemplate: MosaicDendroBark,
+			module: null
+		});
+		this.modules.push({
+			title: "EW/LW Measurements",
+			className: "MosaicDendroEwLwMeasurements",
+			classTemplate: MosaicDendroEwLwMeasurements,
+			module: null
+		});
+		this.modules.push({
+			title: "Waney Edge",
+			className: "MosaicDendroWaneyEdge",
+			classTemplate: MosaicDendroWaneyEdge,
+			module: null
+		});
+		this.modules.push({
+			title: "Dated Sites",
+			className: "MosaicDatedSitesModule",
+			classTemplate: MosaicDatedSitesModule,
+			module: null
+		});
+		this.modules.push({
+			title: "Samples per domain",
+			className: "MosaicDomainSamples",
+			classTemplate: MosaicDomainSamples,
 			module: null
 		});
 		
@@ -340,7 +438,7 @@ class ResultMosaic extends ResultModule {
 				mConf.grid_box_id = this.getGridBoxId(mConf);
 				this.renderGridModule(mConf, mosaicTileId).then(() => {
 					if(this.sqs.config.showMosaicExportButtons) {
-						let exportButton = $("<div></div>").addClass("result-export-button-mosaic").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
+						let exportButton = $("<div></div>").addClass("result-export-button-mosaic").attr("title", "Export").html("<i class='fa fa-download' aria-hidden='true'></i>");
 						$("#"+mosaicTileId).append(exportButton);
 						this.bindExportModuleDataToButton("#"+mosaicTileId+" .result-export-button-mosaic", mConf.module);
 					}
@@ -376,7 +474,7 @@ class ResultMosaic extends ResultModule {
 
 	async renderGridModule(moduleConf, mosaicTileId) {
 		let module = this.getInstanceOfModule(moduleConf.module_name);
-		
+
 		let tileNode = $("<div id='"+mosaicTileId+"' class='result-mosaic-tile'></div>");
 		if(!module) {
 			tileNode.append("<h2>NoSuchModuleError - "+moduleConf.module_name+"</h2>");
@@ -401,6 +499,16 @@ class ResultMosaic extends ResultModule {
 	}
 
 	renderGridModuleSelector(resultGridModules, moduleConf, grid_box_id, options) {
+		// Check if the current module wants to show the chart selector
+		if(moduleConf.module && moduleConf.module.showChartSelector === false) {
+			return "";
+		}
+		
+		// Only show the selector if there are more than 1 option
+		if(resultGridModules.length <= 1) {
+			return "";
+		}
+
 		let titleSelectHtml = "<h2><select result-mosaic-grid-box-id='"+grid_box_id+"' class=\"result-mosaic-tile-chart-selector\">";
 
 		let selectOptionsHtml = "";
@@ -791,8 +899,8 @@ class ResultMosaic extends ResultModule {
 					size: 22
 				},
 			},
-			plot_bgcolor: this.sqs.color.colors.paneBgColor,
-			paper_bgcolor: this.sqs.color.colors.paneBgColor,
+			plot_bgcolor: "#fff",
+			paper_bgcolor: "#fff",
 			autosize: true,
 			showlegend: false,
 			margin: {
@@ -812,12 +920,11 @@ class ResultMosaic extends ResultModule {
 				automargin: true,
 			},
 			responsive: true,
-			displayModeBar: true
 		};
 
 		let config = {
 			responsive: true,
-			displayModeBar: true,
+			displayModeBar: false,
 			displaylogo: false,
 			modeBarButtons: [['toImage']]
 		}
@@ -1058,7 +1165,6 @@ class ResultMosaic extends ResultModule {
 				  size: 22
 				},
 			},
-			displayModeBar: true,
 			margin: {
 				l: 50,
 				r: 50,
@@ -1073,7 +1179,7 @@ class ResultMosaic extends ResultModule {
 
 		let config = {
 			responsive: true,
-			displayModeBar: true
+			displayModeBar: false
 		}
 
 		Object.assign(config, configConfig);
@@ -1121,7 +1227,7 @@ class ResultMosaic extends ResultModule {
 		}
 
 		let layout = {
-      		paper_bgcolor: this.sqs.color.colors.paneBgColor,
+      		paper_bgcolor: "#fff",
 			showlegend: true,
 			title: {
 				text:'',
@@ -1130,7 +1236,6 @@ class ResultMosaic extends ResultModule {
 				  size: 22
 				},
 			},
-			displayModeBar: true,
 			margin: {
 				l: 50,
 				r: 50,
@@ -1145,7 +1250,7 @@ class ResultMosaic extends ResultModule {
 		let anchorNodeId = renderIntoNode.substring(1);
 		let config = {
 			responsive: true,
-			displayModeBar: true
+			displayModeBar: false
 		}
 
 		let plot = await Plotly.newPlot(anchorNodeId, chartData, layout, config);

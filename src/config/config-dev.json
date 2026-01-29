@@ -563,7 +563,7 @@
 			"icon":"<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>",
 			"color":"#333",
 			"filterBlacklist": [],
-			"result_grid_layout": [2, 2],
+			"result_grid_layout": [3, 2],
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",
@@ -586,6 +586,16 @@
 					"grid_column": "2"
 				},
 				{
+					"module_name": "mosaic-dated-sites",
+					"grid_row": "3",
+					"grid_column": "2"
+				},
+				{
+					"module_name": "mosaic-domain-samples",
+					"grid_row": "3",
+					"grid_column": "1"
+				},
+				{
 					"module_name": "mosaic-taxa-list",
 					"default": false
 				}
@@ -598,30 +608,57 @@
 		"icon":"<i class=\"fa fa-tree\" aria-hidden=\"true\"></i>",
 		"color":"#0a0",
 		"filterBlacklist": ["species", "family", "species_author", "tbl_biblio_modern", "geochronology"],
-		"result_grid_layout": [2, 2],
+		"result_grid_layout": [4, 3],
 		"result_grid_modules": [
 				{
-					"module_name": "mosaic-map",
+					"module_name": "mosaic-dendro-tree-age",
 					"grid_row": "1",
 					"grid_column": "span 2"
 				},
 				{
-					"module_name": "mosaic-waney-edge-chart",
-					"grid_row": "2",
-					"grid_column": "1",
-					"default": true
+					"module_name": "mosaic-dendro-tree-species",
+					"grid_row": "1",
+					"grid_column": "3"
 				},
 				{
-					"module_name": "mosaic-dendro-tree-species-chart",
+					"module_name": "mosaic-dendro-sample-types",
 					"grid_row": "2",
-					"grid_column": "2",
-					"default": true
+					"grid_column": "1"
 				},
 				{
-					"module_name": "mosaic-bark-chart",
+					"module_name": "mosaic-dendro-sapwood",
 					"grid_row": "2",
-					"grid_column": "1",
-					"default": false
+					"grid_column": "2"
+				},
+				{
+					"module_name": "mosaic-dendro-pith",
+					"grid_row": "2",
+					"grid_column": "3"
+				},
+				{
+					"module_name": "mosaic-dendro-tree-rings",
+					"grid_row": "3",
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-dendro-analysed-radii",
+					"grid_row": "3",
+					"grid_column": "2"
+				},
+				{
+					"module_name": "mosaic-dendro-waney-edge",
+					"grid_row": "3",
+					"grid_column": "3"
+				},
+				{
+					"module_name": "mosaic-dendro-bark",
+					"grid_row": "4",
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-dendro-ew-lw-measurements",
+					"grid_row": "4",
+					"grid_column": "2"
 				}
 			]
 		},
@@ -658,28 +695,34 @@
 		"icon":"<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i>",
 		"color":"#9c591b",
 		"filterBlacklist": [],
-		"result_grid_layout": [2, 2],
-			"result_grid_modules": [
-				{
-					"module_name": "mosaic-map",
-					"grid_row": "1",
-					"grid_column": "span 2"
-				},
-				{
-					"module_name": "mosaic-sample-methods",
-					"grid_row": "2",
-					"grid_column": "2"
-				},
-				{
-					"module_name": "mosaic-analysis-methods",
-					"grid_row": "2",
-					"grid_column": "1"
-				},
-				{
-					"module_name": "mosaic-feature-types",
-					"default": false
-				}
-			]
+		"result_grid_layout": [3, 2],
+		"result_grid_modules": [
+			{
+				"module_name": "mosaic-archaeobotany-taxa-list",
+				"grid_row": "1",
+				"grid_column": "1"
+			},
+			{
+				"module_name": "mosaic-sample-methods",
+				"grid_row": "1",
+				"grid_column": "2"
+			},
+			{
+				"module_name": "mosaic-analysis-methods",
+				"grid_row": "2",
+				"grid_column": "1"
+			},
+			{
+				"module_name": "mosaic-feature-types",
+				"grid_row": "2",
+				"grid_column": "2"
+			},
+			{
+				"module_name": "mosaic-map",
+				"grid_row": "3",
+				"grid_column": "span 2"
+			}
+		]
 		},
 		{
 		"name":"pollen",
@@ -696,14 +739,9 @@
 					"grid_column": "span 2"
 				},
 				{
-					"module_name": "mosaic-taxa-list",
-					"grid_row": "2",
-					"grid_column": "1"
-				},
-				{
 					"module_name": "mosaic-analysis-methods",
 					"grid_row": "2",
-					"grid_column": "2"
+					"grid_column": "span 2"
 				}
 			]
 		},

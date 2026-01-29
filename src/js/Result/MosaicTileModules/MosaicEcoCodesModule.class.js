@@ -35,6 +35,7 @@ class MosaicEcoCodesModule extends MosaicTileModule {
         this.requestId = 0;
         this.renderComplete = false;
         this.chartType = "chartjs";
+        this.showChartSelector = false;
     }
 
     async render(renderIntoNode = null) {
@@ -51,16 +52,33 @@ class MosaicEcoCodesModule extends MosaicTileModule {
 
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        this.sqs.setLoadingIndicator(this.renderIntoNode, true);
+
+        // Clear previous content
+        $(this.renderIntoNode).empty();
+
+        // Create a container with a header/title bar and a dedicated chart container for Chart.js
+        const varId = (typeof nanoid === 'function') ? nanoid() : Math.random().toString(36).substr(2, 9);
+        const chartContainerId = `chart-container-${varId}`;
+        const tileHtml = `
+            <div class="eco-codes-tile-container" id="${varId}" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
+                <div class="eco-codes-tile-header" style="flex: 0 0 auto;">
+                    <h3 class="eco-codes-tile-title" style="margin: 0; font-size: 1.2em;">${this.title}</h3>
+                </div>
+                <div class="eco-codes-tile-chart" id="${chartContainerId}" style="flex: 1 1 0; min-height: 200px; width: 100%; display: flex; align-items: stretch;"></div>
+            </div>
+        `;
+        $(this.renderIntoNode).append(tileHtml);
+
+        // Show loading indicator on the chart container only
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);
 
         let ecoCodeNames = [];
-		let datasets = [];
-		
-		datasets.push({
-			label: "Eco codes",
-			data: [],
-			backgroundColor: []
-		});
+        let datasets = [];
+        datasets.push({
+            label: "Eco codes",
+            data: [],
+            backgroundColor: []
+        });
 
         let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/ecocodes", {
             method: 'POST',
@@ -70,80 +88,91 @@ class MosaicEcoCodesModule extends MosaicTileModule {
             body: JSON.stringify(resultMosaic.sites)
         });
         let responseData = await response.json();
-		this.data = responseData;
+        this.data = responseData;
 
         responseData.ecocode_groups.sort(function(a, b) {
             return b.totalAbundance - a.totalAbundance;
         });
 
+        // Calculate total abundance for percentage calculation
+        let totalAbundance = responseData.ecocode_groups.reduce((sum, group) => sum + group.totalAbundance, 0);
+
         for(let key in responseData.ecocode_groups) {
             let ecocode = responseData.ecocode_groups[key];
             let ecoCodeName = ecocode.name;
             ecoCodeNames.push(ecoCodeName);
-            datasets[0].data.push(ecocode.totalAbundance);
+            // Calculate percentage (0-100)
+            let percent = totalAbundance > 0 ? (ecocode.totalAbundance / totalAbundance) * 100 : 0;
+            percent = Math.round(percent * 10) / 10; // Round to one decimal place
+            datasets[0].data.push(percent);
 
             for(let defKey in this.sqs.bugsEcoCodeDefinitions) {
                 if(this.sqs.bugsEcoCodeDefinitions[defKey].ecocode_definition_id == ecocode.ecocode_definition_id) {
-					datasets[0].backgroundColor.push(this.sqs.bugsEcoCodeDefinitions[defKey].color);
-				}
-			}
+                    datasets[0].backgroundColor.push(this.sqs.bugsEcoCodeDefinitions[defKey].color);
+                }
+            }
         }
 
-		const data = {
-			labels: ecoCodeNames,
-			datasets: datasets
-		};
+        const data = {
+            labels: ecoCodeNames,
+            datasets: datasets
+        };
 
-		let config = {
-			type: 'bar',
-			data: data,
-			options: {
-				animation: false,
-				plugins: {
-					title: {
-						display: true,
-						text: 'Eco codes'
-					},
-					legend: {
-						display: false,
-						position: 'top',
-					},
-					tooltip: {
-						enabled: true,
-						callbacks: {
-							title: function(context) {
-								return context[0].label;
-							},
-							label: function(context) {
-                                return context.formattedValue+" counts of taxa fall within this eco code.";
-							}
-						}
-					}
-				},
-				responsive: true,
+        let config = {
+            type: 'bar',
+            data: data,
+            options: {
+                animation: false,
+                plugins: {
+                    title: {
+                        display: false,
+                        text: ''
+                    },
+                    legend: {
+                        display: false,
+                        position: 'top',
+                    },
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                // Show percentage with one decimal
+                                return context.formattedValue + "% of total abundance";
+                            }
+                        }
+                    }
+                },
+                responsive: true,
                 indexAxis: 'y', // Set the index axis to 'y' for vertical bars
                 maintainAspectRatio: false,
-				scales: {
-					x: {
-						stacked: true,
-					},
-					y: {
-						stacked: true
-					}
-				}
-			}
-		};
-		
-		this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-		this.chartId = "chart-"+nanoid();
-		var chartContainer = $("<canvas id='"+this.chartId+"' style='padding:1.5em;'></canvas>");
-		$(this.renderIntoNode).append(chartContainer);
-        
-		let c = new Chart(
-			document.getElementById(this.chartId),
-			config
-		);
-        
+                scales: {
+                    x: {
+                        stacked: true,
+                        title: {
+                            display: true,
+                            text: 'Percentage (%)'
+                        }
+                    },
+                    y: {
+                        stacked: true
+                    }
+                }
+            }
+        };
+
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
+        this.chartId = `chart-${varId}`;
+        var chartCanvas = $(`<canvas id='${this.chartId}' style='padding:1.5em;'></canvas>`);
+        $(`#${chartContainerId}`).append(chartCanvas);
+
+        let c = new Chart(
+            document.getElementById(this.chartId),
+            config
+        );
+
         this.renderComplete = true;
     }
 
