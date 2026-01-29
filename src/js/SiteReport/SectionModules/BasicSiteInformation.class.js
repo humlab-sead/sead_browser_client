@@ -587,32 +587,36 @@ class BasicSiteInformation {
 	renderMiniMap(siteData) {
 		$("#site-report-map-container").html("");
 
-		this.olMap = new Map({
-			//controls: [],
-			controls: defaultControls({ zoom: true, rotate: false }),
-			target: 'site-report-map-container',
-			layers: new GroupLayer({
-				layers: [
-					new TileLayer({
-						source: new StadiaMaps({
-							layer: 'stamen_terrain_background',
-							wrapX: true,
-							url: "https://tiles-eu.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}.png",
-							attributions: `&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a>
-							&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a>
-							&copy; <a href="https://www.openstreetmap.org/about/" target="_blank">OpenStreetMap contributors</a>
-							&copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a>`
-						}),
-						visible: true
-					})
-				]
-			}),
-			view: new View({
-				center: fromLonLat([parseFloat(siteData.longitude_dd), parseFloat(siteData.latitude_dd)]),
-				zoom: 4
-			}),
-		});
+		// Create OpenLayersMap instance instead of plain Map
+		let olMap = new OpenLayersMap(this.sqs);
+		olMap.render("#site-report-map-container");
+
+		// Add menu structure for base layer selector
+		let mapMenu = `
+		<div class='menu-row-container'>
+			<div class='map-base-layer-menu-container'>
+				<div class='menu-row-item'>Base layers</div>
+				<div class='map-base-layer-menu sqs-menu-container'></div>
+			</div>
+		</div>
+		`;
+
+		$("#site-report-map-container").append(mapMenu);
 		
+		// Set initial view
+		olMap.olMap.setView(new View({
+			center: fromLonLat([parseFloat(siteData.longitude_dd), parseFloat(siteData.latitude_dd)]),
+			zoom: 4
+		}));
+
+		// Add standard base layers
+		olMap.addStandardBaseLayers();
+		olMap.setMapBaseLayer("osm");
+
+		// Render base layer menu
+		olMap.renderBaseLayerMenu("#site-report-map-container .map-base-layer-menu-container");
+		
+		// Create site location marker
 		var iconFeatures = [];
 		
 		var coords = transform([parseFloat(siteData.longitude_dd), parseFloat(siteData.latitude_dd)], 'EPSG:4326', 'EPSG:3857');
@@ -648,10 +652,12 @@ class BasicSiteInformation {
 			style: iconStyle
 		});
 		
-		this.olMap.addLayer(vectorLayer);
+		olMap.olMap.addLayer(vectorLayer);
+		
+		this.olMap = olMap;
 		
 		this.sqs.sqsEventListen("layoutResize", () => {
-			this.olMap.updateSize();
+			this.olMap.olMap.updateSize();
 		}, this);
 	}
 
