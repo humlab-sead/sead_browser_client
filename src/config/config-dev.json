@@ -1,6 +1,6 @@
 {
 	"build": "staging",
-	"version": "2026-01.0-dev",
+	"version": "2026-01.1-dev",
 	"dataLicense": {
 		"name":"Creative Commons Attribution 4.0 International",
 		"shortName":"CC-BY-4.0",
