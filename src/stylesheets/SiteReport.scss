@@ -569,24 +569,6 @@ tr.site-report-table-row-with-subtable:hover td {
   transition: background-color 0.1s, color 0.1s;
 }
 
-.light-theme-button {
-  display: inline-block;
-  border: 1px solid #aaa;
-  padding: 5px 10px 5px 10px;
-  color: #444;
-  text-decoration: none;
-  font-family: $special-font;
-  font-weight: bold;
-  background-color: #fff;
-}
-
-.light-theme-button:hover {
-  cursor:pointer;
-  background-color: colors.$aux-color;
-  color: #fff;
-  transition: background-color 0.1s, color 0.1s;
-}
-
 .content-item-header-container {
   display: flex;
   justify-content: flex-start;

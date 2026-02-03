@@ -588,7 +588,13 @@ class DendroBaseModule extends MosaicTileModule {
                 return;
             }
             
-            if(chartEntry.chart) {
+            if(chartEntry.plotly) {
+                // Plotly chart
+                Plotly.downloadImage(chartEntry.elementId, {
+                    format: 'png',
+                    filename: `${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart`
+                });
+            } else if(chartEntry.chart) {
                 // Chart.js chart
                 const url = chartEntry.chart.toBase64Image();
                 const link = document.createElement('a');
