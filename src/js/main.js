@@ -6,6 +6,7 @@ import 'zingtouch';
 import 'cookieconsent';
 import '../../node_modules/cookieconsent/build/cookieconsent.min.js';
 import '../../node_modules/cookieconsent/build/cookieconsent.min.css';
+import '../stylesheets/OpenLayersMap.scss';
 import '../stylesheets/SqsLayoutManager.scss';
 import '../stylesheets/SqsMenu.scss';
 import '../stylesheets/style.scss';
