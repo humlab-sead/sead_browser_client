@@ -1,5 +1,8 @@
 import MosaicTileModule from "./MosaicTileModule.class";
 import { nanoid } from "nanoid";
+import Chart from 'chart.js/auto';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import Plotly from 'plotly.js-dist-min';
 
 /**
  * DendroBaseModule - Base class for dendrochronology tile modules
@@ -16,7 +19,9 @@ class DendroBaseModule extends MosaicTileModule {
         this.data = null;
         this.renderComplete = false;
         this.chartInstances = new Map();
+        this.coverageCharts = new Map(); // Store coverage chart data for resize
         this.showChartSelector = false; // Dendro modules don't need chart selector
+        this.resizeHandler = this.handleResize.bind(this);
     }
 
     /**
@@ -250,6 +255,7 @@ class DendroBaseModule extends MosaicTileModule {
      */
     renderCoverageMiniChart(container, samplesWithVariable, totalSamples) {
         if(!totalSamples || totalSamples === 0) {
+            console.log('Total samples is zero or undefined, cannot render coverage chart.');
             return;
         }
 
@@ -277,7 +283,40 @@ class DendroBaseModule extends MosaicTileModule {
         canvas.width = canvasContainer.clientWidth;
         canvas.height = 16;
         
+        // Store chart data for resize handling
+        this.coverageCharts.set(miniChartId, {
+            canvas: canvas,
+            percentage: percentageWith / 100
+        });
+        
+        // Add resize listener if this is the first coverage chart
+        if(this.coverageCharts.size === 1) {
+            window.addEventListener('resize', this.resizeHandler);
+        }
+        
         this.drawCoverageLine(ctx, canvas.width, canvas.height, percentageWith / 100);
+    }
+
+    /**
+     * Handle window resize by redrawing all coverage charts
+     */
+    handleResize() {
+        this.coverageCharts.forEach((chartData, id) => {
+            const { canvas, percentage } = chartData;
+            const canvasContainer = canvas.parentElement;
+            
+            if(!canvasContainer) {
+                return;
+            }
+            
+            // Update canvas width to match container
+            canvas.width = canvasContainer.clientWidth;
+            canvas.height = 16;
+            
+            // Redraw the chart
+            const ctx = canvas.getContext('2d');
+            this.drawCoverageLine(ctx, canvas.width, canvas.height, percentage);
+        });
     }
 
     /**
@@ -401,6 +440,74 @@ class DendroBaseModule extends MosaicTileModule {
     }
 
     /**
+     * Create a donut chart using Plotly
+     * This provides better label handling and responsiveness
+     */
+    async createDonutChart(elementId, categories, colors, total, variableName) {
+        const values = categories.map(cat => cat.count);
+        const labels = categories.map(cat => cat.name);
+        const percentages = categories.map(cat => ((cat.count / total) * 100).toFixed(1));
+        
+        // Create custom text for labels showing both name and percentage
+        const textLabels = categories.map((cat, i) => `${cat.name}<br>${percentages[i]}%`);
+        
+        const data = [{
+            values: values,
+            labels: labels,
+            text: percentages.map(p => `${p}%`),
+            textposition: 'outside',
+            textinfo: 'text',
+            hovertemplate: '<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>',
+            type: 'pie',
+            hole: 0.6,
+            marker: {
+                colors: colors,
+                line: {
+                    color: '#fff',
+                    width: 2
+                }
+            },
+            pull: 0.01,
+            textfont: {
+                size: 11,
+                color: '#333'
+            }
+        }];
+        
+        const layout = {
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                x: 0.5,
+                y: -0.2,
+                xanchor: 'center',
+                yanchor: 'top',
+                font: {
+                    size: 11
+                }
+            },
+            margin: {
+                l: 20,
+                r: 20,
+                t: 20,
+                b: 60
+            },
+            autosize: true,
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)'
+        };
+        
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+        
+        await Plotly.newPlot(elementId, data, layout, config);
+        
+        return { plotly: true, elementId: elementId };
+    }
+
+    /**
      * Download chart as PNG
      */
     downloadChart(chartId) {
@@ -410,7 +517,13 @@ class DendroBaseModule extends MosaicTileModule {
             return;
         }
         
-        if(chartData.chart) {
+        if(chartData.plotly) {
+            // Plotly chart
+            Plotly.downloadImage(chartData.elementId, {
+                format: 'png',
+                filename: `${chartData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart`
+            });
+        } else if(chartData.chart) {
             const { chart, name } = chartData;
             const url = chart.toBase64Image();
             const link = document.createElement('a');
@@ -439,6 +552,12 @@ class DendroBaseModule extends MosaicTileModule {
                         }
                     });
                     this.chartInstances.clear();
+
+                    // Remove resize listener and clear coverage charts
+                    if(this.coverageCharts.size > 0) {
+                        window.removeEventListener('resize', this.resizeHandler);
+                    }
+                    this.coverageCharts.clear();
 
                     $('.dendro-tile-download-btn').off('click');
 

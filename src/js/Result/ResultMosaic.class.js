@@ -21,7 +21,6 @@ import MosaicEcoCodesModule from './MosaicTileModules/MosaicEcoCodesModule.class
 import MosaicDynamicChartModule from './MosaicTileModules/MosaicDynamicChartModule.class.js';
 import MosaicDendroWaneyEdgeModule from './MosaicTileModules/MosaicDendroWaneyEdgeModule.class.js';
 import MosaicDendroBarkModule from './MosaicTileModules/MosaicDendroBarkModule.class.js';
-import MosaicDendroDashboard from './MosaicTileModules/MosaicDendroDashboard.class.js';
 import MosaicDendroTreeSpecies from './MosaicTileModules/MosaicDendroTreeSpecies.class.js';
 import MosaicDendroSampleTypes from './MosaicTileModules/MosaicDendroSampleTypes.class.js';
 import MosaicDendroTreeAge from './MosaicTileModules/MosaicDendroTreeAge.class.js';
@@ -178,12 +177,6 @@ class ResultMosaic extends ResultModule {
 			module: null
 		});
 		this.modules.push({
-			title: "Dendro Dashboard",
-			className: "MosaicDendroDashboard",
-			classTemplate: MosaicDendroDashboard,
-			module: null
-		});
-		this.modules.push({
 			title: "Tree Species",
 			className: "MosaicDendroTreeSpecies",
 			classTemplate: MosaicDendroTreeSpecies,
@@ -308,7 +301,7 @@ class ResultMosaic extends ResultModule {
 		//var reqData = this.resultManager.getRequestData(++this.requestId, "tabular");
 		var reqData = this.resultManager.getRequestData(++this.requestId, "map");
 		
-		this.resultManager.showLoadingIndicator(true);
+		//this.resultManager.showLoadingIndicator(true);
 		return $.ajax(Config.serverAddress+"/api/result/load", {
 			data: JSON.stringify(reqData),
 			dataType: "json",

@@ -135,36 +135,27 @@ class MosaicDendroWaneyEdge extends DendroBaseModule {
                 <div class="dendro-tile-header">
                     <h3 class="dendro-tile-title">${data.label}</h3>
                 </div>
-                <div class="dendro-tile-chart">
-                    <div class="dendro-tile-chart-canvas-wrapper">
-                        <canvas id="chart-${varId}"></canvas>
-                    </div>
+                <div class="dendro-tile-charts">
+                    <div id="chart-${varId}" class="tile-chart-container"></div>
+                    <div id="coverage-${varId}" class="tile-coverage-container"></div>
                 </div>
             </div>
         `;
         $(this.renderIntoNode).append(wrapperHtml);
 
-        // Draw stacked bar chart
-        const canvas = document.getElementById(`chart-${varId}`);
-        const ctx = canvas.getContext('2d');
-        
-        const canvasContainer = canvas.parentElement;
-        canvas.width = canvasContainer.clientWidth;
-        canvas.height = 60;
-        
         // Map categories to colors
         const categoryColors = data.categories.map(cat => colorMap[cat.name] || '#999');
         
-        this.drawStackedBar(ctx, canvas.width, canvas.height, data.categories, categoryColors, total);
+        // Create Plotly donut chart
+        const chartRef = await this.createDonutChart(`chart-${varId}`, data.categories, categoryColors, total, data.label);
         
-        this.chartInstances.set(varId, { canvas: canvas, name: data.label });
+        this.chartInstances.set(varId, { plotly: true, elementId: `chart-${varId}`, name: data.label });
 
         // Add mini coverage chart
         const totalSamples = await this.getTotalSamplesCount();
         if(totalSamples) {
-            const containerElement = document.getElementById(varId);
-            const chartWrapperElement = containerElement.querySelector('.dendro-tile-chart');
-            this.renderCoverageMiniChart(chartWrapperElement, total, totalSamples);
+            const coverageContainer = document.getElementById(`coverage-${varId}`);
+            this.renderCoverageMiniChart(coverageContainer, total, totalSamples);
         }
 
         this.sqs.resultManager.showLoadingIndicator(false);

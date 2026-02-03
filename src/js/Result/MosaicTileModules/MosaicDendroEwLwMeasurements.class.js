@@ -1,9 +1,9 @@
-import MosaicDendroBinaryVariable from "./MosaicDendroBinaryVariable.class";
+import MosaicDendroCategoricalVariable from "./MosaicDendroCategoricalVariable.class";
 
 /**
  * MosaicDendroEwLwMeasurements - Display EW/LW measurements availability
  */
-class MosaicDendroEwLwMeasurements extends MosaicDendroBinaryVariable {
+class MosaicDendroEwLwMeasurements extends MosaicDendroCategoricalVariable {
     constructor(sqs) {
         super(
             sqs,

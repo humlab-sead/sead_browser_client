@@ -2,10 +2,10 @@ import DendroBaseModule from "./DendroBaseModule.class";
 import { nanoid } from "nanoid";
 
 /**
- * MosaicDendroBinaryVariable - Display binary dendro variable (Yes/No)
- * Generic module that can handle any binary dendro variable
+ * MosaicDendroCategoricalVariable - Display categorical dendro variables
+ * Generic module that can handle any categorical dendro variable (including binary variables)
  */
-class MosaicDendroBinaryVariable extends DendroBaseModule {
+class MosaicDendroCategoricalVariable extends DendroBaseModule {
     constructor(sqs, variableName, title, description) {
         super(sqs);
         this.variableName = variableName;
@@ -131,33 +131,24 @@ class MosaicDendroBinaryVariable extends DendroBaseModule {
                 <div class="dendro-tile-header">
                     <h3 class="dendro-tile-title">${data.label}</h3>
                 </div>
-                <div class="dendro-tile-chart">
-                    <div class="dendro-tile-chart-canvas-wrapper">
-                        <canvas id="chart-${varId}"></canvas>
-                    </div>
+                <div class="dendro-tile-charts">
+                    <div id="chart-${varId}" class="tile-chart-container"></div>
+                    <div id="coverage-${varId}" class="tile-coverage-container"></div>
                 </div>
             </div>
         `;
         $(this.renderIntoNode).append(wrapperHtml);
 
-        // Draw stacked bar chart
-        const canvas = document.getElementById(`chart-${varId}`);
-        const ctx = canvas.getContext('2d');
+        // Create Plotly donut chart
+        const chartRef = await this.createDonutChart(`chart-${varId}`, data.categories, colors, total, data.label);
         
-        const canvasContainer = canvas.parentElement;
-        canvas.width = canvasContainer.clientWidth;
-        canvas.height = 60;
-        
-        this.drawStackedBar(ctx, canvas.width, canvas.height, data.categories, colors, total);
-        
-        this.chartInstances.set(varId, { canvas: canvas, name: data.label });
+        this.chartInstances.set(varId, { plotly: true, elementId: `chart-${varId}`, name: data.label });
 
         // Add mini coverage chart
         const totalSamples = await this.getTotalSamplesCount();
         if(totalSamples) {
-            const containerElement = document.getElementById(varId);
-            const chartWrapperElement = containerElement.querySelector('.dendro-tile-chart');
-            this.renderCoverageMiniChart(chartWrapperElement, total, totalSamples);
+            const coverageElement = document.getElementById(`coverage-${varId}`);
+            this.renderCoverageMiniChart(coverageElement, total, totalSamples);
         }
 
         this.sqs.resultManager.showLoadingIndicator(false);
@@ -171,4 +162,4 @@ class MosaicDendroBinaryVariable extends DendroBaseModule {
     }
 }
 
-export default MosaicDendroBinaryVariable;
+export default MosaicDendroCategoricalVariable;

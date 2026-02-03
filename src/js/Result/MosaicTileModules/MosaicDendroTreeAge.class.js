@@ -165,10 +165,9 @@ class MosaicDendroTreeAge extends DendroBaseModule {
                 <div class="dendro-tile-header">
                     <h3 class="dendro-tile-title">Tree Age Distribution</h3>
                 </div>
-                <div class="dendro-tile-chart">
-                    <div class="dendro-tile-chart-canvas-wrapper">
-                        <canvas id="chart-${varId}"></canvas>
-                    </div>
+                <div class="dendro-tile-charts">
+                    <canvas id="chart-${varId}" class="tile-chart-container"></canvas>
+                    <div id="coverage-${varId}" class="tile-coverage-container"></div>
                 </div>
             </div>
         `;
@@ -256,10 +255,9 @@ class MosaicDendroTreeAge extends DendroBaseModule {
         // Add mini coverage chart
         const totalSamples = await this.getTotalSamplesCount();
         if(totalSamples) {
-            const containerElement = document.getElementById(varId);
-            const chartWrapperElement = containerElement.querySelector('.dendro-tile-chart');
+            const coverageContainer = document.getElementById(`coverage-${varId}`);
             // Use the count of samples that have tree age data (using minValues length as they should match)
-            this.renderCoverageMiniChart(chartWrapperElement, data.minValues.length, totalSamples);
+            this.renderCoverageMiniChart(coverageContainer, data.minValues.length, totalSamples);
         }
 
         this.sqs.resultManager.showLoadingIndicator(false);

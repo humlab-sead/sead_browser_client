@@ -109,10 +109,9 @@ class MosaicDendroSampleTypes extends DendroBaseModule {
                 <div class="dendro-tile-header">
                     <h3 class="dendro-tile-title">${data.label}</h3>
                 </div>
-                <div class="dendro-tile-chart">
-                    <div class="dendro-tile-chart-canvas-wrapper">
-                        <canvas id="chart-${varId}"></canvas>
-                    </div>
+                <div class="dendro-tile-charts">
+                    <canvas id="chart-${varId}" class="tile-chart-container"></canvas>
+                    <div id="coverage-${varId}" class="tile-coverage-container"></div>
                 </div>
             </div>
         `;
@@ -185,9 +184,8 @@ class MosaicDendroSampleTypes extends DendroBaseModule {
         // Add mini coverage chart - for sample types, all samples have a type (100% coverage)
         const totalSamples = await this.getTotalSamplesCount();
         if(totalSamples) {
-            const containerElement = document.getElementById(varId);
-            const chartWrapperElement = containerElement.querySelector('.dendro-tile-chart');
-            this.renderCoverageMiniChart(chartWrapperElement, total, totalSamples);
+            const coverageContainer = document.getElementById(`coverage-${varId}`);
+            this.renderCoverageMiniChart(coverageContainer, total, totalSamples);
         }
 
         this.sqs.resultManager.showLoadingIndicator(false);

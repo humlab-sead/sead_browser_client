@@ -1,9 +1,9 @@
-import MosaicDendroBinaryVariable from "./MosaicDendroBinaryVariable.class";
+import MosaicDendroCategoricalVariable from "./MosaicDendroCategoricalVariable.class";
 
 /**
  * MosaicDendroBark - Display Bark presence
  */
-class MosaicDendroBark extends MosaicDendroBinaryVariable {
+class MosaicDendroBark extends MosaicDendroCategoricalVariable {
     constructor(sqs) {
         super(
             sqs,
