@@ -6,6 +6,7 @@
 		"shortName":"CC-BY-4.0",
 		"url":"https://creativecommons.org/licenses/by/4.0/"
 	},
+	"supportEmail": "support@humlab.umu.se",
 	"serverRoot":"https://__DOMAIN__",
 	"serverAddress":"https://__DOMAIN__/query",
 	"siteReportServerAddress":"https://__DOMAIN__/postgrest",

@@ -2095,8 +2095,6 @@ class DendroChart {
             return fellingYear;
         });
 
-        
-
         //If we couldn't find a single viable dating for any sample, then we can't calculate a range span at all and thus can't draw anything
         if(!extentMin || !extentMax) {
             d3.select("#undated-samples-warning")

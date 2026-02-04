@@ -218,6 +218,10 @@ class ResultModule {
 			module.setExportButtonLoadingIndicator(false);
 
 			if(selectedSites.length > 0) {
+				$("#samples-export-xlsx-dl").on("click", () => {
+					this.exportFullSamplesAsXlsx(selectedSites, this.getSelectedMethodIdsForExport()).then(() => {});
+				});
+
 				$("#sites-export-xlsx-dl").on("click", () => {
 					this.exportFullSitesAsXlsx(selectedSites, this.getSelectedMethodIdsForExport()).then(() => {});
 				});
@@ -253,7 +257,6 @@ class ResultModule {
 					$("#export-progress-bar-container").css("display", "block");
 
 					let methodId = parseInt($("#export-datasets").val());
-					console.log(methodId);
 
 					const worker = new DatasetExportWorker();
 					// Handle messages from the worker
@@ -819,6 +822,19 @@ class ResultModule {
 			type: "application/json;charset=utf-8"
 		});
 		saveAs(blob, "sead_sites_export.json");
+	}
+
+	async exportFullSamplesAsXlsx(siteIds, methodIds = []) {
+		console.log("Exporting full sites as XLSX");
+
+		let sites = await this.fetchSites(siteIds);
+		let objectUrl = await this.sqs.exportManager.getSamplesXlsxBookExport(sites, true, methodIds);
+		const a = document.createElement("a");
+		a.href = objectUrl;
+		a.download = "sead_sites_export.xlsx";
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
 	}
 	
 	async exportFullSitesAsXlsx(siteIds, methodIds = []) {
