@@ -125,27 +125,27 @@ class EntityAgesDataset extends DatasetModule {
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.entity_ages.dating_specifier != null ? ae.entity_ages.dating_specifier : "No data"
+                        "value": ae.analysisEntityAgesData.dating_specifier != null ? ae.analysisEntityAgesData.dating_specifier : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.entity_ages.age != null ? ae.entity_ages.age : "No data"
+                        "value": ae.analysisEntityAgesData.age != null ? ae.analysisEntityAgesData.age : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.entity_ages.age_older != null ? this.sqs.tryParseValueAsNumber(ae.entity_ages.age_older) : "No data"
+                        "value": ae.analysisEntityAgesData.age_older != null ? this.sqs.tryParseValueAsNumber(ae.analysisEntityAgesData.age_older) : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.entity_ages.age_younger != null ? this.sqs.tryParseValueAsNumber(ae.entity_ages.age_younger) : "No data"
+                        "value": ae.analysisEntityAgesData.age_younger != null ? this.sqs.tryParseValueAsNumber(ae.analysisEntityAgesData.age_younger) : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.entity_ages.age_range != null ? ae.entity_ages.age_range : "No data"
+                        "value": ae.analysisEntityAgesData.age_range != null ? ae.analysisEntityAgesData.age_range : "No data"
                     },
                 ];
 
