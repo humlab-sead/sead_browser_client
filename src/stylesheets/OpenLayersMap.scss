@@ -1,3 +1,31 @@
+.aux-layer-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 1.5em 1em;
+    color: #666;
+    font-style: italic;
+}
+
+.aux-layer-unavailable-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    padding: 0.6em 0.8em;
+    margin: 0.4em 0.5em;
+    background: #fff8e1;
+    border-left: 3px solid #f9a825;
+    border-radius: 2px;
+    font-size: 0.875em;
+    color: #555;
+
+    i {
+        margin-top: 0.1em;
+        color: #f9a825;
+        flex-shrink: 0;
+    }
+}
+
 .sub-layer-list {
   margin:0;
   padding:0;

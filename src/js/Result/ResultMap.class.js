@@ -43,6 +43,7 @@ class ResultMap extends ResultModule {
 		this.includeTimeline = includeTimeline;
 		this.minimalMap = minimalMap;
 		this.auxLayersInitialized = false;
+		this.unavailableGroups = [];
 		this.resultMapLayers = new ResultMapLayers(this.sqs);
 
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
@@ -860,41 +861,6 @@ class ResultMap extends ResultModule {
 				loadTilesWhileAnimating: true
 			});
 
-			this.resultMapLayers.initAuxLayers().then((layers) => {
-				this.layers = this.layers.concat(layers);
-				this.layers.forEach((layer, index, array) => {
-					//check that this layer has not already been added
-					let layerExists = false;
-
-					if(!this.olMap) {
-						console.warn("olMap not initialized yet, cannot add layers");
-						return;
-					}
-
-					this.olMap.getLayers().forEach((existingLayer, index, array) => {
-						if(existingLayer.getProperties().layerId == layer.getProperties().layerId) {
-							layerExists = true;
-						}
-					});
-
-					if(!layerExists) {
-						// Set visibility based on layer type BEFORE adding to map
-						const layerProps = layer.getProperties();
-						if(layerProps.type === "auxLayer") {
-							layer.setVisible(false);
-						}
-						
-						// Add layer to map
-						this.olMap.addLayer(layer);
-						
-						// Recalculate ALL layer z-indexes using unified system
-						this.updateAllLayerZIndexes();
-					}
-				});
-
-				this.auxLayersInitialized = true;
-			});
-
 			this.olMap.on("moveend", () => {
 				var newZoomLevel = this.olMap.getView().getZoom();
 				if (newZoomLevel != this.currentZoomLevel) {
@@ -1014,20 +980,6 @@ class ResultMap extends ResultModule {
 		$("#result-map-controls-container").append(auxLayersHtml);
 
 		new SqsMenu(this.resultManager.sqs, this.resultMapAuxLayersControlsSqsMenu());
-		$("#result-map-auxlayer-controls-menu").addClass("disabled");
-		this.checkAuxLayersLoadedInterval = setInterval(() => {
-			if(this.auxLayersInitialized) {
-				$("#result-map-auxlayer-controls-menu").removeClass("disabled");
-				clearInterval(this.checkAuxLayersLoadedInterval);
-			}
-		}, 250);
-
-		// Instead of creating an SqsMenu, add a direct click handler
-		/*
-		$("#result-map-auxlayer-controls-menu").on("click", () => {
-			this.renderAllAuxLayersPanel();
-		});
-		*/
 
 		let baseLayersHtml = "<div class='result-map-map-control-item-container'>";
 		baseLayersHtml += "<div id='result-map-baselayer-controls-menu' class='result-map-map-control-item'>Base layers</div>";
@@ -1052,7 +1004,81 @@ class ResultMap extends ResultModule {
 		$("#result-map-sub-layer-selection-panel").remove();
 	}
 
-	renderAuxLayersPanel() {
+	/*
+	* Function: openAuxLayersPanel
+	* Opens the overlay layers panel. If metadata has not yet been loaded, shows a loading
+	* indicator in the panel while fetching, then renders the layers once ready.
+	*/
+	openAuxLayersPanel() {
+		if(this.auxLayersInitialized) {
+			this.renderAuxLayersPanel(this.unavailableGroups);
+			return;
+		}
+
+		// Show panel immediately with a loading indicator
+		this.unrenderAuxLayersPanel();
+		$(this.renderMapIntoNode).append("<div id='result-map-sub-layer-selection-panel'></div>");
+		$("#result-map-sub-layer-selection-panel").css({ "width": "25em", "min-width": "25em" });
+
+		const titleHtml = `
+			<div class="sub-layer-header">
+				<h3 class='aux-layer-title'>Overlay Layers</h3>
+				<div class="sub-layer-header-buttons">
+					<div id="close-sublayer-panel" class="header-btn" title="Close panel">
+						<i class="fa fa-times" aria-hidden="true"></i>
+					</div>
+				</div>
+			</div>
+		`;
+		$("#result-map-sub-layer-selection-panel").append(titleHtml);
+		$("#result-map-sub-layer-selection-panel").append(
+			`<div id='sub-layer-content'>
+				<div class='aux-layer-loading'>
+					<i class='fa fa-spinner fa-spin'></i> Loading overlay layers&hellip;
+				</div>
+			</div>`
+		);
+
+		$("#close-sublayer-panel").on("click", (evt) => {
+			evt.stopPropagation();
+			this.unrenderAuxLayersPanel();
+		});
+
+		// Fetch layer metadata, add layers to map, then render full panel
+		this.resultMapLayers.initAuxLayers().then(({ layers, unavailableGroups }) => {
+			this.unavailableGroups = unavailableGroups;
+			this.layers = this.layers.concat(layers);
+			this.layers.forEach((layer) => {
+				let layerExists = false;
+
+				if(!this.olMap) {
+					console.warn("olMap not initialized yet, cannot add layers");
+					return;
+				}
+
+				this.olMap.getLayers().forEach((existingLayer) => {
+					if(existingLayer.getProperties().layerId == layer.getProperties().layerId) {
+						layerExists = true;
+					}
+				});
+
+				if(!layerExists) {
+					const layerProps = layer.getProperties();
+					if(layerProps.type === "auxLayer") {
+						layer.setVisible(false);
+					}
+					this.olMap.addLayer(layer);
+					this.updateAllLayerZIndexes();
+				}
+			});
+
+			this.auxLayersInitialized = true;
+			// Replace loading indicator with fully rendered panel
+			this.renderAuxLayersPanel(this.unavailableGroups);
+		});
+	}
+
+	renderAuxLayersPanel(unavailableGroups = []) {
 		// Remove any existing panel
 		this.unrenderAuxLayersPanel();
 
@@ -1153,6 +1179,21 @@ class ResultMap extends ResultModule {
 		const groupedLayers = this.groupAuxLayersByProvider();
 		
 		let content = "<div class='result-map-sub-layer-selection'>";
+
+		// Render notices for unavailable groups (e.g. 429 rate-limited providers)
+		if(unavailableGroups && unavailableGroups.length > 0) {
+			// Deduplicate by groupName+reason for display, since multiple endpoints may share a group name
+			const seen = new Set();
+			unavailableGroups.forEach(({ groupName, reason }) => {
+				const key = groupName;
+				if(seen.has(key)) return;
+				seen.add(key);
+				const msg = reason === 'rateLimit'
+					? `Some or all layers from ${groupName} are temporarily unavailable (too many requests). Please try again later.`
+					: `Some or all layers from ${groupName} could not be loaded.`;
+				content += `<div class='aux-layer-unavailable-notice'><i class='fa fa-exclamation-triangle'></i> ${msg}</div>`;
+			});
+		}
 		
 		// Add each provider group
 		for (const [provider, layers] of Object.entries(groupedLayers)) {
@@ -2169,19 +2210,7 @@ class ResultMap extends ResultModule {
                 selector: "#result-map-auxlayer-controls-menu",
                 on: "click",
                 callback: () => {
-                    //make sure all the auxLayer metadata is loaded, then render the renderAllAuxLayersPanel
-					if(!this.auxLayersInitialized) {
-						console.log("Waiting for auxLayer metadata to load...");
-						let waitForMetaDataLoad = setInterval(() => {
-							if(this.auxLayersInitialized) {
-								clearInterval(waitForMetaDataLoad);
-								this.renderAuxLayersPanel();
-							}
-						}, 100);
-					} else {
-						this.renderAuxLayersPanel();
-					}
-
+                    this.openAuxLayersPanel();
                 }
             }],
 			triggers: [{
