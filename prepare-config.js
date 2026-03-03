@@ -1,25 +1,39 @@
 const fs = require('fs');
 const path = require('path');
+const deepmerge = require('deepmerge');
 
 const mode = process.env.MODE || 'dev';
 const domain = process.env.DOMAIN || 'localhost';
 
-const configTemplatePath = path.join(__dirname, `src/config/config-${mode}.json`);
-const configPath = path.join(__dirname, 'src/config/config.json');
+const basePath     = path.join(__dirname, 'src/config/config.base.json');
+const overridePath = path.join(__dirname, `src/config/config.${mode}.json`);
+const outputPath   = path.join(__dirname, 'src/config/config.json');
 
-fs.readFile(configTemplatePath, 'utf8', (err, data) => {
-  if (err) {
-    console.error(`Error reading ${configTemplatePath}:`, err);
-    process.exit(1);
-  }
+// Arrays in overrides fully replace the base array rather than being concatenated
+const arrayMerge = (_, sourceArray) => sourceArray;
 
-  const result = data.replace(/__DOMAIN__/g, domain);
+// Keys set to null in an override act as "delete this key from the base"
+function stripNulls(obj) {
+  if (Array.isArray(obj)) return obj;
+  return Object.fromEntries(
+    Object.entries(obj)
+      .filter(([, v]) => v !== null)
+      .map(([k, v]) => [k, v && typeof v === 'object' ? stripNulls(v) : v])
+  );
+}
 
-  fs.writeFile(configPath, result, 'utf8', (err) => {
-    if (err) {
-      console.error(`Error writing ${configPath}:`, err);
-      process.exit(1);
-    }
-    console.log(`Configuration for mode '${mode}' with domain '${domain}' has been written to ${configPath}`);
-  });
-});
+try {
+  const base     = JSON.parse(fs.readFileSync(basePath, 'utf8'));
+  const override = fs.existsSync(overridePath)
+    ? JSON.parse(fs.readFileSync(overridePath, 'utf8'))
+    : {};
+
+  const merged = stripNulls(deepmerge(base, override, { arrayMerge }));
+  const output = JSON.stringify(merged, null, '\t').replace(/__DOMAIN__/g, domain);
+
+  fs.writeFileSync(outputPath, output, 'utf8');
+  console.log(`Config for mode '${mode}' with domain '${domain}' written to config.json`);
+} catch (err) {
+  console.error('Error preparing config:', err.message);
+  process.exit(1);
+}

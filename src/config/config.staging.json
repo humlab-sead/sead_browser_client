@@ -1,0 +1,291 @@
+{
+	"serverRoot": "https://__DOMAIN__",
+	"serverAddress": "https://__DOMAIN__/query",
+	"siteReportServerAddress": "https://__DOMAIN__/postgrest",
+	"dataServerAddress": "https://__DOMAIN__/jsonapi",
+	"copilotServerAddress": "wss://__DOMAIN__/ai-assistant",
+	"facetSectionDefaultWidth": 30,
+	"domains": [
+		{
+			"name": "general",
+			"enabled": true,
+			"title": "General",
+			"icon": "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>",
+			"color": "#333",
+			"filterBlacklist": [],
+			"result_grid_layout": [
+				3,
+				2
+			],
+			"result_grid_modules": [
+				{
+					"module_name": "mosaic-map",
+					"grid_row": "1",
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-sample-methods",
+					"grid_row": "1",
+					"grid_column": "2"
+				},
+				{
+					"module_name": "mosaic-analysis-methods",
+					"grid_row": "2",
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-feature-types",
+					"grid_row": "2",
+					"grid_column": "2"
+				},
+				{
+					"module_name": "mosaic-dated-sites",
+					"grid_row": "3",
+					"grid_column": "2"
+				},
+				{
+					"module_name": "mosaic-domain-samples",
+					"grid_row": "3",
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-taxa-list",
+					"default": false
+				}
+			]
+		},
+		{
+			"name": "dendrochronology",
+			"enabled": true,
+			"title": "Dendrochronology",
+			"icon": "<i class=\"fa fa-tree\" aria-hidden=\"true\"></i>",
+			"color": "#0a0",
+			"filterBlacklist": [
+				"species",
+				"family",
+				"species_author",
+				"tbl_biblio_modern",
+				"geochronology"
+			],
+			"result_grid_layout": [
+				4,
+				3
+			],
+			"result_grid_modules": [
+				{
+					"module_name": "mosaic-dendro-tree-age",
+					"grid_row": "1",
+					"grid_column": "span 2"
+				},
+				{
+					"module_name": "mosaic-dendro-tree-species",
+					"grid_row": "1",
+					"grid_column": "3"
+				},
+				{
+					"module_name": "mosaic-dendro-sample-types",
+					"grid_row": "2",
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-dendro-sapwood",
+					"grid_row": "2",
+					"grid_column": "2"
+				},
+				{
+					"module_name": "mosaic-dendro-pith",
+					"grid_row": "2",
+					"grid_column": "3"
+				},
+				{
+					"module_name": "mosaic-dendro-tree-rings",
+					"grid_row": "3",
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-dendro-analysed-radii",
+					"grid_row": "3",
+					"grid_column": "2"
+				},
+				{
+					"module_name": "mosaic-dendro-waney-edge",
+					"grid_row": "3",
+					"grid_column": "3"
+				},
+				{
+					"module_name": "mosaic-dendro-bark",
+					"grid_row": "4",
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-dendro-ew-lw-measurements",
+					"grid_row": "4",
+					"grid_column": "2"
+				}
+			]
+		},
+		{
+			"name": "palaeoentomology",
+			"enabled": true,
+			"title": "Palaeoentomology",
+			"icon": "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
+			"color": "#a00",
+			"filterBlacklist": [
+				"geochronology",
+				"relative_age_name",
+				"feature_type"
+			],
+			"result_grid_layout": [
+				2,
+				2
+			],
+			"result_grid_modules": [
+				{
+					"module_name": "mosaic-map",
+					"grid_row": "1",
+					"grid_column": "span 2"
+				},
+				{
+					"module_name": "mosaic-taxa-list",
+					"grid_row": "2",
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-ecocodes",
+					"grid_row": "2",
+					"grid_column": "2"
+				}
+			]
+		},
+		{
+			"name": "archaeobotany",
+			"enabled": true,
+			"title": "Archaeobotany",
+			"icon": "<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i>",
+			"color": "#9c591b",
+			"filterBlacklist": [],
+			"result_grid_layout": [
+				2,
+				2
+			],
+			"result_grid_modules": [
+				{
+					"module_name": "mosaic-map",
+					"grid_row": "1",
+					"grid_column": "span 2"
+				},
+				{
+					"module_name": "mosaic-sample-methods",
+					"grid_row": "2",
+					"grid_column": "2"
+				},
+				{
+					"module_name": "mosaic-analysis-methods",
+					"grid_row": "2",
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mosaic-feature-types",
+					"default": false
+				}
+			]
+		},
+		{
+			"name": "pollen",
+			"enabled": true,
+			"title": "Pollen",
+			"icon": "<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i>",
+			"color": "#216600",
+			"filterBlacklist": [],
+			"result_grid_layout": [
+				2,
+				2
+			],
+			"result_grid_modules": [
+				{
+					"module_name": "mosaic-map",
+					"grid_row": "1",
+					"grid_column": "span 2"
+				},
+				{
+					"module_name": "mosaic-analysis-methods",
+					"grid_row": "2",
+					"grid_column": "span 2"
+				}
+			]
+		},
+		{
+			"name": "geoarchaeology",
+			"enabled": true,
+			"title": "Geoarchaeology",
+			"icon": "<i class=\"fa fa-map\" aria-hidden=\"true\"></i>",
+			"color": "#909",
+			"filterBlacklist": [],
+			"result_grid_layout": [
+				1,
+				1
+			],
+			"result_grid_modules": [
+				{
+					"module_name": "mosaic-map",
+					"grid_row": "1",
+					"grid_column": "1"
+				}
+			]
+		},
+		{
+			"name": "isotope",
+			"enabled": true,
+			"title": "Isotope",
+			"icon": "<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i>",
+			"color": "#690",
+			"filterBlacklist": [],
+			"result_grid_layout": [
+				1,
+				1
+			],
+			"result_grid_modules": [
+				{
+					"module_name": "mosaic-map",
+					"grid_row": "1",
+					"grid_column": "1"
+				}
+			]
+		},
+		{
+			"name": "ceramic",
+			"enabled": true,
+			"title": "Ceramic",
+			"icon": "<i class=\"fa fa-beer\" aria-hidden=\"true\"></i>",
+			"color": "#099",
+			"filterBlacklist": [
+				"geochronology",
+				"tbl_biblio_modern",
+				"sample_group_sampling_contexts"
+			],
+			"result_grid_layout": [
+				2,
+				2
+			],
+			"result_grid_modules": [
+				{
+					"module_name": "mosaic-map",
+					"grid_row": "1",
+					"grid_column": " span 2"
+				},
+				{
+					"module_name": "mosaic-feature-types",
+					"grid_row": "2",
+					"grid_column": "span 2"
+				},
+				{
+					"module_name": "mosaic-analysis-methods",
+					"default": false
+				}
+			]
+		}
+	],
+	"showSearchButton": null,
+	"googleCustomSearchApiKey": null,
+	"defaultFilters": null
+}
