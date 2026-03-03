@@ -71,7 +71,7 @@ class EntityAgesDataset extends DatasetModule {
             },
             {
                 "dataType": "string",
-                "title": "Dating specifier"
+                "title": "Age type"
             },
             {
                 "dataType": "string",
@@ -79,16 +79,28 @@ class EntityAgesDataset extends DatasetModule {
             },
             {
                 "dataType": "string",
-                "title": "Age older"
+                "title": "Cal age older"
             },
             {
                 "dataType": "string",
-                "title": "Age younger"
+                "title": "Cal age younger"
             },
             {
                 "dataType": "string",
-                "title": "Age range"
+                "title": "C14 age older"
             },
+            {
+                "dataType": "string",
+                "title": "C14 age younger"
+            },
+            {
+                "dataType": "string",
+                "title": "Age location"
+            },
+            {
+                "dataType": "string",
+                "title": "Notes"
+            }
         ];
 
 
@@ -125,28 +137,43 @@ class EntityAgesDataset extends DatasetModule {
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.analysisEntityAgesData.dating_specifier != null ? ae.analysisEntityAgesData.dating_specifier : "No data"
+                        "value": ae.relativeAgesdata.age_type != null ? ae.relativeAgesdata.age_type : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.analysisEntityAgesData.age != null ? ae.analysisEntityAgesData.age : "No data"
+                        "value": ae.relativeAgesdata.relative_age_name != null ? ae.relativeAgesdata.relative_age_name : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.analysisEntityAgesData.age_older != null ? this.sqs.tryParseValueAsNumber(ae.analysisEntityAgesData.age_older) : "No data"
+                        "value": ae.relativeAgesdata.cal_age_older != null ? this.sqs.tryParseValueAsNumber(ae.relativeAgesdata.cal_age_older) : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.analysisEntityAgesData.age_younger != null ? this.sqs.tryParseValueAsNumber(ae.analysisEntityAgesData.age_younger) : "No data"
+                        "value": ae.relativeAgesdata.cal_age_younger != null ? this.sqs.tryParseValueAsNumber(ae.relativeAgesdata.cal_age_younger) : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.analysisEntityAgesData.age_range != null ? ae.analysisEntityAgesData.age_range : "No data"
+                        "value": ae.relativeAgesdata.c14_age_older != null ? this.sqs.tryParseValueAsNumber(ae.relativeAgesdata.c14_age_older) : "No data"
                     },
+                    {
+                        "type": "cell",
+                        "tooltip": "",
+                        "value": ae.relativeAgesdata.c14_age_younger != null ? this.sqs.tryParseValueAsNumber(ae.relativeAgesdata.c14_age_younger) : "No data"
+                    },
+                    {
+                        "type": "cell",
+                        "tooltip": "",
+                        "value": ae.relativeAgesdata.age_location_name != null ? ae.relativeAgesdata.age_location_name : "No data"
+                    },
+                    {
+                        "type": "cell",
+                        "tooltip": "",
+                        "value": ae.relativeAgesdata.notes != null ? ae.relativeAgesdata.notes : "No data"
+                    }
                 ];
 
                 rows.push(row);
