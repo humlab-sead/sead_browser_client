@@ -274,7 +274,9 @@ export default class ResultMapLayers {
             // Fetch capabilities
             const response = await fetch(capabilitiesUrl);
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
+                error.status = response.status;
+                throw error;
             }
             
             const xmlText = await response.text();
@@ -555,6 +557,7 @@ export default class ResultMapLayers {
     }
 
     async initAuxLayers() {
+        this.unavailableGroups = [];
         let layers = [];
 
         let sguUrl = "https://maps3.sgu.se/geoserver/wms";
@@ -678,7 +681,7 @@ export default class ResultMapLayers {
         });
         */
 
-        return layers;
+        return { layers, unavailableGroups: this.unavailableGroups };
     }
 
 
@@ -698,7 +701,20 @@ export default class ResultMapLayers {
 
         const config = { ...defaultOptions, ...options };
 
-        let layersMetaData = await this.fetchWmsLayerInfo(layerUrl);
+        let layersMetaData;
+        try {
+            layersMetaData = await this.fetchWmsLayerInfo(layerUrl);
+        } catch(error) {
+            const isRateLimit = error.status === 429 || (error.message && error.message.includes('429'));
+            if (isRateLimit) {
+                console.warn(`Rate limited (429) fetching layers for group "${groupName}" from ${layerUrl}`);
+                this.unavailableGroups.push({ groupName, reason: 'rateLimit' });
+            } else {
+                console.error(`Failed to fetch layers for group "${groupName}" from ${layerUrl}:`, error);
+                this.unavailableGroups.push({ groupName, reason: 'error' });
+            }
+            return [];
+        }
 
         let filteredLayers = layersMetaData;
         // Apply layer filtering
