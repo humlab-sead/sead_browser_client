@@ -143,7 +143,9 @@ class MeasuredValuesData extends DataHandlingModule {
                     if(dataset) {
                         dataset.analysis_entities.forEach((ae) => {
                             if(ae.analysis_entity_id == value.analysis_entity_id) {
-                                datasetBiblioIds.add(ae.biblio_id);
+                                if(dataset.biblio_id) {
+                                    datasetBiblioIds.add(dataset.biblio_id);
+                                }
                                 datasetName = dataset.dataset_name; //we assume that all values in the group belongs to the same dataset
                             }
                         });
