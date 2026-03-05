@@ -3,7 +3,7 @@ import DataHandlingModule from './DataHandlingModule.class.js';
 class IsotopeData extends DataHandlingModule {
     constructor(sqs) {
         super(sqs);
-        this.methodIds = [175];
+        this.methodIds = [];
         this.data = [];
     }
 
