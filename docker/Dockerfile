@@ -28,7 +28,7 @@ RUN echo "MODE: $MODE"
 
 RUN npm install && npm run build:prod && cp -R dist/* /var/www/html/
 
-# Install webpack-dev-server for deMODEvelopment
+# Install webpack-dev-server for development
 RUN npm install --save-dev webpack-dev-server
 
 # Build for production, otherwise, start dev server
