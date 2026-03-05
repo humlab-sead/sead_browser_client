@@ -614,19 +614,27 @@ class Samples {
 
 	getAnalysisTag(method) {
 		let analysisTagId = "analysis-tag-"+nanoid();
+		let analysisMethodColor = "";
+		if(this.sqs && this.sqs.config && Array.isArray(this.sqs.config.analysisMethodsColors)) {
+			this.sqs.config.analysisMethodsColors.forEach(entry => {
+				if(entry.method_id == method.method_id && entry.color) {
+					analysisMethodColor = entry.color.startsWith("#") ? entry.color : "#"+entry.color;
+				}
+			});
+		}
 
 		this.sqs.tooltipManager.registerTooltip("#"+analysisTagId, (evt) => {
 			evt.preventDefault();
 			evt.stopPropagation();
 
 			console.log("Clicked on analysis tag: ", method);
-
 			let siteReport = this.sqs.siteReportManager.siteReport;
 			for(let key in siteReport.data.sections) {
 				let section = siteReport.data.sections[key];
 				if(section.name == "analyses") {
 					section.sections.forEach(l2Section => {
 						if(method.method_id == l2Section.name) {
+							//console.log("Selected section: ", l2Section);
 							l2Section.collapsed = false;
 							this.sqs.siteReportManager.siteReport.setSectionCollapsedState($("#site-report-section-"+l2Section.name)[0], l2Section);
 
@@ -644,7 +652,8 @@ class Samples {
 			eventType: "click"
 		});
 
-		return "<div id='"+analysisTagId+"' class='sample-group-analysis-tag'>"+method.method_abbrev_or_alt_name+"</div>";
+		let styleAttr = analysisMethodColor ? " style='background-color: "+analysisMethodColor+";'" : "";
+		return "<div id='"+analysisTagId+"' class='sample-group-analysis-tag'"+styleAttr+">"+method.method_abbrev_or_alt_name+"</div>";
 	}
 
 	insertSampleGroupCoordinatesIntoTable(table, sampleGroups) {
@@ -951,17 +960,28 @@ class Samples {
 
 			let sampleGroupDescriptionCutLength = 30;
 			let sampleGroupDescriptionsStringValue = "";
+			let sampleGroupDescriptionsStringValueFull = "";
 			sampleGroup.descriptions.forEach(desc => {
 				let ttId = "tt-"+nanoid();
 				let groupdDescriptionShort = desc.group_description;
 				if(desc.group_description.length > sampleGroupDescriptionCutLength) {
 					groupdDescriptionShort = desc.group_description.substring(0, 15)+"...";
 				}
-				sampleGroupDescriptionsStringValue += "<span id='"+ttId+"'>"+groupdDescriptionShort+"</span>, ";
-				this.sqs.tooltipManager.registerTooltip("#"+ttId, "<h4 class='tooltip-header'>"+desc.type_name+"</h4>"+desc.type_description+"<hr/>"+desc.group_description, { drawSymbol: true });
+
+				if(desc.type_id == 18 || desc.type_name == "Link to archived data") {
+					sampleGroupDescriptionsStringValue += "<span id='"+ttId+"'><a href='"+desc.group_description+"' target='_blank' title='"+desc.group_description+"'>"+groupdDescriptionShort+"</a></span>, ";
+				}
+				else {
+					
+					sampleGroupDescriptionsStringValue += "<span id='"+ttId+"'>"+groupdDescriptionShort+"</span>, ";
+					this.sqs.tooltipManager.registerTooltip("#"+ttId, "<h4 class='tooltip-header'>"+desc.type_name+"</h4>"+desc.type_description+"<hr/>"+desc.group_description, { drawSymbol: true });
+				}
+
+				sampleGroupDescriptionsStringValueFull += desc.group_description+", ";
 			});
 			sampleGroupDescriptionsStringValue = sampleGroupDescriptionsStringValue.substring(0, sampleGroupDescriptionsStringValue.length-2);
-			
+			sampleGroupDescriptionsStringValueFull = sampleGroupDescriptionsStringValueFull.substring(0, sampleGroupDescriptionsStringValueFull.length-2);
+
 			let samplingMethod = this.getSamplingMethodById(siteData, sampleGroup.sampling_method_id);
 
 			let sampleGroupRow = [
@@ -1001,6 +1021,7 @@ class Samples {
 				sampleGroupRow.push({
 					"type": "cell",
 					"value": sampleGroupDescriptionsStringValue ? sampleGroupDescriptionsStringValue : "",
+					"data": sampleGroupDescriptionsStringValueFull ? sampleGroupDescriptionsStringValueFull : ""
 				});
 			}
 

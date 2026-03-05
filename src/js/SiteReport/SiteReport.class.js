@@ -10,6 +10,7 @@ import Plotly from "plotly.js-dist-min";
 import ExcelJS from 'exceljs/dist/exceljs.min.js';
 import { Vector as VectorLayer } from 'ol/layer';
 import { GeoJSON } from 'ol/format';
+import { sample } from 'lodash';
 /*
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
@@ -649,22 +650,23 @@ class SiteReport {
 			}
 		}
 
-		// Iterate over each sample
-		data.rows.forEach((sampleRow) => {
+		// Iterate over each sample group
+		data.rows.forEach((sampleGroupRow) => {
 			let excelRow = {};
 
 			if(subTableColumnKey == null) {
 				//this is just a plain table - no subtables
-				for(let key in sampleRow) {
+				for(let key in sampleGroupRow) {
 					if(key == "nodeId" || key == "meta") {
 						continue;
 					}
-					let r = sampleRow[key];
+					let r = sampleGroupRow[key];
 					if(data.columns[key].hidden) {
 						continue;
 					}
 
 					excelRow[data.columns[key].title] = r.value;
+					
 					if(key == coordinatesColumnKey && r.data) {
 						excelRow[data.columns[key].title] = r.data;
 					}
@@ -680,15 +682,16 @@ class SiteReport {
 					if(data.columns[key].dataType != "subtable" && !data.columns[key].hidden) {
 						let columnName = data.columns[key].title;
 
-						parentLevelData[columnName] = sampleRow[key].value;
+						// if the "data" attribute is available, then choose that, since it will contain a more complete & raw value of the data. The "value" attribute could be truncated
+						parentLevelData[columnName] = sampleGroupRow[key].data ? sampleGroupRow[key].data : sampleGroupRow[key].value;
 						if(key == coordinatesColumnKey) {
 							//not using "columnName" as the key here because then it would just say "Coordinates" and it would not be clear that this is the coordinates for the sample group and not the individual samples
-							parentLevelData["Sample group coordinates"] = this.sqs.formatCoordinatesForExport(sampleRow[key].data);
+							parentLevelData["Sample group coordinates"] = this.sqs.formatCoordinatesForExport(sampleGroupRow[key].data);
 						}
 					}
 				}
 
-				const subtable = sampleRow[subTableColumnKey].value;
+				const subtable = sampleGroupRow[subTableColumnKey].value;
 				// Iterate over each row in the subtable
 
 				let keyColumnKey = null;
