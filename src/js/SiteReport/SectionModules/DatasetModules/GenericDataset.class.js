@@ -62,7 +62,7 @@ class GenericDataset extends DatasetModule {
 				analysisMethodDescription = "<h4 class='tooltip-header'>"+analysisMethod.method_name+"</h4>"+analysisMethod.method_abbrev_or_alt_name+"<hr>"+analysisMethod.description;
 			}
 
-			console.log("GenericDataset rendering method", analysisMethod.method_id)
+			console.warn("GenericDataset rendering method", analysisMethod.method_id);
 			let section = this.getSectionByMethodId(analysisMethod.method_id, sections);
 			if(!section) {
 				section = {
