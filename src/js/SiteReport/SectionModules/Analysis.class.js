@@ -112,10 +112,10 @@ class Analysis {
 			"className": ESRDataset
 		});
 		this.datasetModules.push({
-			"className": GenericDataset
+			"className": AdnaDataset
 		});
 		this.datasetModules.push({
-			"className": AdnaDataset
+			"className": GenericDataset
 		});
 
 		for(let key in this.datasetModules) {
