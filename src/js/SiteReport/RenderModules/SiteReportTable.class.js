@@ -141,7 +141,7 @@ class SiteReportTable {
 		
 
 		//Make into DataTable
-		this.dt = $(this.tableNode).DataTable({
+		let dtOptions = {
 			"responsive": true,
 			"autoWidth": false,
 			"paging": this.rows.length > this.pagingRows,
@@ -153,7 +153,11 @@ class SiteReportTable {
 				//console.log("draw callback", data)
 				//this.resetAllSubTableExpansions();
 			}
-		});
+		};
+		if(this.hasSubTable()) {
+			dtOptions["columnDefs"] = [{"orderable": false, "targets": 0}];
+		}
+		this.dt = $(this.tableNode).DataTable(dtOptions);
 	
 		//Needed to make the table responsive
 		$(this.tableNode).css("width", "100%");
@@ -353,6 +357,12 @@ class SiteReportTable {
 
 		//FIXME: Take into account hidden columns
 
+		// Add expand/collapse indicator column when the table has subtables
+		if(this.hasSubTable()) {
+			let expandHeaderNode = $('<td class="all site-report-expand-column-header"></td>');
+			$('thead > tr', this.tableNode).append(expandHeaderNode);
+		}
+
 		for(var key in this.columns) {
 			if(this.columns[key].dataType != "subtable") {
 				//var colTitleNode = $("<td>"+this.columns[key].title+"&nbsp;<i column='"+key+"' class=\"fa fa-eye-slash table-hide-column-btn\" aria-hidden=\"true\"></i></td>"); //with hide-column-button
@@ -467,6 +477,12 @@ class SiteReportTable {
 		}
 
 		
+
+		// Prepend the expand chevron cell as the first column for subtable rows
+		if(this.hasSubTable()) {
+			let chevronNode = $('<td class="site-report-expand-chevron"><i class="fa fa-chevron-right"></i></td>');
+			rowNode.prepend(chevronNode);
+		}
 
 		$(rowNode).on("click", (evt) => {
 			var rowNode = $(evt.currentTarget);
@@ -745,6 +761,7 @@ class SiteReportTable {
 	renderSubTable(rowNodeId, subTable) {
 
 		$("#"+rowNodeId).addClass("table-row-expanded");
+		$("#"+rowNodeId+" .site-report-expand-chevron i").removeClass("fa-chevron-right").addClass("fa-chevron-down");
 		
 		let subTableId = "subtable-"+nanoid();
 		
@@ -820,6 +837,7 @@ class SiteReportTable {
 
 	unrenderSubTable(rowNodeId) {
 		$("#"+rowNodeId).removeClass("table-row-expanded");
+		$("#"+rowNodeId+" .site-report-expand-chevron i").removeClass("fa-chevron-down").addClass("fa-chevron-right");
 
 		var subTableRow = $("#"+rowNodeId).next();
 		if(subTableRow.hasClass("hidden site-report-subtable-row")) {

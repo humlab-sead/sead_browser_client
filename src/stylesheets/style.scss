@@ -3208,11 +3208,6 @@ polyline{
 .site-report-table-row .clickable:hover {
   cursor:pointer;
   color: white; /* Text color */
-  text-shadow: 
-    -1px -1px 4px colors.$sead-brown,
-     1px -1px 4px colors.$sead-brown,
-    -1px  1px 4px colors.$sead-brown,
-     1px  1px 4px colors.$sead-brown; /* Outline effect */
 }
 
 .site-report-link :hover {
@@ -4798,6 +4793,14 @@ svg text {
   width: 100%;
 }
 
+.site-report-subtable.dataTable>tbody>tr:first-child>* {
+    border-top: 1px solid #ddd !important;
+}
+
+.site-report-subtable.dataTable>tbody>tr:first-child:hover>* {
+    border-top-color: colors.$sead-brown !important;
+}
+
 .dataTables_wrapper .dataTables_scroll {
   width: 100%;
 }
@@ -5380,28 +5383,25 @@ h5 {
 }
 
 .site-report-table thead {
-  background-color: colors.$inactive-color;
+  background-color: #444;
   color: #fff;
-
-  background-color: #eee;
-  color: #000;
 }
 
 .site-report-table tbody td {
-  background-color: colors.$inactive-color;
-  color: #fff;
+  background-color: #f1f5f9;
+  color: #0f172a;
 }
 
 table.site-report-table > tbody > tr.site-report-table-row:hover > td {
-  background-color:colors.$pane-bg-color;
+  background-color: colors.$pane-bg-color !important;
 }
 
 table.site-report-table > tbody > tr.site-report-table-row-with-subtable:hover > td {
-  background-color:colors.$pane-bg-color;
+  background-color: colors.$pane-bg-color;
 }
 
 table.site-report-table tr.table-row-expanded > td {
-  background-color: color.adjust(colors.$base-color, $lightness: 10%) !important;
+  background-color: colors.$pane-bg-color !important;
 }
 
 .site-report-table tbody th, table.dataTable tbody td {
@@ -5415,22 +5415,31 @@ thead > tr > td {
 }
 
 .site-report-table tbody .site-report-table-row td {
-  background-color: #c6c6c6;
-  color: #000;
+  background-color: #fff;
+  color: #0f172a;
 }
 
 .site-report-table tbody .site-report-table-row-with-subtable td {
-  background-color: colors.$inactive-color !important;
-  color: #fff !important;
+  background-color: #fff !important;
+  color: #0f172a !important;
 }
 
 tr.site-report-table-row-with-subtable:hover td {
-  cursor:pointer;
-  background-color:colors.$base-color !important;
+  cursor: pointer;
+  background-color: #eef6ff !important;
 }
 
 .site-report-subtable > tbody > tr:hover > td {
-  background-color:colors.$pane-bg-color !important;
+  border-top-color: colors.$sead-brown !important;
+  border-bottom-color: colors.$sead-brown !important;
+}
+
+.site-report-subtable > tbody > tr:hover > td:first-child {
+  border-left-color: colors.$sead-brown !important;
+}
+
+.site-report-subtable > tbody > tr:hover > td:last-child {
+  border-right-color: colors.$sead-brown !important;
 }
 
 
@@ -5459,13 +5468,67 @@ tr.site-report-table-row-with-subtable:hover td {
 }
 
 .site-report-table tbody td {
-  background-color: colors.$inactive-color;
-  color: #fff;
+  background-color: #f1f5f9;
+  color: #0f172a;
 }
 
-.site-report-table tbody .site-report-subtable-row td {
-  background-color: #c6c6c6;
-  color: #000 !important;
+
+.site-report-table tbody .site-report-subtable-row > td {
+  background-color: #fff;
+  color: #0f172a !important;
+  padding: 6px 0 12px 0 !important;
+  border-top: none;
+  border-bottom: 1px solid #e5e7eb;
+  border-left: solid 6px colors.$pane-bg-color;
+}
+
+/* Indent the subtable container inside the row */
+.site-report-subtable-row > td > div {
+  margin-left: 2em;
+}
+
+/* Subtable inner table — card-style rounded rows */
+.site-report-subtable {
+  border-collapse: separate !important;
+  border-spacing: 0 5px !important;
+  width: 100%;
+}
+
+.site-report-subtable thead {
+  background: #ffffff;
+}
+
+.site-report-subtable thead td {
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4px;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: 1px solid rgba(colors.$pane-bg-color, 0.9) !important;
+  /* Extra bottom padding bridges the gap border-spacing doesn't add between thead and tbody */
+  padding: 6px 8px 11px 8px !important;
+}
+
+.site-report-subtable tbody tr td {
+  background: #ffffff;
+  color: #0f172a;
+  border-top: 1px solid rgba(colors.$pane-bg-color, 0.9);
+  border-bottom: 1px solid rgba(colors.$pane-bg-color, 0.9);
+  padding: 7px 8px !important;
+}
+
+.site-report-subtable tbody tr td:first-child {
+  border-left: 1px solid rgba(colors.$pane-bg-color, 0.9);
+  border-radius: 6px 0 0 6px;
+}
+
+.site-report-subtable tbody tr td:last-child {
+  border-right: 1px solid rgba(colors.$pane-bg-color, 0.9);
+  border-radius: 0 6px 6px 0;
 }
 
 .site-report-table-aggregation-container {
