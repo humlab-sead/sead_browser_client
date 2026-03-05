@@ -4,7 +4,7 @@ import DataHandlingModule from './DataHandlingModule.class.js';
 class EntityAgesData extends DataHandlingModule {
     constructor(sqs) {
         super(sqs);
-        this.methodIds = [176];
+        this.methodIds = [174, 176];
         this.methodGroupIds = [];
         this.data = [];
     }
