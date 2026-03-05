@@ -18,7 +18,7 @@ class AdnaDataset extends DatasetModule {
 		const methodDatasets = this.claimDatasets(siteData);
 
         let dataGroups = siteData.data_groups.filter((dataGroup) => {
-			return dataGroup.method_ids.includes(this.methodIds[0]);
+			return dataGroup.method_ids.some(methodId => this.methodIds.includes(methodId));
 		});
 
         if(methodDatasets.length == 0) {
@@ -42,7 +42,6 @@ class AdnaDataset extends DatasetModule {
 		let analysisVariables = new Map();
 
 		dataGroups.forEach(dataGroup => {
-			console.log(dataGroup);
             let subTableColumns = [
 				{
 					//title: "Dendro lookup id",
@@ -150,9 +149,6 @@ class AdnaDataset extends DatasetModule {
 			}
 		});
 
-
-		console.log(analysisVariables);
-
 		//convert axisOptions to array
 		let axisOptionsArray = [];
 		analysisVariables.forEach((value, key) => {
@@ -162,9 +158,6 @@ class AdnaDataset extends DatasetModule {
 				selected: false
 			});
 		});
-
-		console.log(analysisVariables);
-		console.log(axisOptionsArray);
 
 		axisOptionsArray.push({
 			title: "Sample name",
@@ -247,7 +240,7 @@ class AdnaDataset extends DatasetModule {
 
         let section = {
 			"name": analysisMethod.method_id,
-			"title": "Ancient DNA",
+			"title": analysisMethod.method_name,
 			"methodId": analysisMethod.method_id,
 			"methodDescription": analysisMethodDescription,
 			"collapsed": true,
