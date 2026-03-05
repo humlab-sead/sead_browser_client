@@ -20,7 +20,7 @@ class EntityAgesDataset extends DatasetModule {
 		this.section = analysis.section;
 		this.summary = null;
 
-		this.methodIds = [176, 174];
+		this.methodIds = [174, 176];
 		this.methodGroupIds = [];
 		this.methodMetaDataFetchingComplete = true;
 	}
@@ -68,6 +68,10 @@ class EntityAgesDataset extends DatasetModule {
             {
                 "dataType": "string",
                 "title": "Sample"
+            },
+            {
+                "dataType": "string",
+                "title": "Dataset name"
             },
             {
                 "dataType": "string",
@@ -133,6 +137,11 @@ class EntityAgesDataset extends DatasetModule {
                         "type": "cell",
                         "tooltip": "",
                         "value": sample != null ? sample.sample_name : ae.physical_sample_id+" (internal id)"
+                    },
+                    {
+                        "type": "cell",
+                        "tooltip": "",
+                        "value": dataset ? dataset.dataset_name : "No data"
                     },
                     {
                         "type": "cell",
