@@ -132,31 +132,96 @@ class SeadQuerySystem {
 		//window.dispatchEvent(event);
 	}
 
-	setLoadingIndicator(containerNode, set = true, nonInvasive = false) {
-		//Remove any overlay box that might already exist in this container (effectively overwriting that msg)
-		$(".overlay-msg-box", containerNode).remove();
-				
-		if(set) {
-			const frag = document.getElementById("logo-loading-indicator");
-			const node = document.importNode(frag.content, true);
-			if(!nonInvasive) {
-				$(containerNode).html("");
-			}
-			$(containerNode).append(node);
+	static INDICATOR_STATUS = Object.freeze({
+		LOADING: "loading",
+		NO_DATA: "no-data",
+		ERROR: "error",
+		DONE: "done"
+	});
 
-			if(nonInvasive) {
-				$(".logo-loading-indicator", containerNode).addClass("logo-loading-indicator-non-invasive");
-			}
+	setLoadingIndicator(containerNode, status, nonInvasive = true) {
+
+		const STATUS = this.constructor.INDICATOR_STATUS;
+
+		// Normalize container input (selector, node, or jquery object)
+		const $container = $(containerNode);
+		if (!$container.length) return;
+
+		// Backwards compatibility with old boolean API
+		if (typeof status === "boolean") {
+			status = status ? STATUS.LOADING : STATUS.DONE;
 		}
-		else {
-			if(nonInvasive) {
-				$(".logo-loading-indicator", containerNode).remove();
+
+		const validStatuses = new Set(Object.values(STATUS));
+		if (!validStatuses.has(status)) {
+			throw new Error(`Invalid indicator status: "${status}"`);
+		}
+
+		$container.each((i, el) => {
+
+			const $el = $(el);
+
+			// Remove existing indicators
+			$(".overlay-msg-box, .logo-loading-indicator-overlay, .logo-loading-indicator-inline", el).remove();
+
+			if (status === STATUS.DONE) {
+				return;
+			}
+
+			// --- Build indicator content (inlined) ---
+			let indicatorContent;
+
+			if (status === STATUS.LOADING) {
+				const frag = document.getElementById("logo-loading-indicator");
+				if (!frag) {
+					throw new Error('Missing template: #logo-loading-indicator');
+				}
+				indicatorContent = document.importNode(frag.content, true);
 			}
 			else {
-				$(containerNode).html("");
+				const box = document.createElement("div");
+				box.className = "overlay-msg-box";
+
+				if (status === STATUS.NO_DATA) {
+					box.classList.add("overlay-msg-box-no-data");
+					box.textContent = "No data";
+				}
+				else if (status === STATUS.ERROR) {
+					box.classList.add("overlay-msg-box-error");
+					box.textContent = "An error occurred";
+				}
+
+				indicatorContent = box;
 			}
-			
-		}
+
+			// --- Render indicator ---
+
+			if (nonInvasive) {
+
+				const computedPosition = window.getComputedStyle(el).position;
+				if (computedPosition === "static") {
+					$el.css("position", "relative");
+				}
+
+				const overlay = document.createElement("div");
+				overlay.className = "logo-loading-indicator-overlay";
+				overlay.appendChild(indicatorContent);
+
+				el.appendChild(overlay);
+
+			}
+			else {
+
+				$el.empty();
+
+				const wrapper = document.createElement("div");
+				wrapper.className = "logo-loading-indicator-inline";
+				wrapper.appendChild(indicatorContent);
+
+				el.appendChild(wrapper);
+			}
+
+		});
 	}
 
 	setBgLoadingIndicator(containerNode, set = true) {
@@ -544,6 +609,7 @@ class SeadQuerySystem {
 			if(evt.shiftKey && evt.key == "D") {
 				this.facetManager.toggleDebug();
 				this.resultManager.toggleDebug();
+				this.siteReportManager.toggleDebug();
 			}
         });
 	}

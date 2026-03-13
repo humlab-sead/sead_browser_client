@@ -51,35 +51,58 @@ export default class SitesDataTransfer extends DataTransferModule {
     addSiteSheet(wb, sites) {
         const siteWorksheet = wb.addWorksheet("Site");
 
-        // Define columns and headers
+        // Define columns and value resolvers
         const siteMetaColumns = [
-            { key: "site_id", title: "Site identifier" },
-            { key: "license", title: "License" },
-            { key: "export_date", title: "Date of export" },
-            { key: "webclient_version", title: "Webclient version" },
-            { key: "api_version", title: "API version" },
-            { key: "site_name", title: "Site name" },
-            { key: "site_description", title: "Site description" },
-            { key: "coordinates_google_maps", title: "Google Maps Link" },
-            { key: "latitude_dd", title: "Latitude (WGS84)" },
-            { key: "longitude_dd", title: "Longitude (WGS84)" },
-            { key: "db_attribution", title: "Database attribution" }
+            {
+                title: "Site identifier",
+                resolve: (site) => site.site_id
+            },
+            {
+                title: "License",
+                resolve: () => this.sqs.config.dataLicense.name + " (" + this.sqs.config.dataLicense.url + ")"
+            },
+            {
+                title: "Date of export",
+                resolve: () => new Date().toLocaleDateString('sv-SE')
+            },
+            {
+                title: "Webclient version",
+                resolve: () => this.sqs.config.version
+            },
+            {
+                title: "API version",
+                resolve: (site) => site.api_source
+            },
+            {
+                title: "Site name",
+                resolve: (site) => site.site_name
+            },
+            {
+                title: "Site description",
+                resolve: (site) => site.site_description
+            },
+            {
+                title: "Google Maps Link",
+                resolve: (site) => this.formatCoordinatesForGoogleMaps(site.latitude_dd, site.longitude_dd)
+            },
+            {
+                title: "Latitude (WGS84)",
+                resolve: (site) => site.latitude_dd
+            },
+            {
+                title: "Longitude (WGS84)",
+                resolve: (site) => site.longitude_dd
+            },
+            {
+                title: "Database attribution",
+                resolve: () => this.sqs.config.dataAttributionString
+            }
         ];
 
         // Prepare data rows
-        const dataRows = sites.map(site => [
-            site.site_id,
-            this.sqs.config.dataLicense.name + " (" + this.sqs.config.dataLicense.url + ")",
-            new Date().toLocaleDateString('sv-SE'),
-            this.sqs.config.version,
-            site.api_source,
-            site.site_name,
-            site.site_description,
-            this.formatCoordinatesForGoogleMaps(site.latitude_dd, site.longitude_dd),
-            site.latitude_dd,
-            site.longitude_dd,
-            this.sqs.config.dataAttributionString,
-        ]);
+        const dataRows = sites.map(site =>
+            siteMetaColumns.map(col => col.resolve(site) ?? "")
+        );
 
         // Add as an Excel Table for banded rows and filter drop-downs
         siteWorksheet.addTable({
@@ -138,18 +161,14 @@ export default class SitesDataTransfer extends DataTransferModule {
                             site.site_name ?? ""
                         ];
                         
-                        // Process sampleGroup columns - only from sampleGroup
+                        // Process sampleGroup columns
                         sampleGroupKeys.forEach(col => {
-                            let value = sampleGroup[col.key] ?? "";
-                            value = this.formatCellValue(value, col.key, site);
-                            row.push(value !== undefined ? value : "");
+                            row.push(col.resolve(sampleGroup, site) ?? "");
                         });
-                        
-                        // Process physicalSample columns - only from physicalSample
+
+                        // Process physicalSample columns
                         physicalSampleKeys.forEach(col => {
-                            let value = physicalSample[col.key] ?? "";
-                            value = this.formatCellValue(value, col.key, site);
-                            row.push(value !== undefined ? value : "");
+                            row.push(col.resolve(physicalSample, site) ?? "");
                         });
                         
                         dataRows.push(row);
@@ -245,15 +264,53 @@ export default class SitesDataTransfer extends DataTransferModule {
             });
         });
 
-        // Convert sets to arrays of {key, title}
+        // Convert sets to arrays of {key, title, resolve}
+        // The default resolver delegates to formatCellValue, which handles HTML cleanup,
+        // lookup-based formatting etc. for the known common cases.
         const sampleGroupKeys = Array.from(sampleGroupKeySet).sort().map(key => ({
             key,
-            title: sampleGroupKeyTitleMap[key] || this.defaultTitle(key)
+            title: sampleGroupKeyTitleMap[key] || this.defaultTitle(key),
+            resolve: (obj, site) => this.formatCellValue(obj[key] ?? "", key, site)
         }));
         const physicalSampleKeys = Array.from(physicalSampleKeySet).sort().map(key => ({
             key,
-            title: physicalSampleKeyTitleMap[key] || this.defaultTitle(key)
+            title: physicalSampleKeyTitleMap[key] || this.defaultTitle(key),
+            resolve: (obj, site) => this.formatCellValue(obj[key] ?? "", key, site)
         }));
+
+        // ---------------------------------------------------------------------------
+        // Virtual columns — these have no direct key on the object; they use a custom
+        // resolver to derive the value from nested data and/or lookup tables.
+        // ---------------------------------------------------------------------------
+        const virtualPhysicalSampleColumns = [
+            {
+                key: "coordinate_system",
+                title: "Coordinate system",
+                resolve: (physicalSample, site) => {
+                    const coords = physicalSample.coordinates;
+                    if (!Array.isArray(coords) || coords.length === 0) return "";
+                    // Use the first coordinate entry's method as the system label.
+                    // Multiple entries in practice share the same system, but if they
+                    // differ we join the distinct names.
+                    const names = [...new Set(
+                        coords
+                            .map(c => this.resolveMethodName(site, c.coordinate_method_id))
+                            .filter(Boolean)
+                    )];
+                    return names.join("; ");
+                }
+            }
+        ];
+
+        // Place each virtual column immediately after its related source column so
+        // the sheet reads naturally (e.g. "Sample coordinates" → "Coordinate system").
+        const coordIdx = physicalSampleKeys.findIndex(c => c.key === "coordinates");
+        if (coordIdx !== -1) {
+            physicalSampleKeys.splice(coordIdx + 1, 0, ...virtualPhysicalSampleColumns);
+        } else {
+            // Coordinates column absent for this export — append at the end anyway.
+            physicalSampleKeys.push(...virtualPhysicalSampleColumns);
+        }
 
         return { sampleGroupKeys, physicalSampleKeys };
     }
@@ -379,6 +436,21 @@ export default class SitesDataTransfer extends DataTransferModule {
         });
 
         return datagroupsByMethod;
+    }
+
+    /**
+     * Looks up a method name from site lookup tables by its ID.
+     * Returns the method_name string, or a stringified ID as fallback.
+     * @param {Object} site - Site object containing lookup_tables.
+     * @param {number|string} methodId - The method_id to look up.
+     * @returns {string}
+     */
+    resolveMethodName(site, methodId) {
+        if (methodId == null) return "";
+        const methods = site.lookup_tables?.methods;
+        if (!Array.isArray(methods)) return String(methodId);
+        const method = methods.find(m => m.method_id === methodId);
+        return method?.method_name ?? String(methodId);
     }
 
     /**

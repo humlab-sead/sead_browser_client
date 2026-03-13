@@ -68,7 +68,7 @@
 				"geochronology"
 			],
 			"result_grid_layout": [
-				4,
+				5,
 				3
 			],
 			"result_grid_modules": [
@@ -121,6 +121,16 @@
 					"module_name": "mosaic-dendro-ew-lw-measurements",
 					"grid_row": "4",
 					"grid_column": "2"
+				},
+				{
+					"module_name": "mosaic-dendro-dating-histogram",
+					"grid_row": "4",
+					"grid_column": "3"
+				},
+				{
+					"module_name": "mosaic-dendro-building-types",
+					"grid_row": "5",
+					"grid_column": "1"
 				}
 			]
 		},

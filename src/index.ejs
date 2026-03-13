@@ -28,6 +28,8 @@
   <meta property="og:image" content="<%= baseUrl %>/assets/SEAD-logo-square.png" />
   <meta property="og:url" content="<%= baseUrl %>/" />
 
+  <link rel="preload" as="image" href="/logo-loading-indicator.webp">
+
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <!--<link rel="manifest" href="site.webmanifest">-->
   <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
@@ -372,7 +374,7 @@
           This export will contain <span style="font-weight:bold;" data-num-sites></span> sites.<br><br>
 
         <h3>Export sites</h3>
-          <!--<a id="samples-export-xlsx-dl" class="sites-export-btn light-theme-button">Download XLSX (samples)</a>-->
+          <a id="samples-export-xlsx-dl" class="sites-export-btn light-theme-button">Download XLSX (samples)</a>
           <a id="sites-export-xlsx-dl" class="sites-export-btn light-theme-button">Download XLSX</a>
           <a id="sites-export-csv-dl" class="sites-export-btn light-theme-button">Download CSV</a>
           <a id="sites-export-json-dl" class="sites-export-btn light-theme-button">Download JSON</a>
@@ -839,6 +841,12 @@
       </div>
     </div>
 
+    <div id="import-dialog" class="overlay-dialog">
+      <div class="overlay-dialog-content">
+        <h3>Import data</h3>
+        <form class="dropzone"></form>
+      </div>
+    </div>
     
 
     <div id="googleLoginTemplate">

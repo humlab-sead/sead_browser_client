@@ -10,6 +10,7 @@ class SiteReportManager {
 		this.sqs = sqs;
 		this.siteReport = null;
 		this.siteReportsEnabled = true;
+		this.debugMode = false;
 
 		/*
 		this.sqs.sqsEventListen("resultModuleRenderComplete", () => {
@@ -36,6 +37,13 @@ class SiteReportManager {
 			this.siteReport.destroy();
 			history.pushState({}, "", "/");
 		});
+	}
+
+	toggleDebug() {
+		this.debugMode = !this.debugMode;
+		if(this.siteReport) {
+			this.siteReport.toggleDebug(this.debugMode);
+		}
 	}
 	
 	sqsOffer(offerName, offerData) {
