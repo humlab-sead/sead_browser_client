@@ -174,6 +174,7 @@ class AdnaDataset extends DatasetModule {
 			"titleTooltip": "Name of the dataset",
 			"datasetId": 0,
 			"methodId": 10,
+			"renderedBy": this.constructor.name,
 			"dataType": "key-value",
 			"data": {
 				"columns": columns,

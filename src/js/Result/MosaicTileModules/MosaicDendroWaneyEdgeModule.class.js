@@ -49,7 +49,7 @@ class MosaicDendroWaneyEdgeModule extends MosaicTileModule {
         requestBody = JSON.stringify(requestBody);
 
         //set loading indicator
-        this.sqs.setLoadingIndicator(this.renderIntoNode, true);
+        this.sqs.setLoadingIndicator(this.renderIntoNode, "loading");
 
 
         let response = await super.fetchData("/dendro/dynamicchart", requestBody);
@@ -64,6 +64,7 @@ class MosaicDendroWaneyEdgeModule extends MosaicTileModule {
         if(data.categories.length == 0) {
             //set no data msg
             this.sqs.setNoDataMsg(this.renderIntoNode, true);
+            this.sqs.setLoadingIndicator(this.renderIntoNode, "done");
             return false;
         }
 

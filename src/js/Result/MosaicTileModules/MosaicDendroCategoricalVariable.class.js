@@ -144,12 +144,9 @@ class MosaicDendroCategoricalVariable extends DendroBaseModule {
         
         this.chartInstances.set(varId, { plotly: true, elementId: `chart-${varId}`, name: data.label });
 
-        // Add mini coverage chart
-        const totalSamples = await this.getTotalSamplesCount();
-        if(totalSamples) {
-            const coverageElement = document.getElementById(`coverage-${varId}`);
-            this.renderCoverageMiniChart(coverageElement, total, totalSamples);
-        }
+        // Add mini coverage chart — renders immediately with empty bar, animates fill when totalSamples resolves
+        const coverageElement = document.getElementById(`coverage-${varId}`);
+        this.renderCoverageMiniChart(coverageElement, total, this.fetchTotalSamplesCount());
 
         this.sqs.resultManager.showLoadingIndicator(false);
         this.renderComplete = true;

@@ -211,12 +211,9 @@ class MosaicDendroNumericVariable extends DendroBaseModule {
         
         this.chartInstances.set(varId, { chart: chart, name: data.label });
 
-        // Add mini coverage chart
-        const totalSamples = await this.getTotalSamplesCount();
-        if(totalSamples) {
-            const coverageContainer = document.getElementById(`coverage-${varId}`);
-            this.renderCoverageMiniChart(coverageContainer, data.count || 0, totalSamples);
-        }
+        // Add mini coverage chart — renders immediately with empty bar, animates fill when totalSamples resolves
+        const coverageContainer = document.getElementById(`coverage-${varId}`);
+        this.renderCoverageMiniChart(coverageContainer, data.count || 0, this.fetchTotalSamplesCount());
 
         this.sqs.resultManager.showLoadingIndicator(false);
         this.renderComplete = true;

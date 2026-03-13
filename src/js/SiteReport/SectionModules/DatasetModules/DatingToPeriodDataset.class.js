@@ -64,7 +64,6 @@ class DatingToPeriodDataset extends DatasetModule {
 
 	async makeSection(siteData, sections) {
 		let datasets = this.claimDatasets(siteData);
-		
 		let summary = [];
 
 		//we make our own 'data groups' here despite this exact data structure already existing in the siteData from the server
@@ -89,6 +88,7 @@ class DatingToPeriodDataset extends DatasetModule {
 			}
 		});
 
+		console.log(dataGroups);
 		dataGroups.forEach(dataGroup => {
 			let section = this.getSectionByMethodId(dataGroup.method_id, sections);			
 			if(!section) {

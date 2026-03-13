@@ -1650,6 +1650,7 @@ body.facet-resizing * {
   -webkit-text-stroke-width: 1px;
   -webkit-text-stroke-color: #fff;
   text-align: center;
+  border: 1px solid #fff;
 }
 
 .feature-type-icon-bar {
@@ -1661,6 +1662,10 @@ body.facet-resizing * {
   margin: 0;
   padding: 0;
   left: 0px;
+}
+
+.section-debug-info {
+  visibility: hidden;
 }
 
 /*
@@ -5096,6 +5101,8 @@ a.ms-selectall:hover {
 }
 
 .site-report-level-title {
+  display: flex;
+  justify-content: space-between;
   cursor: pointer;
   background-color: colors.$inactive-color;
   background-color: transparent;
@@ -5110,7 +5117,6 @@ a.ms-selectall:hover {
   border-width: 0px;
   border-left: 5px solid #ccc;
   border-bottom: 1px solid #ccc;
-
 }
 
 .site-report-level-title:hover {
@@ -5401,7 +5407,8 @@ table.site-report-table > tbody > tr.site-report-table-row-with-subtable:hover >
 }
 
 table.site-report-table tr.table-row-expanded > td {
-  background-color: colors.$pane-bg-color !important;
+  background-color: colors.$sead-brown !important;
+  color: #fff !important;
 }
 
 .site-report-table tbody th, table.dataTable tbody td {
@@ -5479,7 +5486,7 @@ tr.site-report-table-row-with-subtable:hover td {
   padding: 6px 0 12px 0 !important;
   border-top: none;
   border-bottom: 1px solid #e5e7eb;
-  border-left: solid 6px colors.$pane-bg-color;
+  border-left: solid 6px colors.$sead-brown;
 }
 
 /* Indent the subtable container inside the row */
@@ -5897,4 +5904,35 @@ tr.site-report-table-row-with-subtable:hover td {
   padding: 0.5em;
   border: 1px solid #aaa;
   z-index: 100;
+}
+
+
+
+
+
+
+.logo-loading-indicator-overlay {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 10;
+	background: rgba(255, 255, 255, 0.65);
+	pointer-events: all;
+}
+
+.logo-loading-indicator-inline {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 120px;
+}
+
+.overlay-msg-box-no-data {
+	/* optional */
+}
+
+.overlay-msg-box-error {
+	color: #b00020;
 }

@@ -69,6 +69,7 @@ class LossOnIgnitionDataset extends DatasetModule {
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataset.dataset_id,
 				"methodId": dataset.method_id,
+				"renderedBy": this.constructor.name,
 				"data": {
 					"columns": [],
 					"rows": []

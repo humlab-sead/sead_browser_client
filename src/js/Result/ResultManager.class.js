@@ -120,6 +120,7 @@ class ResultManager {
 
 	toggleDebug() {
 		this.debugMode = !this.debugMode;
+		console.log("Debug mode: "+(this.debugMode ? "ON" : "OFF"));
 
 		if(this.debugMode) {
 			$("#result-menu .sqs-menu-item-hidden").css("display", "block");

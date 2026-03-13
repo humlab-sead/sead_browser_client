@@ -240,6 +240,7 @@ class IsotopeDataset extends DatasetModule {
             "datasetReferencePlain": this.sqs.renderBiblioReference(siteData, uniqueDatasetBiblioIds, false),
             "datasetContacts": this.sqs.renderContacts(siteData, uniqueDatasetContactIds),
             "methodId": this.methodIds[0],
+            "renderedBy": this.constructor.name,
             "data": {
                 "columns": columns,
                 "rows": rows

@@ -17,6 +17,7 @@ import DendrochronologyDataset from './DatasetModules/DendrochronologyDataset.cl
 import ESRDataset from './DatasetModules/ESRDataset.class';
 import OpenLayersMap from '../../Common/OpenLayersMap.class';
 import SqsMenu from '../../SqsMenu.class';
+import C14Dataset from './DatasetModules/C14Dataset.class';
 
 /*
 * Class: BasicSiteInformation
@@ -214,6 +215,10 @@ class BasicSiteInformation {
 					if(dsm.instance instanceof ESRDataset) {
 						siteDatingSummary = siteDatingSummary.concat(dsm.instance.getDatingSummary());
 					}
+
+					if(dsm.instance instanceof C14Dataset) {
+						siteDatingSummary = siteDatingSummary.concat(dsm.instance.getDatingSummary());
+					}
 				})
 			}
 		});
@@ -277,7 +282,6 @@ class BasicSiteInformation {
 
 		let ticksLabelCallback = null;
 		let tooltipCallback = null;
-		console.log(compoundAges)
 		if(compoundAges.length > 0 && compoundAges[0].isBP) {
 			ticksLabelCallback = function (value, index, values) {
 				if (value >= 1000) {

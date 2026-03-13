@@ -652,8 +652,35 @@ class Samples {
 			eventType: "click"
 		});
 
-		let styleAttr = analysisMethodColor ? " style='background-color: "+analysisMethodColor+";'" : "";
+		let textColor = "#000000";
+		if(this.isColorDarkOrLight(analysisMethodColor) == "dark") {
+			textColor = "#ffffff";
+		}
+
+		let styleAttr = analysisMethodColor ? " style='background-color: "+analysisMethodColor+"; color: "+textColor+";'" : "";
 		return "<div id='"+analysisTagId+"' class='sample-group-analysis-tag'"+styleAttr+">"+method.method_abbrev_or_alt_name+"</div>";
+	}
+
+	isColorDarkOrLight(color) {
+		if(!color) return "light";
+		let hex = color.replace(/^#/, '');
+		if(hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+		if(hex.length !== 6) return "light";
+
+		// WCAG 2.1 relative luminance
+		const toLinear = c => {
+			const s = c / 255;
+			return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+		};
+		const r = toLinear(parseInt(hex.substring(0, 2), 16));
+		const g = toLinear(parseInt(hex.substring(2, 4), 16));
+		const b = toLinear(parseInt(hex.substring(4, 6), 16));
+		const L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+		// Pick whichever of black/white gives higher contrast ratio
+		const contrastWithWhite = (1 + 0.05) / (L + 0.05);
+		const contrastWithBlack = (L + 0.05) / (0 + 0.05);
+		return contrastWithWhite >= contrastWithBlack ? "dark" : "light";
 	}
 
 	insertSampleGroupCoordinatesIntoTable(table, sampleGroups) {

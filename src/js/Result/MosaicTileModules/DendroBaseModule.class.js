@@ -209,6 +209,31 @@ class DendroBaseModule extends MosaicTileModule {
     }
 
     /**
+     * Fetch building types data
+     */
+    async fetchBuildingTypes(sites, requestId) {
+        const requestBody = {
+            sites: sites,
+            requestId: requestId
+        };
+
+        try {
+            const response = await super.fetchData("/site/buildingtypes", JSON.stringify(requestBody));
+            
+            if(!response) {
+                return { variable: 'Building types', data: null, error: true, type: 'categorical' };
+            }
+
+            const data = await response.json();
+            
+            return { variable: 'Building types', data: data, error: false, type: 'buildingTypes' };
+        } catch(error) {
+            console.warn('Failed to fetch Building types:', error);
+            return { variable: 'Building types', data: null, error: true, type: 'categorical' };
+        }
+    }
+
+    /**
      * Get color index for consistent coloring across modules
      */
     getColorIndexForVariable(variableName) {
@@ -228,19 +253,22 @@ class DendroBaseModule extends MosaicTileModule {
     }
 
     /**
-     * Get total number of samples from the sample types data
+     * Fetch total number of samples for the current sites
      * Returns null if not available
      */
-    async getTotalSamplesCount() {
+    async fetchTotalSamplesCount() {
         try {
             let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-            const result = await this.fetchSampleTypes(resultMosaic.sites, ++this.requestId);
-            
-            if(result.error || !result.data || !result.data.categories) {
+            const requestBody = {
+                sites: resultMosaic.sites,
+                requestId: ++this.requestId
+            };
+            const response = await super.fetchData("/site/samplescount", JSON.stringify(requestBody));
+            if(!response) {
                 return null;
             }
-            
-            return result.data.categories.reduce((sum, cat) => sum + cat.count, 0);
+            const data = await response.json();
+            return data.count ?? null;
         } catch(error) {
             console.warn('Failed to fetch total sample count:', error);
             return null;
@@ -248,19 +276,15 @@ class DendroBaseModule extends MosaicTileModule {
     }
 
     /**
-     * Render a mini coverage chart showing what proportion of total samples have this variable
+     * Render a mini coverage chart showing what proportion of total samples have this variable.
+     * Immediately draws the label and an empty bar (percentage shown as N/A), then animates
+     * the fill and percentage ticker as soon as totalSamplesOrPromise resolves.
+     *
      * @param {HTMLElement} container - Container to append the mini-chart to
      * @param {number} samplesWithVariable - Number of samples that have this variable
-     * @param {number} totalSamples - Total number of samples across all selected sites
+     * @param {number|Promise<number>} totalSamplesOrPromise - Total samples count, or a Promise for it
      */
-    renderCoverageMiniChart(container, samplesWithVariable, totalSamples) {
-        if(!totalSamples || totalSamples === 0) {
-            console.log('Total samples is zero or undefined, cannot render coverage chart.');
-            return;
-        }
-
-        const percentageWith = ((samplesWithVariable / totalSamples) * 100).toFixed(1);
-
+    async renderCoverageMiniChart(container, samplesWithVariable, totalSamplesOrPromise) {
         const miniChartId = nanoid();
         const miniChartHtml = `
             <div class="dendro-mini-chart-container">
@@ -268,33 +292,70 @@ class DendroBaseModule extends MosaicTileModule {
                 <div class="dendro-mini-chart-wrapper">
                     <canvas id="mini-chart-${miniChartId}" height="16"></canvas>
                 </div>
-                <div class="dendro-mini-chart-percentage">${percentageWith}%</div>
+                <div class="dendro-mini-chart-percentage" id="mini-pct-${miniChartId}">N/A</div>
             </div>
         `;
-        
+
         $(container).append(miniChartHtml);
 
-        // Draw custom line with rounded endpoints
+        // Draw empty bar immediately
         const canvas = document.getElementById(`mini-chart-${miniChartId}`);
         const ctx = canvas.getContext('2d');
-        
-        // Set canvas size to match container
         const canvasContainer = canvas.parentElement;
         canvas.width = canvasContainer.clientWidth;
         canvas.height = 16;
-        
-        // Store chart data for resize handling
+
         this.coverageCharts.set(miniChartId, {
             canvas: canvas,
-            percentage: percentageWith / 100
+            percentage: 0
         });
-        
-        // Add resize listener if this is the first coverage chart
-        if(this.coverageCharts.size === 1) {
+
+        if (this.coverageCharts.size === 1) {
             window.addEventListener('resize', this.resizeHandler);
         }
-        
-        this.drawCoverageLine(ctx, canvas.width, canvas.height, percentageWith / 100);
+
+        this.drawCoverageLine(ctx, canvas.width, canvas.height, 0);
+
+        // Await total samples count (accepts both a direct value and a Promise)
+        const totalSamples = await Promise.resolve(totalSamplesOrPromise);
+        if (!totalSamples || totalSamples === 0) {
+            return;
+        }
+
+        const targetPercentage = samplesWithVariable / totalSamples;
+        const pctEl = document.getElementById(`mini-pct-${miniChartId}`);
+        const duration = 600;
+        const startTime = performance.now();
+
+        const animate = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease-out cubic
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = targetPercentage * eased;
+
+            this.drawCoverageLine(ctx, canvas.width, canvas.height, current);
+
+            if (pctEl) {
+                pctEl.textContent = (current * 100).toFixed(1) + '%';
+            }
+
+            // Keep stored percentage current so resize redraws correctly during animation
+            this.coverageCharts.set(miniChartId, { canvas, percentage: current });
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                // Snap to exact final values
+                this.drawCoverageLine(ctx, canvas.width, canvas.height, targetPercentage);
+                if (pctEl) {
+                    pctEl.textContent = (targetPercentage * 100).toFixed(1) + '%';
+                }
+                this.coverageCharts.set(miniChartId, { canvas, percentage: targetPercentage });
+            }
+        };
+
+        requestAnimationFrame(animate);
     }
 
     /**

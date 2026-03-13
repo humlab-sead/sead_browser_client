@@ -326,6 +326,7 @@ class CeramicDataset extends DatasetModule {
 			"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, false),
 			"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
 			"methodId": 171, //or 172, but for what this will be used for, it doesn't matter
+			"renderedBy": this.constructor.name,
 			"data": {
 				"columns": columns,
 				"rows": rows

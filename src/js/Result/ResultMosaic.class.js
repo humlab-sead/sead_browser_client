@@ -10,17 +10,11 @@ import MosaicCeramicsCultureModule from "./MosaicTileModules/MosaicCeramicsCultu
 import MosaicCeramicsRelativeAgesModule from "./MosaicTileModules/MosaicCeramicsRelativeAgesModule.class";
 import MosaicCeramicsTypeCountModule from "./MosaicTileModules/MosaicCeramicsTypeCountModule.class";
 import MosaicDendroBuildingTypesModule from "./MosaicTileModules/MosaicDendroBuildingTypesModule.class";
-//import MosaicDendroTreeSpeciesModule from "./MosaicTileModules/OLD-MosaicDendroTreeSpeciesModule.class";
-import MosaicDendroDatingHistogramModule from "./MosaicTileModules/MosaicDendroDatingHistogramModule.class";
-import MosaicDendroTreeSpeciesChartModule from "./MosaicTileModules/MosaicDendroTreeSpeciesChartModule.class";
-import MosaicDendroConstructionPurposeModule from "./MosaicTileModules/MosaicDendroConstructionPurposeModule.class";
 import MosaicTemporalDistributionModule from "./MosaicTileModules/MosaicTemporalDistributionModule.class";
 import MosaicTaxaListModule from "./MosaicTileModules/MosaicTaxaListModule.class";
 import MosaicArchaeobotanyTaxaListModule from "./MosaicTileModules/MosaicArchaeobotanyTaxaListModule.class.js";
 import MosaicEcoCodesModule from './MosaicTileModules/MosaicEcoCodesModule.class.js';
 import MosaicDynamicChartModule from './MosaicTileModules/MosaicDynamicChartModule.class.js';
-import MosaicDendroWaneyEdgeModule from './MosaicTileModules/MosaicDendroWaneyEdgeModule.class.js';
-import MosaicDendroBarkModule from './MosaicTileModules/MosaicDendroBarkModule.class.js';
 import MosaicDendroTreeSpecies from './MosaicTileModules/MosaicDendroTreeSpecies.class.js';
 import MosaicDendroSampleTypes from './MosaicTileModules/MosaicDendroSampleTypes.class.js';
 import MosaicDendroTreeAge from './MosaicTileModules/MosaicDendroTreeAge.class.js';
@@ -117,18 +111,6 @@ class ResultMosaic extends ResultModule {
 			module: null
 		});
 		this.modules.push({
-			title: "Dating histogram",
-			className: "MosaicDendroDatingHistogramModule",
-			classTemplate: MosaicDendroDatingHistogramModule,
-			module: null
-		});
-		this.modules.push({
-			title: "Tree species",
-			className: "MosaicDendroTreeSpeciesChartModule",
-			classTemplate: MosaicDendroTreeSpeciesChartModule,
-			module: null
-		});
-		this.modules.push({
 			title: "Temporal distribution of datasets",
 			className: "MosaicTemporalDistributionModule",
 			classTemplate: MosaicTemporalDistributionModule,
@@ -156,24 +138,6 @@ class ResultMosaic extends ResultModule {
 			title: "Generate chart",
 			className: "MosaicDynamicChartModule",
 			classTemplate: MosaicDynamicChartModule,
-			module: null
-		});
-		this.modules.push({
-			title: "Construction purpose",
-			className: "MosaicDendroConstructionPurposeModule",
-			classTemplate: MosaicDendroConstructionPurposeModule,
-			module: null
-		});
-		this.modules.push({
-			title: "Waney edge",
-			className: "MosaicDendroWaneyEdgeModule",
-			classTemplate: MosaicDendroWaneyEdgeModule,
-			module: null
-		});
-		this.modules.push({
-			title: "Bark",
-			className: "MosaicDendroBarkModule",
-			classTemplate: MosaicDendroBarkModule,
 			module: null
 		});
 		this.modules.push({

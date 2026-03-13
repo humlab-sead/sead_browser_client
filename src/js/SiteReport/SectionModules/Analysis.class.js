@@ -97,10 +97,10 @@ class Analysis {
 			"className": RadioMetricDatingDataset
 		});
 		this.datasetModules.push({
-			"className": DatingToPeriodDataset
+			"className": C14Dataset
 		});
 		this.datasetModules.push({
-			"className": C14Dataset
+			"className": DatingToPeriodDataset
 		});
 		this.datasetModules.push({
 			"className": IsotopeDataset

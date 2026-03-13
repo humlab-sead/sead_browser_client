@@ -20,7 +20,7 @@ class EntityAgesDataset extends DatasetModule {
 		this.section = analysis.section;
 		this.summary = null;
 
-		this.methodIds = [174, 176];
+		this.methodIds = [176, 174];
 		this.methodGroupIds = [];
 		this.methodMetaDataFetchingComplete = true;
 	}
@@ -71,11 +71,7 @@ class EntityAgesDataset extends DatasetModule {
             },
             {
                 "dataType": "string",
-                "title": "Dataset name"
-            },
-            {
-                "dataType": "string",
-                "title": "Age type"
+                "title": "Dating specifier"
             },
             {
                 "dataType": "string",
@@ -83,28 +79,16 @@ class EntityAgesDataset extends DatasetModule {
             },
             {
                 "dataType": "string",
-                "title": "Cal age older"
+                "title": "Age older"
             },
             {
                 "dataType": "string",
-                "title": "Cal age younger"
+                "title": "Age younger"
             },
             {
                 "dataType": "string",
-                "title": "C14 age older"
+                "title": "Age range"
             },
-            {
-                "dataType": "string",
-                "title": "C14 age younger"
-            },
-            {
-                "dataType": "string",
-                "title": "Age location"
-            },
-            {
-                "dataType": "string",
-                "title": "Notes"
-            }
         ];
 
 
@@ -124,7 +108,6 @@ class EntityAgesDataset extends DatasetModule {
             }
 
             dataset.analysis_entities.forEach(ae => {
-
                 let sample = this.analysis.getSampleBySampleId(siteData, ae.physical_sample_id);
 
                 let row = [
@@ -141,48 +124,28 @@ class EntityAgesDataset extends DatasetModule {
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": dataset ? dataset.dataset_name : "No data"
+                        "value": ae.entity_ages.dating_specifier != null ? ae.entity_ages.dating_specifier : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.relativeAgesdata.age_type != null ? ae.relativeAgesdata.age_type : "No data"
+                        "value": ae.entity_ages.age != null ? ae.entity_ages.age : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.relativeAgesdata.relative_age_name != null ? ae.relativeAgesdata.relative_age_name : "No data"
+                        "value": ae.entity_ages.age_older != null ? this.sqs.tryParseValueAsNumber(ae.entity_ages.age_older) : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.relativeAgesdata.cal_age_older != null ? this.sqs.tryParseValueAsNumber(ae.relativeAgesdata.cal_age_older) : "No data"
+                        "value": ae.entity_ages.age_younger != null ? this.sqs.tryParseValueAsNumber(ae.entity_ages.age_younger) : "No data"
                     },
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.relativeAgesdata.cal_age_younger != null ? this.sqs.tryParseValueAsNumber(ae.relativeAgesdata.cal_age_younger) : "No data"
+                        "value": ae.entity_ages.age_range != null ? ae.entity_ages.age_range : "No data"
                     },
-                    {
-                        "type": "cell",
-                        "tooltip": "",
-                        "value": ae.relativeAgesdata.c14_age_older != null ? this.sqs.tryParseValueAsNumber(ae.relativeAgesdata.c14_age_older) : "No data"
-                    },
-                    {
-                        "type": "cell",
-                        "tooltip": "",
-                        "value": ae.relativeAgesdata.c14_age_younger != null ? this.sqs.tryParseValueAsNumber(ae.relativeAgesdata.c14_age_younger) : "No data"
-                    },
-                    {
-                        "type": "cell",
-                        "tooltip": "",
-                        "value": ae.relativeAgesdata.age_location_name != null ? ae.relativeAgesdata.age_location_name : "No data"
-                    },
-                    {
-                        "type": "cell",
-                        "tooltip": "",
-                        "value": ae.relativeAgesdata.notes != null ? ae.relativeAgesdata.notes : "No data"
-                    }
                 ];
 
                 rows.push(row);

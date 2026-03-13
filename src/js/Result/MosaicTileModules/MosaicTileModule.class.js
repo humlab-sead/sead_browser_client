@@ -14,6 +14,43 @@ class MosaicTileModule {
         this.chartType = "";
         this.name = "";
         this.showChartSelector = true; // Controls whether chart selector dropdown is shown
+        this.coverageCharts = new Map(); // Store coverage chart data for resize
+        this.resizeHandler = this.handleResize.bind(this);
+    }
+
+    showLoadingIndicator(show) {
+        if(show && this.renderIntoNode) {
+            this.sqs.setLoadingIndicator(this.renderIntoNode, true);
+        }
+        else if(this.renderIntoNode) {
+            this.sqs.setLoadingIndicator(this.renderIntoNode, false);
+        }
+	}
+
+    async fetchTotalSamplesCount() {
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+
+        try {
+            const response = await fetch(this.sqs.config.dataServerAddress + "/site/samplescount", {
+                method: "POST",
+                mode: "cors",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ sites: resultMosaic.sites })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status} - ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data.count;
+
+        } catch (error) {
+            console.error("Error fetching total samples count:", error);
+            return null;
+        }
     }
 
     async fetchData(path, postData) {
@@ -41,6 +78,122 @@ class MosaicTileModule {
                 return;
             }
         });
+    }
+
+    /**
+     * Render a mini coverage chart showing what proportion of total samples have data.
+     * Immediately draws the label and an empty bar, then animates fill as totalSamplesOrPromise resolves.
+     *
+     * @param {HTMLElement} container - Container element to append the mini-chart into
+     * @param {number} samplesWithData - Count representing coverage numerator
+     * @param {number|Promise<number>} totalSamplesOrPromise - Total samples count or a Promise for it
+     */
+    async renderCoverageMiniChart(container, samplesWithData, totalSamplesOrPromise) {
+        const miniChartId = nanoid();
+        const miniChartHtml = `
+            <div class="dendro-mini-chart-container">
+                <div class="dendro-mini-chart-label">Sample Coverage</div>
+                <div class="dendro-mini-chart-wrapper">
+                    <canvas id="mini-chart-${miniChartId}" height="16"></canvas>
+                </div>
+                <div class="dendro-mini-chart-percentage" id="mini-pct-${miniChartId}">N/A</div>
+            </div>
+        `;
+
+        $(container).append(miniChartHtml);
+
+        const canvas = document.getElementById(`mini-chart-${miniChartId}`);
+        const ctx = canvas.getContext('2d');
+        const canvasContainer = canvas.parentElement;
+        canvas.width = canvasContainer.clientWidth;
+        canvas.height = 16;
+
+        this.coverageCharts.set(miniChartId, { canvas, percentage: 0 });
+
+        if(this.coverageCharts.size === 1) {
+            window.addEventListener('resize', this.resizeHandler);
+        }
+
+        this.drawCoverageLine(ctx, canvas.width, canvas.height, 0);
+
+        const totalSamples = await Promise.resolve(totalSamplesOrPromise);
+        if(!totalSamples || totalSamples === 0) {
+            return;
+        }
+
+        const targetPercentage = samplesWithData / totalSamples;
+        const pctEl = document.getElementById(`mini-pct-${miniChartId}`);
+        const duration = 600;
+        const startTime = performance.now();
+
+        const animate = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = targetPercentage * eased;
+
+            this.drawCoverageLine(ctx, canvas.width, canvas.height, current);
+
+            if(pctEl) {
+                pctEl.textContent = (current * 100).toFixed(1) + '%';
+            }
+
+            this.coverageCharts.set(miniChartId, { canvas, percentage: current });
+
+            if(progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                this.drawCoverageLine(ctx, canvas.width, canvas.height, targetPercentage);
+                if(pctEl) {
+                    pctEl.textContent = (targetPercentage * 100).toFixed(1) + '%';
+                }
+                this.coverageCharts.set(miniChartId, { canvas, percentage: targetPercentage });
+            }
+        };
+
+        requestAnimationFrame(animate);
+    }
+
+    /**
+     * Handle window resize by redrawing all coverage charts
+     */
+    handleResize() {
+        this.coverageCharts.forEach((chartData) => {
+            const { canvas, percentage } = chartData;
+            const canvasContainer = canvas.parentElement;
+            if(!canvasContainer) return;
+            canvas.width = canvasContainer.clientWidth;
+            canvas.height = 16;
+            const ctx = canvas.getContext('2d');
+            this.drawCoverageLine(ctx, canvas.width, canvas.height, percentage);
+        });
+    }
+
+    /**
+     * Draw a rounded coverage bar
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {number} width
+     * @param {number} height
+     * @param {number} percentage - 0 to 1
+     */
+    drawCoverageLine(ctx, width, height, percentage) {
+        const lineY = height / 2;
+        const lineHeight = 6;
+        const padding = 0;
+        const lineWidth = width - (padding * 2);
+        const filledWidth = lineWidth * percentage;
+
+        ctx.fillStyle = '#E0E0E0';
+        ctx.beginPath();
+        ctx.roundRect(padding, lineY - lineHeight / 2, lineWidth, lineHeight, lineHeight / 2);
+        ctx.fill();
+
+        if(filledWidth > 0) {
+            ctx.fillStyle = '#143261';
+            ctx.beginPath();
+            ctx.roundRect(padding, lineY - lineHeight / 2, filledWidth, lineHeight, lineHeight / 2);
+            ctx.fill();
+        }
     }
 
     async render() {

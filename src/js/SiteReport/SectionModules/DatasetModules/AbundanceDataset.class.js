@@ -108,6 +108,7 @@ class AbundanceDataset extends DatasetModule {
 			"name": "ci-"+nanoid(),
 			"title": "Eco codes",
 			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
+			"renderedBy": this.constructor.name,
 			"data": {
 				"columns": [
 					{
@@ -248,6 +249,7 @@ class AbundanceDataset extends DatasetModule {
 			"name": "contentItem-"+nanoid(),
 			"title": "Eco codes per sample",
 			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
+			"renderedBy": this.constructor.name,
 			"data": {
 				"columns": [
 					{
@@ -494,6 +496,7 @@ class AbundanceDataset extends DatasetModule {
 				"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
 				"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, false),
 				"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
+				"renderedBy": this.constructor.name,
 				"data": {
 					"columns": [],
 					"rows": []
@@ -1112,6 +1115,7 @@ class AbundanceDataset extends DatasetModule {
 			"titleTooltip": "Name of the dataset",
 			"datasetId": analysis.datasetId,
 			"exportFormats": ["pdf"],
+			"renderedBy": this.constructor.name,
 			"data": {
 				"columns": columns,
 				"rows": rows

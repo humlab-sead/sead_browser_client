@@ -14,11 +14,6 @@ class MosaicDendroTreeAge extends DendroBaseModule {
     }
 
     async fetchData(renderIntoNode = null) {
-        this.sqs.setNoDataMsg(renderIntoNode, false);
-        
-        if(renderIntoNode) {
-            this.sqs.setLoadingIndicator(renderIntoNode, true);
-        }
 
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         const requestId = ++this.requestId;
@@ -30,9 +25,6 @@ class MosaicDendroTreeAge extends DendroBaseModule {
             ]);
 
             if(!this.active) {
-                if(renderIntoNode) {
-                    this.sqs.setLoadingIndicator(renderIntoNode, false);
-                }
                 return false;
             }
 
@@ -40,9 +32,6 @@ class MosaicDendroTreeAge extends DendroBaseModule {
                !treeAgeMin.data || !treeAgeMax.data ||
                !treeAgeMin.data.categories || !treeAgeMax.data.categories ||
                treeAgeMin.data.categories.length === 0 || treeAgeMax.data.categories.length === 0) {
-                if(renderIntoNode) {
-                    this.sqs.setLoadingIndicator(renderIntoNode, false);
-                }
                 return false;
             }
 
@@ -69,9 +58,6 @@ class MosaicDendroTreeAge extends DendroBaseModule {
             });
             
             if(minValues.length === 0 || maxValues.length === 0) {
-                if(renderIntoNode) {
-                    this.sqs.setLoadingIndicator(renderIntoNode, false);
-                }
                 return false;
             }
 
@@ -81,24 +67,19 @@ class MosaicDendroTreeAge extends DendroBaseModule {
                 minLabel: "Tree age ≥",
                 maxLabel: "Tree age ≤"
             };
-            
-            if(renderIntoNode) {
-                this.sqs.setLoadingIndicator(renderIntoNode, false);
-            }
 
             return this.data;
 
         } catch(error) {
             console.error("Error fetching tree age data:", error);
-            if(renderIntoNode) {
-                this.sqs.setLoadingIndicator(renderIntoNode, false);
-            }
             return false;
         }
     }
 
     async render(renderIntoNode) {
         super.render();
+
+        this.sqs.setLoadingIndicator(renderIntoNode, "loading");
         this.renderComplete = false;
         this.active = true;
         this.renderIntoNode = renderIntoNode;
@@ -106,14 +87,11 @@ class MosaicDendroTreeAge extends DendroBaseModule {
         const data = await this.fetchData(renderIntoNode);
 
         if(!this.active) {
-            this.sqs.resultManager.showLoadingIndicator(false);
             this.renderComplete = true;
             return false;
         }
 
         if(data === false || !data) {
-            this.sqs.setNoDataMsg(this.renderIntoNode);
-            this.sqs.resultManager.showLoadingIndicator(false);
             this.renderComplete = true;
             return;
         }
@@ -252,15 +230,12 @@ class MosaicDendroTreeAge extends DendroBaseModule {
         
         this.chartInstances.set(varId, { chart: chart, name: 'Tree Age Distribution' });
 
-        // Add mini coverage chart
-        const totalSamples = await this.getTotalSamplesCount();
-        if(totalSamples) {
-            const coverageContainer = document.getElementById(`coverage-${varId}`);
-            // Use the count of samples that have tree age data (using minValues length as they should match)
-            this.renderCoverageMiniChart(coverageContainer, data.minValues.length, totalSamples);
-        }
+        // Add mini coverage chart — renders immediately with empty bar, animates fill when totalSamples resolves
+        const coverageContainer = document.getElementById(`coverage-${varId}`);
+        
+        this.renderCoverageMiniChart(coverageContainer, data.minValues.length, this.fetchTotalSamplesCount());
 
-        this.sqs.resultManager.showLoadingIndicator(false);
+        this.sqs.setLoadingIndicator(this.renderIntoNode, "done");
         this.renderComplete = true;
     }
 

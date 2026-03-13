@@ -41,6 +41,7 @@ class SiteReport {
 		this.taxa = [];
 		this.fetchComplete = false;
 		this.contentItemRendererRepository = [];
+		this.debugMode = this.siteReportManager.debugMode;
 		this.show();
 
         this.showLoadingIndicator();
@@ -105,6 +106,17 @@ class SiteReport {
 			console.log("Site report Exit menu clicked");
 			this.siteReportManager.unrenderSiteReport();
 		});
+	}
+
+	toggleDebug(active = false) {
+		this.debugMode = active;
+		console.log("Site report debug mode: "+(this.debugMode ? "ON" : "OFF"));
+		if(this.debugMode) {
+			$(".section-debug-info").css("visibility", "visible");
+		}
+		else {
+			$(".section-debug-info").css("visibility", "hidden");
+		}
 	}
 
 	async loadPdfMake() {
@@ -314,8 +326,25 @@ class SiteReport {
 		if(section.hasOwnProperty("methodName")) {
 			sectionTitle = section.methodName;
 		}
+
+		let debugInfo = `
+		<span class='section-debug-info'>
+			Method id: ${section.methodId}
+		</span>`;
+
+		if(level == 0) {
+			debugInfo = "";
+		}
+
 		$(".site-report-level-title", sectionNode)
-			.html("<i class=\"site-report-sections-expand-button fa fa-plus-circle\" aria-hidden=\"true\">&nbsp;</i><span class='title-text'>"+sectionTitle+"</span><span class='section-warning'></span>")
+			.html(`
+				<div>
+					<i class=\"site-report-sections-expand-button fa fa-plus-circle\" aria-hidden=\"true\">&nbsp;</i>
+					<span class='title-text'>${sectionTitle}</span>
+					<span class='section-warning'></span>
+				</div>
+				${debugInfo}
+				`)
 			.on("click", (evt) => {
 				
 				//if evt.target parent has the id "site-report-section-analyses" or "site-report-section-samples" then return
@@ -333,7 +362,7 @@ class SiteReport {
 			});
 		
 		if(section.hasOwnProperty("methodDescription")) {
-			this.sqs.tooltipManager.registerTooltip($(".site-report-level-title > .title-text", sectionNode), section.methodDescription, {drawSymbol: true, anchorPoint: 'symbol'});
+			this.sqs.tooltipManager.registerTooltip($(".site-report-level-title > div > .title-text", sectionNode), section.methodDescription, {drawSymbol: true, anchorPoint: 'symbol'});
 		}
 		
 		//If this is a top-level section, add another class for different theming

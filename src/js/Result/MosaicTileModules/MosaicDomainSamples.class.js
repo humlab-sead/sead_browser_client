@@ -83,6 +83,7 @@ class MosaicDomainSamples extends MosaicTileModule {
                 });
             }
         });
+
         const methodIds = Array.from(methodIdSet);
         const y = data.domains.map(domain => domain.display_title || domain.facet_code || "Unknown");
         const methodColors = (this.sqs.config.analysisMethodsColors || []).reduce((acc, entry) => {
@@ -96,6 +97,7 @@ class MosaicDomainSamples extends MosaicTileModule {
                 const found = domain.method_counts.find(mc => mc.method_id === methodId);
                 return found && typeof found.sample_count === 'number' ? found.sample_count : 0;
             });
+
             if (x.some(val => val > 0)) {
                 return {
                     x,
@@ -104,7 +106,7 @@ class MosaicDomainSamples extends MosaicTileModule {
                     type: "bar",
                     name: methodIdToLabel[methodId] || `Method ${methodId}`,
                     marker: { color: methodColors[methodId] || fallbackColors[idx % fallbackColors.length] },
-                    hovertemplate: `%{y}<br>%{x} samples<extra></extra>`
+                    hovertemplate: `%{fullData.name}<br>%{x} samples<extra></extra>`
                 };
             }
             return null;

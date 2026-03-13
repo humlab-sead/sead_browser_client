@@ -62,6 +62,7 @@ class MeasuredValueDataset extends DatasetModule {
 				"titleTooltip": "Name of the dataset",
 				"datasetId": dataset.dataset_id,
 				"methodId": analysisMethod.method_id,
+				"renderedBy": this.constructor.name,
 				"data": {
 					"columns": [],
 					"rows": []
