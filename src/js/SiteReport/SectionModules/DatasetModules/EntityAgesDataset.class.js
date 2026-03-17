@@ -20,9 +20,8 @@ class EntityAgesDataset extends DatasetModule {
 		this.section = analysis.section;
 		this.summary = null;
 
-		//this.methodIds = [176, 174];
-        this.methodIds = [];
-		this.methodGroupIds = [];
+		this.methodIds = [174];
+        this.methodGroupIds = [];
 		this.methodMetaDataFetchingComplete = true;
 	}
     /*
