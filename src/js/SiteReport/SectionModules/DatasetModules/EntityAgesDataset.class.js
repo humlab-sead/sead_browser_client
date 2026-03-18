@@ -110,8 +110,6 @@ class EntityAgesDataset extends DatasetModule {
             dataset.analysis_entities.forEach(ae => {
                 let sample = this.analysis.getSampleBySampleId(siteData, ae.physical_sample_id);
 
-                console.log(ae);
-
                 let row = [
                     {
                         "type": "cell",

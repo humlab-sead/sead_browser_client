@@ -1517,6 +1517,10 @@ class SiteReportChart {
 		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
 		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
 
+		// Values 1,2 = counts; values 3,4 = percentages (same columns 1,2 but normalised)
+		let isPercentage = yAxisKey >= 3;
+		let colIndex = isPercentage ? yAxisKey - 2 : yAxisKey;
+
 		let ecoCodeNames = [];
 		let rawValues = [];
 		let datasets = [];
@@ -1527,24 +1531,23 @@ class SiteReportChart {
 			backgroundColor: []
 		});
 
-		// First pass: collect raw values and calculate total
+		// First pass: collect raw values (and total for percentage mode)
 		let total = 0;
 		for(var key in contentItem.data.rows) {
 			let row = contentItem.data.rows[key];
-			let value = row[yAxisKey].value;
+			let value = row[colIndex].value;
 			rawValues.push(value);
 			total += value;
 		}
 
-		// Second pass: convert to percentages and build chart data
+		// Second pass: build chart data
 		for(var key in contentItem.data.rows) {
 			let row = contentItem.data.rows[key];
 			let ecoCodeName = row[0].value;
 			ecoCodeNames.push(ecoCodeName);
 			
-			// Calculate percentage
-			let percentage = total > 0 ? (rawValues[key] / total) * 100 : 0;
-			datasets[0].data.push(percentage);
+			let displayValue = isPercentage ? (total > 0 ? (rawValues[key] / total) * 100 : 0) : rawValues[key];
+			datasets[0].data.push(displayValue);
 			
 			//Find the color for this ecocode
 			for(let defKey in this.sqs.bugsEcoCodeDefinitions) {
@@ -1558,6 +1561,14 @@ class SiteReportChart {
 			labels: ecoCodeNames,
 			datasets: datasets
 		};
+
+		let yScaleConfig = { stacked: true };
+		if(isPercentage) {
+			yScaleConfig.title = { display: true, text: 'Percentage (%)' };
+			yScaleConfig.ticks = { callback: function(value) { return value + '%'; } };
+		} else {
+			yScaleConfig.title = { display: true, text: contentItem.data.columns[colIndex].title };
+		}
 
 		let config = {
 			type: 'bar',
@@ -1580,7 +1591,10 @@ class SiteReportChart {
 								return context[0].label;
 							},
 							label: function(context) {
-								return contentItem.data.columns[yAxisKey].title+": "+context.formattedValue+"%";
+								if(isPercentage) {
+									return contentItem.data.columns[colIndex].title+": "+parseFloat(context.raw).toFixed(1)+"%";
+								}
+								return contentItem.data.columns[colIndex].title+": "+context.formattedValue;
 							}
 						}
 					}
@@ -1590,18 +1604,7 @@ class SiteReportChart {
 					x: {
 						stacked: true,
 					},
-					y: {
-						stacked: true,
-						title: {
-							display: true,
-							text: 'Percentage (%)'
-						},
-						ticks: {
-							callback: function(value) {
-								return value + '%';
-							}
-						}
-					}
+					y: yScaleConfig
 				}
 			}
 		  };
@@ -1615,6 +1618,8 @@ class SiteReportChart {
 			document.getElementById(this.chartId),
 			config
 		);
+
+		this.renderEcoCodeHelpButton();
 	}
 
 	getSubTableCellFromRow(row) {
@@ -1626,12 +1631,67 @@ class SiteReportChart {
 		}
 	}
 
+	renderEcoCodeHelpButton() {
+		const sqs = this.sqs;
+		const helpContent = `
+			<div class="ecocode-help-content">
+				<h4>What are Eco Codes?</h4>
+				<p>
+					<strong>Bugs EcoCodes</strong> is a habitat classification system developed for fossil insect assemblages.
+					Each insect taxon is assigned to one or more ecocode categories that reflect its preferred habitat or
+					ecological niche (e.g. woodland, dung &amp; carrion, aquatic).
+					By aggregating the taxa and their abundances across all samples in a dataset, it is possible to
+					reconstruct a picture of the ancient environment at a site.
+				</p>
+				<h4>Calculation modes</h4>
+				<dl>
+					<dt>Aggregated abundance &ndash; counts</dt>
+					<dd>
+						The total number of <em>individual specimens</em> (Minimum Number of Individuals, MNI) assigned
+						to each ecocode across all samples. A high value means many individuals were found that belong
+						to taxa characteristic of that habitat.
+					</dd>
+					<dt>Aggregated taxa &ndash; counts</dt>
+					<dd>
+						The number of <em>distinct species/taxa</em> assigned to each ecocode. This reflects habitat
+						diversity rather than individual abundance &mdash; a habitat with many different species
+						present will score high even if each species is rare.
+					</dd>
+					<dt>Aggregated abundance &ndash; percentages</dt>
+					<dd>
+						The abundance count for each ecocode expressed as a <em>percentage of the total abundance</em>
+						across all ecocodes. This normalises for sample size and makes assemblages from different
+						sites or time periods directly comparable.
+					</dd>
+					<dt>Aggregated taxa &ndash; percentages</dt>
+					<dd>
+						The taxa count for each ecocode expressed as a <em>percentage of the total number of taxa</em>
+						across all ecocodes. Useful for comparing habitat diversity independently of how common
+						individual species are.
+					</dd>
+				</dl>
+				<p style="margin-top:1em; font-size:0.9em; color:#555;">
+					Reference: Buckland, P.I. &amp; Buckland, P.C. (2006). <em>BugsCEP: The Bugs Coleopteran Ecology Package.</em>
+					<a href="https://sead.se" target="_blank">sead.se</a>
+				</p>
+			</div>
+		`;
+
+		const btn = $(`<button class="site-report-toolbar-btn ecocode-help-btn" title="About Eco Codes"><i class="fa fa-question-circle"></i> BUGS Eco Codes Help</button>`);
+		btn.on("click", () => {
+			sqs.dialogManager.showPopOver("BUGS Eco Codes — help", helpContent, { width: "560px" });
+		});
+		$(this.anchorNodeSelector).append(btn);
+	}
+
 	renderEcoCodesPerSampleChart() {
 		let contentItem = this.contentItem;
 		let yAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
 		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
 
-		//The contentItemRenderer will already have applied its own basic form of sort here
+		// Values 1,2 = counts; values 3,4 = percentages of sample total
+		let isPercentage = yAxisKey >= 3;
+		let colIndex = isPercentage ? yAxisKey - 2 : yAxisKey;
 		//but we wish to sort the ecocodes in each sample based on the site-level aggregated values, so we have to do our own sort here to figure that out
 		
 		let ecocodes = JSON.parse(JSON.stringify(this.sqs.bugsEcoCodeDefinitions)); //copy this
@@ -1665,12 +1725,9 @@ class SiteReportChart {
 			sortVar = "taxaAgg";
 		}
 		ecocodes.sort((a, b) => {
-			if(a[sortVar] > b[sortVar]) {
-				return -1;
-			}
-			else {
-				return 1;
-			}
+			const aVal = a[sortVar] || 0;
+			const bVal = b[sortVar] || 0;
+			return bVal - aVal;
 		});
 
 		let ecocodesSorted = ecocodes; //Just to make it clear what this is for	
@@ -1718,12 +1775,18 @@ class SiteReportChart {
 		//sorting
 		//order of ecocodes should match with their size in the site aggregation chart
 
+		const BAR_HEIGHT = 28;    // px of the coloured bar itself
+		const BAR_GAP    = 14;    // px of gap between bars
+		const CHART_OVERHEAD = 120; // px for title, legend, axes
+		const chartHeight = Math.max(200, sampleNames.length * (BAR_HEIGHT + BAR_GAP) + CHART_OVERHEAD);
+
 		ecocodesSorted.forEach(ecocode => {
 
 			let dataset = {
 				label: ecocode.name,
 				data: [], 
-				backgroundColor: ecocode.color
+				backgroundColor: ecocode.color,
+				barThickness: BAR_HEIGHT
 			}
 			
 			contentItem.data.rows.forEach(row => {
@@ -1731,26 +1794,26 @@ class SiteReportChart {
 				let aggTaxa = row[3].value;
 				let subTable = row[4].value;
 
+				let foundEcocode = false;
 				subTable.rows.forEach(r => {
 					let rowEcocodeName = r[0].value;
 					let ecocodeDefinitionId = r[3].value;
 					if(rowEcocodeName == ecocode.name) {
+						foundEcocode = true;
 
-						let agg = null;
-						switch(yAxisKey) {
-							case 1:
-								agg = aggAbundance;
-								break;
-							case 2:
-								agg = aggTaxa;
-								break;
+						if(isPercentage) {
+							let agg = colIndex === 1 ? aggAbundance : aggTaxa;
+							let percentage = agg > 0 ? (r[colIndex].value / agg) * 100 : 0;
+							dataset.data.push(percentage);
+						} else {
+							dataset.data.push(r[colIndex].value);
 						}
-
-						let percentage = (r[yAxisKey].value / agg) * 100;
-
-						dataset.data.push(percentage);
 					}
 				});
+
+				if(!foundEcocode) {
+					dataset.data.push(0);
+				}
 			});
 			
 			
@@ -1768,6 +1831,7 @@ class SiteReportChart {
 			data: data,
 			options: {
 				animation: false,
+				maintainAspectRatio: false,
 				indexAxis: 'y',
 				plugins: {
 					title: {
@@ -1783,20 +1847,14 @@ class SiteReportChart {
 						enabled: true,
 						callbacks: {
 							title: function(context) {
-								return contentItem.data.columns[yAxisKey].title+": "+context[0].formattedValue;
+								return "Sample: " + context[0].label;
 							},
 							label: function(context) {
-								//provide the formattedValue as a percentage of the total
-								console.log(context);
-								console.log(ecocodesSorted)
-
-								let ecocode = ecocodesSorted.find(ecocode => {
-									if(ecocode.name == context.dataset.label) {
-										return ecocode;
-									}
-								});
-
-								return context.dataset.label + ": "+ecocode.abundanceAggPercentage+"%";
+								if(isPercentage) {
+									const pct = parseFloat(context.raw).toFixed(1);
+									return context.dataset.label + ": " + pct + "%";
+								}
+								return context.dataset.label + ": " + context.raw;
 							}
 						}
 					}
@@ -1805,6 +1863,15 @@ class SiteReportChart {
 				scales: {
 					x: {
 						stacked: true,
+						...(isPercentage ? {
+							min: 0,
+							max: 100,
+							ticks: {
+								callback: function(value) {
+									return value + '%';
+								}
+							}
+						} : {}),
 					},
 					y: {
 						stacked: true
@@ -1815,13 +1882,15 @@ class SiteReportChart {
 		
 		  
 		this.chartId = "chart-"+nanoid();
-		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
+		var chartContainer = $(`<div class='site-report-chart-container' style='position:relative; width:100%; height:${chartHeight}px;'><canvas id='${this.chartId}'></canvas></div>`);
 		$(this.anchorNodeSelector).append(chartContainer);
 
 		new Chart(
 			document.getElementById(this.chartId),
 			config
 		);
+
+		this.renderEcoCodeHelpButton();
 	}
 
 	renderMagneticSusceptibilityBarChart() {

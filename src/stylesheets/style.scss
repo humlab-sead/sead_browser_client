@@ -5436,6 +5436,10 @@ tr.site-report-table-row-with-subtable:hover td {
   background-color: #eef6ff !important;
 }
 
+tr.site-report-table-row > td {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 .site-report-subtable > tbody > tr:hover > td {
   border-top-color: colors.$sead-brown !important;
   border-bottom-color: colors.$sead-brown !important;
@@ -5696,6 +5700,35 @@ tr.site-report-table-row-with-subtable:hover td {
   background-color: colors.$aux-color;
   color: #fff;
   transition: background-color 0.1s, color 0.1s;
+}
+
+.ecocode-help-btn {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.85em;
+  color: #555;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.ecocode-help-btn:hover {
+  background-color: colors.$pane-bg-color;
+  color: #000;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.ecocode-help-content dt {
+  font-weight: bold;
+  margin-top: 0.8em;
+}
+
+.ecocode-help-content dd {
+  margin-left: 1.2em;
+  margin-top: 0.2em;
+  line-height: 1.5;
 }
 
 .content-item-header-container {

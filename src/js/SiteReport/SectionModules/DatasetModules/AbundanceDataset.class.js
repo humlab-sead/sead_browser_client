@@ -106,7 +106,7 @@ class AbundanceDataset extends DatasetModule {
 		
 		let ecoCodeContentItem = {
 			"name": "ci-"+nanoid(),
-			"title": "Eco codes",
+			"title": "Site total - Eco codes",
 			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
 			"renderedBy": this.constructor.name,
 			"data": {
@@ -167,12 +167,20 @@ class AbundanceDataset extends DatasetModule {
 							"selected": 1,
 							"options": [
 								{
-									"title": "Aggregated abundance",
+									"title": "Aggregated abundance - counts",
 									"value": 1,
 								},
 								{
-									"title": "Aggregated taxa",
+									"title": "Aggregated taxa - counts",
 									"value": 2,
+								},
+								{
+									"title": "Aggregated abundance - percentages",
+									"value": 3,
+								},
+								{
+									"title": "Aggregated taxa - percentages",
+									"value": 4,
 								}
 							]
 						},
@@ -215,7 +223,6 @@ class AbundanceDataset extends DatasetModule {
 			});
 		}
 		
-
 		return ecoCodeContentItem;
 	}
 
@@ -247,7 +254,7 @@ class AbundanceDataset extends DatasetModule {
 		
 		let ecoCodeContentItem = {
 			"name": "contentItem-"+nanoid(),
-			"title": "Eco codes per sample",
+			"title": "Site - Eco codes per sample",
 			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
 			"renderedBy": this.constructor.name,
 			"data": {
@@ -305,12 +312,20 @@ class AbundanceDataset extends DatasetModule {
 							"selected": 1,
 							"options": [
 								{
-									"title": "Aggregated abundance",
+									"title": "Aggregated abundance - counts",
 									"value": 1,
 								},
 								{
-									"title": "Aggregated taxa",
+									"title": "Aggregated taxa - counts",
 									"value": 2,
+								},
+								{
+									"title": "Aggregated abundance - percentages",
+									"value": 3,
+								},
+								{
+									"title": "Aggregated taxa - percentages",
+									"value": 4,
 								},
 							]
 						},
@@ -424,6 +439,353 @@ class AbundanceDataset extends DatasetModule {
 		return ecoCodeContentItem;
 	}
 
+	async getDatasetEcoCodeContentItem(siteData, datasetId, datasetName = null) {
+		let ecoCodeBundles = await new Promise(async (resolve, reject) => {
+			let response = await fetch(this.sqs.config.dataServerAddress+"/ecocodes/dataset/"+datasetId);
+			let ecoCodeBundles = await response.json();
+			if(typeof ecoCodeBundles.ecocode_bundles != "undefined") {
+				resolve(ecoCodeBundles.ecocode_bundles);
+			}
+			else {
+				console.warn("No eco code bundles found for dataset "+datasetId);
+				resolve([]);
+			}
+		});
+
+		if(ecoCodeBundles.length == 0) {
+			return null;
+		}
+
+		let ecoCodeContentItem = {
+			"name": "ci-"+nanoid(),
+			"title": (datasetName || datasetId)+" - Eco codes",
+			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
+			"renderedBy": this.constructor.name,
+			"data": {
+				"columns": [
+					{
+						"title": "Eco code",
+						"pkey": true,
+					},
+					{
+						"title": "Aggregated abundance",
+					},
+					{
+						"title": "Aggregated taxa",
+					},
+					{
+						title: "Ecocode definition ID",
+						hidden: true,
+					},
+				],
+				"rows": []
+			},
+			"renderOptions": [
+				{
+					"name": "Spreadsheet",
+					"selected": false,
+					"type": "table"
+				},
+				{
+					"selected": false,
+					"type": "external_link",
+					"url": "https://demo.humlab.umu.se/seadecovis?site="+siteData.site_id,
+					"name": "Artistic",
+				},
+				{
+					"name": "Bar chart",
+					"selected": true,
+					"type": "ecocode",
+					"options": [
+						{
+							"enabled": false,
+							"title": "X axis",
+							"function": "xAxis",
+							"type": "select",
+							"selected": 0,
+							"key": 0,
+							"options": [
+								{
+									"title": "Abundance",
+									"value": 1,
+								},
+							]
+						},
+						{
+							"enabled": true,
+							"title": "Y axis",
+							"function": "yAxis",
+							"type": "select",
+							"selected": 1,
+							"options": [
+								{
+									"title": "Aggregated abundance - counts",
+									"value": 1,
+								},
+								{
+									"title": "Aggregated taxa - counts",
+									"value": 2,
+								},
+								{
+									"title": "Aggregated abundance - percentages",
+									"value": 3,
+								},
+								{
+									"title": "Aggregated taxa - percentages",
+									"value": 4,
+								}
+							]
+						},
+						{
+							"enabled": false,
+							"title": "Sort",
+							"function": "sort",
+							"type": "select",
+							"selected": 1,
+							"options": [{
+								"title": "Abundance",
+								"value": 1,
+							},]
+						}
+					]
+				}
+			]
+		};
+
+		if(ecoCodeBundles) {
+			ecoCodeBundles.forEach(ecoCodeBundle => {
+				ecoCodeContentItem.data.rows.push([
+					{
+						type: "cell",
+						value: ecoCodeBundle.ecocode.name
+					},
+					{
+						type: "cell",
+						value: ecoCodeBundle.abundance
+					},
+					{
+						type: "cell",
+						value: ecoCodeBundle.taxa.length
+					},
+					{
+						type: "cell",
+						value: ecoCodeBundle.ecocode.ecocode_definition_id
+					}
+				]);
+			});
+		}
+
+		return ecoCodeContentItem;
+	}
+
+	async getDatasetSamplesEcoCodeContentItem(siteData, datasetId, datasetName = null) {
+		let ecoCodeBundles = await new Promise(async (resolve, reject) => {
+			let response = await fetch(this.sqs.config.dataServerAddress+"/ecocodes/dataset/"+datasetId+"/samples");
+			let ecoCodeBundles = await response.json();
+			if(typeof ecoCodeBundles.ecocode_bundles != "undefined") {
+				resolve(ecoCodeBundles.ecocode_bundles);
+			}
+			else {
+				console.warn("No eco code bundles found for dataset "+datasetId);
+				resolve([]);
+			}
+		});
+
+		if(ecoCodeBundles.length == 0) {
+			return null;
+		}
+
+		if(ecoCodeBundles.length == 1 && ecoCodeBundles[0].ecocodes.length == 0) {
+			return null;
+		}
+
+		let ecoCodeContentItem = {
+			"name": "contentItem-"+nanoid(),
+			"title": (datasetName || datasetId)+" - Eco codes per sample",
+			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
+			"renderedBy": this.constructor.name,
+			"data": {
+				"columns": [
+					{
+						"title": "Sample ID",
+						"pkey": true,
+						"hidden": true,
+					},
+					{
+						"title": "Sample name",
+					},
+					{
+						"title": "Aggregated abundance",
+					},
+					{
+						"title": "Aggregated taxa",
+					},
+					{
+						dataType: "subtable",
+					}
+				],
+				"rows": []
+			},
+			"renderOptions": [
+				{
+					"name": "Spreadsheet",
+					"selected": false,
+					"type": "table",
+				},
+				{
+					"name": "Bar chart",
+					"selected": true,
+					"type": "ecocodes-samples",
+					"options": [
+						{
+							"enabled": false,
+							"title": "X axis",
+							"function": "xAxis",
+							"type": "select",
+							"selected": 0,
+							"key": 0,
+							"options": [
+								{
+									"title": "Abundance",
+									"value": 2,
+								},
+							]
+						},
+						{
+							"enabled": true,
+							"title": "X axis",
+							"function": "yAxis",
+							"type": "select",
+							"selected": 1,
+							"options": [
+								{
+									"title": "Aggregated abundance - counts",
+									"value": 1,
+								},
+								{
+									"title": "Aggregated taxa - counts",
+									"value": 2,
+								},
+								{
+									"title": "Aggregated abundance - percentages",
+									"value": 3,
+								},
+								{
+									"title": "Aggregated taxa - percentages",
+									"value": 4,
+								},
+							]
+						},
+						{
+							"enabled": true,
+							"title": "Sort",
+							"function": "sort",
+							"type": "select",
+							"selected": 2,
+							"options": [
+								{
+									"title": "Abundance",
+									"value": 2,
+								},
+								{
+									"title": "Taxa",
+									"value": 3,
+								}
+							]
+						}
+					]
+				}
+			]
+		};
+
+		ecoCodeBundles.forEach(ecoCodeBundle => {
+			let subTable = {
+				columns: [
+					{
+						title: "Ecocode",
+						pkey: true,
+					},
+					{
+						title: "Aggregated abundance",
+						sort: "desc"
+					},
+					{
+						title: "Aggregated taxa",
+					},
+					{
+						title: "Ecocode definition ID",
+						hidden: true,
+					},
+				],
+				rows: []
+			};
+
+			let sampleAggAbundance = 0;
+			let sampleAggTaxa = 0;
+
+			ecoCodeBundle.ecocodes.forEach(ecocode => {
+				let subTableRow = [];
+				subTableRow.push(
+					{
+						type: "cell",
+						value: ecocode.ecocode.name,
+					},
+					{
+						type: "cell",
+						value: ecocode.abundance,
+					},
+					{
+						type: "cell",
+						value: ecocode.taxa.length,
+					},
+					{
+						type: "cell",
+						value: ecocode.ecocode.ecocode_definition_id,
+					},
+				);
+
+				sampleAggAbundance += ecocode.abundance;
+				sampleAggTaxa += ecocode.taxa.length;
+
+				subTable.rows.push(subTableRow);
+			});
+
+			let sampleName = "";
+			siteData.sample_groups.forEach(sg => {
+				sg.physical_samples.forEach(ps => {
+					if(ps.physical_sample_id == ecoCodeBundle.physical_sample_id) {
+						sampleName = ps.sample_name;
+					}
+				});
+			});
+
+			ecoCodeContentItem.data.rows.push([
+				{
+					type: "cell",
+					value: ecoCodeBundle.physical_sample_id
+				},
+				{
+					type: "cell",
+					value: sampleName
+				},
+				{
+					type: "cell",
+					value: sampleAggAbundance
+				},
+				{
+					type: "cell",
+					value: sampleAggTaxa
+				},
+				{
+					type: "subtable",
+					value: subTable
+				}
+			]);
+		});
+
+		return ecoCodeContentItem;
+	}
+
 	async makeSection(siteData, sections) {
 		let dataGroups = siteData.data_groups.filter((dataGroup) => {
 			return dataGroup.type == "abundance";
@@ -435,15 +797,6 @@ class AbundanceDataset extends DatasetModule {
 		if(methodDatasets.length == 0) {
 			return;
 		}
-
-
-		//if this is palaeontomoly, generate eco code charts as well, but don't if not
-		let palaeontomolyDatasetFound = false;
-		dataGroups.forEach(dataGroup => {
-			if(dataGroup.method_ids.includes(3)) {
-				palaeontomolyDatasetFound = true;
-			}
-		})
 
 		dataGroups.forEach(dataGroup => {
 			let datasetBiblioIds = this.getUniqueDatasetBiblioIdsFromDataGroup(methodDatasets, dataGroup);
@@ -680,25 +1033,18 @@ class AbundanceDataset extends DatasetModule {
 			}));
 			
 			section.contentItems.push(contentItem);
+
+			// For palaeontomology datasets, append eco code content items immediately after
+			if(dataGroup.method_ids.includes(3)) {
+				section.contentItems.push(this.getDatasetEcoCodeContentItem(siteData, dataGroup.id, dataGroup.dataset_name));
+				section.contentItems.push(this.getDatasetSamplesEcoCodeContentItem(siteData, dataGroup.id, dataGroup.dataset_name));
+			}
 		});
 
-		if(palaeontomolyDatasetFound) {
-			let ecoCodeSection = this.getSectionByMethodId(3, sections);
-			if(ecoCodeSection) {
-				//these two get eco codes methods actually return promises, but that's ok, the content-item renderer will handle that
-				let siteEcoCodeContentItem = this.getSiteEcoCodeContentItem(siteData);
-				let sampleEcoCodeContentItem = this.getSamplesEcoCodeContentItem(siteData);
-
-				if(siteEcoCodeContentItem) {
-					ecoCodeSection.contentItems.push(siteEcoCodeContentItem);
-				}
-				if(sampleEcoCodeContentItem) {
-					ecoCodeSection.contentItems.push(sampleEcoCodeContentItem);
-				}
-			}
-			else {
-				console.warn("Tried to insert a contentItem into a section that couldn't be found.");
-			}
+		// Add site-level aggregated eco code charts at the end
+		let paleoSection = this.getSectionByMethodId(3, sections);
+		if(paleoSection) {
+			paleoSection.contentItems.push(this.getSiteEcoCodeContentItem(siteData));
 		}
 	}
 	

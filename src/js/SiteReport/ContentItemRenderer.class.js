@@ -11,11 +11,17 @@ class ContentItemRenderer {
         this.section = section;
         this.contentItem = contentItem;
         this.renderInstanceRepository = [];
+        this.placeholderId = null;
     }
 
     render() {
-		//if the contentItem is a promise, we wait for it to resolve before rendering and then we update the siteReport.data with the resolved contentItem
+		//if the contentItem is a promise, reserve a placeholder div immediately to preserve ordering, then wait for resolution
 		if(this.sqs.isPromise(this.contentItem)) {
+			// Insert a placeholder now so this slot stays in the correct position among sibling contentItems
+			let placeholderId = "cic-placeholder-"+nanoid();
+			this.placeholderId = placeholderId;
+			$("#site-report-section-"+this.section.name+" > .site-report-level-content").append("<div id='"+placeholderId+"' class='content-item-container'></div>");
+
 			this.contentItem.then((resolvedContentItem) => {
 				for(let sectionKey in this.siteReport.data.sections) {
 					for(let sectionKey2 in this.siteReport.data.sections[sectionKey].sections) {
@@ -47,8 +53,14 @@ class ContentItemRenderer {
 		var headerNode = $("<div class='content-item-header-container'><h4><span class='contentItem-title'>"+this.contentItem.title+"</span>"+datasetId+"</h4></div>");
 		
 		let cicId = "cic-"+this.contentItem.name; //content-item-container id
-		//$("#site-report-section-"+section.name+" > .site-report-level-content").append(headerNode);
-		$("#site-report-section-"+this.section.name+" > .site-report-level-content").append("<div id='"+cicId+"' class='content-item-container'></div>");
+		// If a placeholder was reserved for this item (was a promise), promote it to the real container id.
+		// Otherwise append a new container at the end (synchronous items render in order naturally).
+		if(this.placeholderId) {
+			$("#site-report-section-"+this.section.name+" > .site-report-level-content > #"+this.placeholderId).attr("id", cicId);
+			this.placeholderId = null;
+		} else {
+			$("#site-report-section-"+this.section.name+" > .site-report-level-content").append("<div id='"+cicId+"' class='content-item-container'></div>");
+		}
 		$("#site-report-section-"+this.section.name+" > .site-report-level-content > #cic-"+this.contentItem.name).append(headerNode);
 
         this.renderContentItemTooltip(headerNode);
