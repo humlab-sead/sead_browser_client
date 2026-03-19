@@ -69,13 +69,13 @@ class ResultMosaic extends ResultModule {
 			module: null
 		});
 		this.modules.push({
-			title: "Sampling methods by sample groups",
+			title: "Sample groups sampling methods",
 			className: "MosaicSampleMethodsModule",
 			classTemplate: MosaicSampleMethodsModule,
 			module: null
 		});
 		this.modules.push({
-			title: "Analysis methods by datasets",
+			title: "Dataset analysis methods",
 			className: "MosaicAnalysisMethodsModule",
 			classTemplate: MosaicAnalysisMethodsModule,
 			module: null

@@ -2138,6 +2138,7 @@ polyline{
   height: 100%;
   background-color: #fff;
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
 }
 
 .result-mosaic-tile > h2 {
@@ -4580,12 +4581,13 @@ svg text {
   max-width: 6em;
   margin: auto;
   width: calc(100% - 0.5em);
-  height: 100%;
+  height: calc(100% - 6px);
   text-decoration: none !important;
+  border-radius: 4px;
 }
 
 .site-report-table-button:hover {
-  background: colors.$pane-bg-color-dark;
+  background: lighten(colors.$base-color, 10%);
   cursor: pointer;
 }
 

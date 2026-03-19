@@ -314,46 +314,10 @@ class ResultTable extends ResultModule {
 							contentType: 'application/json; charset=utf-8',
 							crossDomain: true
 							}).then(data => {
-							data.analysis_methods_datasets.sort((a, b) => {
-								return Number(a.method_id) - Number(b.method_id);
-							});
-							let totalDatasetCount = data.analysis_methods_datasets.reduce((total, amd) => total + amd.dataset_count, 0);
-						
-							let svgNS = "http://www.w3.org/2000/svg";
-							let svg = document.createElementNS(svgNS, "svg");
-							svg.setAttribute("width", "100%");
-							svg.setAttribute("height", "80%");
-						
-							let currentOffset = 0;
-	
-							data.analysis_methods_datasets.forEach(amd => {
-								amd.color = "000";
-								for (let key in this.sqs.config.analysisMethodsColors) {
-								let amc = this.sqs.config.analysisMethodsColors[key];
-								if (amc.method_id == amd.method_id) {
-									amd.color = amc.color;
-								}
-								}
-						
-								let rect = document.createElementNS(svgNS, "rect");
-								amd.barWidth = (amd.dataset_count / totalDatasetCount) * 100;
-								
-								rect.setAttribute("x", `${currentOffset}%`);
-								rect.setAttribute("width", `${amd.barWidth}%`);
-								rect.setAttribute("height", "100%");
-								rect.setAttribute("fill", `#${amd.color}`);
-								svg.appendChild(rect);
-	
-								this.sqs.tooltipManager.registerTooltip(rect, `Method: ${amd.method_name}, Datasets: ${amd.dataset_count}`)
-								this.tooltipAnchors.push(rect);
-								
-								currentOffset += amd.barWidth;
-							});
-						
-							// Clear the loading indicator before appending the SVG
-							cellElement.innerHTML = '';
-							cellElement.appendChild(svg);
-							this.currentRenderSlotsTaken--;
+								const svg = this.buildAnalysisMethodsSvg(data.analysis_methods_datasets);
+								cellElement.innerHTML = '';
+								cellElement.appendChild(svg);
+								this.currentRenderSlotsTaken--;
 							});
 						}
 					}, 200);						
@@ -478,6 +442,75 @@ class ResultTable extends ResultModule {
 		*/
 
 		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
+	}
+
+	buildAnalysisMethodsSvg(analysisMethodsDatasets) {
+		analysisMethodsDatasets.sort((a, b) => Number(a.method_id) - Number(b.method_id));
+		const totalDatasetCount = analysisMethodsDatasets.reduce((total, amd) => total + amd.dataset_count, 0);
+
+		const svgNS = "http://www.w3.org/2000/svg";
+		const svg = document.createElementNS(svgNS, "svg");
+		svg.setAttribute("width", "100%");
+		svg.setAttribute("height", "80%");
+
+		// Clip the whole bar to a rounded rect so only the outermost corners are rounded
+		const clipId = "clip-" + nanoid();
+		const defs = document.createElementNS(svgNS, "defs");
+		const clipPath = document.createElementNS(svgNS, "clipPath");
+		clipPath.setAttribute("id", clipId);
+		const clipRect = document.createElementNS(svgNS, "rect");
+		clipRect.setAttribute("width", "100%");
+		clipRect.setAttribute("height", "100%");
+		clipRect.setAttribute("rx", "3");
+		clipPath.appendChild(clipRect);
+		defs.appendChild(clipPath);
+		svg.appendChild(defs);
+
+		const barsGroup = document.createElementNS(svgNS, "g");
+		barsGroup.setAttribute("clip-path", `url(#${clipId})`);
+		svg.appendChild(barsGroup);
+
+		let currentOffset = 0;
+		analysisMethodsDatasets.forEach(amd => {
+			amd.color = "000";
+			for (let key in this.sqs.config.analysisMethodsColors) {
+				const amc = this.sqs.config.analysisMethodsColors[key];
+				if (amc.method_id == amd.method_id) {
+					amd.color = amc.color;
+				}
+			}
+
+			const barWidth = (amd.dataset_count / totalDatasetCount) * 100;
+			const rect = document.createElementNS(svgNS, "rect");
+			rect.setAttribute("x", `${currentOffset}%`);
+			rect.setAttribute("width", `${barWidth}%`);
+			rect.setAttribute("height", "100%");
+			rect.setAttribute("fill", `#${amd.color}`);
+			barsGroup.appendChild(rect);
+
+			if (amd.method_name) {
+				const words = amd.method_name.trim().split(/\s+/);
+				const labelText = words.slice(0, 3).map(w => w[0].toUpperCase()).join("");
+				const label = document.createElementNS(svgNS, "text");
+				label.setAttribute("x", `${currentOffset + barWidth / 2}%`);
+				label.setAttribute("y", "50%");
+				label.setAttribute("dominant-baseline", "central");
+				label.setAttribute("text-anchor", "middle");
+				label.setAttribute("font-size", "10");
+				label.setAttribute("fill", "white");
+				label.setAttribute("style", "text-shadow: 1px 1px 2px rgba(0,0,0,0.8);");
+				label.setAttribute("pointer-events", "none");
+				label.textContent = labelText;
+				barsGroup.appendChild(label);
+			}
+
+			this.sqs.tooltipManager.registerTooltip(rect, `Method: ${amd.method_name}, Datasets: ${amd.dataset_count}`);
+			this.tooltipAnchors.push(rect);
+
+			currentOffset += barWidth;
+		});
+
+		return svg;
 	}
 
 	getSelectedSites() {
