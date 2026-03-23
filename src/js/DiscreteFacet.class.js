@@ -307,7 +307,6 @@ class DiscreteFacet extends Facet {
 	*
 	*/
 	updateRenderData(data = null) {
-		console.log("updateRenderData called: ", this.id, this.name);
 		if(this.minimized) {
 			//this.renderData(this.getSelectionsAsDataItems());
 			this.renderMinimizedView(this.getSelectionsAsDataItems());
