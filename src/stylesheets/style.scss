@@ -662,6 +662,7 @@ body.facet-resizing * {
 .discrete-facet-blank-space {
 	position:relative;
 	width: 100%;
+  z-index: -1;
 }
 
 .facet-row {
@@ -2139,6 +2140,7 @@ polyline{
   background-color: #fff;
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.15);
   border-radius: 4px;
+  overflow: hidden;
 }
 
 .result-mosaic-tile > h2 {
@@ -3340,8 +3342,9 @@ polyline{
   border: 1px solid colors.$inactive-color;
   border-radius: 0.25em;
   padding: 10px;
-  box-shadow: 0px 0px 10px 2px colors.$shadow-color;
+  box-shadow: 0px 0px 15px 3px rgba(colors.$shadow-color, 0.5);
   max-width: 40%;
+  color: #1e1e1e;
 }
 
 .popper-title {
@@ -4985,22 +4988,21 @@ a.ms-selectall:hover {
     width: 100%;
 }
 
-.dendro-mini-chart-label {
+.mosaic-mini-chart-label {
   font-size: 0.8em;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.dendro-mini-chart-percentage {
+.mosaic-mini-chart-percentage {
   font-size: 0.8em;
   color: #555;
   font-weight: 600;
   flex-shrink: 0;
-  min-width: 50px;
   text-align: right;
 }
 
-.dendro-mini-chart-container {
+.mosaic-mini-chart-container {
   display: flex;
   gap: 1em;
   padding: 0;
@@ -5009,7 +5011,7 @@ a.ms-selectall:hover {
   width: 100%;
 }
 
-.dendro-mini-chart-wrapper {
+.mosaic-mini-chart-wrapper {
   flex: 1;
   min-width: 0;
   
@@ -5019,14 +5021,24 @@ a.ms-selectall:hover {
   }
 }
 
-.dendro-tile-container {
+.mosaic-tile-content {
   height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
-.dendro-tile-charts {
+.mosaic-tile-header {
+  flex: 0 0 auto;
+}
+
+.mosaic-tile-title {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.mosaic-tile-charts {
   display: grid;
   grid-template-rows: 80% 20%;
   min-width: 0;
@@ -5035,7 +5047,7 @@ a.ms-selectall:hover {
   gap: 0.5em;
 }
 
-.dendro-tile-charts > * {
+.mosaic-tile-charts > * {
   min-height: 0;
 }
 

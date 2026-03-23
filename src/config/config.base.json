@@ -1,6 +1,6 @@
 {
 	"build": "staging",
-	"version": "2026-03.2",
+	"version": "2026-03.3",
 	"dataLicense": {
 		"name": "Creative Commons Attribution 4.0 International",
 		"shortName": "CC-BY-4.0",
@@ -795,7 +795,12 @@
 				{
 					"module_name": "mosaic-map",
 					"grid_row": "1",
-					"grid_column": "span 2"
+					"grid_column": "1"
+				},
+				{
+					"module_name": "mutual-climatic-range",
+					"grid_row": "1",
+					"grid_column": "2"
 				},
 				{
 					"module_name": "mosaic-taxa-list",

@@ -287,12 +287,12 @@ class DendroBaseModule extends MosaicTileModule {
     async renderCoverageMiniChart(container, samplesWithVariable, totalSamplesOrPromise) {
         const miniChartId = nanoid();
         const miniChartHtml = `
-            <div class="dendro-mini-chart-container">
-                <div class="dendro-mini-chart-label">Sample Coverage</div>
-                <div class="dendro-mini-chart-wrapper">
+            <div class="mosaic-mini-chart-container">
+                <div class="mosaic-mini-chart-label">Sample Coverage</div>
+                <div class="mosaic-mini-chart-wrapper">
                     <canvas id="mini-chart-${miniChartId}" height="16"></canvas>
                 </div>
-                <div class="dendro-mini-chart-percentage" id="mini-pct-${miniChartId}">N/A</div>
+                <div class="mosaic-mini-chart-percentage" id="mini-pct-${miniChartId}">N/A</div>
             </div>
         `;
 
@@ -305,14 +305,15 @@ class DendroBaseModule extends MosaicTileModule {
         canvas.width = canvasContainer.clientWidth;
         canvas.height = 16;
 
-        this.coverageCharts.set(miniChartId, {
-            canvas: canvas,
-            percentage: 0
+        const observer = new ResizeObserver(() => {
+            const data = this.coverageCharts.get(miniChartId);
+            if (!data) return;
+            canvas.width = canvasContainer.clientWidth;
+            canvas.height = 16;
+            this.drawCoverageLine(canvas.getContext('2d'), canvas.width, canvas.height, data.percentage);
         });
-
-        if (this.coverageCharts.size === 1) {
-            window.addEventListener('resize', this.resizeHandler);
-        }
+        observer.observe(canvasContainer);
+        this.coverageCharts.set(miniChartId, { canvas, percentage: 0, observer });
 
         this.drawCoverageLine(ctx, canvas.width, canvas.height, 0);
 
@@ -341,7 +342,7 @@ class DendroBaseModule extends MosaicTileModule {
             }
 
             // Keep stored percentage current so resize redraws correctly during animation
-            this.coverageCharts.set(miniChartId, { canvas, percentage: current });
+            this.coverageCharts.get(miniChartId).percentage = current;
 
             if (progress < 1) {
                 requestAnimationFrame(animate);
@@ -351,7 +352,7 @@ class DendroBaseModule extends MosaicTileModule {
                 if (pctEl) {
                     pctEl.textContent = (targetPercentage * 100).toFixed(1) + '%';
                 }
-                this.coverageCharts.set(miniChartId, { canvas, percentage: targetPercentage });
+                this.coverageCharts.get(miniChartId).percentage = targetPercentage;
             }
         };
 
@@ -620,7 +621,7 @@ class DendroBaseModule extends MosaicTileModule {
                     }
                     this.coverageCharts.clear();
 
-                    $('.dendro-tile-download-btn').off('click');
+                    $('.mosaic-tile-download-btn').off('click');
 
                     this.active = false;
 

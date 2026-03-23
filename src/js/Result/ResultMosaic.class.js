@@ -27,6 +27,7 @@ import MosaicDendroEwLwMeasurements from './MosaicTileModules/MosaicDendroEwLwMe
 import MosaicDendroWaneyEdge from './MosaicTileModules/MosaicDendroWaneyEdge.class.js';
 import MosaicDatedSitesModule from './MosaicTileModules/MosaicDatedSites.class.js';
 import MosaicDomainSamples from './MosaicTileModules/MosaicDomainSamples.class.js';
+import MosaicMutualClimaticRangeModule from './MosaicTileModules/MosaicMutualClimaticRangeModule.class.js';
 import { nanoid } from 'nanoid';
 import Plotly from "plotly.js-dist-min";
 
@@ -210,6 +211,12 @@ class ResultMosaic extends ResultModule {
 			title: "Samples per domain",
 			className: "MosaicDomainSamples",
 			classTemplate: MosaicDomainSamples,
+			module: null
+		});
+		this.modules.push({
+			title: "Mutual Climatic Range",
+			className: "MutualClimaticRangeModule",
+			classTemplate: MosaicMutualClimaticRangeModule,
 			module: null
 		});
 		

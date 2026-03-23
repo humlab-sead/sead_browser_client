@@ -35,14 +35,15 @@ class MosaicTaxaListModule extends MosaicTileModule {
         const varId = (typeof nanoid === 'function') ? nanoid() : Math.random().toString(36).substr(2, 9);
         const tableContainerId = `table-container-${varId}`;
         const tileHtml = `
-            <div class="taxa-list-tile-container" id="${varId}" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
-                <div class="taxa-list-tile-header" style="flex: 0 0 auto;">
-                    <h3 class="taxa-list-tile-title" style="margin: 0; font-size: 1.2em;">${this.title}</h3>
+            <div class="mosaic-tile-content" id="${varId}">
+                <div class="mosaic-tile-header">
+                    <h3 class="mosaic-tile-title">${this.title}</h3>
                 </div>
                 <div class="taxa-list-tile-table" id="${tableContainerId}" style="flex: 1 1 0; width: 100%; overflow-y: auto;"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);
+        this.sqs.tooltipManager.registerTooltip(`#${varId} .mosaic-tile-title`, "Ranked list of the most frequently occurring taxa across the selected sites.", { drawSymbol: true, anchorPoint: 'symbol' });
 
         this.sqs.setLoadingIndicator(`#${tableContainerId}`, true);
 

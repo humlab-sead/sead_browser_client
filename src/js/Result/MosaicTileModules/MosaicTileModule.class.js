@@ -91,12 +91,12 @@ class MosaicTileModule {
     async renderCoverageMiniChart(container, samplesWithData, totalSamplesOrPromise) {
         const miniChartId = nanoid();
         const miniChartHtml = `
-            <div class="dendro-mini-chart-container">
-                <div class="dendro-mini-chart-label">Sample Coverage</div>
-                <div class="dendro-mini-chart-wrapper">
+            <div class="mosaic-mini-chart-container">
+                <div class="mosaic-mini-chart-label">Sample Coverage</div>
+                <div class="mosaic-mini-chart-wrapper">
                     <canvas id="mini-chart-${miniChartId}" height="16"></canvas>
                 </div>
-                <div class="dendro-mini-chart-percentage" id="mini-pct-${miniChartId}">N/A</div>
+                <div class="mosaic-mini-chart-percentage" id="mini-pct-${miniChartId}">N/A</div>
             </div>
         `;
 
@@ -108,11 +108,15 @@ class MosaicTileModule {
         canvas.width = canvasContainer.clientWidth;
         canvas.height = 16;
 
-        this.coverageCharts.set(miniChartId, { canvas, percentage: 0 });
-
-        if(this.coverageCharts.size === 1) {
-            window.addEventListener('resize', this.resizeHandler);
-        }
+        const observer = new ResizeObserver(() => {
+            const data = this.coverageCharts.get(miniChartId);
+            if (!data) return;
+            canvas.width = canvasContainer.clientWidth;
+            canvas.height = 16;
+            this.drawCoverageLine(canvas.getContext('2d'), canvas.width, canvas.height, data.percentage);
+        });
+        observer.observe(canvasContainer);
+        this.coverageCharts.set(miniChartId, { canvas, percentage: 0, observer });
 
         this.drawCoverageLine(ctx, canvas.width, canvas.height, 0);
 
@@ -138,7 +142,7 @@ class MosaicTileModule {
                 pctEl.textContent = (current * 100).toFixed(1) + '%';
             }
 
-            this.coverageCharts.set(miniChartId, { canvas, percentage: current });
+            this.coverageCharts.get(miniChartId).percentage = current;
 
             if(progress < 1) {
                 requestAnimationFrame(animate);
@@ -147,7 +151,7 @@ class MosaicTileModule {
                 if(pctEl) {
                     pctEl.textContent = (targetPercentage * 100).toFixed(1) + '%';
                 }
-                this.coverageCharts.set(miniChartId, { canvas, percentage: targetPercentage });
+                this.coverageCharts.get(miniChartId).percentage = targetPercentage;
             }
         };
 

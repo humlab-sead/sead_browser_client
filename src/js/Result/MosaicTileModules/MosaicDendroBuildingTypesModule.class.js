@@ -93,11 +93,11 @@ class MosaicDendroBuildingTypesModule extends DendroBaseModule {
         const colors = this.sqs.color.getNiceColorScheme(sortedCategories.length);
 
         const wrapperHtml = `
-            <div class="dendro-tile-container" id="${varId}">
-                <div class="dendro-tile-header">
-                    <h3 class="dendro-tile-title">${data.label}</h3>
+            <div class="mosaic-tile-content" id="${varId}">
+                <div class="mosaic-tile-header">
+                    <h3 class="mosaic-tile-title">${data.label}</h3>
                 </div>
-                <div class="dendro-tile-charts">
+                <div class="mosaic-tile-charts">
                     <canvas id="chart-${varId}" class="tile-chart-container"></canvas>
                     <div id="coverage-${varId}" class="tile-coverage-container"></div>
                 </div>

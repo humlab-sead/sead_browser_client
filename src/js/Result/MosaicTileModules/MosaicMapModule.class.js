@@ -29,14 +29,15 @@ class MosaicMapModule extends MosaicTileModule {
         const varId = (typeof nanoid === 'function') ? nanoid() : Math.random().toString(36).substr(2, 9);
         const mapContainerId = `map-container-${varId}`;
         const tileHtml = `
-            <div class="map-tile-container" id="${varId}" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
-                <div class="map-tile-header" style="flex: 0 0 auto;">
-                    <h3 class="map-tile-title" style="margin: 0; font-size: 1.2em;">${this.title}</h3>
+            <div class="mosaic-tile-content" id="${varId}">
+                <div class="mosaic-tile-header">
+                    <h3 class="mosaic-tile-title">${this.title}</h3>
                 </div>
                 <div class="map-tile-map" id="${mapContainerId}" style="flex: 1 1 0; min-height: 200px; width: 100%;"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);
+        this.sqs.tooltipManager.registerTooltip(`#${varId} .mosaic-tile-title`, "Shows the geographic distribution of selected sites on a map.", { drawSymbol: true, anchorPoint: 'symbol' });
 
         // Render the map into the inner map container
         if(this.resultMap == null) {
