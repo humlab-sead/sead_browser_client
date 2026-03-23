@@ -80,7 +80,7 @@ class Tutorial {
     start() {
       this.setCookie();
       $(".tutorial-dialog").hide();
-      this.sqs.dialogManager.hidePopOver();      
+      this.sqs.dialogManager.hidePopOver();
       this.tour.start();
     }
 
@@ -137,7 +137,10 @@ class Tutorial {
             content += "<br />";
             content += "<button class='yes-button'>Start tour</button> <button class='no-button'>Cancel</button>";
             content += "</div>";
-            this.sqs.reset();
+            this.sqs.reset({
+              resultModule: "map",
+            });
+
             this.sqs.dialogManager.showPopOver("Tutorial", content);
             this.bindTutorialSelectForm();
           }
