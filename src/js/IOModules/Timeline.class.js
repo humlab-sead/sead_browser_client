@@ -171,6 +171,21 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         this.populateScaleDefinitionsSelector();
 		this.populateGraphDataOptionsSelector(this.graphDataOptions);
 
+		this.sqs.tooltipManager.registerTooltip(
+            $("#timeline-data-selector-container > label"), 
+            `<h3>Data on the timeline</h3>
+            <hr/>
+            Datasets can either be:
+            <ul>
+            <li>Pre-loaded datasets: A selection of commonly used paleoclimate datasets, such as ice core records and sea level reconstructions.</li>
+            <li>Imported data: You can import your own time series data in CSV or Excel format to visualize on the timeline. Imported data should have one column representing time (which can be in various formats such as calendar years, years BP, or timestamps) and another column representing the values to be plotted against time.</li>
+            </ul>`,
+            {
+                drawSymbol: true,
+            }
+        );
+
+
         $("#timeline-data-selector-clicked-btn").on("click", (e) => {
             let graphDataOption = this.getSelectedGraphDataOption()
 
