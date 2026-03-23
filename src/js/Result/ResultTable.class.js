@@ -489,8 +489,13 @@ class ResultTable extends ResultModule {
 			barsGroup.appendChild(rect);
 
 			if (amd.method_name) {
-				const words = amd.method_name.trim().split(/\s+/);
-				const labelText = words.slice(0, 3).map(w => w[0].toUpperCase()).join("");
+				const words = amd.method_name.replace(/\(.*?\)/g, '').trim().split(/\s+/);
+				const labelText = words
+					.map(w => w.replace(/[^a-zA-Z]/g, ''))
+					.filter(w => w.length > 0)
+					.slice(0, 3)
+					.map(w => w[0].toUpperCase())
+					.join("");
 				const label = document.createElementNS(svgNS, "text");
 				label.setAttribute("x", `${currentOffset + barWidth / 2}%`);
 				label.setAttribute("y", "50%");
