@@ -38,11 +38,11 @@ class MosaicFeatureTypesModule extends MosaicTileModule {
         const varId = (typeof nanoid === 'function') ? nanoid() : Math.random().toString(36).substr(2, 9);
         const chartContainerId = `chart-container-${varId}`;
         const tileHtml = `
-            <div class="feature-types-tile-container" id="${varId}" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
-                <div class="feature-types-tile-header" style="flex: 0 0 auto;">
-                    <h3 class="feature-types-tile-title" style="margin: 0; font-size: 1.2em;">${this.title}</h3>
+            <div class="mosaic-tile-content" id="${varId}">
+                <div class="mosaic-tile-header">
+                    <h3 class="mosaic-tile-title">${this.title}</h3>
                 </div>
-                <div class="feature-types-tile-chart" id="${chartContainerId}" style="flex: 1 1 0; min-height: 200px; width: 100%;"></div>
+                <div class="mosaic-tile-chart" id="${chartContainerId}"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);

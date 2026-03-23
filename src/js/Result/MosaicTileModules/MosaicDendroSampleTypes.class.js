@@ -81,7 +81,7 @@ class MosaicDendroSampleTypes extends DendroBaseModule {
         }
 
         if(data === false || !data) {
-            this.sqs.setNoDataMsg(this.renderIntoNode);
+            this.renderNoData();
             this.sqs.resultManager.showLoadingIndicator(false);
             this.renderComplete = true;
             return;
@@ -93,7 +93,7 @@ class MosaicDendroSampleTypes extends DendroBaseModule {
         const total = data.categories.reduce((sum, cat) => sum + cat.count, 0);
         
         if(total === 0) {
-            this.sqs.setNoDataMsg(this.renderIntoNode);
+            this.renderNoData();
             this.renderComplete = true;
             return;
         }

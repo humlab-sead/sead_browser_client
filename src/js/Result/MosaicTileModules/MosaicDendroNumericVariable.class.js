@@ -112,7 +112,7 @@ class MosaicDendroNumericVariable extends DendroBaseModule {
         }
 
         if(data === false || !data) {
-            this.sqs.setNoDataMsg(this.renderIntoNode);
+            this.renderNoData();
             this.sqs.resultManager.showLoadingIndicator(false);
             this.renderComplete = true;
             return;

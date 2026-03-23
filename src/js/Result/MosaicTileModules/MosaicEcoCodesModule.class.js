@@ -64,7 +64,7 @@ class MosaicEcoCodesModule extends MosaicTileModule {
                 <div class="mosaic-tile-header">
                     <h3 class="mosaic-tile-title">${this.title}</h3>
                 </div>
-                <div class="eco-codes-tile-chart" id="${chartContainerId}" style="flex: 1 1 0; min-height: 200px; width: 100%; display: flex; align-items: stretch;"></div>
+                <div class="mosaic-tile-chart" id="${chartContainerId}" style="display: flex; align-items: stretch;"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);

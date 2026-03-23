@@ -88,7 +88,7 @@ class MosaicDatedSitesModule extends MosaicTileModule {
   formatDataToPlotlyChartData(data) {
     if (!data || !Array.isArray(data.histogram) || data.histogram.length === 0) {
       console.warn("Fetch for dated sites returned bad value:", data);
-      this.sqs.setNoDataMsg(this.renderIntoNode);
+      this.renderNoData();
       return null;
     }
 
@@ -241,11 +241,11 @@ class MosaicDatedSitesModule extends MosaicTileModule {
     const chartContainerId = `chart-container-${varId}`;
 
     const tileHtml = `
-      <div class="dated-sites-tile-container" id="${varId}" style="display:flex;flex-direction:column;height:100%;width:100%;">
-        <div class="dated-sites-tile-header" style="flex:0 0 auto;">
-          <h3 style="margin:0;font-size:1.1em;">${this.title}</h3>
+      <div class="mosaic-tile-content" id="${varId}">
+        <div class="mosaic-tile-header">
+          <h3 class="mosaic-tile-title">${this.title}</h3>
         </div>
-        <div class="dated-sites-tile-chart" id="${chartContainerId}" style="flex:1 1 0;min-height:180px;width:100%;"></div>
+        <div class="mosaic-tile-chart" id="${chartContainerId}"></div>
       </div>
     `;
 
@@ -261,7 +261,7 @@ class MosaicDatedSitesModule extends MosaicTileModule {
     if (!this.active) return false;
 
     if (!this.data || !Array.isArray(this.data.histogram) || this.data.histogram.length === 0) {
-      this.sqs.setNoDataMsg(this.renderIntoNode);
+      this.renderNoData();
       this.renderComplete = true;
       return;
     }

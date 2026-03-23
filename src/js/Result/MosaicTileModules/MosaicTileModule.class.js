@@ -204,6 +204,23 @@ class MosaicTileModule {
         this.renderComplete = false;
     }
 
+    renderNoData() {
+        const $chartArea = $(this.renderIntoNode).find('.mosaic-tile-chart');
+        if ($chartArea.length > 0) {
+            // Module already rendered its own title via tileHtml — only replace the chart area
+            this.sqs.setNoDataMsg($chartArea[0]);
+        } else {
+            // Module has no own title wrapper; add a title heading to the parent tile
+            if (this.title) {
+                const $tile = $(this.renderIntoNode).parent();
+                if ($tile.find('> h2').length === 0) {
+                    $tile.append(`<h2>${this.title}</h2>`);
+                }
+            }
+            this.sqs.setNoDataMsg(this.renderIntoNode);
+        }
+    }
+
     async update() {
         
     }

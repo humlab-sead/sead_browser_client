@@ -63,7 +63,7 @@ class MosaicDendroWaneyEdgeModule extends MosaicTileModule {
 
         if(data.categories.length == 0) {
             //set no data msg
-            this.sqs.setNoDataMsg(this.renderIntoNode, true);
+            this.renderNoData();
             this.sqs.setLoadingIndicator(this.renderIntoNode, "done");
             return false;
         }
@@ -120,7 +120,7 @@ class MosaicDendroWaneyEdgeModule extends MosaicTileModule {
 
                 if(data.categories.length == 0) {
                     //set no data msg
-                    this.sqs.setNoDataMsg(this.renderIntoNode, true);
+                    this.renderNoData();
                     return false;
                 }
 

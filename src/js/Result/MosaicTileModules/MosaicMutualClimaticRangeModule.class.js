@@ -302,7 +302,7 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         this.showLoadingIndicator(false);
 
         if (!siteResponse || !siteResponse.density_matrix || !siteResponse.taxa_count) {
-            this.sqs.setNoDataMsg(this.renderIntoNode, true);
+            this.renderNoData();
             this.renderComplete = true;
             return true;
         }

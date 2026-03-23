@@ -112,7 +112,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         let chartSeries = await this.fetchData(renderIntoNode);
         
         if(chartSeries === false) {
-            this.sqs.setNoDataMsg(this.renderIntoNode);
+            this.renderNoData();
         }
         else {
             this.chart = resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartSeries, { showlegend: false });
@@ -124,7 +124,7 @@ class MosaicDendroTreeSpeciesChartModule extends MosaicTileModule {
         this.renderComplete = false;
         let chartSeries = await this.fetchData(this.renderIntoNode);
         if(chartSeries === false) {
-            this.sqs.setNoDataMsg(this.renderIntoNode);
+            this.renderNoData();
         }
         else {
             this.render(this.renderIntoNode);

@@ -177,7 +177,7 @@ class MosaicDynamicChartModule extends MosaicTileModule {
 
                 if(data.categories.length == 0) {
                     //set no data msg
-                    this.sqs.setNoDataMsg(this.renderIntoNode, true);
+                    this.renderNoData();
                     return false;
                 }
 
