@@ -6,6 +6,7 @@ ARG MODE=dev
 ARG DOMAIN
 
 # Define environment variables for runtime
+ENV NODE_OPTIONS=--max-old-space-size=4096
 ENV SBC_REF=${SBC_REF}
 ENV MODE=${MODE}
 ENV DOMAIN=${DOMAIN}
