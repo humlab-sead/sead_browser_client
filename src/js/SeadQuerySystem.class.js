@@ -594,7 +594,9 @@ class SeadQuerySystem {
 					$("#privacy-policy-link").on("click", (evt) => {
 						evt.stopPropagation();
 						var content = $("#gdpr-infobox").html();
-						window.sqs.dialogManager.showPopOver("Legal policy", content);
+						window.sqs.dialogManager.showPopOver("Legal policy", content, {
+							width: "700px"
+						});
 					});
 				}
 			});
@@ -615,10 +617,13 @@ class SeadQuerySystem {
 	}
 
 	//resets the UI to the initial state, removes any filters and so on
-	reset() {
+	reset(options = {}) {
 		this.layoutManager.setActiveView("filters");
 		this.domainManager.setActiveDomain("general");
-		this.resultManager.setActiveModule(this.config.defaultResultModule, true).then(() => {
+
+		let resultModule = options.resultModule || this.getUserSettings().defaultResultModule || this.config.defaultResultModule;
+
+		this.resultManager.setActiveModule(resultModule, true).then(() => {
 			this.facetManager.reset();
 			this.menuManager.resetAll();
 		});
