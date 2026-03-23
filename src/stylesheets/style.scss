@@ -123,6 +123,40 @@ div:focus {
 	font-weight:bold;
 }
 
+#quickstart-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  gap: 0.6em;
+  padding: 0.6em 1em;
+
+  button {
+    flex: 1 1 0;
+    padding: 0.5em 0.8em;
+    border: 1px solid colors.$base-color;
+    border-radius: 3px;
+    background: transparent;
+    color: colors.$base-color;
+    font-size: 0.82em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+    &:hover {
+      background: colors.$base-color;
+      color: #fff;
+      border-color: colors.$base-color;
+    }
+
+    &:active {
+      background: color.scale(colors.$base-color, $lightness: -15%);
+      border-color: color.scale(colors.$base-color, $lightness: -15%);
+      color: #fff;
+    }
+  }
+}
+
 #logo-aux-container {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -159,6 +193,8 @@ div:focus {
   width: 50%;
   height: auto;
   background: grey;
+  border-top: 2px solid colors.$pane-bg-color-dark;
+  border-bottom: 2px solid colors.$pane-bg-color-dark;
 }
 
 #filter-menu-container > #filter-menu-filter-area {
@@ -167,12 +203,16 @@ div:focus {
   height: auto;
   background: #2d5e8d;
   left: -1px;
+  border-top: 2px solid colors.$pane-bg-color-dark;
+  border-bottom: 2px solid colors.$pane-bg-color-dark;
 }
 
 #filter-menu-container > svg {
   cursor: pointer;
   width: 1.2em;
   height: 4em;
+  border-top: 2px solid colors.$pane-bg-color-dark;
+  border-bottom: 2px solid colors.$pane-bg-color-dark;
 }
 
 #filter-menu-container > object path {
@@ -1784,17 +1824,31 @@ body.facet-resizing * {
 
 #logo-section {
 	margin-top: 20px;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: nowrap;
+
+	br {
+		display: none;
+	}
+
+	a {
+		flex: 1 1 0;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
 }
 
 .about-section-logo {
-	height: 100px;
-	margin-right: 20px;
-  margin-left: 20px;
-  margin-top: 20px;
-  margin-bottom: 20px;
+	max-height: 80px;
+	max-width: 100%;
+	width: auto;
+	height: auto;
+	object-fit: contain;
+	margin: 10px;
 }
 
 .about-section-logo:hover {
@@ -3367,10 +3421,6 @@ polyline{
   to {
 	background-color: colors.$aux-color;
   }
-}
-
-#about-section {
-  max-width: 600px;
 }
 
 #team-section {
@@ -5031,6 +5081,13 @@ a.ms-selectall:hover {
 
 .mosaic-tile-header {
   flex: 0 0 auto;
+}
+
+.mosaic-tile-chart {
+  flex: 1 1 0;
+  min-height: 200px;
+  width: 100%;
+  min-height: 0;
 }
 
 .mosaic-tile-title {
