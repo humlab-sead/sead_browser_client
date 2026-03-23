@@ -1,5 +1,5 @@
 //import Config from '../config/config.js';
-
+import Dropzone from 'dropzone';
 /*
 Class: DialogManager
 Simple machine for handling some basic rendering of overlay/popup-dialogs.
@@ -8,12 +8,13 @@ class DialogManager {
 	/* 
 	* Function: constructor
 	*/
-	constructor(sqs) {
-		this.sqs = sqs;
-		this.coverActive = false;
-		this.coverTiles = [];
-		this.coverTilesNum = 12;
-		this.tooltips = [];
+		constructor(sqs) {
+			this.sqs = sqs;
+			this.coverActive = false;
+			this.coverTiles = [];
+			this.coverTilesNum = 12;
+			this.tooltips = [];
+			this.importDropzone = null;
 		
 		$(".popover-close-btn").on("click", () => {
 			this.hidePopOver();
@@ -21,6 +22,48 @@ class DialogManager {
 
 		$("#popover-dialog-frame").on("click", (evt) => {
 			evt.stopPropagation();
+		});
+
+		$("#popover-dialog").on("click", () => {
+			this.hidePopOver();
+		});
+
+		$("#quickstart-what-is-sead").on("click", () => {
+			const content = `
+				<p>SEAD — the Strategic Environmental Archaeology Database — is an open-access research infrastructure for 
+				archaeological and palaeoenvironmental data. It stores, manages, and makes available a wide range of datasets 
+				focused on how past human societies interacted with their natural environment.</p>
+				<p>The database contains records from across northern Europe and beyond, covering evidence from biological 
+				proxies such as pollen, insects, plants, and vertebrates, as well as dendrochronological and other 
+				environmental data tied to archaeological sites.</p>
+				<p>Using the SEAD browser you can:</p>
+				<ul>
+					<li>Search and filter archaeological sites by domain, time period, location, and more.</li>
+					<li>Browse datasets and samples associated with each site.</li>
+					<li>Export results in multiple formats for use in your own research.</li>
+				</ul>
+				<p>SEAD is free to use and all data is openly available for research and education.</p>
+			`;
+			this.showPopOver("What is SEAD?", content, { width: "600px" });
+		});
+
+		$("#quickstart-data-in-sead").on("click", () => {
+			const content = `
+				<p>Data in SEAD is organised in a three-level hierarchy:</p>
+				<p style="text-align:center; font-size:1.1em;"><strong>Site &rarr; Sample group &rarr; Sample</strong></p>
+				<ul>
+					<li><strong>Site</strong> — a geographical or archaeological location where fieldwork took place, 
+					such as an excavation, a lake, or a bog. Sites are the primary unit you search and filter in the browser.</li>
+					<li><strong>Sample group</strong> — a logical collection of samples from the same context within a site, 
+					e.g. a sediment core, a trench, or a stratigraphic unit.</li>
+					<li><strong>Sample</strong> — an individual physical or analytical unit from which data were obtained, 
+					e.g. a sediment slice, a single find, or a wood specimen.</li>
+				</ul>
+				<p>The <strong>filters</strong> in the left panel filter the list of <strong>sites</strong>. Once you find sites 
+				of interest, click a site in the result section (table or map view) to open its <strong>landing page</strong>, where you can explore 
+				all associated sample groups and their individual samples in detail.</p>
+			`;
+			this.showPopOver("Data in SEAD", content, { width: "600px" });
 		});
 		
 		this.sqs.sqsEventListen("seadStateLoadComplete", () => {
@@ -281,26 +324,56 @@ class DialogManager {
 					callback: () => {
 						var content = $("#about-section > .overlay-dialog-content").html();
 						content = $(content);
+						
 						$("#data-license-section", content).text(Config.dataLicense.name).attr("href", Config.dataLicense.url);
-						window.sqs.dialogManager.showPopOver("About", content);
+						window.sqs.dialogManager.showPopOver("About", content, {
+							width: "700px"
+						});
 					}
 				},
-				/*
-				{
-					name: "team",
-					title: "<i class=\"fa fa-user-circle\" aria-hidden=\"true\"></i> Team",
-					callback: () => {
-						var content = $("#team-section > .overlay-dialog-content").html();
-						window.sqs.dialogManager.showPopOver("Team", content);
-					}
-				},
-				*/
 				{
 					name: "legal",
 					title: "<i class=\"fa fa-file-text-o\" aria-hidden=\"true\"></i> Legal",
 					callback: () => {
-						var content = $("#gdpr-infobox").html();
-						window.sqs.dialogManager.showPopOver("Legal policy", content);
+						var content = $("#gdpr-infobox > .overlay-dialog-content").html();
+						window.sqs.dialogManager.showPopOver("Legal policy", content, {
+							width: "700px"
+						});
+					}
+				},
+				{
+					name: "import",
+					visible: false,
+					title: "<i class=\"fa fa-file-text-o\" aria-hidden=\"true\"></i> Import data",
+					callback: () => {
+						const content = $("#import-dialog").html();
+						const popoverContent = window.sqs.dialogManager.showPopOver("Import data", content);
+						const importContainer = popoverContent.find(".dropzone").get(0);
+						if (!importContainer) {
+							console.warn("Import container not found in popover content");
+							return;
+						}
+
+						// Keep one Dropzone instance and recreate it for the current popover content.
+						if (this.importDropzone) {
+							this.importDropzone.destroy();
+							this.importDropzone = null;
+						}
+
+						this.importDropzone = new Dropzone(importContainer, {
+							url: "/fake-url-for-dropzone",
+							autoProcessQueue: false,
+							acceptedFiles: ".xlsx",
+							init: function() {
+								this.on("addedfile", function(file) {
+									console.log("File added to Dropzone:", file);
+									window.sqs.sqsEventDispatch("dataImportFileDropped", {
+										file: file
+									});
+									this.removeFile(file);
+								});
+							}
+						});
 					}
 				}
 			]
