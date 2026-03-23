@@ -10,13 +10,14 @@ import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Image as ImageLayer, Group as GroupLayer } from 'ol/layer';
 import { StadiaMaps, ImageArcGISRest, OSM, TileWMS } from 'ol/source';
 import Overlay from 'ol/Overlay';
-import GeoJSON from 'ol/format/GeoJSON';
 import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
 import { fromLonLat } from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
 import { Attribution, Zoom } from 'ol/control';
 import XYZ from 'ol/source/XYZ';
+import Feature from 'ol/Feature';
+import Point from 'ol/geom/Point';
 import Config from '../../config/config.json';
 import ResultMapLayers from './ResultMap/ResultMapLayers.class.js';
 
@@ -74,6 +75,8 @@ class ResultMap extends ResultModule {
 		this.timeline = null;
 		this.layers = [];
 		this.defaultExtent = [-9240982.715065815, -753638.6533165146, 11461833.521917604, 19264301.810231723];
+		this.dataRevision = 0;
+		this.pointStyleCache = {};
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			if(data.selection != this.name) {
@@ -779,6 +782,13 @@ class ResultMap extends ResultModule {
 		this.renderData = this.resultManager.sqs.sqsOffer("resultMapData", {
 			data: this.renderData
 		}).data;
+		this.dataRevision++;
+
+		this.layers.forEach((layer) => {
+			if(layer.getProperties().type == "dataLayer") {
+				layer.set("dataRevision", -1);
+			}
+		});
 	}
 
 	async update() {
@@ -1498,23 +1508,11 @@ class ResultMap extends ResultModule {
 			return;
 		}
 		
-		// Get the data
-		const timeFilteredData = this.data;
-		const geojson = this.getDataAsGeoJSON(timeFilteredData);
-		
-		// Parse GeoJSON features
-		const gf = new GeoJSON({
-			featureProjection: "EPSG:3857"
-		});
-		const featurePoints = gf.readFeatures(geojson);
-		
 		// Update the source
 		const clusterSource = clusterLayer.getSource();
 		const vectorSource = clusterSource.getSource();
-		
-		// Clear existing features and add new ones
-		vectorSource.clear();
-		vectorSource.addFeatures(featurePoints);
+
+		this.refreshDataLayerSource(clusterLayer, vectorSource);
 		
 		// Make sure the layer is visible
 		clusterLayer.setVisible(true);
@@ -1533,23 +1531,10 @@ class ResultMap extends ResultModule {
 			return;
 		}
 		
-		// Get the data
-		const timeFilteredData = this.data;
-		const geojson = this.getDataAsGeoJSON(timeFilteredData);
-		
-		// Parse GeoJSON features
-		const gf = new GeoJSON({
-			featureProjection: "EPSG:3857"
-		});
-		const featurePoints = gf.readFeatures(geojson);
-		
 		// Update the source
-		const clusterSource = pointsLayer.getSource();
-		const vectorSource = clusterSource.getSource();
-		
-		// Clear existing features and add new ones
-		vectorSource.clear();
-		vectorSource.addFeatures(featurePoints);
+		const vectorSource = pointsLayer.getSource();
+
+		this.refreshDataLayerSource(pointsLayer, vectorSource);
 		
 		// Make sure the layer is visible
 		pointsLayer.setVisible(true);
@@ -1568,22 +1553,10 @@ class ResultMap extends ResultModule {
 			return;
 		}
 		
-		// Get the data
-		const timeFilteredData = this.data;
-		const geojson = this.getDataAsGeoJSON(timeFilteredData);
-		
-		// Parse GeoJSON features
-		const gf = new GeoJSON({
-			featureProjection: "EPSG:3857"
-		});
-		const featurePoints = gf.readFeatures(geojson);
-		
 		// Update the source
 		const source = heatmapLayer.getSource();
-		
-		// Clear existing features and add new ones
-		source.clear();
-		source.addFeatures(featurePoints);
+
+		this.refreshDataLayerSource(heatmapLayer, source);
 		
 		// Make sure the layer is visible
 		heatmapLayer.setVisible(true);
@@ -1609,7 +1582,7 @@ class ResultMap extends ResultModule {
 			renderCallback: () => {
 				this.renderClusteredPointsLayer();
 			},
-			visible: true
+			visible: false
 		});
 		
 		// Create empty vector source
@@ -1654,24 +1627,13 @@ class ResultMap extends ResultModule {
 			renderCallback: () => {
 				this.renderPointsLayer();
 			},
-			visible: false
-		});
-		
-		// Create empty vector source
-		const pointsSource = new VectorSource();
-		
-		// Create cluster source with distance 0 (no clustering)
-		const clusterSource = new ClusterSource({
-			distance: 0,
-			source: pointsSource
+			visible: true
 		});
 		
 		// Create vector layer
 		const pointsLayer = new VectorLayer({
-			source: clusterSource,
-			style: (feature, resolution) => {
-				return this.getSingularPointStyle(feature);
-			},
+			source: new VectorSource(),
+			style: this.getPointStyle(),
 			zIndex: 200,
 			visible: layerConfig.getProperties().visible
 		});
@@ -1731,66 +1693,61 @@ class ResultMap extends ResultModule {
 		return heatmapLayer;
 	}
 
-	/*
-	* Function: getDataAsGeoJSON
-	*
-	* Returns the internally stored data as GeoJSON, does not fetch anything from server.
-	* 
-	*/
-	getDataAsGeoJSON(data) {
-		var geojson = {
-			"type": "FeatureCollection",
-			"features": [
-			]
-		};
+	createPointFeatures(data = this.data) {
+		const features = [];
 
-		for(var key in data) {
-			var feature = {
-				"type": "Feature",
-				"geometry": {
-					"type": "Point",
-					"coordinates": [data[key].lng, data[key].lat]
-				},
-				"properties": {
-					id: data[key].id,
-					name: data[key].title
-				}
-			};
-			geojson.features.push(feature);
+		for(let key in data) {
+			const dataPoint = data[key];
+			const lng = Number(dataPoint.lng);
+			const lat = Number(dataPoint.lat);
+
+			if(!Number.isFinite(lng) || !Number.isFinite(lat) || lng === 0 || lat === 0) {
+				continue;
+			}
+
+			const feature = new Feature({
+				geometry: new Point(fromLonLat([lng, lat])),
+				id: dataPoint.id,
+				name: dataPoint.title
+			});
+
+			feature.setId(dataPoint.id);
+			features.push(feature);
 		}
-		return geojson;
+
+		return features;
 	}
 
-	/*
-	* Function: getPointStyle
-	*/
-	getPointStyle(feature, options = { selected: false, highlighted: false }) {
-		var pointSize = 12;
+	refreshDataLayerSource(layer, source) {
+		if(layer.get("dataRevision") === this.dataRevision) {
+			return;
+		}
+
+		source.clear();
+		source.addFeatures(this.createPointFeatures(this.data));
+		layer.set("dataRevision", this.dataRevision);
+	}
+
+	createCachedPointStyle(options = { selected: false, highlighted: false }) {
 		var zIndex = 0;
-		var text = "";
-		
-		//default values if point is not selected and not highlighted
 		var fillColor = this.style.default.fillColor;
 		var strokeColor = this.style.default.strokeColor;
-		
-		//if point is highlighted (its a hit when doing a search)
+
 		if(options.highlighted) {
 			fillColor = this.style.highlighted.fillColor;
 			strokeColor = this.style.highlighted.strokeColor;
-			zIndex = 200;
+			zIndex = 10;
 		}
-		//if point is selected (clicked on)
+
 		if(options.selected) {
 			fillColor = this.style.selected.fillColor;
 			strokeColor = this.style.selected.strokeColor;
-			zIndex = 200;
+			zIndex = 10;
 		}
 
-		var styles = [];
-		
-		styles.push(new Style({
+		return new Style({
 			image: new CircleStyle({
-				radius: pointSize,
+				radius: 8,
 				stroke: new Stroke({
 					color: strokeColor
 				}),
@@ -1798,24 +1755,24 @@ class ResultMap extends ResultModule {
 					color: fillColor
 				})
 			}),
-			zIndex: zIndex,
-			text: new Text({
-				text: text,
-				offsetX: 15,
-				textAlign: 'left',
-				fill: new Fill({
-					color: '#fff'
-				}),
-				stroke: new Stroke({
-					color: '#000',
-					width: 2
-				}),
-				scale: 1.2
-			})
-			
-		}));
-		
-		return styles;
+			zIndex: zIndex
+		});
+	}
+
+	/*
+	* Function: getPointStyle
+	*/
+	getPointStyle(feature, options = { selected: false, highlighted: false }) {
+		const styleKey = [
+			options.selected ? "selected" : "default",
+			options.highlighted ? "highlighted" : "normal"
+		].join("-");
+
+		if(!this.pointStyleCache[styleKey]) {
+			this.pointStyleCache[styleKey] = this.createCachedPointStyle(options);
+		}
+
+		return this.pointStyleCache[styleKey];
 	}
 
 	/*
@@ -1903,57 +1860,7 @@ class ResultMap extends ResultModule {
 	* Function: getSingularPointStyle
 	*/
 	getSingularPointStyle(feature, options = { selected: false, highlighted: false }) {
-		var pointsNum = feature.get('features').length;
-		var clusterSizeText = pointsNum.toString();
-		if(pointsNum > 999) {
-			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
-		}
-		let pointSize = 8;
-
-		var zIndex = 0;
-		
-		//default values if point is not selected and not highlighted
-		var fillColor = this.style.default.fillColor;
-		var strokeColor = this.style.default.strokeColor;
-		var textColor = "#fff";
-		
-		//if point is highlighted (its a hit when doing a search)
-		if(options.highlighted) {
-			fillColor = this.style.highlighted.fillColor;
-			strokeColor = this.style.highlighted.strokeColor;
-			textColor = this.style.highlighted.textColor;
-			zIndex = 10;
-		}
-		//if point is selected (clicked on)
-		if(options.selected) {
-			fillColor = this.style.selected.fillColor;
-			strokeColor = this.style.selected.strokeColor;
-			textColor = this.style.selected.textColor;
-			zIndex = 10;
-		}
-
-		var styles = [];
-		styles.push(new Style({
-			image: new CircleStyle({
-				radius: pointSize,
-				stroke: new Stroke({
-					color: strokeColor
-				}),
-				fill: new Fill({
-					color: fillColor
-				})
-			}),
-			zIndex: zIndex,
-			text: new Text({
-				text: clusterSizeText == 1 ? "" : clusterSizeText,
-				offsetY: 1,
-				fill: new Fill({
-					color: textColor
-				})
-			})
-		}));
-		
-		return styles;
+		return this.getPointStyle(feature, options);
 	}
 
 	/*
