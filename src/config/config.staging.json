@@ -39,14 +39,9 @@
 					"grid_column": "2"
 				},
 				{
-					"module_name": "mosaic-dated-sites",
-					"grid_row": "3",
-					"grid_column": "2"
-				},
-				{
 					"module_name": "mosaic-domain-samples",
 					"grid_row": "3",
-					"grid_column": "1"
+					"grid_column": "span 2"
 				},
 				{
 					"module_name": "mosaic-taxa-list",
