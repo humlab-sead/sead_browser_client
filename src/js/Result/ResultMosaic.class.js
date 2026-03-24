@@ -43,6 +43,7 @@ class ResultMosaic extends ResultModule {
 		this.graphs = [];
 		this.renderPromises = [];
 		this.modules = [];
+		this.plotlyLayoutRegistry = new Map();
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			if(data.selection != this.name) {
@@ -222,6 +223,109 @@ class ResultMosaic extends ResultModule {
 		
 		this.modules.forEach(mReg => {
 			mReg.name = new mReg.classTemplate().name;
+		});
+	}
+
+	registerPlotlyLayout(anchorNodeId, layout) {
+		if(typeof anchorNodeId != "string") {
+			return;
+		}
+
+		if(anchorNodeId.startsWith("#")) {
+			anchorNodeId = anchorNodeId.substring(1);
+		}
+
+		this.pruneStalePlotlyLayouts();
+		this.plotlyLayoutRegistry.set(anchorNodeId, layout);
+		this.sqs.sqsEventUnlisten("layoutResize", this);
+		this.sqs.sqsEventListen("layoutResize", () => {
+			this.relayoutRegisteredPlotlyCharts();
+		}, this);
+	}
+
+	unregisterPlotlyLayout(anchorNodeId) {
+		if(typeof anchorNodeId != "string") {
+			return;
+		}
+
+		if(anchorNodeId.startsWith("#")) {
+			anchorNodeId = anchorNodeId.substring(1);
+		}
+
+		this.plotlyLayoutRegistry.delete(anchorNodeId);
+	}
+
+	pruneStalePlotlyLayouts() {
+		this.plotlyLayoutRegistry.forEach((layout, anchorNodeId) => {
+			let chartNode = document.getElementById(anchorNodeId);
+			if(!chartNode || typeof chartNode.data == "undefined") {
+				this.plotlyLayoutRegistry.delete(anchorNodeId);
+			}
+		});
+	}
+
+	relayoutRegisteredPlotlyCharts() {
+		let staleAnchors = [];
+
+		this.plotlyLayoutRegistry.forEach((layout, anchorNodeId) => {
+			let chartNode = document.getElementById(anchorNodeId);
+			if(!chartNode || typeof chartNode.data == "undefined") {
+				staleAnchors.push(anchorNodeId);
+				return;
+			}
+
+			try {
+				Plotly.relayout(chartNode, layout);
+			}
+			catch(e) {
+				staleAnchors.push(anchorNodeId);
+				console.warn("Failed to relayout plotly chart", e);
+			}
+		});
+
+		staleAnchors.forEach((anchorNodeId) => {
+			this.plotlyLayoutRegistry.delete(anchorNodeId);
+		});
+
+		if(this.plotlyLayoutRegistry.size == 0) {
+			this.sqs.sqsEventUnlisten("layoutResize", this);
+		}
+	}
+
+	getPlotlyNodeFromSelector(selector) {
+		if(typeof selector == "object") {
+			if(selector && selector.jquery) {
+				return selector[0];
+			}
+			return selector;
+		}
+
+		if(typeof selector == "string") {
+			let node = $(selector);
+			if(node.length > 0) {
+				return node[0];
+			}
+
+			if(!selector.startsWith("#")) {
+				node = $("#"+selector);
+				if(node.length > 0) {
+					return node[0];
+				}
+			}
+		}
+
+		return null;
+	}
+
+	cleanupPlotlyChartsInContainer(containerSelector) {
+		let containerNode = $(containerSelector);
+		if(containerNode.length == 0) {
+			return;
+		}
+
+		let plotlyNodes = containerNode.find(".js-plotly-plot").addBack(".js-plotly-plot");
+		plotlyNodes.each((key, plotlyNode) => {
+			this.unrenderPlotlyChart(plotlyNode);
 		});
 	}
 
@@ -1150,14 +1254,7 @@ class ResultMosaic extends ResultModule {
 
 		let plot = Plotly.newPlot(anchorNodeId, chartSeries, layout, config);
 
-		this.sqs.sqsEventListen("layoutResize", () => {
-			try {
-				Plotly.relayout(anchorNodeId, layout);
-			}
-			catch(e) {
-				console.warn("Failed to relayout plotly chart", e);
-			}
-		}, this);
+		this.registerPlotlyLayout(anchorNodeId, layout);
 
 		return plot;
 	}
@@ -1219,34 +1316,41 @@ class ResultMosaic extends ResultModule {
 
 		let plot = await Plotly.newPlot(anchorNodeId, chartData, layout, config);
 
-		this.sqs.sqsEventListen("layoutResize", () => {
-			try {
-				Plotly.relayout(anchorNodeId, layout);
-			}
-			catch(e) {
-				console.warn("Failed to relayout plotly chart", e);
-			}
-		}, this);
+		this.registerPlotlyLayout(anchorNodeId, layout);
 
 		return plot;
 	}
 
 	unrenderPlotlyChart(selector) {
-		this.sqs.sqsEventUnlisten("layoutResize", this);
-		let node = $(selector);
+		let node = this.getPlotlyNodeFromSelector(selector);
+		let anchorNodeId = null;
+		if(node && typeof node.id == "string") {
+			anchorNodeId = node.id;
+		}
+		else if(typeof selector == "string") {
+			anchorNodeId = selector.startsWith("#") ? selector.substring(1) : selector;
+		}
 
-		if(node.length == 0) {
+		if(anchorNodeId != null) {
+			this.unregisterPlotlyLayout(anchorNodeId);
+		}
+
+		if(node == null) {
 			console.warn("Bailing on unrenderPlotlyChart because node was not found");
 			return;
 		}
 
 		//check that node is a plotly chart
-		if(typeof node[0].data == "undefined") {
+		if(typeof node.data == "undefined") {
 			console.warn("Bailing on unrenderPlotlyChart because node was not a plotly chart");
 			return;
 		}
 
-		return Plotly.purge(node[0]);
+		let result = Plotly.purge(node);
+		if(this.plotlyLayoutRegistry.size == 0) {
+			this.sqs.sqsEventUnlisten("layoutResize", this);
+		}
+		return result;
 	}
 	
 	renderPieChart(renderIntoNode, chartSeries, chartTitle) {
@@ -1456,6 +1560,8 @@ class ResultMosaic extends ResultModule {
 			});
 
 			Promise.all(promises).then(() => {
+				this.cleanupPlotlyChartsInContainer("#result-mosaic-container");
+				this.plotlyLayoutRegistry.clear();
 				this.sqs.sqsEventUnlisten("layoutResize", this);
 
 				console.log("Unrendered all modules, clearing container");

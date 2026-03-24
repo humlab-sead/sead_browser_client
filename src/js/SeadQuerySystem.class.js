@@ -1016,7 +1016,7 @@ class SeadQuerySystem {
 	sqsEventListen(eventName, callback = null, owner = null) {
 		var eventAlreadyRegistered = false;
 		for(var key in this.sqsEventRegistry) {
-			if (this.sqsEventRegistry[key].eventName == eventName) {
+			if (this.sqsEventRegistry[key] && this.sqsEventRegistry[key].eventName == eventName) {
 				eventAlreadyRegistered = true;
 			}
 		}
@@ -1029,11 +1029,14 @@ class SeadQuerySystem {
 		
 		if (eventAlreadyRegistered === false) {
 			$(window).on(eventName, (event, data) => {
-				for (var key in this.sqsEventRegistry) {
-					if (this.sqsEventRegistry[key].eventName == eventName) {
-						this.sqsEventRegistry[key].callback(event, data);
+				let listenersForEvent = this.sqsEventRegistry.filter((registeredEvent) => {
+					return registeredEvent && registeredEvent.eventName == eventName;
+				});
+				listenersForEvent.forEach((registeredEvent) => {
+					if(typeof registeredEvent.callback == "function") {
+						registeredEvent.callback(event, data);
 					}
-				}
+				});
 			});
 		}
 		
@@ -1043,12 +1046,13 @@ class SeadQuerySystem {
 		//console.log("sqsEventUnlisten", eventName);
 
 		//Remove event from internal registry
-		for(var key in this.sqsEventRegistry) {
-			if(this.sqsEventRegistry[key].eventName == eventName && this.sqsEventRegistry[key].owner === owner) {
+		this.sqsEventRegistry = this.sqsEventRegistry.filter((registeredEvent) => {
+			if(registeredEvent.eventName == eventName && registeredEvent.owner === owner) {
 				//console.log("Removing event ", eventName, " for owner ", owner, " from registry");
-				this.sqsEventRegistry.splice(key, 1);
+				return false;
 			}
-		}
+			return true;
+		});
 		
 		var eventStillExistsInRegistry = false;
 		for(var key in this.sqsEventRegistry) {

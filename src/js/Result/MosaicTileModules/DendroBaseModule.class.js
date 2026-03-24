@@ -626,6 +626,10 @@ class DendroBaseModule extends MosaicTileModule {
                     this.active = false;
 
                     if(this.renderIntoNode != null) {
+                        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+                        if(resultMosaic && typeof resultMosaic.cleanupPlotlyChartsInContainer == "function") {
+                            resultMosaic.cleanupPlotlyChartsInContainer(this.renderIntoNode);
+                        }
                         $(this.renderIntoNode).empty();
                         resolve();
                     } else {
