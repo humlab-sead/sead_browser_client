@@ -252,6 +252,9 @@ class ResultTable extends ResultModule {
 			this.bindExportModuleDataToButton(exportButton, this);
 		}
 
+		let stats = $("<div></div>").addClass("result-table-stats").html(`${this.data.rows.length} sites`);
+		$("#result-datatable-controls").append(stats);
+
 		let maxAnalysisEntities = this.data.rows.reduce((max, row) => Math.max(max, row.analysis_entities), 0);
 
 		this.maxRenderSlots = 12;

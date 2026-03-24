@@ -408,6 +408,23 @@ h1.main-header {
   padding: 0;
 }
 
+.cute-little-loading-indicator-white {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+	background-image: url('../assets/loading-indicator6.svg');
+	background-repeat: no-repeat;
+	background-size: 100%;
+  background-position: center;
+	margin-right: 5px;
+	margin-left: 5px;
+	background-color: transparent;
+  opacity: 0.5;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+}
+
 .small-loading-indicator {
 	display:none;
 	background-color:#000;
@@ -900,12 +917,31 @@ body.facet-resizing * {
   align-items: center;
   justify-content: center;
   font-family: Rajdhani;
-  font-size: 1.2em;
+  font-size: 1.5em;
+  padding: 0.5em;
+  height: auto;
+  width: 6em;
+}
+
+.result-export-button .result-export-button-loading-indicator {
+  position: absolute;
+  right: 0.45em;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  width: 1em;
+  height: 1em;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.result-export-button.is-loading .result-export-button-loading-indicator {
+  opacity: 0.6;
 }
 
 .result-export-button:hover {
   cursor:pointer;
-  background: color.adjust(colors.$pane-bg-color, $lightness: -10%);
+  background: color.adjust(colors.$base-color, $lightness: 10%);
 }
 
 .result-export-button-mosaic {
@@ -2127,7 +2163,15 @@ div.facet-sql-btn {
 }
 
 #result-datatable-controls {
-  height: 3em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: auto;
+}
+
+.result-table-stats {
+  font-size: 1em;
+  color: #444;
 }
 
 input[type="search"] {
