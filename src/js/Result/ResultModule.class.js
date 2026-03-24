@@ -57,12 +57,10 @@ class ResultModule {
 		exportButtons.each(function() {
 			let button = $(this);
 			let indicator = button.find(".result-export-button-loading-indicator");
-			let isResultTableButton = button.closest("#result-table-container").length > 0;
 
 			if(active) {
 				if(indicator.length === 0) {
-					let indicatorClass = isResultTableButton ? "cute-little-loading-indicator-white" : "cute-little-loading-indicator";
-					button.append(`<div class="result-export-button-loading-indicator ${indicatorClass}"></div>`);
+					button.append(`<div class="result-export-button-loading-indicator cute-little-loading-indicator-white"></div>`);
 				}
 				button.addClass("is-loading");
 			}
