@@ -42,7 +42,7 @@ class DiscreteFacet extends Facet {
 		this.updateMaxRowTitleLength();
 		this.renderSelections();
 
-		$(this.domObj).find(".facet-body").on("scroll", () => {
+		$(this.domObj).find(".list-container").on("scroll", () => {
 			var data = null;
 			if($(this.getDomRef()).find(".facet-text-search-input").val().length > 0) {
 				data = this.visibleData;
@@ -558,7 +558,7 @@ class DiscreteFacet extends Facet {
 	* 
 	*/
 	getScrollPos() {
-		return $(".facet-body", this.domObj).scrollTop();
+		return $(".list-container", this.domObj).scrollTop();
 	}
 
 	/*
@@ -620,7 +620,7 @@ class DiscreteFacet extends Facet {
 		//this.renderData(this.visibleData);
 		this.updateRenderData();
 		
-		$(this.domObj).find(".facet-body").scrollTop(this.scrollPosition);
+		$(this.domObj).find(".list-container").scrollTop(this.scrollPosition);
 
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
 		this.sqs.facetManager.updateSlotSize(slotId);

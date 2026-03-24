@@ -1592,9 +1592,12 @@ body.facet-resizing * {
 .list-container {
 	display:none;
 	position:relative;
-	height: 100%;
+	flex: 1;
+	min-height: 0;
   width: 100%;
   margin-top: 0.2em;
+	overflow-y: auto;
+	overflow-x: hidden;
 	//background-color:rgba(0, 0, 255, 0.5);
 }
 
@@ -1605,10 +1608,12 @@ body.facet-resizing * {
 .multistage-container {
   display:none;
 	position:relative;
-	height: 100%;
+	flex: 1;
+	min-height: 0;
   width: 100%;
   grid-template-columns: 100% 100%;
   grid-template-rows: 1fr;
+  overflow-y: auto;
   overflow-x: hidden;
 }
 
@@ -4535,6 +4540,28 @@ svg text {
   overflow: hidden;
   padding: 2em;
   padding-top: 2em;
+}
+
+.mosaic-top-taxa-container.mosaic-top-taxa-container-linked .taxon-link {
+  text-decoration: none;
+}
+
+.mosaic-top-taxa-container.mosaic-top-taxa-container-linked .taxon-link:hover {
+  text-decoration: none;
+}
+
+.mosaic-top-taxa-container.mosaic-top-taxa-container-linked .taxa-item {
+  transition: background-color 120ms ease-in-out;
+  border-radius: 2px;
+}
+
+.mosaic-top-taxa-container.mosaic-top-taxa-container-linked .taxa-item.taxa-item-link-hover {
+  background: color.scale(colors.$base-color, $alpha: -88%);
+}
+
+.taxa-item-count-bar {
+  background: colors.$aux-color;
+  border-radius: 1px;
 }
 
 .mosaic-top-taxa-table-container {

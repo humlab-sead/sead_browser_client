@@ -370,7 +370,8 @@ class Facet {
 			//$(this.getDomRef()).find(".facet-no-data-msg").hide();
 			$(this.getDomRef()).find(".facet-no-data-msg").hide();
 			$(this.getDomRef()).find(".facet-no-data-msg").html("");
-			$(this.getDomRef()).find(".facet-body").css("overflow", "auto");
+			// Keep facet-body non-scrolling so the resize handle stays pinned to the facet bottom.
+			$(this.getDomRef()).find(".facet-body").css("overflow", "hidden");
 		}
 	}
 

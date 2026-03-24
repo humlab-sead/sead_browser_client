@@ -428,7 +428,8 @@ class MultiStageFacet extends Facet {
 		var scrollPos = this.getScrollPos();
 
 		if(this.viewportItemCapacity == 0) {
-			this.viewportItemCapacity = Math.floor($(".list-container", this.domObj).height() / this.rowHeight);
+			const multiStageHeight = $(".multistage-container", this.domObj).height();
+			this.viewportItemCapacity = Math.max(1, Math.floor(multiStageHeight / this.rowHeight));
 		}
 		
 		var viewPortHeight = this.viewportItemCapacity * this.rowHeight;
@@ -684,7 +685,7 @@ class MultiStageFacet extends Facet {
 		//this.renderData(this.visibleData);
 		this.updateRenderData();
 		
-		$(this.domObj).find(".facet-body").scrollTop(this.scrollPosition);
+		$(this.domObj).find(".multistage-container").scrollTop(this.scrollPosition);
 
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
 		this.sqs.facetManager.updateSlotSize(slotId);
