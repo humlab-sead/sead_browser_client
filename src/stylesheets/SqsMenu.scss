@@ -596,6 +596,25 @@ li.l1-container:hover {
   margin-right: .5em;
 }
 
+.sqs-menu-container .first-level-item-title,
+.sqs-menu-container .second-level-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+.sqs-menu-container .second-level-item > div {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+.sqs-menu-container .first-level-item-title .fa,
+.sqs-menu-container .second-level-item .fa {
+  width: 1.28571429em;
+  text-align: center;
+}
+
 .second-level-item {
   position: relative;
   background: #eee;
