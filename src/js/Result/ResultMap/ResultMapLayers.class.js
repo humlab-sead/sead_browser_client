@@ -556,101 +556,129 @@ export default class ResultMapLayers {
         return layers;
     }
 
-    async initAuxLayers() {
+    getAuxLayerSources() {
+        const raaAttributions = [
+            '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
+        ];
+
+        return [
+            {
+                key: "sgu",
+                layerUrl: "https://maps3.sgu.se/geoserver/wms",
+                groupName: "SGU",
+                options: {
+                    filterLayers: (layer) => this.sguKeepList.includes(layer.abstract),
+                    tiled: false, // SGU works better without tiling
+                    attributions: [
+                        '© <a href="https://www.sgu.se/" target="_blank">Sveriges geologiska undersökning (SGU)</a>',
+                        '© <a href="https://www.lantmateriet.se/" target="_blank">Lantmäteriet</a>'
+                    ]
+                }
+            },
+            {
+                key: "msb-flooding",
+                layerUrl: "https://gisapp.msb.se/arcgis/services/Oversvamningskarteringar/karteringar/MapServer/WmsServer",
+                groupName: "MSB flooding",
+                options: {
+                    attributions: [
+                        '© <a href="https://www.msb.se/" target="_blank">MSB</a>'
+                    ]
+                }
+            },
+            {
+                key: "raa-uppdrag",
+                layerUrl: "https://pub.raa.se/visning/uppdrag_v1/wms",
+                groupName: "RAÄ",
+                options: { attributions: raaAttributions }
+            },
+            {
+                key: "raa-bebyggelse",
+                layerUrl: "https://pub.raa.se/visning/bebyggelse_kulturhistoriskt_inventerad_v1/wms",
+                groupName: "RAÄ",
+                options: { attributions: raaAttributions }
+            },
+            {
+                key: "raa-byggnadsminnen-skydd",
+                layerUrl: "https://pub.raa.se/visning/enskilda_och_statliga_byggnadsminnen_skyddsomraden_v1/wms",
+                groupName: "RAÄ",
+                options: { attributions: raaAttributions }
+            },
+            {
+                key: "raa-byggnader-och-kyrkor",
+                layerUrl: "https://inspire-raa.metria.se/geoserver/Byggnader/ows",
+                groupName: "RAÄ",
+                options: { attributions: raaAttributions }
+            },
+            {
+                key: "raa-byggnaderuiner",
+                layerUrl: "https://inspire-raa.metria.se/geoserver/ByggnaderRuiner/ows",
+                groupName: "RAÄ",
+                options: { attributions: raaAttributions }
+            },
+            {
+                key: "raa-kulturarv",
+                layerUrl: "https://inspire-raa.metria.se/geoserver/Kulturarv/ows",
+                groupName: "RAÄ",
+                options: { attributions: raaAttributions }
+            },
+            {
+                key: "raa-fornlamningar",
+                layerUrl: "https://inspire-raa.metria.se/geoserver/Fornlamningar/ows",
+                groupName: "RAÄ",
+                options: { attributions: raaAttributions }
+            },
+            {
+                key: "raa-varldsarv",
+                layerUrl: "https://inspire-raa.metria.se/geoserver/Varldsarv/ows",
+                groupName: "RAÄ",
+                options: { attributions: raaAttributions }
+            },
+            {
+                key: "raa-lamningar",
+                layerUrl: "https://pub.raa.se/visning/lamningar_v1/wms",
+                groupName: "RAÄ",
+                options: { attributions: raaAttributions }
+            }
+        ];
+    }
+
+    getAuxLayerGroupOrder() {
+        const order = [];
+        this.getAuxLayerSources().forEach((source) => {
+            if(!order.includes(source.groupName)) {
+                order.push(source.groupName);
+            }
+        });
+        return order;
+    }
+
+    async initAuxLayers({ onProgress } = {}) {
         this.unavailableGroups = [];
         let layers = [];
 
-        let sguUrl = "https://maps3.sgu.se/geoserver/wms";
-        let SGULayers = await this.loadWmsLayers(
-            sguUrl,
-            "SGU",
-            {
-                filterLayers: (layer) => this.sguKeepList.includes(layer.abstract),
-                tiled: false, // SGU works better without tiling
-                attributions: [
-                    '© <a href="https://www.sgu.se/" target="_blank">Sveriges geologiska undersökning (SGU)</a>',
-                    '© <a href="https://www.lantmateriet.se/" target="_blank">Lantmäteriet</a>'
-                ]
+        const auxLayerSources = this.getAuxLayerSources();
+        const totalSources = auxLayerSources.length;
+        let loadedSources = 0;
+
+        const sourcePromises = auxLayerSources.map(async (source, index) => {
+            const sourceLayers = await this.loadWmsLayers(source.layerUrl, source.groupName, source.options || {});
+            loadedSources += 1;
+            layers.push(...sourceLayers);
+
+            if(typeof onProgress === 'function') {
+                onProgress({
+                    sourceKey: source.key,
+                    groupName: source.groupName,
+                    sourceIndex: index,
+                    loadedSources,
+                    totalSources,
+                    layers: sourceLayers,
+                    unavailableGroups: [...this.unavailableGroups]
+                });
             }
-        );
-        layers.push(...SGULayers);
-
-        // Load MSB flooding layers
-        let MSBUrl = "https://gisapp.msb.se/arcgis/services/Oversvamningskarteringar/karteringar/MapServer/WmsServer";
-        let MSBLayers = await this.loadWmsLayers(
-            MSBUrl,
-            "MSB flooding",
-            {
-                attributions: [
-                    '© <a href="https://www.msb.se/" target="_blank">MSB</a>'
-                ]
-            }
-        );
-        layers.push(...MSBLayers);
-
-        let url = "https://pub.raa.se/visning/uppdrag_v1/wms";
-        let uppdragLayers = await this.loadWmsLayers(url, "RAÄ", {
-            attributions: [
-                '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-            ]
         });
-        layers.push(...uppdragLayers);
-        
-        let RAABebyggelseLayers = await this.loadWmsLayers("https://pub.raa.se/visning/bebyggelse_kulturhistoriskt_inventerad_v1/wms", "RAÄ", {
-            attributions: [
-                '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-            ]
-        });
-        layers.push(...RAABebyggelseLayers);
 
-        let RAAByggnadsminnenSkyddsomradenLayers = await this.loadWmsLayers("https://pub.raa.se/visning/enskilda_och_statliga_byggnadsminnen_skyddsomraden_v1/wms", "RAÄ", {
-            attributions: [
-                '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-            ]
-        });
-        layers.push(...RAAByggnadsminnenSkyddsomradenLayers);
-
-        let RAABuildingsAndChurchesLayers = await this.loadWmsLayers("https://inspire-raa.metria.se/geoserver/Byggnader/ows", "RAÄ", {
-            attributions: [
-                '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-            ]
-        });
-        layers.push(...RAABuildingsAndChurchesLayers);
-
-        let RAABuildingsRuinsLayers = await this.loadWmsLayers("https://inspire-raa.metria.se/geoserver/ByggnaderRuiner/ows", "RAÄ", {
-            attributions: [
-                '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-            ]
-        });
-        layers.push(...RAABuildingsRuinsLayers);
-
-        let RAAKulturarvLayers = await this.loadWmsLayers("https://inspire-raa.metria.se/geoserver/Kulturarv/ows", "RAÄ", {
-            attributions: [
-                '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-            ]
-        });
-        layers.push(...RAAKulturarvLayers);
-
-        let RAAFornlamningarLayers = await this.loadWmsLayers("https://inspire-raa.metria.se/geoserver/Fornlamningar/ows", "RAÄ", {
-            attributions: [
-                '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-            ]
-        });
-        layers.push(...RAAFornlamningarLayers);
-
-        let RAAVarldsarvLayers = await this.loadWmsLayers("https://inspire-raa.metria.se/geoserver/Varldsarv/ows", "RAÄ", {
-            attributions: [
-                '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-            ]
-        });
-        layers.push(...RAAVarldsarvLayers);
-
-        let RAALamningarLayers = await this.loadWmsLayers("https://pub.raa.se/visning/lamningar_v1/wms", "RAÄ", {
-            attributions: [
-                '© <a href="https://www.raa.se/" target="_blank">Riksantikvarieämbetet (RAÄ)</a>'
-            ]
-        });
-        layers.push(...RAALamningarLayers);
+        await Promise.all(sourcePromises);
 
         /*
         var arcticDemLayer = new ImageLayer({
@@ -681,7 +709,7 @@ export default class ResultMapLayers {
         });
         */
 
-        return { layers, unavailableGroups: this.unavailableGroups };
+        return { layers, unavailableGroups: this.unavailableGroups, totalSources };
     }
 
 

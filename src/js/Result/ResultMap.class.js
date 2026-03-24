@@ -45,6 +45,12 @@ class ResultMap extends ResultModule {
 		this.minimalMap = minimalMap;
 		this.auxLayersInitialized = false;
 		this.unavailableGroups = [];
+		this.auxLayersLoadingPromise = null;
+		this.auxLayersLoadProgress = {
+			loaded: 0,
+			total: 0,
+			loading: false
+		};
 		this.resultMapLayers = new ResultMapLayers(this.sqs);
 
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
@@ -1014,10 +1020,50 @@ class ResultMap extends ResultModule {
 		$("#result-map-sub-layer-selection-panel").remove();
 	}
 
+	addAuxLayersToMap(layers = []) {
+		if(!layers || layers.length === 0) {
+			return;
+		}
+
+		let addedToMap = false;
+
+		layers.forEach((layer) => {
+			const layerId = layer.getProperties().layerId;
+			if(!this.layers.some(existingLayer => existingLayer.getProperties().layerId == layerId)) {
+				this.layers.push(layer);
+			}
+
+			if(!this.olMap) {
+				console.warn("olMap not initialized yet, cannot add layers");
+				return;
+			}
+
+			let layerExistsInMap = false;
+			this.olMap.getLayers().forEach((existingLayer) => {
+				if(existingLayer.getProperties().layerId == layerId) {
+					layerExistsInMap = true;
+				}
+			});
+
+			if(!layerExistsInMap) {
+				const layerProps = layer.getProperties();
+				if(layerProps.type === "auxLayer") {
+					layer.setVisible(false);
+				}
+				this.olMap.addLayer(layer);
+				addedToMap = true;
+			}
+		});
+
+		if(addedToMap) {
+			this.updateAllLayerZIndexes();
+		}
+	}
+
 	/*
 	* Function: openAuxLayersPanel
-	* Opens the overlay layers panel. If metadata has not yet been loaded, shows a loading
-	* indicator in the panel while fetching, then renders the layers once ready.
+	* Opens the overlay layers panel. If metadata has not yet been loaded, render and update
+	* incrementally while source metadata is fetched.
 	*/
 	openAuxLayersPanel() {
 		if(this.auxLayersInitialized) {
@@ -1025,70 +1071,60 @@ class ResultMap extends ResultModule {
 			return;
 		}
 
-		// Show panel immediately with a loading indicator
-		this.unrenderAuxLayersPanel();
-		$(this.renderMapIntoNode).append("<div id='result-map-sub-layer-selection-panel'></div>");
-		$("#result-map-sub-layer-selection-panel").css({ "width": "25em", "min-width": "25em" });
+		if(this.auxLayersLoadingPromise) {
+			this.renderAuxLayersPanel(this.unavailableGroups, this.auxLayersLoadProgress);
+			return;
+		}
 
-		const titleHtml = `
-			<div class="sub-layer-header">
-				<h3 class='aux-layer-title'>Overlay Layers</h3>
-				<div class="sub-layer-header-buttons">
-					<div id="close-sublayer-panel" class="header-btn" title="Close panel">
-						<i class="fa fa-times" aria-hidden="true"></i>
-					</div>
-				</div>
-			</div>
-		`;
-		$("#result-map-sub-layer-selection-panel").append(titleHtml);
-		$("#result-map-sub-layer-selection-panel").append(
-			`<div id='sub-layer-content'>
-				<div class='aux-layer-loading'>
-					<i class='fa fa-spinner fa-spin'></i> Loading overlay layers&hellip;
-				</div>
-			</div>`
-		);
+		const totalSources = this.resultMapLayers.getAuxLayerSources().length;
+		this.auxLayersLoadProgress = {
+			loaded: 0,
+			total: totalSources,
+			loading: true
+		};
 
-		$("#close-sublayer-panel").on("click", (evt) => {
-			evt.stopPropagation();
-			this.unrenderAuxLayersPanel();
-		});
+		this.renderAuxLayersPanel(this.unavailableGroups, this.auxLayersLoadProgress);
 
-		// Fetch layer metadata, add layers to map, then render full panel
-		this.resultMapLayers.initAuxLayers().then(({ layers, unavailableGroups }) => {
+		this.auxLayersLoadingPromise = this.resultMapLayers.initAuxLayers({
+			onProgress: ({ layers, unavailableGroups, loadedSources, totalSources: progressTotalSources }) => {
+				this.unavailableGroups = unavailableGroups;
+				this.auxLayersLoadProgress = {
+					loaded: loadedSources,
+					total: progressTotalSources,
+					loading: loadedSources < progressTotalSources
+				};
+
+				this.addAuxLayersToMap(layers);
+
+				if($("#result-map-sub-layer-selection-panel").length > 0) {
+					this.renderAuxLayersPanel(this.unavailableGroups, this.auxLayersLoadProgress);
+				}
+			}
+		}).then(({ layers, unavailableGroups, totalSources: doneTotalSources }) => {
 			this.unavailableGroups = unavailableGroups;
-			this.layers = this.layers.concat(layers);
-			this.layers.forEach((layer) => {
-				let layerExists = false;
-
-				if(!this.olMap) {
-					console.warn("olMap not initialized yet, cannot add layers");
-					return;
-				}
-
-				this.olMap.getLayers().forEach((existingLayer) => {
-					if(existingLayer.getProperties().layerId == layer.getProperties().layerId) {
-						layerExists = true;
-					}
-				});
-
-				if(!layerExists) {
-					const layerProps = layer.getProperties();
-					if(layerProps.type === "auxLayer") {
-						layer.setVisible(false);
-					}
-					this.olMap.addLayer(layer);
-					this.updateAllLayerZIndexes();
-				}
-			});
-
+			this.addAuxLayersToMap(layers);
 			this.auxLayersInitialized = true;
-			// Replace loading indicator with fully rendered panel
-			this.renderAuxLayersPanel(this.unavailableGroups);
+			this.auxLayersLoadProgress = {
+				loaded: doneTotalSources,
+				total: doneTotalSources,
+				loading: false
+			};
+
+			if($("#result-map-sub-layer-selection-panel").length > 0) {
+				this.renderAuxLayersPanel(this.unavailableGroups);
+			}
+		}).catch((error) => {
+			console.error("Failed to initialize overlay layers:", error);
+			this.auxLayersLoadProgress = {
+				...this.auxLayersLoadProgress,
+				loading: false
+			};
+		}).finally(() => {
+			this.auxLayersLoadingPromise = null;
 		});
 	}
 
-	renderAuxLayersPanel(unavailableGroups = []) {
+	renderAuxLayersPanel(unavailableGroups = [], loadingState = null) {
 		// Remove any existing panel
 		this.unrenderAuxLayersPanel();
 
@@ -1187,8 +1223,15 @@ class ResultMap extends ResultModule {
 
 		// Group layers by provider
 		const groupedLayers = this.groupAuxLayersByProvider();
+		const isLoading = loadingState && loadingState.loading;
 		
 		let content = "<div class='result-map-sub-layer-selection'>";
+
+		if(isLoading) {
+			const loaded = Number.isInteger(loadingState.loaded) ? loadingState.loaded : 0;
+			const total = Number.isInteger(loadingState.total) ? loadingState.total : 0;
+			content += `<div class='aux-layer-loading'>Loading overlay layers (${loaded}/${total}) <i class='fa fa-spinner fa-spin' aria-hidden='true'></i></div>`;
+		}
 
 		// Render notices for unavailable groups (e.g. 429 rate-limited providers)
 		if(unavailableGroups && unavailableGroups.length > 0) {
@@ -1208,8 +1251,9 @@ class ResultMap extends ResultModule {
 		// Add each provider group
 		for (const [provider, layers] of Object.entries(groupedLayers)) {
 			if (layers.length > 0) {
+				   const providerTitleAnchorId = this.getAuxLayerProviderTitleAnchorId(provider);
 				   content += `<div class="sub-layer-list-toggle" data-provider="${provider}">
-					   <h5 style="display:inline;">${provider}</h5>
+					   <h5 id="${providerTitleAnchorId}" style="display:inline;">${provider}</h5>
 					   <span class="toggle-icon" aria-label="Toggle sub-layers">&#xf078;</span>
 				   </div>`;
 				   content += `<ul class='sub-layer-list'>`;
@@ -1240,6 +1284,14 @@ class ResultMap extends ResultModule {
 		content += "</div>";
 		
 		   $("#sub-layer-content").append(content);
+
+		   Object.keys(groupedLayers).forEach((provider) => {
+			   if(groupedLayers[provider].length === 0) {
+				   return;
+			   }
+			   const providerTitleAnchorId = this.getAuxLayerProviderTitleAnchorId(provider);
+			   this.sqs.tooltipManager.registerTooltip(`#${providerTitleAnchorId}`, this.getAuxLayerProviderTooltip(provider), { drawSymbol: true });
+		   });
 
 		   // Collapse/expand logic for sub-layer lists
 		   $(".sub-layer-list-toggle").each(function(idx, el) {
@@ -1289,6 +1341,28 @@ class ResultMap extends ResultModule {
 		return selectedLayers;
 	}
 
+	getAuxLayerProviderTitleAnchorId(providerName) {
+		const normalizedProviderName = (providerName || "provider")
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-+|-+$/g, "");
+
+		return `aux-layer-provider-title-${normalizedProviderName || "unknown"}`;
+	}
+
+	getAuxLayerProviderTooltip(providerName) {
+		const providerTooltips = {
+			"SGU": "Sveriges geologiska undersökning (SGU) - Geological Survey of Sweden.",
+			"RAÄ": "Riksantikvarieämbetet (RAÄ) - Swedish National Heritage Board.",
+			"MSB flooding": "Myndigheten för samhällsskydd och beredskap (MSB) - Swedish Civil Contingencies Agency flood layers."
+		};
+
+		if(providerTooltips[providerName]) {
+			return providerTooltips[providerName];
+		}
+		return `${providerName} overlay data provider.`;
+	}
+
 	groupAuxLayersByProvider() {
 		// Create a regular object instead of a Map
 		const groups = {};
@@ -1312,18 +1386,22 @@ class ResultMap extends ResultModule {
 			groups[groupName].push(layer);
 		});
 		
+		const sortedGroupNames = Object.keys(groups).sort((a, b) => {
+			return a.localeCompare(b, 'sv');
+		});
+
 		// Filter out empty groups and sort layers alphabetically within each group
 		const result = {};
-		for (const [key, value] of Object.entries(groups)) {
-			if (value.length > 0) {
-				// Sort layers within the group alphabetically by title
-				result[key] = value.sort((a, b) => {
+		sortedGroupNames.forEach((groupName) => {
+			const groupLayers = groups[groupName];
+			if(groupLayers.length > 0) {
+				result[groupName] = groupLayers.sort((a, b) => {
 					const titleA = a.getProperties().title || '';
 					const titleB = b.getProperties().title || '';
-					return titleA.localeCompare(titleB);
+					return titleA.localeCompare(titleB, 'sv');
 				});
 			}
-		}
+		});
 		
 		return result;
 	}
