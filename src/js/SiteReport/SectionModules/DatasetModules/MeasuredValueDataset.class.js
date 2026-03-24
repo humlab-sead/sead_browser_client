@@ -6,7 +6,7 @@ import DatasetModule from "./DatasetModule.class";
 class MeasuredValueDataset extends DatasetModule {
 	constructor(analysis) {
 		super(analysis);
-		this.methodIds = [37, 74, 106];
+		this.methodIds = [37, 74, 106, 94];
 		this.sqs = analysis.sqs;
 	}
 
