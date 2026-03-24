@@ -75,13 +75,13 @@ class DatasetModule {
 			methodDatasetsSelectedByGroup = site.unclaimedDatasets.filter(dataset => {
 				return this.methodGroupIds.includes(dataset.method_group_id);
 			});
-			console.log(this.constructor.name+" claimed datasets (by group):", methodDatasets);
+			//console.log(this.constructor.name+" claimed datasets (by group):", methodDatasets);
 		}
 		if(typeof this.methodIds != "undefined") {
 			methodDatasetsSelectedById = site.unclaimedDatasets.filter(dataset => {
 				return this.methodIds.includes(dataset.method_id);
 			});
-			console.log(this.constructor.name+" claimed datasets (by id):", methodDatasets);
+			//console.log(this.constructor.name+" claimed datasets (by id):", methodDatasets);
 		}
 
 		methodDatasets = methodDatasetsSelectedByGroup.concat(methodDatasetsSelectedById);
