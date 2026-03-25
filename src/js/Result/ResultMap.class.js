@@ -1642,7 +1642,7 @@ class ResultMap extends ResultModule {
 
 	// Add this method to initialize all data layers at map creation time
 	initializeDataLayers() {
-		console.log("Initializing data layers...");
+		//console.log("Initializing data layers...");
 		this.layers.push(this.initClusteredPointsLayer());
 		this.layers.push(this.initPointsLayer());
 		this.layers.push(this.initHeatmapLayer());
@@ -1650,7 +1650,7 @@ class ResultMap extends ResultModule {
 
 	// Initialize the clustered points layer with empty source
 	initClusteredPointsLayer() {
-		console.log("Initializing clustered points layer");
+		//console.log("Initializing clustered points layer");
 
 		let layerConfig = new VectorLayer();
 		layerConfig.setProperties({
@@ -1695,7 +1695,7 @@ class ResultMap extends ResultModule {
 
 	// Initialize the points layer with empty source
 	initPointsLayer() {
-		console.log("Initializing points layer");
+		//console.log("Initializing points layer");
 
 		const layerConfig = new VectorLayer();
 		layerConfig.setProperties({
@@ -1729,7 +1729,7 @@ class ResultMap extends ResultModule {
 
 	// Initialize the heatmap layer with empty source
 	initHeatmapLayer() {
-		console.log("Initializing heatmap layer");
+		//console.log("Initializing heatmap layer");
 
 		const layerConfig = new HeatmapLayer({
 			opacity: 0.5

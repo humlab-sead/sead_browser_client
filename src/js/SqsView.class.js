@@ -41,7 +41,7 @@ class SqsView {
 
         $(this.anchor).css("display", "none"); //This should be "flex" when view is activated
 		
-		console.log("Init of new View", this.anchor);
+		//console.log("Init of new View", this.anchor);
 
 		//this.mobileBreakpointMediaQuery = "screen and (max-width:"+Config.screenMobileWidthBreakPoint+"px)";
 
@@ -200,7 +200,7 @@ class SqsView {
     * Function: setSectionSizes
     */
 	setSectionSizes(leftSize, rightSize, animate = true) {
-		console.log("Set section sizes:", leftSize, rightSize);
+		//console.log("Set section sizes:", leftSize, rightSize);
 		this.leftLastSize = leftSize;
 		this.rightLastSize = rightSize;
 

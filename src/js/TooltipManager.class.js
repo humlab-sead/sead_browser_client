@@ -264,8 +264,8 @@ class TooltipManager {
 		}
 		tooltip.rendered = false;
 		if(typeof(tooltip.popper) == "undefined") { //This should never happen, but it does...
-			console.log("Tooltip popper was undefined!");
-			console.log(tooltip);
+			//console.log("Tooltip popper was undefined!");
+			//console.log(tooltip);
 		}
 		else {
 			tooltip.popper.destroy();
