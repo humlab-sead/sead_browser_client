@@ -66,6 +66,14 @@ class DialogManager {
 			this.showPopOver("Data in SEAD", content, { width: "600px" });
 		});
 		
+		$("#quickstart-feedback").on("click", () => {
+			const content = `
+				<p>Hi! I am Johan von Boer, the frontend developer of the SEAD browser, and I want to hear your feedback. If you have any suggestions, encounter any issues, or just want to share your thoughts, please email me!</p>
+				<p>You can reach me at <a href="mailto:johan.von.boer@umu.se">johan.von.boer@umu.se</a>.</p>
+			`;
+			this.showPopOver("Feedback", content, { width: "600px" });
+		});
+
 		this.sqs.sqsEventListen("seadStateLoadComplete", () => {
 			if(Config.viewstateLoadingScreenEnabled) {
 				this.removeCover();

@@ -9,6 +9,7 @@
   "scripts": {
     "prepare-config": "node prepare-config.js",
     "build": "cross-env MODE=dev node prepare-config.js && webpack --progress --mode production --devtool source-map",
+    "test-build": "cross-env MODE=dev node prepare-config.js && webpack --progress --mode development --no-devtool",
     "dev": "cross-env MODE=dev node prepare-config.js && webpack serve --progress --mode development --allowed-hosts all --devtool source-map",
     "watch": "cross-env MODE=dev node prepare-config.js && webpack --watch --progress --mode development --devtool source-map",
     "build:dev": "cross-env MODE=dev node prepare-config.js && webpack --mode=production --progress",
