@@ -17,21 +17,79 @@
   <meta charset="utf-8">
   <META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
   <META HTTP-EQUIV="PRAGMA" CONTENT="NO-CACHE">
-  <title>SEAD</title>
+  <title>SEAD Browser</title>
   <!--<base href="<%= baseUrl %>" />-->
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="SEAD is a national research infrastructure for Swedish archaeological science and an international database for environmental archaeology and Quaternary science data." />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <link rel="canonical" href="<%= baseUrl %>/" />
 
   <meta property="og:title" content="SEAD Browser" />
   <meta property="og:site_name" content="SEAD Browser">
+  <meta property="og:type" content="website" />
   <meta property="og:description"
     content="SEAD is a national research infrastructure for Swedish archaeological science and an international database for environmental archaeology and Quaternary science data." />
-  <meta property="og:image" content="<%= baseUrl %>/assets/SEAD-logo-square.png" />
+  <meta property="og:image" content="<%= baseUrl %>/SEAD-logo-square.png" />
+  <meta property="og:image:alt" content="SEAD Browser logo" />
   <meta property="og:url" content="<%= baseUrl %>/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="SEAD Browser" />
+  <meta name="twitter:description"
+    content="SEAD is a national research infrastructure for Swedish archaeological science and an international database for environmental archaeology and Quaternary science data." />
+  <meta name="twitter:image" content="<%= baseUrl %>/SEAD-logo-square.png" />
+  <meta name="twitter:image:alt" content="SEAD Browser logo" />
+  <meta name="twitter:url" content="<%= baseUrl %>/" />
+
+  <script id="seo-schema-organization" type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "SEAD",
+      "url": "<%= baseUrl %>/",
+      "email": "<%= typeof supportEmail != 'undefined' ? supportEmail : 'support@humlab.umu.se' %>"
+    }
+  </script>
+  <script id="seo-schema-website" type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "SEAD Browser",
+      "url": "<%= baseUrl %>/"
+    }
+  </script>
+  <script id="seo-schema-catalog" type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "DataCatalog",
+      "name": "SEAD Browser",
+      "url": "<%= baseUrl %>/",
+      "provider": {
+        "@type": "Organization",
+        "name": "SEAD",
+        "url": "<%= baseUrl %>/"
+      }
+    }
+  </script>
+  <script id="seo-schema-page" type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "SEAD Browser",
+      "description": "SEAD is a national research infrastructure for Swedish archaeological science and an international database for environmental archaeology and Quaternary science data.",
+      "url": "<%= baseUrl %>/",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "SEAD Browser",
+        "url": "<%= baseUrl %>/"
+      }
+    }
+  </script>
 
   <link rel="preload" as="image" href="/logo-loading-indicator.webp">
 
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <!--<link rel="manifest" href="site.webmanifest">-->
+  <link rel="manifest" href="/site.webmanifest">
   <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
   <link rel="shortcut icon" href="/favicon.ico">
   <meta name="apple-mobile-web-app-title" content="SEAD">
@@ -226,7 +284,7 @@
           <i class="fa fa-arrow-circle-o-left" aria-hidden="true"></i>
         </div>
         <div id="header-space">
-          <img id="sead-logo" src="/SEAD-logo-with-subtext.png">
+          <img id="sead-logo" src="/SEAD-logo-with-subtext.png" alt="SEAD logo">
         </div>
         <div id="whatisthis-menu">
         </div>
@@ -446,7 +504,7 @@
 
     <template id="logo-loading-indicator">
       <div class="logo-loading-indicator overlay-msg-box">
-        <img width="40%" height="auto" src="/logo-loading-indicator.webp" />
+        <img width="40%" height="auto" src="/logo-loading-indicator.webp" alt="Loading indicator" />
       </div>
     </template>
 
@@ -864,7 +922,7 @@
         <div class="logged-in-text-line"></div>
 
         <div class="google-user-display">
-          <img class="google-user-profile-image" />
+          <img class="google-user-profile-image" alt="Google user profile image" />
           <div class="google-user-profile-information">
             <div>
               <div class="google-user-profile-name"></div>
@@ -973,16 +1031,16 @@
         </p>
 
         <div id="logo-section">
-          <a href="https://www.su.se/" target="_blank"><img class="about-section-logo" src="/su_logo.jpg" /></a><br />
+          <a href="https://www.su.se/" target="_blank"><img class="about-section-logo" src="/su_logo.jpg" alt="Stockholm University logo" /></a><br />
           <a href="https://www.riksbank.se/" target="_blank"><img class="about-section-logo"
-              src="/riksbanken-logo.png" /></a><br />
+              src="/riksbanken-logo.png" alt="Riksbankens Jubileumsfond logo" /></a><br />
           <!--<a href="https://www.sead.se/" target="_blank"><img class="about-section-logo" src="assets/SEAD-logo-small.png" /></a>-->
           <a href="http://www.humlab.umu.se/" target="_blank"><img class="about-section-logo"
-              src="/umu-logo-en.png" /></a><br />
+              src="/umu-logo-en.png" alt="Umea University logo" /></a><br />
           <!--<a href="https://www.vr.se/inenglish.html" target="_blank"><img class="about-section-logo" src="assets/vr-logo.png" /></a><br />-->
           <a href="http://www.idesam.umu.se/english/mal/?languageId=1" target="_blank"><img class="about-section-logo"
-              src="/mal-logo.png" /></a><br />
-          <a href="http://www.lu.se/" target="_blank"><img class="about-section-logo" src="/lu-logo.png" /></a>
+              src="/mal-logo.png" alt="MAL logo" /></a><br />
+          <a href="http://www.lu.se/" target="_blank"><img class="about-section-logo" src="/lu-logo.png" alt="Lund University logo" /></a>
         </div>
       </div>
 

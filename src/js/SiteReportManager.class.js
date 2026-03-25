@@ -35,7 +35,6 @@ class SiteReportManager {
 		this.sqs.sqsEventListen("siteReportClosed", () => {
 			console.log("siteReportClosed");
 			this.siteReport.destroy();
-			history.pushState({}, "", "/");
 		});
 	}
 
@@ -76,6 +75,10 @@ class SiteReportManager {
 			var stateObj = {};
 			history.pushState(stateObj, "", "/site/"+siteId);
 		}
+
+		if(this.sqs.seoManager) {
+			this.sqs.seoManager.setSiteMeta(siteId);
+		}
 		
 		//This XHR is just for checking if the site with this ID actually exist
 		var xhr1 = this.sqs.pushXhr(null, "checkIfSiteExists");
@@ -85,8 +88,16 @@ class SiteReportManager {
 			success: (data, textStatus, xhr) => {
 				if(data.length == 0) {
 					this.sqs.dialogManager.showPopOver("Not found", "The requested site ("+siteId+") does not exist.")
+					if(this.sqs.seoManager) {
+						this.sqs.seoManager.setNotFoundMeta("/site/"+siteId);
+					}
 				}
 				else {
+					let siteName = data[0].site_name || data[0].name || data[0].site || null;
+					if(this.sqs.seoManager) {
+						this.sqs.seoManager.setSiteMeta(siteId, siteName);
+					}
+
 					//Yay - it exists, so go ahead and render, if system is ready...
 					if(this.sqs.systemReady) {
 						this.sqs.setActiveView("siteReport");

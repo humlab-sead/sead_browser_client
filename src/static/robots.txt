@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /viewstate/
+
+Sitemap: __SERVER_ROOT__/sitemap.xml

@@ -24,6 +24,7 @@ import Router from './Router.class.js';
 import Tutorial from './Tutorials/Tutorial.class.js';
 import SearchManager from './SearchManager.class.js';
 import AIAssistant from './AIAssistant.class.js';
+import SeoManager from './SeoManager.class.js';
 import { nanoid } from 'nanoid';
 import ApiWsChannel from './ApiWsChannel.class.js';
 
@@ -443,6 +444,7 @@ class SeadQuerySystem {
 		this.notificationManager = new NotificationManager(this);
 		this.menuManager = new SqsMenuManager(this);
 		this.dialogManager = new DialogManager(this);
+		this.seoManager = new SeoManager(this);
 	  	this.tooltipManager = new TooltipManager(this);
 		this.exportManager = new ExportManager(this);
 		this.facetManager = new FacetManager(this, this.filterDefinitions);
@@ -545,6 +547,9 @@ class SeadQuerySystem {
 		}
 		
 		this.router = new Router(this);
+		window.addEventListener("popstate", () => {
+			this.router.route();
+		});
 
 	  	this.modules.push(this.stateManager);
 		this.modules.push(this.layoutManager);
@@ -552,6 +557,7 @@ class SeadQuerySystem {
 		this.modules.push(this.resultManager);
 		this.modules.push(this.menuManager);
 		this.modules.push(this.dialogManager);
+		this.modules.push(this.seoManager);
 		this.modules.push(this.siteReportManager);
 		this.modules.push(this.searchManager);
 		this.modules.push(this.router);
@@ -1288,6 +1294,11 @@ class SeadQuerySystem {
 		return input;
 	}
 
+	buildTaxonLink(taxonId, content) {
+		let linkId = "taxon-link-"+taxonId;
+		return "<a id='"+linkId+"' class='taxon-link' data-taxon-id='"+taxonId+"' href='/taxon/"+taxonId+"' onclick='window.sqs.taxaModule.renderTaxon("+taxonId+"); return false;'>"+content+"</a>";
+	}
+
 	/**
 	 * formatTaxon
 	 * 
@@ -1341,8 +1352,7 @@ class SeadQuerySystem {
 		}
 
 		if(asLink) {
-			let linkId = "taxon-link-"+taxon.taxon_id;
-			tf = "<span id='"+linkId+"' class='taxon-link' onclick='window.sqs.taxaModule.renderTaxon("+taxon.taxon_id+")'>"+tf+"</span>";
+			tf = this.buildTaxonLink(taxon.taxon_id, tf);
 		}
 
 		return tf;
@@ -1368,8 +1378,7 @@ class SeadQuerySystem {
 			tf += familyName;
 		}
 		if (asLink) {
-			let linkId = "taxon-link-" + taxon.taxon_id;
-			tf = "<span id='" + linkId + "' class='taxon-link' onclick='window.sqs.taxaModule.renderTaxon(" + taxon.taxon_id + ")'>" + tf + "</span>";
+			tf = this.buildTaxonLink(taxon.taxon_id, tf);
 		}
 		return tf;
 	}
@@ -1391,8 +1400,7 @@ class SeadQuerySystem {
 		tf += genusName;
 		if(html) { tf += "</span>"; }
 		if(asLink) {
-			let linkId = "taxon-link-"+taxon.taxon_id;
-			tf = "<span id='"+linkId+"' class='taxon-link' onclick='window.sqs.taxaModule.renderTaxon("+taxon.taxon_id+")'>"+tf+"</span>";
+			tf = this.buildTaxonLink(taxon.taxon_id, tf);
 		}
 		return tf;
 	}
@@ -1414,8 +1422,7 @@ class SeadQuerySystem {
 		tf += species;
 		if(html) { tf += "</span>"; }
 		if(asLink) {
-			let linkId = "taxon-link-"+taxon.taxon_id;
-			tf = "<span id='"+linkId+"' class='taxon-link' onclick='window.sqs.taxaModule.renderTaxon("+taxon.taxon_id+")'>"+tf+"</span>";
+			tf = this.buildTaxonLink(taxon.taxon_id, tf);
 		}
 		return tf;
 	}

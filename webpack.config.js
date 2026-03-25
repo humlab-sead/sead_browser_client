@@ -14,6 +14,15 @@ const cesiumWorkers = path.join(cesiumSource, '../Build/Cesium/Workers');
 const isProduction = process.env.NODE_ENV === 'production';
 const shouldAnalyze = process.env.ANALYZE === 'true'; // Custom flag for analysis
 
+const seoServerRoot = (seadConfig.serverRoot || '').replace(/\/+$/, '');
+const seoLastmod = new Date().toISOString().slice(0, 10);
+const seoDomainPaths = (seadConfig.domains || [])
+  .filter((domain) => domain && domain.enabled !== false && domain.name && domain.name !== 'general')
+  .map((domain) => domain.name);
+const seoDomainUrlsXml = seoDomainPaths
+  .map((domainPath) => `  <url>\n    <loc>${seoServerRoot}/${domainPath}</loc>\n    <lastmod>${seoLastmod}</lastmod>\n  </url>`)
+  .join('\n');
+
 module.exports = (env, config) => {
   const isProduction = process.env.NODE_ENV === 'production';
 
@@ -63,7 +72,8 @@ module.exports = (env, config) => {
         template: path.resolve(__dirname, './src/index.ejs'),
         filename: 'index.html',
         templateParameters: {
-          baseUrl: JSON.stringify(seadConfig.serverRoot),
+          baseUrl: seadConfig.serverRoot,
+          supportEmail: seadConfig.supportEmail,
         },
       }),
 
@@ -89,6 +99,23 @@ module.exports = (env, config) => {
             from: path.resolve(__dirname, 'src/assets/data'),
             to: 'assets/data',
             globOptions: { nodir: true },
+          },
+          {
+            from: path.resolve(__dirname, 'src/static/robots.txt'),
+            to: 'robots.txt',
+            transform(content) {
+              return content.toString().replace(/__SERVER_ROOT__/g, seoServerRoot);
+            },
+          },
+          {
+            from: path.resolve(__dirname, 'src/static/sitemap.xml'),
+            to: 'sitemap.xml',
+            transform(content) {
+              return content.toString()
+                .replace(/__SERVER_ROOT__/g, seoServerRoot)
+                .replace(/__LASTMOD__/g, seoLastmod)
+                .replace(/__DOMAIN_URLS__/g, seoDomainUrlsXml);
+            },
           },
         ],
       }),

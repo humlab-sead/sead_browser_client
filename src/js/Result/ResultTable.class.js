@@ -432,7 +432,7 @@ class ResultTable extends ResultModule {
 			placeholder:"No data",
 			layout: "fitColumns",
 			initialSort:[
-				{column:"analysis_entities", dir:"desc"},
+				{column:"sitename", dir:"asc"},
 			],
 			selectable: true,
 			columns: tableColumns,

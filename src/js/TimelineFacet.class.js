@@ -395,7 +395,6 @@ class TimelineFacet extends Facet {
 	}
 
 	build() {
-		
 		this.createChart();
 
 		 // Generate random data

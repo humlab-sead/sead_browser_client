@@ -18,7 +18,7 @@ import '../../node_modules/normalize.css/normalize.css';
 import SeadQuerySystem from './SeadQuerySystem.class.js';
 import "../assets/icons/favicon.ico";
 import "../assets/icons/android-chrome-192x192.png";
-//import "../site.webmanifest";
+import "../site.webmanifest";
 import "../../node_modules/jquery-ui-dist/jquery-ui.min.css"
 import "../../node_modules/jquery-ui-dist/jquery-ui.min.js"
 
@@ -64,5 +64,4 @@ function debugSize() {
         }
     });
 }
-
 

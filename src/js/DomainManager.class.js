@@ -63,6 +63,10 @@ class DomainManager {
 
         this.activeDomain = this.getDomain(domainName);
         this.updateMenu();
+
+        if(this.sqs.seoManager) {
+            this.sqs.seoManager.setDomainMeta(this.activeDomain);
+        }
         
         if(updateUrl) {
             let domainPath = "";

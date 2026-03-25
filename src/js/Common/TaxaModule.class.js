@@ -721,6 +721,10 @@ class TaxaModule {
 			this.taxonId = taxonId;
 		}
 
+		if(this.sqs.seoManager) {
+			this.sqs.seoManager.setTaxonMeta(this.taxonId);
+		}
+
 		//this is just for loading
 		this.sqs.dialogManager.showPopOver("Taxon", "<div id='taxa-loading-indicator' class='loading-indicator' style='display: block;'></div>", {
 			width: "100%",
@@ -733,6 +737,11 @@ class TaxaModule {
 		const instance = document.importNode(fragment.content, true);
 
 		let taxonData = await fetch(Config.dataServerAddress+'/taxon/'+this.taxonId).then(response => response.json());
+
+		if(this.sqs.seoManager) {
+			let taxonName = this.sqs.formatTaxon(taxonData, null, false);
+			this.sqs.seoManager.setTaxonMeta(this.taxonId, taxonName);
+		}
 
 		this.renderSpecies(instance, taxonData);
 		//this.renderSpeciesAssociation(instance, taxonData);

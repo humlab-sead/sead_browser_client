@@ -438,6 +438,10 @@ class StateManager {
 			"SEAD",
 			"/viewstate/"+state.id);
 
+		if(this.sqs.seoManager) {
+			this.sqs.seoManager.setViewstateMeta(state.id);
+		}
+
 		this.checkLoadStateCompleteInterval = setInterval(() => {
 			if(this.sqs.resultManager.getRenderStatus() == "complete") {
 				clearInterval(this.checkLoadStateCompleteInterval);
