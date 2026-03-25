@@ -28,6 +28,26 @@ class DialogManager {
 			this.hidePopOver();
 		});
 
+		$(window).on("resize", () => {
+			if($("#popover-dialog").is(":visible")) {
+				this.updatePopOverMobileMode();
+			}
+		});
+
+		this.sqs.sqsEventListen("layoutResize", () => {
+			if($("#popover-dialog").is(":visible")) {
+				this.updatePopOverMobileMode();
+			}
+		});
+
+		this.sqs.sqsEventListen("layoutSwitchMode", () => {
+			setTimeout(() => {
+				if($("#popover-dialog").is(":visible")) {
+					this.updatePopOverMobileMode();
+				}
+			}, 0);
+		});
+
 		$("#quickstart-what-is-sead").on("click", () => {
 			const content = `
 				<p>SEAD — the Strategic Environmental Archaeology Database — is an open-access research infrastructure for 
@@ -94,7 +114,9 @@ class DialogManager {
 		
 	}
 	
-	showPopOver(title, content, options = {}) {
+	configurePopOver(options = {}) {
+		$("#popover-dialog-frame").css("width", "");
+		$("#popover-dialog-frame").css("height", "");
 
 		$("#popover-dialog").css("grid-template-columns", "5% 1fr 5%");
 		$("#popover-dialog").css("grid-template-rows", "5% 1fr 5%");
@@ -109,6 +131,20 @@ class DialogManager {
 			$("#popover-dialog").css("grid-template-columns", options.margin+" 1fr "+options.margin);
 			$("#popover-dialog").css("grid-template-rows", options.margin+" 1fr "+options.margin);
 		}
+
+		this.updatePopOverMobileMode();
+	}
+
+	updatePopOverMobileMode() {
+		let mobileMode = false;
+		if(this.sqs.layoutManager && typeof this.sqs.layoutManager.getMode == "function") {
+			mobileMode = this.sqs.layoutManager.getMode() == "mobileMode";
+		}
+		$("#popover-dialog").toggleClass("popover-mobile-mode", mobileMode);
+	}
+
+	showPopOver(title, content, options = {}) {
+		this.configurePopOver(options);
 
 		if(title == "") {
 			$("#popover-dialog-frame > h1").hide();
@@ -132,19 +168,7 @@ class DialogManager {
 	}
 
 	showPopOverFragment(title, fragment, options = {}) {
-		$("#popover-dialog").css("grid-template-columns", "5% 1fr 5%");
-		$("#popover-dialog").css("grid-template-rows", "5% 1fr 5%");
-
-		if(options.width) {
-			$("#popover-dialog-frame").css("width", options.width);
-		}
-		if(options.height) {
-			$("#popover-dialog-frame").css("height", options.height);
-		}
-		if(options.margin) {
-			$("#popover-dialog").css("grid-template-columns", options.margin+" 1fr "+options.margin);
-			$("#popover-dialog").css("grid-template-rows", options.margin+" 1fr "+options.margin);
-		}
+		this.configurePopOver(options);
 
 		if(title == "") {
 			$("#popover-dialog-frame > h1").hide();
@@ -178,6 +202,7 @@ class DialogManager {
 
 	hidePopOver() {
 		$("#popover-dialog").hide();
+		$("#popover-dialog").removeClass("popover-mobile-mode");
 		$("#popover-dialog-frame").css("width", "");
 		$("#popover-dialog-frame").css("height", "");
 		this.sqs.sqsEventDispatch("popOverClosed", {});

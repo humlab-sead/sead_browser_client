@@ -51,12 +51,18 @@ class sqsLayoutManager {
 		});
 
 		//This makes the drag-bar light up when the section toggle buttons are hovered over
-		document.querySelectorAll('.filter-section-toggle-button').forEach(button => {
+		document.querySelectorAll('#switch-section-button').forEach(button => {
 			button.addEventListener('mouseenter', () => {
-				document.querySelector('.custom-resize-handle').classList.add('hover-highlight');
+				const dragHandle = document.querySelector('.custom-resize-handle');
+				if(dragHandle) {
+					dragHandle.classList.add('hover-highlight');
+				}
 			});
 			button.addEventListener('mouseleave', () => {
-				document.querySelector('.custom-resize-handle').classList.remove('hover-highlight');
+				const dragHandle = document.querySelector('.custom-resize-handle');
+				if(dragHandle) {
+					dragHandle.classList.remove('hover-highlight');
+				}
 			});
 		});
 	}

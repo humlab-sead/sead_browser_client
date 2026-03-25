@@ -48,8 +48,7 @@ class SqsView {
 		this.setupResizableSections();
 		this.setSectionSizes(leftSize, rightSize, false);
 
-		this.initShowOnlyLeftSectionToggle();
-		this.initShowOnlyRightSectionToggle();
+		this.initSwitchSectionToggle();
 
 		//React to resize event to collapse header when necessary
 		this.sqs.sqsEventListen("layoutResize", () => {
@@ -131,13 +130,17 @@ class SqsView {
 	* Toggles the showing/hiding of the toggle-section button (in small screen mode)
 	*/
 	toggleToggleButton(show) {
+		const toggleButton = $("#switch-section-button", this.anchor);
+		if(toggleButton.length == 0) {
+			return;
+		}
+
 		if(show) {
-			//console.log("show toggle button");
-			$(".section-toggle-button", this.anchor).show();
+			toggleButton.show();
+			this.updateSwitchSectionButton();
 		}
 		else {
-			//console.log("hide toggle button");
-			$(".section-toggle-button", this.anchor).hide();
+			toggleButton.hide();
 		}
 	}
 
@@ -186,6 +189,7 @@ class SqsView {
 
 		this.apply();
 		this.sqs.sqsEventDispatch("layoutResize");
+		this.updateSwitchSectionButton();
 	}
 
 	getVisibleSection() {
@@ -276,88 +280,33 @@ class SqsView {
 		};
 	}
 
-	updateSectionCollapseButtons() {
-		const leftToggleBtn = $('#filter-section-toggle-button-left');
-		const rightToggleBtn = $('#filter-section-toggle-button-right');
-		
-		if (this.visibleSection === "left") {
-			// Right section is collapsed
-			rightToggleBtn.addClass('only-left-section-active');
-			leftToggleBtn.removeClass('only-right-section-active');
-			rightToggleBtn.css('left', '-1.0em');
-			leftToggleBtn.css('visibility', 'hidden');
-
-			//find .filter-toggle-icon-container in rightToggleBtn and set title
-			const filterIconContainer = rightToggleBtn.find('.filter-toggle-icon-container');
-			filterIconContainer.attr('title', 'Show both sections');
-		} 
-		else if (this.visibleSection === "right") {
-			// Left section is collapsed
-			leftToggleBtn.addClass('flipped');
-			leftToggleBtn.addClass('only-right-section-active');
-			rightToggleBtn.removeClass('only-left-section-active');
-			rightToggleBtn.css('left', '.3em');
-			rightToggleBtn.css('visibility', 'hidden');
-			
-			//find .filter-toggle-icon-container in leftToggleBtn and set title 
-			const filterIconContainer = leftToggleBtn.find('.filter-toggle-icon-container');
-			filterIconContainer.attr('title', 'Show both sections');
-		} 
-		else {
-			// Both sections visible
-			leftToggleBtn.removeClass('flipped');
-			leftToggleBtn.css('visibility', 'visible');
-			rightToggleBtn.css('left', '.3em');
-			rightToggleBtn.css('visibility', 'visible');
-			leftToggleBtn.removeClass('only-right-section-active');
-			rightToggleBtn.removeClass('only-left-section-active');
-
-			// Reset titles
-			const leftFilterIconContainer = leftToggleBtn.find('.filter-toggle-icon-container');
-			leftFilterIconContainer.attr('title', 'Show only result section');
-			const rightFilterIconContainer = rightToggleBtn.find('.filter-toggle-icon-container');
-			rightFilterIconContainer.attr('title', 'Show only filter section');
+	updateSwitchSectionButton() {
+		const toggleBtn = $("#switch-section-button", this.anchor);
+		if(toggleBtn.length == 0) {
+			return;
 		}
+
+		const nextSection = this.visibleSection == "right" ? "left" : "right";
+		const label = nextSection == "right" ? "Show result" : "Show filters";
+
+		toggleBtn.text(label);
+		toggleBtn.attr("title", label);
+		toggleBtn.attr("aria-label", label);
 	}
 
-	initShowOnlyLeftSectionToggle() {
-		const toggleBtn = $('#filter-section-toggle-button-left');
-		toggleBtn.show();
-		toggleBtn.on('click', () => {
-			// Check current sizes
-			const isCollapsed = this.leftLastSize === 0;
-			
-			if (isCollapsed) {
-				// Expand the left section
-				const leftSize = this.leftInitSize || 30;
-				const rightSize = 100 - leftSize;
-				this.setSectionSizes(leftSize, rightSize, true);
-			} else {
-				// Collapse the left section
-				this.setSectionSizes(0, 100, true);
-			}
-			this.updateSectionCollapseButtons();
-		});
-	}
+	initSwitchSectionToggle() {
+		const toggleBtn = $("#switch-section-button", this.anchor);
+		if(toggleBtn.length == 0) {
+			return;
+		}
 
-	initShowOnlyRightSectionToggle() {
-		const toggleBtn = $('#filter-section-toggle-button-right');
-		toggleBtn.show();
-		toggleBtn.on('click', () => {
-			// Check current sizes
-			const isCollapsed = this.rightLastSize === 0;
-			
-			if (isCollapsed) {
-				// Expand the right section
-				const rightSize = this.rightInitSize || 30;
-				const leftSize = 100 - rightSize;
-				this.setSectionSizes(leftSize, rightSize, true);
-			} else {
-				// Collapse the right section
-				this.setSectionSizes(100, 0, true);
-			}
-			this.updateSectionCollapseButtons();
+		toggleBtn.off("click.sqs-view-switch-section");
+		toggleBtn.on("click.sqs-view-switch-section", () => {
+			const nextSection = this.visibleSection == "right" ? "left" : "right";
+			this.switchSection(nextSection);
 		});
+
+		this.updateSwitchSectionButton();
 	}
 
 	/**
@@ -490,7 +439,7 @@ class SqsView {
 				else {
 					this.visibleSection = "both";
 				}
-				this.updateSectionCollapseButtons();
+				this.updateSwitchSectionButton();
 			}
 		});
 		

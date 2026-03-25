@@ -124,6 +124,7 @@ class Tutorial {
         menuItems.push({
           name: "tutorial",
           title: `<i class="fa fa-question-circle" aria-hidden="true"></i> Tutorial`,
+          visibleInModes: ["desktopMode"],
           callback: () => {
             if(this.sqs.facetManager.facets.length > 0) {
               if(!window.confirm("Starting the tutorial will reset the view and clear any filters you may have chosen. Do you still wish to do this?")) {

@@ -196,7 +196,7 @@ class sqsMenu {
 		//first level items
 		menu.items.forEach(item => {
 			let visibleClass = "";
-			if(item.visible == false) {
+			if(!this.isMenuItemVisible(item)) {
 				visibleClass = "sqs-menu-item-hidden";
 			}
 			let firstLevelItem = $("<div menu-item='"+item.name+"' class=\""+visibleClass+"\"><div class='first-level-item-title'>"+item.title+"</div></div>");
@@ -210,8 +210,11 @@ class sqsMenu {
 
 			//second level items (if any)
 			item.children.forEach(child => {
-				let childItem = $("<div menu-item='"+child.name+"'>"+child.title+"</div>");
-				childItem.addClass("second-level-item");
+				let childVisibleClass = "";
+				if(!this.isChildMenuItemVisible(child)) {
+					childVisibleClass = " sqs-menu-item-hidden";
+				}
+				let childItem = $("<div menu-item='"+child.name+"' class='second-level-item"+childVisibleClass+"'>"+child.title+"</div>");
 				firstLevelItem.append(childItem);
 
 				childItem.on("click", (evt) => {
@@ -246,7 +249,7 @@ class sqsMenu {
 				}
 
 				//This "expands" (displays) all of the children items
-				$(".second-level-item", firstLevelItem).css("display", "block");
+				$(".second-level-item", firstLevelItem).not(".sqs-menu-item-hidden").css("display", "block");
 
 				this.adaptMenuToViewport();
 			});
@@ -257,6 +260,8 @@ class sqsMenu {
 
 			$(menu.anchor).append(firstLevelItem);
 		});
+
+		this.updateMenuItemVisibilityForCurrentMode();
 
 		this.rebindTriggers();
 
@@ -301,6 +306,7 @@ class sqsMenu {
 		})
 
 		this.sqs.sqsEventListen("layoutResize", (evt) => {
+			this.updateMenuItemVisibilityForCurrentMode();
 			if(typeof this.menuDef.viewPortResizeCallback == "function") {
 				this.menuDef.viewPortResizeCallback();
 			}
@@ -323,6 +329,7 @@ class sqsMenu {
 
 	adaptMenuToViewport() {
 		$(this.menuDef.anchor).css("max-height", "");
+		$(this.menuDef.anchor).css("transform", "");
 		if(this.isBottomOutOfViewport()) {
 			//calculate the max height of the menu based on the current position, height and viewport height
 			let menuTop = $(this.menuDef.anchor).offset().top;
@@ -330,12 +337,45 @@ class sqsMenu {
 			let newMaxHeight = windowHeight - menuTop - 0;
 			$(this.menuDef.anchor).css("max-height", newMaxHeight+"px");
 		}
+		this.keepMenuInsideHorizontalViewport();
+	}
+
+	keepMenuInsideHorizontalViewport() {
+		const menuNode = $(this.menuDef.anchor);
+		if(menuNode.hasClass("sqs-menu-container-horizontal") || !menuNode.is(":visible")) {
+			return;
+		}
+
+		const menuElement = menuNode[0];
+		if(!menuElement) {
+			return;
+		}
+
+		const viewportPadding = 8;
+		const rect = menuElement.getBoundingClientRect();
+		const viewportWidth = (window.innerWidth || document.documentElement.clientWidth);
+		let horizontalOffset = 0;
+		const maxRight = viewportWidth - viewportPadding;
+
+		if(rect.right > maxRight) {
+			horizontalOffset -= rect.right - maxRight;
+		}
+
+		if(rect.left + horizontalOffset < viewportPadding) {
+			horizontalOffset += viewportPadding - (rect.left + horizontalOffset);
+		}
+
+		if(horizontalOffset != 0) {
+			$(this.menuDef.anchor).css("transform", "translateX("+Math.round(horizontalOffset)+"px)");
+		}
 	}
 
 	closeAllMenus() {
 		$(".sqs-menu-container").each((i, el) => {
 			if($(el).hasClass("sqs-menu-container-horizontal") == false) {
 				$(el).hide();
+				$(el).css("max-height", "");
+				$(el).css("transform", "");
 			}
 		})
 	}
@@ -408,6 +448,9 @@ class sqsMenu {
 		if(typeof(menuDef.visible) == "undefined") {
 			menuDef.visible = true;
 		}
+		if(typeof(menuDef.visibleInModes) == "undefined") {
+			menuDef.visibleInModes = [];
+		}
 		if(typeof(menuDef.showMenuTitle) == "undefined") {
 			menuDef.showMenuTitle = true;
 		}
@@ -433,6 +476,12 @@ class sqsMenu {
 					if(typeof(menuDef.items[key].children[ck].staticSelection) == "undefined") {
 						menuDef.items[key].children[ck].staticSelection = false;
 					}
+					if(typeof(menuDef.items[key].children[ck].visible) == "undefined") {
+						menuDef.items[key].children[ck].visible = true;
+					}
+					if(typeof(menuDef.items[key].children[ck].visibleInModes) == "undefined") {
+						menuDef.items[key].children[ck].visibleInModes = [];
+					}
 				}
 			}
 			if(typeof(menuDef.items[key].callback) == "undefined") {
@@ -440,6 +489,12 @@ class sqsMenu {
 			}
 			if(typeof(menuDef.items[key].staticSelection) == "undefined") {
 				menuDef.items[key].staticSelection = false;
+			}
+			if(typeof(menuDef.items[key].visible) == "undefined") {
+				menuDef.items[key].visible = true;
+			}
+			if(typeof(menuDef.items[key].visibleInModes) == "undefined") {
+				menuDef.items[key].visibleInModes = [];
 			}
 		}
 		
@@ -455,11 +510,77 @@ class sqsMenu {
 				this.closeAllMenus(); //this is to prevent multiple menus being open at once
 
 				evt.stopPropagation(); //To prevent the event reaching the body, which could cause an immediate close of the menu
+				this.updateMenuItemVisibilityForCurrentMode();
 				if(menuAnchorNode.css("display") == "none") {
 					menuAnchorNode.css("display", "block");
+					this.adaptMenuToViewport();
 				}
 				else {
 					menuAnchorNode.css("display", "none");
+					menuAnchorNode.css("max-height", "");
+					menuAnchorNode.css("transform", "");
+				}
+			});
+		});
+	}
+
+	getCurrentLayoutMode() {
+		if(this.sqs.layoutManager && typeof this.sqs.layoutManager.getMode == "function") {
+			return this.sqs.layoutManager.getMode();
+		}
+		return "desktopMode";
+	}
+
+	isVisibleForCurrentMode(item) {
+		if(!Array.isArray(item.visibleInModes) || item.visibleInModes.length == 0) {
+			return true;
+		}
+		return item.visibleInModes.includes(this.getCurrentLayoutMode());
+	}
+
+	isChildMenuItemVisible(item) {
+		return item.visible !== false && this.isVisibleForCurrentMode(item);
+	}
+
+	isMenuItemVisible(item) {
+		if(item.visible === false || !this.isVisibleForCurrentMode(item)) {
+			return false;
+		}
+
+		if(typeof item.callback == "function") {
+			return true;
+		}
+
+		if(item.children.length == 0) {
+			return true;
+		}
+
+		for(let key in item.children) {
+			if(this.isChildMenuItemVisible(item.children[key])) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	updateMenuItemVisibilityForCurrentMode() {
+		this.menuDef.items.forEach(item => {
+			let itemNode = $("[menu-item='"+item.name+"']", this.menuDef.anchor);
+			let itemVisible = this.isMenuItemVisible(item);
+			itemNode.toggleClass("sqs-menu-item-hidden", !itemVisible);
+
+			if(!itemVisible) {
+				itemNode.removeClass("first-level-item-expanded");
+				$(".second-level-item", itemNode).css("display", "none");
+			}
+
+			item.children.forEach(child => {
+				let childNode = $("[menu-item='"+child.name+"']", itemNode);
+				let childVisible = this.isChildMenuItemVisible(child);
+				childNode.toggleClass("sqs-menu-item-hidden", !childVisible);
+				if(!childVisible) {
+					childNode.css("display", "none");
 				}
 			});
 		});

@@ -376,9 +376,18 @@ class SeadQuerySystem {
 			rules: [
 				{
 					type: "show",
-					selector: "#domain-menu, #aux-menu-button",
+					selector: "#domain-menu",
 					evaluator: () => {
-						return this.layoutManager.getMode() == "desktopMode";
+						let visibleSection = this.layoutManager.getActiveView().getVisibleSection();
+						return this.layoutManager.getMode() == "desktopMode" || visibleSection == "left";
+					}
+				},
+				{
+					type: "show",
+					selector: "#aux-menu-button",
+					evaluator: () => {
+						let visibleSection = this.layoutManager.getActiveView().getVisibleSection();
+						return this.layoutManager.getMode() == "desktopMode" || visibleSection == "left";
 					}
 				},
 				{
@@ -391,10 +400,10 @@ class SeadQuerySystem {
 				},
 				{
 					type: "show",
-					selector: "#sead-logo",
+					selector: "#logo-aux-container > #sead-logo",
 					evaluator: () => {
 						let visibleSection = this.layoutManager.getActiveView().getVisibleSection();
-						return this.layoutManager.getMode() == "desktopMode" || visibleSection == "right";
+						return this.layoutManager.getMode() == "desktopMode" || visibleSection == "left";
 					}
 				}
 			]
@@ -414,32 +423,6 @@ class SeadQuerySystem {
 				*/
 			]
 		});
-
-		//let domainBox = document.querySelector("#filter-menu-svg").getElementById("domain-menu");
-		//let filterBox = document.querySelector("#filter-menu-svg").getElementById("facet-menu");
-		
-		/*
-		$(domainBox).on("mouseover", () => {
-			this.svgSetFill(domainBox, "#2d5e8d");
-		});
-		$(domainBox).on("mouseout", () => {
-			this.svgSetFill(domainBox, "#444");
-		});
-		*/
-		/*
-		$(filterBox).on("mouseover", () => {
-			this.svgSetFill(filterBox, "#3978b4");
-		});
-		$(filterBox).on("mouseout", () => {
-			this.svgSetFill(filterBox, "#2d5e8d");
-		});
-		*/
-		
-		
-
-		//this.layoutManager.setActiveView("filters");
-
-		//this.siteReportLayoutManager = new SqsLayoutManager(this, "#site-report-panel", 80, 20);
 
 		this.notificationManager = new NotificationManager(this);
 		this.menuManager = new SqsMenuManager(this);
