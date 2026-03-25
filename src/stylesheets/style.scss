@@ -3392,7 +3392,7 @@ polyline{
 }
 /*
 #facet-menu:hover  {
-  background-color: lighten($base-color, 10%) !important;
+  background-color: color.adjust($base-color, $lightness: 10%) !important;
 }
 */
 #facet-menu > .menu-category-level {
@@ -4711,7 +4711,7 @@ svg text {
 }
 
 .site-report-table-button:hover {
-  background: lighten(colors.$base-color, 10%);
+  background: color.adjust(colors.$base-color, $lightness: 10%);
   cursor: pointer;
 }
 
