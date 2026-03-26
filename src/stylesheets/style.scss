@@ -848,6 +848,12 @@ body.facet-resizing * {
   color: colors.$pane-bg-color-dark;
 }
 
+@media (max-width: 720px) {
+  .filter-demo-arrow {
+    display: none;
+  }
+}
+
 .result-module-title {
   margin-left: 6px;
 }

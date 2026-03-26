@@ -28,6 +28,7 @@ class ResultTable extends ResultModule {
 		this.maxRenderCount = 100000;
 		this.hasCurrentData = false;
 		this.tooltipAnchors = [];
+		this.tabulatorTable = null;
 		this.data = {
 			columns: [],
 			rows: []
@@ -35,6 +36,13 @@ class ResultTable extends ResultModule {
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			this.setActive(data.selection == this.name);
+		});
+
+		this.resultManager.sqs.sqsEventListen("layoutSwitchMode", () => {
+			// layout mode is updated right after this event dispatch
+			setTimeout(() => {
+				this.updateMobileColumnVisibility();
+			}, 0);
 		});
 	}
 
@@ -50,6 +58,30 @@ class ResultTable extends ResultModule {
 	
 	isVisible() {
 		return true;
+	}
+
+	isMobileMode() {
+		return this.sqs.layoutManager && typeof this.sqs.layoutManager.getMode == "function" && this.sqs.layoutManager.getMode() == "mobileMode";
+	}
+
+	updateMobileColumnVisibility() {
+		if(!this.tabulatorTable || !this.active) {
+			return;
+		}
+
+		let hideForMobile = this.isMobileMode();
+		let columns = this.tabulatorTable.getColumns();
+		columns.forEach(column => {
+			let def = column.getDefinition();
+			if(def.mobileHidden === true) {
+				if(hideForMobile) {
+					column.hide();
+				}
+				else {
+					column.show();
+				}
+			}
+		});
 	}
 
 	/*
@@ -259,6 +291,7 @@ class ResultTable extends ResultModule {
 
 		this.maxRenderSlots = 12;
 		this.currentRenderSlotsTaken = 0;
+		let mobileMode = this.isMobileMode();
 
 		let tableColumns = [
 			{title: "Select", widthGrow:-1, formatter: "rowSelection", titleFormatter:"rowSelection", cssClass: "result-table-select-all-checkbox", hozAlign:"center", headerSort:false, cellClick: (evt, cell) => { cell.getRow().toggleSelect(); }},
@@ -277,9 +310,9 @@ class ResultTable extends ResultModule {
 					</div>`;
 				}
 			},
-			{title:"Site ID", field:"site_link_filtered", widthGrow:1, hozAlign:"center"},
+			{title:"Site ID", field:"site_link_filtered", widthGrow:1, hozAlign:"center", mobileHidden: true, visible: !mobileMode},
 			{title:"Site name", field:"sitename", tooltip: true, widthGrow:3},
-			{title:"Data points", field:"analysis_entities", widthGrow:1, formatter: (cell, formatterParams, onRendered) => {
+			{title:"Data points", field:"analysis_entities", widthGrow:1, mobileHidden: true, visible: !mobileMode, formatter: (cell, formatterParams, onRendered) => {
 				return `<div class='stacked-bar-outer-container'>
 				<div class='stacked-bar-container'>
 				<div class='stacked-segment' style='width: ${(cell.getValue() / maxAnalysisEntities * 100)}%;' title='${cell.getValue()}'></div>
@@ -611,6 +644,7 @@ class ResultTable extends ResultModule {
 		if(this.tabulatorTable) {
 			this.tabulatorTable.clearData();
 			this.tabulatorTable.destroy();
+			this.tabulatorTable = null;
 		}
 		$('#result-table-container').html("");
 		$("#result-table-container").hide();

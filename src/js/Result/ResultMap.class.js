@@ -120,6 +120,18 @@ class ResultMap extends ResultModule {
 		this.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
 		$(window).on("resize", () => this.resizeCallback());
 		this.resultManager.sqs.sqsEventListen("siteReportClosed", () => this.resizeCallback());
+		this.resultManager.sqs.sqsEventListen("layoutSwitchMode", () => {
+			// layout mode is updated after this event dispatch
+			setTimeout(() => {
+				if(this.isMobileMode()) {
+					this.hideLegend();
+				}
+				else if($(".result-map-legend-content", this.renderIntoNode).children().length > 0) {
+					this.showLegend();
+				}
+				this.updateAuxLayersPanelResponsiveLayout();
+			}, 0);
+		});
 	}
 
 	updateLegend() {
@@ -662,7 +674,41 @@ class ResultMap extends ResultModule {
 		$(".result-map-legend-container", this.renderIntoNode).hide();
 	}
 
+	isMobileMode() {
+		return this.sqs.layoutManager && typeof this.sqs.layoutManager.getMode == "function" && this.sqs.layoutManager.getMode() == "mobileMode";
+	}
+
+	updateAuxLayersPanelResponsiveLayout() {
+		const panel = $("#result-map-sub-layer-selection-panel");
+		if(panel.length === 0) {
+			return;
+		}
+
+		if(this.isMobileMode()) {
+			panel.css({
+				"left": "5px",
+				"right": "5px",
+				"width": "auto",
+				"min-width": "0",
+				"max-width": "none"
+			});
+		}
+		else {
+			panel.css({
+				"left": "5px",
+				"right": "",
+				"width": "25em",
+				"min-width": "25em",
+				"max-width": ""
+			});
+		}
+	}
+
 	showLegend() {
+		if(this.isMobileMode()) {
+			this.hideLegend();
+			return;
+		}
 		$(".result-map-legend-container", this.renderIntoNode).show();
 	}
 
@@ -1130,12 +1176,7 @@ class ResultMap extends ResultModule {
 
 		// Create the panel container
 		$(this.renderMapIntoNode).append("<div id='result-map-sub-layer-selection-panel'></div>");
-		
-		// Set fixed width to prevent shrinking when minimized
-		$("#result-map-sub-layer-selection-panel").css({
-			"width": "25em",
-			"min-width": "25em"
-		});
+		this.updateAuxLayersPanelResponsiveLayout();
 
 		const titleHtml = `
 			<div class="sub-layer-header">

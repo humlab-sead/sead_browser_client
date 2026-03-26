@@ -99,15 +99,15 @@ class ResultManager {
 				else {
 					$("#result-title").show();
 				}
+				this.applyResultMenuLayoutState();
 			});
 			
-			this.sqs.sqsEventListen("layoutChange", (evt, data) => {
-				if(data == "mobileMode") {
-					$("#result-menu .result-tab-title").hide();
-				}
-				if(data == "desktopMode") {
-					$("#result-menu .result-tab-title").show();
-				}
+			this.sqs.sqsEventListen("layoutSwitchMode", () => {
+				// layout mode is updated right after this event dispatch
+				setTimeout(() => {
+					this.applyResultMenuLayoutState();
+					this.ensureMobileSafeActiveModule(this.sqsInitComplete);
+				}, 0);
 			});
 
 			this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
@@ -116,6 +116,35 @@ class ResultManager {
 			
 		}
 		
+	}
+
+	isMobileMode() {
+		return this.sqs.layoutManager && typeof this.sqs.layoutManager.getMode == "function" && this.sqs.layoutManager.getMode() == "mobileMode";
+	}
+
+	resolveModuleForCurrentLayout(resultModuleId) {
+		if(resultModuleId == "mosaic" && this.isMobileMode() && this.getModule("table")) {
+			return "table";
+		}
+		return resultModuleId;
+	}
+
+	ensureMobileSafeActiveModule(renderModule = true) {
+		if(this.activeModuleId == "mosaic" && this.isMobileMode() && this.getModule("table")) {
+			this.setActiveModule("table", renderModule);
+			return true;
+		}
+		return false;
+	}
+
+	applyResultMenuLayoutState() {
+		let mobileMode = this.isMobileMode();
+		$("#result-menu .result-tab-title").toggle(!mobileMode);
+
+		let menu = this.sqs.menuManager.getMenuByAnchor("#result-menu");
+		if(menu !== false && typeof menu.updateMenuItemVisibilityForCurrentMode == "function") {
+			menu.updateMenuItemVisibilityForCurrentMode();
+		}
 	}
 
 	toggleDebug() {
@@ -297,6 +326,8 @@ class ResultManager {
 	*/
 	//Check that this module exists
 	async setActiveModule(resultModuleId, renderModule = true) {
+		resultModuleId = this.resolveModuleForCurrentLayout(resultModuleId);
+
 		if(!this.getModule(resultModuleId)) {
 			console.warn("Result module "+resultModuleId+" does not exist.");
 			return false;
@@ -462,7 +493,7 @@ class ResultManager {
 		let menuItems = [];
 		let modules = this.getModules();
 		modules.forEach(module => {
-			menuItems.push({
+			let menuItem = {
 				name: module.name,
 				title: module.module.icon+"<span class='result-tab-title'>"+module.module.prettyName+"</span>",
 				visible: typeof module.module.isVisible == "function" ? module.module.isVisible() : true,
@@ -473,7 +504,13 @@ class ResultManager {
 						selection: module.name
 					});
 				}
-			});
+			};
+
+			if(module.name == "mosaic") {
+				menuItem.visibleInModes = ["desktopMode"];
+			}
+
+			menuItems.push(menuItem);
 		});
 
 		return {
@@ -484,15 +521,8 @@ class ResultManager {
 			staticSelection: true,
 			showMenuTitle: false,
 			viewPortResizeCallback: () => {
-				let modules = this.getModules();
-				modules.forEach(module => {
-					if(this.sqs.layoutManager.getMode() == "mobileMode") {
-						$("#result-menu #menu-item-"+module.name+" .result-tab-title").hide();
-					}
-					else {
-						$("#result-menu #menu-item-"+module.name+" .result-tab-title").show();
-					}
-				});
+				this.applyResultMenuLayoutState();
+				this.ensureMobileSafeActiveModule(this.sqsInitComplete);
 			},
 			items: menuItems
 		};

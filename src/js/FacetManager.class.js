@@ -229,7 +229,16 @@ class FacetManager {
 		How about adding a <i class="fa fa-clock-o"></i> <span id='demo-slot-timeline-link' class='jslink-alt'>Timeline filter</span> to get started?
 		</span>`;
 		*/
-		let filterText = `
+		let mobileMode = this.sqs.layoutManager && typeof this.sqs.layoutManager.getMode == "function" && this.sqs.layoutManager.getMode() == "mobileMode";
+		let filterText = mobileMode
+			? `
+		<span>
+		<span id='demo-slot-menu-link' class='jslink-alt'>
+		Add filters
+		</span> 
+		here to reduce the result data down to what you are interested in seeing. Then press the <span id='demo-slot-show-result-link' class='jslink-alt'>show result</span> button to switch to the result section.
+		</span>`
+			: `
 		<span>
 		<span id='demo-slot-menu-link' class='jslink-alt'>
 		Add filters
@@ -254,6 +263,16 @@ class FacetManager {
 			let facetTemplate = this.getFacetTemplateByFacetId("analysis_entity_ages");
 			let facet = this.makeNewFacet(facetTemplate);
 			this.addFacet(facet, true);
+		});
+
+		$("#facet-section").off("click", "#demo-slot-show-result-link").on("click", "#demo-slot-show-result-link", (evt) => {
+			evt.preventDefault();
+			let activeView = this.sqs.layoutManager && typeof this.sqs.layoutManager.getActiveView == "function"
+				? this.sqs.layoutManager.getActiveView()
+				: false;
+			if(activeView && typeof activeView.switchSection == "function") {
+				activeView.switchSection("right");
+			}
 		});
 	}
 	
