@@ -20,6 +20,7 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Config from '../../config/config.json';
 import ResultMapLayers from './ResultMap/ResultMapLayers.class.js';
+import { set } from 'lodash';
 
 
 /*
@@ -51,6 +52,7 @@ class ResultMap extends ResultModule {
 			total: 0,
 			loading: false
 		};
+		this.auxLayersPanelOutsideClickEventNs = `.resultMapAuxLayersPanel_${Math.random().toString(36).slice(2)}`;
 		this.resultMapLayers = new ResultMapLayers(this.sqs);
 
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
@@ -726,9 +728,15 @@ class ResultMap extends ResultModule {
 		if($("#result-map-container .result-export-button").length > 0) {
 			return;
 		}
+
+		let exportPanel = $("<div></div>").attr("id", "result-map-export-panel");
 		let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
 		
-		$("#result-map-container").append(exportButton);
+		exportPanel.append(exportButton);
+		let siteCount = this.data.length;
+		exportPanel.append(`<span id="map-site-count">${siteCount} sites</span>`);
+
+		$("#result-map-container").append(exportPanel);
 		this.bindExportModuleDataToButton(exportButton, this);
 	}
 
@@ -782,6 +790,7 @@ class ResultMap extends ResultModule {
 					this.importResultData(respData);
 					this.renderMap();
 					this.renderVisibleDataLayers();
+					this.updateInterfaceControls();
 					this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
 					this.resultManager.showLoadingIndicator(false);
 				}
@@ -1062,8 +1071,22 @@ class ResultMap extends ResultModule {
 		}
 	}
 
+	updateInterfaceControls() {
+		$("#map-site-count").text(`${this.data.length} sites`);
+	}
+
 	unrenderAllAuxLayersPanel() {
-		$("#result-map-sub-layer-selection-panel").remove();
+		this.unrenderAuxLayersPanel();
+	}
+
+	bindAuxLayersPanelOutsideClickHandler() {
+		$(document).off("mousedown" + this.auxLayersPanelOutsideClickEventNs);
+		$(document).on("mousedown" + this.auxLayersPanelOutsideClickEventNs, (event) => {
+			if($(event.target).closest("#result-map-sub-layer-selection-panel").length > 0) {
+				return;
+			}
+			this.unrenderAuxLayersPanel();
+		});
 	}
 
 	addAuxLayersToMap(layers = []) {
@@ -1176,6 +1199,7 @@ class ResultMap extends ResultModule {
 
 		// Create the panel container
 		$(this.renderMapIntoNode).append("<div id='result-map-sub-layer-selection-panel'></div>");
+		this.bindAuxLayersPanelOutsideClickHandler();
 		this.updateAuxLayersPanelResponsiveLayout();
 
 		const titleHtml = `
@@ -1527,6 +1551,7 @@ class ResultMap extends ResultModule {
 	}
 
 	unrenderAuxLayersPanel() {
+		$(document).off("mousedown" + this.auxLayersPanelOutsideClickEventNs);
 		$("#result-map-sub-layer-selection-panel").remove();
 	}
 
@@ -2297,6 +2322,7 @@ class ResultMap extends ResultModule {
 	* Function: unrender
 	*/
 	async unrender() {
+		this.unrenderAuxLayersPanel();
 		if(this.olMap) {
 			this.olMap.setTarget(null);
 		}
