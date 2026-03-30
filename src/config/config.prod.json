@@ -12,7 +12,6 @@
 	"filterBlacklist": [
 		"construction_type",
 		"abundance_classification",
-		"dataset_methods",
 		"region"
 	],
 	"defaultFilters": [],
