@@ -296,7 +296,8 @@ class ResultTable extends ResultModule {
 		let tableColumns = [
 			{title: "Select", widthGrow:-1, formatter: "rowSelection", titleFormatter:"rowSelection", cssClass: "result-table-select-all-checkbox", hozAlign:"center", headerSort:false, cellClick: (evt, cell) => { cell.getRow().toggleSelect(); }},
 			{title:"View site", widthGrow:0, headerSort: false, field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
-				cell.getRow().toggleSelect(); //undo selection of row
+				e.preventDefault();
+				e.stopPropagation();
 				let siteId = parseInt(cell.getValue());
 				if(!siteId) {
 					console.log("WARN: No site ID found in cell value");
