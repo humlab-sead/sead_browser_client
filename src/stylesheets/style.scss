@@ -920,10 +920,15 @@ body.facet-resizing * {
 }
 */
 
+#result-map-export-panel {
+  display: flex;
+  position: absolute;
+  align-items: center;
+  bottom: 0px;
+}
+
 .result-export-button {
   display: flex;
-  position: relative;
-  margin-top: .1em;
   padding: .15em;
   padding-left: .5em;
   padding-right: .5em;
@@ -936,6 +941,10 @@ body.facet-resizing * {
   padding: 0.5em;
   height: auto;
   width: 6em;
+}
+
+#map-site-count {
+  padding-left: 1.5em;
 }
 
 .result-export-button .result-export-button-loading-indicator {
@@ -1241,7 +1250,6 @@ body.facet-resizing * {
   height: calc(100% - 3.7em);
   max-width: 100%;
   min-width: 0;
-  overflow: auto;
 }
 
 
@@ -2332,9 +2340,6 @@ polyline{
 }
 
 #result-map-container .result-export-button {
-  position: absolute;
-  bottom: 0;
-  left: 0;
   color: #fff;
 }
 
