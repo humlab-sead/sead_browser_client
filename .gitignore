@@ -6,3 +6,4 @@ src/config/config.json
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+tests/artifacts
