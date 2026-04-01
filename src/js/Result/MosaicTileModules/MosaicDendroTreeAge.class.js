@@ -8,7 +8,7 @@ import Chart from 'chart.js/auto';
 class MosaicDendroTreeAge extends DendroBaseModule {
     constructor(sqs) {
         super(sqs);
-        this.title = "Tree Age Distribution";
+        this.title = "Tree age distribution";
         this.name = "mosaic-dendro-tree-age";
         this.chartType = "bar";
     }
@@ -141,7 +141,7 @@ class MosaicDendroTreeAge extends DendroBaseModule {
         const wrapperHtml = `
             <div class="mosaic-tile-content" id="${varId}">
                 <div class="mosaic-tile-header">
-                    <h3 class="mosaic-tile-title">Tree Age Distribution</h3>
+                    <h3 class="mosaic-tile-title">${this.title}</h3>
                 </div>
                 <div class="mosaic-tile-charts">
                     <canvas id="chart-${varId}" class="tile-chart-container"></canvas>
@@ -228,7 +228,7 @@ class MosaicDendroTreeAge extends DendroBaseModule {
             }
         });
         
-        this.chartInstances.set(varId, { chart: chart, name: 'Tree Age Distribution' });
+        this.chartInstances.set(varId, { chart: chart, name: this.title });
 
         // Add mini coverage chart — renders immediately with empty bar, animates fill when totalSamples resolves
         const coverageContainer = document.getElementById(`coverage-${varId}`);

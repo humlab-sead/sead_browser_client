@@ -242,6 +242,7 @@ class DiscreteFacet extends Facet {
 			}
 		}
 		this.selections.push(selection);
+		this.updateSelectionCountLabel();
 	}
 	
 	/*
@@ -251,6 +252,7 @@ class DiscreteFacet extends Facet {
 		for(var key in this.selections) {
 			if (this.selections[key] == selection) {
 				this.selections.splice(key, 1);
+				this.updateSelectionCountLabel();
 				return;
 			}
 		}

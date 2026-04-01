@@ -7,7 +7,9 @@ import { nanoid } from "nanoid";
 class MosaicDendroWaneyEdge extends DendroBaseModule {
     constructor(sqs) {
         super(sqs);
-        this.title = "Waney Edge";
+        this.label = "Waney edge (W)";
+        this.description = "Presence of waney edge (natural edge with bark) on the sample";
+        this.title = this.label;
         this.name = "mosaic-dendro-waney-edge";
         this.chartType = "custom";
     }
@@ -23,7 +25,7 @@ class MosaicDendroWaneyEdge extends DendroBaseModule {
         const requestId = ++this.requestId;
 
         try {
-            const result = await this.fetchVariable("Waney edge (W)", resultMosaic.sites, requestId, 'ternary');
+            const result = await this.fetchVariable(this.label, resultMosaic.sites, requestId, 'ternary');
 
             if(!this.active) {
                 if(renderIntoNode) {
@@ -43,7 +45,7 @@ class MosaicDendroWaneyEdge extends DendroBaseModule {
             const normalizedCategories = {};
             
             result.data.categories.forEach(cat => {
-                const normalized = this.parseDendroTernaryValue(cat.name, "Waney edge (W)");
+                const normalized = this.parseDendroTernaryValue(cat.name, this.label);
                 if(normalized !== null) {
                     if(!normalizedCategories[normalized]) {
                         normalizedCategories[normalized] = 0;
@@ -66,8 +68,6 @@ class MosaicDendroWaneyEdge extends DendroBaseModule {
             }
 
             this.data = {
-                label: 'Waney edge (W)',
-                description: 'Presence of waney edge (natural edge with bark) on the sample',
                 categories: categories
             };
             
@@ -119,7 +119,7 @@ class MosaicDendroWaneyEdge extends DendroBaseModule {
         }
 
         // Get SEAD colors for ternary (Yes/Maybe/No)
-        const colorIndex = this.getColorIndexForVariable(data.label);
+        const colorIndex = this.getColorIndexForVariable(this.label);
         const allColors = this.sqs.color.getNiceColorScheme(10, "#2d5e8d", {
             vibrancy: 0.4,
             seed: 691
@@ -133,7 +133,7 @@ class MosaicDendroWaneyEdge extends DendroBaseModule {
         const wrapperHtml = `
             <div class="mosaic-tile-content" id="${varId}">
                 <div class="mosaic-tile-header">
-                    <h3 class="mosaic-tile-title">${data.label}</h3>
+                    <h3 class="mosaic-tile-title">${this.label}</h3>
                 </div>
                 <div class="mosaic-tile-charts">
                     <div id="chart-${varId}" class="tile-chart-container"></div>
@@ -147,9 +147,9 @@ class MosaicDendroWaneyEdge extends DendroBaseModule {
         const categoryColors = data.categories.map(cat => colorMap[cat.name] || '#999');
         
         // Create Plotly donut chart
-        const chartRef = await this.createDonutChart(`chart-${varId}`, data.categories, categoryColors, total, data.label);
+        const chartRef = await this.createDonutChart(`chart-${varId}`, data.categories, categoryColors, total, this.label);
         
-        this.chartInstances.set(varId, { plotly: true, elementId: `chart-${varId}`, name: data.label });
+        this.chartInstances.set(varId, { plotly: true, elementId: `chart-${varId}`, name: this.label });
 
         // Add mini coverage chart — renders immediately with empty bar, animates fill when totalSamples resolves
         const coverageContainer = document.getElementById(`coverage-${varId}`);

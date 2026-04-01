@@ -143,19 +143,19 @@ class ResultMosaic extends ResultModule {
 			module: null
 		});
 		this.modules.push({
-			title: "Tree Species",
+			title: "Tree species",
 			className: "MosaicDendroTreeSpecies",
 			classTemplate: MosaicDendroTreeSpecies,
 			module: null
 		});
 		this.modules.push({
-			title: "Sample Types",
+			title: "Sample types",
 			className: "MosaicDendroSampleTypes",
 			classTemplate: MosaicDendroSampleTypes,
 			module: null
 		});
 		this.modules.push({
-			title: "Tree Age Distribution",
+			title: "Tree age distribution",
 			className: "MosaicDendroTreeAge",
 			classTemplate: MosaicDendroTreeAge,
 			module: null
@@ -215,7 +215,7 @@ class ResultMosaic extends ResultModule {
 			module: null
 		});
 		this.modules.push({
-			title: "Mutual Climatic Range",
+			title: "Mutual climatic range",
 			className: "MutualClimaticRangeModule",
 			classTemplate: MosaicMutualClimaticRangeModule,
 			module: null
@@ -491,6 +491,107 @@ class ResultMosaic extends ResultModule {
 		return "mosaic-grid-box-" + gridRow + "-" + gridCol;
 	}
 
+	resolveTooltipAnchorNode(anchor) {
+		if(!anchor) {
+			return null;
+		}
+
+		if(typeof anchor == "string") {
+			let anchorNode = $(anchor);
+			if(anchorNode.length > 0) {
+				return anchorNode[0];
+			}
+			return null;
+		}
+
+		if(anchor.jquery) {
+			if(anchor.length > 0) {
+				return anchor[0];
+			}
+			return null;
+		}
+
+		if(anchor.nodeType === 1) {
+			return anchor;
+		}
+
+		return null;
+	}
+
+	getRegisteredTooltipsForNode(node) {
+		let matchingTooltips = [];
+		if(!node || !this.sqs || !this.sqs.tooltipManager || !Array.isArray(this.sqs.tooltipManager.tooltips)) {
+			return matchingTooltips;
+		}
+
+		this.sqs.tooltipManager.tooltips.forEach((tooltip) => {
+			let anchorNode = this.resolveTooltipAnchorNode(tooltip.anchor);
+			if(anchorNode === node) {
+				matchingTooltips.push(tooltip);
+			}
+		});
+
+		return matchingTooltips;
+	}
+
+	getDefaultMosaicTitleTooltip(moduleConf, titleText) {
+		let moduleDescription = "";
+		if(moduleConf && moduleConf.module && typeof moduleConf.module.description == "string") {
+			moduleDescription = moduleConf.module.description.trim();
+		}
+		if(moduleDescription != "") {
+			return moduleDescription;
+		}
+
+		let title = titleText;
+		if(typeof title != "string" || title.trim() == "") {
+			if(moduleConf && moduleConf.module && typeof moduleConf.module.title == "string") {
+				title = moduleConf.module.title;
+			}
+		}
+		if(typeof title != "string" || title.trim() == "") {
+			title = "this module";
+		}
+		else {
+			title = title.trim();
+			title = title.charAt(0).toLowerCase() + title.slice(1);
+		}
+
+		return "Shows " + title + " for the currently selected sites.";
+	}
+
+	ensureMosaicTileTitleTooltip(mosaicTileId, moduleConf) {
+		let titleNode = $("#"+mosaicTileId+" .mosaic-tile-title").first();
+		if(titleNode.length == 0) {
+			return;
+		}
+
+		let titleAnchor = "#"+mosaicTileId+" .mosaic-tile-title";
+		let titleText = titleNode.text().trim();
+		let existingTooltips = this.getRegisteredTooltipsForNode(titleNode[0]);
+		let hasCustomTooltip = false;
+		let hasFallbackTooltip = false;
+
+		existingTooltips.forEach((tooltip) => {
+			if(tooltip.anchor == titleAnchor) {
+				hasFallbackTooltip = true;
+			}
+			else {
+				hasCustomTooltip = true;
+			}
+		});
+
+		if(hasCustomTooltip) {
+			if(hasFallbackTooltip) {
+				this.sqs.tooltipManager.unRegisterTooltip(titleAnchor);
+			}
+			return;
+		}
+
+		let tooltipText = this.getDefaultMosaicTitleTooltip(moduleConf, titleText);
+		this.sqs.tooltipManager.registerTooltip(titleAnchor, tooltipText, { drawSymbol: true, anchorPoint: "symbol" });
+	}
+
 	renderGridModules(resultGridModules) {
 		/*
 		for(let key in this.modules) {
@@ -505,9 +606,16 @@ class ResultMosaic extends ResultModule {
 				let mosaicTileId = nanoid();
 				mConf.grid_box_id = this.getGridBoxId(mConf);
 				this.renderGridModule(mConf, mosaicTileId).then(() => {
+					this.ensureMosaicTileTitleTooltip(mosaicTileId, mConf);
 					if(this.sqs.config.showMosaicExportButtons) {
 						let exportButton = $("<div></div>").addClass("result-export-button-mosaic").attr("title", "Export").html("<i class='fa fa-download' aria-hidden='true'></i>");
-						$("#"+mosaicTileId).append(exportButton);
+						let mosaicHeader = $("#"+mosaicTileId+" .mosaic-tile-header").first();
+						if(mosaicHeader.length > 0) {
+							mosaicHeader.append(exportButton);
+						}
+						else {
+							$("#"+mosaicTileId).append(exportButton);
+						}
 						this.bindExportModuleDataToButton("#"+mosaicTileId+" .result-export-button-mosaic", mConf.module);
 					}
 				});
@@ -633,7 +741,8 @@ class ResultMosaic extends ResultModule {
 					activeDomain.result_grid_modules[key].module = this.getInstanceOfModule(selectedModuleName);
 					$("#"+gridBoxId).attr("module-name", selectedModuleName);
 					$("#"+gridBoxId).html("");
-					activeDomain.result_grid_modules[key].module.render("#"+gridBoxId);
+					await activeDomain.result_grid_modules[key].module.render("#"+gridBoxId);
+					this.ensureMosaicTileTitleTooltip(mosaicTileNode.attr("id"), activeDomain.result_grid_modules[key]);
 				}
 			}
 		});

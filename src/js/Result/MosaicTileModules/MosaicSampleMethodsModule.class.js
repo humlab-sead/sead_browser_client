@@ -32,15 +32,15 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         // Clear previous content
         $(this.renderIntoNode).empty();
 
-        // Create a container with a header/title bar and a dedicated chart container for Plotly
+        // Create a container with the shared mosaic tile header and chart container
         const varId = (typeof nanoid === 'function') ? nanoid() : Math.random().toString(36).substr(2, 9);
         const chartContainerId = `chart-container-${varId}`;
         const tileHtml = `
-            <div class="sample-methods-tile-container" id="${varId}" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
-                <div class="sample-methods-tile-header" style="flex: 0 0 auto;">
-                    <h3 class="sample-methods-tile-title" style="margin: 0; font-size: 1.2em;">${this.title}</h3>
+            <div class="mosaic-tile-content" id="${varId}">
+                <div class="mosaic-tile-header">
+                    <h3 class="mosaic-tile-title">${this.title}</h3>
                 </div>
-                <div class="sample-methods-tile-chart" id="${chartContainerId}" style="flex: 1 1 0; min-height: 200px; width: 100%;"></div>
+                <div class="mosaic-tile-chart" id="${chartContainerId}"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);

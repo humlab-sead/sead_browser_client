@@ -310,6 +310,7 @@ class ResultTable extends ResultModule {
 			},
 			{title:"Site ID", field:"site_link_filtered", widthGrow:1, hozAlign:"center", visible: !mobileMode},
 			{title:"Site name", field:"sitename", tooltip: true, widthGrow:3},
+			/*
 			{title:"Data points", field:"analysis_entities", widthGrow:1, visible: !mobileMode, formatter: (cell, formatterParams, onRendered) => {
 				return `<div class='stacked-bar-outer-container'>
 				<div class='stacked-bar-container'>
@@ -320,6 +321,7 @@ class ResultTable extends ResultModule {
 			},
 				sorter: "number",
 			},
+			*/
 		];
 
 		let activeDomain = this.sqs.domainManager.getActiveDomain().name;

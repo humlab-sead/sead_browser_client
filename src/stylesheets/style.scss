@@ -161,6 +161,8 @@ div:focus {
   position: relative;
   padding: 0 1em 0.8em 1em;
   top: 0.25em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
 }
 
 #search-container > h3 {
@@ -1239,18 +1241,17 @@ body.facet-resizing * {
 
 .result-export-button-mosaic {
   display: flex;
-  position: absolute;
-  top: 0.25em;
-  right: 0.25em;
-  padding: .15em;
-  padding-left: .5em;
-  padding-right: .5em;
+  flex: 0 0 auto;
+  padding: .25em .45em;
   background: transparent;
-  color: #333;
+  color: #444;
   align-items: center;
   justify-content: center;
   font-family: Rajdhani;
-  font-size: 1.2em;
+  font-size: 1em;
+  line-height: 1;
+  border-radius: 3px;
+  transition: background-color 0.15s ease;
 }
 
 .result-export-button-mosaic:hover {
@@ -2555,9 +2556,10 @@ polyline{
 
 .result-mosaic-graph-container {
   position: absolute;
-  width: calc(100% - 2em);
-  height: calc(100% - 2em);
-  padding: 1em;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
 }
 
 .result-mosaic-tile-chart-selector {
@@ -4824,7 +4826,7 @@ svg text {
 #tutorial-map-targeting-box {
   position: absolute;
   left: calc(50% - 6em);
-  top: calc(25% - 5em);
+  top: calc(50% - 9em);
   height: 10em;
   width: 12em;
 
@@ -5466,6 +5468,13 @@ a.ms-selectall:hover {
 
 .mosaic-tile-header {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  padding: 0.55em 0.75em;
+  background: color.adjust(colors.$pane-bg-color, $lightness: 6%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .mosaic-tile-chart {
@@ -5477,7 +5486,9 @@ a.ms-selectall:hover {
 
 .mosaic-tile-title {
   margin: 0;
-  font-size: 1.2em;
+  font-size: 1.1em;
+  line-height: 1.2;
+  min-width: 0;
 }
 
 .mosaic-tile-charts {
@@ -5487,6 +5498,7 @@ a.ms-selectall:hover {
   min-height: 0;
   height: 100%;
   gap: 0.5em;
+  padding: 1em;
 }
 
 .mosaic-tile-charts > * {

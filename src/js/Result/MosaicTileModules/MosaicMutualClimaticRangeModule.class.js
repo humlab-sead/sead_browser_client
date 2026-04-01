@@ -15,7 +15,7 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
     constructor(sqs) {
         super(sqs);
         this.sqs = sqs;
-        this.title = "Mutual Climatic Range";
+        this.title = "Mutual climatic range";
         this.name = "mutual-climatic-range";
         this.domains = ["palaeo"];
         this.showChartSelector = false;

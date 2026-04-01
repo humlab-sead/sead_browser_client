@@ -35,15 +35,15 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         // Clear previous content
         $(this.renderIntoNode).empty();
 
-        // Create a container with a header/title bar and a dedicated chart container for Plotly
+        // Create a container with the shared mosaic tile header and chart container
         const varId = nanoid();
         const chartContainerId = `chart-container-${varId}`;
         const tileHtml = `
-            <div class="analysis-methods-tile-container" id="${varId}" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
-                <div class="analysis-methods-tile-header" style="flex: 0 0 auto;">
-                    <h3 class="analysis-methods-tile-title" style="margin: 0; font-size: 1.2em;">${this.title}</h3>
+            <div class="mosaic-tile-content" id="${varId}">
+                <div class="mosaic-tile-header">
+                    <h3 class="mosaic-tile-title">${this.title}</h3>
                 </div>
-                <div class="analysis-methods-tile-chart" id="${chartContainerId}" style="flex: 1 1 0; min-height: 200px; width: 100%;"></div>
+                <div class="mosaic-tile-chart" id="${chartContainerId}"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);
@@ -102,8 +102,8 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         });
 
         this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
-        // Render the Plotly chart into the dedicated chart container
-        resultMosaic.renderPieChartPlotly(`#chart-container-${varId}`, chartData, { showlegend: false }).then(plot => {
+        // Render the Plotly chart into the tile chart container
+        resultMosaic.renderPieChartPlotly(`#${chartContainerId}`, chartData, { showlegend: false }).then(plot => {
             this.plot = plot;
         })
         this.renderComplete = true;
