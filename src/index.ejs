@@ -154,6 +154,38 @@
             <button id="quickstart-feedback">Feedback</button>
           </div>
 
+          <div id="search-container">
+            <div class="search-input-row">
+              <input id="search-container-input" type="text" placeholder="Search sites, sample groups, datasets and methods..." autocomplete="off" />
+              <button id="search-container-submit" aria-label="Search SEAD">Search</button>
+            </div>
+
+            <div id="search-container-dropdown" class="search-dropdown" style="display:none;">
+              <div class="search-dropdown-tabs">
+                <button class="search-dropdown-tab active" data-tab="sites">Sites</button>
+                <button class="search-dropdown-tab" data-tab="sampleGroups">Sample groups</button>
+                <button class="search-dropdown-tab" data-tab="datasets">Datasets</button>
+                <button class="search-dropdown-tab" data-tab="methods">Methods</button>
+              </div>
+
+              <div class="search-dropdown-panels">
+                <div class="search-dropdown-panel active" data-tab="sites">
+                  <div class="search-dropdown-panel-body"></div>
+                </div>
+                <div class="search-dropdown-panel" data-tab="sampleGroups">
+                  <div class="search-dropdown-panel-body"></div>
+                </div>
+                <div class="search-dropdown-panel" data-tab="datasets">
+                  <div class="search-dropdown-panel-body"></div>
+                </div>
+                <div class="search-dropdown-panel" data-tab="methods">
+                  <div class="search-dropdown-panel-body"></div>
+                </div>
+              </div>
+              <div class="search-dropdown-resize-handle"></div>
+            </div>
+          </div>
+
           <div id="filter-menu-container">
             <div id="filter-menu-domain-area"></div>
 

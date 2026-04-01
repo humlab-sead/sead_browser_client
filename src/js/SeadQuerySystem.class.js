@@ -23,6 +23,7 @@ import ExportManager from './ExportManager.class.js';
 import Router from './Router.class.js';
 import Tutorial from './Tutorials/Tutorial.class.js';
 import SearchManager from './SearchManager.class.js';
+import QuickstartSearch from './QuickstartSearch.class.js';
 import AIAssistant from './AIAssistant.class.js';
 import SeoManager from './SeoManager.class.js';
 import { nanoid } from 'nanoid';
@@ -506,6 +507,7 @@ class SeadQuerySystem {
 	  	this.help.setState(true);
 		this.userManager = new UserManager(this);
 		this.searchManager = new SearchManager(this);
+		this.quickstartSearch = new QuickstartSearch(this);
 
 		var auxMenuDef = {
 			anchor: "#aux-menu",
@@ -543,6 +545,7 @@ class SeadQuerySystem {
 		this.modules.push(this.seoManager);
 		this.modules.push(this.siteReportManager);
 		this.modules.push(this.searchManager);
+		this.modules.push(this.quickstartSearch);
 		this.modules.push(this.router);
 		this.modules.push(this.help);
 		for(var key in this.resultManager.modules) {
