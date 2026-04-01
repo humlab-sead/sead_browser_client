@@ -356,6 +356,13 @@ class MultiStageFacet extends Facet {
 		this.maxRowTitleLength = Math.floor($(this.domObj).innerWidth() / this.textSize);
 	}
 
+	recalculateViewportCapacity() {
+		const multiStageHeight = $(".multistage-container", this.domObj).height();
+		if (multiStageHeight > 0 && this.rowHeight > 0) {
+			this.viewportItemCapacity = Math.max(1, Math.ceil(multiStageHeight / this.rowHeight) + 1);
+		}
+	}
+
 	/*
 	* Function: updateRenderData
 	*
@@ -425,22 +432,32 @@ class MultiStageFacet extends Facet {
 
 		this.sortData(renderData, this.sortMode, this.sortDirection);
 
-		var scrollPos = this.getScrollPos();
-
-		if(this.viewportItemCapacity == 0) {
-			const multiStageHeight = $(".multistage-container", this.domObj).height();
-			this.viewportItemCapacity = Math.max(1, Math.floor(multiStageHeight / this.rowHeight));
+		var scrollContainer = $(".multistage-container", this.domObj);
+		this.recalculateViewportCapacity();
+		if(this.viewportItemCapacity <= 0) {
+			this.viewportItemCapacity = 1;
 		}
-		
-		var viewPortHeight = this.viewportItemCapacity * this.rowHeight;
-		var topBlankSpaceHeight = scrollPos;
-		var bottomBlankSpaceHeight = (renderData.length * this.rowHeight) - scrollPos - viewPortHeight;
+
+		var viewPortHeight = scrollContainer.height();
+		var currentScrollPos = this.getScrollPos();
+		var maxScrollPos = Math.max(0, (renderData.length * this.rowHeight) - viewPortHeight);
+		var scrollPos = Math.max(0, Math.min(currentScrollPos, maxScrollPos));
+		if(currentScrollPos !== scrollPos) {
+			scrollContainer.scrollTop(scrollPos);
+		}
+
+		var dataPos = Math.floor(scrollPos / this.rowHeight);
+		var topBlankSpaceHeight = dataPos * this.rowHeight;
+		var rowsToRender = Math.min(this.viewportItemCapacity, Math.max(0, renderData.length - dataPos));
+		var bottomBlankSpaceHeight = (renderData.length * this.rowHeight) - topBlankSpaceHeight - (rowsToRender * this.rowHeight);
+		if(bottomBlankSpaceHeight < 0) {
+			bottomBlankSpaceHeight = 0;
+		}
 		var topBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", topBlankSpaceHeight);
 		var bottomBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", bottomBlankSpaceHeight);
 		var out = "";
-		var dataPos = Math.ceil(scrollPos / this.rowHeight); //Changed this from floor to ceil, which fixes the last item not being rendered
 		
-		for(var i = 0; i < this.viewportItemCapacity; i++) {
+		for(var i = 0; i < rowsToRender; i++) {
 
 			if(dataPos+i < renderData.length) {
 				var dataElement = renderData[dataPos+i];
@@ -493,6 +510,9 @@ class MultiStageFacet extends Facet {
 			.append(out)
 			.append(bottomBlankSpace)
 			.show();
+		if(scrollContainer.scrollTop() !== scrollPos) {
+			scrollContainer.scrollTop(scrollPos);
+		}
 		
 		$("#"+this.getCurrentFilter().domContainerId, this.getDomRef()).find(".facet-row").on("click", (evt) => {
 			if(this.locked) {
@@ -661,7 +681,10 @@ class MultiStageFacet extends Facet {
 			$(this.domObj).css("height", facetHeight+"px");
 			$(".facet-body", this.domObj).css("height", facetBodyHeight+"px");
 		}
-		
+
+		$(this.domObj).find(".multistage-container").scrollTop(0);
+		this.recalculateViewportCapacity();
+			
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
 		this.sqs.facetManager.updateSlotSize(slotId);
 		this.sqs.facetManager.updateAllFacetPositions();
@@ -682,10 +705,9 @@ class MultiStageFacet extends Facet {
 		$(".discrete-facet-blank-space", this.getDomRef()).show();
 		$("#facet-"+this.id).css("height", this.defaultHeight);
 		$("#facet-"+this.id).find(".facet-body").css("height", this.bodyHeight);
-		//this.renderData(this.visibleData);
-		this.updateRenderData();
-		
 		$(this.domObj).find(".multistage-container").scrollTop(this.scrollPosition);
+		this.recalculateViewportCapacity();
+		this.updateRenderData();
 
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
 		this.sqs.facetManager.updateSlotSize(slotId);

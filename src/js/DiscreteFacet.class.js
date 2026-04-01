@@ -153,7 +153,7 @@ class DiscreteFacet extends Facet {
 	recalculateViewportCapacity() {
 		const listContainerHeight = $(".list-container", this.domObj).height();
 		if (listContainerHeight > 0 && this.rowHeight > 0) {
-			this.viewportItemCapacity = Math.floor(listContainerHeight / this.rowHeight) - 1;
+			this.viewportItemCapacity = Math.max(1, Math.ceil(listContainerHeight / this.rowHeight) + 1);
 			console.log("Recalculated viewportItemCapacity: " + this.viewportItemCapacity);
 		}
 	}
@@ -381,19 +381,30 @@ class DiscreteFacet extends Facet {
 
 		this.sortData(this.sortMode, this.sortDirection);
 
-		var scrollPos = this.getScrollPos();
-		
-		if(this.viewportItemCapacity == 0) {
-			this.viewportItemCapacity = Math.floor($(".list-container", this.domObj).height() / this.rowHeight) - 1; //why -1? Who knows! But it works!
+		var listContainer = $(".list-container", this.domObj);
+		this.recalculateViewportCapacity();
+		if(this.viewportItemCapacity <= 0) {
+			this.viewportItemCapacity = 1;
 		}
-		
-		var viewPortHeight = this.viewportItemCapacity * this.rowHeight;
-		var topBlankSpaceHeight = scrollPos;
-		var bottomBlankSpaceHeight = (renderData.length * this.rowHeight) - scrollPos - viewPortHeight;
+
+		var viewPortHeight = listContainer.height();
+		var currentScrollPos = this.getScrollPos();
+		var maxScrollPos = Math.max(0, (renderData.length * this.rowHeight) - viewPortHeight);
+		var scrollPos = Math.max(0, Math.min(currentScrollPos, maxScrollPos));
+		if(currentScrollPos !== scrollPos) {
+			listContainer.scrollTop(scrollPos);
+		}
+
+		var dataPos = Math.floor(scrollPos / this.rowHeight);
+		var topBlankSpaceHeight = dataPos * this.rowHeight;
+		var rowsToRender = Math.min(this.viewportItemCapacity, Math.max(0, renderData.length - dataPos));
+		var bottomBlankSpaceHeight = (renderData.length * this.rowHeight) - topBlankSpaceHeight - (rowsToRender * this.rowHeight);
+		if(bottomBlankSpaceHeight < 0) {
+			bottomBlankSpaceHeight = 0;
+		}
 		var topBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", topBlankSpaceHeight);
 		var bottomBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", bottomBlankSpaceHeight);
 		var out = "";
-		var dataPos = Math.ceil(scrollPos / this.rowHeight); //Changed this from floor to ceil, which fixes the last item not being rendered
 		/*
 		console.log("scrollPos: "+scrollPos);
 		console.log("viewPortHeight: "+viewPortHeight);
@@ -406,7 +417,7 @@ class DiscreteFacet extends Facet {
 		*/
 		let specialFunctionLinkIds = [];
 
-		for(var i = 0; i < this.viewportItemCapacity; i++) {
+		for(var i = 0; i < rowsToRender; i++) {
 
 			if(dataPos+i < renderData.length) {
 				var dataElement = renderData[dataPos+i];
@@ -448,12 +459,15 @@ class DiscreteFacet extends Facet {
 		$(".list-container-header", this.domObj).css("display", "block");
 
 		
-		$(".list-container", this.domObj)
+		listContainer
 			.html("")
 			.append(topBlankSpace)
 			.append(out)
 			.append(bottomBlankSpace)
 			.show();
+		if(listContainer.scrollTop() !== scrollPos) {
+			listContainer.scrollTop(scrollPos);
+		}
 		
 		
 		$(".facet-row", this.domObj).on("click", (evt) => {
@@ -596,6 +610,9 @@ class DiscreteFacet extends Facet {
 			$(this.domObj).css("height", facetHeight+"px");
 			$(".facet-body", this.domObj).css("height", facetBodyHeight+"px");
 		}
+
+		$(this.domObj).find(".list-container").scrollTop(0);
+		this.recalculateViewportCapacity();
 		
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
 		this.sqs.facetManager.updateSlotSize(slotId);
@@ -617,10 +634,9 @@ class DiscreteFacet extends Facet {
 		$(".discrete-facet-blank-space", this.getDomRef()).show();
 		$("#facet-"+this.id).css("height", this.defaultHeight);
 		$("#facet-"+this.id).find(".facet-body").css("height", this.bodyHeight);
-		//this.renderData(this.visibleData);
-		this.updateRenderData();
-		
 		$(this.domObj).find(".list-container").scrollTop(this.scrollPosition);
+		this.recalculateViewportCapacity();
+		this.updateRenderData();
 
 		var slotId = this.sqs.facetManager.getSlotIdByFacetId(this.id);
 		this.sqs.facetManager.updateSlotSize(slotId);
