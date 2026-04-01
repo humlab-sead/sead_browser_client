@@ -29,6 +29,7 @@ class ResultTable extends ResultModule {
 		this.hasCurrentData = false;
 		this.tooltipAnchors = [];
 		this.tabulatorTable = null;
+		this.mobileHiddenColumns = [];
 		this.data = {
 			columns: [],
 			rows: []
@@ -70,16 +71,12 @@ class ResultTable extends ResultModule {
 		}
 
 		let hideForMobile = this.isMobileMode();
-		let columns = this.tabulatorTable.getColumns();
-		columns.forEach(column => {
-			let def = column.getDefinition();
-			if(def.mobileHidden === true) {
-				if(hideForMobile) {
-					column.hide();
-				}
-				else {
-					column.show();
-				}
+		this.mobileHiddenColumns.forEach(column => {
+			if(hideForMobile) {
+				column.hide();
+			}
+			else {
+				column.show();
 			}
 		});
 	}
@@ -311,9 +308,9 @@ class ResultTable extends ResultModule {
 					</div>`;
 				}
 			},
-			{title:"Site ID", field:"site_link_filtered", widthGrow:1, hozAlign:"center", mobileHidden: true, visible: !mobileMode},
+			{title:"Site ID", field:"site_link_filtered", widthGrow:1, hozAlign:"center", visible: !mobileMode},
 			{title:"Site name", field:"sitename", tooltip: true, widthGrow:3},
-			{title:"Data points", field:"analysis_entities", widthGrow:1, mobileHidden: true, visible: !mobileMode, formatter: (cell, formatterParams, onRendered) => {
+			{title:"Data points", field:"analysis_entities", widthGrow:1, visible: !mobileMode, formatter: (cell, formatterParams, onRendered) => {
 				return `<div class='stacked-bar-outer-container'>
 				<div class='stacked-bar-container'>
 				<div class='stacked-segment' style='width: ${(cell.getValue() / maxAnalysisEntities * 100)}%;' title='${cell.getValue()}'></div>
@@ -470,6 +467,11 @@ class ResultTable extends ResultModule {
 			],
 			selectable: true,
 			columns: tableColumns,
+		});
+
+		let mobileHiddenColumnTitles = ["Site ID", "Data points"];
+		this.mobileHiddenColumns = this.tabulatorTable.getColumns().filter(column => {
+			return mobileHiddenColumnTitles.includes(column.getDefinition().title);
 		});
 
 		/* this is a hack to make resize of the table work, and it works, but it's inefficient since it re-fetches the dynamic columns
@@ -647,6 +649,7 @@ class ResultTable extends ResultModule {
 			this.tabulatorTable.destroy();
 			this.tabulatorTable = null;
 		}
+		this.mobileHiddenColumns = [];
 		$('#result-table-container').html("");
 		$("#result-table-container").hide();
 
