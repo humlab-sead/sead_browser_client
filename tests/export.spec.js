@@ -21,8 +21,7 @@ test.describe('CSV Export Functionality', () => {
     // Test for each site ID
     for (const siteId of siteIdsToTest) {
         test(`should successfully export CSV for site ${siteId}`, async ({ page }) => {
-            const baseUrl = 'http://localhost:8081/site/'; // Adjust if your local setup is different
-            const siteUrl = `${baseUrl}${siteId}`;
+            const siteUrl = `/site/${siteId}`;
 
             console.log(`Navigating to: ${siteUrl}`);
             await page.goto(siteUrl);
