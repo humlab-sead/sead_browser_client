@@ -160,6 +160,24 @@ div:focus {
 #search-container {
   position: relative;
   padding: 0 1em 0.8em 1em;
+  top: 0.25em;
+}
+
+#search-container > h3 {
+  font-size: 1.0em;
+  margin-top: .1em;
+  margin-bottom: 0.1em;
+  margin-left: 0.5em;
+  color: #444;
+
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  background: #fff; /* match parent background */
+  padding: 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
 }
 
 #search-container .search-input-row {
@@ -790,7 +808,9 @@ body.facet-resizing * {
 
 .facet-header {
 	display:flex;
+  align-items: center;
 	cursor:move;
+  position: relative;
   background: colors.$inactive-color;
   color: #fff;
 }
@@ -812,6 +832,27 @@ body.facet-resizing * {
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+}
+
+.facet-selection-count {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 120ms ease, opacity 120ms ease;
+  opacity: 0.9;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.facet-selection-count:hover {
+  color: #fff;
+  opacity: 1;
 }
 
 .facet-title-back-button {

@@ -24,6 +24,8 @@ class DiscreteFacet extends Facet {
 		this.sortDirection = "asc";
 
 		//$(".facet-sort-alpha-btn > span", this.getDomRef()).text(this.title);
+		this.ensureSelectionCountNode();
+		this.updateSelectionCountLabel();
 		
 		this.sqs.tooltipManager.registerTooltip($(".facet-sort-alpha-btn", this.getDomRef()), "Sort by name");
 		this.sqs.tooltipManager.registerTooltip($(".facet-sort-num-btn", this.getDomRef()), "Sort by number of data points. This is an indication of how much data we have related to this entry.");
@@ -215,6 +217,7 @@ class DiscreteFacet extends Facet {
 			
 			this.broadcastSelection();
 		}
+		this.updateSelectionCountLabel();
 	}
 
 	selectionsAreEqual(selectionsA, selectionsB) {
@@ -262,6 +265,7 @@ class DiscreteFacet extends Facet {
 		});
 		
 		this.selections = [];
+		this.updateSelectionCountLabel();
 	}
 	
 	/*
@@ -506,6 +510,24 @@ class DiscreteFacet extends Facet {
 		}
 	}
 
+	ensureSelectionCountNode() {
+		if($(".facet-selection-count", this.getDomRef()).length == 0) {
+			const selectionCountNode = $("<div class='facet-selection-count'></div>");
+			selectionCountNode.on("click", (evt) => {
+				evt.stopPropagation();
+				$(".facet-size-btn", this.getDomRef()).trigger("click");
+			});
+			$(".facet-header", this.getDomRef()).append(selectionCountNode);
+		}
+	}
+
+	updateSelectionCountLabel() {
+		this.ensureSelectionCountNode();
+		const count = this.selections.length;
+		const selectionText = count == 1 ? "selection" : "selections";
+		$(".facet-selection-count", this.getDomRef()).text(count+" "+selectionText);
+	}
+
 
 	/*
 	* Function: renderSelections
@@ -552,6 +574,7 @@ class DiscreteFacet extends Facet {
 			this.addSelection(rowId);
 			//this.setSelections([rowId], true);
 		}
+		this.updateSelectionCountLabel();
 
 		if(this.minimized) {
 			console.log("re-rendering data");
@@ -725,6 +748,7 @@ class DiscreteFacet extends Facet {
 				}
 			}
 		}
+		this.updateSelectionCountLabel();
 		
 		return this.data;
 	}
