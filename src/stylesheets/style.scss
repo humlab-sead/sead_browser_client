@@ -5874,9 +5874,15 @@ table.site-report-table > tbody > tr.site-report-table-row-with-subtable:hover >
   background-color: colors.$pane-bg-color;
 }
 
-table.site-report-table tr.table-row-expanded > td {
+$site-report-expanded-row-hover-color: color.adjust(colors.$sead-brown, $lightness: 12%);
+
+table.site-report-table > tbody > tr.site-report-table-row-with-subtable.table-row-expanded > td {
   background-color: colors.$sead-brown !important;
   color: #fff !important;
+}
+
+table.site-report-table > tbody > tr.site-report-table-row-with-subtable.table-row-expanded:hover > td {
+  background-color: $site-report-expanded-row-hover-color !important;
 }
 
 .site-report-table tbody th, table.dataTable tbody td {
@@ -5894,14 +5900,18 @@ thead > tr > td {
   color: #0f172a;
 }
 
-.site-report-table tbody .site-report-table-row-with-subtable td {
+.site-report-table tbody .site-report-table-row-with-subtable:not(.table-row-expanded) td {
   background-color: #fff !important;
   color: #0f172a !important;
 }
 
-tr.site-report-table-row-with-subtable:hover td {
+tr.site-report-table-row-with-subtable:not(.table-row-expanded):hover td {
   cursor: pointer;
   background-color: #eef6ff !important;
+}
+
+tr.site-report-table-row-with-subtable.table-row-expanded:hover td {
+  cursor: pointer;
 }
 
 tr.site-report-table-row > td {
@@ -5959,6 +5969,10 @@ tr.site-report-table-row > td {
   border-top: none;
   border-bottom: 1px solid #e5e7eb;
   border-left: solid 6px colors.$sead-brown;
+}
+
+.site-report-table tbody tr.site-report-table-row-with-subtable.table-row-expanded:hover + tr.site-report-subtable-row > td {
+  border-left-color: $site-report-expanded-row-hover-color;
 }
 
 /* Indent the subtable container inside the row */
@@ -6376,7 +6390,7 @@ tr.site-report-table-row > td {
   padding-top: 0.2em;
   padding-bottom: 0.2em;
   font-size: 0.8em;
-  border-left: 0.3em solid #aaa;
+  border: 1px solid #fff;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -6387,7 +6401,7 @@ tr.site-report-table-row > td {
 
 .sample-group-analysis-tag:hover {
   background: color.adjust(#eee, $lightness: 10%);
-  border-left: 0.3em solid colors.$aux-color;
+  border: 1px solid colors.$aux-color;
 }
 
 .site-report-reference-title {

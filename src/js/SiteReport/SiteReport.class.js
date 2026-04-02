@@ -166,8 +166,9 @@ class SiteReport {
 	}
 
 	async fetchSite() {
-		let noCache = "false";
-		return await $.get(Config.dataServerAddress+"/site/"+this.siteId+"/"+noCache);
+		const noCache = "false"; //tell the serveer to not use a cached response
+		const postgresFetch = "false"; //tell the server to use an SQL query against postgres instead of mongodb
+		return await $.get(Config.dataServerAddress+"/site/"+this.siteId+"/"+noCache+"/"+postgresFetch);
 	}
 
 	getModuleByName(moduleName) {

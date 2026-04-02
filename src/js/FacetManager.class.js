@@ -1330,7 +1330,28 @@ class FacetManager {
 			}
 		}
 
+		const compareByTitle = (itemA, itemB) => {
+			let titleA = typeof itemA.title == "string" ? itemA.title : "";
+			let titleB = typeof itemB.title == "string" ? itemB.title : "";
+			return titleA.localeCompare(titleB, undefined, { sensitivity: "base" });
+		};
+
+		const capitalizeFirstLetter = (text) => {
+			if(typeof text != "string" || text.length == 0) {
+				return "";
+			}
+			return text.charAt(0).toUpperCase()+text.slice(1);
+		};
+
+		facetDef.sort((groupA, groupB) => {
+			return compareByTitle(groupA, groupB);
+		});
+
 		for(var gk in facetDef) {
+			facetDef[gk].filters.sort((filterA, filterB) => {
+				return compareByTitle(filterA, filterB);
+			});
+
 			var facetGroup = {
 				name: facetDef[gk].name,
 				title: facetDef[gk].title,
@@ -1356,7 +1377,7 @@ class FacetManager {
 
 				facetGroup.children.push({
 					name: facetDef[gk].filters[fk].name,
-					title: "<div>"+icon+" "+facetDef[gk].filters[fk].title+"</div>",
+					title: "<div>"+icon+" "+capitalizeFirstLetter(facetDef[gk].filters[fk].title)+"</div>",
 					tooltip: facetDef[gk].filters[fk].description,
 					callback: (() => { //This is a self-executing function that returns a function (which is the callback)
 						let facetName = facetDef[gk].filters[fk].name;

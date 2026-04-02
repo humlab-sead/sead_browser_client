@@ -570,7 +570,7 @@ class QuickstartSearch {
             if(typeof item.score !== "undefined" && item.score !== null && item.score !== "") {
                 const numericScore = Number(item.score);
                 const scoreText = Number.isFinite(numericScore) ? numericScore.toFixed(3) : item.score;
-                metaParts.push("Score: "+scoreText);
+                //metaParts.push("Score: "+scoreText);
             }
 
             return {
@@ -967,7 +967,7 @@ class QuickstartSearch {
             }
             $actions.append($goToSiteBtn);
 
-            const $deployFilterBtn = $("<button type='button' class='search-dropdown-item-action-btn search-dropdown-item-action-btn-secondary'></button>").text("Apply filter");
+            const $deployFilterBtn = $("<button type='button' class='search-dropdown-item-action-btn search-dropdown-item-action-btn-secondary'></button>").text("Apply as filter");
             const canDeployFilter = resultItem.categoryId !== null && !!resultItem.facetCode;
             if(canDeployFilter) {
                 $deployFilterBtn.on("click", async (evt) => {
