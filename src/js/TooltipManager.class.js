@@ -1,9 +1,4 @@
-//import Popper from "@popperjs/core";
-import { createPopper } from "@popperjs/core";
-import preventOverflow from '@popperjs/core/lib/modifiers/preventOverflow.js';
-import flip from '@popperjs/core/lib/modifiers/flip.js';
-import hide from '@popperjs/core/lib/modifiers/hide.js';
-import offset from '@popperjs/core/lib/modifiers/offset.js';
+import { computePosition, autoUpdate, arrow, flip, shift, offset, hide } from "@floating-ui/dom";
 import { nanoid } from "nanoid";
 /*
 * Class: TooltipManager
@@ -36,25 +31,7 @@ class TooltipManager {
 			html: true,
 			placement: "top",
 			highlightAnchor: false,
-			modifiers: [preventOverflow, flip],
-			/*
-			modifiers: {
-				offset: {
-					enabled: false,
-					offset: "0, 0"
-				},
-				flip: {
-					behavior: ["left", "right", "top", "bottom"],
-					enabled: true
-				},
-				preventOverflow: {
-					enabled: false
-				},
-				hide: {
-					enabled: false
-				}
-			}
-			*/
+			middleware: [offset(9), flip({ padding: 8 }), shift({ padding: 8 }), hide()],
 		};
 		
 		/*
@@ -97,7 +74,7 @@ class TooltipManager {
 			"id": tooltipId,
 			"anchor": anchor,
 			"msg": msg,
-			"options": Object.assign(JSON.parse(JSON.stringify(this.defaultOptions)), options),
+			"options": Object.assign({}, this.defaultOptions, options),
 			"attached": false,
 			"attachmentAttemtps": 0,
 		};
@@ -199,7 +176,13 @@ class TooltipManager {
 		
 		$(tooltip.anchor).attr("tooltip-anchor-id", tooltip.id);
 
-		tooltip.tooltipNode = $("<div class='popper' style='display:none;'>"+tooltip.msg+"</div>")[0];
+		tooltip.tooltipNode = $(`<div class='popper' data-state='closed' data-side='top' data-visibility='visible' style='display:none; position:absolute; top:0; left:0;'>`+tooltip.msg+`</div>`)[0];
+
+		if(tooltip.options.arrow) {
+			tooltip.arrowNode = $("<div class='popper-arrow'></div>")[0];
+			$(tooltip.tooltipNode).append(tooltip.arrowNode);
+		}
+
 		$("body").append(tooltip.tooltipNode);
 		//new Popper(tooltip.anchor, tooltip.tooltipNode, tooltip.options);
 		
@@ -216,16 +199,17 @@ class TooltipManager {
 				anchor = symbol;
 			}
 		}
+		tooltip.referenceNode = $(anchor)[0];
 
 		//new Popper(tooltip.anchor, tooltip.tooltipNode, tooltip.options);
 		
-		$(anchor).on("mouseover", (evt) => {
+		$(anchor).on("mouseenter focusin", (evt) => {
 			var tooltip = this.getTooltipById($(evt.currentTarget).attr("tooltip-anchor-id"));
 			if(!tooltip.rendered) {
 				this.renderTooltip(tooltip);
 			}
 		});
-		$(anchor).on("mouseout", (evt) => {
+		$(anchor).on("mouseleave focusout", (evt) => {
 			var tooltip = this.getTooltipById($(evt.currentTarget).attr("tooltip-anchor-id"));
 			if(!tooltip.sticky) {
 				this.unRenderTooltip(tooltip);
@@ -245,13 +229,75 @@ class TooltipManager {
 		if(tooltip.options.highlightAnchor) {
 			$(tooltip.anchor).addClass("tooltip-anchor-highlight");
 		}
-		//var popper = new Popper($(tooltip.anchor)[0], tooltip.tooltipNode, tooltip.options);
-		var popper = createPopper($(tooltip.anchor)[0], tooltip.tooltipNode, tooltip.options);
-		tooltip.sticky = sticky;
-		tooltip.popper = popper;
-		tooltip.rendered = true;
+
+		if(tooltip.hideTimeout) {
+			clearTimeout(tooltip.hideTimeout);
+			tooltip.hideTimeout = undefined;
+		}
+
 		$(tooltip.tooltipNode).show();
-		tooltip.popper.update();
+		$(tooltip.tooltipNode).attr("data-visibility", "visible");
+		$(tooltip.tooltipNode).attr("data-state", "closed");
+
+		tooltip.sticky = sticky;
+		tooltip.rendered = true;
+
+		requestAnimationFrame(() => {
+			if(tooltip.rendered) {
+				$(tooltip.tooltipNode).attr("data-state", "open");
+			}
+		});
+
+		const referenceEl = tooltip.referenceNode || $(tooltip.anchor)[0];
+		const floatingEl = tooltip.tooltipNode;
+		const tooltipMiddleware = Array.isArray(tooltip.options.middleware) ? [...tooltip.options.middleware] : [];
+		if(tooltip.arrowNode) {
+			tooltipMiddleware.push(arrow({ element: tooltip.arrowNode }));
+		}
+
+		const updatePosition = () => {
+			computePosition(referenceEl, floatingEl, {
+				placement: tooltip.options.placement || 'top',
+				middleware: tooltipMiddleware,
+			}).then(({x, y, placement, middlewareData}) => {
+				Object.assign(floatingEl.style, { left: `${x}px`, top: `${y}px` });
+
+				const side = placement.split("-")[0];
+				$(floatingEl).attr("data-side", side);
+
+				if(middlewareData.hide) {
+					if(middlewareData.hide.referenceHidden || middlewareData.hide.escaped) {
+						$(floatingEl).attr("data-visibility", "hidden");
+					}
+					else {
+						$(floatingEl).attr("data-visibility", "visible");
+					}
+				}
+
+				if(tooltip.arrowNode && middlewareData.arrow) {
+					const staticSide = {
+						top: "bottom",
+						right: "left",
+						bottom: "top",
+						left: "right",
+					}[side];
+
+					Object.assign(tooltip.arrowNode.style, {
+						left: middlewareData.arrow.x != null ? `${middlewareData.arrow.x}px` : "",
+						top: middlewareData.arrow.y != null ? `${middlewareData.arrow.y}px` : "",
+						right: "",
+						bottom: "",
+					});
+
+					if(staticSide) {
+						tooltip.arrowNode.style[staticSide] = "-6px";
+					}
+				}
+			});
+		};
+
+		updatePosition();
+		tooltip.floatingCleanup = autoUpdate(referenceEl, floatingEl, updatePosition);
 	}
 	
 	/*
@@ -263,15 +309,17 @@ class TooltipManager {
 			$(tooltip.anchor).removeClass("tooltip-anchor-highlight");
 		}
 		tooltip.rendered = false;
-		if(typeof(tooltip.popper) == "undefined") { //This should never happen, but it does...
-			//console.log("Tooltip popper was undefined!");
-			//console.log(tooltip);
+		if(typeof tooltip.floatingCleanup === "function") {
+			tooltip.floatingCleanup();
+			tooltip.floatingCleanup = undefined;
 		}
-		else {
-			tooltip.popper.destroy();
-		}
-		
-		$(tooltip.tooltipNode).hide();
+		$(tooltip.tooltipNode).attr("data-state", "closed");
+		tooltip.hideTimeout = setTimeout(() => {
+			if(!tooltip.rendered) {
+				$(tooltip.tooltipNode).hide();
+				$(tooltip.tooltipNode).attr("data-visibility", "visible");
+			}
+		}, 140);
 	}
 	
 	/*
