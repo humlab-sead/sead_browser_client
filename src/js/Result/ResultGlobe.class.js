@@ -1,4 +1,5 @@
 import ResultModule from './ResultModule.class.js'
+import Config from '../../config/config.json';
 import "../../../node_modules/cesium/Build/Cesium/Widgets/widgets.css";
 
 /*
@@ -13,6 +14,26 @@ class ResultGlobe extends ResultModule {
 		this.prettyName = "Globe";
 		this.icon = "<i class='fa fa-globe'></i>";
 		this.experimental = true;
+		this.mode = null; // Will be set based on active domain
+		this.currentVariable = null; // Currently selected variable
+		this.cylinderBaseRadius = 8000;
+		this.cylinderMinRadius = 1500;
+		this.cylinderMaxRadius = 40000;
+		this.cylinderReferenceHeight = 5000000;
+		this.cylinderRadiusListenerAttached = false;
+
+		// Available dendro variables
+		this.dendroVariables = [
+			{ name: "Tree age ≥", type: "numeric", description: "Youngest tree age" },
+			{ name: "Tree age ≤", type: "numeric", description: "Oldest tree age" },
+			{ name: "Tree species", type: "categorical", description: "Tree species distribution" },
+			{ name: "Sapwood (Sp)", type: "numeric", description: "Number of sapwood rings" },
+			{ name: "Pith (P)", type: "numeric", description: "Pith presence" },
+			{ name: "Tree rings", type: "numeric", description: "Number of tree rings" },
+			{ name: "Number of analysed radii.", type: "numeric", description: "Analysed radii count" },
+			{ name: "Bark (B)", type: "binary", description: "Bark presence" },
+			{ name: "Waney edge (W)", type: "ternary", description: "Waney edge presence" }
+		];
 
 		$(this.renderIntoNode).append("<div class='result-globe-render-container'></div>");
 		$(".result-globe-render-container", this.renderIntoNode).css("height", "100%");
@@ -23,6 +44,14 @@ class ResultGlobe extends ResultModule {
 	update() {
 		console.log("ResultGlobe.update()");
 		this.render();
+	}
+
+	getVisualizationMode() {
+		const activeDomain = this.sqs.domainManager.getActiveDomain();
+		if (activeDomain.name === "dendrochronology") {
+			return "dendro";
+		}
+		return "ecocodes";
 	}
 
 	isVisible() {
@@ -38,12 +67,21 @@ class ResultGlobe extends ResultModule {
 		import("cesium").then(Cesium => {
 			this.cesium = Cesium;
 			Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0NjcwNWEyNi1jMWY0LTRkY2ItYTNjOC1jYzRmOGY5YjFiZGEiLCJpZCI6MjQ0NjAyLCJpYXQiOjE3Mjc0NDUxNTR9.vzRMNvNDlL_FlLsFoB-yc1bNWQdbbpjJ3AJ19jr8_os';
-			const { Color, Viewer, Cartesian3, Cartesian2, LabelStyle, VerticalOrigin, HeightReference } = Cesium;
+			const { Color, Viewer, Cartesian3, Cartesian2, LabelStyle, VerticalOrigin, HeightReference, UrlTemplateImageryProvider, Credit } = Cesium;
 		
 			this.viewer = new Viewer($(this.renderIntoNode).attr("id"), {
 				animation: false,
 				timeline: false,
+				baseLayerPicker: false,
+				imageryProvider: false, // Disable default imagery
 			});
+
+			// Add Stamen Terrain layer with labels
+			const terrainImageryProvider = new UrlTemplateImageryProvider({
+				url: 'https://tiles-eu.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png',
+				credit: new Credit('&copy; <a href="https://www.stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a>, &copy; <a href="https://www.openstreetmap.org/about/">OpenStreetMap contributors</a>, &copy; <a href="https://stamen.com/">Stamen Design</a>')
+			});
+			this.viewer.imageryLayers.addImageryProvider(terrainImageryProvider);
 
 			this.viewer.scene.skyBox = null;  // Remove stars/spacebox
 			this.viewer.scene.skyAtmosphere = null;  // Remove blue atmospheric glow
@@ -53,21 +91,38 @@ class ResultGlobe extends ResultModule {
 			this.viewer.camera.setView({
 				destination: Cartesian3.fromDegrees(10.0, 50.0, 5000000) // (lon, lat, height in meters)
 			});
+			this.cylinderReferenceHeight = 5000000;
 			
-			$(this.renderIntoNode).append(`
-				<div id='result-globe-control-panel'>
-				<h3>Eco codes</h3>
+			const mode = this.getVisualizationMode();
+			this.mode = mode;
 
-				<label>Ecocode calculated by:</label><br />
-				<select id='result-globe-ecocode-calculation'>
-					<option value='abundance'>Abundance of all taxa related to ecocode</option>
-					<option value='taxa'>Number of unique taxa related to ecocode</option>
-				</select>
-				
-				<ul id='result-globe-ecocode-list'>
-				</ul>
-				</div>
+			if (mode === "ecocodes") {
+				$(this.renderIntoNode).append(`
+					<div id='result-globe-control-panel'>
+					<h3>Eco codes</h3>
+
+					<label>Ecocode calculated by:</label><br />
+					<select id='result-globe-ecocode-calculation'>
+						<option value='abundance'>Abundance of all taxa related to ecocode</option>
+						<option value='taxa'>Number of unique taxa related to ecocode</option>
+					</select>
+					
+					<ul id='result-globe-ecocode-list'>
+					</ul>
+					</div>
 				`);
+			} else if (mode === "dendro") {
+				$(this.renderIntoNode).append(`
+					<div id='result-globe-control-panel'>
+					<h3>Dendrochronological Variables</h3>
+
+					<label>Select variable to visualize:</label><br />
+					
+					<ul id='result-globe-variable-list'>
+					</ul>
+					</div>
+				`);
+			}
 
 			if(fetch) {
 				this.fetchData().then((data, textStatus, xhr) => {
@@ -120,7 +175,16 @@ class ResultGlobe extends ResultModule {
 	}
 
 	async renderControlPanel(data) {
+		const mode = this.getVisualizationMode();
 
+		if (mode === "ecocodes") {
+			this.renderEcoCodesControlPanel(data);
+		} else if (mode === "dendro") {
+			this.renderDendroControlPanel(data);
+		}
+	}
+
+	async renderEcoCodesControlPanel(data) {
 		$("#result-globe-ecocode-calculation").on("change", (evt) => {
 			const selectedEcocode = $("input[name='ecocode']:checked").val();
 			const selectedCalculation = $(evt.target).val();
@@ -138,8 +202,6 @@ class ResultGlobe extends ResultModule {
 					${ecocode.name}
 				</li>
 			`);
-
-			// Bind the change event to all radio buttons after they are added to the DOM
 		}
 
 		$("input[name='ecocode']").on("change", (evt) => {
@@ -160,9 +222,27 @@ class ResultGlobe extends ResultModule {
 					console.error("Error fetching ecocodes for result globe: ", textStatus, respData);
 				}
 			});
-			
 		});
+	}
+
+	async renderDendroControlPanel(data) {
+		$("#result-globe-variable-list").html("");
 		
+		this.dendroVariables.forEach(variable => {
+			$("#result-globe-variable-list").append(`
+				<li>
+					<input value='${variable.name}' type='radio' name='dendro-variable' />
+					${variable.name}
+					<span class='variable-description'>${variable.description}</span>
+				</li>
+			`);
+		});
+
+		$("input[name='dendro-variable']").on("change", async (evt) => {
+			const selectedVariable = $(evt.target).val();
+			this.currentVariable = selectedVariable;
+			await this.fetchAndRenderDendroVariable(selectedVariable);
+		});
 	}
 
 	renderBars(selectedEcocode, selectedCalculationMode, ecoCodeData = null) {
@@ -172,20 +252,9 @@ class ResultGlobe extends ResultModule {
 			this.ecoCodeData = ecoCodeData;
 		}
 
-		let removedBars = 0;
-		const entities = this.viewer.entities.values;
-
-		for (let i = entities.length - 1; i >= 0; i--) {
-			const entity = entities[i];
-			if (
-				entity.properties &&
-				entity.properties.entityType &&
-				entity.properties.entityType.getValue() === 'ecocodeBar'
-			) {
-				this.viewer.entities.remove(entity);
-				removedBars++;
-			}
-		}
+		// Use the new removeAllBars method
+		this.removeAllBars();
+		this.attachCylinderRadiusListener();
 
 		let siteIdKey = null;
 		let siteNameKey = null;
@@ -247,6 +316,7 @@ class ResultGlobe extends ResultModule {
 			else {
 				height = (siteEcocodeData.taxaCount / maxTotalTaxa) * 1000000; // Height of the cylinder (proportional to the value
 			}
+			const radius = this.getScaledCylinderRadius();
 			this.viewer.entities.add({
 				properties: {
 					entityType: 'ecocodeBar'
@@ -254,8 +324,8 @@ class ResultGlobe extends ResultModule {
 				position: Cartesian3.fromDegrees(siteLng, siteLat, height / 2),  // Convert lat/lng to Cartesian3
 				cylinder: {
 					length: height, // The height of the cylinder (proportional to the value)
-					topRadius: 8000, // Radius of the top of the cylinder
-					bottomRadius: 8000, // Radius of the bottom of the cylinder
+					topRadius: radius, // Radius of the top of the cylinder
+					bottomRadius: radius, // Radius of the bottom of the cylinder
 					material: Color.fromBytes(ecocodeColorRgb.red*255, ecocodeColorRgb.green*255, ecocodeColorRgb.blue*255, 255), // Color of the cylinder
 					verticalOrigin: VerticalOrigin.BOTTOM,
 					HeightReference: HeightReference.CLAMP_TO_GROUND
@@ -264,30 +334,449 @@ class ResultGlobe extends ResultModule {
 
 		});
 
-		/*
-		this.viewer.scene.postRender.addEventListener(() => {
-			this.updateCylinderRadius();
+		this.updateBarRadii();
+	}
+
+	getScaledCylinderRadius() {
+		if (!this.viewer || !this.viewer.camera || !this.viewer.camera.positionCartographic) {
+			return this.cylinderBaseRadius;
+		}
+
+		const cameraHeight = this.viewer.camera.positionCartographic.height || this.cylinderReferenceHeight;
+		const referenceHeight = this.cylinderReferenceHeight || cameraHeight;
+		const scale = referenceHeight > 0 ? cameraHeight / referenceHeight : 1;
+		const radius = this.cylinderBaseRadius * scale;
+
+		return Math.min(this.cylinderMaxRadius, Math.max(this.cylinderMinRadius, radius));
+	}
+
+	attachCylinderRadiusListener() {
+		if (!this.viewer || this.cylinderRadiusListenerAttached) {
+			return;
+		}
+
+		this.cylinderRadiusListenerAttached = true;
+		this.viewer.camera.changed.addEventListener(() => {
+			this.updateBarRadii();
 		});
-		*/
+	}
+
+	updateBarRadii() {
+		if (!this.viewer) {
+			return;
+		}
+
+		const radius = this.getScaledCylinderRadius();
+
+		this.viewer.entities.values.forEach(entity => {
+			if (!entity.cylinder || !entity.properties || !entity.properties.entityType) {
+				return;
+			}
+
+			const entityType = entity.properties.entityType.getValue(this.viewer.clock.currentTime);
+			if (entityType !== 'ecocodeBar' && entityType !== 'dendroBar') {
+				return;
+			}
+
+			entity.cylinder.topRadius = radius;
+			entity.cylinder.bottomRadius = radius;
+		});
 	}
 
 	updateCylinderRadius() {
-		const cameraPosition = this.viewer.camera.positionWC;
+		this.updateBarRadii();
+	}
 
-		// Loop through all entities and apply changes only to non-siteCircle entities
-		this.viewer.entities.values.forEach(entity => {
-			if (entity.entityType !== 'siteCircle' && entity.cylinder) {  // Ignore siteCircle entities
-				const cylinderPosition = entity.position.getValue(this.viewer.clock.currentTime);
+	renderDendroBars(variableName, dendroData, variableConfig) {
+		const { Color, Cartesian3, VerticalOrigin, HeightReference } = this.cesium;
 
-				// Calculate distance between the camera and the cylinder
-				const distance = Cartesian3.distance(cameraPosition, cylinderPosition);
+		console.log("Rendering dendro bars for variable:", variableName, "with data:", dendroData, "and config:", variableConfig);
 
-				// Adjust the radius dynamically based on the distance
-				const scaleFactor = distance * 0.000005;  // Adjust this factor for your needs
-				entity.cylinder.topRadius = scaleFactor;
-				entity.cylinder.bottomRadius = scaleFactor;
+		// dendroData has structure: { categories: [{site_id, average, count}] }
+		// Each entry represents one site with the average value and sample count for this variable
+
+		let siteIdKey = null;
+		let lngKey = null;
+		let latKey = null;
+
+		this.data.Meta.Columns.forEach((column, index) => {
+			if(column.FieldKey == "category_id") {
+				siteIdKey = index;
+			}
+			if(column.FieldKey == "longitude_dd") {
+				lngKey = index;
+			}
+			if(column.FieldKey == "latitude_dd") {
+				latKey = index;
 			}
 		});
+
+		// Find max value for scaling
+		let maxValue = 0;
+		dendroData.categories.forEach(cat => {
+			const value = variableConfig.type === "numeric" ? cat.average : cat.count;
+			if (value > maxValue) {
+				maxValue = value;
+			}
+		});
+
+		// Render bars for each site
+		dendroData.categories.forEach(cat => {
+			const siteId = cat.site_id;
+			const site = this.data.Data.DataCollection.find(s => s[siteIdKey] == siteId);
+			
+			if (!site) {
+				console.warn("Site not found for site_id:", siteId);
+				return;
+			}
+
+			const siteLat = site[latKey];
+			const siteLng = site[lngKey];
+
+			// For numeric variables, use average; for categorical, use count
+			const displayValue = variableConfig.type === "numeric" ? cat.average : cat.count;
+			const height = maxValue > 0 ? (displayValue / maxValue) * 1000000 : 0;
+			
+			const radius = this.getScaledCylinderRadius();
+			this.viewer.entities.add({
+				properties: {
+					entityType: 'dendroBar'
+				},
+				position: Cartesian3.fromDegrees(siteLng, siteLat, height / 2),
+				cylinder: {
+					length: height,
+					topRadius: radius,
+					bottomRadius: radius,
+					material: Color.fromBytes(0, 128, 255, 255),
+					verticalOrigin: VerticalOrigin.BOTTOM,
+					HeightReference: HeightReference.CLAMP_TO_GROUND
+				}
+			});
+
+			console.log(`Rendered bar for site_id ${siteId} at (${siteLat}, ${siteLng}) with height ${height} based on ${variableConfig.type === "numeric" ? "average" : "count"}: ${displayValue}`);
+		});
+	}
+
+	renderCategoricalBars(variableName, siteData, variableConfig) {
+		const { Color, Cartesian3, VerticalOrigin, HeightReference } = this.cesium;
+
+		let siteIdKey = null;
+		let lngKey = null;
+		let latKey = null;
+
+		this.data.Meta.Columns.forEach((column, index) => {
+			if(column.FieldKey == "category_id") {
+				siteIdKey = index;
+			}
+			if(column.FieldKey == "longitude_dd") {
+				lngKey = index;
+			}
+			if(column.FieldKey == "latitude_dd") {
+				latKey = index;
+			}
+		});
+
+		// siteData is a Map of siteId -> { category: count }
+		// For binary: {Yes: count, No: count}
+		// For ternary: {Yes: count, No: count, Maybe: count}
+
+		// Find max count for scaling
+		let maxCount = 0;
+		siteData.forEach(categories => {
+			Object.values(categories).forEach(count => {
+				if (count > maxCount) maxCount = count;
+			});
+		});
+
+		// Color mapping
+		const colorMap = {
+			'Yes': Color.fromBytes(0, 200, 0, 255),
+			'No': Color.fromBytes(200, 0, 0, 255),
+			'Maybe': Color.fromBytes(128, 128, 128, 255)
+		};
+
+		// Render bars for each site
+		siteData.forEach((categories, siteId) => {
+			const site = this.data.Data.DataCollection.find(s => s[siteIdKey] == siteId);
+			if (!site) return;
+
+			const siteLat = site[latKey];
+			const siteLng = site[lngKey];
+
+			// Get the dominant category (highest count)
+			let dominantCategory = null;
+			let dominantCount = 0;
+			Object.entries(categories).forEach(([category, count]) => {
+				if (count > dominantCount) {
+					dominantCount = count;
+					dominantCategory = category;
+				}
+			});
+
+			if (!dominantCategory) return;
+
+			const height = maxCount > 0 ? (dominantCount / maxCount) * 1000000 : 0;
+			const color = colorMap[dominantCategory] || Color.fromBytes(128, 128, 255, 255);
+
+			const radius = this.getScaledCylinderRadius();
+			this.viewer.entities.add({
+				properties: {
+					entityType: 'dendroBar'
+				},
+				position: Cartesian3.fromDegrees(siteLng, siteLat, height / 2),
+				cylinder: {
+					length: height,
+					topRadius: radius,
+					bottomRadius: radius,
+					material: color,
+					verticalOrigin: VerticalOrigin.BOTTOM,
+					HeightReference: HeightReference.CLAMP_TO_GROUND
+				}
+			});
+		});
+	}
+
+	async fetchAndRenderDendroVariable(variableName) {
+		// Remove existing bars
+		this.removeAllBars();
+
+		// Find variable config to determine type
+		const variableConfig = this.dendroVariables.find(v => v.name === variableName);
+		if (!variableConfig) {
+			console.error("Variable configuration not found:", variableName);
+			return;
+		}
+
+		let siteIds = this.data.Data.DataCollection.map(site => site[0]);
+		
+		// For categorical variables (including binary and ternary), use variablepersite/categorical
+		// For numeric variables, use variablepersite/average
+		if (variableConfig.type === "binary" || variableConfig.type === "ternary" || variableConfig.type === "categorical") {
+			console.log("Fetching categorical variable data for:", variableName);
+			await this.fetchAndRenderCategoricalVariable(variableName, variableConfig, siteIds);
+		} else {
+			console.log("Fetching numeric variable data for:", variableName);
+			await this.fetchAndRenderNumericCategoricalVariable(variableName, variableConfig, siteIds);
+		}
+	}
+
+	async fetchAndRenderNumericCategoricalVariable(variableName, variableConfig, siteIds) {
+		const requestBody = {
+			sites: siteIds,
+			requestId: ++this.requestId,
+			variable: variableName
+		};
+
+		try {
+			const response = await fetch(Config.dataServerAddress + "/dendro/variablepersite/average", {
+				method: "POST",
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				console.error("Error fetching dendro variable data, status:", response.status);
+				return;
+			}
+
+			const dendroData = await response.json();
+			
+			if (!dendroData || !dendroData.categories || dendroData.categories.length === 0) {
+				console.warn("No data available for variable:", variableName);
+				return;
+			}
+
+			this.renderDendroBars(variableName, dendroData, variableConfig);
+
+		} catch(error) {
+			console.error("Error fetching dendro variable:", error);
+		}
+	}
+
+	async fetchAndRenderCategoricalVariable(variableName, variableConfig, siteIds) {
+		const requestBody = {
+			sites: siteIds,
+			requestId: ++this.requestId,
+			variable: variableName
+		};
+
+		try {
+			const response = await fetch(Config.dataServerAddress + "/dendro/variablepersite/categorical", {
+				method: "POST",
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				console.error("Error fetching dendro variable data, status:", response.status);
+				return;
+			}
+
+			const rawData = await response.json();
+			
+			if (!rawData || !rawData.categories || rawData.categories.length === 0) {
+				console.warn("No data available for variable:", variableName);
+				return;
+			}
+
+			// Process raw data to categorize per site
+			const siteData = this.processCategoricalData(rawData, variableConfig, variableName);
+			this.renderCategoricalBars(variableName, siteData, variableConfig);
+
+		} catch(error) {
+			console.error("Error fetching dendro variable:", error);
+		}
+	}
+
+	processCategoricalData(rawData, variableConfig, variableName) {
+		const siteCategories = new Map();
+
+		// Parse each category and aggregate by site
+		// rawData.categories has structure: [{site_id, value_counts: {value1: count1, value2: count2}, ...}]
+		rawData.categories.forEach(cat => {
+			const siteId = cat.site_id;
+			
+			if (!siteId || !cat.value_counts) {
+				return;
+			}
+
+			// Process each value in value_counts
+			Object.entries(cat.value_counts).forEach(([valueName, count]) => {
+				let normalized;
+				if (variableConfig.type === "binary") {
+					normalized = this.parseDendroBinaryValue(valueName);
+				} else if (variableConfig.type === "ternary") {
+					normalized = this.parseDendroTernaryValue(valueName, variableName);
+				} else {
+					// For categorical type, use the value as-is
+					normalized = valueName;
+				}
+
+				if (normalized) {
+					if (!siteCategories.has(siteId)) {
+						siteCategories.set(siteId, {});
+					}
+					const siteCat = siteCategories.get(siteId);
+					siteCat[normalized] = (siteCat[normalized] || 0) + count;
+				}
+			});
+		});
+
+		return siteCategories;
+	}
+
+	parseDendroNumericValue(value) {
+		if(!value || value === null || value === undefined) {
+			return null;
+		}
+
+		const stringValue = String(value).trim();
+		
+		if(stringValue === "" || stringValue.toLowerCase() === "undefined") {
+			return null;
+		}
+
+		// Handle greater than (>28 becomes 29)
+		if(stringValue.startsWith(">")) {
+			const num = parseFloat(stringValue.substring(1));
+			return isNaN(num) ? null : num + 1;
+		}
+
+		// Handle less than (<28 becomes 27)
+		if(stringValue.startsWith("<")) {
+			const num = parseFloat(stringValue.substring(1));
+			return isNaN(num) ? null : num - 1;
+		}
+
+		// Handle ranges (71-72 becomes 71)
+		if(stringValue.includes("-")) {
+			const parts = stringValue.split("-");
+			const num = parseFloat(parts[0]);
+			return isNaN(num) ? null : num;
+		}
+
+		// Strip out uncertainty symbols: ?, ~, and any whitespace
+		const cleaned = stringValue.replace(/[?~\s]/g, "");
+		
+		const num = parseFloat(cleaned);
+		return isNaN(num) ? null : num;
+	}
+
+	parseDendroBinaryValue(value) {
+		if(!value || value === null || value === undefined) {
+			return null;
+		}
+
+		const stringValue = String(value).trim();
+		
+		if(stringValue === "" || stringValue.toLowerCase() === "undefined") {
+			return null;
+		}
+
+		const cleaned = stringValue.replace(/[?~\s]/g, "").toLowerCase();
+		
+		if(cleaned === "ja" || cleaned === "yes" || cleaned === "y" || cleaned === "j") {
+			return "Yes";
+		}
+		
+		if(cleaned === "nej" || cleaned === "no" || cleaned === "n") {
+			return "No";
+		}
+		
+		return null;
+	}
+
+	parseDendroTernaryValue(value, variableName = "") {
+		if(!value || value === null || value === undefined) {
+			return null;
+		}
+
+		const stringValue = String(value).trim().toLowerCase();
+		
+		if(stringValue === "") {
+			return null;
+		}
+
+		if(variableName === "Waney edge (W)") {
+			if(stringValue === "w" || stringValue === "b") {
+				return "Yes";
+			}
+			
+			if(stringValue.includes("ej w") || stringValue === "nej") {
+				return "No";
+			}
+			
+			if(stringValue.includes("nära") || 
+			   stringValue.includes("near") ||
+			   stringValue.includes("?") ||
+			   stringValue === "undefined" ||
+			   stringValue === "indeterminable" ||
+			   stringValue.includes("eller") ||
+			   stringValue.includes("or")) {
+				return "Maybe";
+			}
+		}
+		
+		return null;
+	}
+
+	removeAllBars() {
+		if (!this.viewer) return;
+
+		const entities = this.viewer.entities.values;
+		for (let i = entities.length - 1; i >= 0; i--) {
+			const entity = entities[i];
+			if (entity.properties &&
+				entity.properties.entityType &&
+				(entity.properties.entityType.getValue() === 'ecocodeBar' ||
+				 entity.properties.entityType.getValue() === 'dendroBar')) {
+				this.viewer.entities.remove(entity);
+			}
+		}
 	}
 
 	async fetchData() {
