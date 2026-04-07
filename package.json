@@ -1,13 +1,14 @@
 {
   "name": "sead",
   "description": "",
-  "version": "1.0.0",
+  "version": "2026.4.1",
   "author": "Johan von Boer",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
   "main": "main.js",
   "scripts": {
     "prepare-config": "node prepare-config.js",
+    "do-release": "node scripts/do-release.js",
     "build": "cross-env MODE=dev node prepare-config.js && webpack --progress --mode production --devtool source-map",
     "test-build": "cross-env MODE=dev node prepare-config.js && webpack --progress --mode development --no-devtool",
     "dev": "cross-env MODE=dev node prepare-config.js && webpack serve --progress --mode development --allowed-hosts all --devtool source-map",
