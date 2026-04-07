@@ -7,3 +7,6 @@ src/config/config.json
 /blob-report/
 /playwright/.cache/
 tests/artifacts
+data-structure-diagram-prompt.md
+AGENTS.md
+.codex
