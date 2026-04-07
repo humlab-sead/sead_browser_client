@@ -77,7 +77,8 @@ class DialogManager {
 					<li><strong>Sample group</strong> — a logical collection of samples from the same context within a site, 
 					e.g. a sediment core, a trench, or a stratigraphic unit.</li>
 					<li><strong>Sample</strong> — an individual physical or analytical unit from which data were obtained, 
-					e.g. a sediment slice, a single find, or a wood specimen.</li>
+					e.g. a sediment slice, a single find, or a wood specimen. Samples are also linked to what SEAD calls
+					<strong>datasets</strong>, which represent various analyses performed on that sample.</li>
 				</ul>
 				<p>The <strong>filters</strong> in the left panel filter the list of <strong>sites</strong>. Once you find sites 
 				of interest, click a site in the result section (table or map view) to open its <strong>landing page</strong>, where you can explore 
