@@ -10,3 +10,4 @@ tests/artifacts
 data-structure-diagram-prompt.md
 AGENTS.md
 .codex
+.playwright-browser-cache
