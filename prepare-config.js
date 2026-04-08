@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const deepmerge = require('deepmerge');
 
 const mode = process.env.MODE || 'dev';
 const domain = process.env.DOMAIN || 'localhost';
@@ -9,8 +8,41 @@ const basePath     = path.join(__dirname, 'src/config/config.base.json');
 const overridePath = path.join(__dirname, `src/config/config.${mode}.json`);
 const outputPath   = path.join(__dirname, 'src/config/config.json');
 
-// Arrays in overrides fully replace the base array rather than being concatenated
-const arrayMerge = (_, sourceArray) => sourceArray;
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function cloneValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(cloneValue);
+  }
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, cloneValue(v)])
+    );
+  }
+  return value;
+}
+
+// Recursively merge objects:
+// - plain objects are merged by key
+// - arrays in override fully replace base arrays
+// - primitives (including null) replace base values
+function mergeConfig(baseValue, overrideValue) {
+  if (!isPlainObject(baseValue) || !isPlainObject(overrideValue)) {
+    return cloneValue(overrideValue);
+  }
+
+  const merged = cloneValue(baseValue);
+  for (const [key, value] of Object.entries(overrideValue)) {
+    if (key in merged) {
+      merged[key] = mergeConfig(merged[key], value);
+    } else {
+      merged[key] = cloneValue(value);
+    }
+  }
+  return merged;
+}
 
 // Keys set to null in an override act as "delete this key from the base"
 function stripNulls(obj) {
@@ -28,7 +60,7 @@ try {
     ? JSON.parse(fs.readFileSync(overridePath, 'utf8'))
     : {};
 
-  const merged = stripNulls(deepmerge(base, override, { arrayMerge }));
+  const merged = stripNulls(mergeConfig(base, override));
   const output = JSON.stringify(merged, null, '\t').replace(/__DOMAIN__/g, domain);
 
   fs.writeFileSync(outputPath, output, 'utf8');

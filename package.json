@@ -84,8 +84,7 @@
     "tabulator-tables": "^6.2.5",
     "webpack-copy-plugin": "^0.0.4",
     "zingchart": "^2.9.1",
-    "zingtouch": "^1.0.6",
-    "deepmerge": "^4.3.1"
+    "zingtouch": "^1.0.6"
   },
   "devDependencies": {
     "@babel/core": "^7.26.9",
