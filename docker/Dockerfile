@@ -27,11 +27,15 @@ RUN echo "DOMAIN: $DOMAIN"
 # echo out MODE so we know it is set
 RUN echo "MODE: $MODE"
 
-RUN npm install && npm run build:prod && cp -R dist/* /var/www/html/
-
-# Install webpack-dev-server for development
-RUN npm install --save-dev webpack-dev-server
+RUN npm install --include=dev && \
+    if [ "$MODE" = "prod" ]; then \
+        npm run build:prod && cp -R dist/* /var/www/html/; \
+    elif [ "$MODE" = "dev" ]; then \
+        npm run build:dev; \
+    else \
+        echo "Unsupported MODE: $MODE (expected 'prod' or 'dev')" >&2; \
+        exit 1; \
+    fi
 
 # Build for production, otherwise, start dev server
 CMD ["sh", "-c", "if [ \"$MODE\" = \"dev\" ]; then npm run dev -- --port 8090; else nginx -g 'daemon off;'; fi"]
-
