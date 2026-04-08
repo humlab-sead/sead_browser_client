@@ -226,217 +226,83 @@ class AbundanceDataset extends DatasetModule {
 		return ecoCodeContentItem;
 	}
 
-	async getSamplesEcoCodeContentItem(siteData) {
-		let ecoCodeBundles = await new Promise(async (resolve, reject) => {
-			let response = await fetch(this.sqs.config.dataServerAddress+"/ecocodes/site/"+siteData.site_id+"/samples");
-			let ecoCodeBundles = await response.json();
-			if(typeof ecoCodeBundles.ecocode_bundles != "undefined") {
-				resolve(ecoCodeBundles.ecocode_bundles);
+	async getSiteMutualClimaticRangeContentItem(siteData) {
+		let mcrData = null;
+		try {
+			const response = await fetch(this.sqs.config.dataServerAddress + "/mcr/sites", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify([siteData.site_id])
+			});
+			if (!response.ok) {
+				return null;
 			}
-			else {
-				console.warn("No eco code bundles found for this site.");
-				resolve([]);
-			}
-		});
-		
-		if(ecoCodeBundles.length == 0) {
+			mcrData = await response.json();
+		} catch (e) {
+			console.warn("Could not fetch MCR data for site", siteData.site_id, e);
 			return null;
 		}
 
-		if(ecoCodeBundles.length == 1 && ecoCodeBundles[0].ecocodes.length == 0) {
+		if (!mcrData || !mcrData.density_matrix || !mcrData.taxa_count) {
 			return null;
 		}
 
-		/*
-		X: Environment
-		Y: Abundance / Taxa
-		*/
-		
-		let ecoCodeContentItem = {
-			"name": "contentItem-"+nanoid(),
-			"title": "Site - Eco codes per sample",
-			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
+		const ROWS = 36;
+		const COLS = 60;
+		let hasConsensusEnvelope = false;
+		for (let r = 0; r < ROWS; r++) {
+			for (let c = 0; c < COLS; c++) {
+				if (mcrData.density_matrix[r][c] === mcrData.taxa_count) {
+					hasConsensusEnvelope = true;
+					break;
+				}
+			}
+			if (hasConsensusEnvelope) {
+				break;
+			}
+		}
+
+		return {
+			"name": "ci-" + nanoid(),
+			"title": "Site total - Mutual climatic range",
+			"titleTooltip": "Mutual Climatic Range (MCR) reconstruction based on fossil beetle (Coleoptera) taxa found at this site. The chart shows the climate envelope — compatible Tmax (mean temperature of the warmest month) vs Trange (difference between warmest and coldest month) — derived from the overlap of all MCR-registered species present. The orange bounding box marks the reconstructed climate envelope where all taxa agree.",
 			"renderedBy": this.constructor.name,
 			"data": {
 				"columns": [
 					{
-						"title": "Sample ID",
-						"pkey": true,
-						"hidden": true,
+						"title": "Taxa with MCR data"
 					},
 					{
-						"title": "Sample name",
+						"title": "Max overlapping taxa in one climate cell"
 					},
 					{
-						"title": "Aggregated abundance",
-					},
-					{
-						"title": "Aggregated taxa",
-					},
-					{
-						dataType: "subtable",
+						"title": "Consensus envelope available"
 					}
 				],
-				"rows": []
+				"rows": [[
+					{
+						"type": "cell",
+						"value": mcrData.taxa_count
+					},
+					{
+						"type": "cell",
+						"value": mcrData.max_count ?? mcrData.taxa_count
+					},
+					{
+						"type": "cell",
+						"value": hasConsensusEnvelope ? "Yes" : "No"
+					}
+				]],
+				"mcrData": mcrData
 			},
 			"renderOptions": [
 				{
-					"name": "Spreadsheet",
-					"selected": false,
-					"type": "table",
-				},
-				{
-					"name": "Bar chart",
+					"name": "Chart",
 					"selected": true,
-					"type": "ecocodes-samples",
-					"options": [
-						{
-							"enabled": false,
-							"title": "X axis",
-							"function": "xAxis",
-							"type": "select",
-							"selected": 0, //Default column (key)
-							"key": 0, //Contains the unique values for the selected columns - not sure we need / should have this
-							"options": [
-								{
-									"title": "Abundance",
-									"value": 2,
-								},
-							]
-						},
-						{
-							"enabled": true,
-							"title": "X axis", //Since this is a reversed/horizontal bar chart the Y axis becomes the X axis...
-							"function": "yAxis",
-							"type": "select",
-							"selected": 1,
-							"options": [
-								{
-									"title": "Aggregated abundance - counts",
-									"value": 1,
-								},
-								{
-									"title": "Aggregated taxa - counts",
-									"value": 2,
-								},
-								{
-									"title": "Aggregated abundance - percentages",
-									"value": 3,
-								},
-								{
-									"title": "Aggregated taxa - percentages",
-									"value": 4,
-								},
-							]
-						},
-						{
-							"enabled": true,
-							"title": "Sort",
-							"function": "sort", //sorts on either x or y axis - leaves it up to the render module to decide
-							"type": "select",
-							"selected": 2,
-							"options": [
-								{
-									"title": "Abundance",
-									"value": 2,
-								},
-								{
-									"title": "Taxa",
-									"value": 3,
-								}
-							]
-						}
-					]
+					"type": "mcr"
 				}
 			]
 		};
-		
-		ecoCodeBundles.forEach(ecoCodeBundle => {
-			let subTable = {
-				columns: [
-					{
-						title: "Ecocode",
-						pkey: true,
-					},
-					{
-						title: "Aggregated abundance",
-						sort: "desc"
-					},
-					{
-						title: "Aggregated taxa",
-					},
-					{
-						title: "Ecocode definition ID",
-						hidden: true,
-					},
-				],
-				rows: []
-			}
-
-			let sampleAggAbundance = 0;
-			let sampleAggTaxa = 0;
-
-			ecoCodeBundle.ecocodes.forEach(ecocode => {
-				let subTableRow = [];
-				subTableRow.push(
-					{
-						type: "cell",
-						value: ecocode.ecocode.name,
-					},
-					{
-						type: "cell",
-						value: ecocode.abundance,
-					},
-					{
-						type: "cell",
-						value: ecocode.taxa.length,
-					},
-					{
-						type: "cell",
-						value: ecocode.ecocode.ecocode_definition_id,
-					},
-				);
-
-				sampleAggAbundance += ecocode.abundance;
-				sampleAggTaxa += ecocode.taxa.length;
-
-				subTable.rows.push(subTableRow);
-			});
-			
-			let sampleName = "";
-			siteData.sample_groups.forEach(sg => {
-				sg.physical_samples.forEach(ps => {
-					if(ps.physical_sample_id == ecoCodeBundle.physical_sample_id) {
-						sampleName = ps.sample_name;
-					}
-				});
-			})
-		
-			ecoCodeContentItem.data.rows.push([
-				{
-					type: "cell",
-					value: ecoCodeBundle.physical_sample_id
-				},
-				{
-					type: "cell",
-					value: sampleName
-				},
-				{
-					type: "cell",
-					value: sampleAggAbundance
-				},
-				{
-					type: "cell",
-					value: sampleAggTaxa
-				},
-				{
-					type: "subtable",
-					value: subTable
-				}
-			]);
-		});
-
-		return ecoCodeContentItem;
 	}
 
 	async getDatasetEcoCodeContentItem(siteData, datasetId, datasetName = null) {
@@ -1045,6 +911,7 @@ class AbundanceDataset extends DatasetModule {
 		let paleoSection = this.getSectionByMethodId(3, sections);
 		if(paleoSection) {
 			paleoSection.contentItems.push(this.getSiteEcoCodeContentItem(siteData));
+			paleoSection.contentItems.push(this.getSiteMutualClimaticRangeContentItem(siteData));
 		}
 	}
 	

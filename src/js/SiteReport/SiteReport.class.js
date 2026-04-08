@@ -340,7 +340,7 @@ class SiteReport {
 		$(".site-report-level-title", sectionNode)
 			.html(`
 				<div>
-					<i class=\"site-report-sections-expand-button fa fa-plus-circle\" aria-hidden=\"true\">&nbsp;</i>
+					<i class=\"site-report-sections-expand-button fa fa-chevron-right\" aria-hidden=\"true\">&nbsp;</i>
 					<span class='title-text'>${sectionTitle}</span>
 					<span class='section-warning'></span>
 				</div>
@@ -361,7 +361,7 @@ class SiteReport {
 				section.collapsed = collapsed;
 				this.setSectionCollapsedState(parent, section); //Set reverse of current state
 			});
-		
+
 		if(section.hasOwnProperty("methodDescription")) {
 			this.sqs.tooltipManager.registerTooltip($(".site-report-level-title > div > .title-text", sectionNode), section.methodDescription, {drawSymbol: true, anchorPoint: 'symbol'});
 		}
@@ -476,16 +476,24 @@ class SiteReport {
 	setSectionCollapsedState(sectionNode, section) {
 		var collapsed = section.collapsed;
 		sectionNode = $(sectionNode);
-		var expandButtonNode = sectionNode.children(".site-report-level-title").find("i.site-report-sections-expand-button");
+		var titleNode = sectionNode.children(".site-report-level-title");
+		var expandButtonNode = titleNode.find("i.site-report-sections-expand-button");
+		var isStaticTitle = titleNode.hasClass("site-report-level-title-static");
 		if(collapsed) {
-			expandButtonNode.removeClass("fa-minus-circle").addClass("fa-plus-circle");
+			if(!isStaticTitle) {
+				sectionNode.removeClass("site-report-level-expanded");
+			}
+			expandButtonNode.removeClass("fa-chevron-down").addClass("fa-chevron-right");
 			sectionNode.children(".site-report-level-content").attr("collapsed", "true").slideUp({
 				duration: 100,
 				easing: this.animationEasing
 			});
 		}
 		else {
-			expandButtonNode.removeClass("fa-plus-circle").addClass("fa-minus-circle");
+			if(!isStaticTitle) {
+				sectionNode.addClass("site-report-level-expanded");
+			}
+			expandButtonNode.removeClass("fa-chevron-right").addClass("fa-chevron-down");
 			sectionNode.children(".site-report-level-content").attr("collapsed", "false").slideDown({
 				duration: 100,
 				easing: this.animationEasing
@@ -549,9 +557,13 @@ class SiteReport {
 		var node = null;
 		let filename = "sead-export-site-"+this.siteId;
 		if(exportFormat == "json") {
-			let jsonBase64 = this.sqs.exportManager.getJsonExport(exportStruct);
-			$(node).attr("href", "data:application/octet-stream;charset=utf-8;base64,"+jsonBase64);
-			$(node).attr("download", filename+".json");
+			node = $("<a id='site-report-json-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download JSON</a>");
+			$(node).on("click", async (evt) => {
+				evt.preventDefault();
+				evt.stopPropagation();
+				const objectUrl = await this.sqs.exportManager.getJsonExport(exportStruct);
+				this.pushDownload(filename+".json", objectUrl);
+			});
 		}
 		if(exportFormat == "geojson") {
 			let cir = this.getContentItemRendererByName("sampleCoordinatesMap");
@@ -572,7 +584,7 @@ class SiteReport {
 				}
 			});
 
-			node = $("<a id='site-report-json-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download GeoJSON</a>");
+			node = $("<a id='site-report-geojson-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download GeoJSON</a>");
 
 			geojson.meta = exportStruct.meta;
 			let json = JSON.stringify(geojson, null, 2);
@@ -593,33 +605,37 @@ class SiteReport {
 			node = $("<a id='site-report-png-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download PNG</a>");
 
 			$(node).on("click", (evt) => {
-				for(let k in this.modules) {
-					if(this.modules[k].name == "analysis") {
-						for(let sk in this.modules[k].module.section.sections) {
-							for(let cik in this.modules[k].module.section.sections[sk].contentItems) {
-								let ci = this.modules[k].module.section.sections[sk].contentItems[cik];
-								
-								if(ci.name == exportStruct.meta.dataset) {
-									let chartId = $("#contentItem-"+ci.datasetId+" .site-report-chart-container").attr("id");
+				evt.preventDefault();
+				evt.stopPropagation();
 
-									Plotly.downloadImage(chartId, {
-										format: 'png', // You can use 'jpeg', 'png', 'webp', 'svg'
-										filename: "site_"+exportStruct.meta.site+"-"+exportStruct.meta.section,
-										scale: 4,
-									});
-									/*
-									zingchart.exec(chartId, 'getimagedata', {
-										filetype: 'png',
-										callback : (imagedata) => {
-											this.pushDownload("SEAD-"+ci.title+"-chart.png", imagedata);
-										}
-									});
-									*/
-								}
-							}
-						}
-					}
+				const contentItemName = exportStruct.meta.contentItemName || exportStruct.meta.dataset;
+				const chartNode = $("#contentItem-"+contentItemName+" .site-report-chart-container").first()[0];
+				if(!chartNode) {
+					this.sqs.notificationManager.notify("Could not find chart node for PNG export.", "error");
+					return;
 				}
+
+				const safeBaseName = ("site_"+exportStruct.meta.site+"-"+exportStruct.meta.section+"-"+(exportStruct.meta.content || "chart"))
+					.replace(/[^a-z0-9._-]+/gi, "_")
+					.toLowerCase();
+
+				if(chartNode.tagName && chartNode.tagName.toLowerCase() == "canvas") {
+					const dataUrl = chartNode.toDataURL("image/png");
+					this.pushDownload(safeBaseName+".png", dataUrl);
+					return;
+				}
+
+				const chartId = $(chartNode).attr("id");
+				if(chartId) {
+					Plotly.downloadImage(chartId, {
+						format: 'png',
+						filename: safeBaseName,
+						scale: 4,
+					});
+					return;
+				}
+
+				this.sqs.notificationManager.notify("This chart renderer does not support PNG export.", "error");
 			});
 		}
 
@@ -767,6 +783,117 @@ class SiteReport {
 
 		return formattedExcelRows;
 	}
+
+	isMcrExport(exportStruct) {
+		return !!(exportStruct && exportStruct.datatable && exportStruct.datatable.mcrData);
+	}
+
+	getMcrConsensusBbox(densityMatrix, taxaCount) {
+		if(!Array.isArray(densityMatrix) || !taxaCount) {
+			return null;
+		}
+
+		const rows = densityMatrix.length;
+		const cols = rows > 0 && Array.isArray(densityMatrix[0]) ? densityMatrix[0].length : 0;
+		let consColMin = cols;
+		let consColMax = -1;
+		let consRowMin = rows;
+		let consRowMax = -1;
+
+		for (let r = 0; r < rows; r++) {
+			for (let c = 0; c < cols; c++) {
+				if (densityMatrix[r][c] === taxaCount) {
+					consColMin = Math.min(consColMin, c);
+					consColMax = Math.max(consColMax, c);
+					consRowMin = Math.min(consRowMin, r);
+					consRowMax = Math.max(consRowMax, r);
+				}
+			}
+		}
+
+		return consColMax >= 0 ? [consColMin, consColMax, consRowMin, consRowMax] : null;
+	}
+
+	getMcrXlsxExport(filename, exportStruct) {
+		const wb = new ExcelJS.Workbook();
+		const summaryWs = wb.addWorksheet("MCR Summary");
+		const densityWs = wb.addWorksheet("MCR Density");
+		const consensusWs = wb.addWorksheet("MCR Consensus");
+		const mcrData = exportStruct.datatable.mcrData || {};
+		const densityMatrix = Array.isArray(mcrData.density_matrix) ? mcrData.density_matrix : [];
+		const taxaCount = Number(mcrData.taxa_count) || 0;
+		const maxCount = Number(mcrData.max_count) || taxaCount;
+		const rows = densityMatrix.length;
+		const cols = rows > 0 && Array.isArray(densityMatrix[0]) ? densityMatrix[0].length : 0;
+		const consensusBbox = this.getMcrConsensusBbox(densityMatrix, taxaCount);
+
+		let styles = {
+			header1: { size: 14, bold: true },
+			header2: { size: 12, bold: true },
+		};
+
+		summaryWs.addRow(["SEAD MCR Export"]).font = styles.header1;
+		summaryWs.addRow([]);
+		summaryWs.addRow(["Site", exportStruct.meta.site]);
+		summaryWs.addRow(["Section", exportStruct.meta.section]);
+		summaryWs.addRow(["Content", exportStruct.meta.content]);
+		summaryWs.addRow(["Taxa with MCR data", taxaCount]);
+		summaryWs.addRow(["Max overlapping taxa in one climate cell", maxCount]);
+		summaryWs.addRow(["Matrix rows (Trange axis)", rows]);
+		summaryWs.addRow(["Matrix columns (Tmax axis)", cols]);
+		summaryWs.addRow(["Consensus envelope available", consensusBbox ? "Yes" : "No"]);
+		if(consensusBbox) {
+			summaryWs.addRow(["Consensus Tmax min (°C)", consensusBbox[0] - 10]);
+			summaryWs.addRow(["Consensus Tmax max (°C)", consensusBbox[1] - 10]);
+			summaryWs.addRow(["Consensus Trange min (°C)", consensusBbox[2]]);
+			summaryWs.addRow(["Consensus Trange max (°C)", consensusBbox[3]]);
+		}
+
+		let summaryMaxColWidth = [10, 10];
+		summaryWs.eachRow((row) => {
+			row.eachCell((cell, colNumber) => {
+				const len = String(cell.value ?? "").length;
+				summaryMaxColWidth[colNumber - 1] = Math.max(summaryMaxColWidth[colNumber - 1] || 10, len + 2);
+			});
+		});
+		summaryWs.columns = summaryMaxColWidth.map(width => ({ width: Math.min(width, 60) }));
+
+		let headerRow = ["Trange \\ Tmax"];
+		for(let c = 0; c < cols; c++) {
+			headerRow.push(c - 10);
+		}
+		let densityHeader = densityWs.addRow(headerRow);
+		densityHeader.font = styles.header2;
+		let consensusHeader = consensusWs.addRow(headerRow);
+		consensusHeader.font = styles.header2;
+
+		for(let r = 0; r < rows; r++) {
+			let densityRow = [r];
+			let consensusRow = [r];
+			for(let c = 0; c < cols; c++) {
+				const cellCount = Number(densityMatrix[r][c]) || 0;
+				densityRow.push(cellCount);
+				consensusRow.push(cellCount === taxaCount ? 1 : 0);
+			}
+			densityWs.addRow(densityRow);
+			consensusWs.addRow(consensusRow);
+		}
+
+		densityWs.views = [{ state: 'frozen', xSplit: 1, ySplit: 1 }];
+		consensusWs.views = [{ state: 'frozen', xSplit: 1, ySplit: 1 }];
+		densityWs.columns.forEach(column => { column.width = 10; });
+		consensusWs.columns.forEach(column => { column.width = 10; });
+
+		wb.xlsx.writeBuffer().then(buffer => {
+			const blob = new Blob([buffer], { type: 'application/octet-stream' });
+			const blobUrl = URL.createObjectURL(blob);
+
+			$("#site-report-xlsx-export-download-btn").attr("href", blobUrl);
+			$("#site-report-xlsx-export-download-btn").attr("download", filename+"-mcr.xlsx");
+		});
+
+		return $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
+	}
 	
 	getCsvExport(filename, exportStruct) {
 		//Remove columns from table which are flagged for exclusion
@@ -881,6 +1008,10 @@ class SiteReport {
 	*/
 
 	getXlsxExport(filename, exportStruct) {
+		if(this.isMcrExport(exportStruct)) {
+			return this.getMcrXlsxExport(filename, exportStruct);
+		}
+
 		//Remove columns from table which are flagged for exclusion
 		for(let key in exportStruct.datatable.columns) {
 			if(exportStruct.datatable.columns[key].exclude_from_export) {
@@ -1337,6 +1468,15 @@ class SiteReport {
 		};
 
 		if(section != "all" && contentItem != "all") {
+			let selectedRoType = "table";
+			if(contentItem.renderOptions) {
+				contentItem.renderOptions.forEach((ro) => {
+					if(ro.selected) {
+						selectedRoType = ro.type;
+					}
+				});
+			}
+
 			let plainRef = typeof contentItem.datasetReferencePlain != "undefined" ? contentItem.datasetReferencePlain : "";
 			if(plainRef == "") {
 				console.log("No plainRef found, trying to strip the HTML instead")
@@ -1363,14 +1503,16 @@ class SiteReport {
 				meta: {
 					site: this.siteId,
 					section: section.title,
-					dataset: contentItem.datasetId,
+					dataset: contentItem.datasetId || contentItem.name,
+					contentItemName: contentItem.name,
 					content: contentItem.title,
 					description: this.sqs.config.dataExportDescription,
 					siteName: this.siteData.site_name,
 					url: this.sqs.config.serverRoot+"/site/"+this.siteId,
 					datasetReference: plainRef,
 					siteLocation: siteLocationString,
-					siteLocationCoordinates: siteLocationCoordinatesString
+					siteLocationCoordinates: siteLocationCoordinatesString,
+					renderType: selectedRoType
 				},
 				datatable: this.stripExcludedColumnsFromContentItem(contentItem).data
 			};

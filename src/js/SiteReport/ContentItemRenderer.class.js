@@ -241,6 +241,7 @@ class ContentItemRenderer {
 					case "multistack":
 					case "ecocode":
 					case "ecocodes-samples":
+					case "mcr":
 					case "coordinate-map":
 						renderInstance = new SiteReportChart(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);

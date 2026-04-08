@@ -150,13 +150,7 @@ class BasicSiteInformation {
 			<div class='site-report-aux-header-underline'></div>
 			<div id="site-report-time-overview" class='site-report-information-item'></div>
 		</div>
-		
-		<div id='site-report-mcr-container' class='site-report-aux-info-text-container'>
-			<div class='site-report-aux-header-container'><h4>Site MCR</h4></div>
-			<div class='site-report-aux-header-underline'></div>
-			<div id="site-report-mcr" class='site-report-information-item'></div>
-		</div>
-		
+
 		<div class='site-report-aux-header-container'><h4>Site reference</h4></div>
 		<div class='site-report-aux-header-underline'></div>
 		<div class='site-report-site-description site-report-aux-info-text-container site-report-information-item'>${siteReferencesHtml}</div>
@@ -203,12 +197,6 @@ class BasicSiteInformation {
 		this.sqs.sqsEventListen("analysisSectionsBuilt", () => {
 			this.renderTimeOverview("site-report-time-overview");
 		}, this);
-
-		this.sqs.tooltipManager.registerTooltip("#site-report-mcr-container .site-report-aux-header-container h4",
-			"Mutual Climatic Range (MCR) reconstruction based on fossil beetle (Coleoptera) taxa found at this site. The chart shows the climate envelope — compatible Tmax (mean temperature of the warmest month) vs Trange (difference between warmest and coldest month) — derived from the overlap of all MCR-registered species present. The orange bounding box marks the reconstructed climate envelope where all taxa agree.",
-			{placement: "top", drawSymbol: true});
-
-		this.fetchMCR(siteData.site_id).then(mcrData => this.renderMCR(mcrData));
 	}
 
 
@@ -370,177 +358,6 @@ class BasicSiteInformation {
 		window.addEventListener('resize', () => {
 			chart.resize();
 		});
-	}
-
-	async fetchMCR(siteId) {
-		try {
-			const response = await fetch(this.sqs.config.dataServerAddress + "/mcr/sites", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify([siteId])
-			});
-			if (!response.ok) return null;
-			return await response.json();
-		} catch(e) {
-			console.warn("Could not fetch MCR data for site", siteId, e);
-			return null;
-		}
-	}
-
-	renderMCR(mcrData) {
-		const container = document.getElementById("site-report-mcr");
-		if (!container) return;
-
-		if (!mcrData || !mcrData.density_matrix || !mcrData.taxa_count) {
-			container.innerHTML = "No MCR data available for this site.";
-			return;
-		}
-
-		const { density_matrix, taxa_count, max_count } = mcrData;
-		const maxDensity = max_count ?? taxa_count;
-
-		const ROWS = 36; // Trange axis: 0–35 °C
-		const COLS = 60; // Tmax axis: −10 to +49 °C
-
-		// Compute consensus bounding box (cells where all taxa agree)
-		let consColMin = COLS, consColMax = -1, consRowMin = ROWS, consRowMax = -1;
-		for (let r = 0; r < ROWS; r++) {
-			for (let c = 0; c < COLS; c++) {
-				if (density_matrix[r][c] === taxa_count) {
-					consColMin = Math.min(consColMin, c);
-					consColMax = Math.max(consColMax, c);
-					consRowMin = Math.min(consRowMin, r);
-					consRowMax = Math.max(consRowMax, r);
-				}
-			}
-		}
-		const consensusBbox = consColMax >= 0 ? [consColMin, consColMax, consRowMin, consRowMax] : null;
-
-		if (!consensusBbox) {
-			container.innerHTML = "MCR taxa were found at this site but their climate tolerances do not overlap — no viable climate reconstruction is possible.";
-			return;
-		}
-
-		const cellW = 8;
-		const cellH = 9;
-		const MARGIN_LEFT   = 40;
-		const MARGIN_RIGHT  = 6;
-		const MARGIN_TOP    = 6;
-		const MARGIN_BOTTOM = 40;
-		const canvasW = MARGIN_LEFT + COLS * cellW + MARGIN_RIGHT;
-		const canvasH = MARGIN_TOP  + ROWS * cellH + MARGIN_BOTTOM;
-
-		const canvasId = nanoid();
-		container.innerHTML = `<canvas id="${canvasId}" width="${canvasW}" height="${canvasH}" style="max-width:100%;display:block;"></canvas>`;
-		const canvas = document.getElementById(canvasId);
-		const ctx = canvas.getContext("2d");
-
-		const densityColor = (count) => {
-			if (count === 0 || maxDensity === 0) return '#ebebeb';
-			const t = count / maxDensity;
-			const r = Math.round(191 + (29  - 191) * t);
-			const g = Math.round(219 + (78  - 219) * t);
-			const b = Math.round(254 + (216 - 254) * t);
-			return `rgb(${r},${g},${b})`;
-		};
-
-		// Draw cells
-		for (let row = 0; row < ROWS; row++) {
-			for (let col = 0; col < COLS; col++) {
-				ctx.fillStyle = densityColor(density_matrix[row][col]);
-				ctx.fillRect(MARGIN_LEFT + col * cellW, MARGIN_TOP + row * cellH, cellW - 1, cellH - 1);
-			}
-		}
-
-		// Consensus bounding box
-		const [cMin, cMax, rMin, rMax] = consensusBbox;
-		ctx.strokeStyle = '#e05c00';
-		ctx.lineWidth = 2;
-		ctx.strokeRect(
-			MARGIN_LEFT + cMin * cellW,
-			MARGIN_TOP  + rMin * cellH,
-			(cMax - cMin + 1) * cellW,
-			(rMax - rMin + 1) * cellH
-		);
-
-		// X axis labels
-		ctx.fillStyle = '#555';
-		ctx.font = '11px sans-serif';
-		ctx.textAlign = 'center';
-		ctx.textBaseline = 'top';
-		for (let c = 0; c <= COLS; c += 10) {
-			ctx.fillText((c - 10) + '°', MARGIN_LEFT + c * cellW, MARGIN_TOP + ROWS * cellH + 4);
-		}
-		ctx.textBaseline = 'bottom';
-		ctx.fillText('Tmax (°C)', MARGIN_LEFT + (COLS * cellW) / 2, canvasH);
-
-		// Y axis labels
-		ctx.textAlign = 'right';
-		ctx.textBaseline = 'middle';
-		for (let r = 0; r < ROWS; r += 5) {
-			ctx.fillText(r + '°', MARGIN_LEFT - 4, MARGIN_TOP + r * cellH + cellH / 2);
-		}
-
-		// Y axis title (rotated)
-		ctx.save();
-		ctx.translate(10, MARGIN_TOP + (ROWS * cellH) / 2);
-		ctx.rotate(-Math.PI / 2);
-		ctx.textAlign = 'center';
-		ctx.textBaseline = 'top';
-		ctx.fillText('Trange (°C)', 0, 0);
-		ctx.restore();
-
-		// Hover tooltip
-		document.querySelectorAll('.sead-mcr-tooltip').forEach(el => el.remove());
-		const tooltipEl = document.createElement('div');
-		tooltipEl.className = 'sead-mcr-tooltip';
-		tooltipEl.style.cssText = 'position:fixed;background:rgba(30,30,30,0.88);color:#fff;padding:6px 10px;border-radius:4px;font-size:12px;line-height:1.6;pointer-events:none;display:none;z-index:9999;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.4);';
-		document.body.appendChild(tooltipEl);
-
-		canvas.addEventListener('mousemove', (e) => {
-			const rect = canvas.getBoundingClientRect();
-			const scaleX = canvasW / rect.width;
-			const scaleY = canvasH / rect.height;
-			const col = Math.floor(((e.clientX - rect.left) * scaleX - MARGIN_LEFT) / cellW);
-			const row = Math.floor(((e.clientY - rect.top)  * scaleY - MARGIN_TOP)  / cellH);
-
-			if (col < 0 || col >= COLS || row < 0 || row >= ROWS) {
-				tooltipEl.style.display = 'none';
-				return;
-			}
-
-			const tmax   = col - 10;
-			const trange = row;
-			const count  = density_matrix[row][col];
-			const pct    = taxa_count > 0 ? (Math.floor((count / taxa_count) * 1000) / 10).toFixed(1) : "0.0";
-			const inConsensus = count === taxa_count;
-			const inBbox = col >= cMin && col <= cMax && row >= rMin && row <= rMax;
-
-			let html =
-				`<strong>Tmax</strong> (warmest month): ${tmax} °C<br>` +
-				`<strong>Trange</strong> (warmest − coldest): ${trange} °C<br>`;
-
-			if (count === 0) {
-				html += `<span style="color:#9ca3af">&#9675; No taxa tolerate this cell</span>`;
-			} else if (inConsensus) {
-				html += `<span style="color:#7dd3fc">&#9679; All ${taxa_count} taxa tolerate this cell (full MCR consensus)</span>`;
-			} else {
-				html += `<span style="color:#93c5fd">&#9681; ${count} of ${taxa_count} taxa tolerate this cell (${pct}%)</span>`;
-			}
-
-			if (inBbox) {
-				html += `<br><span style="color:#fb923c">&#9642; Within reconstructed climate envelope</span>`;
-			}
-
-			tooltipEl.innerHTML = html;
-			tooltipEl.style.display = 'block';
-			const tipW = tooltipEl.offsetWidth;
-			const left = (e.clientX + 16 + tipW > window.innerWidth) ? e.clientX - tipW - 8 : e.clientX + 16;
-			tooltipEl.style.left = left + 'px';
-			tooltipEl.style.top  = (e.clientY - 10) + 'px';
-		});
-
-		canvas.addEventListener('mouseleave', () => { tooltipEl.style.display = 'none'; });
 	}
 
 	/**
