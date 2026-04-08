@@ -7,7 +7,7 @@ import DatasetModule from "./DatasetModule.class";
 class MagneticSusceptibilityDataset extends DatasetModule {
 	constructor(analysis) {
 		super(analysis);
-        this.methodIds = [33];
+        this.methodIds = [33, 35];
 		this.sqs = analysis.sqs;
 	}
 
