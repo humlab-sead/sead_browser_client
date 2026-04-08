@@ -8,8 +8,8 @@ import { nanoid } from "nanoid";
  * POST /mcr/sites, then renders an aggregate density heatmap.
  *
  * Each cell in the aggregate density_matrix is the sum of taxon counts
- * across all sites. The binary consensus (matrix='1') from an AND of all
- * per-site matrices is shown as an orange bounding box.
+ * across all sites. Cells with full cross-site consensus (matrix='1')
+ * are rendered in black.
  */
 class MosaicMutualClimaticRangeModule extends MosaicTileModule {
     constructor(sqs) {
@@ -160,27 +160,16 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvasW, canvasH);
 
-        const { density, consensus, maxDensity, consensusBbox } = agg;
+        const { density, consensus, maxDensity } = agg;
 
         // Cells
         for (let row = 0; row < this.ROWS; row++) {
             for (let col = 0; col < this.COLS; col++) {
-                ctx.fillStyle = this._densityColor(density[row][col], maxDensity);
-                ctx.fillRect(this.MARGIN_LEFT + col * cellW, this.MARGIN_TOP + row * cellH, cellW - 1, cellH - 1);
+                const displayCol = (this.COLS - 1) - col;
+                const displayRow = (this.ROWS - 1) - row;
+                ctx.fillStyle = consensus[row][col] === 1 ? '#000000' : this._densityColor(density[row][col], maxDensity);
+                ctx.fillRect(this.MARGIN_LEFT + displayCol * cellW, this.MARGIN_TOP + displayRow * cellH, cellW - 1, cellH - 1);
             }
-        }
-
-        // Consensus bounding box
-        if (consensusBbox) {
-            const [cMin, cMax, rMin, rMax] = consensusBbox;
-            ctx.strokeStyle = '#e05c00';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(
-                this.MARGIN_LEFT + cMin * cellW,
-                this.MARGIN_TOP  + rMin * cellH,
-                (cMax - cMin + 1) * cellW,
-                (rMax - rMin + 1) * cellH
-            );
         }
 
         // X axis labels
@@ -189,7 +178,7 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         for (let c = 0; c <= this.COLS; c += 10) {
-            ctx.fillText((c - 10) + '°', this.MARGIN_LEFT + c * cellW, this.MARGIN_TOP + this.ROWS * cellH + 4);
+            ctx.fillText(((this.COLS - c) - 10) + '°', this.MARGIN_LEFT + c * cellW, this.MARGIN_TOP + this.ROWS * cellH + 4);
         }
         ctx.textBaseline = 'bottom';
         ctx.fillText('Tmax (°C)', this.MARGIN_LEFT + (this.COLS * cellW) / 2, canvasH);
@@ -198,7 +187,7 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         for (let r = 0; r < this.ROWS; r += 5) {
-            ctx.fillText(r + '°', this.MARGIN_LEFT - 4, this.MARGIN_TOP + r * cellH + cellH / 2);
+            ctx.fillText((this.ROWS - 1 - r) + '°', this.MARGIN_LEFT - 4, this.MARGIN_TOP + r * cellH + cellH / 2);
         }
 
         // Y axis title (rotated)
@@ -221,7 +210,7 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         document.body.appendChild(tooltipEl);
         this._tooltipEl = tooltipEl;
 
-        const { density, consensus, totalTaxa, sitesWithData, consensusBbox } = agg;
+        const { density, consensus, totalTaxa, sitesWithData } = agg;
 
         canvas.addEventListener('mousemove', (e) => {
             // Read current dims — stays correct after a responsive redraw
@@ -230,22 +219,21 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvasW / rect.width;
             const scaleY = canvasH / rect.height;
-            const col = Math.floor(((e.clientX - rect.left) * scaleX - this.MARGIN_LEFT) / cellW);
-            const row = Math.floor(((e.clientY - rect.top)  * scaleY - this.MARGIN_TOP)  / cellH);
+            const displayCol = Math.floor(((e.clientX - rect.left) * scaleX - this.MARGIN_LEFT) / cellW);
+            const displayRow = Math.floor(((e.clientY - rect.top)  * scaleY - this.MARGIN_TOP)  / cellH);
 
-            if (col < 0 || col >= this.COLS || row < 0 || row >= this.ROWS) {
+            if (displayCol < 0 || displayCol >= this.COLS || displayRow < 0 || displayRow >= this.ROWS) {
                 tooltipEl.style.display = 'none';
                 return;
             }
 
+            const col = (this.COLS - 1) - displayCol;
+            const row = (this.ROWS - 1) - displayRow;
             const tmax   = col - 10;
             const trange = row;
             const count  = density[row][col];
             const pct    = totalTaxa > 0 ? (Math.floor((count / totalTaxa) * 1000) / 10).toFixed(1) : "0.0";
             const inConsensus = consensus[row][col] === 1;
-            const inBbox = consensusBbox &&
-                col >= consensusBbox[0] && col <= consensusBbox[1] &&
-                row >= consensusBbox[2] && row <= consensusBbox[3];
 
             let html =
                 `<strong>Tmax</strong> (warmest month): ${tmax} °C<br>` +
@@ -254,13 +242,9 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
             if (count === 0) {
                 html += `<span style="color:#9ca3af">&#9675; No taxa tolerate this cell across selected sites</span>`;
             } else if (inConsensus) {
-                html += `<span style="color:#7dd3fc">&#9679; All taxa across all ${sitesWithData} sites tolerate this cell (full consensus)</span>`;
+                html += `<span style="color:#7dd3fc">&#9679; All taxa across all ${sitesWithData} sites tolerate this cell (full consensus, shown in black)</span>`;
             } else {
                 html += `<span style="color:#93c5fd">&#9681; ${count} of ${totalTaxa} taxa tolerate this cell (${pct}%)</span>`;
-            }
-
-            if (inBbox) {
-                html += `<br><span style="color:#fb923c">&#9642; Within cross-site consensus envelope</span>`;
             }
 
             tooltipEl.innerHTML = html;
@@ -327,7 +311,7 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
                 <div id="coverage-${coverageId}" class="tile-coverage-container"></div>
             </div>`
         );
-        this.sqs.tooltipManager.registerTooltip(`#${varId} .mosaic-tile-title`, "Mutual Climatic Range (MCR) reconstruction based on fossil beetle (Coleoptera) taxa found at the selected sites. The chart shows the climate envelope — compatible Tmax (mean temperature of the warmest month) vs Trange (difference between warmest and coldest month) — derived from the overlap of all MCR-registered species present. The orange bounding box marks the reconstructed climate envelope where all taxa agree.", { drawSymbol: true, anchorPoint: 'symbol' });
+        this.sqs.tooltipManager.registerTooltip(`#${varId} .mosaic-tile-title`, "Mutual Climatic Range (MCR) reconstruction based on fossil beetle (Coleoptera) taxa found at the selected sites. The chart shows the climate envelope — compatible Tmax (mean temperature of the warmest month) vs Trange (difference between warmest and coldest month) — derived from the overlap of all MCR-registered species present. Cells where all taxa agree are shown in black.", { drawSymbol: true, anchorPoint: 'symbol' });
 
         this._canvas = document.getElementById(canvasId);
         this._agg    = agg;

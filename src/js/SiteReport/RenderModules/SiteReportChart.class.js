@@ -1967,27 +1967,19 @@ class SiteReportChart {
 
 		for (let row = 0; row < ROWS; row++) {
 			for (let col = 0; col < COLS; col++) {
-				ctx.fillStyle = densityColor(density_matrix[row][col]);
-				ctx.fillRect(MARGIN_LEFT + col * cellW, MARGIN_TOP + row * cellH, cellW - 1, cellH - 1);
+				const displayCol = (COLS - 1) - col;
+				const displayRow = (ROWS - 1) - row;
+				ctx.fillStyle = density_matrix[row][col] === taxa_count ? '#000000' : densityColor(density_matrix[row][col]);
+				ctx.fillRect(MARGIN_LEFT + displayCol * cellW, MARGIN_TOP + displayRow * cellH, cellW - 1, cellH - 1);
 			}
 		}
-
-		const [cMin, cMax, rMin, rMax] = consensusBbox;
-		ctx.strokeStyle = '#e05c00';
-		ctx.lineWidth = 2;
-		ctx.strokeRect(
-			MARGIN_LEFT + cMin * cellW,
-			MARGIN_TOP + rMin * cellH,
-			(cMax - cMin + 1) * cellW,
-			(rMax - rMin + 1) * cellH
-		);
 
 		ctx.fillStyle = '#555';
 		ctx.font = '11px sans-serif';
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'top';
 		for (let c = 0; c <= COLS; c += 10) {
-			ctx.fillText((c - 10) + '°', MARGIN_LEFT + c * cellW, MARGIN_TOP + ROWS * cellH + 4);
+			ctx.fillText(((COLS - c) - 10) + '°', MARGIN_LEFT + c * cellW, MARGIN_TOP + ROWS * cellH + 4);
 		}
 		ctx.textBaseline = 'bottom';
 		ctx.fillText('Tmax (°C)', MARGIN_LEFT + (COLS * cellW) / 2, canvasH);
@@ -1995,7 +1987,7 @@ class SiteReportChart {
 		ctx.textAlign = 'right';
 		ctx.textBaseline = 'middle';
 		for (let r = 0; r < ROWS; r += 5) {
-			ctx.fillText(r + '°', MARGIN_LEFT - 4, MARGIN_TOP + r * cellH + cellH / 2);
+			ctx.fillText((ROWS - 1 - r) + '°', MARGIN_LEFT - 4, MARGIN_TOP + r * cellH + cellH / 2);
 		}
 
 		ctx.save();
@@ -2017,20 +2009,21 @@ class SiteReportChart {
 			const rect = canvas.getBoundingClientRect();
 			const scaleX = canvasW / rect.width;
 			const scaleY = canvasH / rect.height;
-			const col = Math.floor(((e.clientX - rect.left) * scaleX - MARGIN_LEFT) / cellW);
-			const row = Math.floor(((e.clientY - rect.top) * scaleY - MARGIN_TOP) / cellH);
+			const displayCol = Math.floor(((e.clientX - rect.left) * scaleX - MARGIN_LEFT) / cellW);
+			const displayRow = Math.floor(((e.clientY - rect.top) * scaleY - MARGIN_TOP) / cellH);
 
-			if (col < 0 || col >= COLS || row < 0 || row >= ROWS) {
+			if (displayCol < 0 || displayCol >= COLS || displayRow < 0 || displayRow >= ROWS) {
 				tooltipEl.style.display = 'none';
 				return;
 			}
 
+			const col = (COLS - 1) - displayCol;
+			const row = (ROWS - 1) - displayRow;
 			const tmax = col - 10;
 			const trange = row;
 			const count = density_matrix[row][col];
 			const pct = taxa_count > 0 ? (Math.floor((count / taxa_count) * 1000) / 10).toFixed(1) : "0.0";
 			const inConsensus = count === taxa_count;
-			const inBbox = col >= cMin && col <= cMax && row >= rMin && row <= rMax;
 
 			let html =
 				`<strong>Tmax</strong> (warmest month): ${tmax} °C<br>` +
@@ -2039,13 +2032,9 @@ class SiteReportChart {
 			if (count === 0) {
 				html += `<span style="color:#9ca3af">&#9675; No taxa tolerate this cell</span>`;
 			} else if (inConsensus) {
-				html += `<span style="color:#7dd3fc">&#9679; All ${taxa_count} taxa tolerate this cell (full MCR consensus)</span>`;
+				html += `<span style="color:#7dd3fc">&#9679; All ${taxa_count} taxa tolerate this cell (full MCR consensus, shown in black)</span>`;
 			} else {
 				html += `<span style="color:#93c5fd">&#9681; ${count} of ${taxa_count} taxa tolerate this cell (${pct}%)</span>`;
-			}
-
-			if (inBbox) {
-				html += `<br><span style="color:#fb923c">&#9642; Within reconstructed climate envelope</span>`;
 			}
 
 			tooltipEl.innerHTML = html;
