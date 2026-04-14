@@ -51,7 +51,7 @@ class sqsLayoutManager {
 		});
 
 		//This makes the drag-bar light up when the section toggle buttons are hovered over
-		document.querySelectorAll('#switch-section-button').forEach(button => {
+		document.querySelectorAll('#switch-section-button, .filter-section-toggle-button').forEach(button => {
 			button.addEventListener('mouseenter', () => {
 				const dragHandle = document.querySelector('.custom-resize-handle');
 				if(dragHandle) {

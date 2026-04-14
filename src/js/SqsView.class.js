@@ -49,6 +49,9 @@ class SqsView {
 		this.setSectionSizes(leftSize, rightSize, false);
 
 		this.initSwitchSectionToggle();
+		this.initShowOnlyLeftSectionToggle();
+		this.initShowOnlyRightSectionToggle();
+		this.updateSectionCollapseButtons();
 
 		//React to resize event to collapse header when necessary
 		this.sqs.sqsEventListen("layoutResize", () => {
@@ -77,6 +80,7 @@ class SqsView {
 				}
                 
                 this.toggleToggleButton(true);
+				this.toggleSectionCollapseButtons(false);
             }
         }
 
@@ -87,12 +91,14 @@ class SqsView {
             }
             else {
                 this.toggleToggleButton(false);
+				this.toggleSectionCollapseButtons(true);
 			}
 			if(this.getVisibleSection() != "both") {
 				this.switchSection("both");
 			}
             $(".ui-resizable-handle").show();
             this.setSectionSizes(this.leftInitSize, this.rightInitSize, true);
+			this.updateSectionCollapseButtons();
 		}
 		
 		for(let key in this.options.rules) {
@@ -294,6 +300,127 @@ class SqsView {
 		toggleBtn.attr("aria-label", label);
 	}
 
+	toggleSectionCollapseButtons(show) {
+		const leftToggleBtn = $("#filter-section-toggle-button-left", this.anchor);
+		const rightToggleBtn = $("#filter-section-toggle-button-right", this.anchor);
+		if(leftToggleBtn.length == 0 && rightToggleBtn.length == 0) {
+			return;
+		}
+
+		if(show) {
+			leftToggleBtn.show();
+			rightToggleBtn.show();
+			this.updateSectionCollapseButtons();
+		}
+		else {
+			leftToggleBtn.hide();
+			rightToggleBtn.hide();
+		}
+	}
+
+	updateSectionCollapseButtons() {
+		const leftToggleBtn = $("#filter-section-toggle-button-left", this.anchor);
+		const rightToggleBtn = $("#filter-section-toggle-button-right", this.anchor);
+		if(leftToggleBtn.length == 0 && rightToggleBtn.length == 0) {
+			return;
+		}
+
+		if(this.layoutManager.getMode() != "desktopMode") {
+			leftToggleBtn.hide();
+			rightToggleBtn.hide();
+			return;
+		}
+
+		if(this.visibleSection === "left") {
+			rightToggleBtn.addClass('only-left-section-active');
+			leftToggleBtn.removeClass('flipped');
+			leftToggleBtn.removeClass('only-right-section-active');
+			rightToggleBtn.css('left', '-1.0em');
+			leftToggleBtn.css('visibility', 'hidden');
+
+			const filterIconContainer = rightToggleBtn.find('.filter-toggle-icon-container');
+			filterIconContainer.attr('title', 'Show both sections');
+			rightToggleBtn.attr('title', 'Show both sections');
+			rightToggleBtn.attr('aria-label', 'Show both sections');
+		}
+		else if(this.visibleSection === "right") {
+			leftToggleBtn.addClass('flipped');
+			leftToggleBtn.addClass('only-right-section-active');
+			rightToggleBtn.removeClass('only-left-section-active');
+			rightToggleBtn.css('left', '.3em');
+			rightToggleBtn.css('visibility', 'hidden');
+
+			const filterIconContainer = leftToggleBtn.find('.filter-toggle-icon-container');
+			filterIconContainer.attr('title', 'Show both sections');
+			leftToggleBtn.attr('title', 'Show both sections');
+			leftToggleBtn.attr('aria-label', 'Show both sections');
+		}
+		else {
+			leftToggleBtn.removeClass('flipped');
+			leftToggleBtn.css('visibility', 'visible');
+			rightToggleBtn.css('left', '.3em');
+			rightToggleBtn.css('visibility', 'visible');
+			leftToggleBtn.removeClass('only-right-section-active');
+			rightToggleBtn.removeClass('only-left-section-active');
+
+			const leftFilterIconContainer = leftToggleBtn.find('.filter-toggle-icon-container');
+			leftFilterIconContainer.attr('title', 'Show only result section');
+			leftToggleBtn.attr('title', 'Show only result section');
+			leftToggleBtn.attr('aria-label', 'Show only result section');
+
+			const rightFilterIconContainer = rightToggleBtn.find('.filter-toggle-icon-container');
+			rightFilterIconContainer.attr('title', 'Show only filter section');
+			rightToggleBtn.attr('title', 'Show only filter section');
+			rightToggleBtn.attr('aria-label', 'Show only filter section');
+		}
+	}
+
+	initShowOnlyLeftSectionToggle() {
+		const toggleBtn = $("#filter-section-toggle-button-left", this.anchor);
+		if(toggleBtn.length == 0) {
+			return;
+		}
+
+		toggleBtn.off("click.sqs-view-show-only-left");
+		toggleBtn.on("click.sqs-view-show-only-left", () => {
+			const isCollapsed = this.leftLastSize === 0;
+
+			if(isCollapsed) {
+				const leftSize = this.leftInitSize || 30;
+				const rightSize = 100 - leftSize;
+				this.setSectionSizes(leftSize, rightSize, true);
+			}
+			else {
+				this.setSectionSizes(0, 100, true);
+			}
+
+			this.updateSectionCollapseButtons();
+		});
+	}
+
+	initShowOnlyRightSectionToggle() {
+		const toggleBtn = $("#filter-section-toggle-button-right", this.anchor);
+		if(toggleBtn.length == 0) {
+			return;
+		}
+
+		toggleBtn.off("click.sqs-view-show-only-right");
+		toggleBtn.on("click.sqs-view-show-only-right", () => {
+			const isCollapsed = this.rightLastSize === 0;
+
+			if(isCollapsed) {
+				const rightSize = this.rightInitSize || 30;
+				const leftSize = 100 - rightSize;
+				this.setSectionSizes(leftSize, rightSize, true);
+			}
+			else {
+				this.setSectionSizes(100, 0, true);
+			}
+
+			this.updateSectionCollapseButtons();
+		});
+	}
+
 	initSwitchSectionToggle() {
 		const toggleBtn = $("#switch-section-button", this.anchor);
 		if(toggleBtn.length == 0) {
@@ -439,6 +566,7 @@ class SqsView {
 				else {
 					this.visibleSection = "both";
 				}
+				this.updateSectionCollapseButtons();
 				this.updateSwitchSectionButton();
 			}
 		});
