@@ -576,12 +576,12 @@ export default class ResultMapLayers {
                 }
             },
             {
-                key: "msb-flooding",
+                key: "mcf-flooding",
                 layerUrl: "https://gisapp.msb.se/arcgis/services/Oversvamningskarteringar/karteringar/MapServer/WmsServer",
-                groupName: "MSB flooding",
+                groupName: "MCF flooding",
                 options: {
                     attributions: [
-                        '© <a href="https://www.msb.se/" target="_blank">MSB</a>'
+                        '© <a href="https://www.msb.se/" target="_blank">Myndigheten för civilt försvar (MCF)</a>'
                     ]
                 }
             },

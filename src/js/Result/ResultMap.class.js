@@ -1419,7 +1419,7 @@ class ResultMap extends ResultModule {
 		const providerTooltips = {
 			"SGU": "Sveriges geologiska undersökning (SGU) - Geological Survey of Sweden.",
 			"RAÄ": "Riksantikvarieämbetet (RAÄ) - Swedish National Heritage Board.",
-			"MSB flooding": "Myndigheten för samhällsskydd och beredskap (MSB) - Swedish Civil Contingencies Agency flood layers."
+			"MCF flooding": "Myndigheten för civilt försvar (MCF) - Swedish Civil Defence and Resilience Agency flood layers."
 		};
 
 		if(providerTooltips[providerName]) {
