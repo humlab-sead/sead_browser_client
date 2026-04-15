@@ -265,6 +265,71 @@ class ResultTable extends ResultModule {
 		return cellElement.innerHTML;
 	}
 
+	countryFormatter(cell) {
+		const row = cell.getRow();
+		const rowData = row.getData();
+		const cellElement = cell.getElement();
+
+		if (rowData.countryFetched) {
+			cellElement.innerText = rowData.country || "N/A";
+			return cellElement.innerHTML;
+		}
+
+		cellElement.innerHTML = "<div class='cute-little-loading-indicator'></div>";
+
+		let renderInterval = setInterval(() => {
+			if (this.maxRenderSlots > this.currentRenderSlotsTaken) {
+				this.currentRenderSlotsTaken++;
+				clearInterval(renderInterval);
+
+				const siteId = Number(rowData.site_link_filtered);
+				if (!Number.isInteger(siteId) || siteId <= 0) {
+					rowData.country = "N/A";
+					rowData.countryFetched = true;
+					cellElement.innerText = rowData.country;
+					this.currentRenderSlotsTaken--;
+					return;
+				}
+
+				const request = $.ajax(Config.dataServerAddress + "/graphs/countries", {
+					data: JSON.stringify([siteId]),
+					dataType: "json",
+					method: "post",
+					contentType: "application/json; charset=utf-8",
+					crossDomain: true
+				});
+
+				request.done(data => {
+					const countries = data && Array.isArray(data.countries) ? data.countries : [];
+					const countryNames = [
+						...new Set(
+							countries
+								.map(country => country && country.country_name)
+								.filter(countryName => typeof countryName == "string" && countryName.length > 0)
+						)
+					];
+
+					rowData.country = countryNames.length > 0 ? countryNames.join(", ") : "N/A";
+					rowData.countryFetched = true;
+					cellElement.innerText = rowData.country;
+				});
+
+				request.fail(err => {
+					console.error("Error fetching country data:", err);
+					rowData.country = "N/A";
+					rowData.countryFetched = true;
+					cellElement.innerText = rowData.country;
+				});
+
+				request.always(() => {
+					this.currentRenderSlotsTaken--;
+				});
+			}
+		}, 200);
+
+		return cellElement.innerHTML;
+	}
+
 	renderDataTable() {
 		this.resultManager.renderMsg(false);
 
@@ -310,6 +375,14 @@ class ResultTable extends ResultModule {
 			},
 			{title:"Site ID", field:"site_link_filtered", widthGrow:1, hozAlign:"center", visible: !mobileMode},
 			{title:"Site name", field:"sitename", tooltip: true, widthGrow:3},
+			{
+				title: "Country",
+				field: "country",
+				tooltip: true,
+				widthGrow: 2,
+				headerSort: false,
+				formatter: (cell) => this.countryFormatter(cell)
+			},
 			/*
 			{title:"Data points", field:"analysis_entities", widthGrow:1, visible: !mobileMode, formatter: (cell, formatterParams, onRendered) => {
 				return `<div class='stacked-bar-outer-container'>
