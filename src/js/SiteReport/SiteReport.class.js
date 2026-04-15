@@ -179,6 +179,128 @@ class SiteReport {
 		}
 		return false;
 	}
+
+	getAnalysisDatasetModuleInstances() {
+		let analysisModule = this.getModuleByName("analysis");
+		if(!analysisModule || !analysisModule.module || !Array.isArray(analysisModule.module.datasetModules)) {
+			return [];
+		}
+
+		return analysisModule.module.datasetModules
+			.filter((datasetModule) => {
+				return datasetModule && datasetModule.instance;
+			})
+			.map((datasetModule) => {
+				return datasetModule.instance;
+			});
+	}
+
+	getDatasetModuleByMethodIds(datasetModules, methodIds = []) {
+		if(!Array.isArray(methodIds) || methodIds.length == 0) {
+			return null;
+		}
+
+		return datasetModules.find((datasetModule) => {
+			if(!datasetModule || !Array.isArray(datasetModule.methodIds)) {
+				return false;
+			}
+			return methodIds.some((methodId) => {
+				return datasetModule.methodIds.includes(methodId);
+			});
+		}) || null;
+	}
+
+	getDatasetModuleByMethodGroupIds(datasetModules, methodGroupIds = []) {
+		if(!Array.isArray(methodGroupIds) || methodGroupIds.length == 0) {
+			return null;
+		}
+
+		return datasetModules.find((datasetModule) => {
+			if(!datasetModule || !Array.isArray(datasetModule.methodGroupIds)) {
+				return false;
+			}
+			return methodGroupIds.some((methodGroupId) => {
+				return datasetModule.methodGroupIds.includes(methodGroupId);
+			});
+		}) || null;
+	}
+
+	resolveDatasetModuleForExport(section, contentItem) {
+		if(section == "all" || contentItem == "all") {
+			return null;
+		}
+
+		let datasetModules = this.getAnalysisDatasetModuleInstances();
+		if(datasetModules.length == 0) {
+			return null;
+		}
+
+		if(contentItem && contentItem.renderedBy) {
+			let byRenderer = datasetModules.find((datasetModule) => {
+				return datasetModule.constructor && datasetModule.constructor.name == contentItem.renderedBy;
+			});
+			if(byRenderer) {
+				return byRenderer;
+			}
+		}
+
+		let contentMethodIds = [];
+		if(contentItem && Array.isArray(contentItem.methodIds)) {
+			contentMethodIds = contentMethodIds.concat(contentItem.methodIds);
+		}
+		if(contentItem && typeof contentItem.methodId != "undefined" && contentItem.methodId != null) {
+			contentMethodIds.push(contentItem.methodId);
+		}
+
+		let byContentMethodIds = this.getDatasetModuleByMethodIds(datasetModules, contentMethodIds);
+		if(byContentMethodIds) {
+			return byContentMethodIds;
+		}
+
+		let sectionMethodIds = [];
+		if(section && Array.isArray(section.methodIds)) {
+			sectionMethodIds = sectionMethodIds.concat(section.methodIds);
+		}
+		if(section && typeof section.methodId != "undefined" && section.methodId != null) {
+			sectionMethodIds.push(section.methodId);
+		}
+
+		let bySectionMethodIds = this.getDatasetModuleByMethodIds(datasetModules, sectionMethodIds);
+		if(bySectionMethodIds) {
+			return bySectionMethodIds;
+		}
+
+		let sectionMethodGroupIds = [];
+		if(section && Array.isArray(section.methodGroupIds)) {
+			sectionMethodGroupIds = sectionMethodGroupIds.concat(section.methodGroupIds);
+		}
+		if(section && typeof section.methodGroupId != "undefined" && section.methodGroupId != null) {
+			sectionMethodGroupIds.push(section.methodGroupId);
+		}
+
+		return this.getDatasetModuleByMethodGroupIds(datasetModules, sectionMethodGroupIds);
+	}
+
+	async applyDatasetModuleExportPreparation(exportStruct, section, contentItem) {
+		let datasetModule = this.resolveDatasetModuleForExport(section, contentItem);
+		if(!datasetModule || typeof datasetModule.prepareExport != "function") {
+			return exportStruct;
+		}
+
+		let preparedStruct = await datasetModule.prepareExport(exportStruct, {
+			section: section,
+			contentItem: contentItem,
+			siteData: this.siteData,
+			siteReport: this,
+			sqs: this.sqs,
+		});
+
+		if(typeof preparedStruct == "undefined" || preparedStruct == null) {
+			return exportStruct;
+		}
+
+		return preparedStruct;
+	}
 	
 	/*
 	Function: showLoadingIndicator
@@ -553,128 +675,292 @@ class SiteReport {
 		return exportStruct;
 	}
 
-	async getExportButton(exportFormat, exportStruct) {
-		var node = null;
-		let filename = "sead-export-site-"+this.siteId;
+	getExportButton(exportFormat, section = "all", contentItem = "all") {
+		let label = "Download";
 		if(exportFormat == "json") {
-			node = $("<a id='site-report-json-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download JSON</a>");
-			$(node).on("click", async (evt) => {
-				evt.preventDefault();
-				evt.stopPropagation();
-				const objectUrl = await this.sqs.exportManager.getJsonExport(exportStruct);
-				this.pushDownload(filename+".json", objectUrl);
-			});
+			label = "Download JSON";
 		}
 		if(exportFormat == "geojson") {
-			let cir = this.getContentItemRendererByName("sampleCoordinatesMap");
-
-			let ri = null;
-			cir.renderInstanceRepository.forEach(riItem => {
-				if(riItem.contentItemName == "sampleCoordinatesMap") {
-					ri = riItem;
-				}
-			});
-
-			let points = [];
-			let geojson = {};
-			cir.renderInstanceRepository.forEach(riItem => {
-				if(riItem.contentItemName == "sampleCoordinatesMap") {
-					points = ri.renderInstance.getSampleMapPoints(cir.contentItem);
-					geojson = ri.renderInstance.convertPointsToGeoJSON(points);
-				}
-			});
-
-			node = $("<a id='site-report-geojson-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download GeoJSON</a>");
-
-			geojson.meta = exportStruct.meta;
-			let json = JSON.stringify(geojson, null, 2);
-			let exportData = Buffer.from(json).toString('base64');
-			$(node).attr("href", "data:application/octet-stream;charset=utf-8;base64,"+exportData);
-			$(node).attr("download", filename+".geojson");
+			label = "Download GeoJSON";
 		}
 		if(exportFormat == "xlsx") {
-			node = this.getXlsxExport(filename, exportStruct);
+			label = "Download XLSX";
 		}
 		if(exportFormat == "xlsxBook") {
-			node = await this.getXlsxBookExport(filename, exportStruct);
+			label = "Download XLSX";
 		}
 		if(exportFormat == "csv") {
-			node = this.getCsvExport(filename, exportStruct);
+			label = "Download CSV";
 		}
 		if(exportFormat == "png") {
-			node = $("<a id='site-report-png-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download PNG</a>");
-
-			$(node).on("click", (evt) => {
-				evt.preventDefault();
-				evt.stopPropagation();
-
-				const contentItemName = exportStruct.meta.contentItemName || exportStruct.meta.dataset;
-				const chartNode = $("#contentItem-"+contentItemName+" .site-report-chart-container").first()[0];
-				if(!chartNode) {
-					this.sqs.notificationManager.notify("Could not find chart node for PNG export.", "error");
-					return;
-				}
-
-				const safeBaseName = ("site_"+exportStruct.meta.site+"-"+exportStruct.meta.section+"-"+(exportStruct.meta.content || "chart"))
-					.replace(/[^a-z0-9._-]+/gi, "_")
-					.toLowerCase();
-
-				if(chartNode.tagName && chartNode.tagName.toLowerCase() == "canvas") {
-					const dataUrl = chartNode.toDataURL("image/png");
-					this.pushDownload(safeBaseName+".png", dataUrl);
-					return;
-				}
-
-				const chartId = $(chartNode).attr("id");
-				if(chartId) {
-					Plotly.downloadImage(chartId, {
-						format: 'png',
-						filename: safeBaseName,
-						scale: 4,
-					});
-					return;
-				}
-
-				this.sqs.notificationManager.notify("This chart renderer does not support PNG export.", "error");
-			});
+			label = "Download PNG";
+		}
+		if(exportFormat == "svg") {
+			label = "Download SVG";
+		}
+		if(exportFormat == "pdf") {
+			label = "Download PDF";
 		}
 
-		if(exportFormat == "svg") {
-			node = $("<a id='site-report-svg-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download SVG</a>");
+		let node = $("<a class='site-report-export-download-btn light-theme-button'>"+label+"</a>");
+		$(node).on("click", async (evt) => {
+			evt.preventDefault();
+			evt.stopPropagation();
+			await this.executeExport(exportFormat, section, contentItem, node);
+		});
 
-			$(node).on("click", (evt) => {
-				for(let k in this.modules) {
-					if(this.modules[k].name == "analysis") {
-						for(let sk in this.modules[k].module.section.sections) {
-							for(let cik in this.modules[k].module.section.sections[sk].contentItems) {
-								let ci = this.modules[k].module.section.sections[sk].contentItems[cik];
-								
-								if(ci.name == exportStruct.meta.dataset) {
-									let chartId = $("#contentItem-"+ci.datasetId+" .site-report-chart-container").attr("id");
+		return node;
+	}
 
-									Plotly.downloadImage(chartId, {
-										format: 'svg',
-										filename: "site_"+exportStruct.meta.site+"-"+exportStruct.meta.section,
-										scale: 1,
-										width: 1920,
-										height: 1080
-									});
-								}
+	setExportButtonLoadingState(buttonNode, isLoading = false) {
+		if(!buttonNode) {
+			return;
+		}
+		$(buttonNode).toggleClass("is-loading", isLoading);
+		$(buttonNode).attr("aria-busy", isLoading ? "true" : "false");
+	}
+
+	getBaseExportFilename() {
+		return "sead-export-site-"+this.siteId;
+	}
+
+	getExportStructReferenceString(contentItem) {
+		let plainRef = typeof contentItem.datasetReferencePlain != "undefined" ? contentItem.datasetReferencePlain : "";
+		if(plainRef == "") {
+			if(contentItem.datasetReference) {
+				plainRef = contentItem.datasetReference.replace(/<[^>]+>/g, '');
+			}
+
+			const lastIndex = plainRef.lastIndexOf('\n');
+			if(lastIndex !== -1) {
+				plainRef = plainRef.substring(0, lastIndex) + plainRef.substring(lastIndex + 1);
+			}
+			plainRef = "["+plainRef.replace(/\n/g, '] [')+"]";
+		}
+		return plainRef;
+	}
+
+	buildExportStruct(section = "all", contentItem = "all") {
+		let exportStruct = {
+			meta: {
+				site: this.siteId,
+				section: "All",
+				dataset: "All",
+				contentItemName: "all",
+				content: "All",
+				description: this.sqs.config.dataExportDescription,
+				siteName: this.siteData.site_name,
+				url: this.sqs.config.serverRoot+"/site/"+this.siteId,
+				datasetReference: "",
+				siteLocation: "",
+				siteLocationCoordinates: "",
+				renderType: "all"
+			}
+		};
+
+		if(section == "all" || contentItem == "all") {
+			let exportData = this.sqs.copySiteReportData(this.data);
+			this.prepareExportStructure(exportData.sections);
+			exportStruct.data = this.stripExcludedColumnsFromExportData(exportData);
+		}
+		else {
+			let selectedRoType = "table";
+			if(contentItem.renderOptions) {
+				contentItem.renderOptions.forEach((ro) => {
+					if(ro.selected) {
+						selectedRoType = ro.type;
+					}
+				});
+			}
+
+			let siteLocationString = "";
+			this.siteData.location.forEach((loc) => {
+				siteLocationString += loc.location_name + ", ";
+			});
+			siteLocationString = siteLocationString.slice(0, -2);
+
+			let siteLocationCoordinatesString = parseFloat(this.siteData.latitude_dd) + "\"N, " + parseFloat(this.siteData.longitude_dd) + "\"E, Altitude: " + parseFloat(this.siteData.altitude) + "m";
+			let contentItemCopy = this.sqs.copySiteReportData(contentItem);
+			contentItemCopy = this.stripExcludedColumnsFromContentItem(contentItemCopy);
+
+			exportStruct.meta = {
+				site: this.siteId,
+				section: section.title,
+				dataset: contentItem.datasetId || contentItem.name,
+				contentItemName: contentItem.name,
+				content: contentItem.title,
+				description: this.sqs.config.dataExportDescription,
+				siteName: this.siteData.site_name,
+				url: this.sqs.config.serverRoot+"/site/"+this.siteId,
+				datasetReference: this.getExportStructReferenceString(contentItem),
+				siteLocation: siteLocationString,
+				siteLocationCoordinates: siteLocationCoordinatesString,
+				renderType: selectedRoType
+			};
+			exportStruct.datatable = contentItemCopy.data;
+		}
+
+		exportStruct.meta.sead_reference = this.sqs.config.dataAttributionString;
+		exportStruct.meta.license = this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")";
+		return exportStruct;
+	}
+
+	async executeGeoJsonExport(exportStruct, filename) {
+		let cir = this.getContentItemRendererByName("sampleCoordinatesMap");
+		if(!cir || !cir.renderInstanceRepository) {
+			this.sqs.notificationManager.notify("Could not find sample coordinates renderer for GeoJSON export.", "error");
+			return;
+		}
+
+		let ri = null;
+		cir.renderInstanceRepository.forEach(riItem => {
+			if(riItem.contentItemName == "sampleCoordinatesMap") {
+				ri = riItem;
+			}
+		});
+
+		if(!ri || !ri.renderInstance) {
+			this.sqs.notificationManager.notify("Could not find map instance for GeoJSON export.", "error");
+			return;
+		}
+
+		let points = ri.renderInstance.getSampleMapPoints(cir.contentItem);
+		let geojson = ri.renderInstance.convertPointsToGeoJSON(points);
+		geojson.meta = exportStruct.meta;
+		let json = JSON.stringify(geojson, null, 2);
+		let objectUrl = URL.createObjectURL(new Blob([json], { type: "application/geo+json" }));
+		this.pushDownload(filename+".geojson", objectUrl);
+	}
+
+	executePngExport(exportStruct) {
+		const contentItemName = exportStruct.meta.contentItemName || exportStruct.meta.dataset;
+		const chartNode = $("#contentItem-"+contentItemName+" .site-report-chart-container").first()[0];
+		if(!chartNode) {
+			this.sqs.notificationManager.notify("Could not find chart node for PNG export.", "error");
+			return;
+		}
+
+		const safeBaseName = ("site_"+exportStruct.meta.site+"-"+exportStruct.meta.section+"-"+(exportStruct.meta.content || "chart"))
+			.replace(/[^a-z0-9._-]+/gi, "_")
+			.toLowerCase();
+
+		if(chartNode.tagName && chartNode.tagName.toLowerCase() == "canvas") {
+			const dataUrl = chartNode.toDataURL("image/png");
+			this.pushDownload(safeBaseName+".png", dataUrl);
+			return;
+		}
+
+		const chartId = $(chartNode).attr("id");
+		if(chartId) {
+			Plotly.downloadImage(chartId, {
+				format: 'png',
+				filename: safeBaseName,
+				scale: 4,
+			});
+			return;
+		}
+
+		this.sqs.notificationManager.notify("This chart renderer does not support PNG export.", "error");
+	}
+
+	executeSvgExport(exportStruct) {
+		for(let k in this.modules) {
+			if(this.modules[k].name == "analysis") {
+				for(let sk in this.modules[k].module.section.sections) {
+					for(let cik in this.modules[k].module.section.sections[sk].contentItems) {
+						let ci = this.modules[k].module.section.sections[sk].contentItems[cik];
+
+						if(ci.name == exportStruct.meta.dataset || ci.datasetId == exportStruct.meta.dataset) {
+							let chartId = $("#contentItem-"+ci.datasetId+" .site-report-chart-container").attr("id");
+							if(!chartId) {
+								this.sqs.notificationManager.notify("Could not find chart node for SVG export.", "error");
+								return;
 							}
+
+							Plotly.downloadImage(chartId, {
+								format: 'svg',
+								filename: "site_"+exportStruct.meta.site+"-"+exportStruct.meta.section,
+								scale: 1,
+								width: 1920,
+								height: 1080
+							});
+							return;
 						}
 					}
 				}
-			});
+			}
 		}
 
-		if(exportFormat == "pdf") {
-			node = $("<a id='site-report-print-btn' class='site-report-export-download-btn light-theme-button'>Download PDF</a>");
-			$(node).on("click", (evt) => {
-				this.renderDataAsPdf(exportStruct, this.data);
-			});
+		this.sqs.notificationManager.notify("This chart renderer does not support SVG export.", "error");
+	}
+
+	async executeExport(exportFormat, section = "all", contentItem = "all", buttonNode = null) {
+		this.setExportButtonLoadingState(buttonNode, true);
+		try {
+			let exportStruct = this.buildExportStruct(section, contentItem);
+			exportStruct = await this.applyDatasetModuleExportPreparation(exportStruct, section, contentItem);
+			let filename = this.getBaseExportFilename();
+
+			if(exportFormat == "json") {
+				const objectUrl = await this.sqs.exportManager.getJsonExport(exportStruct);
+				this.pushDownload(filename+".json", objectUrl);
+				return;
+			}
+
+			if(exportFormat == "geojson") {
+				await this.executeGeoJsonExport(exportStruct, filename);
+				return;
+			}
+
+			if(exportFormat == "xlsx") {
+				if(!exportStruct.datatable) {
+					this.sqs.notificationManager.notify("No table data available for XLSX export.", "error");
+					return;
+				}
+				const xlsxExport = await this.getXlsxExport(filename, exportStruct);
+				this.pushDownload(xlsxExport.filename, xlsxExport.objectUrl);
+				return;
+			}
+
+			if(exportFormat == "xlsxBook") {
+				this.sqs.notificationManager.notify("XLSX workbook export is not available for this content item.", "error");
+				return;
+			}
+
+			if(exportFormat == "csv") {
+				if(!exportStruct.datatable) {
+					this.sqs.notificationManager.notify("No table data available for CSV export.", "error");
+					return;
+				}
+				const csvExport = this.getCsvExport(filename, exportStruct);
+				this.pushDownload(csvExport.filename, csvExport.objectUrl);
+				return;
+			}
+
+			if(exportFormat == "png") {
+				this.executePngExport(exportStruct);
+				return;
+			}
+
+			if(exportFormat == "svg") {
+				this.executeSvgExport(exportStruct);
+				return;
+			}
+
+			if(exportFormat == "pdf") {
+				await this.renderDataAsPdf(exportStruct, this.data);
+				return;
+			}
+
+			this.sqs.notificationManager.notify("Unsupported export format.", "error");
 		}
-		
-		return node;
+		catch(error) {
+			console.error("Export failed", exportFormat, error);
+			this.sqs.notificationManager.notify("Failed to generate export file.", "error");
+		}
+		finally {
+			this.setExportButtonLoadingState(buttonNode, false);
+		}
 	}
 
 
@@ -814,7 +1100,7 @@ class SiteReport {
 		return consColMax >= 0 ? [consColMin, consColMax, consRowMin, consRowMax] : null;
 	}
 
-	getMcrXlsxExport(filename, exportStruct) {
+	async getMcrXlsxExport(filename, exportStruct) {
 		const wb = new ExcelJS.Workbook();
 		const summaryWs = wb.addWorksheet("MCR Summary");
 		const densityWs = wb.addWorksheet("MCR Density");
@@ -884,15 +1170,13 @@ class SiteReport {
 		densityWs.columns.forEach(column => { column.width = 10; });
 		consensusWs.columns.forEach(column => { column.width = 10; });
 
-		wb.xlsx.writeBuffer().then(buffer => {
-			const blob = new Blob([buffer], { type: 'application/octet-stream' });
-			const blobUrl = URL.createObjectURL(blob);
-
-			$("#site-report-xlsx-export-download-btn").attr("href", blobUrl);
-			$("#site-report-xlsx-export-download-btn").attr("download", filename+"-mcr.xlsx");
-		});
-
-		return $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
+		const buffer = await wb.xlsx.writeBuffer();
+		const blob = new Blob([buffer], { type: 'application/octet-stream' });
+		const blobUrl = URL.createObjectURL(blob);
+		return {
+			filename: filename+"-mcr.xlsx",
+			objectUrl: blobUrl
+		};
 	}
 	
 	getCsvExport(filename, exportStruct) {
@@ -918,9 +1202,10 @@ class SiteReport {
 
 		const formattedExcelRows = this.getDataForXlsx(exportStruct.datatable);
 
-		let csvContent = "data:text/csv;charset=utf-8,";
-
-		// Add the headers to the CSV content
+		let csvContent = "";
+		if(formattedExcelRows.length == 0) {
+			throw new Error("No rows available for CSV export");
+		}
 		csvContent += Object.keys(formattedExcelRows[0]).join(",") + "\n";
 
 		// Add the data to the CSV content
@@ -928,12 +1213,11 @@ class SiteReport {
 			csvContent += Object.values(row).join(",") + "\n";
 		});
 
-		const encodedUri = encodeURI(csvContent);
-		const blob = new Blob([csvContent], { type: 'text/csv' });
-
-		$("#site-report-csv-export-download-btn").attr("href", encodedUri);
-		$("#site-report-csv-export-download-btn").attr("download", filename+".csv");
-		return $("<a id='site-report-csv-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download CSV</a>");
+		const encodedUri = "data:text/csv;charset=utf-8,"+encodeURIComponent(csvContent);
+		return {
+			filename: filename+".csv",
+			objectUrl: encodedUri
+		};
 	}
 
 	/*
@@ -1007,9 +1291,9 @@ class SiteReport {
 	}
 	*/
 
-	getXlsxExport(filename, exportStruct) {
+	async getXlsxExport(filename, exportStruct) {
 		if(this.isMcrExport(exportStruct)) {
-			return this.getMcrXlsxExport(filename, exportStruct);
+			return await this.getMcrXlsxExport(filename, exportStruct);
 		}
 
 		//Remove columns from table which are flagged for exclusion
@@ -1032,13 +1316,31 @@ class SiteReport {
 			});
 		});
 
-		const ws_name = "SEAD Data";
 		const wb = new ExcelJS.Workbook();
-		const ws = wb.addWorksheet(ws_name);
+		const metadataSheetName = "SEAD metadata";
+		let dataSheetName = "SEAD data";
+		if(exportStruct && exportStruct.meta && exportStruct.meta.content) {
+			dataSheetName = exportStruct.meta.content;
+			if(dataSheetName.indexOf(" - ") !== -1) {
+				dataSheetName = dataSheetName.split(" - ").pop().trim();
+			}
+		}
+
+		dataSheetName = dataSheetName.replace(/[\\/*?:[\]]/g, '').trim();
+		if(dataSheetName == "") {
+			dataSheetName = "SEAD data";
+		}
+		if(dataSheetName.toLowerCase() == metadataSheetName.toLowerCase()) {
+			dataSheetName = "SEAD data";
+		}
+		if(dataSheetName.length > 31) {
+			dataSheetName = dataSheetName.substring(0, 31);
+		}
+
+		const metadataWs = wb.addWorksheet(metadataSheetName);
+		const dataWs = wb.addWorksheet(dataSheetName);
 
 		let data = this.getDataForXlsx(exportStruct.datatable);
-
-		// Add data to the worksheet
 
 		let styles = {
 			header1: { size: 14, bold: true },
@@ -1058,47 +1360,43 @@ class SiteReport {
 		// Convert the set of columns into an array
 		let columns = Array.from(columnSet);
 
-		let mainHeaderRow = ws.addRow(["SEAD Dataset Export"]);
+		let mainHeaderRow = metadataWs.addRow(["SEAD Dataset Export"]);
 		mainHeaderRow.font = styles.header1;
 
-		let metaDataHeaderRow = [
-			"Content",
-			"Section",
-			"License",
-			"Source attribution",
-			"Source url",
-			"References (citation required)",
-			"Site name",
-			"Date of export",
-			"Description",
-			""
-		];
-		let metaDataValueRow = [
-			exportStruct.meta.content,
-			exportStruct.meta.section,
-			`Data distributed by SEAD under the license ${this.sqs.config.dataLicense.name} (${this.sqs.config.dataLicense.url})`,
-			exportStruct.meta.attribution,
-			exportStruct.meta.url,
-			exportStruct.meta.datasetReference,
-			exportStruct.meta.siteName,
-			new Date().toLocaleDateString('sv-SE'),
-			exportStruct.meta.description,
-			""
+		const webclientVersion = this.sqs.config.version || "";
+		const apiVersion = (this.siteData && this.siteData.api_source) ? this.siteData.api_source : "Unknown";
+
+		const metadataRows = [
+			["Content", exportStruct.meta.content],
+			["Section", exportStruct.meta.section],
+			["License", `Data distributed by SEAD under the license ${this.sqs.config.dataLicense.name} (${this.sqs.config.dataLicense.url})`],
+			["Source attribution", exportStruct.meta.attribution],
+			["Source url", exportStruct.meta.url],
+			["References (citation required)", exportStruct.meta.datasetReference],
+			["Site name", exportStruct.meta.siteName],
+			["Date of export", new Date().toLocaleDateString('sv-SE')],
+			["Description", exportStruct.meta.description],
+			["SEAD client version", webclientVersion],
+			["SEAD JAS version", apiVersion],
 		];
 
-		// Add the metadata to the worksheet
-		let metaDataHeaderRowExcel = ws.addRow(metaDataHeaderRow);
-		metaDataHeaderRowExcel.eachCell((cell) => {
-			cell.font = styles.header2;
+		metadataWs.addRow([]);
+		metadataRows.forEach((metaRow) => {
+			let row = metadataWs.addRow(metaRow);
+			row.getCell(1).font = styles.header2;
 		});
 
-		// Add the metadata values to the worksheet
-		ws.addRow(metaDataValueRow);
-		ws.addRow([]); // Empty row for spacing
+		let metadataColWidths = [10, 10];
+		metadataWs.eachRow((row) => {
+			row.eachCell((cell, colNumber) => {
+				const len = String(cell.value ?? "").length;
+				metadataColWidths[colNumber - 1] = Math.max(metadataColWidths[colNumber - 1] || 10, len + 2);
+			});
+		});
+		metadataWs.columns = metadataColWidths.map(width => ({ width: Math.min(width, 100) }));
 
-
-		// Add the column headers as the first row in the worksheet
-		let headerRow = ws.addRow(columns);
+		// Add the column headers as the first row in the data worksheet
+		let headerRow = dataWs.addRow(columns);
 		headerRow.eachCell((cell) => {
 			cell.font = styles.header2;
 		});
@@ -1107,20 +1405,18 @@ class SiteReport {
 			// Create an excelRow by extracting all values from the rowObject
 			let excelRow = columns.map(column => rowObject[column] || '');
 		  
-			// Add the excelRow as a new row in the worksheet
-			ws.addRow(excelRow);
+			// Add the excelRow as a new row in the data worksheet
+			dataWs.addRow(excelRow);
 		});
 		  
 		
-		wb.xlsx.writeBuffer().then(buffer => {
-			const blob = new Blob([buffer], { type: 'application/octet-stream' });
-			const blobUrl = URL.createObjectURL(blob);
-
-			$("#site-report-xlsx-export-download-btn").attr("href", blobUrl);
-			$("#site-report-xlsx-export-download-btn").attr("download", filename+".xlsx");
-		});
-		
-		return $("<a id='site-report-xlsx-export-download-btn' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>");
+		const buffer = await wb.xlsx.writeBuffer();
+		const blob = new Blob([buffer], { type: 'application/octet-stream' });
+		const blobUrl = URL.createObjectURL(blob);
+		return {
+			filename: filename+".xlsx",
+			objectUrl: blobUrl
+		};
 	}
 	
 	async renderDataAsPdf(exportStruct, siteData) {
@@ -1387,18 +1683,32 @@ class SiteReport {
 	stripExcludedColumnsFromExportData(exportData) {
 		// Define a recursive function to handle both top-level and nested sections
 		const stripSections = (sections) => {
-			sections.forEach(section => {
-				// Process each content item in the current section
-				section.contentItems.forEach(ci => {
-					//if ci is an empty object...
-					if(Object.keys(ci).length === 0 && ci.constructor === Object) {
-						return;
-					}
+			if(!Array.isArray(sections)) {
+				return;
+			}
 
-					if (!this.sqs.isPromise(ci)) {
-						ci = this.stripExcludedColumnsFromContentItem(ci);
-					}
-				});
+			sections.forEach(section => {
+				if(!section || typeof section != "object") {
+					return;
+				}
+
+				// Process each content item in the current section
+				if(Array.isArray(section.contentItems)) {
+					section.contentItems.forEach(ci => {
+						if(!ci || typeof ci != "object") {
+							return;
+						}
+
+						//if ci is an empty object...
+						if(Object.keys(ci).length === 0 && ci.constructor === Object) {
+							return;
+						}
+
+						if(!this.sqs.isPromise(ci)) {
+							this.stripExcludedColumnsFromContentItem(ci);
+						}
+					});
+				}
 	
 				// Recursively process any nested sections
 				if (section.hasOwnProperty("sections")) {
@@ -1407,6 +1717,10 @@ class SiteReport {
 			});
 		};
 	
+		if(!exportData || !Array.isArray(exportData.sections)) {
+			return exportData;
+		}
+
 		// Start the recursion with the top-level sections
 		stripSections(exportData.sections);
 	
@@ -1415,6 +1729,10 @@ class SiteReport {
 	
 
 	stripExcludedColumnsFromContentItem(ci) {
+		if(!ci || !ci.data || !Array.isArray(ci.data.columns) || !Array.isArray(ci.data.rows)) {
+			return ci;
+		}
+
 		let subTableKey = null;
 		ci.data.columns.forEach((col, key) => {
 			if(col.dataType == "subtable") {
@@ -1423,8 +1741,11 @@ class SiteReport {
 		});
 
 		ci.data.rows.forEach(row => {
-			if(subTableKey != null) {
+			if(subTableKey != null && row[subTableKey] && row[subTableKey].value) {
 				let subTable = row[subTableKey].value;
+				if(!subTable || !Array.isArray(subTable.columns) || !Array.isArray(subTable.rows)) {
+					return;
+				}
 				
 				let excludeKeys = [];
 				subTable.columns.forEach((col, key) => {
@@ -1451,105 +1772,14 @@ class SiteReport {
 	}
 	
 	async renderExportDialog(formats = ["json", "xlsx", "pdf"], section = "all", contentItem = "all") {
-		let exportData = this.sqs.copySiteReportData(this.data);
-
-		this.prepareExportStructure(exportData.sections);
-		exportData = this.stripExcludedColumnsFromExportData(exportData);
-
-		var exportStruct = {
-			info: {
-				description: this.sqs.config.dataExportDescription,
-				url: ""
-			},
-			site: this.siteId,
-			section: "All",
-			content: "All",
-			data: exportData
-		};
-
-		if(section != "all" && contentItem != "all") {
-			let selectedRoType = "table";
-			if(contentItem.renderOptions) {
-				contentItem.renderOptions.forEach((ro) => {
-					if(ro.selected) {
-						selectedRoType = ro.type;
-					}
-				});
-			}
-
-			let plainRef = typeof contentItem.datasetReferencePlain != "undefined" ? contentItem.datasetReferencePlain : "";
-			if(plainRef == "") {
-				console.log("No plainRef found, trying to strip the HTML instead")
-				if(contentItem.datasetReference) {
-					plainRef = contentItem.datasetReference.replace(/<[^>]+>/g, '');
-				}
-
-				const lastIndex = plainRef.lastIndexOf('\n');
-				if (lastIndex !== -1) {
-					plainRef = plainRef.substring(0, lastIndex) + plainRef.substring(lastIndex + 1);
-				}
-				plainRef = "["+plainRef.replace(/\n/g, '] [')+"]";
-			}
-
-			let siteLocationString = "";
-			this.siteData.location.forEach((loc) => {
-				siteLocationString += loc.location_name + ", ";
-			});
-			siteLocationString = siteLocationString.slice(0, -2);
-
-			let siteLocationCoordinatesString = parseFloat(this.siteData.latitude_dd) + "\"N, " + parseFloat(this.siteData.longitude_dd) + "\"E, Altitude: " + parseFloat(this.siteData.altitude) + "m"	;
-
-			exportStruct = {
-				meta: {
-					site: this.siteId,
-					section: section.title,
-					dataset: contentItem.datasetId || contentItem.name,
-					contentItemName: contentItem.name,
-					content: contentItem.title,
-					description: this.sqs.config.dataExportDescription,
-					siteName: this.siteData.site_name,
-					url: this.sqs.config.serverRoot+"/site/"+this.siteId,
-					datasetReference: plainRef,
-					siteLocation: siteLocationString,
-					siteLocationCoordinates: siteLocationCoordinatesString,
-					renderType: selectedRoType
-				},
-				datatable: this.stripExcludedColumnsFromContentItem(contentItem).data
-			};
-		}
-
-		exportStruct.meta.sead_reference = this.sqs.config.dataAttributionString;
-		exportStruct.meta.license = this.sqs.config.dataLicense.name+" ("+this.sqs.config.dataLicense.url+")";
-		
 		let dialogNodeId = nanoid();
 		var dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");
 		this.siteReportManager.sqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
 		
-
-		if(formats.indexOf("json") != -1) {
-			this.getExportButton("json", exportStruct).then((btn) => {
-				$("#node-"+dialogNodeId).append(btn);
-			});
-		}
-		if(formats.indexOf("xlsx") != -1) {
-			this.getExportButton("xlsx", exportStruct).then((btn) => {
-				$("#node-"+dialogNodeId).append(btn);
-			});
-		}
-		if(formats.indexOf("geojson") != -1) {
-			this.getExportButton("geojson", exportStruct).then((btn) => {
-				$("#node-"+dialogNodeId).append(btn);
-			});
-		}
-		if(formats.indexOf("png") != -1) {
-			var pngBtn = await this.getExportButton("png", exportStruct);
-			$("#node-"+dialogNodeId).append(pngBtn);
-		}
-		if(formats.indexOf("pdf") != -1) {
-			this.getExportButton("pdf", exportStruct).then((btn) => {
-				$("#node-"+dialogNodeId).append(btn);
-			});
-		}
+		formats.forEach((format) => {
+			let btn = this.getExportButton(format, section, contentItem);
+			$("#node-"+dialogNodeId).append(btn);
+		});
 	}
 
 	/* Function: prepareExportStructure
@@ -1557,6 +1787,10 @@ class SiteReport {
 	* Re-formats the site report data structure to a format more suitable for export, e.g. by removing data/directives related to rendering.
 	*/
 	prepareExportStructure(data) {
+		if(!Array.isArray(data)) {
+			return;
+		}
+
 		//These are property keys which somehow refer to the rendering of the data, which we want to strip out when exporting the data since they are not interesting for a third party
 		let filterList = [
 			"rendered",
@@ -1566,6 +1800,10 @@ class SiteReport {
 		];
 
 		data.map((item) => {
+			if(item == null) {
+				return;
+			}
+
 			if(Array.isArray(item)) {
 				this.prepareExportStructure(item);
 			}

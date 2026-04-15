@@ -82,6 +82,322 @@ class AbundanceDataset extends DatasetModule {
 		return found;
 	}
 
+	getEcoCodeColorMap() {
+		let colorMap = {};
+		let ecoCodes = Array.isArray(this.sqs.bugsEcoCodeDefinitions) ? this.sqs.bugsEcoCodeDefinitions : [];
+		ecoCodes.forEach((ecoCode) => {
+			if(typeof ecoCode.ecocode_definition_id != "undefined" && ecoCode.ecocode_definition_id != null) {
+				colorMap[String(ecoCode.ecocode_definition_id)] = ecoCode.color || "";
+			}
+		});
+		return colorMap;
+	}
+
+	getEcoCodeTaxaLabel(taxaItem) {
+		if(!taxaItem) {
+			return "";
+		}
+
+		if(typeof taxaItem == "string") {
+			return taxaItem;
+		}
+
+		if(typeof taxaItem == "number") {
+			return String(taxaItem);
+		}
+
+		if(taxaItem.taxon) {
+			if(typeof taxaItem.taxon == "string") {
+				return taxaItem.taxon;
+			}
+
+			if(typeof taxaItem.taxon == "object") {
+				return taxaItem.taxon.scientific_name
+					|| taxaItem.taxon.taxon_name
+					|| taxaItem.taxon.name
+					|| taxaItem.taxon.taxon_id
+					|| "";
+			}
+		}
+
+		return taxaItem.scientific_name
+			|| taxaItem.taxon_name
+			|| taxaItem.name
+			|| taxaItem.full_name
+			|| taxaItem.taxon_id
+			|| "";
+	}
+
+	formatEcoCodeTaxonForExport(taxaItem, siteData = null) {
+		if(!taxaItem) {
+			return "";
+		}
+
+		let taxon = null;
+		let taxonId = null;
+		if(typeof taxaItem == "number") {
+			taxonId = taxaItem;
+		}
+		else if(typeof taxaItem == "string") {
+			if(!isNaN(taxaItem)) {
+				taxonId = parseInt(taxaItem);
+			}
+		}
+		else if(typeof taxaItem == "object") {
+			taxon = taxaItem;
+
+			if(typeof taxaItem.taxon_id != "undefined" && taxaItem.taxon_id != null) {
+				taxonId = taxaItem.taxon_id;
+			}
+
+			if(typeof taxaItem.taxon != "undefined" && taxaItem.taxon != null) {
+				if(typeof taxaItem.taxon == "object") {
+					taxon = taxaItem.taxon;
+					if(typeof taxaItem.taxon.taxon_id != "undefined" && taxaItem.taxon.taxon_id != null) {
+						taxonId = taxaItem.taxon.taxon_id;
+					}
+				}
+				else if(!isNaN(taxaItem.taxon)) {
+					taxonId = parseInt(taxaItem.taxon);
+				}
+			}
+		}
+
+		let hasTaxonStruct = taxon
+			&& typeof taxon == "object"
+			&& typeof taxon.family != "undefined"
+			&& typeof taxon.genus != "undefined"
+			&& typeof taxon.species != "undefined";
+
+		if(!hasTaxonStruct && taxonId != null) {
+			let lookupTaxon = this.getTaxonByIdFromLookup(siteData, taxonId);
+			if(lookupTaxon) {
+				taxon = lookupTaxon;
+				hasTaxonStruct = true;
+			}
+		}
+
+		if(!hasTaxonStruct) {
+			return this.getEcoCodeTaxaLabel(taxaItem);
+		}
+
+		let identificationLevels = null;
+		if(typeof taxaItem == "object") {
+			identificationLevels = taxaItem.identification_levels || taxaItem.identificationLevels || null;
+		}
+		try {
+			return this.sqs.formatTaxon(taxon, identificationLevels, false, false);
+		}
+		catch(error) {
+			console.warn("Could not format ecocode taxon for export using formatTaxon()", error);
+			return this.getEcoCodeTaxaLabel(taxaItem);
+		}
+	}
+
+	formatEcoCodeTaxaList(taxa = [], siteData = null) {
+		if(!Array.isArray(taxa)) {
+			return "";
+		}
+
+		let taxaLabels = taxa
+			.map((taxaItem) => {
+				return this.formatEcoCodeTaxonForExport(taxaItem, siteData);
+			})
+			.filter((taxaLabel) => {
+				return taxaLabel !== "";
+			});
+
+		taxaLabels = Array.from(new Set(taxaLabels));
+		return taxaLabels.join("; ");
+	}
+
+	getColumnKeyByTitle(columns, title) {
+		if(!Array.isArray(columns)) {
+			return null;
+		}
+
+		for(let key in columns) {
+			if(columns[key] && columns[key].title == title) {
+				return parseInt(key);
+			}
+		}
+		return null;
+	}
+
+	getEcoCodeDefinitionColumnKey(columns) {
+		return this.getColumnKeyByTitle(columns, "Ecocode definition ID");
+	}
+
+	getSubTableColumnKey(columns) {
+		if(!Array.isArray(columns)) {
+			return null;
+		}
+
+		for(let key in columns) {
+			if(columns[key] && columns[key].dataType == "subtable") {
+				return parseInt(key);
+			}
+		}
+		return null;
+	}
+
+	ensureEcoCodeExportColumns(columns, definitionColumnKey) {
+		let colorColumnKey = this.getColumnKeyByTitle(columns, "Eco code color");
+		let taxaColumnKey = this.getColumnKeyByTitle(columns, "Taxa");
+		if(colorColumnKey != null && taxaColumnKey != null) {
+			let updatedDefinitionColumnKey = this.getEcoCodeDefinitionColumnKey(columns);
+			return {
+				inserted: false,
+				colorColumnKey: colorColumnKey,
+				taxaColumnKey: taxaColumnKey,
+				definitionColumnKeyBeforeInsert: updatedDefinitionColumnKey,
+			};
+		}
+
+		columns.splice(definitionColumnKey, 0, {
+			title: "Eco code color",
+		}, {
+			title: "Taxa",
+		});
+
+		return {
+			inserted: true,
+			colorColumnKey: definitionColumnKey,
+			taxaColumnKey: definitionColumnKey + 1,
+			definitionColumnKeyBeforeInsert: definitionColumnKey,
+		};
+	}
+
+	getExportCellByDefinitionId(definitionId, taxaByDefinitionId, ecoCodeColorMap, siteData = null) {
+		let definitionKey = definitionId != null ? String(definitionId) : "";
+		let taxa = taxaByDefinitionId[definitionKey] || [];
+		let taxaString = "";
+		if(Array.isArray(taxa)) {
+			taxaString = this.formatEcoCodeTaxaList(taxa, siteData);
+		}
+		else if(typeof taxa == "string") {
+			taxaString = taxa;
+		}
+		else if(typeof taxa == "object" && taxa != null) {
+			taxaString = this.formatEcoCodeTaxonForExport(taxa, siteData);
+		}
+
+		return {
+			color: ecoCodeColorMap[definitionKey] || "",
+			taxa: taxaString,
+		};
+	}
+
+	applyEcoCodeExportCellsToRows(rows, columnState, taxaByDefinitionId, ecoCodeColorMap, siteData = null) {
+		if(!Array.isArray(rows)) {
+			return;
+		}
+
+		rows.forEach((row) => {
+			if(!Array.isArray(row)) {
+				return;
+			}
+
+			let definitionCell = row[columnState.definitionColumnKeyBeforeInsert];
+			let definitionId = definitionCell ? definitionCell.value : null;
+			let exportCellValues = this.getExportCellByDefinitionId(definitionId, taxaByDefinitionId, ecoCodeColorMap, siteData);
+
+			let colorCell = {
+				type: "cell",
+				value: exportCellValues.color,
+			};
+
+			let taxaCell = {
+				type: "cell",
+				value: exportCellValues.taxa,
+			};
+
+			if(columnState.inserted) {
+				row.splice(columnState.colorColumnKey, 0, colorCell, taxaCell);
+			}
+			else {
+				row[columnState.colorColumnKey] = colorCell;
+				row[columnState.taxaColumnKey] = taxaCell;
+			}
+		});
+	}
+
+	enrichFlatEcoCodeExportTable(tableData, taxaByDefinitionId, ecoCodeColorMap, siteData = null) {
+		if(!tableData || !Array.isArray(tableData.columns) || !Array.isArray(tableData.rows)) {
+			return;
+		}
+
+		let definitionColumnKey = this.getEcoCodeDefinitionColumnKey(tableData.columns);
+		if(definitionColumnKey == null) {
+			return;
+		}
+
+		let columnState = this.ensureEcoCodeExportColumns(tableData.columns, definitionColumnKey);
+		this.applyEcoCodeExportCellsToRows(tableData.rows, columnState, taxaByDefinitionId, ecoCodeColorMap, siteData);
+	}
+
+	enrichSubTableEcoCodeExportData(tableData, taxaBySampleAndDefinitionId, ecoCodeColorMap, siteData = null) {
+		if(!tableData || !Array.isArray(tableData.columns) || !Array.isArray(tableData.rows)) {
+			return;
+		}
+
+		let subTableColumnKey = this.getSubTableColumnKey(tableData.columns);
+		if(subTableColumnKey == null) {
+			return;
+		}
+
+		let sampleIdColumnKey = this.getColumnKeyByTitle(tableData.columns, "Sample ID");
+
+		tableData.rows.forEach((row) => {
+			if(!Array.isArray(row) || !row[subTableColumnKey] || !row[subTableColumnKey].value) {
+				return;
+			}
+
+			let subTable = row[subTableColumnKey].value;
+			if(!subTable || !Array.isArray(subTable.columns) || !Array.isArray(subTable.rows)) {
+				return;
+			}
+
+			let definitionColumnKey = this.getEcoCodeDefinitionColumnKey(subTable.columns);
+			if(definitionColumnKey == null) {
+				return;
+			}
+
+			let sampleId = sampleIdColumnKey != null && row[sampleIdColumnKey] ? row[sampleIdColumnKey].value : null;
+			let sampleTaxaMap = {};
+			if(sampleId != null) {
+				sampleTaxaMap = taxaBySampleAndDefinitionId[String(sampleId)] || {};
+			}
+
+			let columnState = this.ensureEcoCodeExportColumns(subTable.columns, definitionColumnKey);
+			this.applyEcoCodeExportCellsToRows(subTable.rows, columnState, sampleTaxaMap, ecoCodeColorMap, siteData);
+		});
+	}
+
+	async prepareExport(exportStruct, options = {}) {
+		if(!exportStruct || !exportStruct.datatable || !options.contentItem) {
+			return exportStruct;
+		}
+
+		if(options.contentItem.renderedBy != this.constructor.name) {
+			return exportStruct;
+		}
+
+		let ecoCodeColorMap = this.getEcoCodeColorMap();
+		let contentItemMeta = {};
+		if(options.contentItem.data && options.contentItem.data.meta) {
+			contentItemMeta = options.contentItem.data.meta;
+		}
+
+		let taxaByDefinitionId = contentItemMeta.ecocodeTaxaByDefinitionId || {};
+		let taxaBySampleAndDefinitionId = contentItemMeta.ecocodeTaxaBySampleAndDefinitionId || {};
+
+		this.enrichFlatEcoCodeExportTable(exportStruct.datatable, taxaByDefinitionId, ecoCodeColorMap, options.siteData);
+		this.enrichSubTableEcoCodeExportData(exportStruct.datatable, taxaBySampleAndDefinitionId, ecoCodeColorMap, options.siteData);
+
+		return exportStruct;
+	}
+
 	async getSiteEcoCodeContentItem(siteData) {
 		let ecoCodeBundles = await new Promise(async (resolve, reject) => {
 			let response = await fetch(this.sqs.config.dataServerAddress+"/ecocodes/site/"+siteData.site_id);
@@ -110,6 +426,9 @@ class AbundanceDataset extends DatasetModule {
 			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
 			"renderedBy": this.constructor.name,
 			"data": {
+				"meta": {
+					"ecocodeTaxaByDefinitionId": {}
+				},
 				"columns": [
 					{
 						"title": "Eco code",
@@ -202,6 +521,7 @@ class AbundanceDataset extends DatasetModule {
 
 		if(ecoCodeBundles) {
 			ecoCodeBundles.forEach(ecoCodeBundle => {
+				ecoCodeContentItem.data.meta.ecocodeTaxaByDefinitionId[String(ecoCodeBundle.ecocode.ecocode_definition_id)] = Array.isArray(ecoCodeBundle.taxa) ? ecoCodeBundle.taxa : [];
 				ecoCodeContentItem.data.rows.push([
 					{
 						type: "cell",
@@ -328,6 +648,9 @@ class AbundanceDataset extends DatasetModule {
 			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
 			"renderedBy": this.constructor.name,
 			"data": {
+				"meta": {
+					"ecocodeTaxaByDefinitionId": {}
+				},
 				"columns": [
 					{
 						"title": "Eco code",
@@ -420,6 +743,7 @@ class AbundanceDataset extends DatasetModule {
 
 		if(ecoCodeBundles) {
 			ecoCodeBundles.forEach(ecoCodeBundle => {
+				ecoCodeContentItem.data.meta.ecocodeTaxaByDefinitionId[String(ecoCodeBundle.ecocode.ecocode_definition_id)] = Array.isArray(ecoCodeBundle.taxa) ? ecoCodeBundle.taxa : [];
 				ecoCodeContentItem.data.rows.push([
 					{
 						type: "cell",
@@ -471,6 +795,9 @@ class AbundanceDataset extends DatasetModule {
 			"titleTooltip": "Bugs EcoCodes is a habitat classification system.",
 			"renderedBy": this.constructor.name,
 			"data": {
+				"meta": {
+					"ecocodeTaxaBySampleAndDefinitionId": {}
+				},
 				"columns": [
 					{
 						"title": "Sample ID",
@@ -565,6 +892,11 @@ class AbundanceDataset extends DatasetModule {
 		};
 
 		ecoCodeBundles.forEach(ecoCodeBundle => {
+			let sampleIdKey = String(ecoCodeBundle.physical_sample_id);
+			if(typeof ecoCodeContentItem.data.meta.ecocodeTaxaBySampleAndDefinitionId[sampleIdKey] == "undefined") {
+				ecoCodeContentItem.data.meta.ecocodeTaxaBySampleAndDefinitionId[sampleIdKey] = {};
+			}
+
 			let subTable = {
 				columns: [
 					{
@@ -590,6 +922,8 @@ class AbundanceDataset extends DatasetModule {
 			let sampleAggTaxa = 0;
 
 			ecoCodeBundle.ecocodes.forEach(ecocode => {
+				ecoCodeContentItem.data.meta.ecocodeTaxaBySampleAndDefinitionId[sampleIdKey][String(ecocode.ecocode.ecocode_definition_id)] = Array.isArray(ecocode.taxa) ? ecocode.taxa : [];
+
 				let subTableRow = [];
 				subTableRow.push(
 					{

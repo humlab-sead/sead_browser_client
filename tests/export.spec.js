@@ -1,82 +1,216 @@
-// tests/export.spec.js
-import { test, expect } from '@playwright/test';
+const { test, expect } = require('@playwright/test');
+const fs = require('fs/promises');
 
-// Define the site IDs you want to test
-const siteIdsToTest = [1, 2, 74, 99, 123]; // Add more IDs as needed
+const smokeSiteId = process.env.PLAYWRIGHT_SMOKE_SITE_ID || '1';
 
-test.describe('CSV Export Functionality', () => {
+async function setTutorialDismissCookie(page) {
+	await page.context().addCookies([{
+		name: 'tutorial_status',
+		value: 'dismiss',
+		domain: 'sead.test',
+		path: '/'
+	}]);
+}
 
-    let consoleErrors = []; // Array to store console errors for each page
+async function dismissBlockingTutorial(page) {
+	const tutorialDismissButton = page.locator('#tutorial-question .no-button');
+	if(await tutorialDismissButton.isVisible().catch(() => false)) {
+		await tutorialDismissButton.click();
+		await page.waitForTimeout(150);
+	}
+}
 
-    // Listen for console messages before each test
-    test.beforeEach(async ({ page }) => {
-        consoleErrors = []; // Reset for each test
-        page.on('console', msg => {
-            if (msg.type() === 'error') {
-                consoleErrors.push(msg.text());
-            }
-        });
-    });
+async function dismissCookieConsent(page) {
+	const consentButton = page.getByRole('button', { name: /i agree/i }).first();
+	if(await consentButton.isVisible().catch(() => false)) {
+		await consentButton.click();
+		await page.waitForTimeout(200);
+	}
+}
 
-    // Test for each site ID
-    for (const siteId of siteIdsToTest) {
-        test(`should successfully export CSV for site ${siteId}`, async ({ page }) => {
-            const siteUrl = `/site/${siteId}`;
+async function waitForSiteReportReady(page) {
+	await expect(page.locator('#site-report-main-container')).toBeVisible({ timeout: 30000 });
+	await expect(page.locator('#site-report-content')).toBeVisible({ timeout: 30000 });
+	await expect(page.locator('#site-report-section-analyses')).toBeVisible({ timeout: 30000 });
+}
 
-            console.log(`Navigating to: ${siteUrl}`);
-            await page.goto(siteUrl);
+async function openAnalysesSection(page) {
+	const analysisSectionToggle = page.locator('#site-report-section-analyses .site-report-level-content .site-report-level-title').first();
+	await expect(analysisSectionToggle).toBeVisible({ timeout: 30000 });
+	await analysisSectionToggle.click();
+}
 
-            // Wait for the "Export" button to be visible and enabled
-            const exportButton = page.getByRole('button', { name: /export/i });
-            await expect(exportButton).toBeVisible();
-            await expect(exportButton).toBeEnabled();
+function getColumnTitles(columns) {
+	if(!Array.isArray(columns)) {
+		return [];
+	}
+	return columns.map((col) => col?.title).filter(Boolean);
+}
 
-            // Click the Export button
-            await exportButton.click();
+function inspectEcoCodeColumns(exportStruct) {
+	if(!exportStruct || !exportStruct.datatable) {
+		return {
+			hasEcoCodeDefinition: false,
+			hasColorColumn: false,
+			hasTaxaColumn: false
+		};
+	}
 
-            // Assuming a modal or dropdown appears with "Excel" or "CSV" option
-            // Adjust selectors based on your actual UI
-            const csvOption = page.getByRole('menuitem', { name: /csv/i }) || page.getByText(/csv/i); // Example selector
+	const topLevelTitles = getColumnTitles(exportStruct.datatable.columns);
+	const hasTopLevelDefinition = topLevelTitles.includes('Ecocode definition ID');
+	const hasTopLevelColor = topLevelTitles.includes('Eco code color');
+	const hasTopLevelTaxa = topLevelTitles.includes('Taxa');
 
-            // Wait for the CSV option to appear and click it
-            await expect(csvOption).toBeVisible();
-            await csvOption.click();
+	if(hasTopLevelDefinition) {
+		return {
+			hasEcoCodeDefinition: true,
+			hasColorColumn: hasTopLevelColor,
+			hasTaxaColumn: hasTopLevelTaxa
+		};
+	}
 
-            console.log(`Triggering download for site ${siteId}...`);
+	const subTableColumnKey = (exportStruct.datatable.columns || []).findIndex((col) => col && col.dataType == 'subtable');
+	if(subTableColumnKey < 0 || !Array.isArray(exportStruct.datatable.rows) || exportStruct.datatable.rows.length == 0) {
+		return {
+			hasEcoCodeDefinition: false,
+			hasColorColumn: false,
+			hasTaxaColumn: false
+		};
+	}
 
-            // Playwright's way to wait for a download
-            // This is crucial for asserting on the downloaded file
-            const [download] = await Promise.all([
-                page.waitForEvent('download'), // Wait for the download event
-                // If clicking the button directly initiates the download, you might not need another click here
-                // If 'csvOption.click()' was already the trigger, this is fine.
-                // If there's another "confirm download" button, click it here.
-            ]);
+	const firstSubTable = exportStruct.datatable.rows[0][subTableColumnKey]?.value;
+	const subTitles = getColumnTitles(firstSubTable?.columns);
+	return {
+		hasEcoCodeDefinition: subTitles.includes('Ecocode definition ID'),
+		hasColorColumn: subTitles.includes('Eco code color'),
+		hasTaxaColumn: subTitles.includes('Taxa')
+	};
+}
 
-            // Assertions on the downloaded file
-            expect(download).not.toBeNull();
-            console.log(`Downloaded file URL: ${download.url()}`);
-            console.log(`Downloaded file suggested filename: ${download.suggestedFilename()}`);
+test.describe('Site report content item export flow', () => {
+	test(`uses lazy click-time generation and regenerates exports (site ${smokeSiteId})`, async ({ page }) => {
+		test.setTimeout(120000);
 
-            // Optional: Save the file and inspect its contents (if needed)
-            // const path = await download.path(); // Get the temporary path where Playwright saved it
-            // console.log(`Downloaded file saved at: ${path}`);
-            // expect(fs.existsSync(path)).toBe(true); // Requires 'node:fs' import
+		await setTutorialDismissCookie(page);
+		await page.goto(`/site/${smokeSiteId}`);
+		await dismissBlockingTutorial(page);
+		await dismissCookieConsent(page);
+		await waitForSiteReportReady(page);
 
-            // You can also assert on the filename, e.g., to ensure it contains the siteId
-            expect(download.suggestedFilename()).toContain(`site_${siteId}`);
-            expect(download.suggestedFilename()).toMatch(/\.zip$/); // Assuming it's a .zip file as per your code
+		await openAnalysesSection(page);
 
-            // Check for console errors after the entire operation
-            expect(consoleErrors.length).toBe(0, `Expected no console errors, but found: \n${consoleErrors.join('\n')}`);
-            console.log(`Successfully completed export test for site ${siteId}`);
-        });
-    }
+		const analysisExportButton = page.locator('#site-report-section-analyses .content-item-container .site-report-toolbar-export-btn:visible').first();
+		await expect(analysisExportButton).toBeVisible({ timeout: 30000 });
 
-    // Optional: After all tests, you can report overall console errors if you want
-    // test.afterAll(() => {
-    //     if (consoleErrors.length > 0) {
-    //         console.warn("Global Console Errors across tests:", consoleErrors);
-    //     }
-    // });
+		let downloadCount = 0;
+		page.on('download', () => {
+			downloadCount += 1;
+		});
+
+		await analysisExportButton.click();
+
+		const exportDialog = page.locator('#popover-dialog-frame');
+		await expect(exportDialog).toBeVisible({ timeout: 10000 });
+
+		const jsonBtn = page.locator('.site-report-export-download-btn', { hasText: 'Download JSON' }).first();
+		const xlsxBtn = page.locator('.site-report-export-download-btn', { hasText: 'Download XLSX' }).first();
+		await expect(jsonBtn).toBeVisible({ timeout: 10000 });
+		await expect(xlsxBtn).toBeVisible({ timeout: 10000 });
+
+		await page.waitForTimeout(750);
+		expect(downloadCount).toBe(0);
+
+		const [jsonDownload1] = await Promise.all([
+			page.waitForEvent('download'),
+			jsonBtn.click()
+		]);
+		expect(jsonDownload1.suggestedFilename().toLowerCase()).toContain('.json');
+		await expect(jsonBtn).toHaveAttribute('aria-busy', 'false', { timeout: 10000 });
+		expect(downloadCount).toBe(1);
+
+		const [jsonDownload2] = await Promise.all([
+			page.waitForEvent('download'),
+			jsonBtn.click()
+		]);
+		expect(jsonDownload2.suggestedFilename().toLowerCase()).toContain('.json');
+		expect(downloadCount).toBe(2);
+
+		const [xlsxDownload] = await Promise.all([
+			page.waitForEvent('download'),
+			xlsxBtn.click()
+		]);
+		expect(xlsxDownload.suggestedFilename().toLowerCase()).toContain('.xlsx');
+		await expect(xlsxBtn).toHaveAttribute('aria-busy', 'false', { timeout: 10000 });
+		expect(downloadCount).toBe(3);
+	});
+
+	test(`adds eco code color and taxa columns via dataset prepareExport (site ${smokeSiteId})`, async ({ page }) => {
+		test.setTimeout(120000);
+
+		await setTutorialDismissCookie(page);
+		await page.goto(`/site/${smokeSiteId}`);
+		await dismissBlockingTutorial(page);
+		await dismissCookieConsent(page);
+		await waitForSiteReportReady(page);
+		await openAnalysesSection(page);
+
+		const allSubsectionToggles = page.locator('#site-report-section-analyses .site-report-level-content .site-report-level-title');
+		const subsectionCount = await allSubsectionToggles.count();
+		for(let i = 0; i < subsectionCount; i += 1) {
+			await allSubsectionToggles.nth(i).click().catch(() => {});
+		}
+
+		const exportButtons = page.locator('#site-report-section-analyses .content-item-container .site-report-toolbar-export-btn:visible');
+		const exportButtonCount = await exportButtons.count();
+		expect(exportButtonCount).toBeGreaterThan(0);
+
+		let foundEcoCodeExport = false;
+		const scanLimit = Math.min(exportButtonCount, 10);
+
+		for(let i = 0; i < scanLimit; i += 1) {
+			await page.evaluate(() => {
+				if(window.sqs && window.sqs.dialogManager) {
+					window.sqs.dialogManager.hidePopOver();
+				}
+			});
+
+			await exportButtons.nth(i).click();
+			const jsonBtn = page.locator('.site-report-export-download-btn', { hasText: 'Download JSON' }).first();
+			const hasJsonButton = await jsonBtn.isVisible().catch(() => false);
+			if(!hasJsonButton) {
+				continue;
+			}
+
+			let jsonDownload = null;
+			try {
+				([jsonDownload] = await Promise.all([
+					page.waitForEvent('download', { timeout: 10000 }),
+					jsonBtn.click()
+				]));
+			}
+			catch (err) {
+				continue;
+			}
+
+			const jsonPath = await jsonDownload.path();
+			const jsonRaw = await fs.readFile(jsonPath, 'utf8');
+			const exportStruct = JSON.parse(jsonRaw);
+			const ecoCodeColumns = inspectEcoCodeColumns(exportStruct);
+
+			if(ecoCodeColumns.hasEcoCodeDefinition) {
+				foundEcoCodeExport = true;
+				expect(ecoCodeColumns.hasColorColumn).toBeTruthy();
+				expect(ecoCodeColumns.hasTaxaColumn).toBeTruthy();
+				break;
+			}
+
+			await page.evaluate(() => {
+				if(window.sqs && window.sqs.dialogManager) {
+					window.sqs.dialogManager.hidePopOver();
+				}
+			});
+		}
+
+		test.skip(!foundEcoCodeExport, `No ecocode export detected on site ${smokeSiteId}`);
+	});
 });

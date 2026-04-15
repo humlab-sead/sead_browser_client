@@ -148,9 +148,13 @@ class DatasetModule {
         });
 	}
 
-    async makeSection(siteData, sections) {
-		//console.log(siteData, sections);
-	}
+	    async makeSection(siteData, sections) {
+			//console.log(siteData, sections);
+		}
+
+		async prepareExport(exportStruct, options = {}) {
+			return exportStruct;
+		}
 
 	getSectionByMethodId(methodId, sections) {
 		for(let key in sections) {
