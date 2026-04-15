@@ -37,7 +37,7 @@
 	"showResultExportButton": true,
 	"showMosaicExportButtons": true,
 	"showSearchButton": false,
-	"googleCustomSearchApiKey": "AIzaSyCrvpWj5sLvwQrwvgSN4Env29Y9d6BHkfM",
+	"googleCustomSearchApiKey": null,
 	"pageTrackingEnabled": true,
 	"tutorialEnabled": true,
 	"copilotEnabled": false,
