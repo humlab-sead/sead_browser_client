@@ -36,6 +36,14 @@ class ContentItemRenderer {
 				}
 
 				this.contentItem = resolvedContentItem;
+				if(!this.contentItem) {
+					// Promise resolved to null/undefined — remove the placeholder and bail out
+					if(this.placeholderId) {
+						$("#"+this.placeholderId).remove();
+						this.placeholderId = null;
+					}
+					return;
+				}
 				this.render();
 			});
 			return;

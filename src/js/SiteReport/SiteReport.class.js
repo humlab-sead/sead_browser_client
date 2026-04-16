@@ -1401,12 +1401,27 @@ class SiteReport {
 			cell.font = styles.header2;
 		});
 
+		const ecoCodeColorColumnIndex = columns.indexOf("Eco code color");
+
 		data.forEach(rowObject => {
 			// Create an excelRow by extracting all values from the rowObject
 			let excelRow = columns.map(column => rowObject[column] || '');
-		  
+
 			// Add the excelRow as a new row in the data worksheet
-			dataWs.addRow(excelRow);
+			let addedRow = dataWs.addRow(excelRow);
+
+			// Apply background fill to the "Eco code color" cell if it contains a valid hex color
+			if(ecoCodeColorColumnIndex !== -1) {
+				const hexColor = rowObject["Eco code color"];
+				if(hexColor && typeof hexColor === 'string' && hexColor.startsWith('#')) {
+					const argb = 'FF' + hexColor.replace('#', '').toUpperCase();
+					addedRow.getCell(ecoCodeColorColumnIndex + 1).fill = {
+						type: 'pattern',
+						pattern: 'solid',
+						fgColor: { argb: argb }
+					};
+				}
+			}
 		});
 		  
 		
