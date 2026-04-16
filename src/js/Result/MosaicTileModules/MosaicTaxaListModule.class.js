@@ -141,7 +141,26 @@ class MosaicTaxaListModule extends MosaicTileModule {
         
     }
 
+    getAvailableExportFormats() {
+        return ["json", "csv", "png"];
+    }
+
     formatDataForExport(data, format = "json") {
+        if(format == "png") {
+            this.exportTopTaxaListAsPng(data, {
+                title: this.title,
+                maxRows: 15,
+                barColor: "rgba(0,123,255,0.8)",
+                resolveLabel: (item) => {
+                    if(item.family && item.genus && item.species) {
+                        return this.sqs.formatTaxon(item, null, true, false);
+                    }
+                    return "Taxon id " + item.taxon_id;
+                }
+            });
+            return data;
+        }
+
         if(format == "csv") {
             let includeColumns = ["abundance", "family", "genus", "species", "taxon_id"];
 

@@ -252,6 +252,138 @@ class MosaicTileModule {
         return ["json", "csv"];
     }
 
+    getExportImageTargetNode() {
+        const $renderRoot = $(this.renderIntoNode);
+        const tileContentNode = $renderRoot.find(".mosaic-tile-content").first()[0];
+        return tileContentNode || $renderRoot[0] || null;
+    }
+
+    sanitizeExportFilename(baseName = "chart") {
+        return baseName.replace(/[^a-z0-9]/gi, "_").replace(/_+/g, "_").replace(/^_|_$/g, "").toLowerCase();
+    }
+
+    stripHtmlTags(text) {
+        if(typeof text !== "string") {
+            return "";
+        }
+        return text.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    }
+
+    truncateCanvasText(ctx, text, maxWidth) {
+        if(ctx.measureText(text).width <= maxWidth) {
+            return text;
+        }
+
+        const ellipsis = "...";
+        let trimmed = text;
+        while(trimmed.length > 1 && ctx.measureText(trimmed + ellipsis).width > maxWidth) {
+            trimmed = trimmed.slice(0, -1);
+        }
+        return trimmed + ellipsis;
+    }
+
+    exportTopTaxaListAsPng(data, options = {}) {
+        if(!Array.isArray(data) || data.length === 0) {
+            console.warn("No taxa data available for PNG export");
+            return;
+        }
+
+        const maxRows = options.maxRows || 15;
+        const rows = data.slice(0, maxRows);
+        const resolveLabel = options.resolveLabel || ((item) => `Taxon id ${item.taxon_id}`);
+        const title = options.title || this.title || "Top taxa";
+        const barColor = options.barColor || "rgba(0,123,255,0.8)";
+
+        const exportNode = this.getExportImageTargetNode();
+        const nodeBounds = exportNode ? exportNode.getBoundingClientRect() : null;
+        const width = Math.max(760, Math.ceil(nodeBounds && nodeBounds.width ? nodeBounds.width : 900));
+
+        const paddingX = 28;
+        const titleY = 44;
+        const headerY = 78;
+        const rowHeight = 42;
+        const barHeight = 3;
+        const tableTop = 96;
+        const height = tableTop + (rows.length * rowHeight) + 24;
+
+        const scale = window.devicePixelRatio && window.devicePixelRatio > 1 ? window.devicePixelRatio : 1;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.ceil(width * scale);
+        canvas.height = Math.ceil(height * scale);
+        const ctx = canvas.getContext("2d");
+
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "#222";
+        ctx.font = "600 24px Didact Gothic, sans-serif";
+        ctx.textBaseline = "middle";
+        ctx.fillText(title, paddingX, titleY);
+
+        ctx.font = "600 14px Didact Gothic, sans-serif";
+        ctx.fillStyle = "#333";
+        ctx.fillText("Taxon", paddingX, headerY);
+        ctx.textAlign = "right";
+        ctx.fillText("Count", width - paddingX, headerY);
+        ctx.textAlign = "left";
+        ctx.strokeStyle = "rgba(0,0,0,0.12)";
+        ctx.beginPath();
+        ctx.moveTo(paddingX, headerY + 12);
+        ctx.lineTo(width - paddingX, headerY + 12);
+        ctx.stroke();
+
+        const maxAbundance = rows.reduce((m, item) => {
+            const abundance = Number(item.abundance) || 0;
+            return abundance > m ? abundance : m;
+        }, 0);
+
+        const countColWidth = 130;
+        const tableWidth = width - (paddingX * 2);
+        const textMaxWidth = tableWidth - countColWidth - 12;
+
+        rows.forEach((item, index) => {
+            const rowTop = tableTop + (index * rowHeight);
+            const rowTextY = rowTop + 13;
+            const abundance = Number(item.abundance) || 0;
+            const labelText = this.stripHtmlTags(resolveLabel(item));
+            const countText = abundance.toLocaleString(navigator.language);
+
+            ctx.font = "400 14px Didact Gothic, sans-serif";
+            ctx.fillStyle = "#1d2b3a";
+            ctx.textAlign = "left";
+            ctx.fillText(this.truncateCanvasText(ctx, labelText, textMaxWidth), paddingX, rowTextY);
+
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#1f1f1f";
+            ctx.fillText(countText, width - paddingX, rowTextY);
+            ctx.textAlign = "left";
+
+            const barPct = maxAbundance > 0 ? abundance / maxAbundance : 0;
+            const barWidth = Math.max(1, (tableWidth * barPct));
+
+            ctx.fillStyle = "rgba(0,0,0,0.06)";
+            ctx.fillRect(paddingX, rowTop + 22, tableWidth, barHeight);
+            ctx.fillStyle = barColor;
+            ctx.fillRect(paddingX, rowTop + 22, barWidth, barHeight);
+
+            ctx.strokeStyle = "rgba(0,0,0,0.06)";
+            ctx.beginPath();
+            ctx.moveTo(paddingX, rowTop + rowHeight - 2);
+            ctx.lineTo(width - paddingX, rowTop + rowHeight - 2);
+            ctx.stroke();
+        });
+
+        const pngFilename = `sead_${this.sanitizeExportFilename(title)}_chart.png`;
+        canvas.toBlob((pngBlob) => {
+            if(!pngBlob) {
+                console.warn("Could not export Top taxa image");
+                return;
+            }
+            saveAs(pngBlob, pngFilename);
+        }, "image/png");
+    }
+
     exportCallback() {
         let exportFormats = this.getAvailableExportFormats();
 
