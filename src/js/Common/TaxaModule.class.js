@@ -240,90 +240,268 @@ class TaxaModule {
 	}
 
 	async fetchGbifImages(taxonData) {
-		//GBIF API search
-		let family = taxonData.family.family_name;
-		let genus = taxonData.genus.genus_name;
+		let scientificName = this.getTaxonImageSearchString(taxonData);
+		let gbifData = await this.fetchJsonOrThrow("https://api.gbif.org/v1/species/match?verbose=true&name="+encodeURIComponent(scientificName), "GBIF");
+		let speciesKey = gbifData.speciesKey || gbifData.usageKey || gbifData.genusKey;
+		if(!speciesKey) {
+			return [];
+		}
 
-		let gbifData = await fetch("https://api.gbif.org/v1/species/match?verbose=true&family="+family+"&genus="+genus).then(response => response.json());
+		let gbifMedia = await this.fetchJsonOrThrow("https://api.gbif.org/v1/species/"+speciesKey+"/media?limit=10", "GBIF");
+		let mediaItems = Array.isArray(gbifMedia.results) ? gbifMedia.results : [];
 
-		let gbifMedia = await fetch("https://api.gbif.org/v1/species/"+gbifData.genusKey+"/media").then(response => response.json());
+		let images = [];
+		mediaItems.forEach(item => {
+			if(images.length >= 2) {
+				return;
+			}
+			if(item.type && item.type != "StillImage") {
+				return;
+			}
+			let imageUrl = item.identifier || item.references;
+			if(!imageUrl) {
+				return;
+			}
+			images.push(this.createNormalizedImage({
+				provider: "GBIF",
+				sourceUrl: imageUrl,
+				thumbnailUrl: imageUrl,
+				rightsHolder: item.creator || item.publisher || item.rightsHolder,
+				license: item.license || item.rights,
+				description: item.title || item.description || scientificName,
+				attributionText: "© GBIF"
+			}));
+		});
 
-		return gbifMedia;
+		return images;
+	}
+
+	async fetchWikimediaImages(taxonData) {
+		let scientificName = this.getTaxonImageSearchString(taxonData);
+		console.log(scientificName)
+		let entitySearch = await this.fetchJsonOrThrow("https://www.wikidata.org/w/api.php?action=wbsearchentities&search="+encodeURIComponent(scientificName)+"&language=en&type=item&limit=5&format=json&origin=*", "Wikidata");
+		let entityHits = Array.isArray(entitySearch.search) ? entitySearch.search : [];
+		if(entityHits.length == 0) {
+			return [];
+		}
+
+		let imageFiles = [];
+		for(let i = 0; i < entityHits.length && imageFiles.length < 2; i++) {
+			let entityId = entityHits[i].id;
+			let entityData = await this.fetchJsonOrThrow("https://www.wikidata.org/wiki/Special:EntityData/"+entityId+".json", "Wikidata");
+			let claims = entityData && entityData.entities && entityData.entities[entityId] ? entityData.entities[entityId].claims : null;
+			let imageClaims = claims && claims.P18 ? claims.P18 : [];
+
+			imageClaims.forEach(claim => {
+				let imageFileName = claim && claim.mainsnak && claim.mainsnak.datavalue ? claim.mainsnak.datavalue.value : null;
+				if(imageFileName && !imageFiles.includes(imageFileName) && imageFiles.length < 2) {
+					imageFiles.push(imageFileName);
+				}
+			});
+		}
+
+		let images = [];
+		for(let i = 0; i < imageFiles.length && images.length < 2; i++) {
+			let fileName = imageFiles[i];
+			let commonsData = await this.fetchJsonOrThrow("https://commons.wikimedia.org/w/api.php?action=query&titles="+encodeURIComponent("File:"+fileName)+"&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=600&format=json&origin=*", "Wikimedia Commons");
+			let pages = commonsData && commonsData.query ? commonsData.query.pages : {};
+			let pageKeys = Object.keys(pages);
+			if(pageKeys.length == 0) {
+				continue;
+			}
+
+			let page = pages[pageKeys[0]];
+			let imageInfo = page && Array.isArray(page.imageinfo) ? page.imageinfo[0] : null;
+			if(!imageInfo) {
+				continue;
+			}
+			let extMeta = imageInfo.extmetadata || {};
+			images.push(this.createNormalizedImage({
+				provider: "Wikimedia Commons",
+				sourceUrl: imageInfo.descriptionurl || imageInfo.url,
+				thumbnailUrl: imageInfo.thumburl || imageInfo.url,
+				rightsHolder: this.stripHtml(extMeta.Artist ? extMeta.Artist.value : "") || this.stripHtml(extMeta.Credit ? extMeta.Credit.value : "") || "Wikimedia contributor",
+				license: this.stripHtml(extMeta.LicenseShortName ? extMeta.LicenseShortName.value : "") || this.stripHtml(extMeta.UsageTerms ? extMeta.UsageTerms.value : ""),
+				description: this.stripHtml(extMeta.ImageDescription ? extMeta.ImageDescription.value : "") || scientificName,
+				attributionText: "© Wikimedia Commons"
+			}));
+		}
+
+		return images;
+	}
+
+	async fetchInaturalistImages(taxonData) {
+		let scientificName = this.getTaxonImageSearchString(taxonData);
+		let response = await this.fetchJsonOrThrow("https://api.inaturalist.org/v1/taxa?q="+encodeURIComponent(scientificName)+"&is_active=true&per_page=10&order=desc&order_by=observations_count", "iNaturalist");
+		let taxa = Array.isArray(response.results) ? response.results : [];
+		if(taxa.length == 0) {
+			return [];
+		}
+
+		let speciesLc = scientificName.toLowerCase();
+		taxa.sort((a, b) => {
+			let aScore = a.name && a.name.toLowerCase() == speciesLc ? 1 : 0;
+			let bScore = b.name && b.name.toLowerCase() == speciesLc ? 1 : 0;
+			return bScore - aScore;
+		});
+
+		let images = [];
+		taxa.forEach(taxon => {
+			if(images.length >= 2) {
+				return;
+			}
+			let photo = taxon.default_photo;
+			if(!photo) {
+				return;
+			}
+			let thumbnailUrl = photo.medium_url || photo.square_url || photo.url;
+			let sourceUrl = photo.id ? "https://www.inaturalist.org/photos/"+photo.id : (photo.original_url || photo.large_url || photo.url || thumbnailUrl);
+			if(!thumbnailUrl || !sourceUrl) {
+				return;
+			}
+
+			let photoLicense = photo.license_code;
+			if(photoLicense) {
+				photoLicense = photoLicense.toUpperCase();
+			}
+
+			images.push(this.createNormalizedImage({
+				provider: "iNaturalist",
+				sourceUrl: sourceUrl,
+				thumbnailUrl: thumbnailUrl,
+				rightsHolder: photo.attribution || photo.attribution_text,
+				license: photoLicense,
+				description: taxon.preferred_common_name || taxon.name || scientificName,
+				attributionText: "© iNaturalist"
+			}));
+		});
+
+		return images;
+	}
+
+	async fetchIdigbioImages(taxonData) {
+		let scientificName = this.getTaxonImageSearchString(taxonData);
+		let query = encodeURIComponent(JSON.stringify({ scientificname: scientificName }));
+		let response = await this.fetchJsonOrThrow("https://search.idigbio.org/v2/media/?rq="+query+"&limit=10", "iDigBio");
+		let items = Array.isArray(response.items) ? response.items : [];
+		if(items.length == 0) {
+			return [];
+		}
+
+		let images = [];
+		items.forEach(item => {
+			if(images.length >= 2) {
+				return;
+			}
+			let data = item.data || {};
+			let imageUrl = data.accessuri || data.thumbnail || data.accessURI || data.thumbnailURI;
+			if(!imageUrl) {
+				return;
+			}
+			images.push(this.createNormalizedImage({
+				provider: "iDigBio",
+				sourceUrl: data.accessuri || data.accessURI || imageUrl,
+				thumbnailUrl: data.thumbnail || data.thumbnailURI || imageUrl,
+				rightsHolder: data.rightsholder || data.owner || data.ownerinstitutioncode,
+				license: data.license || data.rights,
+				description: data.scientificname || scientificName,
+				attributionText: "© iDigBio"
+			}));
+		});
+
+		return images;
 	}
 
 	async fetchEolImages(taxonData) {
-		let family = taxonData.family.family_name.toLowerCase();
-		let genus = taxonData.genus.genus_name.toLowerCase();
-		let species = taxonData.species.toLowerCase();
+		let queryUrl = "https://eol.org/api/search/1.0.json?q="+encodeURIComponent(this.getTaxonImageSearchString(taxonData))+"&page=1&key=";
+		let eolResponse = await this.fetchJsonOrThrow(queryUrl, "EOL");
 
-		return new Promise((resolve, reject) => {
-			let queryUrl = "https://eol.org/api/search/1.0.json?q=";
-			queryUrl += genus;
-			
-			if(!this.sqs.config.indicatorStringsForUnknownSpecies.includes(taxonData.species.toLowerCase())) {
-				queryUrl += "%20"+species;
+		if(!Array.isArray(eolResponse.results) || eolResponse.results.length == 0) {
+			return [];
+		}
+		if(eolResponse.results.length >= this.sqs.config.maxEolImageResults) {
+			throw new Error("EOL returned too many hits in species search ("+eolResponse.results.length+"), not going to fetch images.");
+		}
+
+		let pagePromises = [];
+		eolResponse.results.slice(0, 5).forEach(eolSpecies => {
+			pagePromises.push(this.fetchJsonOrThrow("https://eol.org/api/pages/1.0/"+eolSpecies.id+".json?details=true&images_per_page=10", "EOL"));
+		});
+		let pageResponses = await Promise.allSettled(pagePromises);
+		let images = [];
+
+		pageResponses.forEach(result => {
+			if(result.status != "fulfilled" || images.length >= 2) {
+				return;
 			}
-			queryUrl += "&page=1&key=";
+			let eolImages = result.value && result.value.taxonConcept && Array.isArray(result.value.taxonConcept.dataObjects)
+				? result.value.taxonConcept.dataObjects
+				: [];
 
-			let promises = [];
-
-			let jsonPromise = fetch(queryUrl).then(response => response.json()).catch(err => {
-				console.warn(err);
-				reject(err);
-			});
-
-			jsonPromise.then(eolResponse => {
-				if(eolResponse.results.length < this.sqs.config.maxEolImageResults) {
-					eolResponse.results.forEach(eolSpecies => {
-						let p = fetch("https://eol.org/api/pages/1.0/"+eolSpecies.id+".json?details=true&images_per_page=10").then(response => response.json()).catch(err => {
-							reject(err);}
-						);
-						promises.push(p);
-					});
-
-					Promise.all(promises).then(values => {
-						resolve(values)
-					});
+			eolImages.forEach(image => {
+				if(images.length >= 2) {
+					return;
 				}
-				else {
-					let msg = "EOL returned too many hits in species search ("+eolResponse.results.length+"), not going to fetch images.";
-					console.warn(msg);
-					//this.sqs.notificationManager.notify(msg, "warning");
-					reject(msg);
+				if(!image.eolMediaURL || !image.eolThumbnailURL) {
+					return;
 				}
-				
-			}).catch(err => {
-				console.warn(err);
-				reject(err);
+				images.push(this.createNormalizedImage({
+					provider: "Encyclopedia of Life",
+					sourceUrl: image.eolMediaURL,
+					thumbnailUrl: image.eolThumbnailURL,
+					rightsHolder: image.rightsHolder,
+					license: image.license,
+					description: image.description,
+					attributionText: "© EOL"
+				}));
 			});
 		});
+
+		return images;
 	}
 
 	renderSpecies(container, taxonData) {
 		
 		$("#no-images-msg").hide();
 		$("#taxon-images-message-box").show();
-		$("#result-taxon-image-container-eol-loading-indicator").show();
+		$("#result-taxon-image-container-loading-indicator").show();
+		$("#result-taxon-image-container").empty();
 
 		let imageMetaData = [];
 		let taxonSpecString = this.sqs.formatTaxon(taxonData);
-		this.fetchEolImages(taxonData).then(eolResponse => {
-			let images = [];
-			eolResponse.forEach(eolResponseItem => {
-				if(typeof eolResponseItem.taxonConcept.dataObjects != "undefined") {
-					images.push(...eolResponseItem.taxonConcept.dataObjects)
+		let providerFetchOrder = [
+			{ provider: "Wikimedia Commons", method: this.fetchWikimediaImages.bind(this) },
+			{ provider: "iNaturalist", method: this.fetchInaturalistImages.bind(this) },
+			{ provider: "GBIF", method: this.fetchGbifImages.bind(this) },
+			{ provider: "iDigBio", method: this.fetchIdigbioImages.bind(this) },
+			{ provider: "Encyclopedia of Life", method: this.fetchEolImages.bind(this) } // unreliable source, keep lowest display priority
+		];
+
+		Promise.allSettled(providerFetchOrder.map(provider => provider.method(taxonData))).then(results => {
+			let allImages = [];
+
+			results.forEach(result => {
+				if(result.status == "fulfilled") {
+					if(Array.isArray(result.value)) {
+						allImages.push(...result.value.slice(0, 2));
+					}
+				}
+				else {
+					console.warn(result.reason);
 				}
 			});
-			if(images.length > 0) {
-				imageMetaData = this.renderSpeciesImages(images);
+
+			if(allImages.length > 0) {
+				imageMetaData = this.renderSpeciesImages(allImages);
 			}
 			else {
 				$("#no-images-msg").show();
-				$("#result-taxon-image-container-eol-loading-indicator").hide();
 			}
+
+			$("#result-taxon-image-container-loading-indicator").hide();
 		}).catch(err => {
-			$("#images-error-msg").show();
-			$("#result-taxon-image-container-eol-loading-indicator").hide();
+			$("#result-taxon-image-container-loading-indicator").hide();
+			console.warn(err);
 		});
 
 		let taxonUrl = window.location.protocol+"//"+window.location.host+"/taxon/"+taxonData.taxon_id;
@@ -358,28 +536,24 @@ class TaxaModule {
 		let renderedImages = [];
 		images.forEach(image => {
 			let imageId = "taxa-image-"+nanoid();
-			
-			renderedImages.push({
-				id: imageId,
-				image: image,
-				rightsHolder: image.rightsHolder,
-				provider: "Encyclopedia of Life",
-				license: image.license,
-				description: image.description
-			});
 
-			let imageMetaData = `Provider: Encyclopedia of Life \
-			Rights holder: ${image.rightsHolder} \
-			License: ${image.license} \
-			Description: ${image.description}`;
+			renderedImages.push(Object.assign({}, image, { id: imageId }));
+
+			let imageMetaData = `Provider: ${image.provider} \
+			Rights holder: ${image.rightsHolder || "Unknown"} \
+			License: ${image.license || "Unknown"} \
+			Description: ${image.description || "No description"}`;
 
 			let imageNodeHtml = `<div class='result-taxon-image-thumb-container'>
+			<button type='button' class='taxon-image-close' aria-label='Close expanded image'>
+				<i class='fa fa-times' aria-hidden='true'></i>
+			</button>
 			<div class='result-taxon-image-thumb'>
-				<a href='`+image.eolMediaURL+`' target='_blank'>
-					<img id='`+imageId+`' title='`+imageMetaData+`' src='`+image.eolThumbnailURL+`' />
+				<a href='`+image.sourceUrl+`' target='_blank'>
+					<img id='`+imageId+`' title='`+imageMetaData+`' src='`+image.thumbnailUrl+`' />
 				</a>
 			</div>
-			<div class='result-taxon-image-thumb-attribution' title='Image fetched from Encyclopedia Of Life'>© EOL</div>
+			<div class='result-taxon-image-thumb-attribution' title='Image fetched from `+image.provider+`'>`+image.attributionText+`</div>
 			</div>`;
 
 			let imageNode = $(imageNodeHtml);
@@ -391,7 +565,7 @@ class TaxaModule {
 		
 		let tooltipText = "Images are acquired through a fuzzy search, using search strings based on family, genus and species depending on what is available. Because of this, the image results may not represent the actual taxon.";
 		$("#result-taxon-image-info").html(`<div class='taxa-image-info'>
-		<span id='`+ttId+`'>Fuzzy search results</span>
+		<span id='`+ttId+`'><i class='fa fa-exclamation-triangle taxa-image-fuzzy-warning' aria-hidden='true'></i> Fuzzy search results</span>
 		<span class='print-only-text'>`+tooltipText+`</span>
 		</div>
 		<hr />`);
@@ -400,8 +574,95 @@ class TaxaModule {
 		this.sqs.tooltipManager.registerTooltip("#"+ttId, tooltipText, { drawSymbol:true });
 
 		$("#result-taxon-image-container").html(imageNodes);
+		this.registerTaxonImageInteractions();
 
 		return renderedImages;
+	}
+
+	registerTaxonImageInteractions() {
+		let imageContainer = $("#result-taxon-image-container");
+
+		$(".result-taxon-image-thumb-container", imageContainer).each((index, imageNode) => {
+			let thumbContainer = $(imageNode);
+			let imageAnchor = $(".result-taxon-image-thumb a", thumbContainer);
+			let closeButton = $(".taxon-image-close", thumbContainer);
+
+			imageAnchor.on("click", (evt) => {
+				let hasExpandedImage = imageContainer.hasClass("gallery-expanded");
+				let isExpandedImage = thumbContainer.hasClass("is-expanded");
+
+				if(!hasExpandedImage) {
+					evt.preventDefault();
+					this.expandTaxonImage(thumbContainer);
+					return;
+				}
+
+				if(hasExpandedImage && !isExpandedImage) {
+					evt.preventDefault();
+					this.expandTaxonImage(thumbContainer);
+				}
+			});
+
+			closeButton.on("click", (evt) => {
+				evt.preventDefault();
+				evt.stopPropagation();
+				this.collapseTaxonImageGallery();
+			});
+		});
+	}
+
+	expandTaxonImage(selectedContainer) {
+		let imageContainer = $("#result-taxon-image-container");
+		imageContainer.addClass("gallery-expanded");
+
+		$(".result-taxon-image-thumb-container", imageContainer).each((index, imageNode) => {
+			let thumbContainer = $(imageNode);
+			if(thumbContainer.is(selectedContainer)) {
+				thumbContainer.removeClass("is-hidden").addClass("is-expanded");
+			}
+			else {
+				thumbContainer.removeClass("is-expanded").addClass("is-hidden");
+			}
+		});
+	}
+
+	collapseTaxonImageGallery() {
+		let imageContainer = $("#result-taxon-image-container");
+		imageContainer.removeClass("gallery-expanded");
+		$(".result-taxon-image-thumb-container", imageContainer).removeClass("is-expanded is-hidden");
+	}
+
+	getTaxonImageSearchString(taxonData) {
+		let genus = taxonData.genus && taxonData.genus.genus_name ? taxonData.genus.genus_name : "";
+		let species = taxonData.species ? taxonData.species : "";
+		if(this.sqs.config.indicatorStringsForUnknownSpecies.includes(species.toLowerCase())) {
+			return genus;
+		}
+		return (genus+" "+species).trim();
+	}
+
+	createNormalizedImage(imageData) {
+		return {
+			provider: imageData.provider || "Unknown",
+			sourceUrl: imageData.sourceUrl || "",
+			thumbnailUrl: imageData.thumbnailUrl || imageData.sourceUrl || "",
+			rightsHolder: imageData.rightsHolder || "",
+			license: imageData.license || "",
+			description: imageData.description || "",
+			attributionText: imageData.attributionText || "© Unknown"
+		};
+	}
+
+	async fetchJsonOrThrow(url, providerName = "Unknown provider") {
+		let response = await fetch(url);
+		if(!response.ok) {
+			throw new Error(providerName+" request failed ("+response.status+") for URL "+url);
+		}
+		return response.json();
+	}
+
+	stripHtml(value = "") {
+		return value.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 	}
 
 	getSelectedSpecies() {
