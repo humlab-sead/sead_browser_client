@@ -269,24 +269,29 @@ class ContentItemRenderer {
 		return renderInstance;
 	}
 
-    toggleContentDisplayOptionsPanel(show = true) {
+    toggleContentDisplayOptionsPanel() {
 		let controlsId = "view-selector-"+this.contentItem.name;
 		let node = $("#"+controlsId);
-		let displayOptionsContainerNode = $(".site-report-render-options-container", node);
-		if($(displayOptionsContainerNode).is(":visible")) {
-			node.parent().animate({
-				"border-width": "0"
-			}, 100);
+		let dropdownNode = $(".site-report-display-options-dropdown", node);
+
+		if ($(dropdownNode).is(":visible")) {
+			$(dropdownNode).hide(100);
+			$(document).off("click.displayOptions-"+this.contentItem.name);
 		}
 		else {
-			node.parent().animate({
-				"border-width": "1"
-			}, 100);
-		}
-		$(displayOptionsContainerNode).toggle(100);
-		
-		if(this.contentItem.renderOptions.length == 1) {
-			$(".site-report-render-options-main-render-type", node).hide();
+			if (this.contentItem.renderOptions.length == 1) {
+				$(".site-report-render-options-main-render-type", node).hide();
+			}
+			$(dropdownNode).show(100);
+			// Defer binding so the triggering click doesn't immediately close the panel
+			setTimeout(() => {
+				$(document).on("click.displayOptions-"+this.contentItem.name, (e) => {
+					if (!$(node).is(e.target) && $(node).has(e.target).length === 0) {
+						$(dropdownNode).hide(100);
+						$(document).off("click.displayOptions-"+this.contentItem.name);
+					}
+				});
+			}, 0);
 		}
 	}
 
@@ -331,7 +336,7 @@ class ContentItemRenderer {
 		let controlsId = "view-selector-"+contentItem.name;
 		var node = $("#site-report-render-options-template")[0].cloneNode(true);
 		$(node).attr("id", controlsId);
-		$(".site-report-render-options-container", node).hide();
+		$(".site-report-display-options-dropdown", node).hide();
 		
 		//Add RenderOptions to select
 		for(var key in contentItem.renderOptions) {
@@ -375,16 +380,17 @@ class ContentItemRenderer {
                     html += "<select renderOptionExtraKey='"+key+"' class='site-report-view-selector-control site-report-render-mode-selector sqs'>";
                     for(let k2 in option.options) {
                         let selectedHtml = option.options[k2].selected ? "selected" : "";
-
 						let optionTitle = option.options[k2].title;
-						
-						/*
-						//If the title can be parsed to an integer, assume it is a reference to column name and the actual title should be looked up
-						if(!isNaN(parseInt(option.options[k2].title))) {
-							optionTitle = this.contentItem.data.columns[option.options[k2].title].title;
-						}
-						*/
-
+                        html += "<option value='"+k2+"' "+selectedHtml+">"+optionTitle+"</option>";
+                    }
+                    html += "</select>";
+                }
+                if(option.type == "multiselect") {
+                    let size = Math.min(option.options.length, 6);
+                    html += "<select multiple size='"+size+"' renderOptionExtraKey='"+key+"' class='site-report-view-selector-control site-report-render-mode-selector sqs'>";
+                    for(let k2 in option.options) {
+                        let selectedHtml = option.options[k2].selected ? "selected" : "";
+                        let optionTitle = option.options[k2].title;
                         html += "<option value='"+k2+"' "+selectedHtml+">"+optionTitle+"</option>";
                     }
                     html += "</select>";
@@ -392,26 +398,32 @@ class ContentItemRenderer {
                 if(option.type == "text") {
                     html += "<input type='text' renderOptionExtraKey='"+key+"' class='site-report-view-selector-control site-report-render-mode-selector sqs' />";
                 }
-				
+
 			}
 		}
-		
+
 		optionsContainerNode.html(html);
-		
-		
+
+
 		$(".site-report-render-options-container-extras .site-report-view-selector-control", node).on("change", (evt) => {
 
-			let selected = parseInt($(evt.currentTarget).val());
 			let renderOptionExtraKey = $(evt.currentTarget).attr("renderOptionExtraKey");
+			let extraOption = selectedRo.options[renderOptionExtraKey];
 
-            for(let key in selectedRo.options[renderOptionExtraKey].options) {
-                selectedRo.options[renderOptionExtraKey].options[key].selected = false;
+            for(let key in extraOption.options) {
+                extraOption.options[key].selected = false;
             }
 
-			selectedRo.options[renderOptionExtraKey].options[selected].selected = true;
+			if(extraOption.type == "multiselect") {
+				let selectedValues = $(evt.currentTarget).val() || [];
+				selectedValues.forEach(v => {
+					extraOption.options[parseInt(v)].selected = true;
+				});
+			} else {
+				extraOption.options[parseInt($(evt.currentTarget).val())].selected = true;
+			}
 
-			//selectedRo.options[renderOptionExtraKey].selected = selected;
-		    this.renderDataVisualization(selectedRo.options[renderOptionExtraKey]);
+		    this.renderDataVisualization(extraOption);
 		});
 	}
 	

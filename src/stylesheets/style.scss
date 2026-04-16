@@ -58,7 +58,10 @@ select.sqs {
   font-family: "Didact Gothic", sans-serif;
   font-weight: bold;
   height: 18px;
-  font-size: 12px;
+}
+
+select[multiple].sqs {
+  height: auto;
 }
 
 select {
@@ -5880,15 +5883,16 @@ h5 {
 }
 
 .site-report-view-selector-label {
-  display:inline-block;
+  display: block;
   font-weight: bold;
-  text-align:right;
-  align-self: start;
-  grid-column: label;
+  font-size: 0.8em;
+  text-align: left;
+  color: #555;
 }
 
 .site-report-view-selector-control {
-  grid-column: control;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .site-report-aux-info-container {
@@ -6298,13 +6302,10 @@ tr.site-report-table-row > td {
 }
 
 .site-report-render-options-container {
-  display:grid;
-  grid-template-columns: [label] 1fr [control] 3fr;
-  grid-template-rows: 1fr;
-  grid-column-gap: 5px;
-  grid-row-gap: 0px;
-  align-items: center;
-  margin: 5px;
+  display: flex;
+  flex-direction: column;
+  margin: 6px 8px;
+  gap: 2px;
 }
 
 .site-report-toolbar-main {
@@ -6313,6 +6314,21 @@ tr.site-report-table-row > td {
   border-width: 0px;
   display: inline-block;
   margin-top: 8px;
+  position: relative;
+}
+
+.site-report-display-options-dropdown {
+  position: absolute;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto;
+  top: 100%;
+  left: 0;
+  z-index: 200;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.15);
+  min-width: 220px;
 }
 
 .site-report-export-btn {

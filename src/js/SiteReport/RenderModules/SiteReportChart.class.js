@@ -66,8 +66,44 @@ class SiteReportChart {
 	}
 
 	update(updatedExtrasRenderOption = null) {
+		if (updatedExtrasRenderOption && updatedExtrasRenderOption.function === "sampleFilter") {
+			this.handleMcrSampleFilterChange(updatedExtrasRenderOption);
+			return true;
+		}
 		return false;
     }
+
+	async handleMcrSampleFilterChange(renderOption) {
+		const selectedOptions = renderOption.options.filter(o => o.selected);
+		const sampleIds = selectedOptions.map(o => o.value).filter(v => v !== null);
+		let mcrData;
+
+		if (sampleIds.length === 0) {
+			mcrData = this.contentItem.data.originalMcrData;
+		} else {
+			try {
+				const response = await fetch(this.sqs.config.dataServerAddress + "/mcr/samples", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(sampleIds)
+				});
+				if (response.ok) {
+					mcrData = await response.json();
+				} else {
+					mcrData = this.contentItem.data.originalMcrData;
+				}
+			} catch (e) {
+				console.warn("Could not fetch MCR data for samples", sampleIds, e);
+				mcrData = this.contentItem.data.originalMcrData;
+			}
+		}
+
+		if (mcrData) {
+			this.contentItem.data.mcrData = mcrData;
+		}
+		$(this.anchorNodeSelector).html("");
+		this.renderMutualClimaticRangeChart();
+	}
 
 	/*
 	* Function: render
@@ -1933,12 +1969,6 @@ class SiteReportChart {
 					consRowMax = Math.max(consRowMax, r);
 				}
 			}
-		}
-		const consensusBbox = consColMax >= 0 ? [consColMin, consColMax, consRowMin, consRowMax] : null;
-
-		if (!consensusBbox) {
-			$(this.anchorNodeSelector).append("<div style='padding:1em;color:#888;'>MCR taxa were found at this site but their climate tolerances do not overlap - no viable climate reconstruction is possible.</div>");
-			return;
 		}
 
 		const cellW = 8;

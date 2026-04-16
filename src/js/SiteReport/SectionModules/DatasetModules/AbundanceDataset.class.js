@@ -469,6 +469,7 @@ class AbundanceDataset extends DatasetModule {
 							"title": "X axis",
 							"function": "xAxis",
 							"type": "select",
+							"selected": 0,
 							"selected": 0, //Default column (key)
 							"key": 0, //Contains the unique values for the selected columns - not sure we need / should have this
 							"options": [
@@ -483,6 +484,7 @@ class AbundanceDataset extends DatasetModule {
 							"title": "Y axis",
 							"function": "yAxis",
 							"type": "select",
+							"selected": 0,
 							"selected": 1,
 							"options": [
 								{
@@ -508,6 +510,7 @@ class AbundanceDataset extends DatasetModule {
 							"title": "Sort",
 							"function": "sort", //sorts on either x or y axis - leaves it up to the render module to decide
 							"type": "select",
+							"selected": 0,
 							"selected": 1,
 							"options": [{
 								"title": "Abundance",
@@ -582,6 +585,23 @@ class AbundanceDataset extends DatasetModule {
 			}
 		}
 
+		// Collect unique physical samples from palaeontomology (method 3) data groups
+		const samplesMap = new Map();
+		(siteData.data_groups || []).forEach(dg => {
+			if (dg.type === "abundance" && Array.isArray(dg.method_ids) && dg.method_ids.includes(3)) {
+				(dg.values || []).forEach(val => {
+					if (val.physical_sample_id != null && !samplesMap.has(val.physical_sample_id)) {
+						samplesMap.set(val.physical_sample_id, val.sample_name || String(val.physical_sample_id));
+					}
+				});
+			}
+		});
+
+		const sampleOptions = [];
+		samplesMap.forEach((name, id) => {
+			sampleOptions.push({ "title": name, "value": id });
+		});
+
 		return {
 			"name": "ci-" + nanoid(),
 			"title": "Site total - Mutual climatic range",
@@ -613,13 +633,25 @@ class AbundanceDataset extends DatasetModule {
 						"value": hasConsensusEnvelope ? "Yes" : "No"
 					}
 				]],
-				"mcrData": mcrData
+				"mcrData": mcrData,
+				"originalMcrData": mcrData,
+				"siteId": siteData.site_id
 			},
 			"renderOptions": [
 				{
 					"name": "Chart",
 					"selected": true,
-					"type": "mcr"
+					"type": "mcr",
+					"options": [
+						{
+							"enabled": true,
+							"title": "Samples (none = all)",
+							"function": "sampleFilter",
+							"type": "multiselect",
+							"selected": [],
+							"options": sampleOptions
+						}
+					]
 				}
 			]
 		};
@@ -692,6 +724,7 @@ class AbundanceDataset extends DatasetModule {
 							"function": "xAxis",
 							"type": "select",
 							"selected": 0,
+							"selected": 0,
 							"key": 0,
 							"options": [
 								{
@@ -705,6 +738,7 @@ class AbundanceDataset extends DatasetModule {
 							"title": "Y axis",
 							"function": "yAxis",
 							"type": "select",
+							"selected": 0,
 							"selected": 1,
 							"options": [
 								{
@@ -730,6 +764,7 @@ class AbundanceDataset extends DatasetModule {
 							"title": "Sort",
 							"function": "sort",
 							"type": "select",
+							"selected": 0,
 							"selected": 1,
 							"options": [{
 								"title": "Abundance",
@@ -836,6 +871,7 @@ class AbundanceDataset extends DatasetModule {
 							"function": "xAxis",
 							"type": "select",
 							"selected": 0,
+							"selected": 0,
 							"key": 0,
 							"options": [
 								{
@@ -849,6 +885,7 @@ class AbundanceDataset extends DatasetModule {
 							"title": "X axis",
 							"function": "yAxis",
 							"type": "select",
+							"selected": 0,
 							"selected": 1,
 							"options": [
 								{
@@ -874,6 +911,7 @@ class AbundanceDataset extends DatasetModule {
 							"title": "Sort",
 							"function": "sort",
 							"type": "select",
+							"selected": 0,
 							"selected": 2,
 							"options": [
 								{
@@ -1070,6 +1108,7 @@ class AbundanceDataset extends DatasetModule {
 								"title": "X axis",
 								"function": "xAxis",
 								"type": "select",
+							"selected": 0,
 								"selected": 2, //Default column (key)
 								"key": 2, //Contains the unique values for the selected columns - not sure we need / should have this
 								"options": [
@@ -1084,6 +1123,7 @@ class AbundanceDataset extends DatasetModule {
 								"title": "Y axis",
 								"function": "yAxis",
 								"type": "select",
+							"selected": 0,
 								"selected": 0,
 								"options": [{
 									"title": "Sample name",
@@ -1095,6 +1135,7 @@ class AbundanceDataset extends DatasetModule {
 								"title": "Sort",
 								"function": "sort", //sorts on either x or y axis - leaves it up to the render module to decide
 								"type": "select",
+							"selected": 0,
 								"selected": 7,
 								"options": [{
 									"title": "Abundance taxon id",
@@ -1692,6 +1733,7 @@ class AbundanceDataset extends DatasetModule {
 							"title": "X axis",
 							"function": "xAxis",
 							"type": "select",
+							"selected": 0,
 							"selected": 3, //Default column (key)
 							"key": 4, //Contains the unique values for the selected columns - not sure we need / should have this
 							//"options": [3], //Column keys
@@ -1707,6 +1749,7 @@ class AbundanceDataset extends DatasetModule {
 							"title": "Y axis",
 							"function": "yAxis",
 							"type": "select",
+							"selected": 0,
 							"selected": 1,
 							"options": [{
 								"title": "Sample name",
@@ -1718,6 +1761,7 @@ class AbundanceDataset extends DatasetModule {
 							"title": "Sort",
 							"function": "sort", //sorts on either x or y axis - leaves it up to the render module to decide
 							"type": "select",
+							"selected": 0,
 							"selected": 4,
 							"options": [{
 								"title": "Abundance taxon id",
