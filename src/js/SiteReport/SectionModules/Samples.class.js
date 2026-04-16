@@ -184,6 +184,43 @@ class Samples {
 		}
 	}
 
+	insertSampleDateSampledIntoTable(subTable, sampleGroup) {
+		let insertColumn = false;
+		for(let k in sampleGroup.physical_samples) {
+			var sample = sampleGroup.physical_samples[k];
+			if(sample.date_sampled != null && typeof sample.date_sampled != "undefined" && sample.date_sampled !== "") {
+				insertColumn = true;
+			}
+		}
+
+		if(insertColumn) {
+			subTable.columns.push({
+				"title": "Date sampled"
+			});
+
+			let pkeyColumnKey = null;
+			subTable.columns.forEach((col, key) => {
+				if(col.pkey === true) {
+					pkeyColumnKey = key;
+				}
+			});
+
+			for(let k in sampleGroup.physical_samples) {
+				var sample = sampleGroup.physical_samples[k];
+				let cellValue = sample.date_sampled != null && typeof sample.date_sampled != "undefined" ? sample.date_sampled : "";
+				subTable.rows.forEach(row => {
+					if(row[pkeyColumnKey].value == sample.physical_sample_id) {
+						row.push({
+							"value": cellValue,
+							"type": "cell",
+							"tooltip": ""
+						});
+					}
+				});
+			}
+		}
+	}
+
 	insertSampleFeaturesIntoTable(subTable, sampleGroup) {
 		//features are in sample_groups.physical_samples.features
 		let insertSampleFeaturesColumn = false;
@@ -976,6 +1013,7 @@ class Samples {
 			this.insertSampleCoordinatesIntoTable(subTable, sampleGroup);
 			this.insertSampleFeaturesIntoTable(subTable, sampleGroup);
 			this.insertSampleHorizonsIntoTable(subTable, sampleGroup);
+			this.insertSampleDateSampledIntoTable(subTable, sampleGroup);
 
 			let samplingContextValue = "";
 			sampleGroup.sampling_context.forEach(samplingContext => {

@@ -145,6 +145,7 @@ class BasicSiteInformation {
 		<div class='site-report-aux-header-container'><h4>Description</h4></div>
 		<div class='site-report-aux-header-underline'></div>
 		<div class='site-report-information-item site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>${siteDecription}</div>
+		<div id='site-report-investigation-time-container'></div>
 		<div id='site-report-time-overview-container' class='site-report-aux-info-text-container'>
 			<div class='site-report-aux-header-container'><h4>Site dating overview</h4></div>
 			<div class='site-report-aux-header-underline'></div>
@@ -162,6 +163,15 @@ class BasicSiteInformation {
 		<div class='site-report-site-description site-report-aux-info-text-container site-report-information-item'>${datasetReferencesHtml}</div>`;
 
 		node.append(auxInfoHtml);
+
+		let investigationTimeHtml = this.renderInvestigationTime(siteData);
+		if(investigationTimeHtml !== null) {
+			$("#site-report-investigation-time-container").html(
+				`<div class='site-report-aux-header-container'><h4>Investigation time</h4></div>
+				<div class='site-report-aux-header-underline'></div>
+				<div class='site-report-aux-info-text-container site-report-information-item'>${investigationTimeHtml}</div>`
+			);
+		}
 		
 		this.sqs.tooltipManager.registerTooltip("#site-report-time-overview-container .site-report-aux-header-container h4", "This chart shows the extremes (oldest and youngest) of all dated samples in this site, categorized by type of dating. Dating is shown as years before present (BP), which in SEAD is defined as the year "+this.sqs.config.constants.BP+".", {placement: "top", drawSymbol: true});
 
@@ -197,6 +207,43 @@ class BasicSiteInformation {
 		this.sqs.sqsEventListen("analysisSectionsBuilt", () => {
 			this.renderTimeOverview("site-report-time-overview");
 		}, this);
+	}
+
+	renderInvestigationTime(siteData) {
+		let totalSamples = 0;
+		let yearCounts = {};
+
+		siteData.sample_groups.forEach(sampleGroup => {
+			sampleGroup.physical_samples.forEach(sample => {
+				totalSamples++;
+				if(sample.date_sampled != null && sample.date_sampled !== "") {
+					let year = null;
+					let parsed = new Date(sample.date_sampled);
+					if(!isNaN(parsed.getFullYear())) {
+						year = parsed.getFullYear();
+					} else {
+						let match = String(sample.date_sampled).match(/^\d{4}/);
+						if(match) {
+							year = parseInt(match[0]);
+						}
+					}
+					if(year !== null) {
+						yearCounts[year] = (yearCounts[year] || 0) + 1;
+					}
+				}
+			});
+		});
+
+		if(Object.keys(yearCounts).length === 0) {
+			return null;
+		}
+
+		let sortedYears = Object.keys(yearCounts).map(Number).sort((a, b) => a - b);
+		let html = "";
+		sortedYears.forEach(year => {
+			html += `<div>${yearCounts[year]}/${totalSamples} samples from ${year}</div>`;
+		});
+		return html;
 	}
 
 
