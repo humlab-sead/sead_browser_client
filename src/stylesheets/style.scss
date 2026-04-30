@@ -1704,6 +1704,115 @@ body.facet-resizing * {
   height: 100%;
 }
 
+/* ── Measurable attributes range-bar chart ───────────────────── */
+.mattr-chart {
+  padding: 0 0.5em 0.5em 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* Axis ruler */
+.mattr-chart .mattr-axis-row {
+  margin-bottom: 6px;
+}
+
+.mattr-chart .mattr-axis-track {
+  position: relative;
+  height: 24px;
+  border-bottom: 1px solid #ccc;
+}
+
+.mattr-chart .mattr-axis-tick {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
+.mattr-chart .mattr-axis-tick-first {
+  transform: translateX(0);
+}
+
+.mattr-chart .mattr-axis-tick-last {
+  transform: translateX(-100%);
+}
+
+.mattr-chart .mattr-axis-tick-label {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.mattr-chart .mattr-axis-tick-line {
+  display: block;
+  width: 1px;
+  height: 5px;
+  background: #ccc;
+  margin: 0 auto;
+}
+
+/* Data rows — each is a self-contained visual unit with a background */
+.mattr-chart .mattr-row {
+  border-radius: 3px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  border-bottom: solid 1px #ccc;
+}
+
+.mattr-chart .mattr-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 8px 3px 0px;
+  gap: 8px;
+}
+
+.mattr-chart .mattr-label {
+  font-size: 12px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.mattr-chart .mattr-range-values {
+  font-size: 11px;
+  color: #555;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mattr-chart .mattr-bar-track {
+  height: 10px;
+  white-space: nowrap;
+  font-size: 0;
+}
+
+.mattr-chart .mattr-bar-base {
+  display: inline-block;
+  height: 10px;
+  background: color.scale(colors.$base-color, $lightness: 30%);
+  vertical-align: top;
+}
+
+.mattr-chart .mattr-bar-span {
+  display: inline-block;
+  height: 10px;
+  background: colors.$base-color;
+  min-width: 3px;
+  vertical-align: top;
+}
+
+.mattr-chart .mattr-point-tick {
+  display: inline-block;
+  height: 10px;
+  width: 3px;
+  background: colors.$base-color;
+  vertical-align: top;
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 #rcb-distribution-map {
   width: 100%;
   height: 100%;

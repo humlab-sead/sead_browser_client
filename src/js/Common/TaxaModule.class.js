@@ -793,29 +793,224 @@ class TaxaModule {
 	}
 
 	renderMeasurableAttributes(container, taxonData) {
-		let measurableAttributesHtml = "<ul>";
-		taxonData.measured_attributes.forEach(attr => {
+		if(taxonData.measured_attributes.length == 0) {
+			this.sqs.setNoDataMsg($("#rcb-measurable-attributes", container));
+			return;
+		}
+		const chart = this.buildMeasuredAttributesChart(taxonData.measured_attributes);
+		const list = this.buildMeasuredAttributesList(taxonData.measured_attributes);
+		$("#rcb-measurable-attributes", container).html(chart + "<h4>Raw measurements</h4>" + list);
+	}
+
+	/*
+	 * Renders the raw attribute list (the existing plain-text printout).
+	 */
+	buildMeasuredAttributesList(attrs) {
+		let html = "<ul>";
+		attrs.forEach(attr => {
 			let value = attr.data;
 			if(parseFloat(value)) {
 				value = parseFloat(value);
 			}
-			//First letter to lower-case
 			let atttributeType = attr.attribute_type.charAt(0).toLowerCase() + attr.attribute_type.slice(1);
-
 			let attributeMeasure = "";
 			if(attr.attribute_measure != null) {
 				attributeMeasure = attr.attribute_measure.charAt(0).toUpperCase() + attr.attribute_measure.slice(1);
 			}
-			
-			measurableAttributesHtml += "<li>"+attributeMeasure+" "+atttributeType+" "+value+" "+attr.attribute_units+"</li>";
+			html += "<li>"+attributeMeasure+" "+atttributeType+" "+value+" "+attr.attribute_units+"</li>";
 		});
-		measurableAttributesHtml += "</ul>";
-		$("#rcb-measurable-attributes", container).html(measurableAttributesHtml);
+		html += "</ul>";
+		return html;
+	}
 
-		if(taxonData.measured_attributes.length == 0) {
-			this.sqs.setNoDataMsg($("#rcb-measurable-attributes", container));
+	/*
+	 * Maps a raw attribute_type string to a canonical display label.
+	 * Falls back to title-casing the raw value for unrecognised types.
+	 */
+	getAttributeTypeLabel(rawType) {
+		const map = {
+			'l': 'Length',
+			'length': 'Length',
+			'elytral length': 'Length (elytral)',
+			'average elytral length': 'Length (elytral)',
+			'length elytron': 'Length (elytral)',
+			'l of elytra at suture': 'Length (elytral)',
+			'length, head-end of elytra': 'Length (head\u2013elytra)',
+			'length, head-end of elytra:': 'Length (head\u2013elytra)',
+			'adult l': 'Length (adult)',
+			'adult': 'Length (adult)',
+			'larval l': 'Length (larva)',
+			'length larva final (10th) instar': 'Length (larva)',
+			'length imago': 'Length (imago)',
+			'caterpillar length': 'Length (caterpillar)',
+			'length puparium': 'Length (puparium)',
+			'length male': 'Length (male)',
+			'length (male)': 'Length (male)',
+			'l male': 'Length (male)',
+			'l (male)': 'Length (male)',
+			'length female': 'Length (female)',
+			'length (female)': 'Length (female)',
+			'l female': 'Length (female)',
+			'length worker': 'Length (worker)',
+			'length (worker)': 'Length (worker)',
+			'l (worker)': 'Length (worker)',
+			'length queen': 'Length (queen)',
+			'length (queen)': 'Length (queen)',
+			'l (queen)': 'Length (queen)',
+			'length (microgyne)': 'Length (microgyne)',
+			'length male wing': 'Wing length (male)',
+			'length female wing': 'Wing length (female)',
+			'wing l': 'Wingspan',
+			'wingspan': 'Wingspan',
+			'length male macropterous': 'Length male macropterous',
+			'length female macropterous': 'Length female macropterous',
+			'length male brachypterous': 'Length male brachypterous',
+			'length female brachypterous': 'Length female brachypterous',
+			'length (macropterous)': 'Length (macropterous)',
+			'length (brachypterous)': 'Length (brachypterous)',
+			'length (brachypterous females)': 'Length (brachypterous females)',
+			'length (brachyperous)': 'Length (brachypterous)',
+			'length ootheca': 'Length (ootheca)',
+			'width ootheca': 'Width (ootheca)',
+			'length ovipositor': 'Length (ovipositor)',
+			'l larval case': 'Length (larval case)',
+			'l. larval case': 'Length (larval case)',
+			'w larval case': 'Width (larval case)',
+			'width': 'Width',
+			'w': 'Width',
+			'width of pronotum': 'Width (pronotum)',
+			'pronotal width': 'Width (pronotum)',
+		};
+		return map[rawType.toLowerCase().trim()] || (rawType.charAt(0).toUpperCase() + rawType.slice(1));
+	}
+
+	/*
+	 * Collapses the many spelling/case variants of attribute_measure into a
+	 * small set of canonical tokens: 'min', 'max', 'approx', 'lt', 'gt', 'exact'.
+	 */
+	normalizeMeasure(measure) {
+		if(!measure) return 'exact';
+		const m = measure.toLowerCase().trim();
+		if(m === 'min') return 'min';
+		if(['max', 'max.', 'maxmax', 'maxs', 'mx', 'mqx', 'msx', 'nax'].includes(m)) return 'max';
+		if(m === '~' || m === 'c.' || m === 'average') return 'approx';
+		if(m === '<') return 'lt';
+		if(m === '>') return 'gt';
+		return 'exact';
+	}
+
+	/*
+	 * Groups raw attribute rows by canonical label and pairs min/max rows into
+	 * range objects. Unpaired rows become point objects.
+	 * Returns an array of { label, type, units, min, max } or { label, type, units, measure, value }.
+	 */
+	groupMeasuredAttributes(attrs) {
+		const labelMap = new Map();
+		attrs.forEach(attr => {
+			const label = this.getAttributeTypeLabel(attr.attribute_type);
+			const measure = this.normalizeMeasure(attr.attribute_measure);
+			const value = parseFloat(attr.data);
+			if(isNaN(value)) return;
+			if(!labelMap.has(label)) labelMap.set(label, []);
+			labelMap.get(label).push({ measure, value, units: attr.attribute_units || 'mm' });
+		});
+
+		const groups = [];
+		labelMap.forEach((rows, label) => {
+			const minRow = rows.find(r => r.measure === 'min');
+			const maxRow = rows.find(r => r.measure === 'max');
+			if(minRow && maxRow) {
+				groups.push({ label, type: 'range', min: minRow.value, max: maxRow.value, units: minRow.units });
+				rows.filter(r => r.measure !== 'min' && r.measure !== 'max').forEach(r => {
+					groups.push({ label, type: 'point', measure: r.measure, value: r.value, units: r.units });
+				});
+			} else {
+				rows.forEach(r => {
+					groups.push({ label, type: 'point', measure: r.measure, value: r.value, units: r.units });
+				});
+			}
+		});
+		return groups;
+	}
+
+	/*
+	 * Rounds a raw maximum value up to a visually clean scale ceiling.
+	 */
+	calcNiceMax(values) {
+		const raw = Math.max(...values);
+		if(!isFinite(raw) || raw <= 0) return 10;
+		const magnitude = Math.pow(10, Math.floor(Math.log10(raw)));
+		const normalized = raw / magnitude;
+		const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+		return nice * magnitude;
+	}
+
+	/*
+	 * Formats a numeric measurement value: integers display without decimals,
+	 * floats are trimmed to at most two significant decimal places.
+	 */
+	fmtAttrVal(v) {
+		const n = parseFloat(v);
+		return n % 1 === 0 ? n : parseFloat(n.toFixed(2));
+	}
+
+	/*
+	 * Builds a horizontal range-bar chart for the measured attributes panel.
+	 * Each canonical attribute group gets one labelled bar row on a shared mm scale.
+	 * Point/approximate values are shown as a narrow tick instead of a span.
+	 */
+	buildMeasuredAttributesChart(attrs) {
+		const groups = this.groupMeasuredAttributes(attrs);
+		if(groups.length === 0) return '';
+
+		const allValues = groups.flatMap(g => g.type === 'range' ? [g.min, g.max] : [g.value]);
+		const scaleMax = this.calcNiceMax(allValues);
+
+		// Axis ruler
+		const TICK_N = 5;
+		let axisTicks = '';
+		for(let i = 0; i <= TICK_N; i++) {
+			const val = (scaleMax / TICK_N) * i;
+			const pct = (i / TICK_N * 100).toFixed(1);
+			const label = i === TICK_N ? this.fmtAttrVal(val) + '\u202fmm' : this.fmtAttrVal(val);
+			let cls = 'mattr-axis-tick';
+			if(i === 0) cls += ' mattr-axis-tick-first';
+			if(i === TICK_N) cls += ' mattr-axis-tick-last';
+			axisTicks += `<div class="${cls}" style="left:${pct}%"><span class="mattr-axis-tick-label">${label}</span><span class="mattr-axis-tick-line"></span></div>`;
 		}
+		const axisRow = `<div class="mattr-axis-row"><div class="mattr-bar-track mattr-axis-track">${axisTicks}</div></div>`;
 
+		// Data rows
+		let rowsHtml = '';
+		groups.forEach(g => {
+			const safeLabel = g.label.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+			let barHtml, valueHtml;
+
+			if(g.type === 'range') {
+				const basePct = (g.min / scaleMax * 100).toFixed(2);
+				const spanPct = ((g.max - g.min) / scaleMax * 100).toFixed(2);
+				barHtml = `<div class="mattr-bar-base" style="width:${basePct}%;"></div>` +
+					`<div class="mattr-bar-span" style="width:${spanPct}%;"></div>`;
+				valueHtml = `${this.fmtAttrVal(g.min)}&thinsp;&ndash;&thinsp;${this.fmtAttrVal(g.max)}&thinsp;${g.units}`;
+			} else {
+				const basePct = (g.value / scaleMax * 100).toFixed(2);
+				const prefixes = { approx: '~\u202f', lt: '&lt;\u202f', gt: '&gt;\u202f', exact: '' };
+				const prefix = prefixes[g.measure] || '';
+				const tick = g.measure !== 'exact' ? `<div class="mattr-point-tick"></div>` : '';
+				barHtml = `<div class="mattr-bar-base" style="width:${basePct}%;"></div>${tick}`;
+				valueHtml = `${prefix}${this.fmtAttrVal(g.value)}&thinsp;${g.units}`;
+			}
+
+			rowsHtml += `<div class="mattr-row">` +
+				`<div class="mattr-row-header">` +
+				`<span class="mattr-label" title="${safeLabel}">${safeLabel}</span>` +
+				`<span class="mattr-range-values">${valueHtml}</span>` +
+				`</div>` +
+				`<div class="mattr-bar-track">${barHtml}</div>` +
+				`</div>`;
+		});
+
+		return `<div class="mattr-chart">${axisRow}${rowsHtml}</div>`;
 	}
 
 
