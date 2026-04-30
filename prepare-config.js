@@ -1,8 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 
+// Load .env from this directory or the parent deployment directory
+const dotenvPath = fs.existsSync(path.join(__dirname, '.env'))
+  ? path.join(__dirname, '.env')
+  : path.join(__dirname, '..', '.env');
+require('dotenv').config({ path: dotenvPath });
+
 const mode = process.env.MODE || 'dev';
 const domain = process.env.DOMAIN || 'localhost';
+const scheme = process.env.SCHEME || 'http';
+const wsScheme = scheme === 'https' ? 'wss' : 'ws';
 
 const basePath     = path.join(__dirname, 'src/config/config.base.json');
 const overridePath = path.join(__dirname, `src/config/config.${mode}.json`);
@@ -61,10 +69,13 @@ try {
     : {};
 
   const merged = stripNulls(mergeConfig(base, override));
-  const output = JSON.stringify(merged, null, '\t').replace(/__DOMAIN__/g, domain);
+  const output = JSON.stringify(merged, null, '\t')
+    .replace(/__DOMAIN__/g, domain)
+    .replace(/__SCHEME__/g, scheme)
+    .replace(/__WS_SCHEME__/g, wsScheme);
 
   fs.writeFileSync(outputPath, output, 'utf8');
-  console.log(`Config for mode '${mode}' with domain '${domain}' written to config.json`);
+  console.log(`Config for mode '${mode}' with domain '${domain}' (${scheme}) written to config.json`);
 } catch (err) {
   console.error('Error preparing config:', err.message);
   process.exit(1);

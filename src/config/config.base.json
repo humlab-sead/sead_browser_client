@@ -7,11 +7,11 @@
 		"url": "https://creativecommons.org/licenses/by/4.0/"
 	},
 	"supportEmail": "support@humlab.umu.se",
-	"serverRoot": "http://__DOMAIN__:80",
-	"serverAddress": "http://__DOMAIN__:80/query",
-	"siteReportServerAddress": "http://__DOMAIN__:80/postgrest",
-	"dataServerAddress": "http://__DOMAIN__:80/jsonapi",
-	"copilotServerAddress": "wss://__DOMAIN__:80/ai-assistant",
+	"serverRoot": "__SCHEME__://__DOMAIN__",
+	"serverAddress": "__SCHEME__://__DOMAIN__/query",
+	"siteReportServerAddress": "__SCHEME__://__DOMAIN__/postgrest",
+	"dataServerAddress": "__SCHEME__://__DOMAIN__/jsonapi",
+	"copilotServerAddress": "__WS_SCHEME__://__DOMAIN__/ai-assistant",
 	"defaultResultModule": "mosaic",
 	"resultMapDataLayers": [
 		"clusterPoints",

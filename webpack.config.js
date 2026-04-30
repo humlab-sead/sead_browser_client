@@ -15,6 +15,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 const shouldAnalyze = process.env.ANALYZE === 'true'; // Custom flag for analysis
 
 const seoServerRoot = (seadConfig.serverRoot || '').replace(/\/+$/, '');
+const serverUrl = new URL(seadConfig.serverRoot || 'http://localhost');
+const devWsProtocol = serverUrl.protocol === 'https:' ? 'wss' : 'ws';
+const devWsPort = serverUrl.port ? parseInt(serverUrl.port) : (serverUrl.protocol === 'https:' ? 443 : 80);
 const seoLastmod = new Date().toISOString().slice(0, 10);
 const seoDomainPaths = (seadConfig.domains || [])
   .filter((domain) => domain && domain.enabled !== false && domain.name && domain.name !== 'general')
@@ -236,6 +239,12 @@ module.exports = (env, config) => {
       },
       client: {
         overlay: false,
+        webSocketURL: {
+          hostname: serverUrl.hostname,
+          protocol: devWsProtocol,
+          port: devWsPort,
+          pathname: '/ws',
+        },
       },
     },
   };
