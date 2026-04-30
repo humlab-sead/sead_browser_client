@@ -285,24 +285,29 @@ class TaxaModule {
 			return [];
 		}
 
+		console.log(entityHits)
+
+		// Collect {fileName, entityUrl} pairs so we can link back to the taxon page
 		let imageFiles = [];
 		for(let i = 0; i < entityHits.length && imageFiles.length < 2; i++) {
 			let entityId = entityHits[i].id;
+			let entityPageUrl = entityHits[i].url ? "https:"+entityHits[i].url : "";
+			let entityLabel = entityHits[i].label || scientificName;
 			let entityData = await this.fetchJsonOrThrow("https://www.wikidata.org/wiki/Special:EntityData/"+entityId+".json", "Wikidata");
 			let claims = entityData && entityData.entities && entityData.entities[entityId] ? entityData.entities[entityId].claims : null;
 			let imageClaims = claims && claims.P18 ? claims.P18 : [];
 
 			imageClaims.forEach(claim => {
 				let imageFileName = claim && claim.mainsnak && claim.mainsnak.datavalue ? claim.mainsnak.datavalue.value : null;
-				if(imageFileName && !imageFiles.includes(imageFileName) && imageFiles.length < 2) {
-					imageFiles.push(imageFileName);
+				if(imageFileName && !imageFiles.find(f => f.fileName == imageFileName) && imageFiles.length < 2) {
+					imageFiles.push({ fileName: imageFileName, entityPageUrl, entityLabel });
 				}
 			});
 		}
 
 		let images = [];
 		for(let i = 0; i < imageFiles.length && images.length < 2; i++) {
-			let fileName = imageFiles[i];
+			let { fileName, entityPageUrl, entityLabel } = imageFiles[i];
 			let commonsData = await this.fetchJsonOrThrow("https://commons.wikimedia.org/w/api.php?action=query&titles="+encodeURIComponent("File:"+fileName)+"&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=600&format=json&origin=*", "Wikimedia Commons");
 			let pages = commonsData && commonsData.query ? commonsData.query.pages : {};
 			let pageKeys = Object.keys(pages);
@@ -322,11 +327,13 @@ class TaxaModule {
 				thumbnailUrl: imageInfo.thumburl || imageInfo.url,
 				rightsHolder: this.stripHtml(extMeta.Artist ? extMeta.Artist.value : "") || this.stripHtml(extMeta.Credit ? extMeta.Credit.value : "") || "Wikimedia contributor",
 				license: this.stripHtml(extMeta.LicenseShortName ? extMeta.LicenseShortName.value : "") || this.stripHtml(extMeta.UsageTerms ? extMeta.UsageTerms.value : ""),
-				description: this.stripHtml(extMeta.ImageDescription ? extMeta.ImageDescription.value : "") || scientificName,
+				description: entityLabel,
+				speciesPageUrl: entityPageUrl,
 				attributionText: "© Wikimedia Commons"
 			}));
 		}
 
+		console.log(images);
 		return images;
 	}
 
@@ -334,6 +341,7 @@ class TaxaModule {
 		let scientificName = this.getTaxonImageSearchString(taxonData);
 		let response = await this.fetchJsonOrThrow("https://api.inaturalist.org/v1/taxa?q="+encodeURIComponent(scientificName)+"&is_active=true&per_page=10&order=desc&order_by=observations_count", "iNaturalist");
 		let taxa = Array.isArray(response.results) ? response.results : [];
+		console.log(taxa)
 		if(taxa.length == 0) {
 			return [];
 		}
@@ -371,7 +379,9 @@ class TaxaModule {
 				thumbnailUrl: thumbnailUrl,
 				rightsHolder: photo.attribution || photo.attribution_text,
 				license: photoLicense,
-				description: taxon.preferred_common_name || taxon.name || scientificName,
+				description: taxon.name || scientificName,
+				commonName: taxon.preferred_common_name || "",
+				speciesPageUrl: taxon.wikipedia_url || (taxon.id ? "https://www.inaturalist.org/taxa/"+taxon.id : ""),
 				attributionText: "© iNaturalist"
 			}));
 		});
@@ -539,18 +549,13 @@ class TaxaModule {
 
 			renderedImages.push(Object.assign({}, image, { id: imageId }));
 
-			let imageMetaData = `Provider: ${image.provider} \
-			Rights holder: ${image.rightsHolder || "Unknown"} \
-			License: ${image.license || "Unknown"} \
-			Description: ${image.description || "No description"}`;
-
 			let imageNodeHtml = `<div class='result-taxon-image-thumb-container'>
 			<button type='button' class='taxon-image-close' aria-label='Close expanded image'>
 				<i class='fa fa-times' aria-hidden='true'></i>
 			</button>
 			<div class='result-taxon-image-thumb'>
 				<a href='`+image.sourceUrl+`' target='_blank'>
-					<img id='`+imageId+`' title='`+imageMetaData+`' src='`+image.thumbnailUrl+`' />
+					<img id='`+imageId+`' src='`+image.thumbnailUrl+`' />
 				</a>
 			</div>
 			<div class='result-taxon-image-thumb-attribution' title='Image fetched from `+image.provider+`'>`+image.attributionText+`</div>
@@ -574,6 +579,26 @@ class TaxaModule {
 		this.sqs.tooltipManager.registerTooltip("#"+ttId, tooltipText, { drawSymbol:true });
 
 		$("#result-taxon-image-container").html(imageNodes);
+
+		renderedImages.forEach(image => {
+			let ttRows = "";
+			if(image.description) {
+				ttRows += `<tr><td class='tt-label'>Species depicted:</td><td>${image.description}</td></tr>`;
+			}
+			if(image.commonName) {
+				ttRows += `<tr><td class='tt-label'>Common name:</td><td>${image.commonName}</td></tr>`;
+			}
+			ttRows += `<tr><td class='tt-label'>Source:</td><td>${image.provider}</td></tr>`;
+			if(image.rightsHolder) {
+				ttRows += `<tr><td class='tt-label'>Rights holder:</td><td>${image.rightsHolder}</td></tr>`;
+			}
+			if(image.license) {
+				ttRows += `<tr><td class='tt-label'>License:</td><td>${image.license}</td></tr>`;
+			}
+			let ttHtml = `<h4 class='tooltip-header'>Image</h4><table class='tooltip-table'>${ttRows}</table>`;
+			this.sqs.tooltipManager.registerTooltip("#"+image.id, ttHtml);
+		});
+
 		this.registerTaxonImageInteractions();
 
 		return renderedImages;
@@ -635,6 +660,8 @@ class TaxaModule {
 	getTaxonImageSearchString(taxonData) {
 		let genus = taxonData.genus && taxonData.genus.genus_name ? taxonData.genus.genus_name : "";
 		let species = taxonData.species ? taxonData.species : "";
+		// Strip parenthetical qualifiers such as "(grp)", "(s.l.)", "(s.str.)" etc. that confuse API searches
+		species = species.replace(/\s*\([^)]*\)/g, "").trim();
 		if(this.sqs.config.indicatorStringsForUnknownSpecies.includes(species.toLowerCase())) {
 			return genus;
 		}
@@ -649,6 +676,8 @@ class TaxaModule {
 			rightsHolder: imageData.rightsHolder || "",
 			license: imageData.license || "",
 			description: imageData.description || "",
+			commonName: imageData.commonName || "",
+			speciesPageUrl: imageData.speciesPageUrl || "",
 			attributionText: imageData.attributionText || "© Unknown"
 		};
 	}
