@@ -1615,8 +1615,40 @@ body.facet-resizing * {
   height: calc(100% - 3.7em);
   max-width: 100%;
   min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
+.popover-content .qs-domain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75em;
+  margin-top: 0.5em;
+}
+
+.popover-content .qs-domain-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.popover-content .qs-domain-item img {
+  width: 100%;
+  height: auto;
+  border-radius: 3px;
+}
+
+.popover-content .qs-domain-item span {
+  font-size: 0.82em;
+  color: colors.$inactive-color;
+  line-height: 1.4;
+}
+
+@media (max-width: 500px) {
+  .popover-content .qs-domain-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
 .result-module-container {
   display:none;

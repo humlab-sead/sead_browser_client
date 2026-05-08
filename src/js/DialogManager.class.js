@@ -1,5 +1,12 @@
 //import Config from '../config/config.js';
 import Dropzone from 'dropzone';
+import domainGeneralImage from '../assets/domain-images/general.png';
+import domainDendrochronologyImage from '../assets/domain-images/dendrochronology.png';
+import domainPalaeoentomologyImage from '../assets/domain-images/palaeoentomology.png';
+import domainArchaeobotanyImage from '../assets/domain-images/arachaeobotany.png';
+import domainPollenImage from '../assets/domain-images/pollen.png';
+import domainGeoarchaeologyImage from '../assets/domain-images/geoarchaeology.png';
+import domainCeramicImage from '../assets/domain-images/ceramic.png';
 /*
 Class: DialogManager
 Simple machine for handling some basic rendering of overlay/popup-dialogs.
@@ -50,12 +57,8 @@ class DialogManager {
 
 		$("#quickstart-what-is-sead").on("click", () => {
 			const content = `
-				<p>SEAD — the Strategic Environmental Archaeology Database — is an open-access research infrastructure for 
-				archaeological and palaeoenvironmental data. It stores, manages, and makes available a wide range of datasets 
-				focused on how past human societies interacted with their natural environment.</p>
-				<p>The database contains records from across northern Europe and beyond, covering evidence from biological 
-				proxies such as pollen, insects, plants, and vertebrates, as well as dendrochronological and other 
-				environmental data tied to archaeological sites.</p>
+				<p>SEAD &mdash; the Strategic Environmental Archaeology Database &mdash; is an open-access research infrastructure for archaeological and palaeoenvironmental data. It stores, manages, and makes available a wide range of datasets focused on how past human societies interacted with their natural environment.</p>
+				<p>The database contains records from across northern Europe and beyond, covering evidence from biological proxies such as pollen, insects, plants, and vertebrates, as well as dendrochronological and other environmental data tied to archaeological sites.</p>
 				<p>Using the SEAD browser you can:</p>
 				<ul>
 					<li>Search and filter archaeological sites by domain, time period, location, and more.</li>
@@ -63,8 +66,39 @@ class DialogManager {
 					<li>Export results in multiple formats for use in your own research.</li>
 				</ul>
 				<p>SEAD is free to use and all data is openly available for research and education.</p>
+				<p>Data is organised into the following research domains:</p>
+				<div class="qs-domain-grid">
+					<div class="qs-domain-item">
+						<img src="${domainGeneralImage}" alt="General">
+						<span>Contains all data in SEAD.</span>
+					</div>
+					<div class="qs-domain-item">
+						<img src="${domainDendrochronologyImage}" alt="Dendrochronology">
+						<span>Tree-ring records used for dating and reconstructing past environments.</span>
+					</div>
+					<div class="qs-domain-item">
+						<img src="${domainPalaeoentomologyImage}" alt="Palaeoentomology">
+						<span>Fossil insect remains used as proxies for past climate and land use.</span>
+					</div>
+					<div class="qs-domain-item">
+						<img src="${domainArchaeobotanyImage}" alt="Archaeobotany">
+						<span>Plant macrofossils and seeds reflecting past agriculture and vegetation.</span>
+					</div>
+					<div class="qs-domain-item">
+						<img src="${domainPollenImage}" alt="Pollen">
+						<span>Pollen records documenting vegetation history and landscape change.</span>
+					</div>
+					<div class="qs-domain-item">
+						<img src="${domainGeoarchaeologyImage}" alt="Geoarchaeology">
+						<span>Sediment and soil data related to site formation and landscape processes.</span>
+					</div>
+					<div class="qs-domain-item">
+						<img src="${domainCeramicImage}" alt="Ceramic">
+						<span>Ceramic finds and assemblage analyses from archaeological excavations.</span>
+					</div>
+				</div>
 			`;
-			this.showPopOver("What is SEAD?", content, { width: "600px" });
+			this.showPopOver("What is SEAD?", content, { width: "640px" });
 		});
 
 		$("#quickstart-data-in-sead").on("click", () => {
