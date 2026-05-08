@@ -156,7 +156,7 @@ class DiscreteFacet extends Facet {
 		const listContainerHeight = $(".list-container", this.domObj).height();
 		if (listContainerHeight > 0 && this.rowHeight > 0) {
 			this.viewportItemCapacity = Math.max(1, Math.ceil(listContainerHeight / this.rowHeight) + 1);
-			console.log("Recalculated viewportItemCapacity: " + this.viewportItemCapacity);
+			//console.log("Recalculated viewportItemCapacity: " + this.viewportItemCapacity);
 		}
 	}
 
@@ -374,7 +374,7 @@ class DiscreteFacet extends Facet {
 	* 
 	*/
 	renderData(renderData = []) {
-		console.log("renderData called: ", this.id, this.name);
+		//console.log("renderData called: ", this.id, this.name);
 		
 		if(renderData.length == 0 && this.minimized == false) {
 			console.log("No data to render")
