@@ -84,3 +84,22 @@ test('filter deployment', async ({ page }) => {
   // Expects the Site filter to be deployed in the facet section (look for element with id #facet-1).
   await expect(page.locator('#facet-section > #facet-1')).toBeVisible();
 });
+
+test('site route popstate to filters restores a result module', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', (error) => {
+    pageErrors.push(error.message);
+  });
+
+  await page.goto('/site/1');
+  await expect(page.locator('#site-report-main-container')).toBeVisible({ timeout: 30000 });
+
+  await page.evaluate(() => {
+    history.replaceState({}, "", "/");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+
+  await expect(page.locator('#filter-view-main-container')).toBeVisible({ timeout: 30000 });
+  await expect(page.locator('#result-menu > [menu-item].sqs-menu-selected')).toHaveCount(1);
+  expect(pageErrors.join("\n")).not.toContain("render is not a function");
+});

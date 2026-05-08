@@ -102,21 +102,25 @@ class ResultManager {
 				this.applyResultMenuLayoutState();
 			});
 			
-			this.sqs.sqsEventListen("layoutSwitchMode", () => {
-				// layout mode is updated right after this event dispatch
-				setTimeout(() => {
-					this.applyResultMenuLayoutState();
-					this.ensureMobileSafeActiveModule(this.sqsInitComplete);
-				}, 0);
-			});
+				this.sqs.sqsEventListen("layoutSwitchMode", () => {
+					// layout mode is updated right after this event dispatch
+					setTimeout(() => {
+						this.applyResultMenuLayoutState();
+						this.ensureMobileSafeActiveModule(this.sqsInitComplete);
+					}, 0);
+				});
 
-			this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
-				this.getActiveModule().render();
-			});
-			
+				this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
+					let activeModule = this.getActiveModule();
+					if(activeModule && typeof activeModule.render == "function") {
+						activeModule.render();
+					}
+					else {
+						this.ensureActiveModule(true);
+					}
+				});
+			}
 		}
-		
-	}
 
 	isMobileMode() {
 		return this.sqs.layoutManager && typeof this.sqs.layoutManager.getMode == "function" && this.sqs.layoutManager.getMode() == "mobileMode";
@@ -281,6 +285,45 @@ class ResultManager {
 
 	getModules() {
 		return this.modules;
+	}
+
+	getPreferredModuleId() {
+		let userSettings = this.sqs.getUserSettings() || {};
+		let candidates = [
+			userSettings.defaultResultModule,
+			this.sqs.config.defaultResultModule,
+			this.modules.length > 0 ? this.modules[0].name : null
+		];
+
+		for(let key in candidates) {
+			let candidate = candidates[key];
+			if(!candidate) {
+				continue;
+			}
+
+			candidate = this.resolveModuleForCurrentLayout(candidate);
+			if(this.getModule(candidate)) {
+				return candidate;
+			}
+		}
+
+		return false;
+	}
+
+	async ensureActiveModule(renderModule = true) {
+		let activeModule = this.getActiveModule();
+		if(activeModule && typeof activeModule.render == "function") {
+			return activeModule;
+		}
+
+		let preferredModuleId = this.getPreferredModuleId();
+		if(!preferredModuleId) {
+			console.warn("Could not resolve a preferred result module.");
+			return false;
+		}
+
+		await this.setActiveModule(preferredModuleId, renderModule);
+		return this.getActiveModule();
 	}
 
 	/*

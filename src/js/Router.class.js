@@ -24,9 +24,11 @@ class Router {
         }
         let pathComponents = path.split("/");
         this.sqs.requestUrl = path;
+        let enteredFilterView = false;
         switch(pathComponents[1]) {
             case "":
                 this.sqs.layoutManager.setActiveView("filters");
+                enteredFilterView = true;
                 this.sqs.domainManager.setActiveDomain("general", false);
                 if(this.sqs.seoManager) {
                     this.sqs.seoManager.setDefaultRouteMeta("/");
@@ -44,6 +46,7 @@ class Router {
                 else {
                     console.error("Invalid site requested!");
                     this.sqs.layoutManager.setActiveView("filters");
+                    enteredFilterView = true;
                     this.sqs.dialogManager.showPopOver("404 - Page not found!", "/"+pathComponents[1]);
                     if(this.sqs.seoManager) {
                         this.sqs.seoManager.setNotFoundMeta(path);
@@ -52,6 +55,7 @@ class Router {
             break;
             case "viewstate":
                 this.sqs.layoutManager.setActiveView("filters");
+                enteredFilterView = true;
                 if(this.sqs.seoManager) {
                     this.sqs.seoManager.setViewstateMeta(pathComponents[2]);
                 }
@@ -59,6 +63,7 @@ class Router {
             case "species":
             case "taxon":
                 this.sqs.layoutManager.setActiveView("filters");
+                enteredFilterView = true;
                 this.sqs.taxaModule.renderTaxon(pathComponents[2]);
                 if(this.sqs.seoManager) {
                     this.sqs.seoManager.setTaxonMeta(pathComponents[2]);
@@ -67,6 +72,7 @@ class Router {
             default:
                 if(this.domainExists(pathComponents[1])) {
                     this.sqs.layoutManager.setActiveView("filters");
+                    enteredFilterView = true;
                     this.sqs.domainManager.setActiveDomain(pathComponents[1], false);
                     if(this.sqs.seoManager) {
                         this.sqs.seoManager.setDomainMeta(this.sqs.domainManager.getActiveDomain());
@@ -75,12 +81,17 @@ class Router {
                 else {
                     console.log("404 - Page not found!");
                     this.sqs.layoutManager.setActiveView("filters");
+                    enteredFilterView = true;
                     this.sqs.dialogManager.showPopOver("404 - Page not found!", "/"+pathComponents[1]);
                     if(this.sqs.seoManager) {
                         this.sqs.seoManager.setNotFoundMeta(path);
                     }
                 }
                 break;
+        }
+
+        if(enteredFilterView && this.sqs.resultManager) {
+            this.sqs.resultManager.ensureActiveModule(true);
         }
     }
 
