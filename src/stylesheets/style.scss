@@ -5806,6 +5806,442 @@ a.ms-selectall:hover {
   }
 }
 
+/* ── Thin Slice Analysis module ───────────────────────────────────────────── */
+
+.tsa-body {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tsa-empty {
+  padding: 1.5em;
+  color: colors.$inactive-color;
+  font-size: 0.9em;
+}
+
+/* Gallery */
+
+.tsa-gallery-hint {
+  margin: 0.6em 0.75em 0.4em;
+  font-size: 0.85em;
+  color: colors.$inactive-color;
+
+  .tsa-inspect-btn--inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    vertical-align: middle;
+    padding: 0.15em 0.6em;
+    font-size: 0.95em;
+    line-height: 1.4;
+  }
+}
+
+.tsa-gallery-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.75em;
+}
+
+.tsa-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.6em;
+}
+
+.tsa-gallery-item {
+  cursor: pointer;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  overflow: hidden;
+  background: colors.$pane-bg-color;
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: colors.$base-color;
+  }
+
+  &.tsa-selected {
+    border-color: colors.$aux-color;
+
+    .tsa-gallery-overlay {
+      opacity: 1;
+    }
+  }
+}
+
+.tsa-gallery-imgwrap {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.tsa-gallery-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(colors.$aux-color, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+
+  .fa {
+    color: #fff;
+    font-size: 1.8em;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+}
+
+.tsa-gallery-label {
+  font-size: 0.72em;
+  color: colors.$inactive-color;
+  padding: 0.3em 0.4em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tsa-gallery-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75em;
+  padding: 0.6em 0.75em;
+  border-top: 1px solid rgba(0,0,0,0.08);
+  background: color.adjust(colors.$pane-bg-color, $lightness: 4%);
+}
+
+.tsa-selection-count {
+  font-size: 0.85em;
+  color: colors.$inactive-color;
+}
+
+.tsa-inspect-btn {
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+/* Inspect desktop */
+
+.tsa-inspect-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  padding: 0.5em 0.75em;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: color.adjust(colors.$pane-bg-color, $lightness: 4%);
+}
+
+.tsa-inspect-hint {
+  flex: 1 1 auto;
+  font-size: 0.82em;
+  color: colors.$inactive-color;
+}
+
+.tsa-layout-btns {
+  display: flex;
+  gap: 0.4em;
+  flex: 0 0 auto;
+}
+
+.tsa-toolbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  flex: 0 0 auto;
+}
+
+.tsa-toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(0,0,0,0.18);
+}
+
+.tsa-layout-btn {
+  font-size: 0.8em;
+  padding: 0.25em 0.6em;
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  white-space: nowrap;
+}
+
+.tsa-zoom-btn {
+  font-size: 0.8em;
+  padding: 0.25em 0.6em;
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  white-space: nowrap;
+
+  &.tsa-zoom-btn--active {
+    background: colors.$aux-color;
+    border-color: color.adjust(colors.$aux-color, $lightness: -12%);
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(colors.$aux-color, 0.35), 0 0 10px rgba(colors.$aux-color, 0.55);
+  }
+}
+
+.tsa-desktop {
+  flex: 1 1 0;
+  min-height: 0;
+  position: relative;
+  overflow: auto;
+  background: color.adjust(colors.$pane-bg-color, $lightness: -3%);
+  min-height: 500px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(colors.$base-color, 0.45) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(colors.$base-color, 0.45) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.08;
+    transition: opacity 0.2s;
+  }
+
+  &.tsa-desktop--dragging::before {
+    opacity: 0.45;
+  }
+
+  &.tsa-desktop--zoom-active .tsa-card-imgwrap {
+    cursor: crosshair;
+    touch-action: none;
+  }
+}
+
+.tsa-image-card {
+  position: absolute;
+  width: 240px;
+  min-width: 180px;
+  min-height: 160px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  overflow: hidden;
+  z-index: 1;
+
+  &.tsa-snapping {
+    transition: left 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                top  0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                width  0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                height 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  &.tsa-dragging {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    transition: none;
+  }
+}
+
+.tsa-card-handle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4em;
+  padding: 0.4em 0.6em;
+  background: colors.$base-color;
+  color: #fff;
+  cursor: grab;
+  border-radius: 4px 4px 0 0;
+  flex: 0 0 auto;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.tsa-drag-icon {
+  opacity: 0.7;
+  flex: 0 0 auto;
+}
+
+.tsa-card-name {
+  flex: 1 1 auto;
+  font-size: 0.75em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tsa-card-imgwrap {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #111;
+  position: relative;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+}
+
+.tsa-zoom-lens {
+  position: absolute;
+  border: 2px solid colors.$aux-color;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.45);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.tsa-zoom-overlay {
+  position: fixed;
+  width: 200px;
+  height: 200px;
+  border: 2px solid colors.$aux-color;
+  background: #000;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1100;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: auto;
+  }
+}
+
+.tsa-adjust-toggle {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 3px;
+  color: #fff;
+  font-size: 0.8em;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(255,255,255,0.2);
+  }
+
+  &.tsa-adjust-toggle--active {
+    background: colors.$aux-color;
+    border-color: colors.$aux-color;
+  }
+}
+
+.tsa-card-controls {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 24px);
+  z-index: 3;
+  padding: 0.6em 0.7em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  background: rgba(20, 30, 48, 0.88);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  overflow-y: auto;
+
+  label {
+    display: grid;
+    grid-template-columns: 6em 1fr 2.5em;
+    align-items: center;
+    gap: 0.3em;
+    font-size: 0.78em;
+    color: rgba(255,255,255,0.8);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+    accent-color: colors.$aux-color;
+  }
+}
+
+.tsa-ctrl-val {
+  font-size: 0.9em;
+  text-align: right;
+  color: rgba(255,255,255,0.7);
+}
+
+.tsa-apply-all-btn,
+.tsa-normalize-btn {
+  width: 100%;
+  margin-top: 0.35em;
+  padding: 0.35em 0.6em;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 3px;
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+  font-size: 0.76em;
+  cursor: pointer;
+  text-align: center;
+
+  &:hover {
+    background: rgba(255,255,255,0.2);
+  }
+
+  &:active {
+    background: rgba(colors.$aux-color, 0.35);
+    border-color: colors.$aux-color;
+  }
+}
+
+.tsa-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 10;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid rgba(0,0,0,0.25);
+    border-bottom: 2px solid rgba(0,0,0,0.25);
+  }
+}
+
+/* ── end Thin Slice Analysis ──────────────────────────────────────────────── */
+
 .mosaic-tile-content {
   height: 100%;
   width: 100%;
