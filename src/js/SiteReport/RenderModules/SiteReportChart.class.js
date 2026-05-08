@@ -1538,6 +1538,11 @@ class SiteReportChart {
 						title: {
 							display: true,
 							text: 'Percentage' // Label for the y-axis
+						},
+						ticks: {
+							callback: function(value) {
+								return value + '%';
+							}
 						}
 					}
 				}

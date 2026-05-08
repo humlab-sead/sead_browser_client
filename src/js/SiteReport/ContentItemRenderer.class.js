@@ -5,14 +5,15 @@ import DendroChart from './RenderModules/DendroChart.class';
 import DendroPlotly from './RenderModules/DendroPlotly.class';
 
 class ContentItemRenderer {
-    constructor(siteReport, section, contentItem) {
-        this.siteReport = siteReport;
-        this.sqs = siteReport.sqs;
-        this.section = section;
-        this.contentItem = contentItem;
-        this.renderInstanceRepository = [];
-        this.placeholderId = null;
-    }
+	    constructor(siteReport, section, contentItem) {
+	        this.siteReport = siteReport;
+	        this.sqs = siteReport.sqs;
+	        this.section = section;
+	        this.contentItem = contentItem;
+	        this.renderInstanceRepository = [];
+	        this.placeholderId = null;
+	        this.displayOptionsNamespace = ".displayOptions-" + nanoid();
+	    }
 
     render() {
 		//if the contentItem is a promise, reserve a placeholder div immediately to preserve ordering, then wait for resolution
@@ -277,31 +278,35 @@ class ContentItemRenderer {
 		return renderInstance;
 	}
 
-    toggleContentDisplayOptionsPanel() {
-		let controlsId = "view-selector-"+this.contentItem.name;
-		let node = $("#"+controlsId);
-		let dropdownNode = $(".site-report-display-options-dropdown", node);
-
-		if ($(dropdownNode).is(":visible")) {
+	    closeContentDisplayOptionsPanel(node, dropdownNode) {
 			$(dropdownNode).hide(100);
-			$(document).off("click.displayOptions-"+this.contentItem.name);
+			$(document).off("mousedown" + this.displayOptionsNamespace);
+			$(document).off("touchstart" + this.displayOptionsNamespace);
 		}
-		else {
-			if (this.contentItem.renderOptions.length == 1) {
-				$(".site-report-render-options-main-render-type", node).hide();
+
+	    toggleContentDisplayOptionsPanel() {
+			let controlsId = "view-selector-"+this.contentItem.name;
+			let node = $("#"+controlsId);
+			let dropdownNode = $(".site-report-display-options-dropdown", node);
+
+			if ($(dropdownNode).is(":visible")) {
+				this.closeContentDisplayOptionsPanel(node, dropdownNode);
 			}
-			$(dropdownNode).show(100);
-			// Defer binding so the triggering click doesn't immediately close the panel
-			setTimeout(() => {
-				$(document).on("click.displayOptions-"+this.contentItem.name, (e) => {
+			else {
+				if (this.contentItem.renderOptions.length == 1) {
+					$(".site-report-render-options-main-render-type", node).hide();
+				}
+				$(document).off("mousedown" + this.displayOptionsNamespace);
+				$(document).off("touchstart" + this.displayOptionsNamespace);
+				$(dropdownNode).show(100);
+
+				$(document).on("mousedown" + this.displayOptionsNamespace + " touchstart" + this.displayOptionsNamespace, (e) => {
 					if (!$(node).is(e.target) && $(node).has(e.target).length === 0) {
-						$(dropdownNode).hide(100);
-						$(document).off("click.displayOptions-"+this.contentItem.name);
+						this.closeContentDisplayOptionsPanel(node, dropdownNode);
 					}
 				});
-			}, 0);
+			}
 		}
-	}
 
 	renderOptionSelectedCallback(selectedRenderOption) {
 		//Update structure with new selection

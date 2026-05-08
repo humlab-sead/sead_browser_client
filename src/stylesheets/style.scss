@@ -6540,6 +6540,21 @@ tr.site-report-table-row > td {
   min-width: 220px;
 }
 
+.site-report-display-options-dropdown .site-report-view-selector-control {
+  font-size: 12px;
+  line-height: 1.2;
+  min-height: 24px;
+  padding: 2px 4px;
+}
+
+.site-report-display-options-dropdown select.site-report-view-selector-control {
+  height: 24px;
+}
+
+.site-report-display-options-dropdown select[multiple].site-report-view-selector-control {
+  height: auto;
+}
+
 .site-report-export-btn {
   display:inline-block;
   /*cursor: wait;*/
