@@ -2,6 +2,7 @@ FROM docker.io/debian:trixie
 
 # Define build-time variables (provided via Docker Compose)
 ARG SBC_REF=master
+ARG SBC_BUILD=prod
 ARG DOMAIN
 
 # Define environment variables for runtime
@@ -22,7 +23,7 @@ RUN git checkout $SBC_REF
 RUN echo "DOMAIN: $DOMAIN"
 
 RUN npm install --include=dev && \
-    npm run build:prod && \
+    npm run build:${SBC_BUILD} && \
     cp -R dist/* /var/www/html/
 
 # Base image always serves static assets via nginx.
