@@ -3,7 +3,6 @@ const webpack = require('webpack');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-require('ejs-compiled-loader');
 const BundleAnalyzerPlugin =
   require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const CopyWebpackPlugin = require('copy-webpack-plugin');
@@ -156,20 +155,7 @@ module.exports = (env, config) => {
           test: /\.worker\.js$/,
           use: { loader: 'worker-loader' },
         },
-        {
-          test: /\.ejs$/,
-          use: [
-            {
-              loader: 'ejs-compiled-loader',
-              options: {
-                htmlmin: true,
-                htmlminOptions: {
-                  removeComments: true,
-                },
-              },
-            },
-          ],
-        },
+
         {
           test: /\.(?:html)$/i,
           use: ['html-loader'],

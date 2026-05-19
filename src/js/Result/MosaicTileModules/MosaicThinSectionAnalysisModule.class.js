@@ -4,6 +4,156 @@ import { saveAs } from "file-saver";
 import { Parser } from "@json2csv/plainjs";
 import MosaicTileModule from "./MosaicTileModule.class";
 
+const TSA_SHARPNESS_DEFAULT = 100;
+
+function clamp8(value) {
+    return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function createImageData(width, height) {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return canvas.getContext("2d", { willReadFrequently: true }).createImageData(width, height);
+}
+
+function cloneImageData(imageData) {
+    const clone = createImageData(imageData.width, imageData.height);
+    clone.data.set(imageData.data);
+    return clone;
+}
+
+function copyPixel(data, dst, i) {
+    dst[i] = data[i];
+    dst[i + 1] = data[i + 1];
+    dst[i + 2] = data[i + 2];
+    dst[i + 3] = data[i + 3];
+}
+
+function sharpenImageData(imageData, factor) {
+    if (!imageData) return null;
+    const { width, height, data } = imageData;
+
+    if (Math.abs(factor - 1) < 0.0001) {
+        return cloneImageData(imageData);
+    }
+
+    const amount = factor - 1;
+    if (amount < 0) {
+        return blurImageData(imageData, Math.abs(amount));
+    }
+
+    const output = createImageData(width, height);
+    const dst = output.data;
+    const centerWeight = 1 + (4 * amount);
+    const sideWeight = -amount;
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const i = ((y * width) + x) * 4;
+
+            if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                copyPixel(data, dst, i);
+                continue;
+            }
+
+            const top = (((y - 1) * width) + x) * 4;
+            const bottom = (((y + 1) * width) + x) * 4;
+            const left = ((y * width) + (x - 1)) * 4;
+            const right = ((y * width) + (x + 1)) * 4;
+
+            for (let c = 0; c < 3; c++) {
+                const value =
+                    (data[i + c] * centerWeight) +
+                    (data[top + c] * sideWeight) +
+                    (data[bottom + c] * sideWeight) +
+                    (data[left + c] * sideWeight) +
+                    (data[right + c] * sideWeight);
+
+                dst[i + c] = clamp8(value);
+            }
+
+            dst[i + 3] = data[i + 3];
+        }
+    }
+
+    return output;
+}
+
+function blurImageData(imageData, amount) {
+    if (!imageData) return null;
+    const { width, height, data } = imageData;
+    const output = createImageData(width, height);
+    const dst = output.data;
+    const blurAmount = Math.min(1, Math.max(0, amount));
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const i = ((y * width) + x) * 4;
+
+            if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                copyPixel(data, dst, i);
+                continue;
+            }
+
+            for (let c = 0; c < 3; c++) {
+                let sum = 0;
+                for (let ky = -1; ky <= 1; ky++) {
+                    for (let kx = -1; kx <= 1; kx++) {
+                        const ni = (((y + ky) * width) + (x + kx)) * 4;
+                        sum += data[ni + c];
+                    }
+                }
+
+                const blurred = sum / 9;
+                const original = data[i + c];
+                dst[i + c] = clamp8(
+                    (original * (1 - blurAmount)) + (blurred * blurAmount)
+                );
+            }
+
+            dst[i + 3] = data[i + 3];
+        }
+    }
+
+    return output;
+}
+
+function applySharpness({
+    source,
+    outputCanvas,
+    sharpness = TSA_SHARPNESS_DEFAULT
+}) {
+    if (!source) {
+        throw new Error("applySharpness requires a source image.");
+    }
+    if (!outputCanvas) {
+        throw new Error("applySharpness requires an output canvas.");
+    }
+
+    const width = source.naturalWidth || source.width;
+    const height = source.naturalHeight || source.height;
+    if (!width || !height) {
+        throw new Error("applySharpness requires a source with width and height.");
+    }
+
+    outputCanvas.width = width;
+    outputCanvas.height = height;
+
+    const outputCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+    const originalCanvas = document.createElement("canvas");
+    originalCanvas.width = width;
+    originalCanvas.height = height;
+    const originalCtx = originalCanvas.getContext("2d", { willReadFrequently: true });
+    originalCtx.drawImage(source, 0, 0, width, height);
+
+    const original = originalCtx.getImageData(0, 0, width, height);
+    const factor = sharpness / 100;
+    const output = sharpenImageData(original, factor);
+    outputCtx.putImageData(output, 0, 0);
+    return outputCanvas;
+}
+
 class MosaicThinSectionAnalysisModule extends MosaicTileModule {
     constructor(sqs) {
         super();
@@ -82,6 +232,7 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
     }
 
     renderGallery() {
+        this.releaseAllCardProcessingStates();
         this.currentView = "gallery";
         const body = $(`#tsa-body-${this.moduleId}`);
         body.empty();
@@ -195,6 +346,7 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
             const imgId = nanoid();
             const left = 20 + col * stepX;
             const top = 20 + row * stepY;
+            const imageUrl = `${this.sqs.config.dataServerAddress}/image/${filename}`;
 
             const cardHtml = `
                 <div class="tsa-image-card" id="tsa-card-${imgId}" style="left:${left}px;top:${top}px">
@@ -203,11 +355,13 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
                         <button class="tsa-adjust-toggle" data-imgid="${imgId}" title="Image adjustments">
                             <i class="fa fa-sliders"></i>
                         </button>
-                        <i class="fa fa-arrows tsa-drag-icon"></i>
+                        <button class="tsa-close-btn" data-imgid="${imgId}" title="Remove image">
+                            <i class="fa fa-times"></i>
+                        </button>
                     </div>
                     <div class="tsa-card-imgwrap">
                         <img class="tsa-card-img" id="tsa-img-${imgId}"
-                            src="${this.sqs.config.dataServerAddress}/image/${filename}"
+                            src="${imageUrl}"
                             alt="${filename}">
                     </div>
                     <div class="tsa-card-controls" style="display:none">
@@ -227,9 +381,9 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
                             <span class="tsa-ctrl-val">100%</span>
                         </label>
                         <label>Sharpness
-                            <input type="range" class="tsa-ctrl" data-filter="sharpness" data-imgid="${imgId}"
-                                min="0" max="100" value="100">
-                            <span class="tsa-ctrl-val">100%</span>
+                            <input type="range" class="tsa-sharpness-ctrl" data-imgid="${imgId}"
+                                min="0" max="500" step="1" value="${TSA_SHARPNESS_DEFAULT}">
+                            <span class="tsa-ctrl-val">${this.formatSharpnessValue(TSA_SHARPNESS_DEFAULT)}</span>
                         </label>
                         <button class="tsa-apply-all-btn" data-imgid="${imgId}">Apply these settings to all images</button>
                         <button class="tsa-normalize-btn" data-imgid="${imgId}">Normalize settings</button>
@@ -242,7 +396,15 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
 
             const $card = $(`#tsa-card-${imgId}`);
             $card.data("filters", {
-                brightness: 100, contrast: 100, saturate: 100, sharpness: 100
+                brightness: 100, contrast: 100, saturate: 100
+            });
+            $card.data("sharpness", TSA_SHARPNESS_DEFAULT);
+            $card.data("processingState", {
+                sourceUrl: imageUrl,
+                sourceImage: null,
+                outputObjectUrl: null,
+                renderToken: 0,
+                warned: false
             });
 
             const $img = $card.find(".tsa-card-img");
@@ -251,11 +413,11 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
                 if (!nat.naturalWidth || !nat.naturalHeight) return;
                 const ratio = nat.naturalWidth / nat.naturalHeight;
                 $card.data("aspectRatio", ratio);
-                const handleH = $card.find(".tsa-card-handle").outerHeight() || 0;
-                $card.css("height", (240 / ratio + handleH) + "px");
+                $card.css("height", (240 / ratio) + "px");
             };
             if ($img[0].complete) { applyAspectRatio(); }
             else { $img.on("load", applyAspectRatio); }
+            this.loadCardSourceImage(imgId);
 
             col++;
             if (col >= cols) {
@@ -264,12 +426,27 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
             }
         });
 
+        desktop.on("click", ".tsa-close-btn", (e) => {
+            e.stopPropagation();
+            const imgId = $(e.currentTarget).data("imgid");
+            const filename = $(`#tsa-card-${imgId}`).find(".tsa-card-name").text();
+            this.selectedImages.delete(filename);
+            this.releaseCardProcessingState(imgId);
+            $(`#tsa-card-${imgId}`).remove();
+            if (desktop.find(".tsa-image-card").length === 0) {
+                this.renderGallery();
+            }
+        });
+
         desktop.on("click", ".tsa-adjust-toggle", (e) => {
             e.stopPropagation();
             const btn = $(e.currentTarget);
             const card = btn.closest(".tsa-image-card");
-            card.find(".tsa-card-controls").toggle();
-            btn.toggleClass("tsa-adjust-toggle--active");
+            const controls = card.find(".tsa-card-controls");
+            const willOpen = !controls.is(":visible");
+            controls.toggle(willOpen);
+            btn.toggleClass("tsa-adjust-toggle--active", willOpen);
+            card.toggleClass("tsa-image-card--adjustments-open", willOpen);
         });
 
         desktop.on("input", ".tsa-ctrl", (e) => {
@@ -281,40 +458,57 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
             const filters = card.data("filters");
             filters[filter] = val;
             input.siblings(".tsa-ctrl-val").text(val + "%");
-            this.applyFilters(imgId, filters);
+            this.renderCardImage(imgId);
+        });
+
+        desktop.on("input", ".tsa-sharpness-ctrl", (e) => {
+            const input = $(e.target);
+            const imgId = input.data("imgid");
+            const val = Number(input.val());
+            const card = $(`#tsa-card-${imgId}`);
+            card.data("sharpness", val);
+            input.siblings(".tsa-ctrl-val").text(this.formatSharpnessValue(val));
+            this.renderCardImage(imgId);
         });
 
         desktop.on("click", ".tsa-apply-all-btn", (e) => {
             const srcImgId = $(e.currentTarget).data("imgid");
             const srcFilters = $(`#tsa-card-${srcImgId}`).data("filters");
+            const srcSharpness = Number($(`#tsa-card-${srcImgId}`).data("sharpness"));
             desktop.find(".tsa-image-card").each((_, card) => {
                 const $card = $(card);
                 const targetImgId = $card.find(".tsa-ctrl").first().data("imgid");
                 if (!targetImgId) return;
                 const targetFilters = $card.data("filters");
                 Object.assign(targetFilters, srcFilters);
+                $card.data("sharpness", srcSharpness);
                 $card.find(".tsa-ctrl").each((_, input) => {
                     const $input = $(input);
                     const f = $input.data("filter");
                     $input.val(srcFilters[f]);
                     $input.siblings(".tsa-ctrl-val").text(srcFilters[f] + "%");
                 });
-                this.applyFilters(targetImgId, targetFilters);
+                $card.find(".tsa-sharpness-ctrl").val(srcSharpness);
+                $card.find(".tsa-sharpness-ctrl").siblings(".tsa-ctrl-val").text(this.formatSharpnessValue(srcSharpness));
+                this.renderCardImage(targetImgId);
             });
         });
 
         desktop.on("click", ".tsa-normalize-btn", (e) => {
             const imgId = $(e.currentTarget).data("imgid");
             const card = $(`#tsa-card-${imgId}`);
-            const defaults = { brightness: 100, contrast: 100, saturate: 100, sharpness: 100 };
+            const defaults = { brightness: 100, contrast: 100, saturate: 100 };
             const filters = card.data("filters");
             Object.assign(filters, defaults);
+            card.data("sharpness", TSA_SHARPNESS_DEFAULT);
             card.find(".tsa-ctrl").each((_, input) => {
                 const $input = $(input);
                 $input.val(defaults[$input.data("filter")]);
                 $input.siblings(".tsa-ctrl-val").text("100%");
             });
-            this.applyFilters(imgId, filters);
+            card.find(".tsa-sharpness-ctrl").val(TSA_SHARPNESS_DEFAULT);
+            card.find(".tsa-sharpness-ctrl").siblings(".tsa-ctrl-val").text(this.formatSharpnessValue(TSA_SHARPNESS_DEFAULT));
+            this.renderCardImage(imgId);
         });
 
         this.setupDraggable(`#tsa-desktop-${this.moduleId}`);
@@ -362,8 +556,7 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
             cards.forEach((card, i) => {
                 const $card = $(card);
                 const ratio = $card.data("aspectRatio") || 1;
-                const handleH = $card.find(".tsa-card-handle").outerHeight() || 0;
-                const cardH = snap((cardW / ratio) + handleH);
+                const cardH = snap(cardW / ratio);
                 place($card, card, { left: snap(i * cardW) + "px", top: "0px", width: cardW + "px", height: cardH + "px" });
             });
         } else if (layout === "column") {
@@ -372,8 +565,7 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
             cards.forEach((card) => {
                 const $card = $(card);
                 const ratio = $card.data("aspectRatio") || 1;
-                const handleH = $card.find(".tsa-card-handle").outerHeight() || 0;
-                const cardH = snap((cardW / ratio) + handleH);
+                const cardH = snap(cardW / ratio);
                 place($card, card, { left: "0px", top: top + "px", width: cardW + "px", height: cardH + "px" });
                 top = snap(top + cardH);
             });
@@ -383,8 +575,7 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
             cards.forEach((card, i) => {
                 const $card = $(card);
                 const ratio = $card.data("aspectRatio") || 1;
-                const handleH = $card.find(".tsa-card-handle").outerHeight() || 0;
-                const cardH = snap((cardW / ratio) + handleH);
+                const cardH = snap(cardW / ratio);
                 const col = i % cols;
                 const row = Math.floor(i / cols);
                 place($card, card, { left: snap(col * cardW) + "px", top: snap(row * cardH) + "px", width: cardW + "px", height: cardH + "px" });
@@ -393,9 +584,143 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
     }
 
     applyFilters(imgId, filters) {
-        const blur = ((100 - filters.sharpness) / 100) * 3;
-        const css = `brightness(${filters.brightness}%) contrast(${filters.contrast}%) saturate(${filters.saturate}%) blur(${blur.toFixed(2)}px)`;
+        const css = `brightness(${filters.brightness}%) contrast(${filters.contrast}%) saturate(${filters.saturate}%)`;
         $(`#tsa-img-${imgId}`).css("filter", css);
+    }
+
+    formatSharpnessValue(value) {
+        return (Number(value) / 100).toFixed(2);
+    }
+
+    loadCardSourceImage(imgId) {
+        const $card = $(`#tsa-card-${imgId}`);
+        if (!$card.length) return;
+        const state = $card.data("processingState");
+        if (!state || !state.sourceUrl) return;
+
+        const sourceImage = new Image();
+
+        sourceImage.onload = () => {
+            const freshCard = $(`#tsa-card-${imgId}`);
+            if (!freshCard.length) return;
+            const freshState = freshCard.data("processingState");
+            if (!freshState) return;
+            freshState.sourceImage = sourceImage;
+            this.renderCardImage(imgId);
+        };
+
+        sourceImage.onerror = () => {
+            if (!state.warned) {
+                console.warn(`Unable to decode image for sharpness processing: ${state.sourceUrl}`);
+                state.warned = true;
+            }
+        };
+
+        sourceImage.src = state.sourceUrl;
+    }
+
+    setCardImageSource(imgId, src) {
+        const $card = $(`#tsa-card-${imgId}`);
+        if (!$card.length) return;
+        const state = $card.data("processingState");
+        if (!state) return;
+        const $img = $card.find(".tsa-card-img");
+        if (!$img.length) return;
+        const img = $img[0];
+
+        if (img.src === src) {
+            return;
+        }
+
+        if (state.outputObjectUrl && state.outputObjectUrl !== src) {
+            URL.revokeObjectURL(state.outputObjectUrl);
+            state.outputObjectUrl = null;
+        }
+
+        img.src = src;
+        if (src.startsWith("blob:")) {
+            state.outputObjectUrl = src;
+        }
+    }
+
+    renderCardImage(imgId) {
+        const $card = $(`#tsa-card-${imgId}`);
+        if (!$card.length) return;
+        const filters = $card.data("filters");
+        const sharpness = Number($card.data("sharpness"));
+        const state = $card.data("processingState");
+        if (!filters || Number.isNaN(sharpness) || !state) return;
+
+        this.applyFilters(imgId, filters);
+
+        if (sharpness === TSA_SHARPNESS_DEFAULT) {
+            this.setCardImageSource(imgId, state.sourceUrl);
+            this.applyFilters(imgId, filters);
+            return;
+        }
+
+        if (!state.sourceImage) {
+            return;
+        }
+
+        state.renderToken += 1;
+        const renderToken = state.renderToken;
+        const outputCanvas = document.createElement("canvas");
+
+        try {
+            applySharpness({
+                source: state.sourceImage,
+                outputCanvas,
+                sharpness
+            });
+        } catch (error) {
+            if (!state.warned) {
+                console.warn("Sharpness processing could not be applied:", error);
+                state.warned = true;
+            }
+            return;
+        }
+
+        outputCanvas.toBlob((blob) => {
+            const freshCard = $(`#tsa-card-${imgId}`);
+            if (!freshCard.length) return;
+            const freshState = freshCard.data("processingState");
+            if (!freshState || freshState.renderToken !== renderToken) return;
+            if (!blob) return;
+
+            const objectUrl = URL.createObjectURL(blob);
+            this.setCardImageSource(imgId, objectUrl);
+            const freshFilters = freshCard.data("filters");
+            if (freshFilters) {
+                this.applyFilters(imgId, freshFilters);
+            }
+        }, "image/png");
+    }
+
+    releaseCardProcessingState(imgId) {
+        const $card = $(`#tsa-card-${imgId}`);
+        if (!$card.length) return;
+        const state = $card.data("processingState");
+        if (!state) return;
+        state.renderToken += 1;
+        if (state.outputObjectUrl) {
+            URL.revokeObjectURL(state.outputObjectUrl);
+            state.outputObjectUrl = null;
+        }
+    }
+
+    releaseAllCardProcessingStates() {
+        const body = $(`#tsa-body-${this.moduleId}`);
+        body.find(".tsa-image-card").each((_, cardNode) => {
+            const $card = $(cardNode);
+            const state = $card.data("processingState");
+            if (!state) return;
+            state.renderToken += 1;
+            if (state.outputObjectUrl) {
+                URL.revokeObjectURL(state.outputObjectUrl);
+                state.outputObjectUrl = null;
+            }
+        });
     }
 
     updateZoomCanvasSize() {
@@ -882,8 +1207,7 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
                         const props = { left: (curLeft * ratio) + "px", width: newCardW + "px" };
                         const ar = $card.data("aspectRatio");
                         if (ar) {
-                            const handleH = $card.find(".tsa-card-handle").outerHeight() || 0;
-                            props.height = (newCardW / ar + handleH) + "px";
+                            props.height = (newCardW / ar) + "px";
                         }
                         $card.css(props);
                     });
@@ -903,6 +1227,7 @@ class MosaicThinSectionAnalysisModule extends MosaicTileModule {
             this._resizeObserver.disconnect();
             this._resizeObserver = null;
         }
+        this.releaseAllCardProcessingStates();
         this.cleanupZoomTool();
         $(document).off(`mousemove.tsa-${this.moduleId} mouseup.tsa-${this.moduleId}`);
         return super.unrender();

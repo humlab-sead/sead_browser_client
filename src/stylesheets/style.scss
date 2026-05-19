@@ -6058,25 +6058,35 @@ a.ms-selectall:hover {
 }
 
 .tsa-card-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.4em;
   padding: 0.4em 0.6em;
-  background: colors.$base-color;
+  background: rgba(0, 0, 0, 0.8);
   color: #fff;
   cursor: grab;
   border-radius: 4px 4px 0 0;
-  flex: 0 0 auto;
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 
   &:active {
     cursor: grabbing;
   }
 }
 
-.tsa-drag-icon {
-  opacity: 0.7;
-  flex: 0 0 auto;
+.tsa-image-card:hover .tsa-card-handle,
+.tsa-image-card.tsa-image-card--adjustments-open .tsa-card-handle {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .tsa-card-name {
@@ -6157,12 +6167,33 @@ a.ms-selectall:hover {
   }
 }
 
+.tsa-close-btn {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 3px;
+  color: #fff;
+  font-size: 0.8em;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(200,50,50,0.6);
+    border-color: rgba(200,50,50,0.8);
+  }
+}
+
 .tsa-card-controls {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: calc(100% - 24px);
+  top: 2.2em;
+  left: 0;
+  right: 0;
+  width: 100%;
   z-index: 3;
   padding: 0.6em 0.7em;
   display: flex;
@@ -6194,6 +6225,30 @@ a.ms-selectall:hover {
   font-size: 0.9em;
   text-align: right;
   color: rgba(255,255,255,0.7);
+}
+
+.tsa-sharpness-group {
+  margin-top: 0.35em;
+  padding: 0.4em 0.5em 0.5em;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  background: rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+
+  .tsa-sharpness-title {
+    font-size: 0.7em;
+    font-weight: 600;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.1em;
+  }
+
+  label {
+    grid-template-columns: 5.5em 1fr 3.5em;
+  }
 }
 
 .tsa-apply-all-btn,
