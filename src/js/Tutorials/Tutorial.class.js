@@ -10,6 +10,9 @@ class Tutorial {
         this.tour = null;
         this.tourModules = [];
         this.setCookieOverride = false;
+        this.dismissTimerStartTimeout = null;
+        this.dismissTimerTimeout = null;
+        this.dismissTimerInterval = null;
 
         this.tourModules.push({
           name: "general",
@@ -56,10 +59,11 @@ class Tutorial {
       if(this.sqs.config.tutorialEnabled && this.sqs.layoutManager.getActiveView().name == "filters" && this.userHasCookie() == false) {
         if(this.sqs.requestUrl.split("/").length < 3) {
           $(".tutorial-dialog").show();
+          this.startQuestionDismissTimer();
 
           $("#tutorial-select-form-container").html(this.getTutorialSelectForm());
 
-          $(".tutorial-dialog .yes-button").on("click", () => {
+          $("#tutorial-question .yes-button").off("click").on("click", () => {
             let selectedTour = $("#selected-tour").val();
             for(let key in this.tourModules) {
               if(this.tourModules[key].name == selectedTour) {
@@ -68,7 +72,8 @@ class Tutorial {
             }
             this.start();
           });
-          $(".tutorial-dialog .no-button").on("click", () => {
+          $("#tutorial-question .no-button").off("click").on("click", () => {
+            this.clearQuestionDismissTimer();
             $(".tutorial-dialog").hide();
             this.sqs.dialogManager.hidePopOver();   
             this.setCookie();
@@ -78,10 +83,61 @@ class Tutorial {
     }
 
     start() {
+      this.clearQuestionDismissTimer();
       this.setCookie();
       $(".tutorial-dialog").hide();
       this.sqs.dialogManager.hidePopOver();
       this.tour.start();
+    }
+
+    clearQuestionDismissTimer() {
+      if(this.dismissTimerStartTimeout) {
+        clearTimeout(this.dismissTimerStartTimeout);
+        this.dismissTimerStartTimeout = null;
+      }
+      if(this.dismissTimerTimeout) {
+        clearTimeout(this.dismissTimerTimeout);
+        this.dismissTimerTimeout = null;
+      }
+      if(this.dismissTimerInterval) {
+        clearInterval(this.dismissTimerInterval);
+        this.dismissTimerInterval = null;
+      }
+    }
+
+    updateQuestionDismissProgress(progressPercent) {
+      $("#tutorial-question").css("--tutorial-progress", `${progressPercent}%`);
+    }
+
+    startQuestionDismissTimer() {
+      const animationDelay = 2500;
+      const duration = 10000;
+      const tick = 100;
+      const startTime = Date.now();
+
+      this.clearQuestionDismissTimer();
+      this.updateQuestionDismissProgress(0);
+
+      this.dismissTimerStartTimeout = setTimeout(() => {
+        this.dismissTimerStartTimeout = null;
+        this.dismissTimerInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime - animationDelay;
+          const progressPercent = Math.min(Math.max((elapsed / duration) * 100, 0), 100);
+          this.updateQuestionDismissProgress(progressPercent);
+          if(progressPercent >= 100) {
+            clearInterval(this.dismissTimerInterval);
+            this.dismissTimerInterval = null;
+          }
+        }, tick);
+      }, animationDelay);
+
+      this.dismissTimerTimeout = setTimeout(() => {
+        this.clearQuestionDismissTimer();
+        if($("#tutorial-question").is(":visible")) {
+          $("#tutorial-question").hide();
+          this.setCookie();
+        }
+      }, animationDelay + duration);
     }
 
     getTutorialSelectForm() {

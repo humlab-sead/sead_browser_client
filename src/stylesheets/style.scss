@@ -5041,6 +5041,7 @@ svg text {
 }
 
 #tutorial-question {
+  --tutorial-progress: 0%;
   display: none;
   width: 20em;
   position: fixed;
@@ -5055,7 +5056,16 @@ svg text {
   animation-fill-mode: forwards;
   box-shadow: 0px 0px 10px 10px colors.$shadow-color;
   border-radius: 3px;
-  border-left: .5em solid colors.$aux-color;
+  border-left: none;
+  background:
+    linear-gradient(
+      to bottom,
+      #fff 0%,
+      #fff var(--tutorial-progress),
+      colors.$aux-color var(--tutorial-progress),
+      colors.$aux-color 100%
+    ) left top / .5em 100% no-repeat,
+    #fff;
 }
 
 #tutorial-select-form-container {
