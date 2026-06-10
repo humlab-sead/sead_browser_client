@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { Parser } from '@json2csv/plainjs';
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import Plotly from 'plotly.js-dist-min';
 
 class MosaicTileModule {
     constructor(sqs) {
@@ -14,7 +15,10 @@ class MosaicTileModule {
         this.chartType = "";
         this.name = "";
         this.showChartSelector = true; // Controls whether chart selector dropdown is shown
+        this.requestId = 0;
         this.coverageCharts = new Map(); // Store coverage chart data for resize
+        this.chartInstances = new Map(); // Tracks chart instances for export/cleanup
+        this.donutChartRegistry = new Map(); // Tracks donut charts for responsive breakpoint restyling
         this.resizeHandler = this.handleResize.bind(this);
     }
 
@@ -171,6 +175,22 @@ class MosaicTileModule {
             const ctx = canvas.getContext('2d');
             this.drawCoverageLine(ctx, canvas.width, canvas.height, percentage);
         });
+
+        // Restyle donut charts when they cross a breakpoint
+        const staleIds = [];
+        this.donutChartRegistry.forEach((entry, elementId) => {
+            const el = document.getElementById(elementId);
+            if (!el || typeof el.data === 'undefined') {
+                staleIds.push(elementId);
+                return;
+            }
+            const mode = this.getDonutChartMode(el.offsetWidth);
+            if (mode !== entry.lastMode) {
+                entry.lastMode = mode;
+                this.restyleDonutChart(el, mode);
+            }
+        });
+        staleIds.forEach(id => this.donutChartRegistry.delete(id));
     }
 
     /**
@@ -197,6 +217,290 @@ class MosaicTileModule {
             ctx.beginPath();
             ctx.roundRect(padding, lineY - lineHeight / 2, filledWidth, lineHeight, lineHeight / 2);
             ctx.fill();
+        }
+    }
+
+    /**
+     * Calculate distribution for numeric values
+     */
+    calculateDistribution(values, min, max, bins = 20) {
+        if(values.length === 0 || min === max) {
+            return [];
+        }
+
+        const range = max - min;
+        const binSize = range / bins;
+        const histogram = new Array(bins).fill(0);
+
+        values.forEach(value => {
+            let binIndex = Math.floor((value - min) / binSize);
+            if(binIndex >= bins) binIndex = bins - 1;
+            histogram[binIndex]++;
+        });
+
+        const maxCount = Math.max(...histogram);
+
+        return histogram.map((count, index) => ({
+            binIndex: index,
+            count: count,
+            height: maxCount > 0 ? (count / maxCount) * 100 : 0,
+            startValue: min + (index * binSize),
+            endValue: min + ((index + 1) * binSize)
+        }));
+    }
+
+    /**
+     * Return 'compact' or 'normal' based on the container pixel width.
+     * compact : < 280 px → inside labels, tighter margins, smaller legend
+     * normal  : ≥ 280 px → outside labels, standard margins, full legend
+     */
+    getDonutChartMode(containerWidth) {
+        return containerWidth < 280 ? 'compact' : 'normal';
+    }
+
+    /**
+     * Incrementally restyle a Plotly donut chart to match the target mode,
+     * using restyle (trace properties) + relayout (layout properties) to
+     * avoid a full chart recreation.
+     */
+    restyleDonutChart(element, mode) {
+        if (!element || typeof element.data === 'undefined') return;
+
+        let traceUpdate, layoutUpdate;
+
+        if (mode === 'compact') {
+            traceUpdate = {
+                textposition: 'inside',
+                hole: 0.4
+            };
+            layoutUpdate = {
+                margin: { l: 8, r: 8, t: 8, b: 30 },
+                'legend.font.size': 8,
+                'legend.y': -0.05,
+                uniformtext: { minsize: 7, mode: 'hide' }
+            };
+        } else {
+            traceUpdate = {
+                textposition: 'outside',
+                hole: 0.6
+            };
+            layoutUpdate = {
+                margin: { l: 20, r: 20, t: 20, b: 60 },
+                'legend.font.size': 11,
+                'legend.y': -0.2,
+                uniformtext: { mode: false }
+            };
+        }
+
+        Plotly.restyle(element, traceUpdate, [0]);
+        Plotly.relayout(element, layoutUpdate);
+    }
+
+    /**
+     * Draw a rounded rectangle on canvas
+     */
+    drawRoundedRect(ctx, x, y, width, height, radius, roundLeft, roundRight) {
+        ctx.beginPath();
+
+        if(roundLeft) {
+            ctx.moveTo(x + radius, y);
+        } else {
+            ctx.moveTo(x, y);
+        }
+
+        if(roundRight) {
+            ctx.lineTo(x + width - radius, y);
+            ctx.arcTo(x + width, y, x + width, y + radius, radius);
+        } else {
+            ctx.lineTo(x + width, y);
+        }
+
+        if(roundRight) {
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+        } else {
+            ctx.lineTo(x + width, y + height);
+        }
+
+        if(roundLeft) {
+            ctx.lineTo(x + radius, y + height);
+            ctx.arcTo(x, y + height, x, y + height - radius, radius);
+        } else {
+            ctx.lineTo(x, y + height);
+        }
+
+        if(roundLeft) {
+            ctx.lineTo(x, y + radius);
+            ctx.arcTo(x, y, x + radius, y, radius);
+        } else {
+            ctx.lineTo(x, y);
+        }
+
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    /**
+     * Draw stacked bar chart on canvas
+     */
+    drawStackedBar(ctx, width, height, categories, colors, total) {
+        const barHeight = 40;
+        const barY = (height - barHeight) / 2;
+        const borderRadius = 3;
+
+        let currentX = 0;
+
+        categories.forEach((cat, idx) => {
+            const segmentWidth = (cat.count / total) * width;
+            const percentage = ((cat.count / total) * 100).toFixed(1);
+
+            ctx.fillStyle = colors[idx];
+
+            const isFirst = idx === 0;
+            const isLast = idx === categories.length - 1;
+
+            this.drawRoundedRect(
+                ctx,
+                currentX,
+                barY,
+                segmentWidth,
+                barHeight,
+                borderRadius,
+                isFirst,
+                isLast
+            );
+
+            if(parseFloat(percentage) > 12) {
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 11px Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                const text = `${cat.name} ${percentage}%`;
+                const textX = currentX + segmentWidth / 2;
+                const textY = barY + barHeight / 2;
+
+                ctx.fillText(text, textX, textY);
+            }
+
+            currentX += segmentWidth;
+        });
+    }
+
+    /**
+     * Create a donut chart using Plotly
+     * This provides better label handling and responsiveness
+     */
+    async createDonutChart(elementId, categories, colors, total, variableName) {
+        const values = categories.map(cat => cat.count);
+        const labels = categories.map(cat => cat.name);
+        const percentages = categories.map(cat => ((cat.count / total) * 100).toFixed(1));
+
+        const data = [{
+            values: values,
+            labels: labels,
+            text: percentages.map(p => `${p}%`),
+            textposition: 'outside',
+            textinfo: 'text',
+            hovertemplate: '<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>',
+            type: 'pie',
+            hole: 0.6,
+            marker: {
+                colors: colors,
+                line: {
+                    color: '#fff',
+                    width: 2
+                }
+            },
+            pull: 0.01,
+            textfont: {
+                size: 11,
+                color: '#333'
+            }
+        }];
+
+        const layout = {
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                x: 0.5,
+                y: -0.2,
+                xanchor: 'center',
+                yanchor: 'top',
+                font: {
+                    size: 11
+                }
+            },
+            margin: {
+                l: 20,
+                r: 20,
+                t: 20,
+                b: 60
+            },
+            autosize: true,
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)'
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        await Plotly.newPlot(elementId, data, layout, config);
+
+        const chartEl = document.getElementById(elementId);
+        const initialMode = this.getDonutChartMode(chartEl ? chartEl.offsetWidth : 999);
+        const registryEntry = { lastMode: initialMode, observer: null };
+        this.donutChartRegistry.set(elementId, registryEntry);
+
+        if (chartEl) {
+            const observer = new ResizeObserver(() => {
+                const el = document.getElementById(elementId);
+                if (!el || typeof el.data === 'undefined') return;
+                const mode = this.getDonutChartMode(el.offsetWidth);
+                const entry = this.donutChartRegistry.get(elementId);
+                if (entry && mode !== entry.lastMode) {
+                    entry.lastMode = mode;
+                    this.restyleDonutChart(el, mode);
+                }
+            });
+            observer.observe(chartEl);
+            registryEntry.observer = observer;
+        }
+
+        return { plotly: true, elementId: elementId };
+    }
+
+    /**
+     * Download chart as PNG
+     */
+    downloadChart(chartId) {
+        const chartData = this.chartInstances.get(chartId);
+        if(!chartData) {
+            console.error('Chart not found:', chartId);
+            return;
+        }
+
+        if(chartData.plotly) {
+            Plotly.downloadImage(chartData.elementId, {
+                format: 'png',
+                filename: `${chartData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart`
+            });
+        } else if(chartData.chart) {
+            const { chart, name } = chartData;
+            const url = chart.toBase64Image();
+            const link = document.createElement('a');
+            link.download = `${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
+            link.href = url;
+            link.click();
+        } else if(chartData.canvas) {
+            const { canvas, name } = chartData;
+            const url = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
+            link.href = url;
+            link.click();
         }
     }
 
@@ -230,7 +534,30 @@ class MosaicTileModule {
             this.waitForRenderCompleteInterval = setInterval(() => {
                 if(this.renderComplete) {
                     clearInterval(this.waitForRenderCompleteInterval);
-    
+
+                    this.chartInstances.forEach((chartData) => {
+                        if(chartData.chart && typeof chartData.chart.destroy === 'function') {
+                            chartData.chart.destroy();
+                        }
+                    });
+                    this.chartInstances.clear();
+
+                    // Disconnect coverage chart observers and clear
+                    this.coverageCharts.forEach((chartData) => {
+                        if (chartData.observer) chartData.observer.disconnect();
+                    });
+                    this.coverageCharts.clear();
+
+                    // Disconnect donut chart observers and clear
+                    this.donutChartRegistry.forEach((entry) => {
+                        if (entry.observer) entry.observer.disconnect();
+                    });
+                    this.donutChartRegistry.clear();
+
+                    $('.mosaic-tile-download-btn').off('click');
+
+                    this.active = false;
+
                     if(this.renderIntoNode != null) {
                         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
                         if(resultMosaic && typeof resultMosaic.cleanupPlotlyChartsInContainer == "function") {
@@ -489,6 +816,33 @@ class MosaicTileModule {
     }
 
     formatDataForExport(data, format = "json") {
+        if(format === "png") {
+            // Get the first chart instance (there should only be one per module)
+            const chartEntry = Array.from(this.chartInstances.values())[0];
+            if(!chartEntry) {
+                console.error('No chart found for export');
+                return;
+            }
+
+            if(chartEntry.plotly) {
+                Plotly.downloadImage(chartEntry.elementId, {
+                    format: 'png',
+                    filename: `${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart`
+                });
+            } else if(chartEntry.chart) {
+                const url = chartEntry.chart.toBase64Image();
+                const link = document.createElement('a');
+                link.download = `${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
+                link.href = url;
+                link.click();
+            } else if(chartEntry.canvas) {
+                const url = chartEntry.canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = `${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
+                link.href = url;
+                link.click();
+            }
+        }
         return data;
     }
 }

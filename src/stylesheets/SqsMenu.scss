@@ -13,19 +13,19 @@
   margin-left:0px;
   background-color: colors.$pane-bg-color;
   width: 1px;
-  height: 90px;
+  height: $sqs-header-height;
 }
 
 
 @mixin sqs-menu-block {
   display:grid;
-  width: 100px;
-  height: 100px;
+  width: $sqs-menu-block-size;
+  height: $sqs-menu-block-size;
   background-color: colors.$inactive-color;
   color: #fff;
   font-family: 'Didact Gothic';
   font-weight:bold;
-  font-size: 22px;
+  font-size: clamp(18px, 2vw, 22px);
   
   grid-template-columns: 10px 1fr 10px;
   grid-template-rows: 1fr 2fr 1fr;
@@ -48,7 +48,7 @@
   grid-column: 2;
   grid-row: 3;
   align-self: start;
-  font-size: 14px;
+  font-size: $sqs-font-small;
   font-weight:bold;
   color: #fff;
   padding: 1px;
@@ -62,17 +62,17 @@
 }
 
 .sqs-menu-block-vertical {
-  height:87px;
-  width: 87px;
+  height: $sqs-menu-block-vertical-size;
+  width: $sqs-menu-block-vertical-size;
   border-left: 1px solid #fff;
   z-index: 2;
   @include sqs-menu-block;
 }
 
 .sqs-menu-block-horizontal {
-  height: 43px;
+  height: $sqs-tab-height;
   width: auto;
-  font-size: 20px;
+  font-size: clamp(16px, 1.6vw, 20px);
   border-right-width: 1px;
   border-right-style: solid;
   border-right-color: #fff;
@@ -80,11 +80,11 @@
 }
 
 .sqs-menu-block-vertical-large {
-  width: calc(20vw - 2px); //FIXME: 20vw should not be hardcoded
+  width: clamp(9rem, 20vw, 16rem);
 }
 
 .sqs-menu-block-vertical-flexible {
-  min-width: 160px;
+  min-width: clamp(120px, 16vw, 160px);
   width: 100%;
   white-space: nowrap;
 }
@@ -94,7 +94,7 @@
 }
 
 .sqs-menu-block-compressed {
-  height:25px !important;
+  height: clamp(24px, 3.5vh, 28px) !important;
 }
 
 .l1-tite-flex-container {
@@ -104,10 +104,10 @@
 
 .l1-title { /* .menu-item-title */
   display: block;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-top: $sqs-space-sm;
+  padding-bottom: $sqs-space-sm;
+  padding-left: $sqs-space-sm;
+  padding-right: $sqs-space-sm;
   margin-left: 0px;
   margin-right: 0px;
   /*height: 22px;*/
@@ -166,7 +166,7 @@
 .l1-container-level-vertical {
   
   position: fixed;
-  max-width: 30%;
+  max-width: clamp(14rem, 32vw, 24rem);
   //right:0px; //Enable this if this element goes outside browser viewport (on the right)
   /*
   box-shadow: 0px 5px 10px 3px rgba(0, 0, 0, 0.5);
@@ -195,9 +195,9 @@
 }
 
 .l1-container-level-vertical .l1-title {
-  margin-left: 10px;
-  margin-right: 10px;
-  font-size: 1.25rem;
+  margin-left: $sqs-space-sm;
+  margin-right: $sqs-space-sm;
+  font-size: clamp(1rem, 0.45vw + 0.9rem, 1.25rem);
   //background-color: #ddd;
   color: #333;
   
@@ -224,13 +224,13 @@
 .l1-container-level-horizontal {
 	  position: relative;
   	margin-top: 0px;
-  	height: 33px;
+  	height: clamp(30px, 4vh, 33px);
     @include l1-container-level;
 }
 
 .l1-container-level-horizontal > .l1-container {
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: $sqs-space-sm;
+  padding-right: $sqs-space-sm;
 }
 
 
@@ -244,7 +244,7 @@ ul.l1-container-level {
 
 .l1-container {
   display:block; /* :none for mobile */
-  font-size: 20px;
+  font-size: clamp(16px, 1.6vw, 20px);
   float:left;
   color: #fff;
 }
@@ -286,12 +286,12 @@ li.l1-container:hover {
 }
 
 .l2-title { /* .menu-item */
-	padding-left:25px;
-  padding-right: 5px;
-  padding-bottom: 3px;
-  padding-top: 3px;
+	padding-left: clamp(16px, 2vw, 25px);
+  padding-right: clamp(4px, 0.5vw, 5px);
+  padding-bottom: clamp(3px, 0.35vw, 5px);
+  padding-top: clamp(3px, 0.35vw, 5px);
   cursor: pointer;
-  font-size: 16px;
+  font-size: clamp(14px, 1vw, 16px);
   /*background-color: #666;*/
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
@@ -305,7 +305,7 @@ li.l1-container:hover {
   display: inline-block;
   position: fixed;
   margin-top: calc(-2em - 3px);
-  padding: 1em;
+  padding: $sqs-space-md;
   background-color: rgba(238, 238, 238, 1);
   width: fit-content;
   box-shadow: 2px 12px 10px 5px colors.$shadow-color;
@@ -445,11 +445,11 @@ li.l1-container:hover {
 
 #result-map-sub-layer-selection-panel {
   position: absolute;
-  top: 3.5em;
-  left: 5px;
+  top: clamp(3em, 6vh, 3.5em);
+  left: clamp(3px, 0.5vw, 5px);
   background: rgba(colors.$pane-bg-color, 1.0);
-  min-width: 15em;
-  max-height: 50vh;
+  min-width: clamp(12em, 24vw, 15em);
+  max-height: clamp(18em, 50vh, 32em);
   height: auto;
   z-index: 0;
   padding: 0;
@@ -461,7 +461,7 @@ li.l1-container:hover {
 }
 
 .sub-layer-controls {
-  margin-top: 0.5em;
+  margin-top: $sqs-space-sm;
 }
 
 .result-map-sub-layer-selection {
@@ -491,19 +491,19 @@ li.l1-container:hover {
 
 .header-btn {
   display:inline-block;
-  font-size: 16px !important;
+  font-size: clamp(14px, 1vw, 16px) !important;
   margin-top:0px;
   margin-bottom:0px;
   cursor:pointer;
 
-  padding-left: 5px;
-  padding-right: 7px;
-  padding-top: 5px;
+  padding-left: clamp(4px, 0.5vw, 5px);
+  padding-right: clamp(5px, 0.6vw, 7px);
+  padding-top: clamp(3px, 0.5vw, 5px);
   padding-bottom: 0px;
 
   margin-right: 2px;
   //z-index: 2;
-  width: 12px;
+  width: clamp(12px, 1.5vw, 16px);
   align-self: stretch;
 }
 
@@ -521,17 +521,17 @@ li.l1-container:hover {
 	margin-top: auto;
   margin-bottom: auto;
   margin-right: 0.5em;
-	width: 8em;
+	width: clamp(6em, 12vw, 8em);
 }
 
 .aux-layer-title {
   flex: 1;
 	font-weight: normal;
-	font-size:1.3em;
-	margin:5px;
-	margin-left:8px;
-	margin-top:4px;
-  margin-bottom: 4px;
+	font-size: clamp(1em, 0.65vw + 0.9em, 1.3em);
+	margin: clamp(3px, 0.5vw, 5px);
+	margin-left: clamp(5px, 0.8vw, 8px);
+	margin-top: clamp(3px, 0.45vw, 4px);
+  margin-bottom: clamp(3px, 0.45vw, 4px);
 	padding:0px;
 	line-height:1.2em;
   text-overflow: ellipsis;
@@ -540,18 +540,18 @@ li.l1-container:hover {
 }
 
 #sub-layer-content {
-  margin-top: 1em;
+  margin-top: $sqs-space-md;
   overflow: auto;
   max-height: 100%;
   margin: 0em;
-  padding: 1em;
+  padding: $sqs-space-md;
   overflow: auto;
 }
 
 .sub-layer-header h4 {
   margin: 0;
   padding: 0;
-  font-size: 1.2rem;
+  font-size: clamp(1rem, 0.5vw + 0.9rem, 1.2rem);
   font-weight: bold;
 }
 
@@ -564,9 +564,9 @@ li.l1-container:hover {
   background: #eee;
   //background: rgba(0, 0, 0, 0.6);
   //color: #fff;
-  padding: 0.5em;
+  padding: $sqs-space-sm;
   border-bottom: 1px solid #aaa;
-  font-size: 1.2em;
+  font-size: clamp(1em, 0.5vw + 0.9em, 1.2em);
   font-weight: 600;
   //z-index: 1000;
 }
@@ -580,8 +580,8 @@ li.l1-container:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-right: 0.5em;
-  padding-left: 0.5em;
+  padding-right: $sqs-space-sm;
+  padding-left: $sqs-space-sm;
   border-width: 0;
 }
 
@@ -617,7 +617,7 @@ li.l1-container:hover {
 .second-level-item {
   position: relative;
   background: #eee;
-  padding: 0.5em;
+  padding: $sqs-space-sm;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   font-size: 1.0em;
   display: none;
@@ -643,9 +643,9 @@ li.l1-container:hover {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.0);
-  width: 5rem;
-  height: 5rem;
-  font-size: 2em;
+  width: clamp(3.5rem, 6vw, 5rem);
+  height: clamp(3.5rem, 6vw, 5rem);
+  font-size: clamp(1.5em, 2vw, 2em);
 }
 
 .menu-button:hover {
@@ -675,7 +675,7 @@ li.l1-container:hover {
 }
 
 .toggle-button.active {
-  transform: translateX(30px); /* Move the button to the right */
+  transform: translateX(1.5em);
 }
 
 .sample-coordinates-map-container .sqs-menu-container {

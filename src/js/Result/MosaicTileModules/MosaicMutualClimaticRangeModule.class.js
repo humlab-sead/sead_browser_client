@@ -31,8 +31,8 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         this._dims = null; // computed per-draw, read by tooltip handler
 
         // Axis dimensions — fixed by the MCR temperature grid
-        this.ROWS = 36; // Trange: 0–35 °C
-        this.COLS = 60; // Tmax:  −10 to +49 °C
+        this.ROWS = 60; // Tmax: −10 to +49 °C  (vertical axis)
+        this.COLS = 36; // Trange: 0–35 °C       (horizontal axis)
 
         // Fixed layout margins (px)
         this.MARGIN_LEFT   = 40;
@@ -90,11 +90,11 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
             anyData = true;
             totalTaxa += taxa_count;
 
-            for (let r = 0; r < this.ROWS; r++) {
-                for (let c = 0; c < this.COLS; c++) {
-                    density[r][c] += density_matrix[r][c];
+            for (let trange = 0; trange < 36; trange++) {
+                for (let tmax = 0; tmax < 60; tmax++) {
+                    density[tmax][trange] += density_matrix[trange][tmax];
                     // Consensus: all taxa at this site must tolerate this cell
-                    if (density_matrix[r][c] < taxa_count) consensus[r][c] = 0;
+                    if (density_matrix[trange][tmax] < taxa_count) consensus[tmax][trange] = 0;
                 }
             }
         }
@@ -165,29 +165,30 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         // Cells
         for (let row = 0; row < this.ROWS; row++) {
             for (let col = 0; col < this.COLS; col++) {
-                const displayCol = (this.COLS - 1) - col;
-                const displayRow = (this.ROWS - 1) - row;
+                const displayCol = col;                    // Trange: 0°C on left, no flip
+                const displayRow = (this.ROWS - 1) - row; // Tmax: high values at top
                 ctx.fillStyle = consensus[row][col] === 1 ? '#000000' : this._densityColor(density[row][col], maxDensity);
                 ctx.fillRect(this.MARGIN_LEFT + displayCol * cellW, this.MARGIN_TOP + displayRow * cellH, cellW - 1, cellH - 1);
             }
         }
 
-        // X axis labels
+        // X axis labels (Trange: 0–35 °C, left to right)
         ctx.fillStyle = '#555';
         ctx.font = '11px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        for (let c = 0; c <= this.COLS; c += 10) {
-            ctx.fillText(((this.COLS - c) - 10) + '°', this.MARGIN_LEFT + c * cellW, this.MARGIN_TOP + this.ROWS * cellH + 4);
+        for (let c = 0; c <= this.COLS; c += 5) {
+            ctx.fillText(c + '°', this.MARGIN_LEFT + c * cellW, this.MARGIN_TOP + this.ROWS * cellH + 4);
         }
         ctx.textBaseline = 'bottom';
-        ctx.fillText('Tmax (°C)', this.MARGIN_LEFT + (this.COLS * cellW) / 2, canvasH);
+        ctx.fillText('Trange (°C)', this.MARGIN_LEFT + (this.COLS * cellW) / 2, canvasH);
 
-        // Y axis labels
+        // Y axis labels (Tmax: −10 to +49 °C, bottom to top)
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        for (let r = 0; r < this.ROWS; r += 5) {
-            ctx.fillText((this.ROWS - 1 - r) + '°', this.MARGIN_LEFT - 4, this.MARGIN_TOP + r * cellH + cellH / 2);
+        for (let tmaxVal = -10; tmaxVal <= 40; tmaxVal += 10) {
+            const r = (this.ROWS - 1) - (tmaxVal + 10);
+            ctx.fillText(tmaxVal + '°', this.MARGIN_LEFT - 4, this.MARGIN_TOP + r * cellH + cellH / 2);
         }
 
         // Y axis title (rotated)
@@ -196,7 +197,7 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         ctx.rotate(-Math.PI / 2);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText('Trange (°C)', 0, 0);
+        ctx.fillText('Tmax (°C)', 0, 0);
         ctx.restore();
     }
 
@@ -227,13 +228,13 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
                 return;
             }
 
-            const col = (this.COLS - 1) - displayCol;
-            const row = (this.ROWS - 1) - displayRow;
-            const tmax   = col - 10;
-            const trange = row;
-            const count  = density[row][col];
+            const trange_idx = displayCol;                 // Trange: no flip
+            const tmax_idx   = (this.ROWS - 1) - displayRow; // Tmax: flipped
+            const tmax   = tmax_idx - 10;
+            const trange = trange_idx;
+            const count  = density[tmax_idx][trange_idx];
             const pct    = totalTaxa > 0 ? (Math.floor((count / totalTaxa) * 1000) / 10).toFixed(1) : "0.0";
-            const inConsensus = consensus[row][col] === 1;
+            const inConsensus = consensus[tmax_idx][trange_idx] === 1;
 
             let html =
                 `<strong>Tmax</strong> (warmest month): ${tmax} °C<br>` +

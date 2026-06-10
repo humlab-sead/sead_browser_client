@@ -331,6 +331,7 @@ class QuickstartSearch {
         const encodedQuery = encodeURIComponent(searchQuery);
         const categoryKey = this.getResponseCategoryKeyForTab(tabKey);
         const configuredTemplate = this.resolveConfiguredTabEndpoint(tabKey);
+        const domainCode = this.sqs.domainManager.getActiveDomain().name;
 
         if(configuredTemplate) {
             return this.interpolateEndpointTemplate(configuredTemplate, {
@@ -338,11 +339,12 @@ class QuickstartSearch {
                 tab: tabKey,
                 category: categoryKey,
                 limit: String(limit),
-                page: String(normalizedPage)
+                page: String(normalizedPage),
+                domainCode: domainCode
             });
         }
 
-        return this.sqs.config.dataServerAddress+"/search/"+categoryKey+"/"+encodedQuery+"?limit="+limit+"&page="+normalizedPage;
+        return this.sqs.config.dataServerAddress+"/search/"+categoryKey+"/"+encodedQuery+"?limit="+limit+"&page="+normalizedPage+"&domainCode="+encodeURIComponent(domainCode);
     }
 
     interpolateEndpointTemplate(template, values) {

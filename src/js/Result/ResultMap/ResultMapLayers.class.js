@@ -383,7 +383,7 @@ export default class ResultMapLayers {
         const getCrsList = (layerEl) =>
             qChildren(layerEl, 'CRS').map((n) => n.textContent.trim());
 
-        // Convert OGC ScaleDenominator → OL resolution (m/px). 0.28 mm px size per spec.
+        // Convert OGC ScaleDenominator to OL resolution (m/px). 0.28 mm px size per spec.
         const scaleToResolution = (scaleDenom) =>
             Number.isFinite(scaleDenom) ? scaleDenom * 0.00028 : null;
 
@@ -430,9 +430,9 @@ export default class ResultMapLayers {
                 minScaleDenominator,
                 maxScaleDenominator,
                 // Convenience for OL visibility:
-                // Note: MaxScale → minResolution, MinScale → maxResolution
-                minResolution: scaleToResolution(maxScaleDenominator) ?? null,
-                maxResolution: scaleToResolution(minScaleDenominator) ?? null,
+                // Layer is visible when minResolution <= current resolution < maxResolution.
+                minResolution: scaleToResolution(minScaleDenominator) ?? null,
+                maxResolution: scaleToResolution(maxScaleDenominator) ?? null,
             });
         });
 
@@ -773,7 +773,7 @@ export default class ResultMapLayers {
             };
 
             // Create the OpenLayers TileLayer
-            let layer = new TileLayer({
+            let layerOptions = {
                 source: new TileWMS({
                     url: layerUrl,
                     params: wmsParams,
@@ -782,7 +782,15 @@ export default class ResultMapLayers {
                     serverType: 'geoserver'
                 }),
                 visible: false
-            });
+            };
+            if(layerDef.minResolution !== null) {
+                layerOptions.minResolution = layerDef.minResolution;
+            }
+            if(layerDef.maxResolution !== null) {
+                layerOptions.maxResolution = layerDef.maxResolution;
+            }
+
+            let layer = new TileLayer(layerOptions);
             layer.setZIndex(10);
 
             //layerId should be a hashed combo of the layerUrl and the layerDef.id
@@ -816,7 +824,10 @@ export default class ResultMapLayers {
                 "legend": layerDef.legendUrl ? true : false,
                 "legendUrl": layerDef.legendUrl,
                 "group": groupName,
+                "minScaleDenominator": layerDef.minScaleDenominator ? layerDef.minScaleDenominator : undefined,
                 "maxScaleDenominator": layerDef.maxScaleDenominator ? layerDef.maxScaleDenominator : undefined,
+                "minResolution": layerDef.minResolution ? layerDef.minResolution : undefined,
+                "maxResolution": layerDef.maxResolution ? layerDef.maxResolution : undefined,
                 "defaultStyle": layerDef.defaultStyle,
                 "abstract": layerDef.abstract || '',
                 "queryable": layerDef.queryable || false

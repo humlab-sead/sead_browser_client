@@ -212,28 +212,30 @@ class ContentItemRenderer {
 	 */
 	renderDataVisualization(updatedExtrasRenderOption = null) {
 		this.sortContentItemData(this.contentItem);
-		
+
 		var anchorSelector = "#site-report-section-"+this.section.name+" > .site-report-level-content > #cic-"+this.contentItem.name+" > #contentItem-"+this.contentItem.name;
+
+		//If we already have a renderInstance, give it a chance to update itself in place.
+		//If it does (update() returns truthy), we leave the DOM untouched - clearing the
+		//anchor here would destroy the existing chart and cause a jarring re-render flicker.
+		let renderInstance = this.getRenderInstance(this.contentItem.name);
+		if(renderInstance !== false) {
+			let updated = renderInstance.update(updatedExtrasRenderOption);
+			if(updated !== false) {
+				return;
+			}
+			//The instance declined to update - tear it down and re-render from scratch below.
+			renderInstance.unrender();
+			this.removeRenderInstance(this.contentItem.name);
+		}
+
 		$(anchorSelector).html("");
-		
+
 		if(this.contentItem.hasOwnProperty("renderOptions") == false || this.contentItem.renderOptions.length == 0) {
 			$(anchorSelector).html("<h5>No support for rendering this type of content.</h5>");
 		}
 
-		let renderInstance = this.getRenderInstance(this.contentItem.name);
-
-		//If we already have a renderInstace, we try to re-use that, if not we spawn a new one
-		if(renderInstance === false) {
-			this.spawnRenderInstance(anchorSelector);
-		}
-		else {
-			let updated = renderInstance.update(updatedExtrasRenderOption);
-			if(updated === false) {
-				renderInstance.unrender();
-				this.removeRenderInstance(this.contentItem.name);
-				this.spawnRenderInstance(anchorSelector);
-			}
-		}	
+		this.spawnRenderInstance(anchorSelector);
 	}
 
 	spawnRenderInstance(anchorSelector) {

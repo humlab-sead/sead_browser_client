@@ -10,7 +10,7 @@ html {
 h1 {
   font-family: $header-font, 'arial';
   font-family: "Didact Gothic", sans-serif;
-  font-size: 24px !important;
+  font-size: $sqs-font-heading !important;
   margin-top: 0px !important;
 }
 
@@ -20,13 +20,13 @@ h2 {
 }
 
 h4 {
-  font-size: 1.4em;
+  font-size: clamp(1rem, 0.45vw + 0.9rem, 1.4em);
   font-weight: normal;
 }
 
 body {
   font-family: $normal-font, sans-serif;
-  font-size: 14px;
+  font-size: $sqs-font-body;
   padding: 0px;
   margin: 0px;
   height: 100%;
@@ -94,7 +94,7 @@ div:focus {
   padding-left: 0px;
   padding-top: 0px;
   padding-bottom: 0px;
-  height:87px;
+  height: $sqs-header-height;
 }
 
 .sead-logo-large {
@@ -110,7 +110,7 @@ div:focus {
 }
 
 .sead-logo-text {
-  font-size: 2em;
+  font-size: clamp(1.5em, 2.2vw, 2em);
   color: colors.$sead-brown;
   font-family: $header-font;
   font-weight: bold;
@@ -130,17 +130,17 @@ div:focus {
   display: flex;
   flex-direction: row;
   justify-content: space-around;
-  gap: 0.6em;
-  padding: 0.6em 1em;
+  gap: $sqs-space-sm;
+  padding: $sqs-space-sm $sqs-space-md;
 
   button {
     flex: 1 1 0;
-    padding: 0.5em 0.8em;
+    padding: clamp(0.45em, 0.55vw, 0.65em) clamp(0.65em, 0.8vw, 0.95em);
     border: 1px solid colors.$base-color;
     border-radius: 3px;
     background: transparent;
     color: colors.$base-color;
-    font-size: 0.82em;
+    font-size: $sqs-font-small;
     font-weight: 600;
     letter-spacing: 0.02em;
     cursor: pointer;
@@ -162,10 +162,10 @@ div:focus {
 
 #search-container {
   position: relative;
-  padding: 0 1em 0.8em 1em;
+  padding: 0 $sqs-space-md $sqs-space-sm $sqs-space-md;
   top: 0.25em;
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
+  margin-top: $sqs-space-xs;
+  margin-bottom: $sqs-space-xs;
 }
 
 #search-container > h3 {
@@ -179,23 +179,23 @@ div:focus {
   top: -10px;
   left: 12px;
   background: #fff; /* match parent background */
-  padding: 0 6px;
-  font-size: 14px;
+  padding: 0 clamp(4px, 0.5vw, 6px);
+  font-size: $sqs-font-control;
   font-weight: 600;
   color: #444;
 }
 
 #search-container .search-input-row {
   display: flex;
-  gap: 0.5em;
+  gap: $sqs-space-sm;
 }
 
 #search-container #search-container-input {
   flex: 1 1 auto;
   border: 1px solid color.scale(colors.$base-color, $lightness: 55%);
   border-radius: 4px;
-  padding: 0.55em 0.65em;
-  font-size: 0.9em;
+  padding: clamp(0.45em, 0.6vw, 0.6em) clamp(0.55em, 0.7vw, 0.75em);
+  font-size: $sqs-font-control;
   color: #222;
 }
 
@@ -210,10 +210,10 @@ div:focus {
   border-radius: 4px;
   background: colors.$base-color;
   color: #fff;
-  font-size: 0.82em;
+  font-size: $sqs-font-small;
   font-weight: 600;
   letter-spacing: 0.02em;
-  padding: 0.55em 0.9em;
+  padding: clamp(0.45em, 0.6vw, 0.6em) clamp(0.7em, 0.9vw, 1em);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -226,8 +226,8 @@ div:focus {
 #search-container .search-dropdown {
   position: absolute;
   top: calc(100% - 0.2em);
-  left: 1em;
-  right: 1em;
+  left: $sqs-space-md;
+  right: $sqs-space-md;
   z-index: 150;
   background: #fff;
   border: 1px solid color.scale(colors.$base-color, $lightness: 45%);
@@ -247,8 +247,8 @@ div:focus {
   background: transparent;
   color: colors.$base-color;
   cursor: pointer;
-  padding: 0.5em 0.4em;
-  font-size: 0.78em;
+  padding: clamp(0.4em, 0.55vw, 0.55em) clamp(0.35em, 0.45vw, 0.5em);
+  font-size: $sqs-font-small;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -264,8 +264,8 @@ div:focus {
 }
 
 #search-container .search-dropdown-panels {
-  height: 15.5em;
-  min-height: 7.5em;
+  height: clamp(10em, 32vh, 15.5em);
+  min-height: clamp(7.5em, 20vh, 10em);
   max-height: 70vh;
   overflow: hidden;
   position: relative;
@@ -282,7 +282,7 @@ div:focus {
 }
 
 #search-container .search-dropdown-panel-body {
-  padding: 0.6em;
+  padding: $sqs-space-sm;
   height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
@@ -314,26 +314,26 @@ body.search-dropdown-resizing * {
 }
 
 #search-container .search-dropdown-state {
-  font-size: 0.86em;
+  font-size: $sqs-font-small;
   color: #555;
-  padding: 0.2em 0.1em;
+  padding: $sqs-space-xs 0.1em;
 }
 
 #search-container .search-dropdown-list {
   display: flex;
   flex-direction: column;
-  gap: 0.35em;
+  gap: $sqs-space-xs;
 }
 
 #search-container .search-dropdown-item {
   border: 1px solid color.scale(colors.$base-color, $lightness: 58%);
   border-radius: 4px;
   background: color.scale(colors.$pane-bg-color, $lightness: 8%);
-  padding: 0.5em 0.6em;
+  padding: $sqs-space-sm;
 }
 
 #search-container .search-dropdown-item-title {
-  font-size: 0.86em;
+  font-size: $sqs-font-small;
   font-weight: 600;
   color: #222;
 }
@@ -347,8 +347,8 @@ body.search-dropdown-resizing * {
 #search-container .search-dropdown-item-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45em;
-  margin-top: 0.55em;
+  gap: $sqs-space-xs;
+  margin-top: $sqs-space-sm;
 }
 
 #search-container .search-dropdown-item-action-btn {
@@ -356,9 +356,9 @@ body.search-dropdown-resizing * {
   border-radius: 4px;
   background: #fff;
   color: colors.$base-color;
-  font-size: 0.76em;
+  font-size: $sqs-font-small;
   font-weight: 600;
-  padding: 0.35em 0.6em;
+  padding: clamp(0.3em, 0.45vw, 0.45em) clamp(0.5em, 0.7vw, 0.7em);
   cursor: pointer;
 }
 
@@ -369,8 +369,8 @@ body.search-dropdown-resizing * {
   background: colors.$base-color;
   color: #fff;
   border: none;
-  padding: 0.25em 0.5em;
-  font-size: 0.72em;
+  padding: clamp(0.22em, 0.35vw, 0.35em) clamp(0.45em, 0.6vw, 0.6em);
+  font-size: $sqs-font-small;
   text-align: center;
   width: auto;
   max-width: none;
@@ -420,18 +420,18 @@ body.search-dropdown-resizing * {
   background-position: center center;
   background-size: contain;
   background-repeat: no-repeat;
-  min-height: 6em;
+  min-height: clamp(4.5em, 9vh, 6em);
   border-width: 0;
-  margin-top: .5em;
-  margin-bottom: .5em;
+  margin-top: $sqs-space-xs;
+  margin-bottom: $sqs-space-xs;
   margin-left: 0em;
   height: 85%;
 }
 
 @media (max-width: 720px) {
   #logo-aux-container > #sead-logo {
-    min-height: 4.5em;
-    height: 4.5em;
+    min-height: clamp(3.8em, 10vh, 4.5em);
+    height: clamp(3.8em, 10vh, 4.5em);
     margin-top: .3em;
     margin-bottom: .3em;
   }
@@ -1101,10 +1101,10 @@ body.facet-resizing * {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.5rem;
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
   color: colors.$pane-bg-color-dark;
   background-color:transparent;
-  height: 300px;
+  height: clamp(180px, 35vh, 300px);
   padding: 0px;
   margin-top: 0px;
   margin-left: 0px;
@@ -1122,7 +1122,7 @@ body.facet-resizing * {
 }
 
 .filter-demo-arrow {
-  font-size: 7.5rem;
+  font-size: clamp(3.5rem, 8vw, 7.5rem);
   text-align:center;
   width: 100%;
   color: colors.$pane-bg-color-dark;
@@ -1142,7 +1142,7 @@ body.facet-resizing * {
   display:flex;
   justify-content: space-between;
 
-  height:43px;
+  height: $sqs-tab-height;
   width: 100%;
   margin-top: 0px;
 }
@@ -1251,35 +1251,117 @@ body.facet-resizing * {
 .result-export-button-mosaic {
   display: flex;
   flex: 0 0 auto;
-  padding: .25em .45em;
-  background: transparent;
-  color: #444;
+  width: clamp(1.8rem, 2.6vw, 2.2rem);
+  height: clamp(1.8rem, 2.6vw, 2.2rem);
+  padding: 0;
+  background: #fff;
+  color: colors.$base-color;
   align-items: center;
   justify-content: center;
   font-family: Rajdhani;
-  font-size: 1em;
+  font-size: clamp(0.95rem, 0.8vw + 0.8rem, 1.15rem);
   line-height: 1;
+  border: 1px solid rgba(colors.$base-color, 0.35);
   border-radius: 3px;
-  transition: background-color 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .result-export-button-mosaic:hover {
   cursor:pointer;
-  background: color.adjust(colors.$pane-bg-color, $lightness: -10%);
+  background: colors.$base-color;
+  color: #fff;
+  border-color: colors.$base-color;
 }
 
 .result-taxon-grid-container {
+  /* Fluid sizing tokens — scale gently with the available viewport so the
+     datasheet stays comfortable from small laptops up to large displays. */
+  --rcb-gap: clamp(0.5em, 1.1vw, 1em);
+  --rcb-pad: clamp(0.4em, 0.9vw, 1em);
+  --rcb-header-fs: clamp(0.95rem, 0.7rem + 0.9vw, 1.35rem);
+  --rcb-text-fs: clamp(0.82rem, 0.7rem + 0.45vw, 1.05rem);
+  --rcb-species-fs: clamp(1rem, 0.8rem + 1vw, 1.5rem);
+  /* Floor heights keep each tile (and especially the map) at a sensible size. */
+  --rcb-tile-min: 180px;
+
   position:relative;
   height: 100%;
   width: 100%;
-  gap: 1em;
+  gap: var(--rcb-gap);
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  grid-template-rows: 32% 33% 32%;
-  grid-template-areas: 
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(var(--rcb-tile-min), 1fr));
+  grid-template-areas:
             "a a c c"
             "d i h h"
             "f f e g";
+}
+
+/* ── Fluid typography / spacing inside the datasheet tiles ───────────────── */
+.result-taxon-grid-container .result-content-box .header {
+  font-size: var(--rcb-header-fs);
+}
+
+.result-taxon-grid-container .result-content-box .header div {
+  padding: var(--rcb-pad);
+}
+
+.result-taxon-grid-container .rcb-text-panel {
+  box-sizing: border-box;
+  font-size: var(--rcb-text-fs);
+  padding: var(--rcb-pad);
+  height: 100%;
+}
+
+.result-taxon-grid-container #rcb-species-value {
+  font-size: var(--rcb-species-fs);
+}
+
+/* Distribution (map + references) reads best with more height — give it a
+   generous floor so the map stays comfortably large at every breakpoint. */
+.result-taxon-grid-container #rcb-distribution-container {
+  min-height: clamp(340px, 42vh, 520px);
+}
+
+/* ── Medium / portrait: collapse to two columns ─────────────────────────────
+   Species and the distribution map get the full width so both stay prominent
+   and readable; the remaining tiles pair up. The container grows and the
+   surrounding result module (.result-module-container) scrolls. */
+@media (max-width: 1100px) {
+  .result-taxon-grid-container {
+    height: auto;
+    min-height: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-rows: minmax(clamp(180px, 26vh, 240px), auto);
+    grid-template-areas:
+            "a a"
+            "h h"
+            "c d"
+            "f i"
+            "e g";
+  }
+}
+
+/* ── Narrow / phone / portrait: single readable column ──────────────────── */
+@media (max-width: 680px) {
+  .result-taxon-grid-container {
+    height: auto;
+    min-height: 100%;
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-rows: minmax(clamp(200px, 40vh, 320px), auto);
+    grid-template-areas:
+            "a"
+            "h"
+            "c"
+            "f"
+            "d"
+            "e"
+            "g"
+            "i";
+  }
 }
 
 .print-only-text {
@@ -2728,15 +2810,15 @@ polyline{
 
 #result-mosaic-container {
   display: none; /*should be 'grid' when active*/
-  grid-template-columns: repeat(2, 1fr [mosaic-column]);
-  grid-template-rows: repeat(2, 1fr [mosaic-row]);
+  grid-template-columns: repeat(2, minmax(260px, 1fr) [mosaic-column]);
+  grid-template-rows: repeat(2, minmax(220px, 1fr) [mosaic-row]);
   grid-gap: 1em;
   justify-items: center;
   align-items: center;
   width: calc(100% - 2em);
   height: calc(100% - 2em);
   background: #fff;
-  overflow: hidden;
+  overflow: auto;
   padding: 1em;
 }
 
@@ -2772,6 +2854,8 @@ polyline{
   position: relative;
   width: 100%;
   height: 100%;
+  min-width: 260px;
+  min-height: 220px;
   background-color: #fff;
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.15);
   border-radius: 4px;
@@ -3128,36 +3212,36 @@ polyline{
   overflow-y: auto;
   overflow-x: hidden;
   background-color: colors.$pane-bg-color;
-  padding: 0.5%;
+  padding: clamp(4px, 0.5vw, 10px);
   box-sizing: border-box;
 }
 
 .dendro-dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 15px;
-  padding: 0.5%;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(260px, 32vw, 400px), 1fr));
+  gap: clamp(10px, 1.2vw, 15px);
+  padding: clamp(4px, 0.5vw, 10px);
   width: 100%;
   box-sizing: border-box;
   
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: clamp(8px, 2vw, 12px);
   }
   
   @media (min-width: 1600px) {
-    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(clamp(400px, 28vw, 450px), 1fr));
   }
   
   @media (min-width: 2000px) {
-    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(clamp(450px, 24vw, 500px), 1fr));
+    gap: clamp(15px, 1vw, 20px);
   }
 }
 
 .dendro-dashboard-variable-half-height {
-  min-height: 140px !important;
-  max-height: 180px !important;
+  min-height: clamp(120px, 18vh, 140px) !important;
+  max-height: clamp(160px, 22vh, 180px) !important;
 }
 
 .dendro-dashboard-variable {
@@ -3165,11 +3249,11 @@ polyline{
   grid-template-rows: auto 1fr;
   background: #fff;
   border-radius: 6px;
-  padding: 12px;
+  padding: clamp(8px, 1vw, 12px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease;
-  min-height: 280px;
-  max-height: 320px;
+  min-height: clamp(220px, 34vh, 280px);
+  max-height: clamp(280px, 40vh, 320px);
   
   &:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
@@ -3177,7 +3261,7 @@ polyline{
 }
 
 .dendro-dashboard-variable-categorical {
-  min-height: 350px;
+  min-height: clamp(280px, 42vh, 350px);
   
   @media (min-width: 1200px) {
     grid-column: span 2;
@@ -3185,14 +3269,14 @@ polyline{
 }
 
 .dendro-dashboard-variable-mirrored {
-  min-height: 380px;
+  min-height: clamp(300px, 45vh, 380px);
 }
 
 // Container for splitting a grid slot vertically into two half-height charts
 .dendro-dashboard-split-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: clamp(8px, 1vw, 12px);
   
   .dendro-dashboard-variable {
     margin: 0;
@@ -4184,13 +4268,13 @@ polyline{
   display: block;
   max-height: 90vh;
   max-width: 90vw;
-  min-width: 300px;
+  min-width: min(300px, 90vw);
   min-height: 80px;
   position: relative;
   grid-column: 2;
   grid-row: 2;
   background: #fff;
-  padding: 1.5em;
+  padding: $sqs-space-lg;
   box-sizing: border-box;
   box-shadow: 0px 0px 10px 10px colors.$shadow-color;
   border-radius: 3px;
@@ -5639,17 +5723,17 @@ tr.free-text-search-result-row:hover {
   position: absolute;
   top: 4em;
   background: rgba(colors.$pane-bg-color, 0.9);
-  padding: 1em;
+  padding: $sqs-space-md;
 }
 
 #show-query-btn {
   position: absolute;
   display: none;
   right: 0px;
-  bottom: 60px;
+  bottom: clamp(48px, 8vh, 60px);
   background: colors.$base-color;
   color: #fff;
-  padding: 0.5em;
+  padding: $sqs-space-sm;
   cursor: pointer;
 }
 
@@ -5670,15 +5754,15 @@ tr.free-text-search-result-row:hover {
 }
 
 .grid-item {
-  width: calc(50% - 20px);
-  height: calc(50% - 20px);
-  margin: 5px;
+  width: calc(50% - clamp(12px, 2vw, 20px));
+  height: calc(50% - clamp(12px, 2vw, 20px));
+  margin: clamp(3px, 0.5vw, 5px);
   background-color: rgba(0, 0, 255, 0.5);
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: clamp(1.1rem, 1.5vw, 1.5rem);
 }
 
 .packery-drop-placeholder {
@@ -5714,17 +5798,17 @@ a.ms-selectall:hover {
 
 #result-lab-header {
   position: relative;
-  margin-left: 1em;
-  margin-bottom: 1em;
-  margin-top: 1em;
-  padding-bottom: 1em;
+  margin-left: $sqs-space-md;
+  margin-bottom: $sqs-space-md;
+  margin-top: $sqs-space-md;
+  padding-bottom: $sqs-space-md;
   border-bottom: 1px solid colors.$pane-bg-color-dark;
   background: colors.$pane-bg-color;
-  padding: 1em;
+  padding: $sqs-space-md;
 }
 
 #result-lab-header > h2 {
-  font-size: 1.5em;
+  font-size: clamp(1.2em, 1.2vw, 1.5em);
   font-weight: bold;
   color: colors.$base-color;
   margin: 0;
@@ -5736,11 +5820,11 @@ a.ms-selectall:hover {
   display: inline-block;
   background: colors.$base-color;
   color: #fff;
-  padding: 0.5em 1em;
-  margin-bottom: 1em;
+  padding: $sqs-space-sm $sqs-space-md;
+  margin-bottom: $sqs-space-md;
   border-radius: 0.25em;
   text-decoration: none;
-  font-size: 1.2em;
+  font-size: clamp(1em, 0.5vw + 0.9em, 1.2em);
 }
 
 .login-button:hover {
@@ -5799,7 +5883,7 @@ a.ms-selectall:hover {
 
 .mosaic-mini-chart-container {
   display: flex;
-  gap: 1em;
+  gap: $sqs-space-md;
   padding: 0;
   margin: 0;
   align-items: center;
@@ -5826,7 +5910,7 @@ a.ms-selectall:hover {
 }
 
 .tsa-empty {
-  padding: 1.5em;
+  padding: $sqs-space-lg;
   color: colors.$inactive-color;
   font-size: 0.9em;
 }
@@ -5834,7 +5918,7 @@ a.ms-selectall:hover {
 /* Gallery */
 
 .tsa-gallery-hint {
-  margin: 0.6em 0.75em 0.4em;
+  margin: $sqs-space-sm $sqs-space-sm $sqs-space-xs;
   font-size: 0.85em;
   color: colors.$inactive-color;
 
@@ -5853,13 +5937,13 @@ a.ms-selectall:hover {
   flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
-  padding: 0.75em;
+  padding: $sqs-space-sm;
 }
 
 .tsa-gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 0.6em;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(110px, 18vw, 140px), 1fr));
+  gap: $sqs-space-sm;
 }
 
 .tsa-gallery-item {
@@ -5914,9 +5998,9 @@ a.ms-selectall:hover {
 }
 
 .tsa-gallery-label {
-  font-size: 0.72em;
+  font-size: $sqs-font-small;
   color: colors.$inactive-color;
-  padding: 0.3em 0.4em;
+  padding: clamp(0.25em, 0.4vw, 0.35em) clamp(0.35em, 0.5vw, 0.5em);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5927,8 +6011,8 @@ a.ms-selectall:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75em;
-  padding: 0.6em 0.75em;
+  gap: $sqs-space-sm;
+  padding: $sqs-space-sm;
   border-top: 1px solid rgba(0,0,0,0.08);
   background: color.adjust(colors.$pane-bg-color, $lightness: 4%);
 }
@@ -5952,8 +6036,8 @@ a.ms-selectall:hover {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 1em;
-  padding: 0.5em 0.75em;
+  gap: $sqs-space-md;
+  padding: $sqs-space-sm;
   border-bottom: 1px solid rgba(0,0,0,0.08);
   background: color.adjust(colors.$pane-bg-color, $lightness: 4%);
 }
@@ -5966,14 +6050,14 @@ a.ms-selectall:hover {
 
 .tsa-layout-btns {
   display: flex;
-  gap: 0.4em;
+  gap: $sqs-space-xs;
   flex: 0 0 auto;
 }
 
 .tsa-toolbar-tools {
   display: flex;
   align-items: center;
-  gap: 0.55em;
+  gap: $sqs-space-sm;
   flex: 0 0 auto;
 }
 
@@ -5985,7 +6069,7 @@ a.ms-selectall:hover {
 
 .tsa-layout-btn {
   font-size: 0.8em;
-  padding: 0.25em 0.6em;
+  padding: clamp(0.25em, 0.4vw, 0.35em) clamp(0.5em, 0.65vw, 0.7em);
   display: flex;
   align-items: center;
   gap: 0.35em;
@@ -5994,7 +6078,7 @@ a.ms-selectall:hover {
 
 .tsa-zoom-btn {
   font-size: 0.8em;
-  padding: 0.25em 0.6em;
+  padding: clamp(0.25em, 0.4vw, 0.35em) clamp(0.5em, 0.65vw, 0.7em);
   display: flex;
   align-items: center;
   gap: 0.35em;
@@ -6014,7 +6098,7 @@ a.ms-selectall:hover {
   position: relative;
   overflow: auto;
   background: color.adjust(colors.$pane-bg-color, $lightness: -3%);
-  min-height: 500px;
+  min-height: clamp(320px, 60vh, 500px);
 
   &::before {
     content: '';
@@ -6042,9 +6126,9 @@ a.ms-selectall:hover {
 
 .tsa-image-card {
   position: absolute;
-  width: 240px;
-  min-width: 180px;
-  min-height: 160px;
+  width: clamp(180px, 22vw, 240px);
+  min-width: clamp(150px, 18vw, 180px);
+  min-height: clamp(130px, 20vh, 160px);
   background: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.18);
@@ -6076,8 +6160,8 @@ a.ms-selectall:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.4em;
-  padding: 0.4em 0.6em;
+  gap: $sqs-space-xs;
+  padding: clamp(0.35em, 0.5vw, 0.45em) clamp(0.5em, 0.7vw, 0.7em);
   background: rgba(0, 0, 0, 0.8);
   color: #fff;
   cursor: grab;
@@ -6134,8 +6218,8 @@ a.ms-selectall:hover {
 
 .tsa-zoom-overlay {
   position: fixed;
-  width: 200px;
-  height: 200px;
+  width: clamp(140px, 18vw, 200px);
+  height: clamp(140px, 18vw, 200px);
   border: 2px solid colors.$aux-color;
   background: #000;
   border-radius: 50%;
@@ -6154,8 +6238,8 @@ a.ms-selectall:hover {
 
 .tsa-adjust-toggle {
   flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
+  width: clamp(20px, 2.5vw, 22px);
+  height: clamp(20px, 2.5vw, 22px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6179,8 +6263,8 @@ a.ms-selectall:hover {
 
 .tsa-close-btn {
   flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
+  width: clamp(20px, 2.5vw, 22px);
+  height: clamp(20px, 2.5vw, 22px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6200,15 +6284,15 @@ a.ms-selectall:hover {
 
 .tsa-card-controls {
   position: absolute;
-  top: 2.2em;
+  top: clamp(1.8em, 3vh, 2.2em);
   left: 0;
   right: 0;
   width: 100%;
   z-index: 3;
-  padding: 0.6em 0.7em;
+  padding: $sqs-space-sm;
   display: flex;
   flex-direction: column;
-  gap: 0.35em;
+  gap: $sqs-space-xs;
   background: rgba(20, 30, 48, 0.88);
   backdrop-filter: blur(4px);
   border-radius: 4px;
@@ -6288,8 +6372,8 @@ a.ms-selectall:hover {
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 16px;
-  height: 16px;
+  width: clamp(16px, 2.5vw, 22px);
+  height: clamp(16px, 2.5vw, 22px);
   cursor: nwse-resize;
   z-index: 10;
 
@@ -6320,8 +6404,8 @@ a.ms-selectall:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5em;
-  padding: 0.55em 0.75em;
+  gap: $sqs-space-sm;
+  padding: $sqs-space-sm;
   background: color.adjust(colors.$pane-bg-color, $lightness: 6%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
@@ -6334,10 +6418,13 @@ a.ms-selectall:hover {
 }
 
 .mosaic-tile-title {
+  flex: 1 1 auto;
   margin: 0;
-  font-size: 1.1em;
+  font-size: clamp(0.8em, 0.55vw + 0.72em, 1.2em);
   line-height: 1.2;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mosaic-tile-charts {
@@ -6346,8 +6433,8 @@ a.ms-selectall:hover {
   min-width: 0;
   min-height: 0;
   height: 100%;
-  gap: 0.5em;
-  padding: 1em;
+  gap: clamp(0.25em, 0.7vw, 0.5em);
+  padding: clamp(0.25em, 1vw, 1em);
 }
 
 .mosaic-tile-charts > * {
@@ -6370,7 +6457,7 @@ a.ms-selectall:hover {
 .light-theme-button {
   display: inline-block;
   border: 1px solid #aaa;
-  padding: 5px 10px 5px 10px;
+  padding: clamp(4px, 0.45vw, 5px) clamp(8px, 0.8vw, 10px);
   color: #444;
   text-decoration: none;
   font-family: $special-font;
@@ -6393,10 +6480,8 @@ a.ms-selectall:hover {
   display: block;
   background-color: colors.$sead-brown;
   width: auto;
-  font-size: 4em;
-  padding: .25em;
-  padding-left: .5em;
-  padding-right: .5em;
+  font-size: clamp(2.4em, 5vw, 4em);
+  padding: clamp(0.18em, 0.5vw, 0.25em) clamp(0.35em, 0.9vw, 0.5em);
 }
 
 #site-report-exit-menu:hover {
@@ -6416,7 +6501,7 @@ a.ms-selectall:hover {
 }
 
 .site-report-level-container {
-  margin-bottom: 0.9em;
+  margin-bottom: $sqs-space-md;
   border: 1px solid $site-report-card-border-soft;
   border-radius: $site-report-card-radius;
   background-color: #fff;
@@ -6448,9 +6533,9 @@ a.ms-selectall:hover {
   background-color: transparent;
   border-radius: 0px;
   color: #000;
-  padding-bottom: 10px;
-  padding-top: 10px;
-  padding-left: 15px;
+  padding-bottom: clamp(7px, 0.8vw, 10px);
+  padding-top: clamp(7px, 0.8vw, 10px);
+  padding-left: clamp(10px, 1.2vw, 15px);
   margin-bottom:0px;
   margin-top: 0px;
 
@@ -6470,7 +6555,7 @@ a.ms-selectall:hover {
 .site-report-level-title-static {
   border-left: 5px solid #ccc;
   color: #fff;
-  font-size: 1.8rem;
+  font-size: clamp(1.3rem, 1vw + 1rem, 1.8rem);
   border-radius: 0px;
   border-bottom: 0px solid #ccc;
   //background-color: #a00;
@@ -6490,14 +6575,14 @@ a.ms-selectall:hover {
   margin: 0px;
   */
   padding:0px;
-  margin-left: 22px;
-  margin-top: 1em;
+  margin-left: clamp(10px, 2vw, 22px);
+  margin-top: $sqs-space-md;
   background-color: #fff;
   border-width: 0px 0px 0px 0px;
   border-color: colors.$base-color;
   border-style: solid;
 
-  padding-bottom: 1em;
+  padding-bottom: $sqs-space-md;
   font-size: 1rem;
 }
 
@@ -6509,9 +6594,9 @@ a.ms-selectall:hover {
   background-color: #fff;
   font-weight:normal;
   margin-top: 0px;
-  margin-left: 20px;
-  margin-bottom: 30px;
-  font-size: 20px;
+  margin-left: clamp(10px, 2vw, 20px);
+  margin-bottom: clamp(16px, 3vw, 30px);
+  font-size: clamp(1rem, 0.7vw + 0.9rem, 20px);
   color: #333;
 }
 
@@ -6530,9 +6615,9 @@ a.ms-selectall:hover {
 
 .site-report-close-btn {
   float:right;
-  font-size: 24px;
-  margin-top: -20px;
-  margin-right: -20px;
+  font-size: clamp(20px, 2vw, 24px);
+  margin-top: clamp(-20px, -1.5vw, -12px);
+  margin-right: clamp(-20px, -1.5vw, -12px);
 }
 
 .site-report-close-btn:hover {
@@ -6546,8 +6631,8 @@ a.ms-selectall:hover {
 
 #site-report-map-container {
   position: relative;
-  margin-bottom: 1em;
-  height: 15em;
+  margin-bottom: $sqs-space-md;
+  height: clamp(11em, 28vh, 15em);
 }
 
 #site-report-loading-indicator {
@@ -6643,7 +6728,7 @@ h5 {
   flex-direction: column;
   position:absolute;
   */
-  padding: 10px;
+  padding: clamp(6px, 0.9vw, 10px);
   height: 100%;
   /*
   border-top: #ccc solid 1px;
@@ -6714,8 +6799,8 @@ h5 {
 }
 
 .site-report-aux-header-container > h4 {
-  padding-top: 5px;
-  padding-bottom: 3px;
+  padding-top: clamp(3px, 0.5vw, 5px);
+  padding-bottom: clamp(2px, 0.4vw, 3px);
   margin: 0px;
   font-weight: bold;
 }
@@ -6774,7 +6859,7 @@ table.site-report-table > tbody > tr.site-report-table-row-with-subtable.table-r
 }
 
 .site-report-table tbody th, table.dataTable tbody td {
-  padding: 5px !important;
+  padding: clamp(4px, 0.45vw, 5px) !important;
 }
 
 thead > tr > td {
@@ -6853,7 +6938,7 @@ tr.site-report-table-row > td {
 .site-report-table tbody .site-report-subtable-row > td {
   background-color: #fff;
   color: #0f172a !important;
-  padding: 6px 0 12px 0 !important;
+  padding: clamp(4px, 0.6vw, 6px) 0 clamp(8px, 1vw, 12px) 0 !important;
   border-top: none;
   border-bottom: 1px solid #e5e7eb;
   border-left: solid 6px colors.$sead-brown;
@@ -6865,7 +6950,7 @@ tr.site-report-table-row > td {
 
 /* Indent the subtable container inside the row */
 .site-report-subtable-row > td > div {
-  margin-left: 2em;
+  margin-left: clamp(0.75em, 2vw, 2em);
 }
 
 /* Subtable inner table — card-style rounded rows */
@@ -6882,7 +6967,7 @@ tr.site-report-table-row > td {
 .site-report-subtable thead td {
   background: #ffffff !important;
   color: #334155 !important;
-  font-size: 11px !important;
+  font-size: clamp(10px, 0.45vw, 11px) !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.4px;
@@ -6891,7 +6976,7 @@ tr.site-report-table-row > td {
   border-top: none !important;
   border-bottom: 1px solid rgba(colors.$pane-bg-color, 0.9) !important;
   /* Extra bottom padding bridges the gap border-spacing doesn't add between thead and tbody */
-  padding: 6px 8px 11px 8px !important;
+  padding: clamp(5px, 0.6vw, 6px) clamp(6px, 0.75vw, 8px) clamp(8px, 0.95vw, 11px) clamp(6px, 0.75vw, 8px) !important;
 }
 
 .site-report-subtable tbody tr td {
@@ -6899,7 +6984,7 @@ tr.site-report-table-row > td {
   color: #0f172a;
   border-top: 1px solid rgba(colors.$pane-bg-color, 0.9);
   border-bottom: 1px solid rgba(colors.$pane-bg-color, 0.9);
-  padding: 7px 8px !important;
+  padding: clamp(5px, 0.7vw, 7px) clamp(6px, 0.75vw, 8px) !important;
 }
 
 .site-report-subtable tbody tr td:first-child {
@@ -6937,7 +7022,7 @@ tr.site-report-table-row > td {
 .site-report-legend-title {
   /*grid-column: label;*/
   font-family: $special-font;
-  font-size:1.4em;
+  font-size: clamp(1.1em, 0.8vw + 0.9em, 1.4em);
   text-decoration:underline;
   margin-bottom:5px;
   color: #000;
@@ -7046,8 +7131,8 @@ tr.site-report-table-row > td {
 .site-report-render-options-container {
   display: flex;
   flex-direction: column;
-  margin: 6px 8px;
-  gap: 2px;
+  margin: clamp(4px, 0.6vw, 6px) clamp(6px, 0.8vw, 8px);
+  gap: clamp(2px, 0.3vw, 4px);
 }
 
 .site-report-toolbar-main {
@@ -7070,18 +7155,18 @@ tr.site-report-table-row > td {
   background-color: #fff;
   border: 1px solid #ccc;
   box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.15);
-  min-width: 220px;
+  min-width: min(220px, calc(100vw - 2rem));
 }
 
 .site-report-display-options-dropdown .site-report-view-selector-control {
-  font-size: 12px;
+  font-size: clamp(11px, 0.45vw, 12px);
   line-height: 1.2;
-  min-height: 24px;
-  padding: 2px 4px;
+  min-height: clamp(22px, 3vh, 24px);
+  padding: clamp(2px, 0.3vw, 3px) clamp(4px, 0.45vw, 5px);
 }
 
 .site-report-display-options-dropdown select.site-report-view-selector-control {
-  height: 24px;
+  height: clamp(22px, 3vh, 24px);
 }
 
 .site-report-display-options-dropdown select[multiple].site-report-view-selector-control {
@@ -7131,8 +7216,8 @@ tr.site-report-table-row > td {
 .content-item-header-container {
   display: flex;
   justify-content: flex-start;
-  margin-top: 10px;
-  margin-bottom: 7px;
+  margin-top: clamp(6px, 0.8vw, 10px);
+  margin-bottom: clamp(5px, 0.7vw, 7px);
   align-items: flex-start;
   height: 100%;
 }
@@ -7141,12 +7226,12 @@ tr.site-report-table-row > td {
   margin: 0px;
   margin-right:5px;
   padding-right:0px;
-  font-size: 20px;
+  font-size: clamp(1rem, 0.9vw + 0.9rem, 20px);
   border-left: 4px solid colors.$base-color;
   padding-left: 4px;
 
   border-right: 0px solid #ccc;
-  margin-top: 5px;
+  margin-top: clamp(3px, 0.5vw, 5px);
 
   text-decoration: none;
   text-decoration-color: colors.$base-color;
@@ -7154,8 +7239,8 @@ tr.site-report-table-row > td {
 
 .content-item-header-divider {
   position:relative;
-  top:8px;
-  height: 20px;
+  top: clamp(5px, 0.7vw, 8px);
+  height: clamp(16px, 2vw, 20px);
   width: 1px;
   background-color:#ccc;
   margin-right: 5px;
@@ -7168,15 +7253,15 @@ tr.site-report-table-row > td {
 }
 
 .data-vis-container {
-  margin-bottom: 25px;
+  margin-bottom: clamp(16px, 2.2vw, 25px);
 }
 
 .content-item-container {
   background-color: #fff;
   border: 1px solid $site-report-card-border-soft;
   border-radius: $site-report-card-radius;
-  padding: 10px 12px 12px 12px;
-  margin-bottom: 12px;
+  padding: clamp(7px, 1vw, 10px) clamp(9px, 1.1vw, 12px) clamp(9px, 1.1vw, 12px) clamp(9px, 1.1vw, 12px);
+  margin-bottom: clamp(8px, 1vw, 12px);
   box-shadow: $site-report-card-shadow;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -7219,19 +7304,17 @@ tr.site-report-table-row > td {
 }
 
 .site-report-title > span {
-  padding: 5px;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding: clamp(3px, 0.5vw, 5px) clamp(7px, 0.9vw, 10px);
   color: #000;
 }
 
 .site-report-title {
-  font-size: 2.4rem;
+  font-size: clamp(1.6rem, 2.2vw, 2.4rem);
 }
 
 .site-report-title-site-name {
   background-color:#fff;
-  font-size: 2.4rem;
+  font-size: clamp(1.6rem, 2.2vw, 2.4rem);
 }
 
 .site-report-table-column-visibility-options-container {
@@ -7255,10 +7338,10 @@ tr.site-report-table-row > td {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr;
-  grid-column-gap: 5px;
+  grid-column-gap: clamp(3px, 0.5vw, 5px);
   grid-row-gap: 0px;
   align-items: center;
-  margin: 5px;
+  margin: clamp(3px, 0.5vw, 5px);
 }
 
 .sample-group-analysis-infobox {
@@ -7283,9 +7366,9 @@ tr.site-report-table-row > td {
 
 .sr-ref-item {
   display:block;
-  margin-bottom: 10px;
+  margin-bottom: clamp(7px, 1vw, 10px);
   background-color: colors.$pane-bg-color;
-  padding: 10px;
+  padding: clamp(7px, 1vw, 10px);
 }
 
 .sr-ref-author {
@@ -7374,7 +7457,7 @@ tr.site-report-table-row > td {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	min-height: 120px;
+	min-height: clamp(90px, 18vh, 120px);
 }
 
 .overlay-msg-box-no-data {

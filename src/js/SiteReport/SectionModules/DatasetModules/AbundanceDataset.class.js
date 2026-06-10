@@ -604,7 +604,7 @@ class AbundanceDataset extends DatasetModule {
 
 		return {
 			"name": "ci-" + nanoid(),
-			"title": "Site total - Mutual climatic range",
+			"title": "Mutual climatic range",
 			"titleTooltip": "Mutual Climatic Range (MCR) reconstruction based on fossil beetle (Coleoptera) taxa found at this site. The chart shows the climate envelope — compatible Tmax (mean temperature of the warmest month) vs Trange (difference between warmest and coldest month) — derived from the overlap of all MCR-registered species present. Cells where all taxa agree are shown in black.",
 			"renderedBy": this.constructor.name,
 			"data": {

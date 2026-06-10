@@ -63,6 +63,10 @@ class SiteReportChart {
 			}
 		};
 		this.mcrTooltipEl = null;
+		this.mcrSampleFilterRequestId = 0;
+		if(!this.contentItem.data.mcrTaxonCache) {
+			this.contentItem.data.mcrTaxonCache = {};
+		}
 	}
 
 	update(updatedExtrasRenderOption = null) {
@@ -75,34 +79,189 @@ class SiteReportChart {
 
 	async handleMcrSampleFilterChange(renderOption) {
 		const selectedOptions = renderOption.options.filter(o => o.selected);
-		const sampleIds = selectedOptions.map(o => o.value).filter(v => v !== null);
+		const sampleIds = selectedOptions
+			.map(o => parseInt(o.value, 10))
+			.filter(v => !isNaN(v));
+		const requestId = ++this.mcrSampleFilterRequestId;
 		let mcrData;
 
+		// Keep the existing canvas in place while fetching so the chart updates
+		// without disappearing/reappearing (which causes UI jitter).
 		if (sampleIds.length === 0) {
 			mcrData = this.contentItem.data.originalMcrData;
 		} else {
-			try {
-				const response = await fetch(this.sqs.config.dataServerAddress + "/mcr/samples", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(sampleIds)
-				});
-				if (response.ok) {
-					mcrData = await response.json();
-				} else {
-					mcrData = this.contentItem.data.originalMcrData;
-				}
-			} catch (e) {
-				console.warn("Could not fetch MCR data for samples", sampleIds, e);
-				mcrData = this.contentItem.data.originalMcrData;
-			}
+			mcrData = await this.getMcrDataForSamples(sampleIds);
+		}
+
+		if(requestId !== this.mcrSampleFilterRequestId) {
+			return;
 		}
 
 		if (mcrData) {
 			this.contentItem.data.mcrData = mcrData;
 		}
-		$(this.anchorNodeSelector).html("");
-		this.renderMutualClimaticRangeChart();
+		this.updateMutualClimaticRangeChart();
+	}
+
+	getMcrTaxonIdsForSamples(sampleIds) {
+		const selectedSampleIds = new Set(sampleIds.map(id => String(id)));
+		const taxonIds = new Set();
+		const dataGroups = this.siteReport?.siteData?.data_groups || [];
+
+		dataGroups.forEach(dataGroup => {
+			if(dataGroup.type === "abundance" && Array.isArray(dataGroup.method_ids) && dataGroup.method_ids.includes(3)) {
+				(dataGroup.values || []).forEach(value => {
+					if(selectedSampleIds.has(String(value.physical_sample_id)) && value.value?.taxon_id != null) {
+						taxonIds.add(parseInt(value.value.taxon_id, 10));
+					}
+				});
+			}
+		});
+
+		return Array.from(taxonIds).filter(id => !isNaN(id));
+	}
+
+	async getMcrDataForSamples(sampleIds) {
+		const taxonIds = this.getMcrTaxonIdsForSamples(sampleIds);
+		if(taxonIds.length === 0) {
+			return { taxa_count: 0, climate_stats: null, density_bounds: null, max_count: 0, density_matrix: null };
+		}
+
+		const taxa = await Promise.all(taxonIds.map(taxonId => this.fetchMcrTaxonData(taxonId)));
+		return this.buildMcrDataFromTaxa(taxa.filter(taxon => taxon && Array.isArray(taxon.matrix)));
+	}
+
+	async fetchMcrTaxonData(taxonId) {
+		if(this.contentItem.data.mcrTaxonCache[taxonId]) {
+			return this.contentItem.data.mcrTaxonCache[taxonId];
+		}
+
+		try {
+			const response = await fetch(this.sqs.config.dataServerAddress + "/mcr/taxon/" + taxonId);
+			if(!response.ok) {
+				return null;
+			}
+			const taxonData = await response.json();
+			this.contentItem.data.mcrTaxonCache[taxonId] = taxonData;
+			return taxonData;
+		}
+		catch(e) {
+			console.warn("Could not fetch MCR data for taxon", taxonId, e);
+			return null;
+		}
+	}
+
+	buildMcrDataFromTaxa(taxa) {
+		const NUM_ROWS = 36;
+		const NUM_COLS = 60;
+
+		if(taxa.length === 0) {
+			return { taxa_count: 0, climate_stats: null, density_bounds: null, max_count: 0, density_matrix: null };
+		}
+
+		const counts = Array.from({ length: NUM_ROWS }, () => Array(NUM_COLS).fill(0));
+		let usableTaxaCount = 0;
+
+		let tmaxLoMin = Infinity;
+		let tmaxHiMax = -Infinity;
+		let tminLoMin = Infinity;
+		let tminHiMax = -Infinity;
+		let trangeLoMin = Infinity;
+		let trangeHiMax = -Infinity;
+		let cogTmaxSum = 0;
+		let cogTrangeSum = 0;
+		let cogCount = 0;
+
+		taxa.forEach(taxon => {
+			if(!Array.isArray(taxon.matrix) || taxon.matrix.length === 0) {
+				return;
+			}
+
+			usableTaxaCount++;
+			for(let row = 0; row < NUM_ROWS; row++) {
+				const matrixRow = taxon.matrix[row];
+				if(!matrixRow) {
+					continue;
+				}
+				for(let col = 0; col < NUM_COLS; col++) {
+					const value = matrixRow[col];
+					if(value === "1" || value === 1) {
+						counts[row][col]++;
+					}
+				}
+			}
+
+			const summary = taxon.climate_summary || {};
+			if(summary.tmax_lo != null && summary.tmax_lo < tmaxLoMin) tmaxLoMin = summary.tmax_lo;
+			if(summary.tmax_hi != null && summary.tmax_hi > tmaxHiMax) tmaxHiMax = summary.tmax_hi;
+			if(summary.tmin_lo != null && summary.tmin_lo < tminLoMin) tminLoMin = summary.tmin_lo;
+			if(summary.tmin_hi != null && summary.tmin_hi > tminHiMax) tminHiMax = summary.tmin_hi;
+			if(summary.trange_lo != null && summary.trange_lo < trangeLoMin) trangeLoMin = summary.trange_lo;
+			if(summary.trange_hi != null && summary.trange_hi > trangeHiMax) trangeHiMax = summary.trange_hi;
+			if(summary.cog_mid_tmax != null && summary.cog_mid_trange != null) {
+				cogTmaxSum += summary.cog_mid_tmax;
+				cogTrangeSum += summary.cog_mid_trange;
+				cogCount++;
+			}
+		});
+
+		if(usableTaxaCount === 0) {
+			return { taxa_count: 0, climate_stats: null, density_bounds: null, max_count: 0, density_matrix: null };
+		}
+
+		let colMin = NUM_COLS;
+		let colMax = -1;
+		let rowMin = NUM_ROWS;
+		let rowMax = -1;
+		let peakCol = 0;
+		let peakRow = 0;
+		let peakVal = 0;
+		for(let row = 0; row < NUM_ROWS; row++) {
+			for(let col = 0; col < NUM_COLS; col++) {
+				if(counts[row][col] > 0) {
+					if(col < colMin) colMin = col;
+					if(col > colMax) colMax = col;
+					if(row < rowMin) rowMin = row;
+					if(row > rowMax) rowMax = row;
+					if(counts[row][col] > peakVal) {
+						peakVal = counts[row][col];
+						peakCol = col;
+						peakRow = row;
+					}
+				}
+			}
+		}
+
+		const hasData = colMax >= 0;
+		return {
+			taxa_count: usableTaxaCount,
+			taxa: taxa.map(taxon => ({
+				taxon_id: taxon.taxon_id,
+				mcr_species_name: taxon.mcr_species_name,
+				mcr_number: taxon.mcr_number
+			})),
+			climate_stats: {
+				tmax_lo: isFinite(tmaxLoMin) ? tmaxLoMin : null,
+				tmax_hi: isFinite(tmaxHiMax) ? tmaxHiMax : null,
+				tmin_lo: isFinite(tminLoMin) ? tminLoMin : null,
+				tmin_hi: isFinite(tminHiMax) ? tminHiMax : null,
+				trange_lo: isFinite(trangeLoMin) ? trangeLoMin : null,
+				trange_hi: isFinite(trangeHiMax) ? trangeHiMax : null,
+				cog_tmax_mean: cogCount > 0 ? Math.round(cogTmaxSum / cogCount) : null,
+				cog_trange_mean: cogCount > 0 ? Math.round(cogTrangeSum / cogCount) : null
+			},
+			density_bounds: hasData ? {
+				tmax_col_min: colMin,
+				tmax_col_max: colMax,
+				trange_row_min: rowMin,
+				trange_row_max: rowMax,
+				peak_col: peakCol,
+				peak_row: peakRow,
+				peak_count: peakVal
+			} : null,
+			max_count: usableTaxaCount,
+			density_matrix: counts
+		};
 	}
 
 	/*
@@ -1942,96 +2101,70 @@ class SiteReportChart {
 		this.renderEcoCodeHelpButton();
 	}
 
-	renderMutualClimaticRangeChart() {
-		const mcrData = this.contentItem?.data?.mcrData;
+	// Fixed geometry for the MCR chart. The canvas size is independent of the
+	// data, so the same canvas can be reused when the underlying data changes.
+	getMcrChartLayout() {
+		const ROWS = 60; // Tmax axis: -10 to +49 C
+		const COLS = 36; // Trange axis: 0-35 C
+		const cellW = 10;
+		const cellH = 6;
+		const MARGIN_LEFT = 40;
+		const MARGIN_RIGHT = 6;
+		const MARGIN_TOP = 6;
+		const MARGIN_BOTTOM = 40;
+		return {
+			ROWS, COLS, cellW, cellH,
+			MARGIN_LEFT, MARGIN_RIGHT, MARGIN_TOP, MARGIN_BOTTOM,
+			canvasW: MARGIN_LEFT + COLS * cellW + MARGIN_RIGHT,
+			canvasH: MARGIN_TOP + ROWS * cellH + MARGIN_BOTTOM
+		};
+	}
 
+	getEmptyMcrData() {
+		const layout = this.getMcrChartLayout();
+		return {
+			taxa_count: 0,
+			climate_stats: null,
+			density_bounds: null,
+			max_count: 0,
+			density_matrix: Array.from({ length: layout.COLS }, () => Array(layout.ROWS).fill(0))
+		};
+	}
+
+	getDrawableMcrData() {
+		const mcrData = this.contentItem?.data?.mcrData;
+		if (!mcrData || !Array.isArray(mcrData.density_matrix)) {
+			return this.getEmptyMcrData();
+		}
+		return mcrData;
+	}
+
+	// Redraw the MCR chart onto the existing canvas without recreating it.
+	// Falls back to a full render if no canvas is currently present.
+	updateMutualClimaticRangeChart() {
+		const canvas = this.chartId ? document.getElementById(this.chartId) : null;
+
+		if (!canvas || canvas.tagName !== "CANVAS") {
+			$(this.anchorNodeSelector).html("");
+			this.renderMutualClimaticRangeChart();
+			return;
+		}
+
+		this.drawMutualClimaticRangeChart(canvas);
+	}
+
+	renderMutualClimaticRangeChart() {
 		if(this.mcrTooltipEl) {
 			this.mcrTooltipEl.remove();
 			this.mcrTooltipEl = null;
 		}
 
-		if (!mcrData || !mcrData.density_matrix || !mcrData.taxa_count) {
-			$(this.anchorNodeSelector).append("<div style='padding:1em;color:#888;'>No MCR data available for this site.</div>");
-			return;
-		}
-
-		const { density_matrix, taxa_count, max_count } = mcrData;
-		const maxDensity = max_count ?? taxa_count;
-
-		const ROWS = 36; // Trange axis: 0-35 C
-		const COLS = 60; // Tmax axis: -10 to +49 C
-
-		let consColMin = COLS;
-		let consColMax = -1;
-		let consRowMin = ROWS;
-		let consRowMax = -1;
-		for (let r = 0; r < ROWS; r++) {
-			for (let c = 0; c < COLS; c++) {
-				if (density_matrix[r][c] === taxa_count) {
-					consColMin = Math.min(consColMin, c);
-					consColMax = Math.max(consColMax, c);
-					consRowMin = Math.min(consRowMin, r);
-					consRowMax = Math.max(consRowMax, r);
-				}
-			}
-		}
-
-		const cellW = 8;
-		const cellH = 9;
-		const MARGIN_LEFT = 40;
-		const MARGIN_RIGHT = 6;
-		const MARGIN_TOP = 6;
-		const MARGIN_BOTTOM = 40;
-		const canvasW = MARGIN_LEFT + COLS * cellW + MARGIN_RIGHT;
-		const canvasH = MARGIN_TOP + ROWS * cellH + MARGIN_BOTTOM;
+		const layout = this.getMcrChartLayout();
 
 		this.chartId = "chart-" + nanoid();
-		$(this.anchorNodeSelector).append(`<canvas id="${this.chartId}" class="site-report-chart-container" width="${canvasW}" height="${canvasH}" style="max-width:100%;display:block;"></canvas>`);
+		$(this.anchorNodeSelector).append(`<canvas id="${this.chartId}" class="site-report-chart-container" width="${layout.canvasW}" height="${layout.canvasH}" style="max-width:100%;display:block;"></canvas>`);
 
 		const canvas = document.getElementById(this.chartId);
-		const ctx = canvas.getContext("2d");
-
-		const densityColor = (count) => {
-			if (count === 0 || maxDensity === 0) return '#ebebeb';
-			const t = count / maxDensity;
-			const r = Math.round(191 + (29 - 191) * t);
-			const g = Math.round(219 + (78 - 219) * t);
-			const b = Math.round(254 + (216 - 254) * t);
-			return `rgb(${r},${g},${b})`;
-		};
-
-		for (let row = 0; row < ROWS; row++) {
-			for (let col = 0; col < COLS; col++) {
-				const displayCol = (COLS - 1) - col;
-				const displayRow = (ROWS - 1) - row;
-				ctx.fillStyle = density_matrix[row][col] === taxa_count ? '#000000' : densityColor(density_matrix[row][col]);
-				ctx.fillRect(MARGIN_LEFT + displayCol * cellW, MARGIN_TOP + displayRow * cellH, cellW - 1, cellH - 1);
-			}
-		}
-
-		ctx.fillStyle = '#555';
-		ctx.font = '11px sans-serif';
-		ctx.textAlign = 'center';
-		ctx.textBaseline = 'top';
-		for (let c = 0; c <= COLS; c += 10) {
-			ctx.fillText(((COLS - c) - 10) + '°', MARGIN_LEFT + c * cellW, MARGIN_TOP + ROWS * cellH + 4);
-		}
-		ctx.textBaseline = 'bottom';
-		ctx.fillText('Tmax (°C)', MARGIN_LEFT + (COLS * cellW) / 2, canvasH);
-
-		ctx.textAlign = 'right';
-		ctx.textBaseline = 'middle';
-		for (let r = 0; r < ROWS; r += 5) {
-			ctx.fillText((ROWS - 1 - r) + '°', MARGIN_LEFT - 4, MARGIN_TOP + r * cellH + cellH / 2);
-		}
-
-		ctx.save();
-		ctx.translate(10, MARGIN_TOP + (ROWS * cellH) / 2);
-		ctx.rotate(-Math.PI / 2);
-		ctx.textAlign = 'center';
-		ctx.textBaseline = 'top';
-		ctx.fillText('Trange (°C)', 0, 0);
-		ctx.restore();
 
 		document.querySelectorAll('.sead-mcr-tooltip').forEach(el => el.remove());
 		const tooltipEl = document.createElement('div');
@@ -2040,7 +2173,12 @@ class SiteReportChart {
 		document.body.appendChild(tooltipEl);
 		this.mcrTooltipEl = tooltipEl;
 
+		// The mouse handlers read from this.mcrChartState, which drawMutualClimaticRangeChart
+		// keeps up to date, so the listeners stay correct across data updates.
 		canvas.addEventListener('mousemove', (e) => {
+			const state = this.mcrChartState;
+			if (!state) return;
+			const { canvasW, canvasH, MARGIN_LEFT, MARGIN_TOP, cellW, cellH, COLS, ROWS } = state.layout;
 			const rect = canvas.getBoundingClientRect();
 			const scaleX = canvasW / rect.width;
 			const scaleY = canvasH / rect.height;
@@ -2052,11 +2190,12 @@ class SiteReportChart {
 				return;
 			}
 
-			const col = (COLS - 1) - displayCol;
-			const row = (ROWS - 1) - displayRow;
-			const tmax = col - 10;
-			const trange = row;
-			const count = density_matrix[row][col];
+			const trange_idx = displayCol;            // Trange: no flip
+			const tmax_idx = (ROWS - 1) - displayRow;  // Tmax: flipped
+			const tmax = tmax_idx - 10;
+			const trange = trange_idx;
+			const count = state.density_matrix[trange_idx][tmax_idx];
+			const taxa_count = state.taxa_count;
 			const pct = taxa_count > 0 ? (Math.floor((count / taxa_count) * 1000) / 10).toFixed(1) : "0.0";
 			const inConsensus = count === taxa_count;
 
@@ -2081,6 +2220,67 @@ class SiteReportChart {
 		});
 
 		canvas.addEventListener('mouseleave', () => { tooltipEl.style.display = 'none'; });
+
+		this.drawMutualClimaticRangeChart(canvas);
+	}
+
+	// Draws the density matrix and axes onto the given canvas. Safe to call
+	// repeatedly on the same canvas to update it in place.
+	drawMutualClimaticRangeChart(canvas) {
+		const mcrData = this.getDrawableMcrData();
+		const { density_matrix, taxa_count, max_count } = mcrData;
+		const maxDensity = max_count ?? taxa_count;
+		const layout = this.getMcrChartLayout();
+		const { ROWS, COLS, cellW, cellH, MARGIN_LEFT, MARGIN_TOP, canvasH } = layout;
+
+		// Stash the current data/layout so the (persistent) tooltip handlers read fresh values.
+		this.mcrChartState = { density_matrix, taxa_count, layout };
+
+		const ctx = canvas.getContext("2d");
+		ctx.clearRect(0, 0, layout.canvasW, layout.canvasH);
+
+		const densityColor = (count) => {
+			if (count === 0 || maxDensity === 0) return '#ebebeb';
+			const t = count / maxDensity;
+			const r = Math.round(191 + (29 - 191) * t);
+			const g = Math.round(219 + (78 - 219) * t);
+			const b = Math.round(254 + (216 - 254) * t);
+			return `rgb(${r},${g},${b})`;
+		};
+
+		for (let trange = 0; trange < COLS; trange++) {
+			for (let tmax = 0; tmax < ROWS; tmax++) {
+				const displayCol = trange;            // Trange: 0°C on left, no flip
+				const displayRow = (ROWS - 1) - tmax;  // Tmax: high values at top
+				ctx.fillStyle = taxa_count > 0 && density_matrix[trange][tmax] === taxa_count ? '#000000' : densityColor(density_matrix[trange][tmax]);
+				ctx.fillRect(MARGIN_LEFT + displayCol * cellW, MARGIN_TOP + displayRow * cellH, cellW - 1, cellH - 1);
+			}
+		}
+
+		ctx.fillStyle = '#555';
+		ctx.font = '11px sans-serif';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'top';
+		for (let c = 0; c <= COLS; c += 5) {
+			ctx.fillText(c + '°', MARGIN_LEFT + c * cellW, MARGIN_TOP + ROWS * cellH + 4);
+		}
+		ctx.textBaseline = 'bottom';
+		ctx.fillText('Trange (°C)', MARGIN_LEFT + (COLS * cellW) / 2, canvasH);
+
+		ctx.textAlign = 'right';
+		ctx.textBaseline = 'middle';
+		for (let tmaxVal = -10; tmaxVal <= 40; tmaxVal += 10) {
+			const r = (ROWS - 1) - (tmaxVal + 10);
+			ctx.fillText(tmaxVal + '°', MARGIN_LEFT - 4, MARGIN_TOP + r * cellH + cellH / 2);
+		}
+
+		ctx.save();
+		ctx.translate(10, MARGIN_TOP + (ROWS * cellH) / 2);
+		ctx.rotate(-Math.PI / 2);
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'top';
+		ctx.fillText('Tmax (°C)', 0, 0);
+		ctx.restore();
 	}
 
 	renderMagneticSusceptibilityBarChart() {

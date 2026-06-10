@@ -1,8 +1,10 @@
+@use "variables" as *;
+
 .aux-layer-loading {
     display: flex;
     align-items: center;
-    gap: 0.5em;
-    padding: 1.5em 1em;
+    gap: $sqs-space-sm;
+    padding: $sqs-space-lg $sqs-space-md;
     color: #666;
     font-style: italic;
 }
@@ -10,13 +12,13 @@
 .aux-layer-unavailable-notice {
     display: flex;
     align-items: flex-start;
-    gap: 0.5em;
-    padding: 0.6em 0.8em;
-    margin: 0.4em 0.5em;
+    gap: $sqs-space-sm;
+    padding: $sqs-space-sm $sqs-space-md;
+    margin: $sqs-space-xs $sqs-space-sm;
     background: #fff8e1;
     border-left: 3px solid #f9a825;
     border-radius: 2px;
-    font-size: 0.875em;
+    font-size: $sqs-font-small;
     color: #555;
 
     i {
@@ -45,23 +47,23 @@
 }
 
 .sublayers-container {
-    margin-left: 1.5em;
-    padding: 0.5em;
+    margin-left: clamp(0.75em, 2vw, 1.5em);
+    padding: $sqs-space-sm;
     border-left: 2px solid #eee;
 }
 
 .result-map-sub-layer-selection h5 {
-    margin-bottom: 0.5em;
-    margin-top: 1em;
+    margin-bottom: $sqs-space-sm;
+    margin-top: $sqs-space-md;
     font-weight: bold;
     border-bottom: 1px solid #888;
-    padding-bottom: 0.3em;
+    padding-bottom: $sqs-space-xs;
 }
 
 .sub-layer-group {
     display: flex;
     align-items: center;
-    padding: 0.5em 0.25em;
+    padding: $sqs-space-sm $sqs-space-xs;
     cursor: pointer;
     user-select: none;
     transition: background-color 0.2s;
@@ -75,9 +77,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.5em;
-    height: 1.5em;
-    margin-right: 0.5em;
+    width: clamp(1.25em, 2vw, 1.5em);
+    height: clamp(1.25em, 2vw, 1.5em);
+    margin-right: $sqs-space-sm;
 }
 
 .sub-layer-toggle i {
@@ -89,15 +91,15 @@
 }
 
 .sublayers-container {
-    margin-left: 1.5em;
-    padding: 0.5em;
+    margin-left: clamp(0.75em, 2vw, 1.5em);
+    padding: $sqs-space-sm;
     border-left: 2px solid #eee;
 }
 
 .sub-layer-group {
     display: flex;
     align-items: center;
-    padding: 0.5em 0.25em;
+    padding: $sqs-space-sm $sqs-space-xs;
     cursor: pointer;
     user-select: none;
     transition: background-color 0.2s;
@@ -148,8 +150,8 @@
 .result-map-legend-item {
     display: flex;
     flex-direction: column;
-    padding: 8px;
-    margin: 3px 0;
+    padding: clamp(6px, 0.8vw, 8px);
+    margin: clamp(2px, 0.35vw, 3px) 0;
     border: 1px solid #ddd;
     border-radius: 4px;
     background-color: #f9f9f9;
@@ -158,7 +160,7 @@
     box-sizing: border-box !important;
     /* Prevent flex from causing sizing issues */
     flex-shrink: 0;
-    max-height: 20em;
+    max-height: clamp(12em, 45vh, 20em);
     overflow: auto;
     color: #333;
 }
@@ -167,11 +169,11 @@
     position: relative;
     top: 0px;
     right: 0px;
-    width: 16px;
-    height: 16px;
+    width: clamp(16px, 2.5vw, 22px);
+    height: clamp(16px, 2.5vw, 22px);
     padding: 0;
-    line-height: 14px;
-    font-size: 16px;
+    line-height: clamp(14px, 2vw, 18px);
+    font-size: clamp(14px, 1.5vw, 16px);
     text-align: center;
     background: transparent;
     border: none;
@@ -186,11 +188,11 @@
 
 .legend-item-expand {
     position: relative;
-    width: 16px;
-    height: 16px;
+    width: clamp(16px, 2.5vw, 22px);
+    height: clamp(16px, 2.5vw, 22px);
     padding: 0;
-    line-height: 14px;
-    font-size: 12px;
+    line-height: clamp(14px, 2vw, 18px);
+    font-size: clamp(12px, 1.2vw, 14px);
     text-align: center;
     background: transparent;
     border: none;
@@ -217,9 +219,9 @@
     /* Match exactly the styling of regular items */
     display: flex;
     align-items: center;
-    padding: 5px;
-    padding-right: 20px;
-    margin: 3px 0;
+    padding: clamp(4px, 0.6vw, 5px);
+    padding-right: clamp(14px, 2vw, 20px);
+    margin: clamp(2px, 0.35vw, 3px) 0;
     border-radius: 4px;
 
     border: 1px dashed #999;
@@ -232,8 +234,8 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    min-height: 24px;
-    gap: 1em;
+    min-height: clamp(22px, 3vh, 24px);
+    gap: $sqs-space-md;
 }
 
 .result-map-legend-item-info {
@@ -245,19 +247,19 @@
 .result-map-legend-item-controls {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: clamp(3px, 0.4vw, 4px);
     flex-shrink: 0; /* Don't shrink the control buttons */
 }
 
 .result-map-legend-item-expand-control {
-    padding-left: 4px;
-    padding-right: 4px;
+    padding-left: clamp(3px, 0.4vw, 4px);
+    padding-right: clamp(3px, 0.4vw, 4px);
     cursor: pointer;
 }
 
 .result-map-legend-item-close-control {
-    padding-left: 4px;
-    padding-right: 4px;
+    padding-left: clamp(3px, 0.4vw, 4px);
+    padding-right: clamp(3px, 0.4vw, 4px);
     cursor: pointer;
 }
 
@@ -270,12 +272,20 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 2px 4px;
-    margin-right: 4px;
+    padding: clamp(2px, 0.3vw, 3px) clamp(3px, 0.4vw, 4px);
+    margin-right: clamp(3px, 0.4vw, 4px);
     border-radius: 3px;
-    font-size: 11px;
+    font-size: clamp(10px, 0.5vw, 11px);
     transition: all 0.2s ease;
     cursor: help;
+    position: relative;
+    min-width: clamp(16px, 2.5vw, 20px);
+    min-height: clamp(16px, 2.5vw, 20px);
+
+    .fa-eye,
+    .fa-eye-slash {
+        font-size: 1.35em;
+    }
 
     &.zoom-visible {
         color: #4caf50;
@@ -336,8 +346,8 @@
 /* Ensure zoom control buttons are properly styled when positioned on the right */
 .ol-zoom button {
     display: block;
-    width: 2.2em;
-    height: 2.2em;
+    width: clamp(2em, 4.5vw, 2.2em);
+    height: clamp(2em, 4.5vw, 2.2em);
     margin: 0.1em 0;
     opacity: 0.8;
 }

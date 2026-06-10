@@ -3,3 +3,19 @@ $header-font: 'Rajdhani';
 $normal-font: 'Didact Gothic';
 $special-font: 'Rajdhani';
 $sead-font: 'Exo 2';
+
+// Shared responsive sizing tokens. The middle value includes viewport units so
+// dense app chrome can contract on narrow screens and breathe on larger ones.
+$sqs-font-body: clamp(13px, 0.35vw + 12px, 15px);
+$sqs-font-small: clamp(0.72rem, 0.25vw + 0.68rem, 0.9rem);
+$sqs-font-control: clamp(0.82rem, 0.25vw + 0.76rem, 1rem);
+$sqs-font-heading: clamp(1.25rem, 0.85vw + 1rem, 1.7rem);
+$sqs-space-xs: clamp(0.25rem, 0.35vw, 0.5rem);
+$sqs-space-sm: clamp(0.4rem, 0.55vw, 0.75rem);
+$sqs-space-md: clamp(0.65rem, 0.9vw, 1rem);
+$sqs-space-lg: clamp(1rem, 1.35vw, 1.5rem);
+$sqs-header-height: clamp(70px, 8vh, 87px);
+$sqs-tab-height: clamp(36px, 5vh, 43px);
+$sqs-menu-block-size: clamp(72px, 8vw, 100px);
+$sqs-menu-block-vertical-size: clamp(70px, 8vh, 87px);
+$sqs-touch-target: clamp(32px, 5vw, 44px);

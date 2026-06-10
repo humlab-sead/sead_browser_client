@@ -152,6 +152,17 @@ class MosaicDomainSamples extends MosaicTileModule {
             return;
         }
         this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
+        const anchorNodeId = `#${chartContainerId}`;
+        const containerEl = $(anchorNodeId)[0];
+        const cw = containerEl ? containerEl.offsetWidth : 0;
+        const ch = containerEl ? containerEl.offsetHeight : 0;
+        const responsiveMargin = {
+            l: Math.max(10, Math.min(50, Math.round(cw * 0.05))),
+            r: Math.max(10, Math.min(50, Math.round(cw * 0.05))),
+            b: Math.max(10, Math.min(50, Math.round(ch * 0.05))),
+            t: Math.max(10, Math.min(50, Math.round(ch * 0.05))),
+            pad: 2
+        };
         const layout = {
             barmode: 'stack',
             yaxis: { automargin: true },
@@ -159,13 +170,7 @@ class MosaicDomainSamples extends MosaicTileModule {
             paper_bgcolor: "#fff",
             autosize: true,
             showlegend: false,
-            margin: {
-                l: 50,
-                r: 50,
-                b: 50,
-                t: 50,
-                pad: 4
-            },
+            margin: responsiveMargin,
             font: {
                 family: 'Didact Gothic, sans-serif',
                 size: 14,
@@ -179,7 +184,6 @@ class MosaicDomainSamples extends MosaicTileModule {
             displaylogo: false,
             modeBarButtons: [['toImage']]
         };
-        const anchorNodeId = `#${chartContainerId}`;
         Plotly.newPlot($(anchorNodeId)[0], chartData, layout, config).then(plot => {
             this.plot = plot;
         });

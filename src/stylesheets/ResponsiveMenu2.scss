@@ -1,11 +1,13 @@
 
+@use "variables" as *;
+
 .menu-category {
 	position: relative;
 	cursor:pointer;
 	display:none; /* :none for mobile */
 	background-color: #fff;
 	color: #000;
-	padding:10px;
+	padding: $sqs-space-sm;
 }
 
 .menu-category:hover ul {
@@ -31,7 +33,7 @@
 	margin-left:0px;
 	background-color: #ccc;
 	width: 1px;
-	height: 90px;
+	height: $sqs-header-height;
 }
 
 .menu-item-dd-title:after {
@@ -57,8 +59,8 @@
 
 .menu-category-level {
 	display:flex;
-	width: 200px;
-	margin-top: 88px;
+	width: clamp(160px, 22vw, 200px);
+	margin-top: $sqs-header-height;
 	justify-content: center;
 	flex-direction: column;
 	position:fixed;
@@ -78,7 +80,7 @@
 
 .menu-category {
   display:block; /* :none for mobile */
-  font-size: 20px;
+  font-size: clamp(16px, 1.6vw, 20px);
   float:left;
 }
 
@@ -104,14 +106,14 @@ li.menu-category:hover {
 }
 
 .menu-item-level :not(:last-child) {
-	padding-bottom:5px;
+	padding-bottom: clamp(3px, 0.5vw, 5px);
 }
 
 .menu-item {
-	padding-left:5px;
-  	padding-right:5px;
+	padding-left: clamp(4px, 0.5vw, 5px);
+  	padding-right: clamp(4px, 0.5vw, 5px);
   	cursor:pointer;
-  	font-size: 16px;
+  	font-size: clamp(14px, 1vw, 16px);
 }
 
 .menu-item:hover {
@@ -122,18 +124,18 @@ li.menu-category:hover {
 
 #menu-mobile-label {
 	display:none; /*activate for mobile*/
-	font-size:30px;
+	font-size: clamp(24px, 4vw, 30px);
 }
 
 .result-subsection {
 	position:absolute;
 	right: 0px;
-	font-size:14px;
+	font-size:$sqs-font-small;
 	font-family: 'Didact Gothic';
 	color: #fff;
 	background-color: #8e4421;
-	padding-left:16px;
-	padding-right:16px;
+	padding-left: clamp(10px, 1.4vw, 16px);
+	padding-right: clamp(10px, 1.4vw, 16px);
 	z-index:2;
 	cursor:pointer;
 }
@@ -155,9 +157,9 @@ li.menu-category:hover {
 }
 
 #help-menu > .menu-category-level {
-	left: 216px;
+	left: clamp(176px, 24vw, 216px);
 }
 
 #settings-menu > .menu-category-level {
-	right: 123px;
+	right: clamp(90px, 12vw, 123px);
 }

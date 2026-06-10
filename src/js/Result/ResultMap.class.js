@@ -251,7 +251,7 @@ class ResultMap extends ResultModule {
 
 		// Add zoom indicator for aux layers
 		const zoomIndicator = layerType === 'aux' ? 
-			'<div class="layer-zoom-indicator zoom-visible" title="Layer visibility depends on zoom level"><i class="fa fa-search" aria-hidden="true"></i></div>' : '';
+			'<div class="layer-zoom-indicator zoom-visible" title="Layer visibility depends on zoom level"><i class="fa fa-eye" aria-hidden="true"></i></div>' : '';
 
 		return $(`
 			<div class="result-map-legend-item" ${dataAttributes}>
@@ -290,18 +290,18 @@ class ResultMap extends ResultModule {
 			
 			if (!layer || !this.olMap) return;
 			
-			const props = layer.getProperties();
-			const maxScaleDenominator = props.maxScaleDenominator;
+			const layerVisibility = this.getAuxLayerZoomVisibility(layer);
 			
-			if (maxScaleDenominator && $(evt.target).closest(".layer-zoom-indicator").hasClass("zoom-hidden")) {
-				// Calculate required zoom level to make layer visible
-				const metersPerUnit = this.olMap.getView().getProjection().getMetersPerUnit();
-				const requiredResolution = maxScaleDenominator / (metersPerUnit * (96 / 0.0254));
-				const targetZoom = this.olMap.getView().getZoomForResolution(requiredResolution) + 0.5; // Add small buffer
+			if (!layerVisibility.visible && $(evt.target).closest(".layer-zoom-indicator").hasClass("zoom-hidden")) {
+				const targetZoom = this.getZoomForLayerVisibility(layerVisibility);
+
+				if(targetZoom === null) {
+					return;
+				}
 				
 				// Animate to the appropriate zoom level
 				this.olMap.getView().animate({
-					zoom: Math.max(targetZoom, this.olMap.getView().getMinZoom()),
+					zoom: targetZoom,
 					duration: 500
 				});
 			}
@@ -611,28 +611,68 @@ class ResultMap extends ResultModule {
 		*/
 	}
 
-	/**
-	 * Checks if an aux layer is visible at the current zoom level
-	 * Uses maxScaleDenominator property to determine visibility
-	 */
-	isAuxLayerVisibleAtCurrentZoom(layer) {
-		if (!this.olMap || layer.getProperties().type !== "auxLayer") {
-			return true; // Non-aux layers or no map - assume visible
-		}
+	getScaleDenominatorForResolution(resolution) {
+		const metersPerUnit = this.olMap.getView().getProjection().getMetersPerUnit() || 1;
+		return resolution * metersPerUnit / 0.00028;
+	}
 
-		const props = layer.getProperties();
-		const maxScaleDenominator = props.maxScaleDenominator;
-		
-		if (!maxScaleDenominator) {
-			return true; // No scale constraint - always visible
+	getAuxLayerZoomVisibility(layer) {
+		if (!this.olMap || layer.getProperties().type !== "auxLayer") {
+			return {
+				visible: true,
+				currentResolution: null,
+				minResolution: 0,
+				maxResolution: Infinity,
+				reason: null
+			};
 		}
 
 		const currentResolution = this.olMap.getView().getResolution();
-		const metersPerUnit = this.olMap.getView().getProjection().getMetersPerUnit();
-		const currentScaleDenominator = currentResolution * metersPerUnit * (96 / 0.0254); // 96 DPI standard
+		const minResolution = typeof layer.getMinResolution == "function" ? layer.getMinResolution() : (layer.getProperties().minResolution || 0);
+		const maxResolution = typeof layer.getMaxResolution == "function" ? layer.getMaxResolution() : (layer.getProperties().maxResolution || Infinity);
+		const tooFarIn = currentResolution < minResolution;
+		const tooFarOut = currentResolution >= maxResolution;
 
-		// Layer is visible if current scale is smaller than max scale (more zoomed in)
-		return currentScaleDenominator <= maxScaleDenominator;
+		return {
+			visible: !tooFarIn && !tooFarOut,
+			currentResolution,
+			minResolution,
+			maxResolution,
+			reason: tooFarIn ? "tooFarIn" : (tooFarOut ? "tooFarOut" : null)
+		};
+	}
+
+	/**
+	 * Checks if an aux layer is visible at the current zoom level.
+	 * Uses the same resolution bounds OpenLayers uses to render the layer.
+	 */
+	isAuxLayerVisibleAtCurrentZoom(layer) {
+		return this.getAuxLayerZoomVisibility(layer).visible;
+	}
+
+	getZoomForLayerVisibility(layerVisibility) {
+		if(!this.olMap || layerVisibility.visible) {
+			return null;
+		}
+
+		const view = this.olMap.getView();
+		const minZoom = view.getMinZoom();
+		const maxZoom = view.getMaxZoom();
+		const zoomNudge = 0.25;
+		let targetZoom = null;
+
+		if(layerVisibility.reason == "tooFarOut" && Number.isFinite(layerVisibility.maxResolution)) {
+			targetZoom = view.getZoomForResolution(layerVisibility.maxResolution) + zoomNudge;
+		}
+		else if(layerVisibility.reason == "tooFarIn" && Number.isFinite(layerVisibility.minResolution)) {
+			targetZoom = view.getZoomForResolution(layerVisibility.minResolution) - zoomNudge;
+		}
+
+		if(targetZoom === null) {
+			return null;
+		}
+
+		return Math.max(minZoom, Math.min(maxZoom, targetZoom));
 	}
 
 	/**
@@ -647,26 +687,30 @@ class ResultMap extends ResultModule {
 			
 			if (!layer) return;
 
-			const isVisibleAtZoom = this.isAuxLayerVisibleAtCurrentZoom(layer);
+			const layerVisibility = this.getAuxLayerZoomVisibility(layer);
+			const isVisibleAtZoom = layerVisibility.visible;
 			const $zoomIndicator = $legendItem.find(".layer-zoom-indicator");
 			
 			const props = layer.getProperties();
+			const minScaleDenominator = props.minScaleDenominator;
 			const maxScaleDenominator = props.maxScaleDenominator;
 
 			if (isVisibleAtZoom) {
 				$zoomIndicator.removeClass("zoom-hidden").addClass("zoom-visible");
+				$zoomIndicator.find("i").removeClass("fa-eye-slash").addClass("fa-eye");
 				$zoomIndicator.attr("title", "Layer is visible at current zoom level");
 				$legendItem.removeClass("layer-zoom-limited");
 			} else {
 				$zoomIndicator.removeClass("zoom-visible").addClass("zoom-hidden");
-				if (maxScaleDenominator) {
-					const currentRes = this.olMap.getView().getResolution();
-					const metersPerUnit = this.olMap.getView().getProjection().getMetersPerUnit();
-					const currentScale = Math.round(currentRes * metersPerUnit * (96 / 0.0254));
-					$zoomIndicator.attr("title", `Zoom in further to see this layer (current scale: 1:${currentScale.toLocaleString()}, max scale: 1:${maxScaleDenominator.toLocaleString()}). Click to zoom.`);
-				} else {
-					$zoomIndicator.attr("title", "Zoom in further to see this layer. Click to zoom.");
-				}
+				$zoomIndicator.find("i").removeClass("fa-eye").addClass("fa-eye-slash");
+				const currentScale = Math.round(this.getScaleDenominatorForResolution(layerVisibility.currentResolution));
+				const actionText = layerVisibility.reason == "tooFarIn" ? "Zoom out" : "Zoom in";
+				const scaleLimits = [
+					minScaleDenominator ? `min scale: 1:${minScaleDenominator.toLocaleString()}` : null,
+					maxScaleDenominator ? `max scale: 1:${maxScaleDenominator.toLocaleString()}` : null
+				].filter(Boolean).join(", ");
+				const scaleText = scaleLimits ? ` (${scaleLimits})` : "";
+				$zoomIndicator.attr("title", `${actionText} to see this layer (current scale: 1:${currentScale.toLocaleString()}${scaleText}). Click to zoom.`);
 				$legendItem.addClass("layer-zoom-limited");
 			}
 		});

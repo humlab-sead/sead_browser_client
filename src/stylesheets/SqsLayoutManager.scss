@@ -1,5 +1,6 @@
 @use "sass:color";
 @use "./colors.scss" as *;
+@use "variables" as *;
 
 .responsive-layout-container {
     display: none;
@@ -11,11 +12,11 @@
 }
 
 #site-report-main-container .section-left {
-    height: calc(100vh - 87px - 21px);
+    height: calc(100vh - #{$sqs-header-height} - 21px);
 }
 
 #site-report-main-container .section-right {
-    height: calc(100vh - 87px - 21px);
+    height: calc(100vh - #{$sqs-header-height} - 21px);
 }
 
 .section-left {
@@ -50,7 +51,7 @@
     position: absolute;
     top: 0;
     right: 0;
-    width: 8px;
+    width: clamp(8px, 1vw, 12px);
     height: 100%;
     background-color: transparent;
     cursor: col-resize;
@@ -77,7 +78,7 @@ body.resizing .custom-resize-handle {
     right: auto;
     left: 0;  /* Position at the left edge of viewport when collapsed */
     background-color: rgba(150, 150, 150, 0.5); /* Make slightly more visible */
-    width: 8px;
+    width: clamp(8px, 1vw, 12px);
     height: 100vh; /* Full viewport height */
     z-index: 1002; /* Ensure it's above other elements */
 }
@@ -85,7 +86,7 @@ body.resizing .custom-resize-handle {
 /* Make the handle more visible when hovered */
 .handle-collapsed:hover {
     background-color: $inactive-color;
-    width: 10px; /* Slightly wider on hover for better usability */
+    width: clamp(10px, 1.2vw, 14px);
 }
 
 body.resizing {
@@ -101,7 +102,7 @@ body.resizing {
     left: 0px;
     top: 50vh;
     transform: translateY(-50%);
-    padding: 12px 8px;
+    padding: clamp(9px, 1.2vw, 12px) clamp(6px, 0.8vw, 8px);
     color: #fff;
     cursor: pointer;
     z-index: 1000;
@@ -118,13 +119,13 @@ body.resizing {
     display: flex; //flex
 	visibility: visible;
 	position: relative;
-	top: calc(50vh - 2em);
-    left: 5px;
+	top: calc(50vh - clamp(1.5em, 3vh, 2em));
+    left: 4px;
     height: auto;
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    font-size: 1.2em;
+    font-size: clamp(1em, 0.7vw + 0.9em, 1.2em);
     cursor: pointer;
     z-index: 1;
     padding-top: 0em;
@@ -134,11 +135,11 @@ body.resizing {
 .only-left-section-active {
     transform: scaleX(-1);
     position: relative;
-    margin-left: 17px;
+    margin-left: clamp(12px, 1.6vw, 17px);
 }
 
 .only-right-section-active {
-    left: 8px;
+    left: clamp(6px, 0.8vw, 8px);
 }
 
 .filter-section-toggle-button:hover {
@@ -150,7 +151,7 @@ body.resizing {
 }
 
 #filter-section-toggle-button-right {
-    margin-top: -15px;
+    margin-top: clamp(-15px, -1.2vw, -10px);
 }
 
 .only-right-section-active .filter-toggle-icon {
@@ -159,7 +160,7 @@ body.resizing {
 
 .filter-toggle-icon-container {
     position: relative;
-    left: 6px;
+    left: clamp(4px, 0.6vw, 6px);
 }
 
 #filter-section-toggle-button-left .filter-toggle-icon {
@@ -174,7 +175,7 @@ body.resizing {
 #filter-toggle-text {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
-    font-size: 0.9em;
+    font-size: clamp(0.8em, 0.35vw + 0.75em, 0.9em);
     font-weight: bold;
 }
 

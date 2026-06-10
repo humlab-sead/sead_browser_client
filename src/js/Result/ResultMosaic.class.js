@@ -46,16 +46,6 @@ class ResultMosaic extends ResultModule {
 		this.modules = [];
 		this.plotlyLayoutRegistry = new Map();
 
-		$(window).on("seadResultMenuSelection", (event, data) => {
-			if(data.selection != this.name) {
-				$("#result-mosaic-container").hide();
-			}
-			else {
-				$("#result-mosaic-container").show();
-			}
-		});
-
-		
 		//On domain change - unrender/render all tile modules
 		/*
 		this.sqs.sqsEventListen("domainChanged", (evt, newDomainName) => {
@@ -271,6 +261,18 @@ class ResultMosaic extends ResultModule {
 		});
 	}
 
+	computeResponsiveMargins(element) {
+		const w = element ? element.offsetWidth : 0;
+		const h = element ? element.offsetHeight : 0;
+		return {
+			l: Math.max(10, Math.min(50, Math.round(w * 0.05))),
+			r: Math.max(10, Math.min(50, Math.round(w * 0.05))),
+			b: Math.max(10, Math.min(50, Math.round(h * 0.05))),
+			t: Math.max(10, Math.min(50, Math.round(h * 0.05))),
+			pad: 2
+		};
+	}
+
 	relayoutRegisteredPlotlyCharts() {
 		let staleAnchors = [];
 
@@ -282,7 +284,8 @@ class ResultMosaic extends ResultModule {
 			}
 
 			try {
-				Plotly.relayout(chartNode, layout);
+				let responsiveLayout = Object.assign({}, layout, { margin: this.computeResponsiveMargins(chartNode) });
+				Plotly.relayout(chartNode, responsiveLayout);
 			}
 			catch(e) {
 				staleAnchors.push(anchorNodeId);
@@ -338,6 +341,16 @@ class ResultMosaic extends ResultModule {
 
 	isVisible() {
 		return true;
+	}
+
+	setActive(active) {
+		super.setActive(active);
+		if(!this.active) {
+			$("#result-mosaic-container").hide();
+		}
+		else {
+			$("#result-mosaic-container").css("display", "grid");
+		}
 	}
 
 	getModuleMetaByName(name) {
@@ -480,12 +493,12 @@ class ResultMosaic extends ResultModule {
 		let rows = domain.result_grid_layout[0];
 		let grid_rows_css = "";
 		for(let i = 0; i < rows; i++) {
-			grid_rows_css += "1fr ";
+			grid_rows_css += "minmax(220px, 1fr) ";
 		}
 		let cols = domain.result_grid_layout[1];
 		let grid_cols_css = "";
 		for(let i = 0; i < cols; i++) {
-			grid_cols_css += "1fr ";
+			grid_cols_css += "minmax(260px, 1fr) ";
 		}
 
 		$("#result-mosaic-container").css("grid-template-rows", grid_rows_css);
@@ -1075,6 +1088,7 @@ class ResultMosaic extends ResultModule {
 			}
 		}];
 
+		let element = $(renderIntoNode)[0];
 		let layout = {
 			title: {
 				text: chartTitle,
@@ -1087,13 +1101,7 @@ class ResultMosaic extends ResultModule {
 			paper_bgcolor: "#fff",
 			autosize: true,
 			showlegend: false,
-			margin: {
-				l: 50,
-				r: 50,
-				b: 50,
-				t: 50,
-				pad: 4
-			},
+			margin: this.computeResponsiveMargins(element),
 			font: {
 				family: 'Didact Gothic, sans-serif',
 				size: 14,
@@ -1403,6 +1411,8 @@ class ResultMosaic extends ResultModule {
 			return;
 		}
 
+		let anchorNodeId = renderIntoNode.substring(1);
+		let element = document.getElementById(anchorNodeId);
 		let layout = {
       		paper_bgcolor: "#fff",
 			showlegend: true,
@@ -1413,18 +1423,11 @@ class ResultMosaic extends ResultModule {
 				  size: 22
 				},
 			},
-			margin: {
-				l: 50,
-				r: 50,
-				b: 50,
-				t: 50,
-				pad: 2
-			},
+			margin: this.computeResponsiveMargins(element),
 			legend: { x: 1, y: 1, xanchor: 'right', yanchor: 'top', bgcolor: 'rgba(255, 255, 255, 0.5)' }
 		};
 
 		Object.assign(layout, layoutConfig);
-		let anchorNodeId = renderIntoNode.substring(1);
 		let config = {
 			responsive: true,
 			displayModeBar: false

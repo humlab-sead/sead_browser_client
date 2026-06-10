@@ -1265,7 +1265,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
         Plotly.newPlot(this.timelineDomId, [], this.plotlyLayout, config);
 
-        //this.addAllSelectedTracesToGraph();
+        this.addAllSelectedTracesToGraph();
     }
 
     initSlider() {
