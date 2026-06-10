@@ -13,3 +13,4 @@ AGENTS.md
 .playwright-browser-cache
 .playwright-mcp/
 tests/.cache/
+no-git-data
