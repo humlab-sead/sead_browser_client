@@ -278,7 +278,7 @@ class ResultMosaic extends ResultModule {
 			}
 
 			try {
-				Plotly.relayout(chartNode, layout);
+				Plotly.relayout(chartNode, { autosize: true });
 			}
 			catch(e) {
 				staleAnchors.push(anchorNodeId);
@@ -1360,7 +1360,10 @@ class ResultMosaic extends ResultModule {
 			modeBarButtons: [['toImage']]
 		}
 
-		return Plotly.newPlot($(renderIntoNode)[0], data, layout, config);
+		let anchorNodeId = renderIntoNode.substring(1);
+		let plot = await Plotly.newPlot(anchorNodeId, data, layout, config);
+		this.registerPlotlyLayout(anchorNodeId, layout);
+		return plot;
 	}
 
 	renderBarChart(renderIntoNode, chartSeries, chartTitle) {

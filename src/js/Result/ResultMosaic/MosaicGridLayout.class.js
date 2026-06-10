@@ -262,7 +262,9 @@ class MosaicGridLayout {
             return;
         }
 
-        const availableHeight = heightSource.clientHeight - this.GAP * 2 - this.GAP * (rows - 1);
+        const parentStyle = window.getComputedStyle(heightSource);
+        const parentPadV = parseFloat(parentStyle.paddingTop) + parseFloat(parentStyle.paddingBottom);
+        const availableHeight = heightSource.clientHeight - parentPadV - this.GAP * 2 - this.GAP * (rows - 1);
         if(availableHeight > 0) {
             this.ROW_H = Math.max(this.MIN_ROW_H, Math.floor(availableHeight / rows));
         }
