@@ -30,6 +30,7 @@ import "../assets/su_logo.jpg";
 import "../assets/riksbanken-logo.png";
 import "../assets/umu-logo-en.png";
 import "../assets/mal-logo.png";
+import "../assets/swedigarch-logo.png";
 import "../assets/lu-logo.png";
 
 import "../assets/icons/apple-touch-icon.png";
