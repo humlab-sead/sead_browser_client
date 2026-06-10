@@ -1189,6 +1189,10 @@ body.facet-resizing * {
   //height: calc(100vh - 130px - 70px);
   height: calc(100vh - 100px);
   margin-top: 0px;
+  /* Scroll oversized content (e.g. tall mosaic tile layouts) here instead of
+     letting it overflow and scroll the whole .section-right pane. */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /*
@@ -2727,17 +2731,39 @@ polyline{
 }
 
 #result-mosaic-container {
-  display: none; /*should be 'grid' when active*/
-  grid-template-columns: repeat(2, 1fr [mosaic-column]);
-  grid-template-rows: repeat(2, 1fr [mosaic-row]);
-  grid-gap: 1em;
-  justify-items: center;
-  align-items: center;
-  width: calc(100% - 2em);
-  height: calc(100% - 2em);
+  display: none; /* switched to 'block' when active; tiles are absolutely positioned */
+  position: relative;
+  width: 100%;
+  min-height: 400px;
   background: #fff;
-  overflow: hidden;
-  padding: 1em;
+  overflow: visible;
+  padding: 0;
+
+  /* ghost grid lines shown during drag */
+  &.mosaic-drag-active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(0,0,0,0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,0,0,0.04) 1px, transparent 1px);
+    background-size: var(--mosaic-col-w) var(--mosaic-row-h);
+    background-position: 12px 12px;
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+/* drop-preview shadow shown while dragging */
+#mosaic-drop-preview {
+  position: absolute;
+  background: rgba(20, 50, 97, 0.08);
+  border: 2px dashed rgba(20, 50, 97, 0.35);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 5;
+  display: none;
+  transition: left 0.08s, top 0.08s, width 0.08s, height 0.08s;
 }
 
 .result-mosaic-loading-indicator-container {
@@ -2769,13 +2795,51 @@ polyline{
 }
 
 .result-mosaic-tile {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  position: absolute;
   background-color: #fff;
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.15);
   border-radius: 4px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  transition: left 0.18s ease, top 0.18s ease, width 0.18s ease, height 0.18s ease,
+              box-shadow 0.15s, opacity 0.15s;
+
+  /* tile being dragged: follow cursor without transition lag */
+  &.mosaic-tile-dragging {
+    transition: box-shadow 0.15s, opacity 0.15s;
+    opacity: 0.45;
+    z-index: 1000 !important;
+  }
+}
+
+/* resize handle – bottom-right grip */
+.mosaic-tile-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  cursor: se-resize;
+  z-index: 10;
+  flex-shrink: 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 9px;
+    height: 9px;
+    border-right: 2px solid #c0c0c0;
+    border-bottom: 2px solid #c0c0c0;
+    border-radius: 0 0 2px 0;
+  }
+
+  &:hover::after {
+    border-color: colors.$base-color;
+  }
 }
 
 .result-mosaic-tile > h2 {
@@ -2791,16 +2855,20 @@ polyline{
 }
 
 .result-mosaic-graph-container {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 1;
   width: 100%;
   height: 100%;
+  min-height: 0;
   padding: 0;
+  overflow: hidden;
 }
 
 .result-mosaic-tile-chart-selector {
-  width: 100%;
+  width: auto;
+  max-width: 12em;
   font-size: 0.8em;
+  cursor: pointer;
 }
 
 .result-map-render-container {
@@ -5814,15 +5882,37 @@ a.ms-selectall:hover {
   min-height: 0;
 }
 
+/* tile header – also serves as the drag handle, and holds the title,
+   the chart selector and the export button */
 .mosaic-tile-header {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5em;
-  padding: 0.55em 0.75em;
+  padding: 0.4em 0.6em;
+  min-height: 28px;
   background: color.adjust(colors.$pane-bg-color, $lightness: 6%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  cursor: grab;
+  user-select: none;
+
+  &:active { cursor: grabbing; }
+
+  .mosaic-tile-title {
+    flex: 1 1 auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* chart selector wrapper */
+  h2 {
+    margin: 0;
+    font-size: 0.8em;
+    font-weight: normal;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
 }
 
 .mosaic-tile-chart {
@@ -5864,6 +5954,31 @@ a.ms-selectall:hover {
   align-items: center;
   justify-content: center;
   //background: rgba(128, 255, 128, 0.2);
+}
+
+/* Mutual Climatic Range tile: a flexing chart area above a fixed-height coverage bar.
+   The wrapper takes all remaining height so the canvas is sized to its real box, and
+   the coverage bar always keeps its own reserved space below it. */
+.mcr-tile-content {
+  box-sizing: border-box;
+  gap: 0.25em;
+  padding: 0.25em 0.5em 0.4em;
+}
+
+.mcr-chart-wrapper {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+
+  canvas {
+    display: block;
+  }
+}
+
+.mcr-tile-content > .tile-coverage-container {
+  flex: 0 0 auto;
 }
 
 .light-theme-button {

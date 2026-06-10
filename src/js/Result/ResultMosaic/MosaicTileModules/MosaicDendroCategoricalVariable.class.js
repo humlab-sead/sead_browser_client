@@ -128,9 +128,6 @@ class MosaicDendroCategoricalVariable extends DendroBaseModule {
 
         const wrapperHtml = `
             <div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-header">
-                    <h3 class="mosaic-tile-title">${data.label}</h3>
-                </div>
                 <div class="mosaic-tile-charts">
                     <div id="chart-${varId}" class="tile-chart-container"></div>
                     <div id="coverage-${varId}" class="tile-coverage-container"></div>
@@ -138,6 +135,7 @@ class MosaicDendroCategoricalVariable extends DendroBaseModule {
             </div>
         `;
         $(this.renderIntoNode).append(wrapperHtml);
+        this.setMosaicTileTitle(data.label);
 
         // Create Plotly donut chart
         const chartRef = await this.createDonutChart(`chart-${varId}`, data.categories, colors, total, data.label);

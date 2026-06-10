@@ -26,6 +26,7 @@ class MosaicEcoCodesModule extends MosaicTileModule {
         super();
         this.sqs = sqs;
         this.title = "BUGS eco codes";
+        this.description = "Shows the distribution of BUGS eco-code categories across the selected sites, reflecting ecological preferences of identified taxa.";
 		this.name = "mosaic-ecocodes";
 		this.domains = [];
         this.pendingRequestPromise = null;
@@ -61,14 +62,10 @@ class MosaicEcoCodesModule extends MosaicTileModule {
         const chartContainerId = `chart-container-${varId}`;
         const tileHtml = `
             <div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-header">
-                    <h3 class="mosaic-tile-title">${this.title}</h3>
-                </div>
                 <div class="mosaic-tile-chart" id="${chartContainerId}" style="display: flex; align-items: stretch;"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);
-        this.sqs.tooltipManager.registerTooltip(`#${varId} .mosaic-tile-title`, "Shows the distribution of BUGS eco-code categories across the selected sites, reflecting ecological preferences of identified taxa.", { drawSymbol: true, anchorPoint: 'symbol' });
 
         // Show loading indicator on the chart container only
         this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);

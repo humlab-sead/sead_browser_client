@@ -5,11 +5,11 @@ import SqsLayoutManager from './SqsLayoutManager.class.js';
 import MainMenu from './MainMenu.class.js'
 import SqsMenuManager from './SqsMenuManager.class';
 import ResultManager from './Result/ResultManager.class.js';
-import ResultMap from './Result/ResultMap.class.js'
-import ResultTable from './Result/ResultTable.class.js'
-import ResultMosaic from './Result/ResultMosaic.class.js'
-import ResultGlobe from './Result/ResultGlobe.class.js'
-import ResultLab from './Result/ResultLab.class.js';
+import ResultMap from './Result/ResultMap/ResultMap.class.js'
+import ResultTable from './Result/ResultTable/ResultTable.class.js'
+import ResultMosaic from './Result/ResultMosaic/ResultMosaic.class.js'
+import ResultGlobe from './Result/ResultGlobe/ResultGlobe.class.js'
+import ResultLab from './Result/ResultLab/ResultLab.class.js';
 import TaxaModule from './Common/TaxaModule.class.js'
 import StateManager from './StateManager.class.js';
 import DialogManager from './DialogManager.class.js';

@@ -140,9 +140,6 @@ class MosaicDendroTreeAge extends DendroBaseModule {
         
         const wrapperHtml = `
             <div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-header">
-                    <h3 class="mosaic-tile-title">${this.title}</h3>
-                </div>
                 <div class="mosaic-tile-charts">
                     <canvas id="chart-${varId}" class="tile-chart-container"></canvas>
                     <div id="coverage-${varId}" class="tile-coverage-container"></div>

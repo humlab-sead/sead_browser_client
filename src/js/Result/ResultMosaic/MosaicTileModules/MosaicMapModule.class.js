@@ -1,11 +1,12 @@
 import MosaicTileModule from "./MosaicTileModule.class";
-import ResultMap from "../ResultMap.class";
+import ResultMap from "../../ResultMap/ResultMap.class";
 
 class MosaicMapModule extends MosaicTileModule {
     constructor(sqs) {
         super();
         this.sqs = sqs;
         this.title = "Site distribution";
+        this.description = "Shows the geographic distribution of selected sites on a map.";
 		this.name = "mosaic-map";
         this.domains = ["*"];
         this.resultMap = null;
@@ -30,14 +31,10 @@ class MosaicMapModule extends MosaicTileModule {
         const mapContainerId = `map-container-${varId}`;
         const tileHtml = `
             <div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-header">
-                    <h3 class="mosaic-tile-title">${this.title}</h3>
-                </div>
                 <div class="map-tile-map" id="${mapContainerId}" style="flex: 1 1 0; min-height: 200px; width: 100%;"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);
-        this.sqs.tooltipManager.registerTooltip(`#${varId} .mosaic-tile-title`, "Shows the geographic distribution of selected sites on a map.", { drawSymbol: true, anchorPoint: 'symbol' });
 
         // Render the map into the inner map container
         if(this.resultMap == null) {

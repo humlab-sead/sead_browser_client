@@ -1,6 +1,6 @@
-import ResultModule from './ResultModule.class.js'
-import Config from '../../config/config.json';
-import "../../../node_modules/cesium/Build/Cesium/Widgets/widgets.css";
+import ResultModule from '../ResultModule.class.js'
+import Config from '../../../config/config.json';
+import "../../../../node_modules/cesium/Build/Cesium/Widgets/widgets.css";
 
 /*
 * Class: ResultModule

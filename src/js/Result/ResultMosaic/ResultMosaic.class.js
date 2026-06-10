@@ -1,6 +1,7 @@
-//import Config from '../../config/config.js'
-import ResultModule from './ResultModule.class.js'
-//import ResultMap from "./ResultMap.class";
+//import Config from '../../../config/config.js'
+import ResultModule from '../ResultModule.class.js'
+import MosaicGridLayout from './MosaicGridLayout.class.js'
+//import ResultMap from "../ResultMap/ResultMap.class";
 
 import MosaicMapModule from "./MosaicTileModules/MosaicMapModule.class";
 import MosaicSampleMethodsModule from "./MosaicTileModules/MosaicSampleMethodsModule.class";
@@ -44,6 +45,8 @@ class ResultMosaic extends ResultModule {
 		this.renderPromises = [];
 		this.modules = [];
 		this.plotlyLayoutRegistry = new Map();
+		this.gridLayout = new MosaicGridLayout();
+		this.tileLayout = []; // runtime tile descriptors [{ id, col, row, w, h, minW, minH }]
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			if(data.selection != this.name) {
@@ -470,19 +473,24 @@ class ResultMosaic extends ResultModule {
 	}
 	
 	applyDomainGridLayout(domain) {
-		let rows = domain.result_grid_layout[0];
-		let grid_rows_css = "";
-		for(let i = 0; i < rows; i++) {
-			grid_rows_css += "1fr ";
-		}
-		let cols = domain.result_grid_layout[1];
-		let grid_cols_css = "";
-		for(let i = 0; i < cols; i++) {
-			grid_cols_css += "1fr ";
-		}
+		// Switch from CSS grid to absolute-positioning tile window manager.
+		// The container height is maintained dynamically by updateContainerHeight().
+		let container = $("#result-mosaic-container");
+		container.css({
+			"display": "block",
+			"position": "relative",
+			"grid-template-rows": "",
+			"grid-template-columns": "",
+			"grid-gap": "",
+			"justify-items": "",
+			"align-items": "",
+			"overflow": "visible",
+		});
 
-		$("#result-mosaic-container").css("grid-template-rows", grid_rows_css);
-		$("#result-mosaic-container").css("grid-template-columns", grid_cols_css);
+		// Ensure the drop-preview element exists
+		if ($("#mosaic-drop-preview").length === 0) {
+			container.append("<div id='mosaic-drop-preview'></div>");
+		}
 	}
 
 	getGridBoxId(moduleConf) {
@@ -593,56 +601,63 @@ class ResultMosaic extends ResultModule {
 	}
 
 	renderGridModules(resultGridModules) {
-		/*
-		for(let key in this.modules) {
-			if(this.modules[key].module != null) {
-				this.modules[key].module.unrender();
-			}
-		}
-		*/
+		let domain = this.sqs.domainManager.getActiveDomain();
+		const domainRows = domain.result_grid_layout[0];
+		const domainCols = domain.result_grid_layout[1];
 
+		// Build initial tile layout state from config positions
+		this.tileLayout = [];
 		resultGridModules.forEach(mConf => {
-			if(typeof mConf.default == "undefined" || mConf.default == true) {
-				let mosaicTileId = nanoid();
-				mConf.grid_box_id = this.getGridBoxId(mConf);
-				this.renderGridModule(mConf, mosaicTileId).then(() => {
-					this.ensureMosaicTileTitleTooltip(mosaicTileId, mConf);
-					if(this.sqs.config.showMosaicExportButtons) {
-						let exportButton = $("<div></div>").addClass("result-export-button-mosaic").attr("title", "Export").html("<i class='fa fa-download' aria-hidden='true'></i>");
-						let mosaicHeader = $("#"+mosaicTileId+" .mosaic-tile-header").first();
-						if(mosaicHeader.length > 0) {
-							mosaicHeader.append(exportButton);
-						}
-						else {
-							$("#"+mosaicTileId).append(exportButton);
-						}
-						this.bindExportModuleDataToButton("#"+mosaicTileId+" .result-export-button-mosaic", mConf.module);
-					}
-				});
+			if (typeof mConf.default == "undefined" || mConf.default == true) {
+				const mosaicTileId = nanoid();
+				mConf.grid_box_id  = this.getGridBoxId(mConf);
+				mConf.mosaicTileId = mosaicTileId;
+
+				const descriptor = this.gridLayout.tileFromModuleConf(mConf, domainRows, domainCols, mosaicTileId, this.tileLayout);
+				mConf.tileDescriptor = descriptor;
+				this.tileLayout.push(descriptor);
 			}
 		});
 
-		//Save currently rendered modules to registry
+		// Render each tile
+		const renderPromises = [];
 		resultGridModules.forEach(mConf => {
-			for(let key in this.modules) {
-				if(this.modules[key].name == mConf.module_name) {
+			if (typeof mConf.default == "undefined" || mConf.default == true) {
+				renderPromises.push(
+					this.renderGridModule(mConf, mConf.mosaicTileId).then(() => {
+						this.ensureMosaicTileTitleTooltip(mConf.mosaicTileId, mConf);
+
+						// Module selector goes inside the drag handle
+						let moduleSelectionOptions = resultGridModules.map(m => {
+							let moduleMeta = this.getModuleMetaByName(m.module_name);
+							return { name: m.module_name, title: moduleMeta ? moduleMeta.title : m.module_name };
+						});
+						let titleSelectHtml = this.renderGridModuleSelector(resultGridModules, mConf, mConf.grid_box_id, moduleSelectionOptions);
+						if (titleSelectHtml) {
+							$("#"+mConf.mosaicTileId+" .mosaic-tile-drag-handle").append(titleSelectHtml);
+						}
+
+						if (this.sqs.config.showMosaicExportButtons) {
+							let exportButton = $("<div></div>").addClass("result-export-button-mosaic").attr("title", "Export").html("<i class='fa fa-download' aria-hidden='true'></i>");
+							$("#"+mConf.mosaicTileId+" .mosaic-tile-drag-handle").append(exportButton);
+							this.bindExportModuleDataToButton("#"+mConf.mosaicTileId+" .result-export-button-mosaic", mConf.module);
+						}
+					})
+				);
+			}
+		});
+
+		Promise.all(renderPromises).then(() => {
+			this.updateContainerHeight();
+		});
+
+		// Save module instances to registry
+		resultGridModules.forEach(mConf => {
+			for (let key in this.modules) {
+				if (this.modules[key].name == mConf.module_name) {
 					this.modules[key].module = mConf.module;
 				}
 			}
-		});
-
-		let moduleSelectionOptions = [];
-		resultGridModules.forEach(mConf => {
-			let moduleMeta = this.getModuleMetaByName(mConf.default_module);
-			moduleSelectionOptions.push({
-				name: mConf.default_module,
-				title: moduleMeta.title
-			});
-		});
-
-		resultGridModules.forEach(mConf => {
-			let titleSelectHtml = this.renderGridModuleSelector(resultGridModules, mConf, mConf.grid_box_id, moduleSelectionOptions);
-			$("#"+mConf.grid_box_id).parent().append(titleSelectHtml);
 		});
 
 		this.bindGridModuleSelectionCallbacks();
@@ -652,27 +667,258 @@ class ResultMosaic extends ResultModule {
 		let module = this.getInstanceOfModule(moduleConf.module_name);
 
 		let tileNode = $("<div id='"+mosaicTileId+"' class='result-mosaic-tile'></div>");
-		if(!module) {
-			tileNode.append("<h2>NoSuchModuleError - "+moduleConf.module_name+"</h2>");
-			tileNode.append("<div id='"+module.name+"' class='result-mosaic-graph-container'></div>");
-			tileNode.css("grid-row", moduleConf.grid_row);
-			tileNode.css("grid-column", moduleConf.grid_column);
+
+		if (!module) {
+			tileNode.append("<div class='mosaic-tile-header mosaic-tile-drag-handle'><h3 class='mosaic-tile-title'>NoSuchModuleError - "+moduleConf.module_name+"</h3></div>");
+			tileNode.append("<div class='result-mosaic-graph-container'></div>");
 		}
 		else {
 			moduleConf.module = module;
 			moduleConf.moduleInstanceId = nanoid();
-			tileNode.append("<div id='"+moduleConf.grid_box_id+"' module-instance-id='"+moduleConf.moduleInstanceId+"' module-name='"+moduleConf.module_name+"' class='result-mosaic-graph-container'></div>");
-			tileNode.css("grid-row", moduleConf.grid_row);
-			tileNode.css("grid-column", moduleConf.grid_column);
+
+			// The header doubles as the drag handle and holds the title, the chart
+			// selector and the export button. Modules render only their chart into the
+			// graph container; dynamic-title modules update the title via setMosaicTileTitle().
+			let registeredMeta = this.getModuleMetaByName(moduleConf.module_name);
+			let initialTitle = module.title || (registeredMeta ? registeredMeta.title : "");
+			let header = $("<div class='mosaic-tile-header mosaic-tile-drag-handle'></div>");
+			$("<h3 class='mosaic-tile-title'></h3>").text(initialTitle).appendTo(header);
+			let graphContainer = $("<div id='"+moduleConf.grid_box_id+"' module-instance-id='"+moduleConf.moduleInstanceId+"' module-name='"+moduleConf.module_name+"' class='result-mosaic-graph-container'></div>");
+			let resizeHandle = $("<div class='mosaic-tile-resize-handle' title='Drag to resize'></div>");
+
+			tileNode.append(header);
+			tileNode.append(graphContainer);
+			tileNode.append(resizeHandle);
+
+			// Apply initial absolute position (no transition on first placement)
+			this.applyTileGeometry(tileNode[0], moduleConf.tileDescriptor, false);
+
 			$('#result-mosaic-container').append(tileNode);
+
+			this.initTileDrag(tileNode[0], moduleConf);
+			this.initTileResize(tileNode[0], moduleConf);
+
 			await module.render("#"+moduleConf.grid_box_id);
 		}
-		
 	}
 
 	unrenderGridModules() {
 		console.warn("Unrendering grid modules - not implemented");
 	}
+
+	// ─── tiled window manager ─────────────────────────────────────────────────
+
+	/**
+	 * Apply absolute pixel geometry to a tile DOM element from its grid descriptor.
+	 * @param {HTMLElement} el
+	 * @param {{ col, row, w, h }} descriptor
+	 * @param {boolean} [animate=true]
+	 */
+	applyTileGeometry(el, descriptor, animate = true) {
+		const container = document.getElementById("result-mosaic-container");
+		if (!container) return;
+		const { x, y, width, height } = this.gridLayout.gridToPixel(
+			descriptor.col, descriptor.row, descriptor.w, descriptor.h, container
+		);
+		if (!animate) {
+			el.style.transition = "none";
+		}
+		el.style.left   = x + "px";
+		el.style.top    = y + "px";
+		el.style.width  = width + "px";
+		el.style.height = height + "px";
+		if (!animate) {
+			// Re-enable transition on next frame so subsequent moves animate
+			requestAnimationFrame(() => { el.style.transition = ""; });
+		}
+	}
+
+	/**
+	 * Re-position all tiles to their current layout state.
+	 * @param {string|null} [skipId] - tile id to skip (the one being dragged)
+	 */
+	syncAllTiles(skipId = null) {
+		this.tileLayout.forEach(descriptor => {
+			if (descriptor.id === skipId) return;
+			const el = document.getElementById(descriptor.id);
+			if (el) this.applyTileGeometry(el, descriptor, true);
+		});
+		this.updateContainerHeight();
+	}
+
+	updateContainerHeight() {
+		const container = document.getElementById("result-mosaic-container");
+		if (!container) return;
+		const needed = this.gridLayout.getRequiredHeight(this.tileLayout);
+		container.style.minHeight = needed + "px";
+	}
+
+	updateCSSVars() {
+		const container = document.getElementById("result-mosaic-container");
+		if (!container) return;
+		const gl = this.gridLayout;
+		const cw = gl.getColWidth(container);
+		container.style.setProperty("--mosaic-col-w", (cw + gl.GAP) + "px");
+		container.style.setProperty("--mosaic-row-h", (gl.ROW_H + gl.GAP) + "px");
+	}
+
+	configureGridLayoutForDomain(domain) {
+		const container = document.getElementById("result-mosaic-container");
+		this.gridLayout.configureForDomain(domain, container);
+		this.updateCSSVars();
+	}
+
+	initTileDrag(el, moduleConf) {
+		const handle   = el.querySelector(".mosaic-tile-drag-handle");
+		const preview  = document.getElementById("mosaic-drop-preview");
+		const container = document.getElementById("result-mosaic-container");
+		const descriptor = moduleConf.tileDescriptor;
+
+		handle.addEventListener("mousedown", (e) => {
+			// Don't start drag when clicking on interactive elements inside the handle
+			if (e.target.closest("select, button, a, .result-export-button-mosaic")) return;
+			e.preventDefault();
+
+			const rect    = el.getBoundingClientRect();
+			const offsetX = e.clientX - rect.left;
+			const offsetY = e.clientY - rect.top;
+
+			el.classList.add("mosaic-tile-dragging");
+			container.classList.add("mosaic-drag-active");
+			if (preview) preview.style.display = "block";
+
+			// Snapshot layout so we can replay from a clean state each mousemove
+			const snapshot = this.tileLayout.map(t => ({ ...t }));
+			const startDescriptor = snapshot.find(t => t.id === descriptor.id);
+
+			let lastCol = descriptor.col;
+			let lastRow = descriptor.row;
+
+			const onMove = (e) => {
+				const cRect = container.getBoundingClientRect();
+				const rawX  = e.clientX - cRect.left - offsetX;
+				const rawY  = e.clientY - cRect.top  - offsetY;
+
+				const { col, row } = this.gridLayout.tilePixelToGrid(rawX, rawY, descriptor, startDescriptor, snapshot, container);
+
+				if (col !== lastCol || row !== lastRow) {
+					lastCol = col;
+					lastRow = row;
+
+					// Restore snapshot then apply move so collisions solve from clean state
+					this.tileLayout = snapshot.map(t => ({ ...t }));
+					const updated = this.gridLayout.applyLayout(
+						this.tileLayout, descriptor.id, col, row, descriptor.w, descriptor.h
+					);
+					if (updated) {
+						this.tileLayout = updated;
+						// Update the descriptor reference in moduleConf
+						const committed = this.tileLayout.find(t => t.id === descriptor.id);
+						Object.assign(descriptor, committed);
+					}
+
+					this.syncAllTiles(descriptor.id);
+				}
+
+				// Show drop-preview at snapped position
+				if (preview) {
+					const snapped = this.tileLayout.find(t => t.id === descriptor.id);
+					if (snapped) {
+						const pix = this.gridLayout.gridToPixel(
+							snapped.col, snapped.row, snapped.w, snapped.h, container
+						);
+						preview.style.left   = pix.x + "px";
+						preview.style.top    = pix.y + "px";
+						preview.style.width  = pix.width + "px";
+						preview.style.height = pix.height + "px";
+					}
+				}
+
+				// The dragged tile follows the cursor freely
+				const cRect2 = container.getBoundingClientRect();
+				el.style.left = (e.clientX - cRect2.left - offsetX) + "px";
+				el.style.top  = (e.clientY - cRect2.top  - offsetY) + "px";
+			};
+
+			const onUp = () => {
+				document.removeEventListener("mousemove", onMove);
+				document.removeEventListener("mouseup", onUp);
+
+				el.classList.remove("mosaic-tile-dragging");
+				container.classList.remove("mosaic-drag-active");
+				if (preview) preview.style.display = "none";
+
+				// Snap to committed grid position with animation
+				const committed = this.tileLayout.find(t => t.id === descriptor.id);
+				if (committed) this.applyTileGeometry(el, committed, true);
+
+				this.updateContainerHeight();
+
+				// Notify Plotly charts of potential size change
+				this.relayoutRegisteredPlotlyCharts();
+				this.sqs.sqsEventDispatch("layoutResize");
+			};
+
+			document.addEventListener("mousemove", onMove);
+			document.addEventListener("mouseup", onUp);
+		});
+	}
+
+	initTileResize(el, moduleConf) {
+		const handle    = el.querySelector(".mosaic-tile-resize-handle");
+		const container = document.getElementById("result-mosaic-container");
+		const descriptor = moduleConf.tileDescriptor;
+
+		handle.addEventListener("mousedown", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+
+			const startX   = e.clientX;
+			const startY   = e.clientY;
+			const startW   = descriptor.w;
+			const startH   = descriptor.h;
+			const snapshot = this.tileLayout.map(t => ({ ...t }));
+
+			el.style.zIndex = 1000;
+
+			const onMove = (e) => {
+				const gl = this.gridLayout;
+				const cw = gl.getColWidth(container);
+				const dx = e.clientX - startX;
+				const dy = e.clientY - startY;
+
+				const newW = Math.max(descriptor.minW, Math.round(startW + dx / (cw + gl.GAP)));
+				const newH = Math.max(descriptor.minH, Math.round(startH + dy / (gl.ROW_H + gl.GAP)));
+
+				this.tileLayout = snapshot.map(t => ({ ...t }));
+				const updated = gl.applyLayout(
+					this.tileLayout, descriptor.id, descriptor.col, descriptor.row, newW, newH
+				);
+				if (updated) {
+					this.tileLayout = updated;
+					const committed = this.tileLayout.find(t => t.id === descriptor.id);
+					Object.assign(descriptor, committed);
+				}
+
+				this.syncAllTiles(descriptor.id);
+				this.applyTileGeometry(el, descriptor, false);
+			};
+
+			const onUp = () => {
+				document.removeEventListener("mousemove", onMove);
+				document.removeEventListener("mouseup", onUp);
+				el.style.zIndex = "";
+				this.updateContainerHeight();
+				this.relayoutRegisteredPlotlyCharts();
+				this.sqs.sqsEventDispatch("layoutResize");
+			};
+
+			document.addEventListener("mousemove", onMove);
+			document.addEventListener("mouseup", onUp);
+		});
+	}
+
+	// ─── end tiled window manager ──────────────────────────────────────────────
 
 	renderGridModuleSelector(resultGridModules, moduleConf, grid_box_id, options) {
 		// Check if the current module wants to show the chart selector
@@ -713,11 +959,14 @@ class ResultMosaic extends ResultModule {
 
 	bindGridModuleSelectionCallbacks() {
 		$(".result-mosaic-tile-chart-selector").on("change", async (evt) => {
-			let mosaicTileNode = $(evt.target).parent().parent();
+			let mosaicTileNode = $(evt.target).closest(".result-mosaic-tile");
 			let graphContainer = $(".result-mosaic-graph-container", mosaicTileNode);
 			let gridBoxId = graphContainer.attr("id");
 			let currentModuleInstanceId = graphContainer.attr("module-instance-id")
 			let currentModuleMeta = this.getModuleMetaByInstanceId(currentModuleInstanceId);
+			if(!currentModuleMeta || !currentModuleMeta.module) {
+				return;
+			}
 			await currentModuleMeta.module.unrender();
 
 			let selectedModuleName = $(evt.target).val();
@@ -792,20 +1041,25 @@ class ResultMosaic extends ResultModule {
 	 */
 	renderData() {
 		super.render();
-		//this.unrender();
 		$('#result-mosaic-container').show();
-		$('#result-mosaic-container').css("display", "grid");
 
 		let domain = this.sqs.domainManager.getActiveDomain();
-		//let userConfig = this.sqs.loadUserSettings();
 		this.applyDomainGridLayout(domain);
 
-		if($(".result-mosaic-tile").length == 0) {
+		this.configureGridLayoutForDomain(domain);
+
+		if ($(".result-mosaic-tile").length === 0) {
 			this.renderGridModules(domain.result_grid_modules);
 		}
 		else {
 			this.updateGridModules(domain.result_grid_modules);
 		}
+
+		// Keep CSS vars and tile positions in sync on window resize
+		$(window).off("resize.mosaicGrid").on("resize.mosaicGrid", () => {
+			this.configureGridLayoutForDomain(this.sqs.domainManager.getActiveDomain());
+			this.syncAllTiles();
+		});
 	}
 
 	prepareChartData(data_key_name, data_value_name, data) {
@@ -1672,6 +1926,8 @@ class ResultMosaic extends ResultModule {
 				this.cleanupPlotlyChartsInContainer("#result-mosaic-container");
 				this.plotlyLayoutRegistry.clear();
 				this.sqs.sqsEventUnlisten("layoutResize", this);
+				$(window).off("resize.mosaicGrid");
+				this.tileLayout = [];
 
 				console.log("Unrendered all modules, clearing container");
 				$("#result-mosaic-container").html("");

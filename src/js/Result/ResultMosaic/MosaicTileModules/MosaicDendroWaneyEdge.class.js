@@ -132,9 +132,6 @@ class MosaicDendroWaneyEdge extends DendroBaseModule {
 
         const wrapperHtml = `
             <div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-header">
-                    <h3 class="mosaic-tile-title">${this.label}</h3>
-                </div>
                 <div class="mosaic-tile-charts">
                     <div id="chart-${varId}" class="tile-chart-container"></div>
                     <div id="coverage-${varId}" class="tile-coverage-container"></div>
@@ -142,6 +139,7 @@ class MosaicDendroWaneyEdge extends DendroBaseModule {
             </div>
         `;
         $(this.renderIntoNode).append(wrapperHtml);
+        this.setMosaicTileTitle(this.label);
 
         // Map categories to colors
         const categoryColors = data.categories.map(cat => colorMap[cat.name] || '#999');

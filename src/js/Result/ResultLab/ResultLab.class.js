@@ -1,16 +1,16 @@
-import ResultModule from './ResultModule.class.js'
-import "../../../node_modules/cesium/Build/Cesium/Widgets/widgets.css";
+import ResultModule from '../ResultModule.class.js'
+import "../../../../node_modules/cesium/Build/Cesium/Widgets/widgets.css";
 
 import "@nobleclem/jquery-multiselect";
 import "@nobleclem/jquery-multiselect/jquery.multiselect.css";
 
-import AbundanceData from './DatahandlingModules/AbundanceData.class.js';
-import DendroCeramicsData from './DatahandlingModules/DendroCeramicsData.class.js';
-import DatingData from './DatahandlingModules/DatingData.class.js';
-import IsotopeData from './DatahandlingModules/IsotopeData.class.js';
-import MeasuredValuesData from './DatahandlingModules/MeasuredValuesData.class.js';
-import EntityAgesData from './DatahandlingModules/EntityAgesData.class.js';
-import SiteExportWorker from '../Workers/SiteExport.worker.js';
+import AbundanceData from '../DatahandlingModules/AbundanceData.class.js';
+import DendroCeramicsData from '../DatahandlingModules/DendroCeramicsData.class.js';
+import DatingData from '../DatahandlingModules/DatingData.class.js';
+import IsotopeData from '../DatahandlingModules/IsotopeData.class.js';
+import MeasuredValuesData from '../DatahandlingModules/MeasuredValuesData.class.js';
+import EntityAgesData from '../DatahandlingModules/EntityAgesData.class.js';
+import SiteExportWorker from '../../Workers/SiteExport.worker.js';
 
 /*
 * Class: ResultModule

@@ -1,4 +1,4 @@
-import Config from "../../../config/config.json";
+import Config from "../../../../config/config.json";
 import MosaicTileModule from "./MosaicTileModule.class";
 
 class MosaicSpeciesModule extends MosaicTileModule {

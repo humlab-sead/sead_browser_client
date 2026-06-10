@@ -1,7 +1,7 @@
-//import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
-import ResultModule from './ResultModule.class.js'
-import ApiWsChannel from '../ApiWsChannel.class.js'
-import "../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";
+//import '../../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
+import ResultModule from '../ResultModule.class.js'
+import ApiWsChannel from '../../ApiWsChannel.class.js'
+import "../../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";
 import { nanoid } from "nanoid";
 import { Tabulator, FormatModule, SelectRowModule, InteractionModule, TooltipModule, SortModule, ResponsiveLayoutModule, ResizeTableModule } from "tabulator-tables";
 

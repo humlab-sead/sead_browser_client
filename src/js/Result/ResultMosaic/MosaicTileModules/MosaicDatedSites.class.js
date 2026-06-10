@@ -242,9 +242,6 @@ class MosaicDatedSitesModule extends MosaicTileModule {
 
     const tileHtml = `
       <div class="mosaic-tile-content" id="${varId}">
-        <div class="mosaic-tile-header">
-          <h3 class="mosaic-tile-title">${this.title}</h3>
-        </div>
         <div class="mosaic-tile-chart" id="${chartContainerId}"></div>
       </div>
     `;

@@ -1,8 +1,8 @@
 //import * as d3 from 'd3';
-//import Config from '../../config/config.js'
-import ResultModule from './ResultModule.class.js'
-import TimelineFacet from '../TimelineFacet.class.js';
-import SqsMenu from '../SqsMenu.class';
+//import Config from '../../../config/config.js'
+import ResultModule from '../ResultModule.class.js'
+import TimelineFacet from '../../TimelineFacet.class.js';
+import SqsMenu from '../../SqsMenu.class';
 
 /*OpenLayers imports*/
 import Map from 'ol/Map';
@@ -18,8 +18,8 @@ import { Attribution, Zoom } from 'ol/control';
 import XYZ from 'ol/source/XYZ';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
-import Config from '../../config/config.json';
-import ResultMapLayers from './ResultMap/ResultMapLayers.class.js';
+import Config from '../../../config/config.json';
+import ResultMapLayers from './ResultMapLayers.class.js';
 import { set } from 'lodash';
 
 

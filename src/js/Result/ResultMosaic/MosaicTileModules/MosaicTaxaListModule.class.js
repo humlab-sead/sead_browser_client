@@ -5,6 +5,7 @@ class MosaicTaxaListModule extends MosaicTileModule {
         super();
         this.sqs = sqs;
         this.title = "Top taxa";
+        this.description = "Ranked list of the most frequently occurring taxa across the selected sites.";
 		this.name = "mosaic-taxa-list";
 		this.domains = ["general", "palaeo", "archaeobotany"];
         this.pendingRequestPromise = null;
@@ -36,14 +37,10 @@ class MosaicTaxaListModule extends MosaicTileModule {
         const tableContainerId = `table-container-${varId}`;
         const tileHtml = `
             <div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-header">
-                    <h3 class="mosaic-tile-title">${this.title}</h3>
-                </div>
                 <div class="taxa-list-tile-table" id="${tableContainerId}" style="flex: 1 1 0; width: 100%; overflow-y: auto;"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);
-        this.sqs.tooltipManager.registerTooltip(`#${varId} .mosaic-tile-title`, "Ranked list of the most frequently occurring taxa across the selected sites.", { drawSymbol: true, anchorPoint: 'symbol' });
 
         this.sqs.setLoadingIndicator(`#${tableContainerId}`, true);
 

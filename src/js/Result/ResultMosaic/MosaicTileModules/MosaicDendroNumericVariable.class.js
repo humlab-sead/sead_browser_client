@@ -138,9 +138,6 @@ class MosaicDendroNumericVariable extends DendroBaseModule {
 
         const wrapperHtml = `
             <div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-header">
-                    <h3 class="mosaic-tile-title">${data.label}</h3>
-                </div>
                 <div class="mosaic-tile-charts">
                     <canvas id="chart-${varId}" class="tile-chart-container"></canvas>
                     <div id="coverage-${varId}" class="tile-coverage-container"></div>
@@ -148,6 +145,7 @@ class MosaicDendroNumericVariable extends DendroBaseModule {
             </div>
         `;
         $(this.renderIntoNode).append(wrapperHtml);
+        this.setMosaicTileTitle(data.label);
 
         const ctx = document.getElementById(`chart-${varId}`).getContext('2d');
         const chart = new Chart(ctx, {

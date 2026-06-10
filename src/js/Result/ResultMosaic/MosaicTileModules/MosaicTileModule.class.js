@@ -18,6 +18,20 @@ class MosaicTileModule {
         this.resizeHandler = this.handleResize.bind(this);
     }
 
+    /**
+     * Set the title shown in this tile's shared header bar.
+     * The header is owned by ResultMosaic and lives on the tile root, not inside
+     * the module's render node — so modules with a dynamic title call this instead
+     * of rendering their own header.
+     * @param {string} title
+     */
+    setMosaicTileTitle(title) {
+        if(!this.renderIntoNode || title == null) {
+            return;
+        }
+        $(this.renderIntoNode).closest(".result-mosaic-tile").find(".mosaic-tile-title").first().text(title);
+    }
+
     showLoadingIndicator(show) {
         if(show && this.renderIntoNode) {
             this.sqs.setLoadingIndicator(this.renderIntoNode, true);

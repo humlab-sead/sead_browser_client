@@ -16,6 +16,7 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         super(sqs);
         this.sqs = sqs;
         this.title = "Mutual climatic range";
+        this.description = "Mutual Climatic Range (MCR) reconstruction based on fossil beetle (Coleoptera) taxa found at the selected sites. The chart shows the climate envelope — compatible Tmax (mean temperature of the warmest month) vs Trange (difference between warmest and coldest month) — derived from the overlap of all MCR-registered species present. Cells where all taxa agree are shown in black.";
         this.name = "mutual-climatic-range";
         this.domains = ["palaeo"];
         this.showChartSelector = false;
@@ -41,18 +42,6 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         this.MARGIN_BOTTOM = 40;
 
         this.requestId = 0;
-    }
-
-    // Derive cell size and canvas dimensions from the available container area.
-    _computeDimensions(availableWidth, availableHeight) {
-        const cellW = Math.max(4, Math.floor((availableWidth  - this.MARGIN_LEFT - this.MARGIN_RIGHT)  / this.COLS));
-        const cellH = Math.max(4, Math.floor((availableHeight - this.MARGIN_TOP  - this.MARGIN_BOTTOM) / this.ROWS));
-        return {
-            cellW,
-            cellH,
-            canvasW: this.MARGIN_LEFT + this.COLS * cellW + this.MARGIN_RIGHT,
-            canvasH: this.MARGIN_TOP  + this.ROWS * cellH + this.MARGIN_BOTTOM,
-        };
     }
 
     async fetchData() {
@@ -141,63 +130,98 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         return `rgb(${r},${g},${b})`;
     }
 
+    // Draw the heatmap to exactly fill the wrapper's current box.
+    // Called on every resize — cheap, reads the cached aggregate, never refetches.
     _drawChart(canvas, agg) {
-        const container = canvas.closest('.result-mosaic-graph-container') ?? canvas.parentElement;
-        const availableWidth    = (container ? container.clientWidth  : 0) || 500;
-        const containerHeight   = (container ? container.clientHeight : 0) || 400;
-        // Subtract the rendered height of sibling elements (title, subtitle) so the canvas fills the remainder
-        const wrapper = canvas.parentElement;
-        const siblingHeight = wrapper
-            ? Array.from(wrapper.children).filter(el => el !== canvas).reduce((sum, el) => sum + el.offsetHeight, 0)
-            : 0;
-        const availableHeight = Math.max(50, containerHeight - siblingHeight);
-        this._dims = this._computeDimensions(availableWidth, availableHeight);
-        const { cellW, cellH, canvasW, canvasH } = this._dims;
+        const wrapper = canvas.parentElement; // .mcr-chart-wrapper — flexes to fill remaining tile height
+        const boxW = Math.max(80, (wrapper ? wrapper.clientWidth  : 0) || 0);
+        const boxH = Math.max(60, (wrapper ? wrapper.clientHeight : 0) || 0);
 
-        canvas.width  = canvasW;
-        canvas.height = canvasH;
+        // Adaptive margins: shrink the axis gutters on small tiles so the grid keeps a usable area,
+        // but never exceed the comfortable fixed maxima on large tiles.
+        const marginLeft   = Math.min(this.MARGIN_LEFT,   Math.round(boxW * 0.14));
+        const marginBottom = Math.min(this.MARGIN_BOTTOM, Math.round(boxH * 0.18));
+        const marginRight  = this.MARGIN_RIGHT;
+        const marginTop    = this.MARGIN_TOP;
+
+        const plotW = Math.max(1, boxW - marginLeft - marginRight);
+        const plotH = Math.max(1, boxH - marginTop  - marginBottom);
+        const cellW = plotW / this.COLS;
+        const cellH = plotH / this.ROWS;
+
+        // Cached for the tooltip handler so it stays correct after any responsive redraw.
+        this._dims = { boxW, boxH, marginLeft, marginTop, plotW, plotH, cellW, cellH };
+
+        // Render at device-pixel resolution for crisp cells/labels, present at CSS box size.
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width  = Math.round(boxW * dpr);
+        canvas.height = Math.round(boxH * dpr);
+        canvas.style.width  = boxW + 'px';
+        canvas.style.height = boxH + 'px';
 
         const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvasW, canvasH);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, boxW, boxH);
 
         const { density, consensus, maxDensity } = agg;
 
-        // Cells
+        // 1px grid lines only when cells are large enough to read; otherwise fill gaplessly.
+        const gap = (cellW > 6 && cellH > 6) ? 1 : 0;
+
+        // Cells — boundaries rounded so adjacent cells tile exactly with no sub-pixel seams,
+        // filling the whole plot area regardless of box size.
         for (let row = 0; row < this.ROWS; row++) {
             for (let col = 0; col < this.COLS; col++) {
                 const displayCol = (this.COLS - 1) - col;
                 const displayRow = (this.ROWS - 1) - row;
+                const x0 = Math.round(marginLeft + displayCol * cellW);
+                const x1 = Math.round(marginLeft + (displayCol + 1) * cellW);
+                const y0 = Math.round(marginTop  + displayRow * cellH);
+                const y1 = Math.round(marginTop  + (displayRow + 1) * cellH);
                 ctx.fillStyle = consensus[row][col] === 1 ? '#000000' : this._densityColor(density[row][col], maxDensity);
-                ctx.fillRect(this.MARGIN_LEFT + displayCol * cellW, this.MARGIN_TOP + displayRow * cellH, cellW - 1, cellH - 1);
+                ctx.fillRect(x0, y0, Math.max(1, x1 - x0 - gap), Math.max(1, y1 - y0 - gap));
             }
         }
 
-        // X axis labels
+        // Axis labels, scaled to the tile and suppressed when there's no room for them.
+        const fontPx = Math.max(8, Math.min(11, Math.round(boxH / 28)));
         ctx.fillStyle = '#555';
-        ctx.font = '11px sans-serif';
+        ctx.font = fontPx + 'px sans-serif';
+
+        const showTicks = cellW > 2;
+
+        // X axis ticks + title
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        for (let c = 0; c <= this.COLS; c += 10) {
-            ctx.fillText(((this.COLS - c) - 10) + '°', this.MARGIN_LEFT + c * cellW, this.MARGIN_TOP + this.ROWS * cellH + 4);
+        if (showTicks && marginBottom > 12) {
+            for (let c = 0; c <= this.COLS; c += 10) {
+                ctx.fillText(((this.COLS - c) - 10) + '°', marginLeft + c * cellW, marginTop + plotH + 3);
+            }
         }
-        ctx.textBaseline = 'bottom';
-        ctx.fillText('Tmax (°C)', this.MARGIN_LEFT + (this.COLS * cellW) / 2, canvasH);
+        if (marginBottom >= this.MARGIN_BOTTOM - 6) {
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('Tmax (°C)', marginLeft + plotW / 2, boxH);
+        }
 
-        // Y axis labels
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        for (let r = 0; r < this.ROWS; r += 5) {
-            ctx.fillText((this.ROWS - 1 - r) + '°', this.MARGIN_LEFT - 4, this.MARGIN_TOP + r * cellH + cellH / 2);
+        // Y axis ticks
+        if (showTicks && marginLeft > 16) {
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let r = 0; r < this.ROWS; r += 5) {
+                ctx.fillText((this.ROWS - 1 - r) + '°', marginLeft - 4, marginTop + r * cellH + cellH / 2);
+            }
         }
 
         // Y axis title (rotated)
-        ctx.save();
-        ctx.translate(10, this.MARGIN_TOP + (this.ROWS * cellH) / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText('Trange (°C)', 0, 0);
-        ctx.restore();
+        if (marginLeft >= this.MARGIN_LEFT - 6) {
+            ctx.save();
+            ctx.translate(fontPx + 1, marginTop + plotH / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('Trange (°C)', 0, 0);
+            ctx.restore();
+        }
     }
 
     _attachTooltip(canvas, agg) {
@@ -215,12 +239,13 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         canvas.addEventListener('mousemove', (e) => {
             // Read current dims — stays correct after a responsive redraw
             if (!this._dims) { tooltipEl.style.display = 'none'; return; }
-            const { cellW, cellH, canvasW, canvasH } = this._dims;
+            const { boxW, boxH, marginLeft, marginTop, cellW, cellH } = this._dims;
             const rect = canvas.getBoundingClientRect();
-            const scaleX = canvasW / rect.width;
-            const scaleY = canvasH / rect.height;
-            const displayCol = Math.floor(((e.clientX - rect.left) * scaleX - this.MARGIN_LEFT) / cellW);
-            const displayRow = Math.floor(((e.clientY - rect.top)  * scaleY - this.MARGIN_TOP)  / cellH);
+            // Map client coords into the canvas' CSS box (rect ≈ boxW/boxH; margins/cells are in CSS px)
+            const x = (e.clientX - rect.left) * (boxW / rect.width);
+            const y = (e.clientY - rect.top)  * (boxH / rect.height);
+            const displayCol = Math.floor((x - marginLeft) / cellW);
+            const displayRow = Math.floor((y - marginTop)  / cellH);
 
             if (displayCol < 0 || displayCol >= this.COLS || displayRow < 0 || displayRow >= this.ROWS) {
                 tooltipEl.style.display = 'none';
@@ -303,15 +328,13 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         const canvasId    = nanoid();
         const coverageId  = nanoid();
         $(this.renderIntoNode).html(
-            `<div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-header">
-                    <h3 class="mosaic-tile-title">${this.title}</h3>
+            `<div class="mosaic-tile-content mcr-tile-content" id="${varId}">
+                <div class="mcr-chart-wrapper">
+                    <canvas id="${canvasId}"></canvas>
                 </div>
-                <canvas id="${canvasId}" style="display:block;max-width:100%;"></canvas>
                 <div id="coverage-${coverageId}" class="tile-coverage-container"></div>
             </div>`
         );
-        this.sqs.tooltipManager.registerTooltip(`#${varId} .mosaic-tile-title`, "Mutual Climatic Range (MCR) reconstruction based on fossil beetle (Coleoptera) taxa found at the selected sites. The chart shows the climate envelope — compatible Tmax (mean temperature of the warmest month) vs Trange (difference between warmest and coldest month) — derived from the overlap of all MCR-registered species present. Cells where all taxa agree are shown in black.", { drawSymbol: true, anchorPoint: 'symbol' });
 
         this._canvas = document.getElementById(canvasId);
         this._agg    = agg;
@@ -324,12 +347,14 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         const coverageContainer = document.getElementById(`coverage-${coverageId}`);
         this.renderCoverageMiniChart(coverageContainer, agg.sitesWithData, totalSites);
 
-        // Redraw whenever the tile is resized
+        // Redraw fluidly whenever the chart wrapper changes size — observing the wrapper
+        // (which flexes between the header and the coverage bar) means the canvas always
+        // tracks its true available area, on the fly, without re-fetching or re-aggregating.
         if (this._resizeObserver) this._resizeObserver.disconnect();
         this._resizeObserver = new ResizeObserver(() => {
             if (this._canvas && this._agg) this._drawChart(this._canvas, this._agg);
         });
-        const observeTarget = this._canvas.closest('.result-mosaic-graph-container') ?? this._canvas.parentElement;
+        const observeTarget = this._canvas.parentElement; // .mcr-chart-wrapper
         this._resizeObserver.observe(observeTarget);
 
         this.renderComplete = true;
