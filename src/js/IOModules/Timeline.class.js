@@ -50,6 +50,10 @@ class Timeline extends Facet {
 		
 		this.bpDiff = new Date().getFullYear() - 1950;
         this.timelineDomId = null;
+        this.timelineResizeObserver = null;
+        this.timelineResizeTimeout = null;
+        this.timelineWindowResizeHandler = null;
+        this.timelineAfterPlotHandler = null;
         this.traceIdCounter = 0;
         this.chartTraces = [];
         this.chartTraceColors = this.sqs.color.generateDistinctColors(10, 0.75);
@@ -110,17 +114,16 @@ class Timeline extends Facet {
 		];
 
         let scale = this.getSelectedScale();
-        this.setSelections([scale.older, scale.younger], false);
+        this.setSelections([scale.older + this.bpDiff, scale.younger], false);
 
         this.graphDataOptions = [
-            /*
             new SEADQueryGraphDataOption(
                 this,
                 "SEAD data points",
                 this.chartTraceColors.shift(),
                 {},
                 null
-            ),*/
+            ),
             new GISP2GraphDataOption(
                 this,
                 "GISP2 Ice Core",
@@ -224,7 +227,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         // Create an input element of type 'file'
         const fileInput = document.createElement("input");
         fileInput.type = "file";
-        fileInput.accept = ".csv, .xlsx"; // Optional: Restrict file types
+        fileInput.accept = ".csv, .xlsx, .tsv, .txt";
     
         // Add an event listener to handle the file selection
         fileInput.addEventListener("change", (event) => {
@@ -269,16 +272,18 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     async handleFileImport(file) {
         let importResult = null;
+        const ext = file.name.toLowerCase().split('.').pop();
 
-        if (file.name.endsWith(".xlsx")) {
+        if (ext === "xlsx") {
             importResult = await this.loadExcel(file);
-        } else if(file.name.endsWith(".csv")) {
+        } else if (ext === "csv" || ext === "tsv" || ext === "txt") {
             importResult = await this.loadCSV(file);
+        } else {
+            this.sqs.notificationManager.notify("Unsupported file type. Please use .xlsx, .csv, .tsv, or .txt.", "error");
+            return;
         }
-        else {
-            //notify the user that the file is not supported
-            this.sqs.notificationManager.notify("Unsupported file type. Please drop a .xlsx or .csv file.", "error");
-        }
+
+        if (!importResult) return;
 
         const { jsonData, xColumn, yColumn, timeFormat } = importResult;
 
@@ -354,23 +359,27 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
     }
 
     parseCSV(csvContent) {
-        // Use PapaParse to parse the CSV content
         const result = Papa.parse(csvContent, {
-            header: true, // Automatically extract headers
-            skipEmptyLines: true, // Skip empty lines
-            dynamicTyping: true, // Automatically convert numeric values
-            //delimiter: ";", // Specify the delimiter (comma for CSV)
+            header: true,
+            skipEmptyLines: true,
+            dynamicTyping: true,
         });
-    
-        if (result.errors.length > 0) {
-            console.error("ERROR: Failed to parse CSV file:", result.errors);
+
+        const fatalErrors = result.errors.filter(e => e.type !== "FieldMismatch");
+        if (fatalErrors.length > 0) {
+            console.error("ERROR: Failed to parse CSV file:", fatalErrors);
             throw new Error("Failed to parse CSV file.");
         }
-    
-        // Return headers and data
-        const headers = result.meta.fields || []; // Extract headers from the metadata
-        const data = result.data; // Extract parsed data rows
-    
+        if (result.errors.length > 0) {
+            console.warn("CSV parse warnings (non-fatal):", result.errors);
+        }
+        if (!result.data || result.data.length === 0) {
+            throw new Error("CSV file appears to be empty or has no parseable rows.");
+        }
+
+        const headers = result.meta.fields || [];
+        const data = result.data;
+
         return { headers, data };
     }
     
@@ -378,13 +387,14 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
     convertToBP(value, timeFormat) {
         switch (timeFormat) {
             case "AD/BC":
-                return this.convertADBCtoBP(value);
+                return this.convertADBCtoConventionalBP(value);
             case "Date":
                 return this.convertDateToBP(value);
             case "Timestamp/Epoch":
                 return this.convertTimestampToBP(value);
             case "Years BP":
-                return value; // Already in BP
+            case "Other":
+                return value; // Pass through as raw numeric BP
             default:
                 throw new Error(`Unsupported time format: ${timeFormat}`);
         }
@@ -412,6 +422,15 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
     async renderImportFormCsv(csvData) {
         let headers = csvData.headers;
         return new Promise((resolve) => {
+            let settled = false;
+            const settle = (value) => {
+                if (settled) return;
+                settled = true;
+                this.sqs.sqsEventUnlisten("popOverClosed", this);
+                resolve(value);
+            };
+            this.sqs.sqsEventListen("popOverClosed", () => settle(null), this);
+
             const formContent = $(`<div class="timeline-import-form-container"></div>`);
     
             // X-axis column selection
@@ -454,38 +473,45 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
                 const xColumn = $("#x-column-select").val();
                 const yColumn = $("#y-column-select").val();
                 const timeFormat = $("#time-format-select").val();
-    
+
                 if (!xColumn || !yColumn || !timeFormat) {
                     console.warn("Form submission incomplete. Please fill out all fields.");
                     return;
                 }
-    
+
                 this.sqs.dialogManager.hidePopOver();
-    
+
                 // Convert CSV data to JSON
                 const jsonData = csvData.data.map((row) => {
                     const xValue = row[xColumn];
-                    const yValue = row[yColumn];
-    
-                    if (xValue !== null && yValue !== null) {
+                    const yValue = parseFloat(row[yColumn]);
+
+                    if (xValue !== null && xValue !== undefined && xValue !== "" && !isNaN(yValue)) {
                         try {
-                            const xBP = this.convertToBP(xValue, timeFormat); // Convert X-axis value to BP
+                            const xBP = this.convertToBP(xValue, timeFormat);
                             return { x: xBP, y: yValue };
                         } catch (error) {
                             console.warn(`Skipping row due to conversion error:`, error);
                         }
                     }
                     return null;
-                }).filter((row) => row !== null); // Remove null rows
-    
-                // Resolve with the parsed data and metadata
-                resolve({ jsonData, xColumn, yColumn, timeFormat });
+                }).filter((row) => row !== null);
+
+                settle({ jsonData, xColumn, yColumn, timeFormat });
             });
         });
     }
 
     async renderImportFormExcel(workbook) {
         return new Promise((resolve) => {
+            let settled = false;
+            const settle = (value) => {
+                if (settled) return;
+                settled = true;
+                this.sqs.sqsEventUnlisten("popOverClosed", this);
+                resolve(value);
+            };
+            this.sqs.sqsEventListen("popOverClosed", () => settle(null), this);
             const worksheetNames = workbook.worksheets.map((sheet) => sheet.name);
     
             // Create the form container
@@ -561,12 +587,11 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
                 }
     
                 this.sqs.dialogManager.hidePopOver();
-    
+
                 // Convert worksheet data to JSON
                 const jsonData = this.convertWorksheetToJSON(selectedWorksheet, xColumn, yColumn, timeFormat);
-    
-                // Resolve with the parsed data and metadata
-                resolve({ jsonData, xColumn, yColumn, timeFormat });
+
+                settle({ jsonData, xColumn, yColumn, timeFormat });
             });
         });
     }
@@ -579,44 +604,59 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         return headers;
     }
 
+    extractCellValue(cell) {
+        const v = cell.value;
+        if (v === null || v === undefined) return null;
+        // Formula cells: { formula, result }
+        if (typeof v === 'object' && 'result' in v) return v.result;
+        // Rich text cells: { richText: [{text},...] }
+        if (typeof v === 'object' && Array.isArray(v.richText)) return v.richText.map(r => r.text).join('');
+        // Date objects come through from ExcelJS as JS Dates
+        return v;
+    }
+
+    normalizeCellHeader(value) {
+        if (value === null || value === undefined) return null;
+        if (typeof value === 'object' && Array.isArray(value.richText)) return value.richText.map(r => r.text).join('');
+        if (typeof value === 'object' && 'result' in value) return String(value.result);
+        return String(value);
+    }
+
     convertWorksheetToJSON(worksheet, xColumnName, yColumnName, timeFormat = "Years BP") {
         const jsonData = [];
-        const headerRow = worksheet.getRow(1); // Assume the first row contains headers
+        const headerRow = worksheet.getRow(1);
         const columnMap = {};
-    
-        // Map column names to their indices
+
+        // Map normalized column names to their indices
         headerRow.eachCell((cell, colNumber) => {
-            if (cell.value) {
-                columnMap[cell.value] = colNumber;
-            }
+            const name = this.normalizeCellHeader(cell.value);
+            if (name) columnMap[name] = colNumber;
         });
-    
-        // Ensure the selected columns exist in the column map
+
         const xColumnIndex = columnMap[xColumnName];
         const yColumnIndex = columnMap[yColumnName];
-    
+
         if (!xColumnIndex || !yColumnIndex) {
             console.error(`ERROR: Could not find columns "${xColumnName}" or "${yColumnName}" in the worksheet.`);
             return jsonData;
         }
-    
-        // Iterate through the rows and extract data from the selected columns
+
         worksheet.eachRow((row, rowNumber) => {
-            if (rowNumber === 1) return; // Skip the header row
-    
-            const xValue = row.getCell(xColumnIndex).value;
-            const yValue = row.getCell(yColumnIndex).value;
-    
-            if (xValue !== null && yValue !== null) {
+            if (rowNumber === 1) return;
+
+            const xValue = this.extractCellValue(row.getCell(xColumnIndex));
+            const yValue = parseFloat(this.extractCellValue(row.getCell(yColumnIndex)));
+
+            if (xValue !== null && xValue !== undefined && xValue !== "" && !isNaN(yValue)) {
                 try {
-                    const xBP = this.convertToBP(xValue, timeFormat); // Convert X-axis value to BP
+                    const xBP = this.convertToBP(xValue, timeFormat);
                     jsonData.push({ x: xBP, y: yValue });
                 } catch (error) {
                     console.warn(`Skipping row ${rowNumber} due to conversion error:`, error);
                 }
             }
         });
-    
+
         return jsonData;
     }
 
@@ -701,6 +741,40 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         return selectedGraphDataOption;
     }
 
+    convertConventionalBPtoADBC(bpYear) {
+        return 1950 - bpYear;
+    }
+
+    convertADBCtoConventionalBP(adbcYear) {
+        return 1950 - adbcYear;
+    }
+
+    convertTraceXValuesForDisplay(xValues) {
+        if(!Array.isArray(xValues)) {
+            return xValues;
+        }
+
+        if(this.selectedDatingSystem == "AD/BC") {
+            return xValues.map((value) => this.convertConventionalBPtoADBC(value));
+        }
+
+        return [...xValues];
+    }
+
+    getDisplayTrace(trace) {
+        const displayTrace = JSON.parse(JSON.stringify(trace));
+        displayTrace.x = this.convertTraceXValuesForDisplay(displayTrace.x);
+        return displayTrace;
+    }
+
+    getCurrentConventionalBPRange() {
+        let bpValues = this.convertSliderSelectionsToBP(this.selections);
+        return {
+            minX: Math.min(bpValues[0], bpValues[1]),
+            maxX: Math.max(bpValues[0], bpValues[1])
+        };
+    }
+
     getGraphRange() {
         let range = [];
         let datingSystem = this.getSelectedDatingSystem();
@@ -708,8 +782,8 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
             range = [this.selections[0]*-1, this.selections[1]*-1];
         }
         else {
-            range[0] = this.convertADBCtoBP(this.selections[0] * -1);
-            range[1] = this.convertADBCtoBP(this.selections[1] * -1);
+            range[0] = this.convertBPtoADBC(this.selections[0]);
+            range[1] = this.convertBPtoADBC(this.selections[1]);
         }
 
         return range;
@@ -717,12 +791,15 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     updateGraph() {
         let range = this.getGraphRange();
+        if(this.plotlyLayout && this.plotlyLayout.xaxis) {
+            this.plotlyLayout.xaxis.range = range;
+            this.plotlyLayout.xaxis.autorange = false;
+        }
 
         // Update the x-axis range
-        Plotly.relayout(this.timelineDomId, {
-            'xaxis.range': range,
-        }).then(() => {
+        Plotly.relayout(this.timelineDomId, this.buildRelayoutXAxisUpdate(range)).then(() => {
             console.log(`Timeline ${this.name} graph range updated to: ${range}`);
+            this.alignSliderToPlot();
         });
 
         // Update all traces with filtered data from the new range
@@ -811,6 +888,25 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 				value: bins[itemKey].Count //value/count for this category/span
 			});
 		}
+
+        // If the SEAD data points trace is already on the chart, refresh its fullData
+        // so that range changes which trigger a new server fetch are reflected immediately.
+        const seadOption = this.graphDataOptions &&
+            this.graphDataOptions.find(opt => opt instanceof SEADQueryGraphDataOption);
+        if (seadOption && this.isTraceRendered(seadOption.name)) {
+            this.fetchGraphData(seadOption).then(newTrace => {
+                const chartTrace = this.chartTraces.find(t => t.trace.name === seadOption.name);
+                if (chartTrace) {
+                    chartTrace.fullData = {
+                        x: [...newTrace.x],
+                        y: [...newTrace.y],
+                        text: newTrace.text ? [...newTrace.text] : undefined,
+                        width: newTrace.width ? [...newTrace.width] : undefined,
+                    };
+                    this.updateAllTracesWithCurrentRange();
+                }
+            });
+        }
     }
 
     updateTraceInGraph(trace) {
@@ -857,17 +953,12 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         }
 
         if (this.timelineDomId) {
-            // Clone the trace to avoid modifying the original
-            let displayTrace = JSON.parse(JSON.stringify(trace));
+            // Clone the trace and convert x values to the currently displayed dating system.
+            let displayTrace = this.getDisplayTrace(trace);
 
             // Assign a unique y-axis for this trace
             const yAxisIndex = this.chartTraces.length + 1; // 1-based: y, y2, y3, ...
             displayTrace.yaxis = yAxisIndex === 1 ? 'y' : `y${yAxisIndex}`;
-
-            // If we are using BP, but displaying in AD/BC, we need to convert the x values
-            if(this.selectedDatingSystem == "AD/BC") {
-                displayTrace.x = displayTrace.x.map((value) => this.convertBPtoADBC(value));
-            }
 
             Plotly.addTraces(this.timelineDomId, [displayTrace]).then(t => {
                 const plotDiv = document.getElementById(this.timelineDomId);
@@ -897,7 +988,13 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
                 // --- FIX: Force x-axis range after adding trace ---
                 let range = this.getGraphRange();
-                Plotly.relayout(this.timelineDomId, {'xaxis.range': range});
+                if(this.plotlyLayout && this.plotlyLayout.xaxis) {
+                    this.plotlyLayout.xaxis.range = range;
+                    this.plotlyLayout.xaxis.autorange = false;
+                }
+                Plotly.relayout(this.timelineDomId, this.buildRelayoutXAxisUpdate(range)).then(() => {
+                    this.alignSliderToPlot();
+                });
             });
         } else {
             console.warn(`WARN: Timeline graph not initialized, cannot add plot to graph.`);
@@ -938,7 +1035,9 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
                 };
             }
         }
-        Plotly.relayout(this.timelineDomId, this.plotlyLayout);
+        Plotly.relayout(this.timelineDomId, this.plotlyLayout).then(() => {
+            this.alignSliderToPlot();
+        });
     }
     
     addToChartTraces(trace) {
@@ -958,9 +1057,10 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         const fullDataTrace = {
             ...trace,
             fullData: {
-                x: [...trace.trace.x], // Deep copy of x data
-                y: [...trace.trace.y], // Deep copy of y data
-                text: trace.trace.text ? [...trace.trace.text] : undefined // Deep copy of text if exists
+                x: [...trace.trace.x],
+                y: [...trace.trace.y],
+                text: trace.trace.text ? [...trace.trace.text] : undefined,
+                width: trace.trace.width ? [...trace.trace.width] : undefined,
             }
         };
     
@@ -989,31 +1089,30 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         const fullX = chartTrace.fullData.x;
         const fullY = chartTrace.fullData.y;
         const fullText = chartTrace.fullData.text;
+        const fullWidth = chartTrace.fullData.width;
 
         const filteredX = [];
         const filteredY = [];
         const filteredText = fullText ? [] : undefined;
+        const filteredWidth = fullWidth ? [] : undefined;
 
         for (let i = 0; i < fullX.length; i++) {
             if (fullX[i] >= minX && fullX[i] <= maxX) {
                 filteredX.push(fullX[i]);
                 filteredY.push(fullY[i]);
-                if (filteredText) {
-                    filteredText.push(fullText[i]);
-                }
+                if (filteredText) filteredText.push(fullText[i]);
+                if (filteredWidth) filteredWidth.push(fullWidth[i]);
             }
         }
 
-        // Return a new trace object with filtered data
         const filteredTrace = {
             ...chartTrace.trace,
             x: filteredX,
             y: filteredY
         };
 
-        if (filteredText) {
-            filteredTrace.text = filteredText;
-        }
+        if (filteredText) filteredTrace.text = filteredText;
+        if (filteredWidth) filteredTrace.width = filteredWidth;
 
         return filteredTrace;
     }
@@ -1027,9 +1126,9 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
             console.log(`Timeline ${this.name} updating all traces with current range.`);
         }
 
-        const range = this.getGraphRange();
-        const minX = Math.min(range[0], range[1]);
-        const maxX = Math.max(range[0], range[1]);
+        const range = this.getCurrentConventionalBPRange();
+        const minX = range.minX;
+        const maxX = range.maxX;
 
         this.chartTraces.forEach((chartTrace, index) => {
             if (!chartTrace.fullData) {
@@ -1039,12 +1138,14 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
             // Filter the full data to the current range
             const filteredTrace = this.filterTraceDataByRange(chartTrace, minX, maxX);
+            const displayTrace = this.getDisplayTrace(filteredTrace);
             
             // Update the displayed trace in Plotly
             Plotly.restyle(this.timelineDomId, {
-                x: [filteredTrace.x],
-                y: [filteredTrace.y],
-                text: filteredTrace.text ? [filteredTrace.text] : undefined
+                x: [displayTrace.x],
+                y: [displayTrace.y],
+                text: displayTrace.text ? [displayTrace.text] : undefined,
+                width: displayTrace.width ? [displayTrace.width] : undefined,
             }, [index]).catch((error) => {
                 console.error(`Failed to update trace ${chartTrace.trace.name}:`, error);
             });
@@ -1227,13 +1328,107 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         this.sqs.dialogManager.showPopOver(attr.title || "Attribution Information", content);
     }
 
+    getTimelinePlotElement() {
+        if(!this.timelineDomId) {
+            return null;
+        }
+
+        return document.getElementById(this.timelineDomId);
+    }
+
+    getTimelineSliderElement() {
+        return $(".timeline-slider", this.getDomRef())[0];
+    }
+
+    alignSliderToPlot() {
+        const plotEl = this.getTimelinePlotElement();
+        const sliderEl = this.getTimelineSliderElement();
+
+        if(!plotEl || !sliderEl || !plotEl._fullLayout || !plotEl._fullLayout._size) {
+            return;
+        }
+
+        const plotSize = plotEl._fullLayout._size;
+
+        sliderEl.style.left = `${plotSize.l}px`;
+        sliderEl.style.width = `${plotSize.w}px`;
+    }
+
+    resizePlotAndAlign() {
+        const plotEl = this.getTimelinePlotElement();
+
+        if(!plotEl) {
+            return;
+        }
+
+        const resizeResult = Plotly.Plots.resize(plotEl);
+
+        if(resizeResult && typeof resizeResult.then == "function") {
+            resizeResult.then(() => {
+                this.alignSliderToPlot();
+            }).catch((error) => {
+                console.error(`Timeline ${this.name} failed to resize Plotly graph:`, error);
+            });
+        }
+        else {
+            this.alignSliderToPlot();
+        }
+    }
+
+    schedulePlotResizeAndAlign(delay = 100) {
+        clearTimeout(this.timelineResizeTimeout);
+        this.timelineResizeTimeout = setTimeout(() => {
+            this.timelineResizeTimeout = null;
+            this.resizePlotAndAlign();
+        }, delay);
+    }
+
+    initTimelineResizeObserver() {
+        if(this.timelineResizeObserver) {
+            this.timelineResizeObserver.disconnect();
+            this.timelineResizeObserver = null;
+        }
+
+        const wrapperEl = $(".timeline-grid-container", this.getDomRef())[0];
+        if(window.ResizeObserver && wrapperEl) {
+            this.timelineResizeObserver = new ResizeObserver(() => {
+                this.schedulePlotResizeAndAlign();
+            });
+            this.timelineResizeObserver.observe(wrapperEl);
+        }
+
+        if(!this.timelineWindowResizeHandler) {
+            this.timelineWindowResizeHandler = () => {
+                this.schedulePlotResizeAndAlign();
+            };
+            window.addEventListener("resize", this.timelineWindowResizeHandler);
+        }
+    }
+
+    bindTimelinePlotEvents() {
+        const plotEl = this.getTimelinePlotElement();
+
+        if(!plotEl || typeof plotEl.on != "function") {
+            return;
+        }
+
+        if(this.timelineAfterPlotHandler && typeof plotEl.removeListener == "function") {
+            plotEl.removeListener("plotly_afterplot", this.timelineAfterPlotHandler);
+        }
+
+        this.timelineAfterPlotHandler = () => {
+            this.alignSliderToPlot();
+        };
+        plotEl.on("plotly_afterplot", this.timelineAfterPlotHandler);
+    }
+
     resizeCallback() {
         if(this.verboseLogging) {
             console.log(`Timeline ${this.name} resizing graph.`);
         }
 
         if (this.timelineDomId) {
-            Plotly.Plots.resize(this.timelineDomId);
+            this.schedulePlotResizeAndAlign(0);
         }
 	}
 
@@ -1241,6 +1436,74 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         if(this.verboseLogging) {
             console.log(`Timeline ${this.name} adapted to new width: ${newWidth}`);
         }
+    }
+
+    niceTickStep(span, targetTicks = 6) {
+        const rawStep = span / targetTicks;
+        if (rawStep <= 0) return 1;
+        const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+        const normalized = rawStep / magnitude;
+        let step;
+        if (normalized < 1.5) step = 1;
+        else if (normalized < 3.5) step = 2;
+        else if (normalized < 7.5) step = 5;
+        else step = 10;
+        return step * magnitude;
+    }
+
+    compactYearNum(absValue) {
+        if (absValue >= 1_000_000) {
+            const v = absValue / 1_000_000;
+            return (Number.isInteger(v) ? String(v) : parseFloat(v.toPrecision(3)).toString()) + 'M';
+        } else if (absValue >= 10_000) {
+            const v = absValue / 1_000;
+            return (Number.isInteger(v) ? String(v) : parseFloat(v.toPrecision(3)).toString()) + 'K';
+        }
+        return String(absValue);
+    }
+
+    buildXAxisTickConfig(range) {
+        const datingSystem = this.getSelectedDatingSystem();
+        const minX = Math.min(range[0], range[1]);
+        const maxX = Math.max(range[0], range[1]);
+        const step = this.niceTickStep(maxX - minX);
+        const start = Math.ceil(minX / step) * step;
+
+        const tickvals = [];
+        const ticktext = [];
+
+        if (datingSystem === 'AD/BC') {
+            for (let v = start; v <= maxX + step * 0.01; v += step) {
+                const yr = Math.round(v);
+                tickvals.push(yr);
+                const abs = Math.abs(yr);
+                if (yr > 0) ticktext.push(this.compactYearNum(abs) + ' AD');
+                else if (yr < 0) ticktext.push(this.compactYearNum(abs) + ' BC');
+                else ticktext.push('0');
+            }
+        } else {
+            for (let v = start; v <= maxX + step * 0.01; v += step) {
+                const yr = Math.round(v);
+                tickvals.push(yr);
+                const abs = Math.abs(yr);
+                const sign = yr < 0 ? '-' : '';
+                ticktext.push(sign + this.compactYearNum(abs) + ' BP');
+            }
+        }
+
+        return { tickmode: 'array', tickvals, ticktext, tickformat: '' };
+    }
+
+    buildRelayoutXAxisUpdate(range) {
+        const cfg = this.buildXAxisTickConfig(range);
+        return {
+            'xaxis.range': range,
+            'xaxis.autorange': false,
+            'xaxis.tickmode': 'array',
+            'xaxis.tickvals': cfg.tickvals,
+            'xaxis.ticktext': cfg.ticktext,
+            'xaxis.tickformat': '',
+        };
     }
 
     renderGraph() {
@@ -1252,14 +1515,15 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         $(".timeline-graph", this.getDomRef()).attr("id", this.timelineDomId);
 
         let range = this.getGraphRange();
+        let tickCfg = this.buildXAxisTickConfig(range);
 
         this.plotlyLayout = {
             xaxis: {
                 range: range,
                 showticklabels: true,
-                tickformat: '~s',
                 fixedrange: true,
-                autorange: "reversed"
+                autorange: false,
+                ...tickCfg
             },
             yaxis: {
                 showticklabels: false,
@@ -1283,7 +1547,11 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
             displayModeBar: false
         };
 
-        Plotly.newPlot(this.timelineDomId, [], this.plotlyLayout, config);
+        Plotly.newPlot(this.timelineDomId, [], this.plotlyLayout, config).then(() => {
+            this.bindTimelinePlotEvents();
+            this.initTimelineResizeObserver();
+            this.alignSliderToPlot();
+        });
 
         //this.addAllSelectedTracesToGraph();
     }
@@ -1357,23 +1625,6 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         });
         this.slider.on("change", (values, slider) => {
             this.setSelections([parseInt(values[0]), parseInt(values[1])]);
-        });
-
-        // Resize the plotly chart when the window is resized, add a delay to allow the layout to settle, this will not work otherwise, it's stupid, but it is what it is
-        window.addEventListener('resize', () => {
-            if(this.resizeInterval == null) {
-                this.resizeInterval = setInterval(() => {
-                    if($('#result-timeline').width() > 0) {
-                        clearInterval(this.resizeInterval);
-                        this.resizeInterval = null;
-                        Plotly.Plots.resize('result-timeline');
-                    }
-                }, 100);
-            }
-        });
-        
-        $(window).on('resize', function() {
-            //$("#timeline-container .range-slider-input").data("ionRangeSlider").update();
         });
 
         $("#timeline-dating-system-selector").on("change", (e) => {
@@ -1898,6 +2149,25 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         this.sqs.sqsEventUnlisten("layoutResize", this);
 		this.sqs.sqsEventUnlisten("facetResize", this);
 
+        if(this.timelineResizeObserver) {
+            this.timelineResizeObserver.disconnect();
+            this.timelineResizeObserver = null;
+        }
+
+        if(this.timelineWindowResizeHandler) {
+            window.removeEventListener("resize", this.timelineWindowResizeHandler);
+            this.timelineWindowResizeHandler = null;
+        }
+
+        clearTimeout(this.timelineResizeTimeout);
+        this.timelineResizeTimeout = null;
+
+        const plotEl = this.getTimelinePlotElement();
+        if(plotEl && this.timelineAfterPlotHandler && typeof plotEl.removeListener == "function") {
+            plotEl.removeListener("plotly_afterplot", this.timelineAfterPlotHandler);
+        }
+        this.timelineAfterPlotHandler = null;
+
         // Clean up slider
         if (this.slider) {
             this.slider.destroy();
@@ -2098,26 +2368,31 @@ class SEADQueryGraphDataOption extends GraphDataOption {
     }
 
     async fetchData(fetchFullRange = false) {
-        // Handle the sead_query_api option
+        // Prefer unfiltered data (full background distribution). Fall back to filtered
+        // if unfiltered hasn't been populated yet (e.g. immediately after a selection change).
+        const dataset = this.timeline.datasets.unfiltered.length > 0
+            ? this.timeline.datasets.unfiltered
+            : this.timeline.datasets.filtered;
+
+        console.log(dataset);
+
         const trace = {
-            x: [], // Midpoints of the spans
-            y: [], // Heights of the bars
-            width: [], // Widths of the bars
-            type: 'bar', // Bar chart
+            x: [],
+            y: [],
+            width: [],
+            type: 'bar',
             name: this.name,
             marker: {
                 color: this.color,
             }
         };
 
-        // Process the filtered dataset
-        this.timeline.datasets.filtered.forEach(item => {
-            const midpoint = (item.min + item.max) / 2; // Calculate the midpoint for the x-axis
-            const width = item.max - item.min; // Calculate the width of the bar
-
-            trace.x.push(midpoint);
+        dataset.forEach(item => {
+            // Server data uses the internal inverted format (negative = older); convert to
+            // conventional BP (positive = older) so filterTraceDataByRange works correctly.
+            trace.x.push((item.min + item.max) / 2 * -1);
             trace.y.push(item.value);
-            trace.width.push(width);
+            trace.width.push(Math.abs(item.max - item.min));
         });
 
         return trace;
