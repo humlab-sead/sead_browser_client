@@ -21,6 +21,8 @@ class ResultManager {
 		this.resultModuleRenderStatus = "none";
 		this.sqsInitComplete = false;
 		this.debugMode = false;
+		this.preferredResultModuleId = null;
+		this.restoreModuleAfterMobile = null;
 		
 		//Event hook-ins below
 		if(this.resultSectionDisabled == false) {
@@ -134,10 +136,22 @@ class ResultManager {
 	}
 
 	ensureMobileSafeActiveModule(renderModule = true) {
-		if(this.activeModuleId == "mosaic" && this.isMobileMode() && this.getModule("table")) {
-			this.setActiveModule("table", renderModule);
+		if(this.isMobileMode()) {
+			if(this.activeModuleId == "mosaic" && this.getModule("table")) {
+				this.restoreModuleAfterMobile = this.preferredResultModuleId || this.activeModuleId;
+				this.setActiveModule("table", renderModule, { layoutFallback: true });
+				return true;
+			}
+			return false;
+		}
+
+		if(this.restoreModuleAfterMobile && this.getModule(this.restoreModuleAfterMobile)) {
+			let moduleId = this.restoreModuleAfterMobile;
+			this.restoreModuleAfterMobile = null;
+			this.setActiveModule(moduleId, renderModule, { layoutRestore: true });
 			return true;
 		}
+
 		return false;
 	}
 
@@ -368,8 +382,22 @@ class ResultManager {
 	* resultModuleId
 	*/
 	//Check that this module exists
-	async setActiveModule(resultModuleId, renderModule = true) {
+	async setActiveModule(resultModuleId, renderModule = true, options = {}) {
+		let requestedModuleId = resultModuleId;
 		resultModuleId = this.resolveModuleForCurrentLayout(resultModuleId);
+
+		if(options.layoutFallback !== true) {
+			this.preferredResultModuleId = requestedModuleId;
+			if(requestedModuleId == "mosaic" && resultModuleId != requestedModuleId) {
+				this.restoreModuleAfterMobile = requestedModuleId;
+			}
+			else if(this.isMobileMode() && requestedModuleId != "mosaic") {
+				this.restoreModuleAfterMobile = null;
+			}
+		}
+		else if(requestedModuleId == "mosaic" || this.activeModuleId == "mosaic") {
+			this.restoreModuleAfterMobile = requestedModuleId == "mosaic" ? requestedModuleId : this.activeModuleId;
+		}
 
 		if(!this.getModule(resultModuleId)) {
 			console.warn("Result module "+resultModuleId+" does not exist.");

@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { Parser } from '@json2csv/plainjs';
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import ExcelJS from 'exceljs/dist/exceljs.min.js';
 
 class MosaicTileModule {
     constructor(sqs) {
@@ -412,6 +413,10 @@ class MosaicTileModule {
         if(exportFormats.includes("csv")) {
             html += "<a id='"+csvButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart data as CSV</a>";
         }
+        let xlsxButtonId = nanoid();
+        if(exportFormats.includes("xlsx")) {
+            html += "<a id='"+xlsxButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart data as XLSX</a>";
+        }
         let pngButtonId = nanoid();
         if(exportFormats.includes("png")) {
             html += "<a id='"+pngButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart as image</a>";
@@ -482,6 +487,23 @@ class MosaicTileModule {
             });
         }
 
+        if(exportFormats.includes("xlsx")) {
+            $("#"+xlsxButtonId).on("click", async () => {
+                if(this.data == null) {
+                    console.warn("Data was null when trying to export!");
+                    return;
+                }
+
+                let filename = this.title.toLowerCase();
+                filename = filename.replace(" ", "_");
+                let data = this.formatDataForExport(this.data, "xlsx");
+                await this.exportDataAsXlsx(data, exportData, filename);
+                setTimeout(() => {
+                    this.sqs.dialogManager.hidePopOver();
+                }, 1000);
+            });
+        }
+
         if(exportFormats.includes("png")) {
             $("#"+pngButtonId).on("click", () => {
                 let data = this.formatDataForExport(this.data, "png");
@@ -500,6 +522,34 @@ class MosaicTileModule {
         }
 
         
+    }
+
+    async exportDataAsXlsx(data, exportData, filename) {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Chart data");
+
+        if(Array.isArray(data) && data.length > 0) {
+            const columns = Object.keys(data[0]);
+            worksheet.addRow(columns);
+            data.forEach(row => {
+                worksheet.addRow(columns.map(column => row[column]));
+            });
+            worksheet.getRow(1).font = { bold: true };
+        }
+        else {
+            worksheet.addRow(["data"]);
+            worksheet.addRow([JSON.stringify(data || {}, null, 2)]);
+        }
+
+        worksheet.columns.forEach(column => {
+            column.width = 18;
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        });
+        saveAs(blob, "sead_"+filename+"_graph_data.xlsx");
     }
 
     formatDataForExport(data, format = "json") {

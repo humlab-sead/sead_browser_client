@@ -1,5 +1,7 @@
 import MosaicTileModule from "./MosaicTileModule.class";
 import { nanoid } from "nanoid";
+import ExcelJS from 'exceljs/dist/exceljs.min.js';
+import { saveAs } from "file-saver";
 
 /**
  * MosaicMutualClimaticRangeModule
@@ -128,6 +130,76 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         const g = Math.round(219 + (78  - 219) * t);
         const b = Math.round(254 + (216 - 254) * t);
         return `rgb(${r},${g},${b})`;
+    }
+
+    _densityColorArgb(count, maxDensity) {
+        if (count === 0 || maxDensity === 0) return "FFEBEBEB";
+        const t = count / maxDensity;
+        const r = Math.round(191 + (29  - 191) * t);
+        const g = Math.round(219 + (78  - 219) * t);
+        const b = Math.round(254 + (216 - 254) * t);
+        return "FF" + [r, g, b].map(value => value.toString(16).padStart(2, "0")).join("").toUpperCase();
+    }
+
+    _matrixToArray(matrix) {
+        if (!Array.isArray(matrix)) return [];
+        return matrix.map(row => Array.from(row || []));
+    }
+
+    _buildExportData(siteResponse, agg, siteIds) {
+        return {
+            title: this.title,
+            description: this.description,
+            selected_site_ids: siteIds,
+            axes: {
+                tmax_celsius: {
+                    min: -10,
+                    max: 49,
+                    columns: this.COLS,
+                    description: "Mean temperature of the warmest month"
+                },
+                trange_celsius: {
+                    min: 0,
+                    max: 35,
+                    rows: this.ROWS,
+                    description: "Difference between warmest and coldest month"
+                }
+            },
+            summary: {
+                total_taxa: agg.totalTaxa,
+                sites_with_data: agg.sitesWithData,
+                max_density: agg.maxDensity,
+                consensus_bbox: agg.consensusBbox
+            },
+            aggregate: {
+                density_matrix: this._matrixToArray(agg.density),
+                consensus_matrix: this._matrixToArray(agg.consensus)
+            },
+            source_response: siteResponse
+        };
+    }
+
+    _getExportRows(data) {
+        const density = data?.aggregate?.density_matrix || [];
+        const consensus = data?.aggregate?.consensus_matrix || [];
+        const totalTaxa = data?.summary?.total_taxa || 0;
+        const rows = [];
+
+        for (let row = 0; row < this.ROWS; row++) {
+            for (let col = 0; col < this.COLS; col++) {
+                const count = Number(density[row]?.[col]) || 0;
+                const percent = totalTaxa > 0 ? Math.round((count / totalTaxa) * 1000) / 10 : 0;
+                rows.push({
+                    tmax_celsius: col - 10,
+                    trange_celsius: row,
+                    taxon_count: count,
+                    percent_of_total_taxa: percent,
+                    consensus: consensus[row]?.[col] === 1 ? 1 : 0
+                });
+            }
+        }
+
+        return rows;
     }
 
     // Draw the heatmap to exactly fill the wrapper's current box.
@@ -338,11 +410,13 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
 
         this._canvas = document.getElementById(canvasId);
         this._agg    = agg;
+        const resultMosaic    = this.sqs.resultManager.getModule("mosaic");
+        const siteIds = resultMosaic.sites.map(s => parseInt(s.site_id ?? s, 10)).filter(n => !isNaN(n));
+        this.data = this._buildExportData(siteResponse, agg, siteIds);
         this._drawChart(this._canvas, agg);
         this._attachTooltip(this._canvas, agg);
 
         // Coverage mini-chart: sites with MCR data vs total sites in mosaic
-        const resultMosaic    = this.sqs.resultManager.getModule("mosaic");
         const totalSites      = resultMosaic.sites.length;
         const coverageContainer = document.getElementById(`coverage-${coverageId}`);
         this.renderCoverageMiniChart(coverageContainer, agg.sitesWithData, totalSites);
@@ -392,6 +466,133 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
     destroy() {
         this.active = false;
         this.unrender();
+    }
+
+    getAvailableExportFormats() {
+        return ["json", "csv", "xlsx"];
+    }
+
+    formatDataForExport(data, format = "json") {
+        if (!data) return data;
+        if (format === "csv") {
+            return this._getExportRows(data);
+        }
+        return data;
+    }
+
+    _fitWorksheetColumns(worksheet, minimumWidth = 10, maximumWidth = 60) {
+        worksheet.columns.forEach(column => {
+            let width = minimumWidth;
+            column.eachCell({ includeEmpty: true }, cell => {
+                width = Math.max(width, String(cell.value ?? "").length + 2);
+            });
+            column.width = Math.min(width, maximumWidth);
+        });
+    }
+
+    _addMatrixWorksheet(workbook, data) {
+        const matrixSheet = workbook.addWorksheet("MCR Matrix");
+        const density = data?.aggregate?.density_matrix || [];
+        const consensus = data?.aggregate?.consensus_matrix || [];
+        const maxDensity = data?.summary?.max_density || 0;
+        const headerFill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFE5E7EB" }
+        };
+        const headerFont = { bold: true };
+
+        matrixSheet.addRow(["Trange \\ Tmax"]);
+        for (let displayCol = 0; displayCol < this.COLS; displayCol++) {
+            const col = (this.COLS - 1) - displayCol;
+            matrixSheet.getRow(1).getCell(displayCol + 2).value = col - 10;
+        }
+
+        for (let displayRow = 0; displayRow < this.ROWS; displayRow++) {
+            const row = (this.ROWS - 1) - displayRow;
+            const worksheetRow = matrixSheet.getRow(displayRow + 2);
+            worksheetRow.getCell(1).value = row;
+
+            for (let displayCol = 0; displayCol < this.COLS; displayCol++) {
+                const col = (this.COLS - 1) - displayCol;
+                const count = Number(density[row]?.[col]) || 0;
+                const inConsensus = consensus[row]?.[col] === 1;
+                const cell = worksheetRow.getCell(displayCol + 2);
+                cell.value = count;
+                cell.fill = {
+                    type: "pattern",
+                    pattern: "solid",
+                    fgColor: { argb: inConsensus ? "FF000000" : this._densityColorArgb(count, maxDensity) }
+                };
+                if (inConsensus) {
+                    cell.font = { color: { argb: "FFFFFFFF" } };
+                }
+            }
+        }
+
+        matrixSheet.getRow(1).font = headerFont;
+        matrixSheet.getColumn(1).font = headerFont;
+        matrixSheet.getRow(1).eachCell(cell => {
+            cell.fill = headerFill;
+            cell.alignment = { horizontal: "center" };
+        });
+        matrixSheet.getColumn(1).eachCell(cell => {
+            cell.fill = headerFill;
+            cell.alignment = { horizontal: "center" };
+        });
+        matrixSheet.views = [{ state: "frozen", xSplit: 1, ySplit: 1 }];
+        matrixSheet.columns.forEach((column, index) => {
+            column.width = index === 0 ? 14 : 4;
+        });
+        matrixSheet.eachRow(row => {
+            row.height = 18;
+            row.eachCell(cell => {
+                cell.alignment = { horizontal: "center", vertical: "middle" };
+            });
+        });
+    }
+
+    async exportDataAsXlsx(data, exportData, filename) {
+        const workbook = new ExcelJS.Workbook();
+        const summarySheet = workbook.addWorksheet("MCR Summary");
+        const cellsSheet = workbook.addWorksheet("MCR Cells");
+
+        summarySheet.addRow(["SEAD MCR Mosaic Export"]);
+        summarySheet.getRow(1).font = { bold: true, size: 14 };
+        summarySheet.addRow([]);
+        summarySheet.addRow(["Title", data.title]);
+        summarySheet.addRow(["Description", data.description]);
+        summarySheet.addRow(["Selected site IDs", (data.selected_site_ids || []).join(", ")]);
+        summarySheet.addRow(["Sites with MCR data", data.summary?.sites_with_data ?? ""]);
+        summarySheet.addRow(["Total taxa", data.summary?.total_taxa ?? ""]);
+        summarySheet.addRow(["Max density", data.summary?.max_density ?? ""]);
+        summarySheet.addRow(["Consensus bbox", data.summary?.consensus_bbox ? data.summary.consensus_bbox.join(", ") : ""]);
+        summarySheet.addRow(["Tmax min (C)", data.axes?.tmax_celsius?.min ?? ""]);
+        summarySheet.addRow(["Tmax max (C)", data.axes?.tmax_celsius?.max ?? ""]);
+        summarySheet.addRow(["Trange min (C)", data.axes?.trange_celsius?.min ?? ""]);
+        summarySheet.addRow(["Trange max (C)", data.axes?.trange_celsius?.max ?? ""]);
+        summarySheet.addRow(["SEAD version", exportData.sead_version]);
+        summarySheet.addRow(["Export date", exportData.export_date]);
+        summarySheet.addRow(["Reference", exportData.reference]);
+        summarySheet.addRow(["License", exportData.license]);
+        this._fitWorksheetColumns(summarySheet, 12, 80);
+
+        const rows = this._getExportRows(data);
+        const columns = rows.length > 0 ? Object.keys(rows[0]) : ["tmax_celsius", "trange_celsius", "taxon_count", "percent_of_total_taxa", "consensus"];
+        cellsSheet.addRow(columns);
+        cellsSheet.getRow(1).font = { bold: true };
+        rows.forEach(row => {
+            cellsSheet.addRow(columns.map(column => row[column]));
+        });
+        cellsSheet.views = [{ state: "frozen", ySplit: 1 }];
+        this._fitWorksheetColumns(cellsSheet, 12, 28);
+        this._addMatrixWorksheet(workbook, data);
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        });
+        saveAs(blob, "sead_"+filename+"_graph_data.xlsx");
     }
 }
 

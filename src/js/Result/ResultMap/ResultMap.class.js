@@ -1,7 +1,6 @@
 //import * as d3 from 'd3';
 //import Config from '../../../config/config.js'
 import ResultModule from '../ResultModule.class.js'
-import TimelineFacet from '../../TimelineFacet.class.js';
 import SqsMenu from '../../SqsMenu.class';
 
 /*OpenLayers imports*/

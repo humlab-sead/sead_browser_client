@@ -18,6 +18,9 @@ class MosaicGridLayout {
         this.ROW_H     = 80;   // px per row unit
         this.MIN_ROW_H = 80;   // px per row unit
         this.GAP       = 12;   // px gutter / container padding
+        this.MIN_TILE_W = 280; // px before configured columns start collapsing
+        this.domainCols = 1;
+        this.effectiveDomainCols = 1;
     }
 
     // ─── collision helpers ────────────────────────────────────────────────────
@@ -124,7 +127,7 @@ class MosaicGridLayout {
     // ─── geometry helpers ─────────────────────────────────────────────────────
 
     getColWidth(containerEl) {
-        const available = containerEl.clientWidth - this.GAP * 2;
+        const available = Math.max(0, containerEl.clientWidth - this.GAP * 2);
         return (available - this.GAP * (this.COL_COUNT - 1)) / this.COL_COUNT;
     }
 
@@ -254,6 +257,10 @@ class MosaicGridLayout {
         }
 
         const rows = parseInt(domain.result_grid_layout[0], 10) || 1;
+        const cols = parseInt(domain.result_grid_layout[1], 10) || 1;
+        this.domainCols = Math.max(1, cols);
+        this.effectiveDomainCols = this.getResponsiveDomainCols(this.domainCols, containerEl);
+
         const heightSource = containerEl && containerEl.parentElement
             ? containerEl.parentElement
             : containerEl;
@@ -268,6 +275,22 @@ class MosaicGridLayout {
         if(availableHeight > 0) {
             this.ROW_H = Math.max(this.MIN_ROW_H, Math.floor(availableHeight / rows));
         }
+    }
+
+    getResponsiveDomainCols(domainCols, containerEl) {
+        domainCols = Math.max(1, parseInt(domainCols, 10) || 1);
+
+        if(!containerEl || !containerEl.clientWidth) {
+            return domainCols;
+        }
+
+        const available = Math.max(0, containerEl.clientWidth - this.GAP * 2);
+        const colsByWidth = Math.max(1, Math.floor((available + this.GAP) / (this.MIN_TILE_W + this.GAP)));
+        return Math.max(1, Math.min(domainCols, colsByWidth));
+    }
+
+    getEffectiveDomainCols() {
+        return this.effectiveDomainCols;
     }
 
     parseGridPlacement(value) {
@@ -334,6 +357,29 @@ class MosaicGridLayout {
         return 1;
     }
 
+    findFirstAvailableSlot(colSpan, rowSpan, domainCols, existingLayout, colUnit) {
+        for(let row = 1; row < 1000; row++) {
+            for(let col = 1; col <= domainCols - colSpan + 1; col++) {
+                const candidate = {
+                    col: (col - 1) * colUnit + 1,
+                    row,
+                    w: colSpan * colUnit,
+                    h: rowSpan,
+                };
+
+                const hasOverlap = existingLayout.some(tile => this.overlaps(candidate, tile));
+                if(!hasOverlap) {
+                    return { row, col };
+                }
+            }
+        }
+
+        return {
+            row: existingLayout.reduce((maxRow, tile) => Math.max(maxRow, tile.row + tile.h), 1),
+            col: 1,
+        };
+    }
+
     /**
      * Translate a CSS-grid-style module config entry into a tile descriptor
      * for the 12-column layout engine.
@@ -345,14 +391,34 @@ class MosaicGridLayout {
      * @param {Array} existingLayout - descriptors already translated for this domain
      * @returns {{ id, col, row, w, h, minW, minH }}
      */
-    tileFromModuleConf(mConf, domainRows, domainCols, id, existingLayout = []) {
-        const colUnit = Math.floor(this.COL_COUNT / Math.max(1, domainCols));
-
+    tileFromModuleConf(mConf, domainRows, domainCols, id, existingLayout = [], effectiveDomainCols = domainCols) {
+        domainCols = Math.max(1, parseInt(domainCols, 10) || 1);
+        effectiveDomainCols = Math.max(1, Math.min(domainCols, parseInt(effectiveDomainCols, 10) || domainCols));
         const rowPlacement = this.parseGridPlacement(mConf.grid_row);
         const colPlacement = this.parseGridPlacement(mConf.grid_column);
+        const rowSpan = Math.max(1, rowPlacement.span || 1);
+
+        if(effectiveDomainCols < domainCols) {
+            const colUnit = Math.floor(this.COL_COUNT / effectiveDomainCols);
+            let colSpan = Math.max(1, colPlacement.span || 1);
+            colSpan = Math.min(colSpan, effectiveDomainCols);
+            const slot = this.findFirstAvailableSlot(colSpan, rowSpan, effectiveDomainCols, existingLayout, colUnit);
+
+            return {
+                id,
+                col:  (slot.col - 1) * colUnit + 1,
+                row:  slot.row,
+                w:    colSpan * colUnit,
+                h:    rowSpan,
+                minW: Math.max(1, colUnit),
+                minH: 1,
+            };
+        }
+
+        const colUnit = Math.floor(this.COL_COUNT / domainCols);
 
         const gridRow = Math.max(1, rowPlacement.start || 1);
-        const rowSpan = Math.max(1, Math.min(rowPlacement.span || 1, domainRows - gridRow + 1));
+        const boundedRowSpan = Math.max(1, Math.min(rowSpan, domainRows - gridRow + 1));
         let colSpan = Math.max(1, Math.min(colPlacement.span || 1, domainCols));
 
         let gridCol = colPlacement.start;
@@ -367,7 +433,7 @@ class MosaicGridLayout {
             col:  (gridCol - 1) * colUnit + 1,
             row:  gridRow,
             w:    colSpan * colUnit,
-            h:    rowSpan,
+            h:    boundedRowSpan,
             minW: Math.max(1, colUnit),
             minH: 1,
         };

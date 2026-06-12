@@ -13,6 +13,7 @@ $shadow-color: rgba(0, 0, 0, 0.3);
 $error-color: rgba(190, 28, 28, 0.85);
 $warning-color: rgba(200, 160, 0, 0.85);
 $info-color: rgba(70, 140, 205, 1.0);
+$success-color: #2f8f46;
 
 
 
@@ -50,4 +51,5 @@ Exporting variables for webpack to make them includeable in js
     infoColor: $info-color;
     errorColor: $error-color;
     warningColor: $warning-color;
+    successColor: $success-color;
   }

@@ -114,6 +114,14 @@ body.resizing {
     background-color: color.adjust($aux-color, $lightness: 10%);
 }
 
+#switch-section-button {
+    background-color: $success-color;
+}
+
+#switch-section-button:hover {
+    background-color: color.adjust($success-color, $lightness: -8%);
+}
+
 .filter-section-toggle-button {
     display: flex; //flex
 	visibility: visible;

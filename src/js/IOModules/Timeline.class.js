@@ -1,12 +1,12 @@
 import noUiSlider from "nouislider";
 import "nouislider/dist/nouislider.min.css";
-import IOModule from "./IOModule.class";
+import Facet from "../Facet.class";
 import { nanoid } from "nanoid";
 import Plotly from "plotly.js-dist-min";
 import ExcelJS from 'exceljs';
 import Papa from 'papaparse';
 
-class Timeline extends IOModule {
+class Timeline extends Facet {
     constructor(sqs, id, template) {
         super(sqs, id, template);
 
@@ -16,6 +16,14 @@ class Timeline extends IOModule {
 
         this.verboseLogging = false;
         this.debugValuesInSlider = false;
+        this.useCurtains = false;
+
+        this.sqs.sqsEventListen("layoutResize", () => {
+            this.resizeCallback();
+        }, this);
+        this.sqs.sqsEventListen("facetResize", () => {
+            this.resizeCallback();
+        }, this);
 
         this.currentValuesInitialized = false;
         this.datasets = {
@@ -73,6 +81,12 @@ class Timeline extends IOModule {
 				id: 3,
 				name: "10K years",
 				older: -10000,
+				younger: yearNowBP
+			},
+			{
+				id: 7,
+				name: "20K years",
+				older: -20000,
 				younger: yearNowBP
 			},
 			{
@@ -669,7 +683,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         console.log(this.data);
         //render yourself into your targeted container
         if(this.verboseLogging) {
-            console.log(`IOModule ${this.name} rendering data.`);
+            console.log(`Timeline ${this.name} rendering data.`);
         }
 
         this.renderSlider();
@@ -708,7 +722,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         Plotly.relayout(this.timelineDomId, {
             'xaxis.range': range,
         }).then(() => {
-            console.log(`IOModule ${this.name} graph range updated to: ${range}`);
+            console.log(`Timeline ${this.name} graph range updated to: ${range}`);
         });
 
         // Update all traces with filtered data from the new range
@@ -717,12 +731,12 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     async addAllSelectedTracesToGraph() {
         if(this.verboseLogging) {
-            console.log(`IOModule ${this.name} adding all selected traces to graph.`);
+            console.log(`Timeline ${this.name} adding all selected traces to graph.`);
         }
 
         let graphDataOption = this.getSelectedGraphDataOption();
         if(this.isTraceRendered(graphDataOption.name)) {
-            console.warn(`IOModule ${this.name} graph already rendered, refusing to add another one.`);
+            console.warn(`Timeline ${this.name} graph already rendered, refusing to add another one.`);
             this.sqs.notificationManager.notify("Graph already rendered");
             return;
         }
@@ -751,7 +765,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     async fetchGraphData(graphDataOption, fetchFullRange = false) {
         if(this.verboseLogging) {
-            console.log(`IOModule ${this.name} fetching graph data.`);
+            console.log(`Timeline ${this.name} fetching graph data.`);
         }
 
         // Delegate to the graphDataOption subclass
@@ -801,7 +815,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     updateTraceInGraph(trace) {
         if (this.verboseLogging) {
-            console.log(`IOModule ${this.name} updating trace in graph.`);
+            console.log(`Timeline ${this.name} updating trace in graph.`);
         }
 
         const chartTrace = this.chartTraces.find(t => t.trace.name === trace.trace.name);
@@ -817,7 +831,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
             trace.trace = newTrace;
             if (traceId !== undefined) {
                 Plotly.update(this.timelineDomId, trace, [traceId]).then(() => {
-                    console.log(`IOModule ${this.name} trace updated in graph.`);
+                    console.log(`Timeline ${this.name} trace updated in graph.`);
                 });
             } else {
                 console.warn(`Trace with name ${trace.name} not found in chartTraces.`);
@@ -827,12 +841,12 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     addTraceToGraph(trace, builtIn = false, reRenderIfAlreadyExists = false) {
         if (this.verboseLogging) {
-            console.log(`IOModule ${this.name} adding plot to graph.`);
+            console.log(`Timeline ${this.name} adding plot to graph.`);
         }
 
         let graphDataOption = this.getGraphDataOptionByTraceName(trace.name);
         if(graphDataOption && this.isTraceRendered(graphDataOption.name) && !reRenderIfAlreadyExists) {
-            console.warn(`IOModule ${this.name} graph already rendered, refusing to add another one.`);
+            console.warn(`Timeline ${this.name} graph already rendered, refusing to add another one.`);
             this.sqs.notificationManager.notify("Graph already rendered");
             return;
         }
@@ -929,7 +943,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
     
     addToChartTraces(trace) {
         if (this.verboseLogging) {
-            console.log(`IOModule ${this.name} adding trace to chartTraces.`);
+            console.log(`Timeline ${this.name} adding trace to chartTraces.`);
         }
 
         //check if it already exists
@@ -955,7 +969,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     removeFromChartTracesByName(traceName) {
         if (this.verboseLogging) {
-            console.log(`IOModule ${this.name} removing trace from chartTraces.`);
+            console.log(`Timeline ${this.name} removing trace from chartTraces.`);
         }
 
         const traceIndex = this.chartTraces.findIndex(trace => trace.trace.name === traceName);
@@ -1010,7 +1024,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     updateAllTracesWithCurrentRange() {
         if (this.verboseLogging) {
-            console.log(`IOModule ${this.name} updating all traces with current range.`);
+            console.log(`Timeline ${this.name} updating all traces with current range.`);
         }
 
         const range = this.getGraphRange();
@@ -1092,7 +1106,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     showTraceInGraph(traceId) {
         if (this.verboseLogging) {
-            console.log(`IOModule ${this.name} showing trace in graph.`);
+            console.log(`Timeline ${this.name} showing trace in graph.`);
         }
     
         // Find the trace in this.chartTraces by its traceId
@@ -1117,7 +1131,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     hideTraceFromGraph(traceId) {
         if (this.verboseLogging) {
-            console.log(`IOModule ${this.name} hiding trace in graph.`);
+            console.log(`Timeline ${this.name} hiding trace in graph.`);
         }
     
         // Find the trace in this.chartTraces by its traceId
@@ -1147,7 +1161,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     deleteTraceFromGraph(traceId) {
         if(this.verboseLogging) {
-            console.log(`IOModule ${this.name} deleting trace from graph.`);
+            console.log(`Timeline ${this.name} deleting trace from graph.`);
         }
 
         // Find the trace in this.chartTraces by its traceId
@@ -1215,7 +1229,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     resizeCallback() {
         if(this.verboseLogging) {
-            console.log(`IOModule ${this.name} resizing graph.`);
+            console.log(`Timeline ${this.name} resizing graph.`);
         }
 
         if (this.timelineDomId) {
@@ -1223,9 +1237,15 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         }
 	}
 
+    adaptToNewWidth(newWidth) {
+        if(this.verboseLogging) {
+            console.log(`Timeline ${this.name} adapted to new width: ${newWidth}`);
+        }
+    }
+
     renderGraph() {
         if(this.verboseLogging) {
-            console.log(`IOModule ${this.name} rendering graph.`);
+            console.log(`Timeline ${this.name} rendering graph.`);
         }
         
         this.timelineDomId = "graph-"+nanoid(6);
@@ -1270,7 +1290,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     initSlider() {
         if(this.verboseLogging) {
-            console.log(`IOModule ${this.name} initializing slider.`);
+            console.log(`Timeline ${this.name} initializing slider.`);
         }
         
         const timelineContainer = $(".timeline-container", this.getDomRef());
@@ -1395,7 +1415,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         let previousValue = this.selections[tabIndex-1];
         value = this.parseInputValue(value, previousValue);
 
-        if(!value) {
+        if(value === false) {
             console.warn("WARN: Value is not valid, ignoring");
             return;
         }
@@ -1569,7 +1589,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     renderSlider() {
         if(this.verboseLogging) {
-            console.log(`IOModule ${this.name} rendering slider.`);
+            console.log(`Timeline ${this.name} rendering slider.`);
         }
         //this.createChart();
 
@@ -1674,32 +1694,44 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 	}
 
     formatValueForDisplay(value, datingSystem, prettyPrint = true, includeDatingSystem = true) {
-        // Convert BP to AD/BC if the AD/BC system is selected
+        let preserveSign = false;
+
+        // The slider stores BP values inverted internally, so user-facing BP needs
+        // to be converted back to conventional BP: positive before 1950, negative after.
+        if (datingSystem === "BP") {
+            value = value * -1;
+            preserveSign = true;
+        }
+
         if (datingSystem === "AD/BC") {
             value = this.convertBPtoADBC(value);
+        }
+
+        if (value === 0) {
+            value = 0;
         }
     
         const absValue = Math.abs(value);
         const isOldEnough = absValue >= 5000;
+        const sign = preserveSign && value < 0 ? '-' : '';
     
         let formattedValue;
     
         // Apply pretty formatting for large numbers
         if (prettyPrint && isOldEnough) {
             if (absValue >= 1_000_000) {
-                formattedValue = (absValue / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+                formattedValue = sign + (absValue / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
             } else if (absValue >= 1_000) {
-                formattedValue = (absValue / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+                formattedValue = sign + (absValue / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
             } else {
-                formattedValue = absValue.toString();
+                formattedValue = sign + absValue.toString();
             }
         } else {
-            formattedValue = absValue.toString();
+            formattedValue = preserveSign ? value.toString() : absValue.toString();
         }
     
         // Add suffix for AD/BC system
         if (includeDatingSystem && datingSystem === "AD/BC") {
-            console.log(value);
             formattedValue += ` ${value > 0 ? "AD" : "BC"}`;
         } else if (includeDatingSystem) {
             // Add suffix for BP system
@@ -1711,7 +1743,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     sliderUpdateCallback(values, moveSlider = false) {
         if(this.verboseLogging) {
-            //.log("IOModule "+this.name+" slider update callback", values);
+            //.log("Timeline "+this.name+" slider update callback", values);
         }
 		values[0] = parseInt(values[0], 10);
 		values[1] = parseInt(values[1], 10);
@@ -1789,7 +1821,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     setSelections(selections, triggerUpdate = true) {
         if(this.verboseLogging) {
-            console.log(`IOModule ${this.name} setting selections (${selections}).`);
+            console.log(`Timeline ${this.name} setting selections (${selections}).`);
         }
 
 		let selectionsUpdated = false;
@@ -1816,6 +1848,10 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 			this.broadcastSelection();
 		}
 	}
+
+    getSelections() {
+        return this.selections;
+    }
 
     showSqlButton(show = true) {
 		if(show) {
@@ -1856,8 +1892,11 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     destroy() {
         if(this.verboseLogging) {
-            console.log(`IOModule ${this.name} destroying module.`);
+            console.log(`Timeline ${this.name} destroying module.`);
         }
+
+        this.sqs.sqsEventUnlisten("layoutResize", this);
+		this.sqs.sqsEventUnlisten("facetResize", this);
 
         // Clean up slider
         if (this.slider) {

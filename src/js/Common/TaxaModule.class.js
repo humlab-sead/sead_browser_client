@@ -1198,6 +1198,11 @@ class TaxaModule {
 
 		this.sqs.tooltipManager.registerTooltip("#rcb-biology-header > div", "Biological references describing the taxon or its habitat.", { drawSymbol: true });
 
+		if(taxonData.biology.length == 0) {
+			this.sqs.setNoDataMsg($("#rcb-biology", instance));
+			return;
+		}
+
 		$("#rcb-biology", instance).html(bioHtml);
 	}
 

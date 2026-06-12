@@ -39,6 +39,7 @@ class QuickstartSearch {
         this.$input = $("#search-container-input");
         this.$submit = $("#search-container-submit");
         this.$dropdown = $("#search-container-dropdown");
+        this.$title = this.$container.find("> h3");
         this.$tabs = this.$dropdown.find(".search-dropdown-tab");
         this.$panels = this.$dropdown.find(".search-dropdown-panel");
         this.$panelContainer = this.$dropdown.find(".search-dropdown-panels");
@@ -50,6 +51,8 @@ class QuickstartSearch {
             const tabKey = $tabNode.data("tab");
             this.tabTitles[tabKey] = $tabNode.text();
         });
+
+        this.sqs.tooltipManager.registerTooltip(this.$title, "Quicksearches function independently to the filter system", { drawSymbol: true, anchorPoint: "symbol" });
 
         this.bindEvents();
         this.initResizeHandle();

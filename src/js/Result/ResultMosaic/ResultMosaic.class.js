@@ -47,14 +47,11 @@ class ResultMosaic extends ResultModule {
 		this.plotlyLayoutRegistry = new Map();
 		this.gridLayout = new MosaicGridLayout();
 		this.tileLayout = []; // runtime tile descriptors [{ id, col, row, w, h, minW, minH }]
+		this.responsiveLayoutEventOwner = {};
+		this.responsiveLayoutResizeTimeout = null;
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
-			if(data.selection != this.name) {
-				$("#result-mosaic-container").hide();
-			}
-			else {
-				$("#result-mosaic-container").show();
-			}
+			this.setActive(data.selection == this.name);
 		});
 
 		
@@ -336,6 +333,16 @@ class ResultMosaic extends ResultModule {
 		return true;
 	}
 
+	setActive(active) {
+		super.setActive(active);
+		if(active) {
+			$("#result-mosaic-container").show();
+		}
+		else {
+			$("#result-mosaic-container").hide();
+		}
+	}
+
 	getModuleMetaByName(name) {
 		for(let key in this.modules) {
 			if(this.modules[key].name == name) {
@@ -601,23 +608,7 @@ class ResultMosaic extends ResultModule {
 	}
 
 	renderGridModules(resultGridModules) {
-		let domain = this.sqs.domainManager.getActiveDomain();
-		const domainRows = domain.result_grid_layout[0];
-		const domainCols = domain.result_grid_layout[1];
-
-		// Build initial tile layout state from config positions
-		this.tileLayout = [];
-		resultGridModules.forEach(mConf => {
-			if (typeof mConf.default == "undefined" || mConf.default == true) {
-				const mosaicTileId = nanoid();
-				mConf.grid_box_id  = this.getGridBoxId(mConf);
-				mConf.mosaicTileId = mosaicTileId;
-
-				const descriptor = this.gridLayout.tileFromModuleConf(mConf, domainRows, domainCols, mosaicTileId, this.tileLayout);
-				mConf.tileDescriptor = descriptor;
-				this.tileLayout.push(descriptor);
-			}
-		});
+		this.rebuildTileLayout(resultGridModules);
 
 		// Render each tile
 		const renderPromises = [];
@@ -661,6 +652,35 @@ class ResultMosaic extends ResultModule {
 		});
 
 		this.bindGridModuleSelectionCallbacks();
+	}
+
+	rebuildTileLayout(resultGridModules) {
+		let domain = this.sqs.domainManager.getActiveDomain();
+		const domainRows = domain.result_grid_layout[0];
+		const domainCols = domain.result_grid_layout[1];
+		const effectiveDomainCols = this.gridLayout.getEffectiveDomainCols();
+
+		this.tileLayout = [];
+		resultGridModules.forEach(mConf => {
+			if (typeof mConf.default == "undefined" || mConf.default == true) {
+				if(typeof mConf.mosaicTileId == "undefined") {
+					mConf.mosaicTileId = nanoid();
+				}
+				mConf.grid_box_id = this.getGridBoxId(mConf);
+
+				const descriptor = this.gridLayout.tileFromModuleConf(
+					mConf, domainRows, domainCols, mConf.mosaicTileId, this.tileLayout, effectiveDomainCols
+				);
+
+				if(mConf.tileDescriptor) {
+					Object.assign(mConf.tileDescriptor, descriptor);
+				}
+				else {
+					mConf.tileDescriptor = descriptor;
+				}
+				this.tileLayout.push(mConf.tileDescriptor);
+			}
+		});
 	}
 
 	async renderGridModule(moduleConf, mosaicTileId) {
@@ -764,8 +784,35 @@ class ResultMosaic extends ResultModule {
 
 	configureGridLayoutForDomain(domain) {
 		const container = document.getElementById("result-mosaic-container");
+		const previousDomainCols = this.gridLayout.getEffectiveDomainCols();
 		this.gridLayout.configureForDomain(domain, container);
 		this.updateCSSVars();
+		return previousDomainCols != this.gridLayout.getEffectiveDomainCols();
+	}
+
+	applyResponsiveTileLayout() {
+		let activeModule = this.resultManager.getActiveModule();
+		if(!activeModule || activeModule.name != this.name || $("#result-mosaic-container").length == 0) {
+			return;
+		}
+
+		let activeDomain = this.sqs.domainManager.getActiveDomain();
+		let columnCountChanged = this.configureGridLayoutForDomain(activeDomain);
+		if(columnCountChanged) {
+			this.rebuildTileLayout(activeDomain.result_grid_modules);
+		}
+		this.syncAllTiles();
+		this.relayoutRegisteredPlotlyCharts();
+	}
+
+	bindResponsiveTileLayoutCallbacks() {
+		this.sqs.sqsEventUnlisten("layoutResize", this.responsiveLayoutEventOwner);
+		this.sqs.sqsEventListen("layoutResize", () => {
+			clearTimeout(this.responsiveLayoutResizeTimeout);
+			this.responsiveLayoutResizeTimeout = setTimeout(() => {
+				this.applyResponsiveTileLayout();
+			}, 0);
+		}, this.responsiveLayoutEventOwner);
 	}
 
 	initTileDrag(el, moduleConf) {
@@ -1057,9 +1104,9 @@ class ResultMosaic extends ResultModule {
 
 		// Keep CSS vars and tile positions in sync on window resize
 		$(window).off("resize.mosaicGrid").on("resize.mosaicGrid", () => {
-			this.configureGridLayoutForDomain(this.sqs.domainManager.getActiveDomain());
-			this.syncAllTiles();
+			this.applyResponsiveTileLayout();
 		});
+		this.bindResponsiveTileLayoutCallbacks();
 	}
 
 	prepareChartData(data_key_name, data_value_name, data) {
@@ -1929,6 +1976,8 @@ class ResultMosaic extends ResultModule {
 				this.cleanupPlotlyChartsInContainer("#result-mosaic-container");
 				this.plotlyLayoutRegistry.clear();
 				this.sqs.sqsEventUnlisten("layoutResize", this);
+				this.sqs.sqsEventUnlisten("layoutResize", this.responsiveLayoutEventOwner);
+				clearTimeout(this.responsiveLayoutResizeTimeout);
 				$(window).off("resize.mosaicGrid");
 				this.tileLayout = [];
 

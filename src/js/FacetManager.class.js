@@ -125,17 +125,6 @@ class FacetManager {
 	}
 	
 	addDefaultFacets() {
-		/*
-		if(Config.timelineEnabled) {
-			let facetId = "timeline";
-			let facetTemplate = this.getFacetTemplateByFacetId("analysis_entity_ages");
-			facetTemplate.virtual = true;
-			let mapObject = this;
-			this.timeline = new TimelineFacet(this.sqs, facetId, facetTemplate, mapObject);
-			this.addFacet(this.timeline);
-		}
-		*/
-
 		Config.defaultFilters.forEach((facetId) => {
 			let facetTemplate = this.getFacetTemplateByFacetId(facetId);
 			if(!facetTemplate) {
