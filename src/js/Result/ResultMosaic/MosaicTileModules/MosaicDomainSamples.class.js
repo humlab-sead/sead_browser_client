@@ -193,8 +193,7 @@ class MosaicDomainSamples extends MosaicTileModule {
 
     formatDataForExport(data, format = "json") {
         if (format == "png") {
-            let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-            resultMosaic.exportPieChartPlotly(this.renderIntoNode, this.plot);
+            Plotly.downloadImage(this.plot, { format: 'png', filename: 'sead_domain_samples_chart', scale: window.devicePixelRatio || 1 });
         }
         return data;
     }

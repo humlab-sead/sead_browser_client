@@ -236,6 +236,42 @@ class MosaicDendroTreeAge extends DendroBaseModule {
         this.renderComplete = true;
     }
 
+    formatDataForExport(data, format = "json") {
+        if(format === "png") {
+            return super.formatDataForExport(data, format);
+        }
+        if(!data || !data.minValues || !data.maxValues || data.minValues.length === 0) return [];
+
+        const allValues = [...data.minValues, ...data.maxValues];
+        const globalMin = Math.min(...allValues);
+        const globalMax = Math.max(...allValues);
+
+        if(globalMin === globalMax) {
+            return [{ bin_start_years: globalMin, bin_end_years: globalMax, youngest_count: data.minValues.length, oldest_count: data.maxValues.length }];
+        }
+
+        const bins = 20;
+        const binSize = (globalMax - globalMin) / bins;
+        const minHist = new Array(bins).fill(0);
+        const maxHist = new Array(bins).fill(0);
+
+        data.minValues.forEach(v => {
+            const i = Math.min(Math.floor((v - globalMin) / binSize), bins - 1);
+            minHist[i]++;
+        });
+        data.maxValues.forEach(v => {
+            const i = Math.min(Math.floor((v - globalMin) / binSize), bins - 1);
+            maxHist[i]++;
+        });
+
+        return Array.from({ length: bins }, (_, i) => ({
+            bin_start_years: +(globalMin + i * binSize).toFixed(1),
+            bin_end_years: +(globalMin + (i + 1) * binSize).toFixed(1),
+            youngest_count: minHist[i],
+            oldest_count: maxHist[i]
+        }));
+    }
+
     async update() {
         this.renderComplete = false;
         await this.render(this.renderIntoNode);

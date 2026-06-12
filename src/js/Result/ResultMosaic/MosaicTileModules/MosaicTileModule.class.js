@@ -427,6 +427,11 @@ class MosaicTileModule {
             html += "<a id='"+mapToImageButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart as image</a>";
         }
 
+        let geojsonButtonId = nanoid();
+        if(exportFormats.includes("geojson")) {
+            html += "<a id='"+geojsonButtonId+"' class='site-report-export-download-btn light-theme-button'>Site data as GeoJSON</a>";
+        }
+
         html += "</div>";
         this.sqs.dialogManager.showPopOver("Export chart data", html);
 
@@ -521,11 +526,41 @@ class MosaicTileModule {
             });
         }
 
-        
+        if (exportFormats.includes("geojson")) {
+            $("#" + geojsonButtonId).on("click", () => {
+                const geojson = this.formatDataForExport(this.data, "geojson");
+                const bytes = new TextEncoder().encode(JSON.stringify(geojson, null, 2));
+                const blob = new Blob([bytes], { type: "application/geo+json;charset=utf-8" });
+                let filename = this.title.toLowerCase().replace(/ /g, "_");
+                saveAs(blob, "sead_" + filename + ".geojson");
+                setTimeout(() => {
+                    this.sqs.dialogManager.hidePopOver();
+                }, 1000);
+            });
+        }
+
+
     }
 
     async exportDataAsXlsx(data, exportData, filename) {
         const workbook = new ExcelJS.Workbook();
+
+        const metaSheet = workbook.addWorksheet("Metadata");
+        [
+            ["SEAD browser version", exportData.sead_version],
+            ["SEAD Query API server version", this.sqs.apiVersion],
+            ["JSON API server version", this.sqs.dataServerVersion],
+            ["Export date",            exportData.export_date],
+            ["Reference",              exportData.reference],
+            ["License",                exportData.license],
+            ["Description",            exportData.description],
+        ].forEach(([key, value]) => {
+            const row = metaSheet.addRow([key, value]);
+            row.getCell(1).font = { bold: true };
+        });
+        metaSheet.getColumn(1).width = 26;
+        metaSheet.getColumn(2).width = 60;
+
         const worksheet = workbook.addWorksheet("Chart data");
 
         if(Array.isArray(data) && data.length > 0) {
@@ -535,21 +570,30 @@ class MosaicTileModule {
                 worksheet.addRow(columns.map(column => row[column]));
             });
             worksheet.getRow(1).font = { bold: true };
+            worksheet.views = [{ state: "frozen", ySplit: 1 }];
         }
         else {
             worksheet.addRow(["data"]);
             worksheet.addRow([JSON.stringify(data || {}, null, 2)]);
         }
 
-        worksheet.columns.forEach(column => {
-            column.width = 18;
-        });
+        this._fitWorksheetColumns(worksheet);
 
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], {
             type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         });
         saveAs(blob, "sead_"+filename+"_graph_data.xlsx");
+    }
+
+    _fitWorksheetColumns(worksheet, minimumWidth = 10, maximumWidth = 60) {
+        worksheet.columns.forEach(column => {
+            let width = minimumWidth;
+            column.eachCell({ includeEmpty: true }, cell => {
+                width = Math.max(width, String(cell.value ?? "").length + 2);
+            });
+            column.width = Math.min(width, maximumWidth);
+        });
     }
 
     formatDataForExport(data, format = "json") {

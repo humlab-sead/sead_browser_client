@@ -300,19 +300,11 @@ class MosaicDatedSitesModule extends MosaicTileModule {
 
     if (format === "csv") {
       const histogram = data.histogram || [];
-      let includeColumns = [];
-
-      if (histogram.length > 0) {
-        includeColumns = Object.keys(histogram[0]);
-      }
-
-      return histogram.map(item => {
-        const row = {};
-        includeColumns.forEach(col => {
-          row[col] = item[col];
-        });
-        return row;
-      });
+      return histogram.map(item => ({
+        bin_start: item.bin_start ?? item.startYear ?? null,
+        bin_end:   item.bin_end   ?? item.endYear   ?? null,
+        count:     item.count     ?? item.datingsNum ?? item.value ?? 0,
+      }));
     }
 
     return data;

@@ -168,27 +168,12 @@ class MosaicDendroBarkModule extends MosaicTileModule {
     }
 
     getAvailableExportFormats() {
-        return ["json", "csv", "png"];
+        return ["json", "csv", "xlsx", "png"];
     }
 
     formatDataForExport(data, format = "json") {
         if(format == "csv") {
-
-            let includeColumns = [];
-            if(data.length > 0) {
-                includeColumns = Object.keys(data[0]);
-            }
-
-            //includeColumns = ["description","method_abbrev_or_alt_name","method_name","dataset_count"];
-
-            //remove columns that we don't want to include
-            data = data.map((item) => {
-                let newItem = {};
-                includeColumns.forEach((column) => {
-                    newItem[column] = item[column];
-                });
-                return newItem;
-            });
+            data = data.map((item) => ({ name: item.name, count: item.count }));
         }
         if(format == "png") {
             let resultMosaic = this.sqs.resultManager.getModule("mosaic");

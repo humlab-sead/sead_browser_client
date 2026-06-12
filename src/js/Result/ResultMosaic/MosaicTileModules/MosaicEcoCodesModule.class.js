@@ -21,6 +21,8 @@ import {
     Legend
   );
 
+  Chart.defaults.font.family = 'Didact Gothic, sans-serif';
+
 class MosaicEcoCodesModule extends MosaicTileModule {
     constructor(sqs) {
         super();
@@ -182,16 +184,12 @@ class MosaicEcoCodesModule extends MosaicTileModule {
 	formatDataForExport(data, format = "json") {
 		
         if(format == "csv") {
-            let includeColumns = ["abbreviation", "ecocode_definition_id", "name", "totalAbundance"];
-
-            //remove columns that we don't want to include
-            data = data.ecocode_groups.map((group) => {
-                let newItem = {};
-                includeColumns.forEach((column) => {
-                    newItem[column] = group[column];
-                });
-                return newItem;
-            });
+            data = data.ecocode_groups.map((group) => ({
+                ecocode_definition_id: group.ecocode_definition_id,
+                abbreviation: group.abbreviation,
+                name: group.name,
+                abundance: group.totalAbundance,
+            }));
         }
 
         return data;

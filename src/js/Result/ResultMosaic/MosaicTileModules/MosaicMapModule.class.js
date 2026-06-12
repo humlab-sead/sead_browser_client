@@ -68,9 +68,31 @@ class MosaicMapModule extends MosaicTileModule {
 	}
 
     getAvailableExportFormats() {
-        return ["json", "csv", "mapToImage"];
+        return ["json", "csv", "geojson", "mapToImage"];
     }
-    
+
+    formatDataForExport(data, format = "json") {
+        if (format === "geojson") {
+            return {
+                type: "FeatureCollection",
+                features: (data || [])
+                    .filter(site => site.lat != null && site.lng != null)
+                    .map(site => ({
+                        type: "Feature",
+                        geometry: {
+                            type: "Point",
+                            coordinates: [site.lng, site.lat]
+                        },
+                        properties: {
+                            site_id: site.id,
+                            site_name: site.title
+                        }
+                    }))
+            };
+        }
+        return data;
+    }
+
 }
 
 export default MosaicMapModule;

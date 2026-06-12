@@ -4,6 +4,8 @@ import Chart from 'chart.js/auto';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import Plotly from 'plotly.js-dist-min';
 
+Chart.defaults.font.family = 'Didact Gothic, sans-serif';
+
 /**
  * DendroBaseModule - Base class for dendrochronology tile modules
  * 
@@ -486,7 +488,7 @@ class DendroBaseModule extends MosaicTileModule {
             
             if(parseFloat(percentage) > 12) {
                 ctx.fillStyle = '#fff';
-                ctx.font = 'bold 11px Arial, sans-serif';
+                ctx.font = 'bold 11px "Didact Gothic", sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
@@ -545,8 +547,12 @@ class DendroBaseModule extends MosaicTileModule {
                 xanchor: 'center',
                 yanchor: 'top',
                 font: {
+                    family: 'Didact Gothic, sans-serif',
                     size: 11
                 }
+            },
+            font: {
+                family: 'Didact Gothic, sans-serif',
             },
             margin: {
                 l: 20,
@@ -581,22 +587,23 @@ class DendroBaseModule extends MosaicTileModule {
         
         if(chartData.plotly) {
             // Plotly chart
-            Plotly.downloadImage(chartData.elementId, {
-                format: 'png',
-                filename: `${chartData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart`
-            });
+            const el = chartData.elementId;
+            const filename = `sead_${chartData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart`;
+            Plotly.relayout(el, { paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' })
+                .then(() => Plotly.downloadImage(el, { format: 'png', filename, scale: window.devicePixelRatio || 1 }))
+                .then(() => Plotly.relayout(el, { paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' }));
         } else if(chartData.chart) {
             const { chart, name } = chartData;
             const url = chart.toBase64Image();
             const link = document.createElement('a');
-            link.download = `${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
+            link.download = `sead_${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
             link.href = url;
             link.click();
         } else if(chartData.canvas) {
             const { canvas, name } = chartData;
             const url = canvas.toDataURL('image/png');
             const link = document.createElement('a');
-            link.download = `${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
+            link.download = `sead_${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
             link.href = url;
             link.click();
         }
@@ -642,41 +649,56 @@ class DendroBaseModule extends MosaicTileModule {
     }
 
     getAvailableExportFormats() {
-        return ["png"];
+        return ["json", "csv", "xlsx", "png"];
     }
 
     formatDataForExport(data, format = "json") {
         if(format === "png") {
-            // Get the first chart instance (there should only be one per module)
             const chartEntry = Array.from(this.chartInstances.values())[0];
             if(!chartEntry) {
                 console.error('No chart found for export');
                 return;
             }
-            
             if(chartEntry.plotly) {
-                // Plotly chart
-                Plotly.downloadImage(chartEntry.elementId, {
-                    format: 'png',
-                    filename: `${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart`
-                });
+                const el = chartEntry.elementId;
+                const filename = `sead_${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart`;
+                Plotly.relayout(el, { paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' })
+                    .then(() => Plotly.downloadImage(el, { format: 'png', filename, scale: window.devicePixelRatio || 1 }))
+                    .then(() => Plotly.relayout(el, { paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' }));
             } else if(chartEntry.chart) {
-                // Chart.js chart
                 const url = chartEntry.chart.toBase64Image();
                 const link = document.createElement('a');
-                link.download = `${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
+                link.download = `sead_${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
                 link.href = url;
                 link.click();
             } else if(chartEntry.canvas) {
-                // Custom canvas chart
                 const url = chartEntry.canvas.toDataURL('image/png');
                 const link = document.createElement('a');
-                link.download = `${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
+                link.download = `sead_${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
                 link.href = url;
                 link.click();
             }
+            return data;
         }
-        return data;
+
+        if(!data) return [];
+
+        if(data.distribution && data.distribution.length > 0) {
+            return data.distribution.map(bin => ({
+                bin_start: +bin.startValue.toFixed(2),
+                bin_end: +bin.endValue.toFixed(2),
+                sample_count: bin.count
+            }));
+        }
+
+        if(data.categories && data.categories.length > 0) {
+            return data.categories.map(cat => ({
+                category: cat.name,
+                count: cat.count
+            }));
+        }
+
+        return Array.isArray(data) ? data : [data];
     }
 }
 

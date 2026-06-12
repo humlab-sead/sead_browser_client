@@ -1684,14 +1684,14 @@ class ResultMosaic extends ResultModule {
 	*/
 
 	async exportPieChartPlotly(renderIntoNode, plot) {
-		let renderImagePromise = Plotly.toImage(plot, {format: 'png', width: 800, height: 800});
+		let renderImagePromise = Plotly.toImage(plot, {format: 'png', width: 800, height: 800, scale: window.devicePixelRatio || 1});
 		renderImagePromise.then((base64ImageUrl) => {
 			let a = document.createElement('a');
 			a.href = base64ImageUrl;
 			a.download = 'chart.png';
 			a.click();
 		});
-	
+
 	}
 
 	async renderPieChartPlotly(renderIntoNode, chartData, layoutConfig = {}) {
@@ -1709,6 +1709,9 @@ class ResultMosaic extends ResultModule {
 				  family: 'Didact Gothic, sans-serif',
 				  size: 22
 				},
+			},
+			font: {
+				family: 'Didact Gothic, sans-serif',
 			},
 			margin: {
 				l: 50,
