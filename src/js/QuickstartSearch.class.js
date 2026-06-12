@@ -334,18 +334,58 @@ class QuickstartSearch {
         const encodedQuery = encodeURIComponent(searchQuery);
         const categoryKey = this.getResponseCategoryKeyForTab(tabKey);
         const configuredTemplate = this.resolveConfiguredTabEndpoint(tabKey);
+        const domainCode = this.getActiveSearchDomainCode();
+        const encodedDomainCode = encodeURIComponent(domainCode);
 
         if(configuredTemplate) {
-            return this.interpolateEndpointTemplate(configuredTemplate, {
+            const configuredUrl = this.interpolateEndpointTemplate(configuredTemplate, {
                 query: encodedQuery,
                 tab: tabKey,
                 category: categoryKey,
                 limit: String(limit),
-                page: String(normalizedPage)
+                page: String(normalizedPage),
+                domainCode: encodedDomainCode,
+                domain: encodedDomainCode
             });
+            if(this.urlHasQueryParameter(configuredUrl, "domainCode")) {
+                return configuredUrl;
+            }
+            return this.appendQueryParameter(configuredUrl, "domainCode", domainCode);
         }
 
-        return this.sqs.config.dataServerAddress+"/search/"+categoryKey+"/"+encodedQuery+"?limit="+limit+"&page="+normalizedPage;
+        return this.sqs.config.dataServerAddress+"/search/"+categoryKey+"/"+encodedQuery+"?limit="+limit+"&page="+normalizedPage+"&domainCode="+encodedDomainCode;
+    }
+
+    getActiveSearchDomainCode() {
+        if(!this.sqs.domainManager || typeof this.sqs.domainManager.getActiveDomain !== "function") {
+            return "general";
+        }
+
+        const activeDomain = this.sqs.domainManager.getActiveDomain();
+        if(!activeDomain || !activeDomain.name) {
+            return "general";
+        }
+        return activeDomain.name;
+    }
+
+    urlHasQueryParameter(url, parameterName) {
+        const queryIndex = url.indexOf("?");
+        if(queryIndex === -1) {
+            return false;
+        }
+        const hashIndex = url.indexOf("#", queryIndex);
+        const queryString = url.substring(queryIndex + 1, hashIndex === -1 ? url.length : hashIndex);
+        return queryString.split("&").some((part) => {
+            return decodeURIComponent(part.split("=")[0]) === parameterName;
+        });
+    }
+
+    appendQueryParameter(url, parameterName, parameterValue) {
+        const hashIndex = url.indexOf("#");
+        const urlWithoutHash = hashIndex === -1 ? url : url.substring(0, hashIndex);
+        const hash = hashIndex === -1 ? "" : url.substring(hashIndex);
+        const separator = urlWithoutHash.indexOf("?") === -1 ? "?" : "&";
+        return urlWithoutHash+separator+encodeURIComponent(parameterName)+"="+encodeURIComponent(parameterValue)+hash;
     }
 
     interpolateEndpointTemplate(template, values) {
@@ -969,20 +1009,6 @@ class QuickstartSearch {
                 $goToSiteBtn.prop("disabled", true);
             }
             $actions.append($goToSiteBtn);
-
-            const $deployFilterBtn = $("<button type='button' class='search-dropdown-item-action-btn search-dropdown-item-action-btn-secondary'></button>").text("Apply as filter");
-            const canDeployFilter = resultItem.categoryId !== null && !!resultItem.facetCode;
-            if(canDeployFilter) {
-                $deployFilterBtn.on("click", async (evt) => {
-                    evt.preventDefault();
-                    evt.stopPropagation();
-                    await this.deployAndSelectFilter(resultItem);
-                });
-            }
-            else {
-                $deployFilterBtn.prop("disabled", true);
-            }
-            $actions.append($deployFilterBtn);
 
             $item.append($actions);
             $list.append($item);
