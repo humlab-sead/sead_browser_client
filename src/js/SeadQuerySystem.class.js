@@ -660,7 +660,7 @@ class SeadQuerySystem {
 	 */
 	async preload() {
 		let fetchApiVersion = new Promise((resolve, reject) => {
-			$.ajax(this.config.serverAddress+"/api/values", {
+			$.ajax(this.config.serverAddress+"/api/version", {
 				method: "get",
 				dataType: "json",
 				timeout: Config.preloadTimeout,
@@ -763,7 +763,20 @@ class SeadQuerySystem {
 			this.bugsEcoCodeDefinitions = ecocodes;
 		});
 
-		return await Promise.all([fetchApiVersion, fetchFacetDefinitionsPromise, fetchDataTypesPromise, fetchDatasetMasters, fetchDomainDefinitionsPromise]);
+		let fetchDataServerVersion = new Promise((resolve) => {
+			fetch(this.config.dataServerAddress+"/version")
+			.then(response => response.json())
+			.then(data => {
+				this.dataServerVersion = data.version;
+				resolve(data);
+			})
+			.catch(() => {
+				this.dataServerVersion = "unknown";
+				resolve(null);
+			});
+		});
+
+		return await Promise.all([fetchApiVersion, fetchFacetDefinitionsPromise, fetchDataTypesPromise, fetchDatasetMasters, fetchDomainDefinitionsPromise, fetchDataServerVersion]);
 	}
 
 	importFilters(data) {
