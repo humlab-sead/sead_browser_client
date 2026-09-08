@@ -22,6 +22,7 @@ class DialogManager {
 			this.coverTilesNum = 12;
 			this.tooltips = [];
 			this.importDropzone = null;
+			this.popOverClass = "";
 		
 		$(".popover-close-btn").on("click", () => {
 			this.hidePopOver();
@@ -150,6 +151,11 @@ class DialogManager {
 	}
 	
 	configurePopOver(options = {}) {
+		if(this.popOverClass) {
+			$("#popover-dialog").removeClass(this.popOverClass);
+			this.popOverClass = "";
+		}
+
 		$("#popover-dialog-frame").css("width", "");
 		$("#popover-dialog-frame").css("height", "");
 
@@ -165,6 +171,10 @@ class DialogManager {
 		if(options.margin) {
 			$("#popover-dialog").css("grid-template-columns", options.margin+" 1fr "+options.margin);
 			$("#popover-dialog").css("grid-template-rows", options.margin+" 1fr "+options.margin);
+		}
+		if(options.popOverClass) {
+			this.popOverClass = options.popOverClass;
+			$("#popover-dialog").addClass(this.popOverClass);
 		}
 
 		this.updatePopOverMobileMode();
@@ -238,6 +248,10 @@ class DialogManager {
 	hidePopOver() {
 		$("#popover-dialog").hide();
 		$("#popover-dialog").removeClass("popover-mobile-mode");
+		if(this.popOverClass) {
+			$("#popover-dialog").removeClass(this.popOverClass);
+			this.popOverClass = "";
+		}
 		$("#popover-dialog-frame").css("width", "");
 		$("#popover-dialog-frame").css("height", "");
 		this.sqs.sqsEventDispatch("popOverClosed", {});

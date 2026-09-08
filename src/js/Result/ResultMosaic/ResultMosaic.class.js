@@ -469,6 +469,9 @@ class ResultMosaic extends ResultModule {
 			if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 				this.importResultData(respData);
 				this.updateGridModules();
+				if(this.sqs.config.showResultExportButton) {
+					$("#mosaic-site-count").text(`${this.sites.length} sites`);
+				}
 			}
 			else {
 				console.log("WARN: ResultMosaic discarding old result package data ("+respData.RequestId+"/"+this.requestId+").");
@@ -477,6 +480,26 @@ class ResultMosaic extends ResultModule {
 		function(xhr, textStatus, errorThrown) { //error
 			console.log(errorThrown);
 		});
+	}
+
+	getSelectedSites() {
+		return this.sites ? this.sites : [];
+	}
+
+	renderExportButton() {
+		if($("#result-mosaic-container .result-export-button").length > 0) {
+			return;
+		}
+		let siteCount = this.sites ? this.sites.length : 0;
+		let exportButton = $(`<div class="result-export-button">
+			<span id="mosaic-site-count">${siteCount} sites</span>
+			<span class="result-export-button-divider"></span>
+			<span class="result-export-button-action"><i class='fa fa-download' aria-hidden='true'></i> Export</span>
+		</div>`);
+		let exportPanel = $("<div></div>").attr("id", "result-mosaic-export-panel");
+		exportPanel.append(exportButton);
+		$("#result-mosaic-container").append(exportPanel);
+		this.bindExportModuleDataToButton(exportButton, this);
 	}
 	
 	applyDomainGridLayout(domain) {
@@ -1107,6 +1130,11 @@ class ResultMosaic extends ResultModule {
 			this.applyResponsiveTileLayout();
 		});
 		this.bindResponsiveTileLayoutCallbacks();
+
+		if(this.sqs.config.showResultExportButton) {
+			this.renderExportButton();
+			$("#mosaic-site-count").text(`${this.sites.length} sites`);
+		}
 	}
 
 	prepareChartData(data_key_name, data_value_name, data) {

@@ -201,7 +201,12 @@ class ResultTable extends ResultModule {
 			console.warn("renderExportButton - Export button already exists");
 			return;
 		}
-		let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
+		let siteCount = this.data && this.data.rows ? this.data.rows.length : 0;
+		let exportButton = $(`<div class="result-export-button">
+			<span class="result-table-stats">${siteCount} sites</span>
+			<span class="result-export-button-divider"></span>
+			<span class="result-export-button-action"><i class='fa fa-download' aria-hidden='true'></i> Export</span>
+		</div>`);
 		$(anchorNodeSelector).append(exportButton);
 		this.bindExportModuleDataToButton(exportButton, this);
 	}
@@ -333,21 +338,20 @@ class ResultTable extends ResultModule {
 	renderDataTable() {
 		this.resultManager.renderMsg(false);
 
-		$('#result-table-container').css("display", "grid");
-		$('#result-table-container').html(`
-			<div id='result-datatable'></div>
-			<div id='result-datatable-controls'>
-			</div>
-			`);
+		$('#result-table-container').css("display", "block");
+		$('#result-table-container').html(`<div id='result-datatable'></div>`);
 
 		if(this.sqs.config.showResultExportButton) {
-			let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
-			$("#result-datatable-controls").append(exportButton);
+			let exportButton = $(`<div class="result-export-button">
+				<span class="result-table-stats">${this.data.rows.length} sites</span>
+				<span class="result-export-button-divider"></span>
+				<span class="result-export-button-action"><i class='fa fa-download' aria-hidden='true'></i> Export</span>
+			</div>`);
+			let exportPanel = $("<div></div>").attr("id", "result-table-export-panel");
+			exportPanel.append(exportButton);
+			$("#result-table-container").append(exportPanel);
 			this.bindExportModuleDataToButton(exportButton, this);
 		}
-
-		let stats = $("<div></div>").addClass("result-table-stats").html(`${this.data.rows.length} sites`);
-		$("#result-datatable-controls").append(stats);
 
 		let maxAnalysisEntities = this.data.rows.reduce((max, row) => Math.max(max, row.analysis_entities), 0);
 

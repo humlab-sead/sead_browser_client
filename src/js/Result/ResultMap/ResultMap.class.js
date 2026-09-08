@@ -1,5 +1,6 @@
 //import * as d3 from 'd3';
 //import Config from '../../../config/config.js'
+import Plotly from "plotly.js-dist-min";
 import ResultModule from '../ResultModule.class.js'
 import SqsMenu from '../../SqsMenu.class';
 
@@ -84,6 +85,11 @@ class ResultMap extends ResultModule {
 		this.defaultExtent = [-9240982.715065815, -753638.6533165146, 11461833.521917604, 19264301.810231723];
 		this.dataRevision = 0;
 		this.pointStyleCache = {};
+		this.externalPointStyle = null;
+		this.externalSelectedPointStyle = null;
+		this.externalDataLoadPromises = {};
+		this.isoarchLocationDetailsCache = new globalThis.Map();
+		this.isoarchLocationPopupRequestId = 0;
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			if(data.selection != this.name) {
@@ -116,6 +122,7 @@ class ResultMap extends ResultModule {
 		this.layers = this.resultMapLayers.initBaseLayers();
 
 		this.initializeDataLayers();
+		this.initializeExternalDataLayers();
 
 		//Set up viewport resize event handlers
 		this.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
@@ -179,6 +186,18 @@ class ResultMap extends ResultModule {
 				});
 				allLegendItems.append(legendItem);
 			} 
+			else if (layerType === "externalLayer") {
+				const legendItem = this.createLegendItem({
+					layerId: props.layerId,
+					layerType: "external",
+					title: props.title,
+					subtitle: "[External data]",
+					zIndex: layer.getZIndex() || 0,
+					canClose: true,
+					canExpand: true
+				});
+				allLegendItems.append(legendItem);
+			}
 			else if (layerType === "baseLayer") {
 				// Add base layer
 				const visibleBaseLayers = this.layers.filter(l => l.getProperties().type === "baseLayer" && l.getVisible());
@@ -357,6 +376,11 @@ class ResultMap extends ResultModule {
 					console.log("Deselecting data layer");
 					this.setMapDataLayer("none");
 					break;
+
+				case "externalLayer":
+					console.log("Deselecting external layer");
+					this.hideMapExternalLayer(layer.getProperties().layerId);
+					break;
 					
 				case "auxLayer":
 					console.log("Deselecting auxiliary layer");
@@ -407,6 +431,20 @@ class ResultMap extends ResultModule {
 								<div class="legend-symbol-row">
 									<div class="legend-symbol" style="background-color: ${this.style.selected.fillColor}; width: 12px; height: 12px; border-radius: 50%; display: inline-block;"></div>
 									<span>Selected site</span>
+								</div>
+							</div>
+						</div>
+					`;
+					break;
+
+				case 'external':
+					legendContent = `
+						<div class="legend-content-loaded">
+							<h5>Legend</h5>
+							<div class="legend-symbols">
+								<div class="legend-symbol-row">
+									<div class="legend-symbol" style="background-color: #3f7f5f; width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 2px solid #ffffff;"></div>
+									<span>Isoarch location</span>
 								</div>
 							</div>
 						</div>
@@ -558,6 +596,7 @@ class ResultMap extends ResultModule {
 		// Get visible layers and group by type
 		const layersByType = {
 			dataLayer: [],
+			externalLayer: [],
 			auxLayer: [],
 			baseLayer: []
 		};
@@ -581,6 +620,7 @@ class ResultMap extends ResultModule {
 		// Combine groups in hierarchy order: data -> aux -> base
 		return [
 			...layersByType.dataLayer,
+			...layersByType.externalLayer,
 			...layersByType.auxLayer,
 			...layersByType.baseLayer
 		];
@@ -728,13 +768,15 @@ class ResultMap extends ResultModule {
 			return;
 		}
 
-		let exportPanel = $("<div></div>").attr("id", "result-map-export-panel");
-		let exportButton = $("<div></div>").addClass("result-export-button").html("<i class='fa fa-download' aria-hidden='true'></i>&nbsp;Export");
-		
-		exportPanel.append(exportButton);
 		let siteCount = this.data.length;
-		exportPanel.append(`<span id="map-site-count">${siteCount} sites</span>`);
+		let exportButton = $(`<div class="result-export-button">
+			<span id="map-site-count">${siteCount} sites</span>
+			<span class="result-export-button-divider"></span>
+			<span class="result-export-button-action"><i class='fa fa-download' aria-hidden='true'></i> Export</span>
+		</div>`);
 
+		let exportPanel = $("<div></div>").attr("id", "result-map-export-panel");
+		exportPanel.append(exportButton);
 		$("#result-map-container").append(exportPanel);
 		this.bindExportModuleDataToButton(exportButton, this);
 	}
@@ -1064,6 +1106,13 @@ class ResultMap extends ResultModule {
 		dataLayersHtml += "</div>";
 		$("#result-map-controls-container").append(dataLayersHtml);
 		new SqsMenu(this.resultManager.sqs, this.resultMapDataLayersControlsSqsMenu());
+
+		let externalLayersHtml = "<div class='result-map-map-control-item-container'>";
+		externalLayersHtml += "<div id='result-map-externallayer-controls-menu' class='result-map-map-control-item'>External data</div>";
+		externalLayersHtml += "<div id='result-map-externallayer-controls-menu-anchor'></div>";
+		externalLayersHtml += "</div>";
+		$("#result-map-controls-container").append(externalLayersHtml);
+		new SqsMenu(this.resultManager.sqs, this.resultMapExternalLayersControlsSqsMenu());
 
 		if(this.sqs.config.showResultExportButton) {
 			this.renderExportButton();
@@ -1537,6 +1586,38 @@ class ResultMap extends ResultModule {
 		$(`.aux-layer-checkbox[value='${auxLayerId}']`).prop("checked", false);
 	}
 
+	async setMapExternalLayer(externalLayerId) {
+		let externalLayer = this.layers.find(l => l.getProperties().type === "externalLayer" && l.getProperties().layerId === externalLayerId);
+
+		if(!externalLayer) {
+			console.warn("External layer not found:", externalLayerId);
+			return;
+		}
+
+		if(externalLayer.getVisible()) {
+			this.hideMapExternalLayer(externalLayerId);
+			return;
+		}
+
+		await this.ensureExternalLayerLoaded(externalLayer);
+		externalLayer.setVisible(true);
+
+		this.updateAllLayerZIndexes();
+		this.syncLayersToZIndex();
+	}
+
+	hideMapExternalLayer(externalLayerId) {
+		let externalLayer = this.layers.find(l => l.getProperties().type === "externalLayer" && l.getProperties().layerId === externalLayerId);
+
+		if(!externalLayer) {
+			console.warn("External layer not found:", externalLayerId);
+			return;
+		}
+
+		externalLayer.setVisible(false);
+		this.syncLayersToZIndex();
+	}
+
 	printOlMapLayers() {
 		if(!this.olMap) {
 			console.warn("No OL map to print layers from");
@@ -1711,6 +1792,118 @@ class ResultMap extends ResultModule {
 		this.layers.push(this.initClusteredPointsLayer());
 		this.layers.push(this.initPointsLayer());
 		this.layers.push(this.initHeatmapLayer());
+	}
+
+	initializeExternalDataLayers() {
+		this.layers.push(this.initIsoarchLocationsLayer());
+	}
+
+	initIsoarchLocationsLayer() {
+		const isoarchLocationsLayer = new VectorLayer({
+			source: new VectorSource(),
+			style: (feature) => this.getExternalPointStyle(feature),
+			zIndex: 150,
+			visible: false
+		});
+
+		isoarchLocationsLayer.setProperties({
+			"layerId": "isoarchLocations",
+			"title": "Isoarch locations",
+			"type": "externalLayer",
+			"dataLoaded": false,
+			"endpoint": "/isoarch/locations"
+		});
+
+		return isoarchLocationsLayer;
+	}
+
+	async ensureExternalLayerLoaded(layer) {
+		const props = layer.getProperties();
+
+		if(props.dataLoaded) {
+			return;
+		}
+
+		if(this.externalDataLoadPromises[props.layerId]) {
+			return this.externalDataLoadPromises[props.layerId];
+		}
+
+		this.externalDataLoadPromises[props.layerId] = this.loadExternalLayerData(layer)
+			.finally(() => {
+				delete this.externalDataLoadPromises[props.layerId];
+			});
+
+		return this.externalDataLoadPromises[props.layerId];
+	}
+
+	async loadExternalLayerData(layer) {
+		const props = layer.getProperties();
+
+		if(props.layerId === "isoarchLocations") {
+			const locations = await this.fetchIsoarchLocations();
+			const source = layer.getSource();
+			source.clear();
+			source.addFeatures(this.createIsoarchLocationFeatures(locations));
+			layer.set("dataLoaded", true);
+		}
+	}
+
+	async fetchIsoarchLocations() {
+		const limit = 5000;
+		let page = 1;
+		let total = null;
+		let locations = [];
+
+		do {
+			const response = await fetch(`${Config.dataServerAddress}/isoarch/locations?limit=${limit}&page=${page}`);
+			if(!response.ok) {
+				throw new Error(`Failed to fetch Isoarch locations: ${response.status} ${response.statusText}`);
+			}
+
+			const data = await response.json();
+			const pageLocations = Array.isArray(data.locations) ? data.locations : [];
+			const responseTotal = Number(data.total);
+			total = Number.isFinite(responseTotal) ? responseTotal : pageLocations.length;
+			locations = locations.concat(pageLocations);
+
+			if(pageLocations.length === 0) {
+				break;
+			}
+
+			page++;
+		} while(locations.length < total);
+
+		return locations;
+	}
+
+	createIsoarchLocationFeatures(locations) {
+		const features = [];
+
+		locations.forEach((location, index) => {
+			const lng = Number(location.longitude);
+			const lat = Number(location.latitude);
+
+			if(!Number.isFinite(lng) || !Number.isFinite(lat)) {
+				return;
+			}
+
+			const title = location.location_name || location.alternative_location_name || "Isoarch location";
+			const feature = new Feature({
+				geometry: new Point(fromLonLat([lng, lat])),
+				id: `isoarch-location-${index}`,
+				name: title,
+				externalLayerId: "isoarchLocations",
+				externalLocationData: location,
+				country: location.country || "",
+				coordinatesType: location.coordinates_type || "",
+				alternativeLocationName: location.alternative_location_name || ""
+			});
+
+			feature.setId(`isoarch-location-${index}`);
+			features.push(feature);
+		});
+
+		return features;
 	}
 
 	// Initialize the clustered points layer with empty source
@@ -2006,6 +2199,580 @@ class ResultMap extends ResultModule {
 		return this.getPointStyle(feature, options);
 	}
 
+	getExternalPointStyle(feature, options = { selected: false }) {
+		if(options.selected) {
+			if(!this.externalSelectedPointStyle) {
+				this.externalSelectedPointStyle = new Style({
+					image: new CircleStyle({
+						radius: 7,
+						stroke: new Stroke({
+							color: "#ffffff",
+							width: 2
+						}),
+						fill: new Fill({
+							color: "#f60"
+						})
+					}),
+					zIndex: 100
+				});
+			}
+
+			return this.externalSelectedPointStyle;
+		}
+
+		if(!this.externalPointStyle) {
+			this.externalPointStyle = new Style({
+				image: new CircleStyle({
+					radius: 5,
+					stroke: new Stroke({
+						color: "#ffffff",
+						width: 2
+					}),
+					fill: new Fill({
+						color: "#3f7f5f"
+					})
+				}),
+				zIndex: 50
+			});
+		}
+
+		return this.externalPointStyle;
+	}
+
+	escapeHtml(value) {
+		return $("<div></div>").text(value == null ? "" : value).html();
+	}
+
+	formatIsoarchLocationFieldLabel(fieldName) {
+		const labels = {
+			location_name: "Location name",
+			latitude: "Latitude",
+			longitude: "Longitude",
+			coordinates_type: "Coordinates type",
+			alternative_location_name: "Alternative location name",
+			country: "Country",
+			material_type: "Material type",
+			relative_dating_lower_limit: "Dating lower limit",
+			relative_dating_upper_limit: "Dating upper limit",
+			relative_dating_timescale: "Dating timescale",
+			taxon_name: "Taxon name",
+			taxon_rank: "Taxon rank",
+			short_reference: "Short reference",
+			dataset_abstract: "Dataset abstract"
+		};
+
+		if(labels[fieldName]) {
+			return labels[fieldName];
+		}
+
+		return fieldName
+			.replace(/_/g, " ")
+			.replace(/\b\w/g, (char) => char.toUpperCase());
+	}
+
+	renderIsoarchLocationBasicRows(locationData) {
+		const preferredFieldOrder = [
+			"location_name",
+			"alternative_location_name",
+			"country",
+			"latitude",
+			"longitude",
+			"coordinates_type"
+		];
+		const keys = preferredFieldOrder
+			.filter((key) => Object.prototype.hasOwnProperty.call(locationData, key))
+			.concat(Object.keys(locationData).filter((key) => !preferredFieldOrder.includes(key)));
+		let tableRows = "";
+
+		keys.forEach((key) => {
+			const value = locationData[key];
+			if(value == null || value === "") {
+				return;
+			}
+
+			tableRows += `<tr><th>${this.escapeHtml(this.formatIsoarchLocationFieldLabel(key))}</th><td>${this.escapeHtml(value)}</td></tr>`;
+		});
+
+		if(tableRows.length === 0) {
+			tableRows = "<tr><td colspan='2'>No location details available</td></tr>";
+		}
+
+		return tableRows;
+	}
+
+	renderIsoarchLocationPopup(feature) {
+		const coords = feature.getGeometry().getCoordinates();
+		const prop = feature.getProperties();
+		const locationData = prop.externalLocationData || {};
+		const locationTitle = prop.name || locationData.location_name || "Isoarch location";
+		const locationName = locationData.location_name || prop.name;
+		const requestId = ++this.isoarchLocationPopupRequestId;
+		let tableRows = this.renderIsoarchLocationBasicRows(locationData);
+
+		$("#map-popup-container").show();
+		$("#map-popup-container").addClass("isoarch-location-popup");
+		$("#map-popup-title").remove();
+		$(".isoarch-explorer-link").remove();
+		$("#map-popup-container").prepend(`<div id="map-popup-title">${this.escapeHtml(locationTitle)}</div>`);
+		$("#map-popup-title").after(`
+			<div class="isoarch-explorer-link">
+				<a href="https://explorer.isoarch.org/" target="_blank" rel="noopener noreferrer">Open IsoArcH Explorer</a>
+			</div>
+		`);
+		tableRows += `
+			<tr class="isoarch-location-details-row">
+				<td colspan="2">
+					<div id="isoarch-location-details-container" data-request-id="${requestId}">
+						<div class="isoarch-location-loading">
+							<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Loading additional Isoarch data...
+						</div>
+					</div>
+				</td>
+			</tr>`;
+		$("#map-popup-sites-table tbody").html(tableRows);
+		this.selectPopupOverlay.setPosition(coords);
+
+		if(!locationName) {
+			this.renderIsoarchLocationDetailsError("No location name available for additional lookup.", requestId);
+			return;
+		}
+
+		this.fetchAndRenderIsoarchLocationDetails(locationName, requestId);
+	}
+
+	async fetchIsoarchLocationDetails(locationName) {
+		if(this.isoarchLocationDetailsCache.has(locationName)) {
+			return this.isoarchLocationDetailsCache.get(locationName);
+		}
+
+		const detailsUrl = `${Config.dataServerAddress}/isoarch/location/${encodeURIComponent(locationName)}`;
+		const detailsRequest = fetch(detailsUrl)
+			.then(async (response) => {
+				if(response.status === 404) {
+					return {
+						location_name: locationName,
+						notFound: true
+					};
+				}
+				if(!response.ok) {
+					throw new Error(`Failed to fetch Isoarch location details: ${response.status} ${response.statusText}`);
+				}
+				return response.json();
+			})
+			.catch((error) => {
+				this.isoarchLocationDetailsCache.delete(locationName);
+				throw error;
+			});
+
+		this.isoarchLocationDetailsCache.set(locationName, detailsRequest);
+		return detailsRequest;
+	}
+
+	async fetchAndRenderIsoarchLocationDetails(locationName, requestId) {
+		try {
+			const details = await this.fetchIsoarchLocationDetails(locationName);
+			this.renderIsoarchLocationDetails(details, requestId);
+		}
+		catch(error) {
+			console.error("Failed to fetch Isoarch location details:", error);
+			this.renderIsoarchLocationDetailsError("Could not load additional Isoarch data.", requestId);
+		}
+	}
+
+	getIsoarchLocationDetailsContainer(requestId) {
+		const container = $("#isoarch-location-details-container");
+		if(container.length === 0 || container.attr("data-request-id") != String(requestId)) {
+			return null;
+		}
+
+		return container;
+	}
+
+	renderIsoarchLocationDetails(details, requestId) {
+		const container = this.getIsoarchLocationDetailsContainer(requestId);
+		if(!container) {
+			return;
+		}
+
+		if(details.notFound) {
+			container.html("<em>No additional Isoarch data found for this location.</em>");
+			return;
+		}
+
+		container.html(this.renderIsoarchDetailsObject(details));
+
+		if(Array.isArray(details.materials) && details.materials.length > 0) {
+			this.initIsoarchDatingViews(details.materials);
+		}
+	}
+
+	renderIsoarchLocationDetailsError(message, requestId) {
+		const container = this.getIsoarchLocationDetailsContainer(requestId);
+		if(!container) {
+			return;
+		}
+
+		container.html(`<div class="isoarch-location-error"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> ${this.escapeHtml(message)}</div>`);
+	}
+
+	renderIsoarchDetailsObject(details) {
+		const sections = [
+			{ key: "materials", title: "Materials", renderer: (value) => this.renderIsoarchMaterialsOverview(value) },
+			{ key: "references", title: "References", renderer: (value) => this.renderIsoarchReferencesOverview(value) },
+			{ key: "datasets", title: "Datasets", renderer: (value) => this.renderIsoarchDatasetsOverview(value) }
+		];
+		let html = "<div class='isoarch-location-details'>";
+
+		sections.forEach((section) => {
+			if(!Object.prototype.hasOwnProperty.call(details, section.key)) {
+				return;
+			}
+
+			const value = details[section.key];
+			const count = Array.isArray(value) ? ` (${value.length})` : "";
+			html += `<div class="isoarch-location-details-section"><h5>${this.escapeHtml(section.title + count)}</h5>${section.renderer(value)}</div>`;
+		});
+
+		html += "</div>";
+		return html;
+	}
+
+	isIsoarchValuePresent(value) {
+		return value != null && value !== "";
+	}
+
+	renderIsoarchMaterialsOverview(materials) {
+		if(!Array.isArray(materials) || materials.length === 0) {
+			return "<em>None</em>";
+		}
+
+		const rows = [
+			["Number of materials", this.escapeHtml(materials.length)],
+			["Material types", this.renderIsoarchSummaryList(this.summarizeIsoarchField(materials, "material_type"))],
+			["Dating range", `<div class="isoarch-dating-views">
+					<div class="isoarch-dating-toggle">
+						<button class="isoarch-dating-toggle-btn active" data-view="timeline">Timeline</button>
+						<button class="isoarch-dating-toggle-btn" data-view="list">List</button>
+					</div>
+					<div id="isoarch-dating-timeline" class="isoarch-dating-view isoarch-dating-timeline-container"></div>
+					<div id="isoarch-dating-list" class="isoarch-dating-view" style="display:none"></div>
+				</div>`],
+			["Taxon name and rank", this.renderIsoarchSummaryList(this.summarizeIsoarchTaxa(materials))]
+		];
+		let tableRows = "";
+
+		rows.forEach((row) => {
+			tableRows += `<tr><th>${this.escapeHtml(row[0])}</th><td>${row[1]}</td></tr>`;
+		});
+
+		return `<table class="isoarch-details-table isoarch-materials-overview"><tbody>${tableRows}</tbody></table>`;
+	}
+
+	getIsoarchDatingGroups(materials, fieldName) {
+		const groups = new globalThis.Map();
+		materials.forEach(material => {
+			const value = material[fieldName];
+			if(!this.isIsoarchValuePresent(value)) {
+				return;
+			}
+			const timescale = material.relative_dating_timescale;
+			const label = this.isIsoarchValuePresent(timescale) ? `${value} ${timescale}` : String(value);
+			if(!groups.has(label)) {
+				groups.set(label, { label, numericValue: Number.parseFloat(value), materials: [] });
+			}
+			groups.get(label).materials.push(material);
+		});
+		return Array.from(groups.values()).sort((a, b) => {
+			if(Number.isFinite(a.numericValue) && Number.isFinite(b.numericValue)) {
+				return a.numericValue - b.numericValue;
+			}
+			return a.label.localeCompare(b.label);
+		});
+	}
+
+	formatIsoarchMaterialContext(material) {
+		const parts = [];
+		if(this.isIsoarchValuePresent(material.material_type)) {
+			parts.push(material.material_type);
+		}
+		if(this.isIsoarchValuePresent(material.taxon_name)) {
+			parts.push(this.isIsoarchValuePresent(material.taxon_rank)
+				? `${material.taxon_name} (${material.taxon_rank})`
+				: material.taxon_name);
+		}
+		return parts.join(" / ");
+	}
+
+	initIsoarchDatingViews(materials) {
+		const timelineEl = document.getElementById("isoarch-dating-timeline");
+		const listEl = document.getElementById("isoarch-dating-list");
+		if(!timelineEl || !listEl) {
+			return;
+		}
+
+		const lowerGroups = this.getIsoarchDatingGroups(materials, "relative_dating_lower_limit");
+		const upperGroups = this.getIsoarchDatingGroups(materials, "relative_dating_upper_limit");
+
+		const lowerNumeric = lowerGroups.filter(g => Number.isFinite(g.numericValue));
+		const upperNumeric = upperGroups.filter(g => Number.isFinite(g.numericValue));
+
+		if(lowerNumeric.length === 0 && upperNumeric.length === 0) {
+			timelineEl.innerHTML = "<em>No numeric dating data</em>";
+		}
+		else {
+			const makeHoverText = (group) => {
+				const matLines = group.materials
+					.map(m => this.formatIsoarchMaterialContext(m))
+					.filter(s => s.length > 0);
+				return matLines.length > 0
+					? `<b>${group.label}</b><br>${matLines.join("<br>")}`
+					: `<b>${group.label}</b>`;
+			};
+
+			const traces = [];
+
+			if(lowerNumeric.length > 0) {
+				traces.push({
+					x: lowerNumeric.map(g => g.numericValue),
+					y: lowerNumeric.map(() => 0),
+					mode: "markers",
+					type: "scatter",
+					marker: { color: "#4a90d9", size: 10 },
+					text: lowerNumeric.map(makeHoverText),
+					hovertemplate: "%{text}<extra>Lower limit</extra>",
+					name: "Lower limit"
+				});
+			}
+
+			if(upperNumeric.length > 0) {
+				traces.push({
+					x: upperNumeric.map(g => g.numericValue),
+					y: upperNumeric.map(() => 0),
+					mode: "markers",
+					type: "scatter",
+					marker: { color: "#d94a4a", size: 10 },
+					text: upperNumeric.map(makeHoverText),
+					hovertemplate: "%{text}<extra>Upper limit</extra>",
+					name: "Upper limit"
+				});
+			}
+
+			const layout = {
+				height: 110,
+				margin: { t: 5, b: 35, l: 10, r: 10 },
+				xaxis: {
+					showticklabels: true,
+					nticks: 8,
+					zeroline: false,
+					showline: true,
+					linecolor: "#999"
+				},
+				yaxis: {
+					visible: false,
+					range: [-0.5, 0.5],
+					fixedrange: true
+				},
+				shapes: [{
+					type: "line",
+					x0: 0, x1: 1, xref: "paper",
+					y0: 0, y1: 0,
+					line: { color: "#bbb", width: 1 }
+				}],
+				showlegend: true,
+				legend: {
+					orientation: "h",
+					x: 0.5,
+					xanchor: "center",
+					y: -0.25,
+					font: { size: 11 }
+				},
+				paper_bgcolor: "rgba(0,0,0,0)",
+				plot_bgcolor: "rgba(0,0,0,0)",
+				hovermode: "closest"
+			};
+
+			Plotly.newPlot(timelineEl, traces, layout, { displayModeBar: false, responsive: true });
+		}
+
+		listEl.innerHTML = this.renderIsoarchDatingList(lowerGroups, upperGroups);
+
+		document.querySelectorAll(".isoarch-dating-toggle-btn").forEach(btn => {
+			btn.addEventListener("click", () => {
+				const view = btn.dataset.view;
+				document.querySelectorAll(".isoarch-dating-toggle-btn").forEach(b => b.classList.toggle("active", b === btn));
+				timelineEl.style.display = view === "timeline" ? "" : "none";
+				listEl.style.display = view === "list" ? "" : "none";
+				if(view === "timeline" && timelineEl.data) {
+					Plotly.relayout(timelineEl, {});
+				}
+			});
+		});
+	}
+
+	renderIsoarchDatingList(lowerGroups, upperGroups) {
+		const renderSection = (groups, title) => {
+			if(groups.length === 0) {
+				return `<div class="isoarch-dating-list-section"><strong>${this.escapeHtml(title)}</strong>: <em>No data</em></div>`;
+			}
+			const items = groups.map(group => {
+				const matItems = group.materials.map(m => {
+					const context = this.formatIsoarchMaterialContext(m);
+					return `<li>${this.escapeHtml(context || "—")}</li>`;
+				}).join("");
+				return `<li class="isoarch-dating-list-item">
+					<span class="isoarch-dating-list-label">${this.escapeHtml(group.label)}</span>
+					<ul class="isoarch-dating-list-materials">${matItems}</ul>
+				</li>`;
+			}).join("");
+			return `<div class="isoarch-dating-list-section">
+				<strong class="isoarch-dating-list-heading">${this.escapeHtml(title)}</strong>
+				<ul class="isoarch-dating-list-values">${items}</ul>
+			</div>`;
+		};
+
+		return `<div class="isoarch-dating-list-view">
+			${renderSection(lowerGroups, "Lower limit")}
+			${renderSection(upperGroups, "Upper limit")}
+		</div>`;
+	}
+
+	renderIsoarchReferencesOverview(references) {
+		if(!Array.isArray(references) || references.length === 0) {
+			return "<em>None</em>";
+		}
+
+		const summaries = this.summarizeIsoarchField(references, "short_reference");
+		return this.renderIsoarchSummaryList(summaries);
+	}
+
+	renderIsoarchDatasetsOverview(datasets) {
+		return this.renderIsoarchDetailsValue(datasets);
+	}
+
+	summarizeIsoarchField(items, fieldName) {
+		return this.summarizeIsoarchValues(items, (item) => item[fieldName]);
+	}
+
+	summarizeIsoarchDatingField(materials, fieldName) {
+		return this.summarizeIsoarchValues(materials, (material) => {
+			if(!this.isIsoarchValuePresent(material[fieldName])) {
+				return null;
+			}
+
+			const timescale = material.relative_dating_timescale;
+			return this.isIsoarchValuePresent(timescale) ? `${material[fieldName]} ${timescale}` : material[fieldName];
+		}, true);
+	}
+
+	summarizeIsoarchTaxa(materials) {
+		return this.summarizeIsoarchValues(materials, (material) => {
+			if(!this.isIsoarchValuePresent(material.taxon_name)) {
+				return null;
+			}
+
+			return this.isIsoarchValuePresent(material.taxon_rank) ? `${material.taxon_name} (${material.taxon_rank})` : material.taxon_name;
+		});
+	}
+
+	summarizeIsoarchValues(items, getValue, sortNumeric = false) {
+		const summaries = new globalThis.Map();
+
+		items.forEach((item) => {
+			const value = getValue(item);
+			if(!this.isIsoarchValuePresent(value)) {
+				return;
+			}
+
+			const label = String(value);
+			summaries.set(label, (summaries.get(label) || 0) + 1);
+		});
+
+		return Array.from(summaries.entries())
+			.map(([label, count]) => ({
+				label,
+				count
+			}))
+			.sort((a, b) => {
+				if(sortNumeric) {
+					const numericA = Number.parseFloat(a.label);
+					const numericB = Number.parseFloat(b.label);
+					if(Number.isFinite(numericA) && Number.isFinite(numericB) && numericA !== numericB) {
+						return numericA - numericB;
+					}
+				}
+
+				return a.label.localeCompare(b.label);
+			});
+	}
+
+	renderIsoarchSummaryList(summaries) {
+		if(!Array.isArray(summaries) || summaries.length === 0) {
+			return "<em>No data</em>";
+		}
+
+		const items = summaries.map((summary) => {
+			const count = summary.count > 1 ? ` <span class="isoarch-summary-count">(${this.escapeHtml(summary.count)})</span>` : "";
+			return `<li>${this.escapeHtml(summary.label)}${count}</li>`;
+		}).join("");
+
+		return `<ul class="isoarch-summary-list">${items}</ul>`;
+	}
+
+	renderIsoarchDetailsFieldValue(key, value) {
+		if(key === "samples" && Array.isArray(value)) {
+			return `${value.length} samples available`;
+		}
+
+		if(key === "dataset_abstract") {
+			return `
+				<details class="isoarch-dataset-abstract">
+					<summary>Show abstract</summary>
+					<div>${this.escapeHtml(value)}</div>
+				</details>
+			`;
+		}
+
+		if(Array.isArray(value) || typeof value === "object") {
+			return this.renderIsoarchDetailsValue(value);
+		}
+
+		return this.escapeHtml(value);
+	}
+
+	renderIsoarchDetailsValue(value) {
+		if(Array.isArray(value)) {
+			if(value.length === 0) {
+				return "<em>None</em>";
+			}
+
+			return value.map((item, index) => {
+				return `<div class="isoarch-details-list-item"><h6>Item ${index + 1}</h6>${this.renderIsoarchDetailsValue(item)}</div>`;
+			}).join("");
+		}
+
+		if(value != null && typeof value === "object") {
+			const keys = Object.keys(value);
+			if(keys.length === 0) {
+				return "<em>No details</em>";
+			}
+
+			let rows = "";
+			keys.forEach((key) => {
+				const itemValue = value[key];
+				if(itemValue == null || itemValue === "") {
+					return;
+				}
+
+				const renderedValue = this.renderIsoarchDetailsFieldValue(key, itemValue);
+				rows += `<tr><th>${this.escapeHtml(this.formatIsoarchLocationFieldLabel(key))}</th><td>${renderedValue}</td></tr>`;
+			});
+
+			return rows.length > 0 ? `<table class="isoarch-details-table"><tbody>${rows}</tbody></table>` : "<em>No details</em>";
+		}
+
+		return this.escapeHtml(value);
+	}
+
 	/*
 	* Function: createSelectInteraction
 	*/
@@ -2019,7 +2786,14 @@ class ResultMap extends ResultModule {
 
 		var selectInteraction = new SelectInteraction({
 			//condition: clickCondition,
+			filter: (feature, layer) => {
+				return layer && ["dataLayer", "externalLayer"].includes(layer.getProperties().type);
+			},
 			style: (feature) => {
+				if(feature.getProperties().externalLayerId) {
+					return this.getExternalPointStyle(feature, { selected: true });
+				}
+
 				if(this.getVisibleDataLayer().getProperties().layerId == "clusterPoints") {
 					return this.getClusterPointStyle(feature, {
 						selected: true,
@@ -2041,13 +2815,18 @@ class ResultMap extends ResultModule {
 		
 		selectInteraction.on("select", (evt) => {
 
-			if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == false) {
+			if(evt.selected.length == 1 && evt.selected[0].getProperties().externalLayerId == "isoarchLocations") {
+				this.renderIsoarchLocationPopup(evt.selected[0]);
+			}
+			else if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == false) {
 				$("#map-popup-container").show();
+				$("#map-popup-container").removeClass("isoarch-location-popup");
+				$(".isoarch-explorer-link").remove();
 				var feature = evt.selected[0];
 				var coords = feature.getGeometry().getCoordinates();
 				var prop = feature.getProperties();
 
-				$("#map-popup-title").html("");
+				$("#map-popup-title").remove();
 				var tableRows = "<tr row-site-id='"+prop.id+"'><td>"+prop.name+"</td></tr>";
 				tableRows = sqs.sqsOffer("resultMapPopupSites", {
 					tableRows: tableRows,
@@ -2059,12 +2838,14 @@ class ResultMap extends ResultModule {
 			}
 			else if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == true) {
 				$("#map-popup-container").show();
+				$("#map-popup-container").removeClass("isoarch-location-popup");
+				$(".isoarch-explorer-link").remove();
 
 				var feature = evt.selected[0];
 				var coords = feature.getGeometry().getCoordinates();
 				var prop = evt.selected[0].getProperties();
 
-				$("#map-popup-title").html("");
+				$("#map-popup-title").remove();
 				
 				var tableRows = "";
 				for(var fk in prop.features) {
@@ -2096,6 +2877,8 @@ class ResultMap extends ResultModule {
 			}
 			else {
 				$("#map-popup-container").hide();
+				$("#map-popup-container").removeClass("isoarch-location-popup");
+				$(".isoarch-explorer-link").remove();
 				this.selectPopupOverlay.setPosition();
 			}
 			sqs.sqsEventDispatch("resultMapPopupRender");
@@ -2234,6 +3017,43 @@ class ResultMap extends ResultModule {
 		return menu;
 	}
 
+	resultMapExternalLayersControlsSqsMenu() {
+		var menu = {
+			title: "<i class=\"fa fa-database result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>External data</span>",
+			layout: "vertical",
+			collapsed: true,
+			anchor: "#result-map-externallayer-controls-menu-anchor",
+			staticSelection: false,
+			visible: true,
+			style: {
+				menuTitleClass: "result-map-control-menu-title",
+				l1TitleClass: "result-map-control-item-title"
+			},
+			items: [],
+			triggers: [{
+				selector: "#result-map-externallayer-controls-menu",
+				on: "click"
+			}]
+		};
+
+		for (let key in this.layers) {
+			const layer = this.layers[key];
+			const prop = layer.getProperties();
+			if (prop.type === "externalLayer") {
+				menu.items.push({
+					name: prop.layerId,
+					title: prop.title,
+					tooltip: "",
+					staticSelection: prop.visible,
+					selected: prop.visible,
+					callback: this.makeMapControlMenuCallback(prop)
+				});
+			}
+		}
+
+		return menu;
+	}
+
 	resultMapAuxLayersControlsSqsMenu() {
 		var menu = {
 			title: "<i class=\"fa fa-cogs result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Auxiliary layers</span>", //The name of the menu as it will be displayed in the UI
@@ -2312,6 +3132,12 @@ class ResultMap extends ResultModule {
 					break;
 				case "auxLayer":
 					this.setMapAuxLayer(layerProperties.layerId);
+					break;
+				case "externalLayer":
+					this.setMapExternalLayer(layerProperties.layerId).catch((error) => {
+						console.error("Failed to load external layer:", error);
+						this.sqs.notificationManager.notify("Failed to load external data layer.", "error", 5000);
+					});
 					break;
 			}
 		}
