@@ -11,7 +11,7 @@
 	"serverAddress": "__SCHEME__://__DOMAIN__/query",
 	"siteReportServerAddress": "__SCHEME__://__DOMAIN__/postgrest",
 	"dataServerAddress": "__SCHEME__://__DOMAIN__/jsonapi",
-	"copilotServerAddress": "__WS_SCHEME__://__DOMAIN__/ai-assistant",
+	"seadAgentAddress": "__SCHEME__://__DOMAIN__/sead-agent",
 	"defaultResultModule": "mosaic",
 	"resultMapDataLayers": [
 		"clusterPoints",
@@ -40,7 +40,7 @@
 	"googleCustomSearchApiKey": null,
 	"pageTrackingEnabled": true,
 	"tutorialEnabled": true,
-	"copilotEnabled": false,
+	"seadAgentEnabled": false,
 	"globeResultModuleEnabled": true,
 	"dataLabResultModuleEnabled": true,
 	"legalNoticeMsg": "The SEAD system is using cookies to enhance functionality and track usage statistics. If you choose to utilize our viewstate functionality you are also agreeing to us storing a pseudonymized version of your email address for identification purposes. For more information please read our <span id='privacy-policy-link' class='jslink'>full policy regarding cookies & GDPR</span>. By continuing to use the site you are agreeing to this policy.",

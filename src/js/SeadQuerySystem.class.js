@@ -24,7 +24,7 @@ import Router from './Router.class.js';
 import Tutorial from './Tutorials/Tutorial.class.js';
 import SearchManager from './SearchManager.class.js';
 import QuickstartSearch from './QuickstartSearch.class.js';
-import AIAssistant from './AIAssistant.class.js';
+import SeadAgent from './SeadAgent.class.js';
 import SeoManager from './SeoManager.class.js';
 import { nanoid } from 'nanoid';
 import ApiWsChannel from './ApiWsChannel.class.js';
@@ -435,7 +435,7 @@ class SeadQuerySystem {
 		this.facetManager.buildFilterStructure("general");
 		this.mainMenu = new MainMenu();
 		this.tutorial = new Tutorial(this);
-		this.aiAssistant = new AIAssistant(this);
+		this.seadAgent = new SeadAgent(this);
 		
 		this.siteReportManager = new SiteReportManager(this);
 		var siteId = this.siteReportManager.getSiteIdFromUrl();
@@ -600,10 +600,16 @@ class SeadQuerySystem {
 		this.sqsEventDispatch("sqsInitComplete");
 
 		document.addEventListener('keydown', (evt) => {
+			//don't trigger dev mode while the user is typing in an input (e.g. the agent chatbox or a filter text search)
+			let target = evt.target;
+			if(target && (target.tagName == "INPUT" || target.tagName == "TEXTAREA" || target.isContentEditable)) {
+				return;
+			}
 			if(evt.shiftKey && evt.key == "D") {
 				this.facetManager.toggleDebug();
 				this.resultManager.toggleDebug();
 				this.siteReportManager.toggleDebug();
+				this.seadAgent.toggleDebug();
 			}
         });
 	}

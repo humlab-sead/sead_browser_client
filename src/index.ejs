@@ -399,7 +399,7 @@
       <i class="fa fa-comment-o chat-icon" aria-hidden="true"></i>
       <div id="chatbox-inner-panel">
         <div id="chatbox-header">
-          <h3>SEAD Copilot</h3>
+          <h3>SEAD Agent</h3>
           <div id="chatbox-close-btn" class="fa fa-window-minimize"></div>
         </div>
         <div id="chatbox-messages"></div>
@@ -464,12 +464,13 @@
     </template>
 
     <template id="exportOptionsTemplate">
-      <div>
+      <div class="sites-export-dialog">
           This export will contain <span style="font-weight:bold;" data-num-sites></span> sites.<br><br>
 
         <h3>Export sites</h3>
           <a id="samples-export-xlsx-dl" class="sites-export-btn light-theme-button">Download XLSX (samples)</a>
           <a id="sites-export-xlsx-dl" class="sites-export-btn light-theme-button">Download XLSX</a>
+          <a id="sdf-export-xlsx-dl" class="sites-export-btn light-theme-button" title="Download an Excel workbook in the SEAD Data Format (SDF)">Download XLSX (SDF)</a>
           <a id="sites-export-csv-dl" class="sites-export-btn light-theme-button">Download CSV</a>
           <a id="sites-export-json-dl" class="sites-export-btn light-theme-button">Download JSON</a>
           

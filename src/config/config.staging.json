@@ -3,7 +3,7 @@
 	"serverAddress": "https://__DOMAIN__/query",
 	"siteReportServerAddress": "https://__DOMAIN__/postgrest",
 	"dataServerAddress": "https://__DOMAIN__/jsonapi",
-	"copilotServerAddress": "wss://__DOMAIN__/ai-assistant",
+	"seadAgentAddress": "https://__DOMAIN__/sead-agent",
 	"facetSectionDefaultWidth": 30,
 	"domains": [
 		{

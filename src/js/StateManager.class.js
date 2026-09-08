@@ -495,6 +495,217 @@ class StateManager {
 			*/
 		};
 	}
+
+	/*
+	* Function: getInterfaceState
+	*
+	* A snapshot of what the interface is currently showing, for consumers that need to
+	* reason about it rather than restore it - the SEAD agent above all.
+	*
+	* This is deliberately read on demand from the live managers rather than maintained as
+	* the user clicks around: there is then only one source of truth, and no way for the
+	* description to drift out of step with the thing it describes. It reuses the same
+	* getFacetState/getResultState/getReportState the viewstate save path uses, and adds
+	* the parts of the interface those don't cover, because a viewstate only has to capture
+	* what is worth restoring - not what is merely open.
+	*
+	* Every probe is individually guarded: a partial answer is far more useful here than an
+	* exception, since the caller is often asking precisely because something is in an odd
+	* state.
+	*/
+	getInterfaceState() {
+		return {
+			view: this.sqs.activeView || null,
+			layout: this.getLayoutState(),
+			domain: this.attempt(() => this.sqs.domainManager.getActiveDomain().name, null),
+			filters: this.getFilterState(),
+			result: this.getResultSummary(),
+			siteReport: this.getSiteReportSummary(),
+			dialog: this.getDialogState(),
+			expandedMenus: this.getExpandedMenus()
+		};
+	}
+
+	/*
+	* Function: getInterfaceStateSummary
+	*
+	* A one-line-per-fact version of getInterfaceState, small enough to travel with every
+	* message a user sends the agent.
+	*
+	* The full snapshot is too large to repeat on every turn, but an agent that only reads
+	* state when it thinks to is an agent that will sometimes be confidently wrong - the
+	* user can open a site report, close a filter or switch view between two messages, and
+	* nothing in the conversation says so. This carries just enough for the agent to know
+	* where the user is; it calls getInterfaceState when it needs the detail.
+	*/
+	getInterfaceStateSummary() {
+		let state = this.getInterfaceState();
+
+		let summary = {
+			view: state.view,
+			domain: state.domain,
+			resultView: state.result ? state.result.module : null,
+			siteCount: state.result ? state.result.siteCount : null,
+			//Just enough of each filter to notice one appearing or disappearing
+			filters: (state.filters || []).map(filter => ({
+				id: filter.id,
+				selectionCount: filter.selectionCount
+			}))
+		};
+
+		if(state.siteReport) {
+			summary.siteReport = {
+				siteId: state.siteReport.siteId,
+				siteName: state.siteReport.siteName,
+				expandedSections: (state.siteReport.sections || []).filter(section => section.expanded).map(section => section.id)
+			};
+		}
+		if(state.dialog && state.dialog.open) {
+			summary.dialogOpen = state.dialog.title || true;
+		}
+
+		return summary;
+	}
+
+	/*
+	* Function: attempt
+	* Runs a probe, falling back rather than letting one unavailable manager take the whole
+	* snapshot down with it.
+	*/
+	attempt(probe, fallback = null) {
+		try {
+			let value = probe();
+			return typeof value == "undefined" ? fallback : value;
+		}
+		catch(error) {
+			return fallback;
+		}
+	}
+
+	getLayoutState() {
+		return {
+			mode: this.attempt(() => this.sqs.layoutManager.getMode(), null),
+			visibleSection: this.attempt(() => this.sqs.layoutManager.getActiveView().getVisibleSection(), null)
+		};
+	}
+
+	/*
+	* Function: getFilterState
+	* The open filters, as the viewstate sees them, plus the things that only matter while
+	* someone is looking at the screen: the title, how many options loaded, and whatever
+	* has been typed into the filter's own text search.
+	*/
+	getFilterState() {
+		return this.attempt(() => {
+			let facetState = this.sqs.facetManager.getFacetState();
+
+			return facetState.map(entry => {
+				let facet = this.sqs.facetManager.getFacetByName(entry.name);
+				let selections = Array.isArray(entry.selections) ? entry.selections : [];
+
+				return {
+					id: entry.name,
+					title: facet ? facet.title : null,
+					type: entry.type,
+					position: entry.position,
+					minimized: entry.minimized === true,
+					//A filter can hold thousands of ids; the count is what matters and the
+					//list is only useful up to a point
+					selectionCount: selections.length,
+					selections: selections.slice(0, 25),
+					optionsLoaded: this.attempt(() => Array.isArray(facet.data) ? facet.data.length : null, null),
+					textSearch: this.attempt(() => {
+						let value = $(".facet-text-search-input", facet.getDomRef()).val();
+						return value && value.length > 0 ? value : null;
+					}, null)
+				};
+			});
+		}, []);
+	}
+
+	getResultSummary() {
+		return {
+			module: this.attempt(() => this.sqs.resultManager.getActiveModule().name, null),
+			siteCount: this.attempt(() => {
+				let module = this.sqs.resultManager.getActiveModule();
+				if(module && Array.isArray(module.sites)) {
+					return module.sites.length;
+				}
+				return Array.isArray(module.data) ? module.data.length : null;
+			}, null),
+			//Which mosaic tiles have actually been built - an unrendered tile has no module
+			renderedTiles: this.attempt(() => {
+				let mosaic = this.sqs.resultManager.getModule("mosaic");
+				if(!mosaic || !Array.isArray(mosaic.modules)) {
+					return null;
+				}
+				return mosaic.modules.filter(tile => tile.module != null).map(tile => tile.title);
+			}, null)
+		};
+	}
+
+	getSiteReportSummary() {
+		let reportState = this.attempt(() => this.sqs.siteReportManager.getReportState(), { active: false });
+		if(!reportState || !reportState.active || this.sqs.activeView != "siteReport") {
+			return null;
+		}
+
+		let report = this.sqs.siteReportManager.siteReport;
+		return {
+			siteId: reportState.siteId,
+			siteName: this.attempt(() => report.siteData.site_name, null),
+			loaded: this.attempt(() => report.fetchComplete === true, false),
+			sections: this.attempt(() => this.describeReportSections(report.data ? report.data.sections : []), [])
+		};
+	}
+
+	describeReportSections(sections, level = 0) {
+		let described = [];
+		(Array.isArray(sections) ? sections : []).forEach(section => {
+			if(!section || !section.name) {
+				return;
+			}
+			described.push({
+				id: section.name,
+				title: section.title,
+				level: level,
+				expanded: section.collapsed === false,
+				contentItems: Array.isArray(section.contentItems) ? section.contentItems.length : 0
+			});
+			if(Array.isArray(section.sections) && section.sections.length > 0) {
+				described = described.concat(this.describeReportSections(section.sections, level + 1));
+			}
+		});
+		return described;
+	}
+
+	/*
+	* Function: getDialogState
+	* Whether a popover is covering the interface. Worth knowing before suggesting the user
+	* click something they cannot currently see.
+	*/
+	getDialogState() {
+		return this.attempt(() => {
+			if(!$("#popover-dialog").is(":visible")) {
+				return null;
+			}
+			let title = $("#popover-dialog-frame > h1").text();
+			return { open: true, title: title && title.length > 0 ? title : null };
+		}, null);
+	}
+
+	getExpandedMenus() {
+		return this.attempt(() => {
+			let expanded = [];
+			$(".sqs-menu-block-expanded, .first-level-item-expanded").each((index, element) => {
+				let label = $(element).find(".first-level-title, .menu-item-title").first().text().trim();
+				if(label.length > 0 && expanded.indexOf(label) == -1) {
+					expanded.push(label);
+				}
+			});
+			return expanded;
+		}, []);
+	}
 }
 
 export { StateManager as default }
