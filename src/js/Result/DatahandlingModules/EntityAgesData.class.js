@@ -32,7 +32,7 @@ class EntityAgesData extends DataHandlingModule {
 
         let table = {
             name: method.method_name,
-            columns: this.commonColumns,
+            columns: [...this.commonColumns], // Create a copy of commonColumns
             rows: []
         }
 
