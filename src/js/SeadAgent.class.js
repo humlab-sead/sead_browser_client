@@ -27,14 +27,17 @@ export default class SeadAgent {
 
     static SHORTCUT_PREFIX = "#sead-action/";
     static SHORTCUT_COMMANDS = ["set_result_view", "set_domain", "add_filter", "set_filter_selections", "remove_filter", "clear_filters",
-                                "open_site_report", "close_site_report", "set_site_report_section", "export_site_report"];
+                                "open_site_report", "close_site_report", "set_site_report_section", "export_site_report",
+                                "set_map_polygons"];
 
     constructor(sqs) {
         this.sqs = sqs;
         this.abortController = null;
         this.state = "disconnected";
         this.expanded = false;
-        this.savedAttributes = "";
+        //Where the user last left the panel ({top, left, width, height} in px), so
+        //reopening it returns it there instead of to the default corner block
+        this.savedGeometry = null;
         this.debugMode = false;
         //Sent with every message so the agent keeps one conversation per browser session
         //rather than answering each message cold. Generated lazily on the first open.
@@ -240,6 +243,13 @@ export default class SeadAgent {
                 return ((action.args && action.args.expanded === false) ? "Collapsed section: " : "Expanded section: ")
                     + ((result && result.title) ? result.title : (action.args ? action.args.section : ""));
             case "export_site_report":    return "Opened the export dialog";
+            case "set_map_polygons": {
+                let names = (result && Array.isArray(result.areas)) ? result.areas.map(area => area.name).filter(name => name) : [];
+                if(names.length > 0) {
+                    return "Drew "+names.join(", ")+" on the map filter";
+                }
+                return "Drew "+((result && result.polygons) ? result.polygons : "")+" polygon(s) on the map filter";
+            }
         }
         return "Updated the view";
     }
@@ -299,6 +309,13 @@ export default class SeadAgent {
                 }
                 else if(key == "expanded") {
                     args.expanded = value != "false";
+                }
+                //Area ids for the map filter, e.g. 'SWE.13_1,SWE.18.12_1'
+                else if(key == "areas") {
+                    args.areas = value.split(",").map(part => part.trim()).filter(part => part.length > 0);
+                }
+                else if(key == "append") {
+                    args.append = value != "false";
                 }
                 else {
                     args[key] = value;
@@ -497,96 +514,227 @@ export default class SeadAgent {
         evt.preventDefault();
 
         if(this.expanded) {
-            this.savedAttributes = chatBoxIcon.attr("style");
-        }
-        chatBoxIcon.toggleClass("expanded");
-
-        if(!this.expanded) {
-            $("#chatbox-inner-panel").css("display", "flex");
-            chatBoxIcon.find(".chat-icon").css("display", "none");
-            $("#chatbox-header").css("display", "flex");
-            this.expanded = true;
-            
-            //The panel is pinned bottom-right and grows up/left, so the grip belongs on
-            //the top-left corner. The n and w edges stay draggable for single-axis resizing.
-            chatBoxIcon.resizable({
-                handles: "nw, n, w",
-                minWidth: 380,
-                minHeight: 340
-            });
-
-            chatBoxIcon.draggable({
-                handle: "#chatbox-header",
-            });
-
-            //set focus on input
-            setTimeout(() => {
-                $("#chatbox-input")[0].focus();
-            }, 100);
-
-            if(this.savedAttributes) {
-                //animate back to original position
-                //this.savedAttributes is a string like: left: 563.75px; top: 577.609px; width: 657px; height: 678px;
-                //we need to extract the values and convert them to numbers, but we can't rely on every attribute being present
-                let left = null;
-                let top = null;
-                let width = null;
-                let height = null;
-                let savedAttributesArray = this.savedAttributes.split(";");
-                savedAttributesArray.forEach((attribute) => {
-                    let attributeArray = attribute.split(":");
-                    if(attributeArray[0].trim() == "left") {
-                        left = parseFloat(attributeArray[1].trim().replace("px", ""));
-                    }
-                    if(attributeArray[0].trim() == "top") {
-                        top = parseFloat(attributeArray[1].trim().replace("px", ""));
-                    }
-                    if(attributeArray[0].trim() == "width") {
-                        width = parseFloat(attributeArray[1].trim().replace("px", ""));
-                    }
-                    if(attributeArray[0].trim() == "height") {
-                        height = parseFloat(attributeArray[1].trim().replace("px", ""));
-                    }
-                });
-
-                
-                let properties = {}
-
-                top ? properties.top = top : null;
-                left ? properties.left = left : null;
-                width ? properties.width = width : null;
-                height ? properties.height = height : null;
-
-                chatBoxIcon.animate(properties, 100);
-            }
-
-            this.onChatboxOpened();
+            this.collapseChatbox(chatBoxIcon);
         }
         else {
-            //Clear any inline style set by the resizable/draggable plugins, so the
-            //collapsed bubble doesn't keep the expanded panel's geometry. This also wipes
-            //the inline display, and the element's own rule is `display: none` - so
-            //visibility has to be re-asserted below or the bubble disappears for good.
-            chatBoxIcon.removeAttr("style");
-            //Tear the resize handles down with the panel. They are only meaningful while
-            //it is expanded, and the site report view's apply() does an unscoped
-            //$(".ui-resizable-handle").show() that would otherwise reveal them inside the
-            //collapsed bubble.
-            if(chatBoxIcon.data("ui-resizable")) {
-                chatBoxIcon.resizable("destroy");
-            }
-            $("#chatbox-icon").removeClass("expanded");
-            $("#chatbox-inner-panel").css("display", "none");
-            $("#chatbox-icon").find(".chat-icon").css("display", "block");
-            $("#chatbox-header").css("display", "none")
-
-            this.onChatboxClosed();
-
-            this.expanded = false;
-            //Restores display:flex (or keeps it hidden if the agent is disabled). Must run
-            //after this.expanded is cleared, or it would re-enter the collapse path.
-            this.updateChatboxVisibility();
+            this.expandChatbox(chatBoxIcon);
         }
+    }
+
+    /*
+    * Function: expandChatbox
+    * Grows the bubble into the panel. The visibility of the glyph, the panel and the
+    * header is the stylesheet's business (they cross-fade with the .expanded class) -
+    * doing it here with display toggles was what made the contents appear at full size
+    * inside a box that was still growing.
+    */
+    expandChatbox(chatBoxIcon) {
+        if(this.savedGeometry) {
+            //The panel was moved or resized last time, so it has to travel to a specific
+            //top/left rather than growing out of the corner it is anchored in. Nothing
+            //interpolates out of `top: auto`, so pin the bubble's current position in
+            //top/left terms first and let that be the transition's starting point.
+            let collapsed = this.getCollapsedGeometry();
+            chatBoxIcon.css({
+                top: collapsed.top + "px",
+                left: collapsed.left + "px",
+                right: "auto",
+                bottom: "auto",
+                width: collapsed.width + "px",
+                height: collapsed.height + "px"
+            });
+            //Forces a reflow so the above is what the browser transitions *from*, instead
+            //of being coalesced with the target geometry below into one silent jump
+            void chatBoxIcon[0].offsetWidth;
+
+            chatBoxIcon.addClass("expanded");
+            chatBoxIcon.css(this.clampGeometryToViewport(this.savedGeometry));
+        }
+        else {
+            //Never moved, so it is still anchored bottom/right and grows up and to the
+            //left on its own - no explicit geometry needed, and the CSS size applies.
+            chatBoxIcon.addClass("expanded");
+        }
+
+        this.expanded = true;
+
+        //The panel is pinned bottom-right and grows up/left, so the grip belongs on
+        //the top-left corner. The n and w edges stay draggable for single-axis resizing.
+        chatBoxIcon.resizable({
+            handles: "nw, n, w",
+            minWidth: 380,
+            minHeight: 340,
+            //The ceiling used to be max-width/max-height on the expanded rule, but a max
+            //on the element clamps the grow transition's intermediate values as well, so
+            //it lives here now - where it only limits what the user drags.
+            maxWidth: Math.round(window.innerWidth * 0.9),
+            maxHeight: Math.round(window.innerHeight * 0.8)
+        });
+
+        chatBoxIcon.draggable({
+            handle: "#chatbox-header",
+        });
+
+        //Held until the panel has actually opened, so the browser doesn't scroll or flash
+        //the caret in a box that is still the size of a bubble
+        setTimeout(() => {
+            $("#chatbox-input")[0].focus();
+        }, 250);
+
+        this.onChatboxOpened();
+    }
+
+    /*
+    * Function: collapseChatbox
+    * Shrinks the panel back down into the bubble. If it was dragged or resized it is
+    * positioned by inline top/left, which cannot simply be dropped - that would teleport
+    * it to the corner before the shrink - so it is flown down into the bubble's resting
+    * place and the inline geometry is cleared once it arrives.
+    */
+    collapseChatbox(chatBoxIcon) {
+        this.savedGeometry = this.readInlineGeometry(chatBoxIcon);
+
+        //Tear the drag/resize behaviour down with the panel. The handles are only
+        //meaningful while it is expanded, and the site report view's apply() does an
+        //unscoped $(".ui-resizable-handle").show() that would otherwise reveal them
+        //inside the collapsed bubble.
+        if(chatBoxIcon.data("ui-resizable")) {
+            chatBoxIcon.resizable("destroy");
+        }
+        if(chatBoxIcon.data("ui-draggable")) {
+            chatBoxIcon.draggable("destroy");
+        }
+
+        chatBoxIcon.removeClass("expanded");
+        this.expanded = false;
+
+        if(this.savedGeometry) {
+            let collapsed = this.getCollapsedGeometry();
+            chatBoxIcon.css({
+                top: collapsed.top + "px",
+                left: collapsed.left + "px",
+                width: collapsed.width + "px",
+                height: collapsed.height + "px"
+            });
+            this.clearInlineGeometryAfterTransition(chatBoxIcon);
+        }
+
+        this.onChatboxClosed();
+        //Keeps it hidden if the agent is disabled. Must run after this.expanded is
+        //cleared, or it would re-enter the collapse path.
+        this.updateChatboxVisibility();
+    }
+
+    /*
+    * Function: getCollapsedGeometry
+    * The bubble's resting place, expressed the way the expanded panel is positioned. The
+    * collapsed bubble is anchored with bottom/right, the panel with top/left, and an
+    * animation between the two states needs both ends in the same terms.
+    */
+    getCollapsedGeometry() {
+        let rootStyle = getComputedStyle(document.documentElement);
+        let elementStyle = getComputedStyle($("#chatbox-icon")[0]);
+        let size = this.cssLengthToPixels(rootStyle.getPropertyValue("--chatbox-collapsed-size"), 54);
+        //The bubble's margin still applies once it is positioned by top/left, and it is
+        //added to whatever we set. Its resting edge is one margin in from the corner, so
+        //top/left have to be set two margins short of it - one for the gap itself and one
+        //for the margin that will be added back. Getting this wrong is invisible in the
+        //stylesheet and shows up only as the panel landing beside the bubble.
+        let marginTop = parseFloat(elementStyle.marginTop) || 0;
+        let marginLeft = parseFloat(elementStyle.marginLeft) || 0;
+        return {
+            width: size,
+            height: size,
+            top: window.innerHeight - size - (marginTop * 2),
+            left: window.innerWidth - size - (marginLeft * 2)
+        };
+    }
+
+    /*
+    * Function: cssLengthToPixels
+    * Only handles the units the two chatbox custom properties are written in. The
+    * fallback covers the properties being missing entirely, which would otherwise put
+    * the bubble's landing point at NaN and strand the panel mid-air.
+    */
+    cssLengthToPixels(value, fallbackPixels) {
+        let trimmed = (value || "").trim();
+        let number = parseFloat(trimmed);
+        if(isNaN(number)) {
+            return fallbackPixels;
+        }
+        if(trimmed.endsWith("rem")) {
+            return number * parseFloat(getComputedStyle(document.documentElement).fontSize);
+        }
+        return number;
+    }
+
+    /*
+    * Function: readInlineGeometry
+    * What the drag/resize plugins (or a previous expand) left on the element, in px.
+    * Returns null when it has never been moved - in which case it is still anchored to
+    * the corner and both directions of the animation come out of the stylesheet.
+    */
+    readInlineGeometry(chatBoxIcon) {
+        let style = chatBoxIcon[0].style;
+        let geometry = {};
+        ["top", "left", "width", "height"].forEach((property) => {
+            let value = parseFloat(style[property]);
+            if(!isNaN(value)) {
+                geometry[property] = value;
+            }
+        });
+        return Object.keys(geometry).length > 0 ? geometry : null;
+    }
+
+    /*
+    * Function: clampGeometryToViewport
+    * The window may well have been resized since the panel was last open, so a remembered
+    * position can be off-screen. Returned as css-ready strings.
+    */
+    clampGeometryToViewport(geometry) {
+        let width = geometry.width || 0;
+        let height = geometry.height || 0;
+        let clamped = {};
+        Object.keys(geometry).forEach((property) => {
+            let value = geometry[property];
+            if(property == "left") {
+                value = Math.max(0, Math.min(value, window.innerWidth - width));
+            }
+            if(property == "top") {
+                value = Math.max(0, Math.min(value, window.innerHeight - height));
+            }
+            clamped[property] = value + "px";
+        });
+        return clamped;
+    }
+
+    /*
+    * Function: clearInlineGeometryAfterTransition
+    * Drops the inline geometry once the collapse has landed, so the bubble goes back to
+    * being positioned by the stylesheet (bottom/right) and follows the viewport corner
+    * again if the window is resized.
+    */
+    clearInlineGeometryAfterTransition(chatBoxIcon) {
+        let element = chatBoxIcon[0];
+        let timeout = null;
+        let finish = (evt) => {
+            //Ignore the panel's own fade bubbling up, and the other properties in the
+            //container's transition list - width is enough to know it has arrived.
+            if(evt && (evt.target !== element || evt.propertyName != "width")) {
+                return;
+            }
+            element.removeEventListener("transitionend", finish);
+            clearTimeout(timeout);
+            if(this.expanded) {
+                //Reopened before the collapse finished; the expand owns the geometry now
+                return;
+            }
+            chatBoxIcon.css({ top: "", left: "", right: "", bottom: "", width: "", height: "" });
+        };
+        element.addEventListener("transitionend", finish);
+        //transitionend never fires for a transition that was pre-empted or reduced to
+        //nothing (prefers-reduced-motion), so it can't be the only way out of here
+        timeout = setTimeout(() => finish(null), 600);
     }
 
     setState(state) {

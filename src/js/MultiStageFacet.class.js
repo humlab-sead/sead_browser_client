@@ -320,6 +320,81 @@ class MultiStageFacet extends Facet {
 	}
 	
 	/*
+	* Function: updateFacetTitle
+	* Puts the chosen system in the facet header, so the second stage is not a nameless list.
+	*/
+	updateFacetTitle() {
+		if(this.filters[0].selections.length == 1) {
+			for(let key in this.filters[0].data) {
+				if(this.filters[0].data[key].id == this.filters[0].selections[0]) {
+					$(".facet-title", this.domObj).text(this.title+" - "+this.filters[0].data[key].name)
+				}
+			}
+		}
+		else if(this.filters[0].selections.length > 1) {
+			$(".facet-title", this.domObj).text(this.title+" - multiple systems");
+		}
+		else {
+			$(".facet-title", this.domObj).text(this.title);
+		}
+	}
+
+	/*
+	* Function: setStageSelections
+	*
+	* Selects values in one named stage, leaving the facet as clicking those rows would.
+	*
+	* The stages are separate filters as far as the server is concerned - each keeps its own
+	* selections in this.filters[n] - so setSelections() on the facet itself never reaches
+	* them, and anything that isn't a mouse had no way in. This is that way in.
+	*
+	* Moving back to an earlier stage clears the later one, exactly as the back button does:
+	* the eco codes of one system mean nothing under another.
+	*
+	* Parameters:
+	* stageName - the name of the stage, e.g. "ecocode_system"
+	* selections - the ids to select in it; an empty list deselects everything in the stage
+	*
+	* Returns:
+	* true, or false when this facet has no stage by that name.
+	*/
+	setStageSelections(stageName, selections) {
+		let stageIndex = this.filters.findIndex(stage => stage.name == stageName);
+		if(stageIndex == -1) {
+			return false;
+		}
+
+		while(this.currentFilterStage > stageIndex) {
+			this.selectPreviousFilterStage();
+		}
+		while(this.currentFilterStage < stageIndex) {
+			this.selectNextFilterStage();
+		}
+
+		let stage = this.getCurrentFilter();
+		//Rows are matched against parseInt:ed ids when they are drawn, so a selection that
+		//arrives as a string would leave the row looking unselected
+		stage.selections = (selections || [])
+			.map(selection => parseInt(selection))
+			.filter(selection => !isNaN(selection));
+
+		//renderData draws the rows with their check marks from the stage's own selections.
+		//renderSelections() is not used here: it clears the highlight across every stage's
+		//rows, including the ones scrolled out of sight in the stage behind this one.
+		this.renderData(this.minimized ? this.getSelectionsAsDataItems() : stage.data);
+		this.updateFacetTitle();
+
+		//Picking a system moves on to its codes - where the user would now be standing if
+		//they had clicked it themselves
+		if(stageIndex == 0 && stage.selections.length > 0) {
+			this.selectNextFilterStage();
+		}
+
+		this.broadcastSelection(stage);
+		return true;
+	}
+
+	/*
 	* Function: getSelections
 	*/
 	getSelections() {
@@ -613,20 +688,7 @@ class MultiStageFacet extends Facet {
 
 		
 
-		if(this.filters[0].selections.length == 1) {
-			for(let key in this.filters[0].data) {
-				if(this.filters[0].data[key].id == this.filters[0].selections[0]) {
-					$(".facet-title", this.domObj).text(this.title+" - "+this.filters[0].data[key].name)
-				}
-			}
-		}
-		else if(this.filters[0].selections.length > 1) {
-			$(".facet-title", this.domObj).text(this.title+" - multiple systems");
-		}
-		else {
-			$(".facet-title", this.domObj).text(this.title);
-		}
-
+		this.updateFacetTitle();
 
 		//Send a ping upwards notifying that a selection was made
 		this.broadcastSelection(filter);

@@ -1687,38 +1687,58 @@ class SiteReportChart {
 				<h4>What are Eco Codes?</h4>
 				<p>
 					<strong>Bugs EcoCodes</strong> is a habitat classification system developed for fossil insect assemblages.
-					Each insect taxon is assigned to one or more ecocode categories that reflect its preferred habitat or
-					ecological niche (e.g. woodland, dung &amp; carrion, aquatic).
-					By aggregating the taxa and their abundances across all samples in a dataset, it is possible to
+					Each insect taxon is assigned to one or more ecocode categories (habitat classes) that reflect its preferred
+					habitat or ecological niche (e.g. woodland, dung &amp; carrion, aquatic).
+					By aggregating the taxa and their abundances across samples, it is possible to
 					reconstruct a picture of the ancient environment at a site.
+				</p>
+				<h4>Env. rep. and sumrep</h4>
+				<p>
+					The link between a taxon and a habitat class is its <em>environmental representativeness</em> (env. rep.).
+					In SEAD these links are binary &mdash; a taxon either belongs to a habitat class or it does not &mdash; so
+					each taxon&ndash;class link counts as an env. rep. of 1.
+					Since a taxon may belong to several habitat classes, it contributes to each of them. The
+					<em>sumrep</em> &mdash; the sum of the values of all habitat classes, which is what the percentage modes below
+					are calculated against &mdash; is therefore normally <em>larger</em> than the number of taxa, or the total
+					abundance, actually present in the assemblage.
 				</p>
 				<h4>Calculation modes</h4>
 				<dl>
-					<dt>Aggregated abundance &ndash; counts</dt>
+					<dt>Aggregated abundance &ndash; counts <span class="ecocode-help-alt-term">(abundance weighted, raw)</span></dt>
 					<dd>
-						The total number of <em>individual specimens</em> (Minimum Number of Individuals, MNI) assigned
-						to each ecocode across all samples. A high value means many individuals were found that belong
-						to taxa characteristic of that habitat.
+						Each taxon's env. rep. multiplied by its abundance, summed per habitat class. With binary env. rep. this
+						is the total number of <em>individual specimens</em> (Minimum Number of Individuals, MNI) belonging to taxa
+						in that class. A high value means many individuals were found that belong to taxa characteristic of that
+						habitat.
 					</dd>
-					<dt>Aggregated taxa &ndash; counts</dt>
+					<dt>Aggregated taxa &ndash; counts <span class="ecocode-help-alt-term">(no abundance, raw)</span></dt>
 					<dd>
-						The number of <em>distinct species/taxa</em> assigned to each ecocode. This reflects habitat
-						diversity rather than individual abundance &mdash; a habitat with many different species
-						present will score high even if each species is rare.
+						Env. rep. counts for the habitat class only, disregarding abundance: the number of
+						<em>distinct species/taxa</em> assigned to that class (taxa occurrence, i.e. presence/absence).
+						This reflects habitat diversity rather than individual abundance &mdash; a habitat with many different
+						species present will score high even if each species is rare.
 					</dd>
-					<dt>Aggregated abundance &ndash; percentages</dt>
+					<dt>Aggregated abundance &ndash; percentages <span class="ecocode-help-alt-term">(abundance weighted, % sumrep)</span></dt>
 					<dd>
-						The abundance count for each ecocode expressed as a <em>percentage of the total abundance</em>
-						across all ecocodes. This normalises for sample size and makes assemblages from different
-						sites or time periods directly comparable.
+						The abundance-weighted sum for each habitat class expressed as a <em>percentage of the sumrep</em>, that is,
+						of the summed abundance-weighted values of all habitat classes. Note that this is <em>not</em> a percentage
+						of the assemblage's total MNI, which is a smaller number whenever taxa carry more than one ecocode; the bars
+						add up to 100% by construction. This normalises for sample size and makes assemblages from different sites
+						or time periods directly comparable.
 					</dd>
-					<dt>Aggregated taxa &ndash; percentages</dt>
+					<dt>Aggregated taxa &ndash; percentages <span class="ecocode-help-alt-term">(no abundance, % sumrep)</span></dt>
 					<dd>
-						The taxa count for each ecocode expressed as a <em>percentage of the total number of taxa</em>
-						across all ecocodes. Useful for comparing habitat diversity independently of how common
-						individual species are.
+						The taxa count for each habitat class expressed as a <em>percentage of the sumrep</em>, that is, of the
+						summed taxa counts of all habitat classes. Again this is <em>not</em> a percentage of the number of distinct
+						taxa in the assemblage, which is smaller whenever taxa carry more than one ecocode. Useful for comparing
+						habitat diversity independently of how common individual species are.
 					</dd>
 				</dl>
+				<p>
+					In the site and dataset total charts these values are aggregated over all samples, and the percentages are
+					calculated against the sumrep of that whole aggregation. In the <em>Eco codes per sample</em> chart the same
+					four modes are applied within each sample, so each bar is a percentage of that sample's own sumrep.
+				</p>
 				<p style="margin-top:1em; font-size:0.9em; color:#555;">
 					Reference: Buckland, P.I. &amp; Buckland, P.C. (2006). <em>BugsCEP: The Bugs Coleopteran Ecology Package.</em>
 					<a href="https://sead.se" target="_blank">sead.se</a>

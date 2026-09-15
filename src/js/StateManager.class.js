@@ -603,17 +603,48 @@ class StateManager {
 				let facet = this.sqs.facetManager.getFacetByName(entry.name);
 				let selections = Array.isArray(entry.selections) ? entry.selections : [];
 
+				//A staged filter contributes one entry per stage, and a stage is not a facet
+				//of its own - so `getFacetByName` finds nothing for the earlier ones, and
+				//they would otherwise read as filters that exist but have no title and
+				//cannot be opened. Name the parent instead.
+				let parent = facet ? null : this.sqs.facetManager.facets.find(candidate =>
+					Array.isArray(candidate.filters) && candidate.filters.some(stage => stage.name == entry.name));
+				let stageOf = null;
+				if(parent) {
+					stageOf = parent.name;
+					facet = parent;
+				}
+				else if(facet && Array.isArray(facet.filters) && facet.filters.length > 1) {
+					stageOf = facet.name;
+				}
+
+				//The map filter holds polygons, not ids. Hundreds of coordinates say nothing
+				//useful about what is selected, so it is summarised instead of listed.
+				let isPolygonFilter = entry.type == "geopolygon";
+
 				return {
 					id: entry.name,
 					title: facet ? facet.title : null,
 					type: entry.type,
+					//Which filter this is a stage of, when it is one - so two entries that
+					//belong to one facet on screen do not read as two separate filters
+					stageOf: stageOf,
 					position: entry.position,
 					minimized: entry.minimized === true,
 					//A filter can hold thousands of ids; the count is what matters and the
 					//list is only useful up to a point
 					selectionCount: selections.length,
-					selections: selections.slice(0, 25),
-					optionsLoaded: this.attempt(() => Array.isArray(facet.data) ? facet.data.length : null, null),
+					selections: isPolygonFilter
+						? selections.map(polygon => (Array.isArray(polygon) ? Math.floor(polygon.length / 2)+" points" : String(polygon)))
+						: selections.slice(0, 25),
+					//A stage holds its own values, so the facet's own `data` says nothing about it
+					optionsLoaded: this.attempt(() => {
+						if(stageOf) {
+							let stage = facet.filters.find(candidate => candidate.name == entry.name);
+							return stage && Array.isArray(stage.data) ? stage.data.length : null;
+						}
+						return Array.isArray(facet.data) ? facet.data.length : null;
+					}, null),
 					textSearch: this.attempt(() => {
 						let value = $(".facet-text-search-input", facet.getDomRef()).val();
 						return value && value.length > 0 ? value : null;
@@ -633,13 +664,24 @@ class StateManager {
 				}
 				return Array.isArray(module.data) ? module.data.length : null;
 			}, null),
-			//Which mosaic tiles have actually been built - an unrendered tile has no module
+			//The tiles actually on screen, read from the DOM.
+			//
+			//Not from resultMosaic.modules: that is the catalogue of every tile type that
+			//exists, not the subset this domain renders (which comes from the domain's
+			//result_grid_modules), and its titles are the static class names. The tiles
+			//retitle themselves once rendered - the catalogue's "Site map" is shown to the
+			//user as "Site distribution" - so the DOM is the only place the visible titles
+			//exist. It is also a cheap read.
 			renderedTiles: this.attempt(() => {
-				let mosaic = this.sqs.resultManager.getModule("mosaic");
-				if(!mosaic || !Array.isArray(mosaic.modules)) {
-					return null;
-				}
-				return mosaic.modules.filter(tile => tile.module != null).map(tile => tile.title);
+				let titles = [];
+				$("#result-mosaic-container .result-mosaic-tile:visible").each((index, element) => {
+					let title = $(".mosaic-tile-title", element).first().text().trim();
+					if(title.length > 0) {
+						titles.push(title);
+					}
+				});
+				//null rather than [] when the mosaic isn't the active view at all
+				return titles.length > 0 ? titles : null;
 			}, null)
 		};
 	}

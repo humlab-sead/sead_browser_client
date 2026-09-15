@@ -1186,25 +1186,35 @@ class FacetManager {
 		for(var key in facetState) {
 
 			var picks = [];
-			if(facetState[key].type == "discrete" || facetState[key].type == "geopolygon" || facetState[key].type == "multistage") {
+			var polygons = null;
+
+			if(facetState[key].type == "geopolygon") {
+				//A geopolygon selection is a list of polygons, each a flat list of
+				//latitude/longitude values. One polygon still goes out as a flat pick list,
+				//which is what every version of the query API understands; several are sent as
+				//the "polygons" payload, which the API OR:s together so a site inside any one
+				//of them matches.
+				polygons = MapFacet.normalisePolygons(facetState[key].selections);
+
+				if(polygons.length == 1) {
+					picks = polygons[0].map((coordinate) => {
+						return {
+							pickValue: coordinate
+						}
+					});
+					polygons = null;
+				}
+			}
+			else if(facetState[key].type == "discrete" || facetState[key].type == "multistage") {
 				for(var sk in facetState[key].selections) {
 					
 					if(facetState[key].selections[sk] != null) { //I got this once - an empty selection, but I can reproduce it and thus can't find the original cause so I'm just gonna defend against it here for now.
 						
-						if(facetState[key].type == "geopolygon") {
-							picks = facetState[key].selections.map((selection) => {
-								return {
-									pickValue: selection
-								}
-							});
-						}
-						else {
-							picks.push({
-								pickType: 1, //0 = ukn, 1 = discrete, 2 = lower, 3 = upper
-								pickValue: facetState[key].selections[sk],
-								text: facetState[key].selections[sk]
-							});
-						}
+						picks.push({
+							pickType: 1, //0 = ukn, 1 = discrete, 2 = lower, 3 = upper
+							pickValue: facetState[key].selections[sk],
+							text: facetState[key].selections[sk]
+						});
 					}
 					else {
 						console.error("Oops! Error number 2398725 (I totally just made that up) occured. But seriously though, there was an error, you should probably look into it. Glad I'm not you.");
@@ -1232,12 +1242,25 @@ class FacetManager {
 				});
 			}
 
-			def.push({
+			let facetConfig = {
 				facetCode: facetState[key].name,
 				position: facetState[key].position,
 				picks: picks,
 				textFilter: ""
-			});
+			};
+
+			if(polygons != null && polygons.length > 0) {
+				//Coordinate pairs, latitude first - the order the query API reads them in
+				facetConfig.polygons = polygons.map((polygon) => {
+					let pairs = [];
+					for(let index = 0; index < polygon.length; index += 2) {
+						pairs.push([polygon[index], polygon[index + 1]]);
+					}
+					return pairs;
+				});
+			}
+
+			def.push(facetConfig);
 		}
 		
 		return def;

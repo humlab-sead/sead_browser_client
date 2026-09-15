@@ -4233,6 +4233,35 @@ polyline{
   left: 0;
 }
 
+/* Counter and clear button for the map filter's polygons. Sits opposite the base layer
+   select, and is only shown while something is selected. */
+.map-polygon-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: .5em;
+  padding: .25em .5em;
+  background: colors.$base-color;
+  color: colors.$white;
+  font-size: 0.9em;
+  z-index: 10;
+}
+
+.map-polygon-clear-btn {
+  background: color.adjust(colors.$base-color, $lightness: 10%);
+  color: colors.$white;
+  border: none;
+  border-radius: 2px;
+  padding: .1em .6em;
+  cursor: pointer;
+}
+
+.map-polygon-clear-btn:hover {
+  background: color.adjust(colors.$base-color, $lightness: 20%);
+}
+
 .menu-row-item {
   background: colors.$base-color;
   position: relative;
@@ -7052,6 +7081,11 @@ tr.site-report-table-row > td {
   line-height: 1.5;
 }
 
+.ecocode-help-content .ecocode-help-alt-term {
+  font-weight: normal;
+  color: #555;
+}
+
 .content-item-header-container {
   display: flex;
   justify-content: flex-start;
@@ -7313,26 +7347,116 @@ tr.site-report-table-row > td {
  * These styles were accidentally removed in 309d6fb ("Reworked result map layers");
  * restored here, with the color variables namespaced for the @use-based colors.scss.
  */
+/* The collapsed bubble's diameter and its inset from the viewport corner. The diameter is
+ * read from JS as well (SeadAgent.class.js), which has to know where the bubble lands to
+ * animate the panel back down into it - so it must not be duplicated as a literal there. */
+:root {
+  --chatbox-collapsed-size: 3.4rem;
+  --chatbox-margin: 0.75rem;
+}
+
 #chatbox-icon {
   position: fixed;
   display: none; //Flex
+  box-sizing: border-box;
   align-items: center;
   justify-content: center;
   bottom: 0;
   right: 0;
-  background: colors.$aux-color;
-  color: #fff;
+  margin: var(--chatbox-margin);
+  width: var(--chatbox-collapsed-size);
+  height: var(--chatbox-collapsed-size);
+  padding: 0;
   border-radius: 50%;
-  padding: .5em;
-  font-size: 3.0em;
-  margin: .5em;
-  box-shadow: 0px 0px 10px 2px colors.$shadow-color;
+  color: #fff;
+  /* The panel's own surface, which the orange fill above it fades away to reveal */
+  background: #fff;
+  /* Layered rather than one flat blur: a tight contact shadow seats it on the page and a
+   * wide soft one lifts it off. */
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.18),
+    0 8px 22px rgba(0, 0, 0, 0.20);
+  /* Clips the panel down to the circle while it is collapsed - the panel is always in
+   * the DOM now, faded out, rather than being display-toggled from JS mid-transition. */
+  overflow: hidden;
   /* Above page content and the mosaic export panel (z-index 10), which used to overlap
    * the expanded chatbox, but below dropdowns, the splash screen and poppers. */
   z-index: 300;
-  width: 1em;
-  height: 1em;
-  transition: all 0.3s ease-in-out;
+  /* Deliberately not `all`. Transitioning everything meant the hover lift and the
+   * expand/collapse shared one 0.3s curve, and the geometry the drag/resize plugins
+   * write inline got dragged along with it. Only the properties that actually move are
+   * listed, and the geometry gets a decelerating curve so the panel settles rather than
+   * arriving at speed. */
+  transition:
+    width 0.34s cubic-bezier(0.22, 0.9, 0.28, 1),
+    height 0.34s cubic-bezier(0.22, 0.9, 0.28, 1),
+    top 0.34s cubic-bezier(0.22, 0.9, 0.28, 1),
+    left 0.34s cubic-bezier(0.22, 0.9, 0.28, 1),
+    border-radius 0.26s ease,
+    box-shadow 0.22s ease,
+    filter 0.18s ease,
+    transform 0.16s ease;
+}
+
+/* The bubble's orange fill, carried on an overlay rather than as the element's own
+ * background so it can cross-fade. Growing a solid orange rectangle to panel size and
+ * only then putting contents in it read as a flash of colour; fading the fill out as the
+ * box grows makes the same motion read as the bubble opening into the panel.
+ *
+ * A slight gradient rather than a flat fill, so the collapsed bubble sits on the page as
+ * a raised object against the map and result panels it floats over. The inset highlight
+ * along its top edge belongs here too - an inset shadow on the container would paint
+ * underneath this overlay. */
+#chatbox-icon::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(145deg,
+      color.scale(colors.$aux-color, $lightness: 16%) 0%,
+      colors.$aux-color 55%,
+      color.scale(colors.$aux-color, $lightness: -14%) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30);
+  /* Timed against the panel's fade-in below so the two genuinely cross over, rather than
+   * the fill clearing first and leaving an empty white box for a beat */
+  transition: opacity 0.28s ease;
+}
+
+#chatbox-icon.expanded::before {
+  opacity: 0;
+}
+
+/* The bubble's glyph. Taken out of flow so it doesn't push the panel around while it
+ * fades out, and given its own size - the container no longer carries a 3em font-size
+ * for it to inherit, which was also inflating every em unit inside the panel. */
+#chatbox-icon .chat-icon {
+  position: absolute;
+  /* Centred explicitly rather than by the container's flex alignment: an out-of-flow
+   * child's static position inside a flex container is not somewhere to be clever. The
+   * -1px is optical - the speech-bubble glyph's tail hangs below its own box. */
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  transform: translate(-50%, calc(-50% - 1px));
+  font-size: 1.5rem;
+  line-height: 1;
+  transition: opacity 0.14s ease, transform 0.26s cubic-bezier(0.22, 0.9, 0.28, 1);
+}
+
+#chatbox-icon:not(.expanded):hover .chat-icon {
+  transform: translate(-50%, calc(-50% - 1px)) scale(1.06);
+}
+
+/* Out of the way before the box has grown far enough for it to look out of place */
+#chatbox-icon.expanded .chat-icon {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.35);
+  pointer-events: none;
 }
 
 /* jQuery UI sets width/height/top/left inline on every mouse move; the expand transition
@@ -7373,25 +7497,43 @@ tr.site-report-table-row > td {
   background-size: 100%;
 }
 
-#chatbox-icon:hover {
-  background: color.scale(colors.$aux-color, $lightness: 10%);
+/* Brightened with a filter rather than by swapping the background, which would drop the
+ * gradient. Scoped to the collapsed state - once expanded, the whole panel lifting on
+ * hover is just noise. */
+#chatbox-icon:not(.expanded):hover {
   cursor: pointer;
+  filter: brightness(1.07) saturate(1.05);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.20),
+    0 12px 28px rgba(0, 0, 0, 0.24);
+}
+
+#chatbox-icon:not(.expanded):active {
+  transform: translateY(0) scale(0.94);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.22),
+    0 4px 10px rgba(0, 0, 0, 0.18);
 }
 
 #chatbox-icon.expanded {
-  width: 34vw;
-  height: 48vh;
-  /* Keeps it usable on a laptop and stops it swallowing a large screen */
-  min-width: 380px;
-  min-height: 340px;
-  max-width: 90vw;
-  max-height: 80vh;
-  border-radius: 4px; /* matches .result-export-button and the other floating controls */
+  /* Keeps it usable on a laptop and stops it swallowing a large screen. Written as
+   * min()/max() inside the value rather than as min-width/min-height/max-width/
+   * max-height: those clamp the *used* value, so every interpolated frame of the grow
+   * transition was clamped too and the box snapped straight to 380x340 before easing
+   * out to its real size. The same floor is enforced against user resizing by the
+   * resizable() options in SeadAgent.class.js, where it belongs. */
+  width: min(90vw, max(34vw, 380px));
+  height: min(80vh, max(48vh, 340px));
+  border-radius: 5px; /* matches .result-export-button and the other floating controls */
   cursor: auto;
-  padding: 0em;
   /* No `resize: both` - that grip sits bottom-right, on top of the input controls.
    * Resizing is jQuery UI's, anchored at the top-left corner (see SeadAgent.class.js). */
   overflow: hidden;
+  /* A panel this size needs a deeper shadow than the bubble to stay clear of the page */
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.16),
+    0 18px 44px rgba(0, 0, 0, 0.26);
 }
 
 /* The panel is pinned bottom-right, so it grows up and to the left. The corner grip
@@ -7417,12 +7559,34 @@ tr.site-report-table-row > td {
   z-index: 11;
 }
 
+/* Absolutely filled rather than a flex child, so it never takes part in centring the
+ * bubble's glyph, and so the collapsed circle's size doesn't depend on it. It is always
+ * laid out - only its opacity changes - which is what stops the contents from being
+ * visibly squashed into a growing box the way display-toggling from JS did. */
 #chatbox-inner-panel {
-  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
   overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  /* Collapsing: gone quickly, and only then pulled out of the accessibility tree */
+  transition: opacity 0.12s ease, visibility 0s linear 0.12s;
+}
+
+/* Expanding: held back briefly so the box is most of the way open before the contents
+ * appear in it, then faded in over the remainder of the growth */
+#chatbox-icon.expanded #chatbox-inner-panel {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.24s ease 0.08s, visibility 0s linear 0s;
 }
 
 #chatbox-input-controls {
@@ -7576,7 +7740,8 @@ tr.site-report-table-row > td {
 }
 
 #chatbox-header {
-  display: none;
+  /* Shown/hidden with the panel around it now, not toggled separately from JS */
+  display: flex;
   justify-content: space-between;
   align-items: center;
   background: colors.$pane-bg-color-dark;
@@ -7609,4 +7774,16 @@ tr.site-report-table-row > td {
   letter-spacing: 0.02em;
   color: colors.$inactive-color;
   margin-left: 0.5em;
+}
+
+/* The expand is a large piece of motion in the corner of the eye; honour the opt-out. */
+@media (prefers-reduced-motion: reduce) {
+  #chatbox-icon,
+  #chatbox-icon::before,
+  #chatbox-icon .chat-icon,
+  #chatbox-inner-panel,
+  #chatbox-icon.expanded #chatbox-inner-panel {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
+  }
 }

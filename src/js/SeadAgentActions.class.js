@@ -6,12 +6,21 @@
 * plus arguments, and anything not in that list is refused here - so what the agent can
 * do to the interface is bounded by this file, not by what the model decides to write.
 */
+import MapFacet from './MapFacet.class.js';
+
 export default class SeadAgentActions {
     //Long enough for the scroll to register as a movement the user can follow, short
     //enough that a few filters in a row don't feel slow
     static REVEAL_DELAY_MS = 450;
     //How long to wait for a result load to land before giving up on reporting its count
     static RESULT_REFRESH_TIMEOUT_MS = 15000;
+    //The map filter. Its polygons are the only selection in the client that isn't a list of ids.
+    static MAP_FILTER = "sites_polygon";
+    //How long to wait for a staged filter's next stage to load its values
+    static STAGE_DATA_TIMEOUT_MS = 10000;
+    //Areas the agent can put on the map in one go. Each one is several polygons and every
+    //polygon becomes its own ST_Within in the query - a whole continent at once helps nobody.
+    static MAX_AREAS = 6;
 
     constructor(sqs) {
         this.sqs = sqs;
@@ -185,7 +194,9 @@ export default class SeadAgentActions {
             close_site_report: () => this.closeSiteReport(),
             list_site_report_sections: () => this.listSiteReportSections(),
             set_site_report_section: (args) => this.setSiteReportSection(args),
-            export_site_report: (args) => this.exportSiteReport(args)
+            export_site_report: (args) => this.exportSiteReport(args),
+            find_areas: (args) => this.findAreas(args),
+            set_map_polygons: (args) => this.setMapPolygons(args)
         };
     }
 
@@ -196,7 +207,8 @@ export default class SeadAgentActions {
     */
     static isMutation(command) {
         return ["add_filter", "set_filter_selections", "remove_filter", "clear_filters", "set_domain", "set_result_view",
-                "open_site_report", "close_site_report", "set_site_report_section", "export_site_report"].indexOf(command) != -1;
+                "open_site_report", "close_site_report", "set_site_report_section", "export_site_report",
+                "set_map_polygons"].indexOf(command) != -1;
     }
 
     listFilters() {
@@ -204,14 +216,24 @@ export default class SeadAgentActions {
         let filters = [];
         (this.sqs.facetDef || []).forEach(group => {
             (group.filters || []).forEach(template => {
-                filters.push({
+                let entry = {
                     id: template.name,
                     title: template.title,
                     group: group.title,
                     type: template.type,
                     description: template.description,
                     open: open.indexOf(template.name) != -1
-                });
+                };
+                //A staged filter is one facet asking two questions in order. Without this
+                //the agent sees only the facet and has no way to know the first question
+                //exists - or, having read of it elsewhere, tries to open it as a filter of
+                //its own.
+                if(Array.isArray(template.stagedFilters) && template.stagedFilters.length > 0) {
+                    entry.stages = template.stagedFilters.slice();
+                    entry.note = "Staged filter: pick "+entry.stages.join(", then ")
+                        +". Use these stage ids with get_filter_options and set_filter_selections.";
+                }
+                filters.push(entry);
             });
         });
         return { filters: filters, openFilters: open };
@@ -251,12 +273,36 @@ export default class SeadAgentActions {
     */
     async getFilterOptions(args) {
         let name = this.requireFilterName(args);
-        let facet = this.sqs.facetManager.getFacetByName(name);
-        if(!facet) {
-            facet = await this.spawnAndAwait(name, []);
+        let resolved = this.resolveFilter(name);
+        if(!resolved) {
+            throw new Error("There is no filter called '"+name+"'. Use list_filters to see what exists.");
         }
 
-        let rows = Array.isArray(facet.data) ? facet.data : [];
+        let facet = this.sqs.facetManager.getFacetByName(resolved.id);
+        if(!facet) {
+            facet = await this.spawnAndAwait(resolved.id, []);
+        }
+
+        let rows = [];
+        if(resolved.stageName) {
+            //Each stage of a staged filter keeps its own values; the facet's own `data` is
+            //not one of them
+            let blockedBy = this.describeStagePrerequisite(resolved, facet);
+            if(blockedBy) {
+                return {
+                    filter: name, options: [], stageOf: resolved.id,
+                    note: "'"+name+"' is stage "+(resolved.stageIndex + 1)+" of "+resolved.stages.length
+                        +" in the '"+resolved.id+"' filter, and has no values until the stages before it"
+                        +" are picked. Select something in '"+blockedBy+"' first."
+                };
+            }
+            let stage = await this.awaitStageData(facet, resolved.stageName);
+            rows = stage && Array.isArray(stage.data) ? stage.data : [];
+        }
+        else {
+            rows = Array.isArray(facet.data) ? facet.data : [];
+        }
+
         if(rows.length == 0) {
             return { filter: name, options: [], note: "This filter has no selectable list - it may be a range or map filter." };
         }
@@ -274,6 +320,7 @@ export default class SeadAgentActions {
         let total = options.length;
         return {
             filter: name,
+            stageOf: resolved.stageName ? resolved.id : undefined,
             total: total,
             truncated: total > cap,
             options: options.slice(0, cap)
@@ -282,7 +329,12 @@ export default class SeadAgentActions {
 
     async addFilter(args) {
         let name = this.requireFilterName(args);
-        if(this.sqs.facetManager.getFacetByName(name)) {
+        let resolved = this.resolveFilter(name);
+        if(!resolved) {
+            throw new Error("There is no filter called '"+name+"'. Use list_filters to see what exists.");
+        }
+
+        if(this.sqs.facetManager.getFacetByName(resolved.id)) {
             //Adding twice is a no-op in the client, so treat it as "make sure it's there"
             return await this.setFilterSelections(args, true);
         }
@@ -291,12 +343,44 @@ export default class SeadAgentActions {
         return await this.withBatchedResults(async () => {
             //Opened empty first, so the user can watch the value being picked rather than
             //finding the filter already narrowed to something they never saw
-            let facet = await this.spawnAndAwait(name, []);
+            let facet = await this.spawnAndAwait(resolved.id, []);
             if(selections.length > 0) {
-                await this.revealAndSelect(facet, selections);
+                await this.applySelections(facet, resolved, selections);
             }
-            return { applied: "add_filter", filter: name, selections: selections };
+            return { applied: "add_filter", filter: name, filterOpened: resolved.id, selections: selections };
         });
+    }
+
+    /*
+    * Function: applySelections
+    * Applies a selection to whichever part of the facet it belongs to. A staged filter keeps
+    * its selections per stage, out of reach of the facet's own setSelections() - which
+    * accepts the call, changes nothing the server ever sees, and leaves the caller thinking
+    * the filter was applied.
+    */
+    async applySelections(facet, resolved, selections) {
+        if(resolved.stageName) {
+            if(typeof facet.setStageSelections != "function") {
+                throw new Error("The filter '"+resolved.id+"' does not take staged selections.");
+            }
+            let blockedBy = this.describeStagePrerequisite(resolved, facet);
+            if(blockedBy) {
+                throw new Error("'"+resolved.stageName+"' is stage "+(resolved.stageIndex + 1)+" of "
+                    +resolved.stages.length+" in the '"+resolved.id+"' filter. Select something in '"
+                    +blockedBy+"' first.");
+            }
+            if(!facet.setStageSelections(resolved.stageName, selections)) {
+                throw new Error("The filter '"+resolved.id+"' has no stage called '"+resolved.stageName+"'.");
+            }
+            //Picking a system loads its codes; waiting here means a follow-up
+            //get_filter_options sees them rather than an empty list
+            let next = resolved.stages[resolved.stageIndex + 1];
+            if(next && selections.length > 0) {
+                await this.awaitStageData(facet, next);
+            }
+            return;
+        }
+        await this.revealAndSelect(facet, selections);
     }
 
     /*
@@ -316,10 +400,15 @@ export default class SeadAgentActions {
 
     async setFilterSelections(args, tolerateMissing = false) {
         let name = this.requireFilterName(args);
-        let facet = this.sqs.facetManager.getFacetByName(name);
+        let resolved = this.resolveFilter(name);
+        if(!resolved) {
+            throw new Error("There is no filter called '"+name+"'. Use list_filters to see what exists.");
+        }
+
+        let facet = this.sqs.facetManager.getFacetByName(resolved.id);
         if(!facet) {
             if(!tolerateMissing) {
-                throw new Error("The filter '"+name+"' is not open. Add it first.");
+                throw new Error("The filter '"+resolved.id+"' is not open. Add it first.");
             }
             return await this.addFilter(args);
         }
@@ -327,14 +416,16 @@ export default class SeadAgentActions {
         let selections = this.normaliseSelections(args.selections);
 
         return await this.withBatchedResults(async () => {
-            await this.revealAndSelect(facet, selections);
+            await this.applySelections(facet, resolved, selections);
             return { applied: "set_filter_selections", filter: name, selections: selections };
         });
     }
 
     async removeFilter(args) {
         let name = this.requireFilterName(args);
-        let facet = this.sqs.facetManager.getFacetByName(name);
+        let resolved = this.resolveFilter(name);
+        //A stage cannot be closed on its own - it is part of its facet, so that is what goes
+        let facet = this.sqs.facetManager.getFacetByName(resolved ? resolved.id : name);
         if(!facet) {
             throw new Error("The filter '"+name+"' is not open.");
         }
@@ -561,6 +652,162 @@ export default class SeadAgentActions {
     }
 
     /*
+    * Function: findAreas
+    * Looks up administrative areas - countries, regions, municipalities - by name in the
+    * GADM boundary data the deployment loads alongside SEAD.
+    *
+    * This is a lookup, not a filter: it exists because area names repeat all over the world
+    * ("York" is eight different places) and because the boundary each one resolves to is
+    * addressed by a GADM id, not by its name. The id is what set_map_polygons takes.
+    */
+    async findAreas(args) {
+        let query = typeof args.name == "string" ? args.name.trim() : "";
+        if(query.length < 2) {
+            throw new Error("Missing 'name' - the name of a country, region or municipality to look for.");
+        }
+
+        let url = this.sqs.config.dataServerAddress+"/gadm/areas?q="+encodeURIComponent(query);
+        if(args.level != null && args.level !== "") {
+            url += "&level="+encodeURIComponent(args.level);
+        }
+        if(typeof args.country == "string" && args.country.trim().length > 0) {
+            url += "&country="+encodeURIComponent(args.country.trim());
+        }
+
+        let payload = await this.fetchJson(url, "Could not look up areas");
+        let areas = Array.isArray(payload.areas) ? payload.areas : [];
+
+        return {
+            query: query,
+            //Level is worth spelling out: the agent has to choose between a municipality and
+            //the region of the same name, and "level 2" means nothing on its own
+            areas: areas.map(area => ({
+                id: area.gid,
+                name: area.name,
+                level: ["country", "region", "municipality"][area.level] || String(area.level),
+                region: area.region,
+                country: area.country
+            }))
+        };
+    }
+
+    /*
+    * Function: setMapPolygons
+    * Puts polygons on the map filter, either from named areas or as explicit coordinates.
+    *
+    * The map filter matches sites inside any of its polygons, so an area made of a mainland
+    * and its islands, or several separate areas, is one filter rather than several. Areas are
+    * given as GADM ids from find_areas; 'polygons' takes [[lat, lon], ...] rings directly, for
+    * a shape that isn't an administrative area.
+    */
+    async setMapPolygons(args) {
+        let areaIds = this.normaliseAreaIds(args.areas);
+        let explicit = MapFacet.normalisePolygons(args.polygons);
+
+        if(areaIds.length == 0 && explicit.length == 0) {
+            throw new Error("Nothing to draw: give 'areas' (ids from find_areas) or 'polygons' ([[lat, lon], ...] rings).");
+        }
+        if(areaIds.length > SeadAgentActions.MAX_AREAS) {
+            throw new Error("Too many areas at once - "+SeadAgentActions.MAX_AREAS+" is the limit.");
+        }
+
+        //Resolved before anything is applied, so a bad id doesn't leave the filter half set
+        let resolved = [];
+        for(let index = 0; index < areaIds.length; index++) {
+            resolved.push(await this.fetchAreaPolygons(areaIds[index]));
+        }
+
+        let polygons = explicit.slice();
+        resolved.forEach(area => {
+            polygons = polygons.concat(MapFacet.normalisePolygons(area.polygons));
+        });
+
+        if(polygons.length == 0) {
+            throw new Error("No usable polygons - the areas resolved to nothing that can be drawn.");
+        }
+
+        if(args.append === true) {
+            let facet = this.sqs.facetManager.getFacetByName(SeadAgentActions.MAP_FILTER);
+            let existing = facet ? MapFacet.normalisePolygons(facet.getSelections()) : [];
+            polygons = existing.concat(polygons);
+        }
+
+        return await this.withBatchedResults(async () => {
+            let facet = this.sqs.facetManager.getFacetByName(SeadAgentActions.MAP_FILTER);
+            if(!facet) {
+                //The map filter loads no option list, so there is nothing to wait for - it is
+                //spawned directly rather than through spawnAndAwait, which polls for one
+                facet = this.sqs.facetManager.spawnFacet(SeadAgentActions.MAP_FILTER, [], false);
+                if(!facet) {
+                    throw new Error("The map filter could not be added.");
+                }
+            }
+
+            facet.setSelections(polygons);
+            //The polygons usually sit somewhere else entirely on the map than where the user
+            //was looking, and a filter you can't see is hard to trust
+            if(typeof facet.fitViewToSelections == "function") {
+                facet.fitViewToSelections();
+            }
+            facet.broadcastSelection();
+
+            return {
+                applied: "set_map_polygons",
+                filter: SeadAgentActions.MAP_FILTER,
+                areas: resolved.map(area => ({ id: area.gid, name: area.name, country: area.country })),
+                polygons: polygons.length,
+                //Small islands and minor rings are left out of a boundary - worth passing on,
+                //since it is the difference between "Sweden" and "the Swedish mainland"
+                omittedRings: resolved.reduce((sum, area) => sum + ((area.rings && area.rings.omitted) || 0), 0)
+            };
+        });
+    }
+
+    /*
+    * Function: fetchAreaPolygons
+    * One area's boundary, simplified by the server to something a filter can hold.
+    */
+    async fetchAreaPolygons(areaId) {
+        let url = this.sqs.config.dataServerAddress+"/gadm/area/"+encodeURIComponent(areaId)+"/polygons";
+        let area = await this.fetchJson(url, "Could not fetch the boundary for '"+areaId+"'");
+        if(!area || !Array.isArray(area.polygons) || area.polygons.length == 0) {
+            throw new Error("No boundary found for '"+areaId+"'. Use find_areas to get a valid area id.");
+        }
+        return area;
+    }
+
+    normaliseAreaIds(areas) {
+        if(typeof areas == "string") {
+            areas = areas.split(",");
+        }
+        if(!Array.isArray(areas)) {
+            return [];
+        }
+        return areas
+            .map(area => (typeof area == "string" ? area.trim() : (area && area.id ? String(area.id).trim() : "")))
+            .filter(area => area.length > 0);
+    }
+
+    /*
+    * Function: fetchJson
+    * A GET against the data server, with the failure reported in words the agent can pass on
+    * rather than as an unhandled rejection.
+    */
+    async fetchJson(url, failureMessage) {
+        let response;
+        try {
+            response = await fetch(url);
+        }
+        catch(error) {
+            throw new Error(failureMessage+": the data server could not be reached.");
+        }
+        if(!response.ok) {
+            throw new Error(failureMessage+" (HTTP "+response.status+").");
+        }
+        return await response.json();
+    }
+
+    /*
     * Function: spawnAndAwait
     * Adds a filter and waits for its data to load, so a follow-up command sees the values
     * rather than an empty facet.
@@ -587,6 +834,88 @@ export default class SeadAgentActions {
                 }
             }, 100);
         });
+    }
+
+    /*
+    * Function: resolveFilter
+    * Turns a filter id from the agent into the thing the client actually has.
+    *
+    * Some filters are staged: the client presents "Eco code" as one facet that asks for a
+    * classification system first and its codes second, while the server, the filter
+    * documentation and the interface state all speak of `ecocode_system` and `ecocode` as
+    * two filters. Both readings arrive here, so both are answered: a stage id resolves to
+    * its parent facet plus which stage it is.
+    *
+    * Returns { id, template, stages, stageName, stageIndex } - stageName is null for an
+    * ordinary filter - or null when nothing in the client goes by that name.
+    */
+    resolveFilter(name) {
+        let templates = (this.sqs.facetDef || []).flatMap(group => group.filters || []);
+
+        for(let template of templates) {
+            let stages = Array.isArray(template.stagedFilters) ? template.stagedFilters : [];
+            let stageIndex = stages.indexOf(name);
+
+            //A staged filter's last stage carries the same id as the facet itself
+            //(`ecocode`), and that id means the stage - which is the list the user is
+            //picking from when they name it.
+            if(stageIndex != -1) {
+                return { id: template.name, template: template, stages: stages,
+                         stageName: name, stageIndex: stageIndex };
+            }
+            if(template.name == name) {
+                return { id: template.name, template: template, stages: stages,
+                         stageName: null, stageIndex: -1 };
+            }
+        }
+        return null;
+    }
+
+    /*
+    * Function: stageOf
+    * The stage object inside an open staged facet, or null.
+    */
+    stageOf(facet, stageName) {
+        if(!facet || !Array.isArray(facet.filters) || !stageName) {
+            return null;
+        }
+        return facet.filters.find(stage => stage.name == stageName) || null;
+    }
+
+    /*
+    * Function: awaitStageData
+    * Waits for one stage's values to arrive. A stage only loads once the stages before it
+    * have a selection, so this gives up rather than waiting out the clock every time.
+    */
+    async awaitStageData(facet, stageName) {
+        let waited = 0;
+        while(waited < SeadAgentActions.STAGE_DATA_TIMEOUT_MS) {
+            let stage = this.stageOf(facet, stageName);
+            if(stage && Array.isArray(stage.data) && stage.data.length > 0) {
+                return stage;
+            }
+            await this.pause(100);
+            waited += 100;
+        }
+        return this.stageOf(facet, stageName);
+    }
+
+    /*
+    * Function: describeStagePrerequisite
+    * Why a stage is empty, in the terms the agent needs to act on: which stage to pick
+    * first. Returns null when the stage has values and nothing is in the way.
+    */
+    describeStagePrerequisite(resolved, facet) {
+        if(resolved.stageIndex < 1) {
+            return null;
+        }
+        for(let index = 0; index < resolved.stageIndex; index++) {
+            let earlier = this.stageOf(facet, resolved.stages[index]);
+            if(!earlier || earlier.selections.length == 0) {
+                return resolved.stages[index];
+            }
+        }
+        return null;
     }
 
     requireFilterName(args) {
