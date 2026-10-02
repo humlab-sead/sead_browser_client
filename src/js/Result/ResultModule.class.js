@@ -13,14 +13,10 @@ import EntityAgesData from "./DatahandlingModules/EntityAgesData.class.js";
 
 import SiteExportWorker from '../Workers/SiteExport.worker.js';
 import DatasetExportWorker from '../Workers/DatasetExport.worker.js';
-import SdfExportWorker from '../Workers/SdfExport.worker.js';
 
 import "@nobleclem/jquery-multiselect";
 import "@nobleclem/jquery-multiselect/jquery.multiselect.css";
 
-//Excel's default row height in points. SDF pins every data row to this so a single long,
-//multi-line free-text value cannot stretch its row and swamp the sheet.
-const SDF_ROW_HEIGHT = 15;
 
 
 /*
@@ -140,6 +136,24 @@ class ResultModule {
 		return methodIds;
 	}
 
+	/*
+	* Function: selectExportFormat
+	*
+	* Marks a format as chosen in the "Export sites" dialog and shows what goes with it: its
+	* description, the download button, and the dataset selection for the formats that use it.
+	* The XLSX export always contains every dataset, so it gets no dataset selection.
+	*/
+	selectExportFormat(format) {
+		$(".sites-export-format-btn").each((i, btn) => {
+			$(btn).toggleClass("selected", $(btn).attr("data-export-format") == format);
+		});
+		$(".sites-export-format-description").each((i, desc) => {
+			$(desc).toggle($(desc).attr("data-export-format") == format);
+		});
+		$(".sites-export-datasets").toggle(format == "csv" || format == "json");
+		$("#sites-export-dl").css("display", "inline-flex");
+	}
+
 	bindExportModuleDataToButton(button, module = null) {
 
 		let sitesExportCallback = async () => {
@@ -247,16 +261,22 @@ class ResultModule {
 					this.exportFullSitesAsXlsx(selectedSites, this.getSelectedMethodIdsForExport()).then(() => {});
 				});
 
-				$("#sdf-export-xlsx-dl").on("click", () => {
-					this.exportSitesAsSdfXlsx(selectedSites);
+				$(".sites-export-format-btn").on("click", (evt) => {
+					this.selectExportFormat($(evt.currentTarget).attr("data-export-format"));
 				});
+				this.selectExportFormat("xlsx");
 
-				$("#sites-export-csv-dl").on("click", () => {
-					this.exportFullSitesAsCsv(selectedSites, this.getSelectedMethodIdsForExport()).then(() => {});
-				});
-
-				$("#sites-export-json-dl").on("click", () => {
-					this.exportFullSitesAsJson(selectedSites, this.getSelectedMethodIdsForExport()).then(() => {});
+				$("#sites-export-dl").on("click", () => {
+					let format = $(".sites-export-format-btn.selected").attr("data-export-format");
+					if(format == "xlsx") {
+						this.exportSitesAsSdfXlsx(selectedSites);
+					}
+					if(format == "csv") {
+						this.exportFullSitesAsCsv(selectedSites, this.getSelectedMethodIdsForExport()).then(() => {});
+					}
+					if(format == "json") {
+						this.exportFullSitesAsJson(selectedSites, this.getSelectedMethodIdsForExport()).then(() => {});
+					}
 				});
 
 				$("#xlsx-dl").on("click", () => { this.exportSitesAsXlsx(selectedSites); });
@@ -351,10 +371,13 @@ class ResultModule {
 	/*
 	* Function: exportSitesAsSdfXlsx
 	*
-	* Fetches the SDF export bundle for the given sites and turns it into an .xlsx download.
-	* Called from the "Export sites" dialog, alongside the other export buttons.
+	* Downloads the given sites as a SEAD Data Format (SDF) workbook. The server builds the finished
+	* .xlsx (plans/sead-data-format-design.html, D17); the file is saved exactly as received, since
+	* any re-processing here could break the row fingerprints the importer relies on.
+	* Called from the "Export sites" dialog when XLSX is the chosen format, and from the site
+	* report's "Export all site data" dialog, which passes its own button for the loading indicator.
 	*/
-	exportSitesAsSdfXlsx(sites) {
+	async exportSitesAsSdfXlsx(sites, button = "#sites-export-dl") {
 		let siteIds = this.normalizeSiteIds(sites);
 		if(siteIds.length === 0) {
 			this.sqs.notificationManager.notify("No sites selected!", "warning");
@@ -367,290 +390,85 @@ class ResultModule {
 		}
 		this.exportInProgress = true;
 
-		$("#sdf-export-xlsx-dl").append(`<div class="cute-little-loading-indicator"></div>`);
-		$("#export-progress-bar-container .status-msg").text("Fetching data...");
+		$(button).append(`<div class="cute-little-loading-indicator"></div>`);
+		$("#export-progress-bar-container .status-msg").text("Building workbook...");
+		$(".export-progress-bar-fill").css({ width: "0%" });
 		$("#export-progress-bar-container").css("display", "block");
 
-		const finish = () => {
+		try {
+			const response = await fetch(Config.dataServerAddress+"/sdf/export", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ siteIds: siteIds })
+			});
+
+			if(!response.ok) {
+				let message = "the server returned "+response.status;
+				try {
+					const error = await response.json();
+					if(error && error.error) {
+						message = error.error;
+					}
+				}
+				catch(e) {
+					//not a JSON error body - keep the status
+				}
+				throw new Error(message);
+			}
+
+			const blob = await this.readSdfResponse(response);
+			saveAs(blob, this.sdfFilename(response, siteIds));
+		}
+		catch(error) {
+			console.error("SDF Excel export failed", error);
+			this.sqs.notificationManager.notify("Excel export failed: "+(error && error.message ? error.message : "unknown error"), "error");
+		}
+		finally {
 			$("#export-progress-bar-container").css("display", "none");
 			$(".export-progress-bar-fill").css({ width: "0%" });
-			$("#sdf-export-xlsx-dl").find(".cute-little-loading-indicator").remove();
+			$(button).find(".cute-little-loading-indicator").remove();
 			this.exportInProgress = false;
-		};
-
-		//the bundle is fetched a few sites at a time so the user gets a real progress bar rather
-		//than a spinner, and so the response stays a manageable size for large selections
-		const worker = new SdfExportWorker();
-
-		worker.onmessage = async (e) => {
-			const { type, progress, total, bundle, message } = e.data;
-
-			if(type === 'progress') {
-				$(".export-progress-bar-fill").css({ width: (total ? (progress / total * 100) : 0)+"%" });
-				return;
-			}
-
-			if(type === 'error') {
-				console.error("SDF Excel export failed", message);
-				this.sqs.notificationManager.notify("Excel export failed: "+message, "error");
-				worker.terminate();
-				finish();
-				return;
-			}
-
-			if(type === 'complete') {
-				try {
-					$("#export-progress-bar-container .status-msg").text("Formatting data...");
-					let workbook = this.sdfBundleToWorkbook(bundle);
-					const buffer = await workbook.xlsx.writeBuffer();
-					const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-					let filename = siteIds.length === 1 ? `sead_sdf_site_${siteIds[0]}.xlsx` : "sead_sdf_export.xlsx";
-					saveAs(blob, filename);
-				}
-				catch(error) {
-					console.error("SDF Excel export failed", error);
-					this.sqs.notificationManager.notify("Excel export failed: "+(error && error.message ? error.message : "unknown error"), "error");
-				}
-				finally {
-					worker.terminate();
-					finish();
-				}
-			}
-		};
-
-		worker.onerror = (error) => {
-			console.error("SDF export worker crashed", error);
-			this.sqs.notificationManager.notify("Excel export failed: the export worker stopped unexpectedly", "error");
-			worker.terminate();
-			finish();
-		};
-
-		worker.postMessage({
-			siteIds: siteIds,
-			dataServerAddress: Config.dataServerAddress,
-			profile: "readable",
-			chunkSize: 10
-		});
+		}
 	}
 
 	/*
-	* Function: sdfBundleToWorkbook
+	* Function: readSdfResponse
 	*
-	* Turns an SDF export bundle (see the SDF client briefing) into an ExcelJS workbook.
-	* The server has already flattened, ordered and aligned every row to its sheet's columns,
-	* so this only iterates - it never sorts, joins or resolves anything.
+	* Reads the workbook body into a Blob, moving the progress bar as it downloads. The server sends
+	* Content-Length once the workbook is built, so the wait before the first byte is the build and
+	* the bar covers the transfer.
 	*/
-	sdfBundleToWorkbook(bundle) {
-		const workbook = new ExcelJS.Workbook();
-		workbook.creator = bundle.exporter || "SEAD";
-		workbook.created = new Date();
-
-		//populated sheets first, empty (curator template) sheets kept but pushed to the right; stable within each group
-		let sheets = (bundle.sheets || [])
-			.map((sheet, index) => ({ sheet, index }))
-			.sort((a, b) => {
-				let aEmpty = (a.sheet.rows || []).length === 0 ? 1 : 0;
-				let bEmpty = (b.sheet.rows || []).length === 0 ? 1 : 0;
-				if(aEmpty !== bEmpty) {
-					return aEmpty - bEmpty;
-				}
-				return a.index - b.index;
-			})
-			.map((entry) => entry.sheet);
-
-		let vocabLists = this.sdfBuildVocabLists(bundle);
-
-		sheets.forEach((sheet) => {
-			let columns = sheet.columns || [];
-			let rows = sheet.rows || [];
-
-			let worksheet = workbook.addWorksheet(sheet.name, {
-				views: [{ state: "frozen", ySplit: 1 }]
-			});
-
-			//header row - column titles, written verbatim (no slugifying, no case changes)
-			let headerRow = worksheet.addRow(columns.map((column) => column.title));
-			headerRow.font = { bold: true };
-			if(sheet.note) {
-				worksheet.getCell("A1").note = sheet.note;
-			}
-
-			//data rows - already ordered to match columns
-			rows.forEach((row) => {
-				let worksheetRow = worksheet.addRow(columns.map((column, i) => (row[i] === undefined ? null : row[i] ?? null)));
-
-				//Pin the height so Excel does not auto-fit the row to its tallest cell. Free-text
-				//fields carry hard line breaks - 471 site descriptions do, the worst running to 102
-				//lines - and an auto-fitted row for one of those fills the screen and buries every
-				//other site. Setting a height emits customHeight="1", which turns auto-fit off.
-				//The cell value is untouched, so nothing is lost: the full text is still there in
-				//the formula bar, still round-trips, and a reader who wants it can turn on Wrap Text
-				//or auto-fit that row themselves.
-				worksheetRow.height = SDF_ROW_HEIGHT;
-			});
-
-			this.sdfApplyColumnFormatting(worksheet, columns);
-			this.sdfApplyAffordances(worksheet, sheet, columns, vocabLists);
-
-			//filter buttons on the header row (empty template sheets get headers only)
-			if(columns.length > 0) {
-				worksheet.autoFilter = {
-					from: { row: 1, column: 1 },
-					to: { row: 1, column: columns.length }
-				};
-			}
-		});
-
-		//hidden manifest sheet carrying the round-trip binding info as a single JSON cell
-		if(bundle.manifest) {
-			let manifestSheet = workbook.addWorksheet("_Manifest");
-			manifestSheet.getCell("A1").value = JSON.stringify({
-				sdf_version: bundle.sdf_version,
-				profile: bundle.profile,
-				exporter: bundle.exporter,
-				manifest: bundle.manifest
-			});
-			manifestSheet.state = "veryHidden";
+	async readSdfResponse(response) {
+		const total = parseInt(response.headers.get("Content-Length"));
+		if(!response.body || !Number.isInteger(total) || total <= 0) {
+			return await response.blob();
 		}
 
-		return workbook;
-	}
-
-	sdfBuildVocabLists(bundle) {
-		let lists = {};
-		let vocabSheet = (bundle.sheets || []).find((sheet) => sheet.name === "Vocabularies");
-		if(!vocabSheet || !vocabSheet.columns) {
-			return lists;
+		$("#export-progress-bar-container .status-msg").text("Downloading...");
+		const reader = response.body.getReader();
+		const chunks = [];
+		let received = 0;
+		while(true) {
+			const { done, value } = await reader.read();
+			if(done) {
+				break;
+			}
+			chunks.push(value);
+			received += value.length;
+			$(".export-progress-bar-fill").css({ width: Math.min(100, received / total * 100)+"%" });
 		}
+		return new Blob(chunks, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+	}
 
-		let matchIndex = (pattern) => vocabSheet.columns.findIndex((column) => pattern.test(column.key || column.title || ""));
-		let nameIdx = matchIndex(/vocab|list|category|name/i);
-		let labelIdx = matchIndex(/label|value|term/i);
-		if(nameIdx < 0 || labelIdx < 0) {
-			return lists;
+	sdfFilename(response, siteIds) {
+		const disposition = response.headers.get("Content-Disposition") || "";
+		const match = disposition.match(/filename="?([^";]+)"?/);
+		if(match) {
+			return match[1];
 		}
-
-		(vocabSheet.rows || []).forEach((row) => {
-			let key = row[nameIdx];
-			let label = row[labelIdx];
-			if(key == null || label == null) {
-				return;
-			}
-			if(!lists[key]) {
-				lists[key] = [];
-			}
-			lists[key].push(String(label));
-		});
-		return lists;
+		return siteIds.length === 1 ? `sead_site_${siteIds[0]}.xlsx` : "sead_sites.xlsx";
 	}
 
-	sdfApplyColumnFormatting(worksheet, columns) {
-		columns.forEach((column, idx) => {
-			let col = worksheet.getColumn(idx + 1);
-			col.width = Math.min(60, Math.max(12, (column.title || "").length + 4));
-
-			if(column.hidden) {
-				col.hidden = true;
-			}
-
-			switch(column.type) {
-				case "text":
-					col.numFmt = "@";
-					col.eachCell({ includeEmpty: false }, (cell, rowNumber) => {
-						if(rowNumber === 1 || cell.value == null) {
-							return;
-						}
-						cell.value = String(cell.value);
-						cell.numFmt = "@";
-						//suppresses the green "number stored as text" triangle in ExcelJS >= 4.3
-						cell.style = { ...cell.style, quotePrefix: true };
-					});
-					break;
-				case "integer":
-					col.numFmt = "0";
-					break;
-				case "number":
-					//leave general - keep it numeric and formula-usable
-					break;
-				case "date":
-					col.numFmt = "yyyy-mm-dd";
-					col.eachCell({ includeEmpty: false }, (cell, rowNumber) => {
-						if(rowNumber === 1 || cell.value == null) {
-							return;
-						}
-						cell.value = String(cell.value);
-					});
-					break;
-				default:
-					break;
-			}
-
-			//signal non-editable columns by tinting the header
-			let headerCell = worksheet.getRow(1).getCell(idx + 1);
-			if(column.roundtrip === "derived") {
-				headerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFBFBFBF" } };
-			}
-			else if(column.roundtrip === "reference") {
-				headerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8E8E8" } };
-			}
-		});
-	}
-
-	sdfApplyAffordances(worksheet, sheet, columns, vocabLists) {
-		//lock/unlock cells per column descriptor
-		columns.forEach((column, idx) => {
-			let col = worksheet.getColumn(idx + 1);
-			let locked = column.locked === true || column.roundtrip === "reference" || column.roundtrip === "derived";
-			col.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
-				if(rowNumber === 1) {
-					return;
-				}
-				cell.protection = { locked: locked };
-			});
-		});
-
-		//sheet protection without a password - a speed bump, not security
-		worksheet.protect("", {
-			selectLockedCells: true,
-			selectUnlockedCells: true,
-			autoFilter: true,
-			sort: true
-		});
-
-		//dropdowns for editable vocab columns, sourced from the Vocabularies sheet
-		columns.forEach((column, idx) => {
-			if(!column.vocab || column.roundtrip !== "editable") {
-				return;
-			}
-			let labels = vocabLists[column.vocab] || [];
-			if(!labels.length) {
-				return;
-			}
-			let joined = labels.join(",");
-			if(joined.length > 255) {
-				//too long for an inline list - leave the column free-text
-				return;
-			}
-			let colLetter = worksheet.getColumn(idx + 1).letter;
-			worksheet.dataValidations.add(`${colLetter}2:${colLetter}1048576`, {
-				type: "list",
-				allowBlank: true,
-				formulae: [`"${joined}"`]
-			});
-		});
-
-		//Action column -> dropdown of ("", "delete")
-		let actionIdx = columns.findIndex((column) => column.key === "Action");
-		if(actionIdx >= 0) {
-			let colLetter = worksheet.getColumn(actionIdx + 1).letter;
-			worksheet.dataValidations.add(`${colLetter}2:${colLetter}1048576`, {
-				type: "list",
-				allowBlank: true,
-				formulae: ['"delete"']
-			});
-		}
-	}
-	
 	addMagneticSusceptibilityDatasetsToXlsxTable(table, datasets) {
 		table.columns.push({ header: 'MS unburned', key: 'ms_unburned', width: 20});
 		table.columns.push({ header: 'MS burned', key: 'ms_burned', width: 20});

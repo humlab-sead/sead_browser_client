@@ -17,6 +17,7 @@ import TooltipManager from './TooltipManager.class.js';
 import SiteReportManager from './SiteReportManager.class';
 import HelpAgent from './HelpAgent.class.js';
 import UserManager from './UserManager.class.js';
+import DataImportManager from './DataImportManager.class.js';
 import DomainManager from './DomainManager.class.js';
 import NotificationManager from './NotificationManager.class.js';
 import ExportManager from './ExportManager.class.js';
@@ -506,6 +507,7 @@ class SeadQuerySystem {
 	  	this.help = new HelpAgent(this);
 	  	this.help.setState(true);
 		this.userManager = new UserManager(this);
+		this.dataImportManager = new DataImportManager(this);
 		this.searchManager = new SearchManager(this);
 		this.quickstartSearch = new QuickstartSearch(this);
 
@@ -2365,7 +2367,7 @@ class SeadQuerySystem {
 
 	renderFeatureTypeIcon(featureTypeName, featureTypeCount, maxFeatureCount) {
 		let ttId = "tt-"+nanoid();
-		let printName = featureTypeName.split(" ").map(word => word.substring(0, 1)).join("").toUpperCase();
+		let printName = featureTypeName.split(" ").filter(word => word.length > 0).map(word => word.substring(0, 1)).join("").substring(0, 3).toUpperCase();
 		let bgHeight = (featureTypeCount / maxFeatureCount) * 100;
 		let ftData = `
 			<div id='${ttId}' class='feature-type-icon-container'>

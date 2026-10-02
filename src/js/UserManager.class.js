@@ -7,12 +7,14 @@ this keeps the client's view of it - the aux menu entry, the sign-in dialog and 
 component in the viewstate dialogs - in step with /auth/status.
 
 Which sign-in options exist is decided by the server: /auth/status lists them, and the
-dialog shows a button only for those.
+dialog shows a button only for those. It also gives the user's roles, which decide what
+the menu offers (a sysadmin gets "Import data"); the server checks them again itself.
 */
 class UserManager {
 	constructor(sqs) {
 		this.sqs = sqs;
 		this.user = null;
+		this.roles = [];
 		this.providers = [];
 
 		this.sqs.sqsEventListen("seadSaveStateClicked", () => {
@@ -47,7 +49,7 @@ class UserManager {
 			});
 			const data = await response.json();
 			this.providers = Array.isArray(data.providers) ? data.providers : [];
-			this.setUser(data.loggedIn ? data.user : null);
+			this.setUser(data.loggedIn ? data.user : null, data.roles);
 		}
 		catch(error) {
 			console.warn("Could not check sign-in status:", error);
@@ -55,9 +57,10 @@ class UserManager {
 		}
 	}
 
-	setUser(user) {
+	setUser(user, roles = []) {
 		const wasLoggedIn = this.user != null;
 		this.user = user;
+		this.roles = user != null && Array.isArray(roles) ? roles : [];
 		this.renderMenuState();
 		this.renderLoginComponents();
 
@@ -67,6 +70,10 @@ class UserManager {
 		else if(wasLoggedIn) {
 			this.sqs.sqsEventDispatch("userLoggedOut", {});
 		}
+	}
+
+	hasRole(role) {
+		return this.roles.includes(role);
 	}
 
 	getProvider(providerId) {
@@ -101,7 +108,7 @@ class UserManager {
 			return;
 		}
 		if(data.type === "login-success") {
-			this.setUser(data.user);
+			this.setUser(data.user, data.roles);
 			if(this.sqs.stateManager.getViewStateDialog() == null) {
 				this.sqs.dialogManager.hidePopOver();
 			}
@@ -240,6 +247,7 @@ class UserManager {
 		const signedIn = this.user != null;
 		this.menuItems.signIn.visible = !signedIn;
 		this.menuItems.account.visible = signedIn;
+		this.menuItems.importData.visible = this.hasRole("sysadmin");
 		this.menuItems.account.title = "<i class=\"fa fa-user\" aria-hidden=\"true\"></i> "+$("<span></span>").text(signedIn ? this.user.displayName : "").html();
 
 		$("[menu-item='account'] > .first-level-item-title", "#aux-menu").html(this.menuItems.account.title);
@@ -250,7 +258,17 @@ class UserManager {
 	}
 
 	sqsMenu() {
+		//Only for sysadmins (renderMenuState)
+		const importData = {
+			name: "import-data",
+			title: "Import data",
+			visible: false,
+			callback: () => {
+				this.sqs.dataImportManager.showImportDialog();
+			}
+		};
 		this.menuItems = {
+			importData: importData,
 			signIn: {
 				name: "sign-in",
 				title: "<i class=\"fa fa-sign-in\" aria-hidden=\"true\"></i> Sign in",
@@ -270,6 +288,7 @@ class UserManager {
 							this.showAccountDialog();
 						}
 					},
+					importData,
 					{
 						name: "sign-out",
 						title: "Sign out",

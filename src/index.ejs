@@ -468,24 +468,66 @@
       </div>
     </template>
 
+    <template id="data-import-template">
+      <div class="data-import">
+        <p>
+          Import changes to SEAD from a workbook in the SEAD Data Format (SDF): one you downloaded with
+          "Download XLSX" in the export dialog and then edited. The workbook is first checked against the
+          database. If it is valid, it can be turned into a change request, which is reviewed before anything
+          in SEAD changes.
+        </p>
+
+        <label class="data-import-dropzone">
+          <input type="file" class="data-import-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+          <i class="fa fa-file-excel-o" aria-hidden="true"></i>
+          <span class="data-import-file-name">Choose an SDF workbook (.xlsx), or drop it here</span>
+        </label>
+
+        <div class="data-import-actions">
+          <button type="button" class="light-theme-button data-import-validate" disabled>Check workbook</button>
+          <button type="button" class="light-theme-button data-import-change-request">Create change request</button>
+        </div>
+
+        <div class="data-import-status" role="status"></div>
+        <div class="data-import-report"></div>
+      </div>
+    </template>
+
     <template id="exportOptionsTemplate">
       <div class="sites-export-dialog">
           This export will contain <span style="font-weight:bold;" data-num-sites></span> sites.<br><br>
 
-        <h3>Export sites</h3>
+        <h3>Format</h3>
+          <!-- Hidden in favour of the SDF export below. The handlers are still in ResultModule, so these can be brought back.
           <a id="samples-export-xlsx-dl" class="sites-export-btn light-theme-button">Download XLSX (samples)</a>
           <a id="sites-export-xlsx-dl" class="sites-export-btn light-theme-button">Download XLSX</a>
-          <a id="sdf-export-xlsx-dl" class="sites-export-btn light-theme-button" title="Download an Excel workbook in the SEAD Data Format (SDF)">Download XLSX (SDF)</a>
-          <a id="sites-export-csv-dl" class="sites-export-btn light-theme-button">Download CSV</a>
-          <a id="sites-export-json-dl" class="sites-export-btn light-theme-button">Download JSON</a>
-          
-          <br><br>
-          <h3>Datasets</h3>
-          <div style="max-width: 30em; margin-bottom: 1em; font-size: 0.9em;">
-          The default is to export all datasets, but you can select specific datasets if you wish to reduce the size of the export.
+          -->
+          <div class="sites-export-formats">
+            <a class="sites-export-format-btn light-theme-button" data-export-format="xlsx">XLSX</a>
+            <a class="sites-export-format-btn light-theme-button" data-export-format="csv">CSV</a>
+            <a class="sites-export-format-btn light-theme-button" data-export-format="json">JSON</a>
           </div>
-          <select id="export-datasets" multiple="multiple">
-          </select>
+
+          <div class="sites-export-format-description" data-export-format="xlsx">
+          An Excel workbook with all the data SEAD holds on the selected sites, one sheet per table, always including every dataset. The README sheet inside explains how it is laid out.
+          </div>
+          <div class="sites-export-format-description" data-export-format="csv">
+          A ZIP archive of CSV files, which open in any spreadsheet or statistics program: one file for the sites, one for the samples and one for each type of analysis.
+          </div>
+          <div class="sites-export-format-description" data-export-format="json">
+          The complete site records as one JSON file, for use in scripts and other programs.
+          </div>
+
+          <div class="sites-export-datasets">
+            <h3>Datasets</h3>
+            <div style="max-width: 30em; margin-bottom: 1em; font-size: 0.9em;">
+            The default is to export all datasets, but you can select specific datasets if you wish to reduce the size of the export.
+            </div>
+            <select id="export-datasets" multiple="multiple">
+            </select>
+          </div>
+
+          <a id="sites-export-dl" class="sites-export-btn light-theme-button">Download</a>
 
           <div id="export-progress-bar-container">
             <div class="status-msg">Fetching data...</div>

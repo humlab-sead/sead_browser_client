@@ -606,6 +606,12 @@ class BasicSiteInformation {
 			});
 		});
 
+		const sdfBtnSelector = "#site-report-export-btn-"+nanoid();
+		$("#node-"+dialogNodeId).append("<a id='"+sdfBtnSelector.substring(1)+"' class='site-report-export-download-btn light-theme-button' title='A complete copy of this site in the SEAD Data Format (SDF): every table, row and column. Can be edited and submitted back to SEAD; see the README sheet inside.'>Download XLSX</a>").on("click", sdfBtnSelector, (evt) => {
+			this.exportSiteAsSdfXlsx(sdfBtnSelector);
+		});
+
+		/* Hidden in favour of the SDF export above, but kept so it can be brought back.
 		btnId = nanoid();
 		$("#node-"+dialogNodeId).append("<a id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
 			let methodIds = ["all"];
@@ -613,6 +619,7 @@ class BasicSiteInformation {
 				this.triggerDownload(this.data.site_name+".xlsx", objectUrl);
 			});
 		});
+		*/
 
 		btnId = nanoid();
 		$("#node-"+dialogNodeId).append("<a id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn light-theme-button'>Download CSV (ZIP)</a>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
@@ -620,6 +627,27 @@ class BasicSiteInformation {
 				this.triggerDownload(this.data.site_name+".zip", objectUrl);
 			});
 		});
+	}
+
+	/*
+	* Function: exportSiteAsSdfXlsx
+	*
+	* Downloads this site as an SDF workbook, using the same export as the "Download XLSX"
+	* button in the result view's export dialog (ResultModule.exportSitesAsSdfXlsx).
+	*/
+	exportSiteAsSdfXlsx(buttonSelector) {
+		let resultManager = this.sqs.resultManager;
+		let resultModule = resultManager.getActiveModule();
+		if(!resultModule) {
+			let modules = resultManager.getModules();
+			resultModule = modules.length > 0 ? modules[0].module : null;
+		}
+		if(!resultModule) {
+			console.error("No result module available for the SDF export");
+			this.sqs.notificationManager.notify("Excel export failed: the export is not available right now.", "error");
+			return;
+		}
+		resultModule.exportSitesAsSdfXlsx([this.siteId], buttonSelector);
 	}
 
 	triggerDownload(filename, data) {

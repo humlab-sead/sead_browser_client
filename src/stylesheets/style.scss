@@ -5973,6 +5973,34 @@ svg text {
   max-width: 42em;
 }
 
+.sites-export-formats {
+  display: flex;
+  gap: 0.5em;
+}
+
+.sites-export-format-btn.selected {
+  background-color: colors.$base-color;
+  border-color: colors.$base-color;
+  color: #fff;
+}
+
+.sites-export-format-description {
+  display: none;
+  max-width: 30em;
+  margin-top: 1em;
+  font-size: 0.9em;
+}
+
+.sites-export-datasets {
+  display: none;
+  margin-top: 1em;
+}
+
+#sites-export-dl {
+  display: none;
+  margin-top: 1em;
+}
+
 .sites-export-dialog .ms-options-wrap {
   max-width: 30em;
 }
@@ -6179,6 +6207,119 @@ a.ms-selectall:hover {
 .login-button:hover {
   background: color.adjust(colors.$base-color, $lightness: 10%);
   cursor: pointer;
+}
+
+.data-import-dropzone {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding: 1.25em;
+  margin: 0.5em 0 1em 0;
+  border: 2px dashed #aaa;
+  border-radius: 0.25em;
+  cursor: pointer;
+  word-break: break-all;
+}
+
+.data-import-dropzone .fa {
+  font-size: 2em;
+  color: colors.$base-color;
+}
+
+.data-import-dropzone:hover, .data-import-dropzone-active {
+  border-color: colors.$base-color;
+  background: colors.$pane-bg-color;
+}
+
+.data-import-dropzone-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.data-import-file {
+  display: none;
+}
+
+.data-import-actions {
+  display: flex;
+  gap: 0.5em;
+}
+
+.data-import-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+  background-color: #fff;
+  color: #444;
+}
+
+.data-import-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 1em;
+}
+
+.data-import-status:empty {
+  display: none;
+}
+
+.data-import-status-error {
+  color: colors.$error-color;
+  font-weight: bold;
+}
+
+.data-import-status-success {
+  color: colors.$success-color;
+  font-weight: bold;
+}
+
+.data-import-section h4 {
+  margin: 1.25em 0 0.5em 0;
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.data-import-facts th {
+  padding: 0.15em 1.5em 0.15em 0;
+  font-weight: normal;
+  color: colors.$inactive-color;
+}
+
+.data-import-facts td[title] {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+.data-import-issues {
+  max-height: 16em;
+  overflow-y: auto;
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.data-import-issues li {
+  padding: 0.3em 0.5em;
+  border-left: 3px solid colors.$info-color;
+  margin-bottom: 0.25em;
+  background: colors.$pane-bg-color;
+}
+
+.data-import-issues-error li {
+  border-left-color: colors.$error-color;
+}
+
+.data-import-issues-warning li {
+  border-left-color: colors.$warning-color;
+}
+
+.data-import-issue-where {
+  font-family: monospace;
+  margin-right: 0.75em;
+}
+
+.data-import-issues li.data-import-issues-more {
+  font-style: italic;
 }
 
 .ui-draggable-handle {

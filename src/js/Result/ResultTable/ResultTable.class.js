@@ -430,6 +430,8 @@ class ResultTable extends ResultModule {
 								const svg = this.buildAnalysisMethodsSvg(data.analysis_methods_datasets);
 								cellElement.innerHTML = '';
 								cellElement.appendChild(svg);
+								this.updateAnalysisMethodsSvgLabels(svg);
+								this.getAnalysisMethodsSvgResizeObserver().observe(svg);
 								this.currentRenderSlotsTaken--;
 							});
 						}
@@ -623,6 +625,7 @@ class ResultTable extends ResultModule {
 				label.setAttribute("fill", "white");
 				label.setAttribute("style", "text-shadow: 1px 1px 2px rgba(0,0,0,0.8);");
 				label.setAttribute("pointer-events", "none");
+				label.setAttribute("data-bar-width", barWidth);
 				label.textContent = labelText;
 				barsGroup.appendChild(label);
 			}
@@ -634,6 +637,40 @@ class ResultTable extends ResultModule {
 		});
 
 		return svg;
+	}
+
+	/*
+	* Hides the abbreviation labels in an analysis methods bar which don't fit inside their segment.
+	* Needs to be called after the svg has been attached to the DOM, since it relies on measured sizes.
+	*/
+	updateAnalysisMethodsSvgLabels(svg) {
+		const svgWidth = svg.getBoundingClientRect().width;
+		if(svgWidth == 0) {
+			return;
+		}
+		const labelPadding = 2;
+		svg.querySelectorAll("text[data-bar-width]").forEach(label => {
+			const segmentWidth = svgWidth * Number(label.getAttribute("data-bar-width")) / 100;
+			label.removeAttribute("visibility");
+			if(label.getComputedTextLength() + labelPadding * 2 > segmentWidth) {
+				label.setAttribute("visibility", "hidden");
+			}
+		});
+	}
+
+	getAnalysisMethodsSvgResizeObserver() {
+		if(!this.analysisMethodsSvgResizeObserver) {
+			this.analysisMethodsSvgResizeObserver = new ResizeObserver(entries => {
+				entries.forEach(entry => {
+					if(!entry.target.isConnected) {
+						this.analysisMethodsSvgResizeObserver.unobserve(entry.target);
+						return;
+					}
+					this.updateAnalysisMethodsSvgLabels(entry.target);
+				});
+			});
+		}
+		return this.analysisMethodsSvgResizeObserver;
 	}
 
 	getSelectedSites() {
