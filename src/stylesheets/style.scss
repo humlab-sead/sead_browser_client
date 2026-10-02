@@ -7843,6 +7843,36 @@ tr.site-report-table-row > td {
   cursor: default;
 }
 
+/* The example questions under the greeting; clicking one sends it. */
+.sead-agent-examples {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin: 0.25rem 0 0.75rem 0;
+}
+
+.sead-agent-example {
+  font: inherit;
+  text-align: left;
+  color: colors.$base-color;
+  background: none;
+  border: 1px solid color.adjust(colors.$base-color, $alpha: -0.6);
+  border-radius: 1rem;
+  padding: 0.2rem 0.75rem;
+  cursor: pointer;
+}
+
+.sead-agent-example:hover:not(:disabled) {
+  background: color.adjust(colors.$base-color, $alpha: -0.9);
+  border-color: colors.$base-color;
+}
+
+.sead-agent-example:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* A line recording something the agent did to the interface, rather than something it said. */
 .message.agent-action p {
   font-style: italic;

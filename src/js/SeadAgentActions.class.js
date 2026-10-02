@@ -7,6 +7,7 @@
 * do to the interface is bounded by this file, not by what the model decides to write.
 */
 import MapFacet from './MapFacet.class.js';
+import ScreenReader from './ScreenReader.class.js';
 
 export default class SeadAgentActions {
     //Long enough for the scroll to register as a movement the user can follow, short
@@ -18,12 +19,16 @@ export default class SeadAgentActions {
     static MAP_FILTER = "sites_polygon";
     //How long to wait for a staged filter's next stage to load its values
     static STAGE_DATA_TIMEOUT_MS = 10000;
+    //Expandable rows listed per site report section; a site can have hundreds of sample groups
+    static MAX_LISTED_ROWS = 30;
     //Areas the agent can put on the map in one go. Each one is several polygons and every
     //polygon becomes its own ST_Within in the query - a whole continent at once helps nobody.
     static MAX_AREAS = 6;
 
     constructor(sqs) {
         this.sqs = sqs;
+        //The general layer: anything on screen, for what the commands below don't cover
+        this.screenReader = new ScreenReader(sqs);
     }
 
     /*
@@ -194,9 +199,13 @@ export default class SeadAgentActions {
             close_site_report: () => this.closeSiteReport(),
             list_site_report_sections: () => this.listSiteReportSections(),
             set_site_report_section: (args) => this.setSiteReportSection(args),
+            set_site_report_rows: (args) => this.setSiteReportRows(args),
             export_site_report: (args) => this.exportSiteReport(args),
             find_areas: (args) => this.findAreas(args),
-            set_map_polygons: (args) => this.setMapPolygons(args)
+            set_map_polygons: (args) => this.setMapPolygons(args),
+            read_screen: (args) => this.screenReader.read(args),
+            click: (args) => this.screenReader.click(args),
+            set_value: (args) => this.screenReader.setValue(args)
         };
     }
 
@@ -207,8 +216,8 @@ export default class SeadAgentActions {
     */
     static isMutation(command) {
         return ["add_filter", "set_filter_selections", "remove_filter", "clear_filters", "set_domain", "set_result_view",
-                "open_site_report", "close_site_report", "set_site_report_section", "export_site_report",
-                "set_map_polygons"].indexOf(command) != -1;
+                "open_site_report", "close_site_report", "set_site_report_section", "set_site_report_rows",
+                "export_site_report", "set_map_polygons", "click", "set_value"].indexOf(command) != -1;
     }
 
     listFilters() {
@@ -546,7 +555,11 @@ export default class SeadAgentActions {
         return {
             siteId: report.siteId,
             siteName: report.siteData ? report.siteData.site_name : null,
-            sections: this.describeSections(report.data ? report.data.sections : [])
+            sections: this.describeSections(report.data ? report.data.sections : []),
+            note: "A section that is expanded lists its expandableRows: table rows - a sample group, say - "
+                +"that open to show the rows inside them (its samples). Open them with set_site_report_rows; "
+                +"set_site_report_section only opens and closes whole sections. A collapsed section's rows "
+                +"are not listed until it is expanded."
         };
     }
 
@@ -568,6 +581,16 @@ export default class SeadAgentActions {
                 expanded: section.collapsed === false,
                 contentItems: Array.isArray(section.contentItems) ? section.contentItems.length : 0
             });
+            let rows = this.expandableRows(section.name);
+            if(rows.length > 0) {
+                let entry = described[described.length - 1];
+                entry.expandableRows = rows.slice(0, SeadAgentActions.MAX_LISTED_ROWS).map(row => ({
+                    id: row.id, label: row.label, expanded: row.expanded
+                }));
+                if(rows.length > SeadAgentActions.MAX_LISTED_ROWS) {
+                    entry.expandableRowsNotListed = rows.length - SeadAgentActions.MAX_LISTED_ROWS;
+                }
+            }
             if(Array.isArray(section.sections) && section.sections.length > 0) {
                 described = described.concat(this.describeSections(section.sections, level + 1));
             }
@@ -628,6 +651,95 @@ export default class SeadAgentActions {
         }
 
         return { applied: "set_site_report_section", section: name, title: section.title, expanded: !section.collapsed };
+    }
+
+    /*
+    * Function: expandableRows
+    * The rows of a section's own tables that open onto a table of their own - each sample
+    * group in "Samples" opens onto its samples. Read from the page, since that is where a
+    * row is or isn't open; only rows on screen exist there, so a collapsed section, or a
+    * row on another page of a paged table, has none to find.
+    */
+    expandableRows(sectionName) {
+        return $("tr.site-report-table-row-with-subtable[row-id]", "#site-report-section-"+sectionName)
+            .filter((index, node) => $(node).closest("[site-report-section-name]").attr("site-report-section-name") == sectionName)
+            .map((index, node) => {
+                let row = $(node);
+                //The cells after the chevron say what the row is, e.g. "12724 BjorkerodsMosse_bugsdata.xls"
+                let label = row.children("td").not(".site-report-expand-chevron").slice(0, 2)
+                    .map((i, cell) => $(cell).text().trim()).get().filter(text => text).join(" ");
+                return { id: String(row.attr("row-id")), label: label, expanded: row.hasClass("table-row-expanded"), node: node };
+            }).get();
+    }
+
+    /*
+    * Function: setSiteReportRows
+    * Opens or closes rows inside a section's table - a sample group, to show its samples.
+    * Goes through the row's own click handler, so the table renders the sub-table exactly
+    * as it does for a user, and reports the state the rows are in afterwards rather than
+    * the one that was asked for.
+    */
+    async setSiteReportRows(args) {
+        let report = this.requireSiteReport();
+        let name = typeof args.section == "string" ? args.section.trim() : "";
+        if(!name) {
+            throw new Error("Missing 'section'.");
+        }
+        let wanted = (Array.isArray(args.rows) ? args.rows : []).map(id => String(id).trim()).filter(id => id);
+        if(wanted.length == 0) {
+            throw new Error("Missing 'rows' - the ids of the rows to open, as given by list_site_report_sections.");
+        }
+        let expand = args.expanded !== false;
+
+        let section = this.findSection(report.data ? report.data.sections : [], name);
+        if(!section) {
+            throw new Error("There is no section '"+name+"' in this site report. Use list_site_report_sections to see what exists.");
+        }
+        //Rows only exist on the page once their section is open
+        if(expand && section.collapsed !== false) {
+            await this.setSiteReportSection({ section: name, expanded: true });
+            await this.pause(300);
+        }
+
+        let rows = this.expandableRows(name);
+        let found = rows.filter(row => wanted.indexOf(row.id) != -1);
+        let notFound = wanted.filter(id => !rows.some(row => row.id == id));
+        if(found.length == 0) {
+            throw new Error("None of the rows "+wanted.join(", ")+" can be opened in '"+name+"'. "
+                +(rows.length > 0
+                    ? "The rows that can be: "+rows.slice(0, SeadAgentActions.MAX_LISTED_ROWS).map(row => row.id).join(", ")+"."
+                    : "This section has no rows that open onto further rows."));
+        }
+
+        found.forEach(row => {
+            if(row.expanded != expand) {
+                $(row.node).trigger("click");
+            }
+        });
+
+        if(expand) {
+            await this.pause(150);
+            try {
+                found[0].node.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+            catch(error) {
+                //Cosmetic only
+            }
+        }
+
+        //What the page shows now, not what was asked for
+        let after = this.expandableRows(name).filter(row => wanted.indexOf(row.id) != -1);
+        let result = {
+            applied: "set_site_report_rows",
+            section: name,
+            title: section.title,
+            rows: after.map(row => ({ id: row.id, label: row.label, expanded: row.expanded }))
+        };
+        if(notFound.length > 0) {
+            result.notFound = notFound;
+            result.note = "Rows not found may be on another page of the table, or not exist in this section.";
+        }
+        return result;
     }
 
     /*

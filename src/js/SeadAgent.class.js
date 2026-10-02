@@ -19,16 +19,24 @@ export default class SeadAgent {
     * could not have done itself.
     */
     /*
-    * Shown once when the chatbox is first opened. Kept to two lines: it should say what
-    * the agent can do that isn't obvious - that it operates the filters, not just talks
-    * about them - and give one example worth copying, without filling the panel.
+    * Shown once when the chatbox is first opened. It should say what the agent can do that
+    * isn't obvious - that it operates the filters, not just talks about them - and the
+    * examples under it show the range: a filter by place, an age range, opening a site
+    * report, and a plain question. Clicking one sends it as though it had been typed.
     */
-    static GREETING = "Hello. I can explain what is in SEAD, and I can work the filters for you \u2014 try *\"find sites with dendro data in Sm\u00e5land\"*, or just ask what something means.";
+    static GREETING = "Hello. I can explain what is in SEAD, and I can work the filters and the map for you. Ask me anything, or try one of these:";
+    static EXAMPLE_QUESTIONS = [
+        "Find sites with dendro data in Sm\u00e5land",
+        "Which insects have been found in Sk\u00e5ne?",
+        "Show me sites dated to 4000\u20136000 BP on the map",
+        "Take me to the site report for \u00c5karp",
+        "What is the difference between a sample group and a sample?"
+    ];
 
     static SHORTCUT_PREFIX = "#sead-action/";
     static SHORTCUT_COMMANDS = ["set_result_view", "set_domain", "add_filter", "set_filter_selections", "remove_filter", "clear_filters",
-                                "open_site_report", "close_site_report", "set_site_report_section", "export_site_report",
-                                "set_map_polygons"];
+                                "open_site_report", "close_site_report", "set_site_report_section", "set_site_report_rows",
+                                "export_site_report", "set_map_polygons"];
 
     constructor(sqs) {
         this.sqs = sqs;
@@ -78,6 +86,12 @@ export default class SeadAgent {
             evt.stopPropagation();
             this.runShortcut($(evt.currentTarget));
         });
+
+        $("#chatbox-messages").on("click", ".sead-agent-example", (evt) => {
+            evt.preventDefault();
+            evt.stopPropagation();
+            this.sendMessage($(evt.currentTarget).text());
+        });
     }
 
     /*
@@ -107,16 +121,22 @@ export default class SeadAgent {
         }
     }
 
-    async sendMessage() {
+    /*
+    * Function: sendMessage
+    * Sends what is in the input box, or the given text (an example question the user clicked).
+    */
+    async sendMessage(text = null) {
         if(this.state != "ready") {
             return;
         }
         let input = $("#chatbox-input");
-        let message = input.val();
+        let message = typeof text == "string" ? text : input.val();
         if(!message || message.trim().length == 0) {
             return;
         }
-        input.val("");
+        if(typeof text != "string") {
+            input.val("");
+        }
         this.setState("loading");
 
         $("#chatbox-messages").append(`<div class="message"><p><span class="user-message">You:</span> ${this.escapeHtml(message)}</p></div>`);
@@ -242,7 +262,18 @@ export default class SeadAgent {
             case "set_site_report_section":
                 return ((action.args && action.args.expanded === false) ? "Collapsed section: " : "Expanded section: ")
                     + ((result && result.title) ? result.title : (action.args ? action.args.section : ""));
+            case "set_site_report_rows": {
+                let rows = (result && Array.isArray(result.rows)) ? result.rows : [];
+                let collapsing = action.args && action.args.expanded === false;
+                let ids = rows.length > 0 ? rows.map(row => row.id) : ((action.args && action.args.rows) || []);
+                return (collapsing ? "Closed " : "Opened ") + ids.join(", ")
+                    + ((result && result.title) ? " in "+result.title : "");
+            }
             case "export_site_report":    return "Opened the export dialog";
+            case "click":                 return "Clicked "+JSON.stringify((result && result.label) ? result.label : (action.args ? action.args.ref : ""));
+            case "set_value":
+                return "Set "+JSON.stringify((result && result.label) ? result.label : (action.args ? action.args.ref : ""))
+                    +" to "+JSON.stringify(action.args ? action.args.value : "");
             case "set_map_polygons": {
                 let names = (result && Array.isArray(result.areas)) ? result.areas.map(area => area.name).filter(name => name) : [];
                 if(names.length > 0) {
@@ -309,6 +340,10 @@ export default class SeadAgent {
                 }
                 else if(key == "expanded") {
                     args.expanded = value != "false";
+                }
+                //Row ids in a site report table, e.g. sample group ids '12724,12725'
+                else if(key == "rows") {
+                    args.rows = value.split(",").map(part => part.trim()).filter(part => part.length > 0);
                 }
                 //Area ids for the map filter, e.g. 'SWE.13_1,SWE.18.12_1'
                 else if(key == "areas") {
@@ -743,6 +778,7 @@ export default class SeadAgent {
         //while a turn is still running - the service refuses that as a busy conversation
         $("#chatbox-input").prop("disabled", state != "ready");
         $("#chatbox-send-btn").prop("disabled", state != "ready");
+        $(".sead-agent-example").prop("disabled", state != "ready");
     }
 
     /*
@@ -786,6 +822,16 @@ export default class SeadAgent {
         }
         this.greeted = true;
         this.renderAgentMessage(SeadAgent.GREETING);
+
+        let examples = $("<div class='message sead-agent-examples'></div>");
+        SeadAgent.EXAMPLE_QUESTIONS.forEach(question => {
+            $("<button type='button' class='sead-agent-example'></button>")
+                .text(question)
+                .prop("disabled", this.state != "ready")
+                .appendTo(examples);
+        });
+        $("#chatbox-messages").append(examples);
+        this.scrollToLatestMessage();
     }
 
     /*
