@@ -114,13 +114,13 @@ class Timeline extends Facet {
 		];
 
         let scale = this.getSelectedScale();
-        this.setSelections([scale.older + this.bpDiff, scale.younger], false);
+        this.setSliderSelections([scale.older + this.bpDiff, scale.younger], false);
 
         this.graphDataOptions = [
             new SEADQueryGraphDataOption(
                 this,
                 "SEAD data points",
-                this.chartTraceColors.shift(),
+                this.sqs.color.colors.baseColor,
                 {},
                 null
             ),
@@ -1097,7 +1097,9 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         const filteredWidth = fullWidth ? [] : undefined;
 
         for (let i = 0; i < fullX.length; i++) {
-            if (fullX[i] >= minX && fullX[i] <= maxX) {
+            // Bars span their width, so keep those overlapping the range rather than only those centred in it
+            const halfWidth = fullWidth ? Math.abs(fullWidth[i]) / 2 : 0;
+            if (fullX[i] + halfWidth >= minX && fullX[i] - halfWidth <= maxX) {
                 filteredX.push(fullX[i]);
                 filteredY.push(fullY[i]);
                 if (filteredText) filteredText.push(fullText[i]);
@@ -1551,6 +1553,14 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
             this.bindTimelinePlotEvents();
             this.initTimelineResizeObserver();
             this.alignSliderToPlot();
+
+            //The SEAD data points are shown by default
+            const seadOption = this.graphDataOptions.find(opt => opt instanceof SEADQueryGraphDataOption);
+            if(seadOption && !this.isTraceRendered(seadOption.name)) {
+                this.fetchGraphData(seadOption, true).then(graphTrace => {
+                    this.addTraceToGraph(graphTrace, true);
+                });
+            }
         });
 
         //this.addAllSelectedTracesToGraph();
@@ -1575,6 +1585,8 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
             connect: true
         });
 
+        //Selections may already have been set, e.g. from a viewstate, so keep them rather than the full scale which setSelectedScale resets to
+        const presetSelections = [...this.selections];
         const selectedScale = this.getSelectedScale();
         this.setSelectedScale(selectedScale, false, false);
 
@@ -1624,7 +1636,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
             this.sliderUpdateCallback(values);
         });
         this.slider.on("change", (values, slider) => {
-            this.setSelections([parseInt(values[0]), parseInt(values[1])]);
+            this.setSliderSelections([parseInt(values[0]), parseInt(values[1])]);
         });
 
         $("#timeline-dating-system-selector").on("change", (e) => {
@@ -1658,6 +1670,9 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
                 console.warn("WARN: Could not find selected scale in scale definitions");
             }
         });
+
+        this.setSliderSelections(presetSelections, false);
+        this.showSelectionsInSlider();
     }
 
     sliderManualInputCallback(evt) {
@@ -1916,7 +1931,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         }
         
 
-		this.setSelections(this.currentValues, triggerUpdate);
+		this.setSliderSelections(this.currentValues, triggerUpdate);
 
         console.log("Setting slider values to", this.currentValues);
 
@@ -2070,7 +2085,61 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 		}
 	}
 
+    /*
+    * Function: setSelections
+    * Sets the selections in years BP (see getSelections), as stored in viewstates or given by the agent.
+    */
     setSelections(selections, triggerUpdate = true) {
+        if(selections.length != 2) {
+            return;
+        }
+
+        //Slider values are BP negated, so the older end is the lower one
+        let bpValues = [parseFloat(selections[0]), parseFloat(selections[1])].sort((a, b) => a - b);
+        this.setSliderSelections([bpValues[1] * -1, bpValues[0] * -1], triggerUpdate);
+
+        this.showSelectionsInSlider();
+    }
+
+    /*
+    * Function: showSelectionsInSlider
+    * Moves the slider to the current selections, switching to the smallest scale which fits them if the current one doesn't.
+    */
+    showSelectionsInSlider() {
+        if(!this.slider) {
+            return;
+        }
+
+        //The default scale fits nearly anything, but a short selection would be a sliver on it
+        const fits = (scale) => scale.older + this.bpDiff <= this.selections[0] && scale.younger >= this.selections[1];
+        //Scales ordered from the shortest span to the longest
+        const scales = [...this.scaleDefinitions].sort((a, b) => b.older - a.older);
+        const scale = scales.find(fits) || scales[scales.length - 1];
+
+        if(scale.id != this.selectedScale) {
+            this.selectedScale = scale.id;
+            $("#timeline-scale-selector").val(scale.id);
+            this.sliderMin = scale.older + this.bpDiff;
+            this.sliderMax = scale.younger;
+            this.slider.updateOptions({
+                range: {
+                    'min': this.sliderMin,
+                    'max': this.sliderMax,
+                }
+            });
+        }
+
+        this.sliderUpdateCallback([...this.selections], true);
+        if(this.timelineDomId) {
+            this.updateGraph();
+        }
+    }
+
+    /*
+    * Function: setSliderSelections
+    * Sets the selections in the slider's value space, which is what this.selections holds.
+    */
+    setSliderSelections(selections, triggerUpdate = true) {
         if(this.verboseLogging) {
             console.log(`Timeline ${this.name} setting selections (${selections}).`);
         }
@@ -2100,8 +2169,15 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 		}
 	}
 
+    /*
+    * Function: getSelections
+    * Returns the selections in years BP as [younger, older], which is what is sent to the server as picks.
+    */
     getSelections() {
-        return this.selections;
+        if(this.selections.length < 2) {
+            return this.selections;
+        }
+        return this.convertSliderSelectionsToBP(this.selections);
     }
 
     showSqlButton(show = true) {
@@ -2368,31 +2444,38 @@ class SEADQueryGraphDataOption extends GraphDataOption {
     }
 
     async fetchData(fetchFullRange = false) {
-        // Prefer unfiltered data (full background distribution). Fall back to filtered
-        // if unfiltered hasn't been populated yet (e.g. immediately after a selection change).
-        const dataset = this.timeline.datasets.unfiltered.length > 0
-            ? this.timeline.datasets.unfiltered
-            : this.timeline.datasets.filtered;
+        // The timeline always sends its window as picks, so the bins land in "filtered" at a resolution
+        // matching the window - the same data a range filter renders when it has a selection.
+        const dataset = this.timeline.datasets.filtered.length > 0
+            ? this.timeline.datasets.filtered
+            : this.timeline.datasets.unfiltered;
 
-        console.log(dataset);
+        const datingSystem = this.timeline.getSelectedDatingSystem();
 
         const trace = {
             x: [],
             y: [],
             width: [],
+            text: [],
             type: 'bar',
             name: this.name,
+            hovertemplate: '%{text}<extra></extra>',
             marker: {
                 color: this.color,
             }
         };
 
         dataset.forEach(item => {
-            // Server data uses the internal inverted format (negative = older); convert to
-            // conventional BP (positive = older) so filterTraceDataByRange works correctly.
-            trace.x.push((item.min + item.max) / 2 * -1);
+            // Bins are in conventional BP (positive = older), like the other traces and filterTraceDataByRange.
+            const younger = item.min;
+            const older = item.max;
+            const olderText = this.timeline.formatValueForDisplay(older * -1, datingSystem, false);
+            const youngerText = this.timeline.formatValueForDisplay(younger * -1, datingSystem, false);
+
+            trace.x.push((younger + older) / 2);
             trace.y.push(item.value);
-            trace.width.push(Math.abs(item.max - item.min));
+            trace.width.push(older - younger);
+            trace.text.push(`${olderText} – ${youngerText}: ${item.value} data points`);
         });
 
         return trace;
