@@ -6135,18 +6135,50 @@ a.ms-selectall:hover {
   color: #fff;
   padding: 0.5em 1em;
   margin-bottom: 1em;
+  border: none;
   border-radius: 0.25em;
   text-decoration: none;
+  font-family: inherit;
   font-size: 1.2em;
+}
+
+.login-options {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 20em;
+}
+
+.login-options .login-button {
+  text-align: left;
+}
+
+.login-button .login-provider-icon {
+  margin-right: 0.4em;
+}
+
+.login-no-providers {
+  display: none;
+}
+
+.login-user-name {
+  font-weight: bold;
+  font-size: 1.2em;
+  margin-bottom: 0.25em;
+}
+
+.login-user-detail {
+  display: block;
+  margin-bottom: 0.25em;
+}
+
+.login-signout-button {
+  margin-top: 1em;
 }
 
 .login-button:hover {
   background: color.adjust(colors.$base-color, $lightness: 10%);
   cursor: pointer;
-}
-
-#logout-button {
-  margin-top: 1em;
 }
 
 .ui-draggable-handle {

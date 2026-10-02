@@ -22,10 +22,12 @@ class StateManager {
 		});
 		
 		this.sqs.sqsEventListen("userLoggedIn", () => {
+			this.updateSaveStateDialog();
 			this.updateLoadStateDialog();
 		});
 
 		this.sqs.sqsEventListen("userLoggedOut", () => {
+			this.updateSaveStateDialog();
 			this.updateLoadStateDialog();
 		});
 
@@ -37,15 +39,32 @@ class StateManager {
 		
 		$("#viewstate-save-btn").on("click", () => {
 			let state = this.saveState();
+			if(state === false) {
+				return;
+			}
 			this.sendState(state).then(() => {
 				this.sqs.dialogManager.hidePopOver();
 				var content = $("#viewstate-post-save-dialog .overlay-dialog-content");
 				$("#viewstate-url", content).html("<a href='"+Config.serverRoot+"/viewstate/"+state.id+"'>"+Config.serverRoot+"/viewstate/"+state.id+"</a>");
 				$("#viewstate-key", content).html(state.id);
 				this.sqs.dialogManager.showPopOver("Viewstate saved", content.html());
+			}).catch(() => {
+				$.notify("The viewstate could not be saved.", "error");
 			});
 		});
-		
+
+		this.updateSaveStateDialog();
+	}
+
+	/*
+	* Function: updateSaveStateDialog
+	* Saving needs a signed-in user; the dialog's login component asks for one otherwise.
+	*/
+	updateSaveStateDialog() {
+		const signedIn = this.sqs.userManager.getUser() != null;
+		//Scoped to the popover: index.ejs also holds an older, hidden copy of these ids
+		$("#popover-dialog #viewstate-save-input").toggle(signedIn);
+		$("#popover-dialog #viewstate-save-btn").toggle(signedIn);
 	}
 
 	renderLoadViewstateDialog() {
@@ -145,11 +164,14 @@ class StateManager {
 	* Updates the viewstates which are selectable in the load viewstate dialog. 
 	*/
 	updateLoadStateDialog() {
+		if($("#viewstate-load-list").length == 0) {
+			return; //the load dialog isn't open
+		}
 		$("#viewstate-load-list").html("");
 		let viewstates = [];
 
 		if(!Config.requireLoginForViewstateStorage) {
-			viewstates = getLocallyStoredViewstates();
+			viewstates = this.getLocallyStoredViewstates();
 		}
 
 		//viewstates = this.makeListUniqueByProperty(viewstates, "id");
@@ -157,14 +179,18 @@ class StateManager {
 		let user = this.sqs.userManager.getUser();
 		console.log("User:", user);
 
-		//If user is logged in, fetch viewstates from server
+		//If user is logged in, fetch viewstates from server. Whose they are comes from the session cookie.
 		if(user != null) {
-			$.ajax(this.sqs.config.dataServerAddress+"/viewstates/"+user.id_token, {
+			$.ajax(this.sqs.config.dataServerAddress+"/viewstates", {
 				method: "get",
-				success: (viewstates) => {
+				xhrFields: { withCredentials: true },
+				success: (serverViewstates) => {
 					if(!Config.requireLoginForViewstateStorage) {
 						viewstates = viewstates.concat(serverViewstates);
 						viewstates = this.makeListUniqueByProperty(viewstates, "id");
+					}
+					else {
+						viewstates = serverViewstates;
 					}
 
 					this.sortViewstates(viewstates);
@@ -234,8 +260,9 @@ class StateManager {
 	}
 
 	deleteViewstate(viewstateId) {
-		$.ajax(this.sqs.config.dataServerAddress+"/viewstate/"+viewstateId+"/"+this.sqs.userManager.user.id_token, {
+		$.ajax(this.sqs.config.dataServerAddress+"/viewstate/"+viewstateId, {
 			method: "delete",
+			xhrFields: { withCredentials: true },
 			success: () => {
 				$(".viewstate-load-item > .vs-id[vsid='"+viewstateId+"']").parent().slideUp(500);
 			}
@@ -287,20 +314,20 @@ class StateManager {
 	*/
 	async sendState(state) {
 
-		if(this.sqs.userManager.user == null) {
-			return;
+		if(this.sqs.userManager.getUser() == null) {
+			throw new Error("Not signed in");
 		}
 
+		//Who the viewstate belongs to comes from the session cookie
 		var upload = {
 			"key": state.id,
-			"user_id_token": this.sqs.userManager.user.id_token,
 			"data": JSON.stringify(state)
 		};
 
 		upload = JSON.stringify(upload);
 		//var address = Config.serverAddress;
 		var address = Config.dataServerAddress;
-		$.ajax(address+"/viewstate", {
+		const response = await $.ajax(address+"/viewstate", {
 			method: "POST",
 			processData: true,
 			data: upload,
@@ -311,21 +338,14 @@ class StateManager {
 				'Content-Type': 'application/json'
 			},
 			
-			crossDomain: true,
+			xhrFields: { withCredentials: true },
 			error: function(jqXHR, textStatus, errorThrown) {
 				console.log(jqXHR, textStatus, errorThrown);
-			},
-			success: (data, textStatus, jqXHR) => {
-				/*
-				this.sqs.dialogManager.hidePopOver();
-				var content = $("#viewstate-post-save-dialog .overlay-dialog-content");
-				$("#viewstate-url", content).html("<a href='"+Config.serverRoot+"/viewstate/"+state.id+"'>"+Config.serverRoot+"/viewstate/"+state.id+"</a>");
-				$("#viewstate-key", content).html(state.id);
-				this.sqs.dialogManager.showPopOver("Viewstate saved", content.html());
-				*/
 			}
 		});
-		
+		if(!response || response.status != "ok") {
+			throw new Error("The server did not store the viewstate");
+		}
 		
 		return state;
 	}
@@ -473,8 +493,6 @@ class StateManager {
 			layout: "vertical",
 			collapsed: true,
 			anchor: "#help-menu",
-			items: []
-			/*
 			items: [
 				{
 					name: "save",
@@ -492,7 +510,6 @@ class StateManager {
 				}
 				
 			]
-			*/
 		};
 	}
 

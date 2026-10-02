@@ -433,33 +433,38 @@
 
     <template id="login-template">
       <div class="login-container">
-        <div class="login-header">
-        </div>
-        <div id="login-status-container">
-          
-        </div>
-        <div id="login-options-container">
-          <div id="google-login-button" class="login-button" provider="google">
-            <i class="fa fa-google login-provider-icon" aria-hidden="true"></i>
-              <span>Login with Google</span>
-          </div>
+        <div class="login-signed-out">
+          <div class="login-options">
+            <button type="button" class="login-button" provider="saml">
+              <i class="fa fa-university login-provider-icon" aria-hidden="true"></i>
+              <span class="login-button-label">SEAD login</span>
+            </button>
 
-          <div id="orcid-login-button" class="login-button" provider="orcid">
-              <img src="orcid.logo.icon.svg" alt="ORCID Logo" class="login-provider-icon" />
-              <span>Login with ORCID</span>
-          </div>
+            <button type="button" class="login-button" provider="orcid">
+              <img class="login-provider-icon orcid-id-icon" alt="ORCID iD icon" />
+              <span class="login-button-label">Sign in with ORCID</span>
+            </button>
 
-          <div id="github-login-button" class="login-button" provider="github">
+            <button type="button" class="login-button" provider="google">
+              <i class="fa fa-google login-provider-icon" aria-hidden="true"></i>
+              <span class="login-button-label">Sign in with Google</span>
+            </button>
+
+            <button type="button" class="login-button" provider="github">
               <i class="fa fa-github login-provider-icon" aria-hidden="true"></i>
-              <span>Login with GitHub</span>
+              <span class="login-button-label">Sign in with GitHub</span>
+            </button>
           </div>
+          <div class="login-no-providers">Signing in is not available at the moment.</div>
         </div>
 
-        <div id="logout-button" class="login-button">
-          <i class="fa fa-sign-out" aria-hidden="true"></i>
-          <span>Logout</span>
+        <div class="login-signed-in">
+          <div class="login-user"></div>
+          <button type="button" class="login-button login-signout-button">
+            <i class="fa fa-sign-out" aria-hidden="true"></i>
+            <span>Sign out</span>
+          </button>
         </div>
-        
       </div>
     </template>
 
@@ -941,31 +946,6 @@
       </div>
     </div>
     
-
-    <div id="googleLoginTemplate">
-      <!--
-        <p id="googleLoginRecommendationLoad">You need to signin to see viewstates saved on your account. Without signing in you will only see the viewstates stored locally in your browser.</p>
-        <p id="googleLoginRecommendationSave">It is recommended that you signin before saving a viewstate so that it may be stored on our server. If you choose to not signin the viewstate will only be saved locally in your browser.</p><p class='important-text'>When you choose to login via Google, the SEAD application will save your email address along with your viewstate data in order to associate the viewstate with your personal account. By signing in through Google on this site you consent to us handling your personal data in this way.</p>
-        -->
-      <div id="googleLoginInformation">
-
-        <div class="logged-in-text">You are signed in with Google</div>
-        <div class="logged-in-text-line"></div>
-
-        <div class="google-user-display">
-          <img class="google-user-profile-image" alt="Google user profile image" />
-          <div class="google-user-profile-information">
-            <div>
-              <div class="google-user-profile-name"></div>
-              <div class="google-user-profile-email"></div>
-              <div class="google-user-sign-out"><a href="#">Sign out</a></div>
-            </div>
-          </div>
-        </div>
-        <!--You are signed in as <span id="googleName"></span>. <span id="google-signout">Sign out</span>.-->
-      </div>
-      <div id="google-signin"></div>
-    </div>
 
     <div id="search-dialog-template" class="">
       <div class="overlay-dialog-content">

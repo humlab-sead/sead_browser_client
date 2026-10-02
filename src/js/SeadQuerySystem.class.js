@@ -522,6 +522,7 @@ class SeadQuerySystem {
 			this.dialogManager.sqsMenu(),
 			this.help.sqsMenu(),
 			this.tutorial.sqsMenu(),
+			this.userManager.sqsMenu(),
 		]);
 		
 		this.menuManager.createMenu(auxMenu);

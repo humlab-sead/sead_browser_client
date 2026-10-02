@@ -1,196 +1,296 @@
+import orcidIdIcon from "../assets/icons/orcid.logo.icon.svg";
+
+/*
+Class: UserManager
+Signing in and out. The session itself lives in json_api_server (a cookie on this origin);
+this keeps the client's view of it - the aux menu entry, the sign-in dialog and the login
+component in the viewstate dialogs - in step with /auth/status.
+
+Which sign-in options exist is decided by the server: /auth/status lists them, and the
+dialog shows a button only for those.
+*/
 class UserManager {
 	constructor(sqs) {
 		this.sqs = sqs;
 		this.user = null;
-		this.googleLoginRendered = false;
+		this.providers = [];
 
 		this.sqs.sqsEventListen("seadSaveStateClicked", () => {
 			this.sqs.stateManager.setViewStateDialog("save");
-			this.renderGenericLogin();
-			this.checkSigninStatus();
+			this.renderLoginComponent("#viewStateSaveLogin");
 		});
 
 		this.sqs.sqsEventListen("seadLoadStateClicked", () => {
 			this.sqs.stateManager.setViewStateDialog("load");
-			this.renderGenericLogin();
-			this.checkSigninStatus();
+			this.renderLoginComponent("#viewStateLoadLogin");
 		});
 
-		this.sqs.sqsEventListen("popOverClosed", () => {
-			this.unrenderGenericLogin();
+		//One listener for the page's lifetime: the login popup reports back through it
+		window.addEventListener("message", (event) => {
+			this.handleLoginMessage(event);
 		});
 
-		
+		//So the menu reflects a session that already exists
+		this.checkSigninStatus();
 	}
 
 	getUser() {
 		//the user object is expected to contain the at least the following properties:
-		//displayName, email, provider
+		//provider, id, displayName, emails
 		return this.user;
 	}
 
 	async checkSigninStatus() {
-		const response = await fetch(this.sqs.config.dataServerAddress+'/auth/status', {
-			credentials: 'include' // Important: send cookies!
-		});
-		const data = await response.json();
-		console.log(data);
-		if (data.loggedIn) {
-			// User is logged in, data.user contains user info
-			this.user = data.user;
-			this.renderLoggedIn();
-		} else {
-			// Not logged in
-			this.user = null;
-			this.renderLoggedOut();
+		try {
+			const response = await fetch(this.sqs.config.dataServerAddress+'/auth/status', {
+				credentials: 'include' // Important: send cookies!
+			});
+			const data = await response.json();
+			this.providers = Array.isArray(data.providers) ? data.providers : [];
+			this.setUser(data.loggedIn ? data.user : null);
+		}
+		catch(error) {
+			console.warn("Could not check sign-in status:", error);
+			this.setUser(null);
 		}
 	}
 
-	googleLogin() {
+	setUser(user) {
+		const wasLoggedIn = this.user != null;
+		this.user = user;
+		this.renderMenuState();
+		this.renderLoginComponents();
 
-		/*
-		gapi.auth2.init({
-			client_id: 
-		});
-		*/
-
-		
-		gapi.signin2.render('google-signin', {
-			'scope': 'profile email',
-			'width': 240,
-			'height': 50,
-			'longtitle': false,
-			'theme': 'dark',
-			'onsuccess': this.googleLoginSuccess,
-			'onfailure': this.googleLoginFail
-		});
-		
+		if(user != null) {
+			this.sqs.sqsEventDispatch("userLoggedIn", { user: user });
+		}
+		else if(wasLoggedIn) {
+			this.sqs.sqsEventDispatch("userLoggedOut", {});
+		}
 	}
 
-	renderLoggedIn() {
+	getProvider(providerId) {
+		return this.providers.find(provider => provider.id == providerId) || null;
+	}
 
-		console.log(this.user);
+	/*
+	* Function: login
+	* Opens the provider's login in a popup, which posts the result back (handleLoginMessage).
+	* If the popup is blocked, the login happens in this window instead, and the server
+	* sends the browser back here when it is done.
+	*/
+	login(providerId) {
+		const provider = this.getProvider(providerId);
+		if(provider == null) {
+			return;
+		}
+		const loginUrl = new URL(provider.loginUrl, this.sqs.config.serverRoot);
+		const popup = window.open(loginUrl.href, "seadLogin", "width=520,height=680");
+		if(popup == null || popup.closed || typeof popup.closed == "undefined") {
+			loginUrl.searchParams.set("return", window.location.pathname + window.location.search);
+			window.location.assign(loginUrl.href);
+			return;
+		}
+		popup.focus();
+	}
 
-		let userImage = this.user.photos && this.user.photos.length > 0 ? this.user.photos[0].value : "";
+	handleLoginMessage(event) {
+		if (event.origin !== window.location.origin) return; // Security check
+		const data = event.data;
+		if(data == null || typeof data != "object") {
+			return;
+		}
+		if(data.type === "login-success") {
+			this.setUser(data.user);
+			if(this.sqs.stateManager.getViewStateDialog() == null) {
+				this.sqs.dialogManager.hidePopOver();
+			}
+			$.notify("Signed in as "+data.user.displayName, "success");
+		}
+		if(data.type === "login-failure") {
+			$.notify(data.message || "Signing in did not succeed.", "error");
+		}
+	}
 
-		let providerCapitalized = this.user.provider.charAt(0).toUpperCase() + this.user.provider.slice(1);
-
-		document.getElementById("login-status-container").innerHTML = `
-		Logged in with ${providerCapitalized}<br /><br />
-		<div class="user-profile">
-			<img src="${userImage}" alt="User Image" class="user-profile-image" />
-			<span style='font-weight:bold;'>${this.user.displayName}</span>
-		</div>`;
-
-		document.getElementById("login-status-container").style.display = "block";
-		document.getElementById("login-options-container").style.display = "none";
-
-		document.getElementById("logout-button").style.display = "block";
-		document.getElementById("logout-button").onclick = () => {
-			console.log("Logout clicked");
-			fetch(this.sqs.config.dataServerAddress + '/auth/logout', {
+	async signOut() {
+		const provider = this.user ? this.user.provider : null;
+		try {
+			const response = await fetch(this.sqs.config.dataServerAddress + '/auth/logout', {
 				method: 'POST',
 				credentials: 'include' // Important: send cookies!
-			}).then(() => {
-				this.user = null;
-				console.log("User logged out");
-				this.renderLoggedOut();
-			}).catch(error => {
-				console.error('Logout failed:', error);
 			});
+			if(!response.ok) {
+				throw new Error("Logout answered "+response.status);
+			}
+		}
+		catch(error) {
+			console.error('Logout failed:', error);
+			$.notify("Signing out did not succeed.", "error");
+			return;
 		}
 
-		document.getElementById("viewstate-save-input").style.display = "block";
-		document.getElementById("viewstate-save-btn").style.display = "block";
+		if(provider == "saml") {
+			//Also end the short-lived Shibboleth session the login was handed over with, so
+			//the next "SEAD login" asks again rather than silently signing the same person in.
+			//This is local only: the university's own sign-in is left alone.
+			fetch("/Shibboleth.sso/Logout", { credentials: 'include' }).catch(() => {});
+		}
+
+		this.setUser(null);
+		this.sqs.dialogManager.hidePopOver();
+		$.notify(provider == "saml" ? "Signed out of SEAD. You may still be signed in at your university." : "Signed out of SEAD.", "info");
 	}
 
-	renderLoggedOut() {
-		document.getElementById("login-status-container").innerHTML = "Not logged in";
-		document.getElementById("login-status-container").style.display = "none";
-		document.getElementById("login-options-container").style.display = "block";
-
-		document.getElementById("logout-button").style.display = "none";
-	}
-
-	renderGenericLogin() {
-		let dialog = this.sqs.stateManager.getViewStateDialog();
-		let dialogNodeId = "";
-		if(dialog == "save") {
-			dialogNodeId = "#viewStateSaveLogin";
-		}
-		if(dialog == "load") {
-			dialogNodeId = "#viewStateLoadLogin";
-		}
-
+	/*
+	* Function: renderLoginComponent
+	* The one login component, used in the sign-in dialog and in the viewstate dialogs.
+	* Shows the sign-in options when signed out, and who is signed in otherwise.
+	*/
+	renderLoginComponent(containerSelector) {
 		const template = document.getElementById('login-template');
-		const clone = template.content.cloneNode(true);
-		$(dialogNodeId).append(clone);
+		const container = $(containerSelector);
+		container.empty();
+		container[0].appendChild(template.content.cloneNode(true));
 
-		$(".login-button").on("click", (event) => {
-			const provider = $(event.currentTarget).attr("provider");
-			const popup = window.open(this.sqs.config.dataServerAddress + `/auth/${provider}`, `${provider}Login`, "width=500,height=600");
+		$(".orcid-id-icon", container).attr("src", orcidIdIcon);
+		$(".login-button[provider]", container).on("click", (event) => {
+			this.login($(event.currentTarget).attr("provider"));
+		});
+		$(".login-signout-button", container).on("click", () => {
+			this.signOut();
+		});
 
-			window.addEventListener("message", (event) => {
-				if (event.origin !== window.location.origin) return; // Security check
-				if (event.data.type === "login-success" && event.data.provider === provider) {
-					this.user = event.data.user;
-					this.renderLoggedIn();
-					popup.close();
-				}
-			});
+		this.updateLoginComponent(container);
+	}
+
+	renderLoginComponents() {
+		$(".login-container").each((index, node) => {
+			this.updateLoginComponent($(node).parent());
 		});
 	}
 
-	unrenderGenericLogin() {
-		$("#google-login-button").off("click");
-		$("#login-container").remove();
-	}
+	updateLoginComponent(container) {
+		const signedIn = this.user != null;
+		$(".login-signed-in", container).toggle(signedIn);
+		$(".login-signed-out", container).toggle(!signedIn);
 
-	renderUserLoggedIn() {
-		$("#viewstate-load-list").show();
-		$("#viewstate-save-input").show();
-		$("#viewstate-save-btn").show();
-		$("#googleLoginContainer #google-signin").hide();
-		$("#googleLoginInformation").show();
-		$("#googleLoginInformation .google-user-profile-image").attr("src", this.user.image);
-		$("#googleLoginInformation .google-user-profile-name").html(this.user.name);
-		$("#googleLoginInformation .google-user-profile-email").html(this.user.email);
+		$(".login-button[provider]", container).each((index, node) => {
+			const provider = this.getProvider($(node).attr("provider"));
+			$(node).toggle(provider != null);
+			if(provider != null && $(node).attr("provider") == "saml") {
+				$(".login-button-label", node).text(provider.label);
+			}
+		});
+		$(".login-no-providers", container).toggle(this.providers.length == 0);
 
-		$(".google-user-sign-out > a").on("click", this.googleLogout);
-	}
-
-	renderUserLoggedOut(dialog) {
-		$("#viewstate-load-list").hide();
-		$("#viewstate-save-input").hide();
-		$("#viewstate-save-btn").hide();
-		$("#googleLoginInformation").hide();
-
-		$("#googleLoginContainer #google-signin").show();
-		if(dialog == "save") {
-			$("#googleLoginRecommendationLoad").hide();
-			$("#googleLoginRecommendationSave").show();
+		const userContainer = $(".login-user", container).empty();
+		if(signedIn) {
+			userContainer.append(this.renderUserDetails());
 		}
-		if(dialog == "load") {
-			$("#googleLoginRecommendationLoad").show();
-			$("#googleLoginRecommendationSave").hide();
+	}
+
+	renderUserDetails() {
+		const details = $("<div class='login-user-details'></div>");
+		$("<div class='login-user-name'></div>").text(this.user.displayName).appendTo(details);
+
+		const provider = this.getProvider(this.user.provider);
+		const via = $("<div class='login-user-detail'></div>").text("Signed in with "+(provider ? provider.label : this.user.provider));
+		if(this.user.organization) {
+			via.append(document.createTextNode(" ("+this.user.organization+")"));
+		}
+		via.appendTo(details);
+
+		if(this.user.uri) {
+			//ORCID's display guidelines: an authenticated iD is shown as its full URI, with the iD icon
+			const orcid = $("<a class='login-user-detail login-user-orcid' target='_blank' rel='noopener noreferrer'></a>").attr("href", this.user.uri);
+			$("<img class='login-provider-icon' alt='ORCID iD icon' />").attr("src", orcidIdIcon).appendTo(orcid);
+			orcid.append(document.createTextNode(" "+this.user.uri));
+			orcid.appendTo(details);
+		}
+
+		const email = Array.isArray(this.user.emails) && this.user.emails.length ? this.user.emails[0].value : null;
+		if(email) {
+			$("<div class='login-user-detail'></div>").text(email).appendTo(details);
+		}
+
+		return details;
+	}
+
+	showSignInDialog() {
+		this.sqs.stateManager.setViewStateDialog(null);
+		this.sqs.dialogManager.showPopOver("Sign in", "<div id='sign-in-dialog-login'></div>");
+		this.renderLoginComponent("#sign-in-dialog-login");
+	}
+
+	showAccountDialog() {
+		this.sqs.stateManager.setViewStateDialog(null);
+		this.sqs.dialogManager.showPopOver("Account", "<div id='account-dialog-login'></div>");
+		this.renderLoginComponent("#account-dialog-login");
+	}
+
+	/*
+	* Function: renderMenuState
+	* The aux menu shows "Sign in" when signed out, and the user's name - with Account and
+	* Sign out under it - when signed in. The items are toggled in place.
+	*/
+	renderMenuState() {
+		if(!this.menuItems) {
+			return;
+		}
+		const signedIn = this.user != null;
+		this.menuItems.signIn.visible = !signedIn;
+		this.menuItems.account.visible = signedIn;
+		this.menuItems.account.title = "<i class=\"fa fa-user\" aria-hidden=\"true\"></i> "+$("<span></span>").text(signedIn ? this.user.displayName : "").html();
+
+		$("[menu-item='account'] > .first-level-item-title", "#aux-menu").html(this.menuItems.account.title);
+		const menu = this.sqs.menuManager.getMenuByAnchor("#aux-menu");
+		if(menu) {
+			menu.updateMenuItemVisibilityForCurrentMode();
 		}
 	}
 
 	sqsMenu() {
+		this.menuItems = {
+			signIn: {
+				name: "sign-in",
+				title: "<i class=\"fa fa-sign-in\" aria-hidden=\"true\"></i> Sign in",
+				callback: () => {
+					this.showSignInDialog();
+				}
+			},
+			account: {
+				name: "account",
+				title: "<i class=\"fa fa-user\" aria-hidden=\"true\"></i>",
+				visible: false,
+				children: [
+					{
+						name: "account-details",
+						title: "Account",
+						callback: () => {
+							this.showAccountDialog();
+						}
+					},
+					{
+						name: "sign-out",
+						title: "Sign out",
+						callback: () => {
+							this.signOut();
+						}
+					}
+				]
+			}
+		};
+		this.renderMenuState();
+
 		return {
 			title: "Account",
 			layout: "vertical",
 			collapsed: true,
 			anchor: "#account-menu",
-			weight: -5,
+			weight: 10,
 			items: [
-				{
-					name: "account",
-					title: "Account",
-					callback: () => {
-						this.login();
-					}
-				}
+				this.menuItems.signIn,
+				this.menuItems.account
 			]
 		};
 	}
