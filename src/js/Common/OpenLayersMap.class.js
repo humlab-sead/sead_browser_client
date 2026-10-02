@@ -1470,10 +1470,10 @@ class OpenLayersMap {
 		this.renderTargetSelector = renderTargetSelector;
 
 		if($(renderTarget).width() == 0) {
-			$(renderTarget).width(500);
+			$(renderTarget).width(this.sqs.scalePx(500));
 		}
 		if($(renderTarget).height() == 0) {
-			$(renderTarget).height(500);
+			$(renderTarget).height(this.sqs.scalePx(500));
 		}
 
         renderTarget.innerHTML = "";

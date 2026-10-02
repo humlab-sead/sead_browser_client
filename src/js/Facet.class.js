@@ -56,7 +56,7 @@ class Facet {
 		
 		//Config.facetBodyHeight = "20%";
 
-		this.setHeight(Config.facetBodyHeight);
+		this.setHeight(this.getMaxBodyHeight());
 		this.defaultHeight = $(facetDomObj).css("height");
 		
 
@@ -204,7 +204,16 @@ class Facet {
 		}
 	}
 
-	setHeight(height = Config.facetBodyHeight) {
+	/*
+	* Function: getMaxBodyHeight
+	*
+	* The configured facet body height, scaled to the current viewport.
+	*/
+	getMaxBodyHeight() {
+		return this.sqs.scalePx(Config.facetBodyHeight);
+	}
+
+	setHeight(height = this.getMaxBodyHeight()) {
 		$(".facet-body", this.domObj).css("height", height+"px");
 		this.bodyHeight = $(".facet-body", this.domObj).css("height");
 		/*

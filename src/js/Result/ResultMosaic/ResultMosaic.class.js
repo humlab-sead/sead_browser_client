@@ -275,7 +275,11 @@ class ResultMosaic extends ResultModule {
 			}
 
 			try {
-				Plotly.relayout(chartNode, { autosize: true });
+				let update = { autosize: true };
+				if(chartNode.data[0] && chartNode.data[0].type == "pie") {
+					update.margin = this.getPieChartMargin(chartNode);
+				}
+				Plotly.relayout(chartNode, update);
 			}
 			catch(e) {
 				staleAnchors.push(anchorNodeId);
@@ -1402,7 +1406,7 @@ class ResultMosaic extends ResultModule {
 				text: chartTitle,
 				font: {
 					family: 'Didact Gothic, sans-serif',
-					size: 22
+					size: this.sqs.scalePx(22)
 				},
 			},
 			plot_bgcolor: "#fff",
@@ -1410,15 +1414,15 @@ class ResultMosaic extends ResultModule {
 			autosize: true,
 			showlegend: false,
 			margin: {
-				l: 50,
-				r: 50,
-				b: 50,
-				t: 50,
+				l: this.sqs.scalePx(50),
+				r: this.sqs.scalePx(50),
+				b: this.sqs.scalePx(50),
+				t: this.sqs.scalePx(50),
 				pad: 4
 			},
 			font: {
 				family: 'Didact Gothic, sans-serif',
-				size: 14,
+				size: this.sqs.scalePx(14),
 				color: '#333'
 			},
 			yaxis: {
@@ -1472,7 +1476,7 @@ class ResultMosaic extends ResultModule {
 				"align": 'left',
 				"borderRadius": 3,
 				"fontColor":"#000000",
-				"fontSize": "16px",
+				"fontSize": this.sqs.scalePx("16px"),
 				"backgroundColor": "#ffffff"
 			},
 			"plot":{
@@ -1582,7 +1586,7 @@ class ResultMosaic extends ResultModule {
 				"align": 'left',
 				"borderRadius": 3,
 				"fontColor":"#000000",
-				"fontSize": "16px",
+				"fontSize": this.sqs.scalePx("16px"),
 				"backgroundColor": "#ffffff"
 			},
 			"scale-x": {
@@ -1671,14 +1675,14 @@ class ResultMosaic extends ResultModule {
 				text:'',
 				font: {
 				  family: 'Didact Gothic, sans-serif',
-				  size: 22
+				  size: this.sqs.scalePx(22)
 				},
 			},
 			margin: {
-				l: 50,
-				r: 50,
-				b: 50,
-				t: 50,
+				l: this.sqs.scalePx(50),
+				r: this.sqs.scalePx(50),
+				b: this.sqs.scalePx(50),
+				t: this.sqs.scalePx(50),
 				pad: 4
 			},
 		};
@@ -1722,12 +1726,36 @@ class ResultMosaic extends ResultModule {
 
 	}
 
+	/*
+	* Function: getPieChartMargin
+	*
+	* Margins for a pie chart, proportional to its container. Fixed margins would leave only a sliver
+	* of a pie in the small tiles you get on short viewports.
+	*/
+	getPieChartMargin(chartNode) {
+		let margin = this.sqs.scalePx(50);
+		if(chartNode) {
+			let minSide = Math.min(chartNode.clientWidth, chartNode.clientHeight);
+			if(minSide > 0) {
+				margin = Math.min(margin, Math.round(minSide * 0.2));
+			}
+		}
+		return {
+			l: margin,
+			r: margin,
+			b: margin,
+			t: margin,
+			pad: 2
+		};
+	}
+
 	async renderPieChartPlotly(renderIntoNode, chartData, layoutConfig = {}) {
 		if(typeof renderIntoNode == "object") {
 			console.warn("target node is an object, we need to convert this to an id");
 			return;
 		}
 
+		let anchorNodeId = renderIntoNode.substring(1);
 		let layout = {
       		paper_bgcolor: "#fff",
 			showlegend: true,
@@ -1735,24 +1763,17 @@ class ResultMosaic extends ResultModule {
 				text:'',
 				font: {
 				  family: 'Didact Gothic, sans-serif',
-				  size: 22
+				  size: this.sqs.scalePx(22)
 				},
 			},
 			font: {
 				family: 'Didact Gothic, sans-serif',
 			},
-			margin: {
-				l: 50,
-				r: 50,
-				b: 50,
-				t: 50,
-				pad: 2
-			},
+			margin: this.getPieChartMargin(document.getElementById(anchorNodeId)),
 			legend: { x: 1, y: 1, xanchor: 'right', yanchor: 'top', bgcolor: 'rgba(255, 255, 255, 0.5)' }
 		};
 
 		Object.assign(layout, layoutConfig);
-		let anchorNodeId = renderIntoNode.substring(1);
 		let config = {
 			responsive: true,
 			displayModeBar: false
@@ -1818,7 +1839,7 @@ class ResultMosaic extends ResultModule {
 				"align": 'left',
 				"borderRadius": 3,
 				"fontColor":"#000000",
-				"fontSize": "16px",
+				"fontSize": this.sqs.scalePx("16px"),
 				"backgroundColor": "#ffffff"
 			},
 			"plot":{

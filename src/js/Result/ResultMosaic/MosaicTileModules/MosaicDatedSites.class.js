@@ -213,10 +213,10 @@ class MosaicDatedSitesModule extends MosaicTileModule {
         title: "Number of sites"
       },
       margin: {
-        l: 70,
-        r: 50,
-        b: 70,
-        t: 50,
+        l: this.sqs.scalePx(70),
+        r: this.sqs.scalePx(50),
+        b: this.sqs.scalePx(70),
+        t: this.sqs.scalePx(50),
         pad: 4
       }
     };

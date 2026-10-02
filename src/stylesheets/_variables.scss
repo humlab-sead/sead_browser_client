@@ -3,3 +3,21 @@ $header-font: 'Rajdhani';
 $normal-font: 'Didact Gothic';
 $special-font: 'Rajdhani';
 $sead-font: 'Exo 2';
+
+// Viewport-relative UI scale.
+// The layout is designed for a viewport of at least $ui-reference-width x $ui-reference-height CSS px
+// (a 1080p screen minus browser chrome). On smaller viewports, such as a 1366x768 laptop or a 1080p
+// laptop at 125-150% OS scaling, sizes shrink proportionally down to $ui-min-scale instead of
+// covering a larger share of the screen. devicePixelRatio is deliberately not involved: the browser
+// already divides it out of CSS px, what differs between those screens is the viewport size.
+$ui-reference-width: 1920;
+$ui-reference-height: 950;
+$ui-min-scale: 0.8;
+// Below this width the mobile layout takes over, which has its own sizing.
+$ui-mobile-breakpoint: 720px;
+
+// A length that is $n px on a full-size viewport and scales down on smaller ones. Resolves against
+// --sqs-px, which is defined on :root in style.scss.
+@function sqs-px($n) {
+  @return calc(#{$n} * var(--sqs-px));
+}

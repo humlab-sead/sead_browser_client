@@ -1302,6 +1302,37 @@ class SeadQuerySystem {
 		return input;
 	}
 
+	/*
+	* Function: getUiScale
+	*
+	* The current viewport UI scale, 1 on a full-size viewport and down to the configured minimum on smaller ones.
+	* The stylesheet sets the root font-size to sqs-px(16), so the scale is read back from it rather than recomputed here.
+	* Use it for pixel sizes that are set from JS and should shrink along with the rest of the UI.
+	*/
+	getUiScale() {
+		let rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+		if(!rootFontSize) {
+			return 1;
+		}
+		return Math.min(1, rootFontSize / 16);
+	}
+
+	/*
+	* Function: scalePx
+	*
+	* Scales a pixel size designed for a full-size viewport to the current one. Accepts a number or a "123px" string,
+	* anything else (percentages, vw etc.) is returned unchanged.
+	*/
+	scalePx(size) {
+		if(typeof size == "number") {
+			return Math.round(size * this.getUiScale());
+		}
+		if(typeof size == "string" && /^\d+(\.\d+)?px$/.test(size.trim())) {
+			return Math.round(parseFloat(size) * this.getUiScale())+"px";
+		}
+		return size;
+	}
+
 	buildTaxonLink(taxonId, content) {
 		let linkId = "taxon-link-"+taxonId;
 		return "<a id='"+linkId+"' class='taxon-link' data-taxon-id='"+taxonId+"' href='/taxon/"+taxonId+"' onclick='window.sqs.taxaModule.renderTaxon("+taxonId+"); return false;'>"+content+"</a>";

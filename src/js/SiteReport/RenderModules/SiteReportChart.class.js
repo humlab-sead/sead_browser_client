@@ -532,7 +532,7 @@ class SiteReportChart {
                 "align": 'left',
                 "borderRadius": 3,
                 "fontColor":"#000000",
-                "fontSize": "16px",
+                "fontSize": this.sqs.scalePx("16px"),
                 "backgroundColor": "#ffffff"
             },
             "plot":{
@@ -1291,7 +1291,7 @@ class SiteReportChart {
 				//text: contentItem.data.columns[yAxisKey].title+" by "+contentItem.data.columns[xAxisKey].title,
 				font: {
 					family: 'Didact Gothic, sans-serif',
-					size: 22
+					size: this.sqs.scalePx(22)
 				},
 			},
 			plot_bgcolor: "#fff",
@@ -1307,7 +1307,7 @@ class SiteReportChart {
 			},
 			font: {
 				family: 'Didact Gothic, sans-serif',
-				size: 14,
+				size: this.sqs.scalePx(14),
 				color: '#333'
 			},
 			xaxis: {
@@ -1317,7 +1317,7 @@ class SiteReportChart {
 					text: 'Sample',
 					font: {
 						family: 'Didact Gothic, sans-serif',
-						size: 18,
+						size: this.sqs.scalePx(18),
 						color: '#333'
 					},
 				}
@@ -1329,7 +1329,7 @@ class SiteReportChart {
 					text: 'Value',
 					font: {
 						family: 'Didact Gothic, sans-serif',
-						size: 18,
+						size: this.sqs.scalePx(18),
 						color: '#333'
 					},
 				}

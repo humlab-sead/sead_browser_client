@@ -620,14 +620,15 @@ class DiscreteFacet extends Facet {
 			let facetHeight = headerHeight + subHeaderHeight + this.selections.length * this.rowHeight + 6;
 			let facetBodyHeight = subHeaderHeight + this.selections.length * this.rowHeight + 6;
 
-			if(facetHeight > Config.facetBodyHeight+headerHeight) {
-				facetHeight = Config.facetBodyHeight+headerHeight;
+			let maxBodyHeight = this.getMaxBodyHeight();
+			if(facetHeight > maxBodyHeight+headerHeight) {
+				facetHeight = maxBodyHeight+headerHeight;
 			}
 
-			console.log(Config.facetBodyHeight);
+			console.log(maxBodyHeight);
 
-			if(facetBodyHeight > Config.facetBodyHeight) {
-				facetBodyHeight = Config.facetBodyHeight;
+			if(facetBodyHeight > maxBodyHeight) {
+				facetBodyHeight = maxBodyHeight;
 			}
 
 			console.log(facetHeight, facetBodyHeight);
