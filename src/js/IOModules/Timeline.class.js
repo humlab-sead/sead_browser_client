@@ -2459,6 +2459,8 @@ class SEADQueryGraphDataOption extends GraphDataOption {
             text: [],
             type: 'bar',
             name: this.name,
+            //The text is for the hover label only; drawn inside the bars it is too small to read
+            textposition: 'none',
             hovertemplate: '%{text}<extra></extra>',
             marker: {
                 color: this.color,
