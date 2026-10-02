@@ -7,6 +7,7 @@
 * do to the interface is bounded by this file, not by what the model decides to write.
 */
 import MapFacet from './MapFacet.class.js';
+import Timeline from './IOModules/Timeline.class.js';
 import ScreenReader from './ScreenReader.class.js';
 
 export default class SeadAgentActions {
@@ -401,7 +402,14 @@ export default class SeadAgentActions {
         if(this.scrollSelectionIntoView(facet, selections)) {
             await this.pause(SeadAgentActions.REVEAL_DELAY_MS);
         }
-        facet.setSelections(selections, false);
+        //For a list filter the second argument means "don't append", but for the timeline
+        //it means "don't fetch new data", which would move the slider and change nothing else
+        if(facet instanceof Timeline) {
+            facet.setSelections(selections);
+        }
+        else {
+            facet.setSelections(selections, false);
+        }
         //Re-scroll: applying a selection re-renders the list, and a facet set to show only
         //selections reorders it entirely
         this.scrollSelectionIntoView(facet, selections);
