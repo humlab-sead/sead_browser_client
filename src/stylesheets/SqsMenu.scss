@@ -13,19 +13,19 @@
   margin-left:0px;
   background-color: colors.$pane-bg-color;
   width: 1px;
-  height: 90px;
+  height: sqs-px(90);
 }
 
 
 @mixin sqs-menu-block {
   display:grid;
-  width: 100px;
-  height: 100px;
+  width: sqs-px(100);
+  height: sqs-px(100);
   background-color: colors.$inactive-color;
   color: #fff;
   font-family: 'Didact Gothic';
   font-weight:bold;
-  font-size: 22px;
+  font-size: sqs-px(22);
   
   grid-template-columns: 10px 1fr 10px;
   grid-template-rows: 1fr 2fr 1fr;
@@ -48,7 +48,7 @@
   grid-column: 2;
   grid-row: 3;
   align-self: start;
-  font-size: 14px;
+  font-size: sqs-px(14);
   font-weight:bold;
   color: #fff;
   padding: 1px;
@@ -62,17 +62,17 @@
 }
 
 .sqs-menu-block-vertical {
-  height:87px;
-  width: 87px;
+  height:sqs-px(87);
+  width: sqs-px(87);
   border-left: 1px solid #fff;
   z-index: 2;
   @include sqs-menu-block;
 }
 
 .sqs-menu-block-horizontal {
-  height: 43px;
+  height: sqs-px(43);
   width: auto;
-  font-size: 20px;
+  font-size: sqs-px(20);
   border-right-width: 1px;
   border-right-style: solid;
   border-right-color: #fff;
@@ -84,7 +84,7 @@
 }
 
 .sqs-menu-block-vertical-flexible {
-  min-width: 160px;
+  min-width: sqs-px(160);
   width: 100%;
   white-space: nowrap;
 }
@@ -224,7 +224,7 @@
 .l1-container-level-horizontal {
 	  position: relative;
   	margin-top: 0px;
-  	height: 33px;
+  	height: sqs-px(33);
     @include l1-container-level;
 }
 
@@ -244,7 +244,7 @@ ul.l1-container-level {
 
 .l1-container {
   display:block; /* :none for mobile */
-  font-size: 20px;
+  font-size: sqs-px(20);
   float:left;
   color: #fff;
 }
@@ -291,7 +291,7 @@ li.l1-container:hover {
   padding-bottom: 3px;
   padding-top: 3px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: sqs-px(16);
   /*background-color: #666;*/
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
@@ -491,7 +491,7 @@ li.l1-container:hover {
 
 .header-btn {
   display:inline-block;
-  font-size: 16px !important;
+  font-size: sqs-px(16) !important;
   margin-top:0px;
   margin-bottom:0px;
   cursor:pointer;

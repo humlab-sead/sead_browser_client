@@ -736,8 +736,8 @@ class MultiStageFacet extends Facet {
 			let facetHeight = headerHeight + subHeaderHeight + selectionsNum * this.rowHeight + 6;
 			let facetBodyHeight = subHeaderHeight + selectionsNum * this.rowHeight + 6;
 			
-			if(facetHeight > Config.facetBodyHeight+headerHeight) {
-				facetHeight = Config.facetBodyHeight+headerHeight;
+			if(facetHeight > this.getMaxBodyHeight()+headerHeight) {
+				facetHeight = this.getMaxBodyHeight()+headerHeight;
 			}
 
 			$(this.domObj).css("height", facetHeight+"px");

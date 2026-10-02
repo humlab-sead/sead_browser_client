@@ -562,8 +562,8 @@ export default class SeadAgent {
         //the top-left corner. The n and w edges stay draggable for single-axis resizing.
         chatBoxIcon.resizable({
             handles: "nw, n, w",
-            minWidth: 380,
-            minHeight: 340,
+            minWidth: this.sqs.scalePx(380),
+            minHeight: this.sqs.scalePx(340),
             //The ceiling used to be max-width/max-height on the expanded rule, but a max
             //on the element clamps the grow transition's intermediate values as well, so
             //it lives here now - where it only limits what the user drags.

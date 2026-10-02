@@ -1,5 +1,6 @@
 @use "sass:color";
 @use "./colors.scss" as *;
+@use "variables" as *;
 
 .responsive-layout-container {
     display: none;
@@ -11,11 +12,11 @@
 }
 
 #site-report-main-container .section-left {
-    height: calc(100vh - 87px - 21px);
+    height: calc(100vh - #{sqs-px(87 + 21)});
 }
 
 #site-report-main-container .section-right {
-    height: calc(100vh - 87px - 21px);
+    height: calc(100vh - #{sqs-px(87 + 21)});
 }
 
 .section-left {

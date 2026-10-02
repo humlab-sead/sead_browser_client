@@ -157,15 +157,15 @@ class MosaicDomainSamples extends MosaicTileModule {
             autosize: true,
             showlegend: false,
             margin: {
-                l: 50,
-                r: 50,
-                b: 50,
-                t: 50,
+                l: this.sqs.scalePx(50),
+                r: this.sqs.scalePx(50),
+                b: this.sqs.scalePx(50),
+                t: this.sqs.scalePx(50),
                 pad: 4
             },
             font: {
                 family: 'Didact Gothic, sans-serif',
-                size: 14,
+                size: this.sqs.scalePx(14),
                 color: '#333'
             },
             responsive: true

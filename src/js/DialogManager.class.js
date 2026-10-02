@@ -162,11 +162,12 @@ class DialogManager {
 		$("#popover-dialog").css("grid-template-columns", "5% 1fr 5%");
 		$("#popover-dialog").css("grid-template-rows", "5% 1fr 5%");
 
+		//px sizes are given for a full-size viewport, scale them along with the dialog content
 		if(options.width) {
-			$("#popover-dialog-frame").css("width", options.width);
+			$("#popover-dialog-frame").css("width", this.sqs.scalePx(options.width));
 		}
 		if(options.height) {
-			$("#popover-dialog-frame").css("height", options.height);
+			$("#popover-dialog-frame").css("height", this.sqs.scalePx(options.height));
 		}
 		if(options.margin) {
 			$("#popover-dialog").css("grid-template-columns", options.margin+" 1fr "+options.margin);
