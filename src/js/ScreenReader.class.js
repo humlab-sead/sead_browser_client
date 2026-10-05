@@ -517,6 +517,18 @@ export default class ScreenReader {
     }
 
     nearestTitle(el) {
+        //In a table, what tells one row's "View site" from the next is the row itself. The
+        //nearest heading would be the column headers, which are the same for every row.
+        let row = el.closest("tr, [role='row']");
+        if(row && row !== el) {
+            let cells = Array.from(row.children)
+                .filter(cell => !cell.contains(el))
+                .map(cell => (cell.innerText || "").replace(/\s+/g, " ").trim())
+                .filter(text => text);
+            if(cells.length > 0) {
+                return this.truncate(cells.join(" "), 40);
+            }
+        }
         let node = el.parentElement;
         for(let depth = 0; node && depth < 6; depth++, node = node.parentElement) {
             let title = Array.from(node.querySelectorAll("h1, h2, h3, h4, h5, [class*='title'], [class*='header']"))

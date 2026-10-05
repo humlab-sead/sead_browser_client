@@ -77,25 +77,81 @@ class RangeFacet extends Facet {
 			console.log("RangeFacet.setSelections", selections);
 		}
 
-		let selectionsUpdated = false;
-		if(selections.length == 2) {
-			if(selections[0] != null && selections[0] != this.selections[0]) {
-				this.selections[0] = parseFloat(selections[0]);
-				selectionsUpdated = true;
+		//No range, or one covering the whole extent, is no selection at all - the filter is
+		//back to not restricting anything
+		if(!Array.isArray(selections) || selections.length != 2 || this.coversWholeExtent(selections)) {
+			if(this.selections.length > 0) {
+				this.clearSelection();
 			}
-			if(selections[1] != null && selections[1] != this.selections[1]) {
-				this.selections[1] = parseFloat(selections[1]);
-				selectionsUpdated = true;
-			}
+			return;
 		}
-		
+
+		let selectionsUpdated = false;
+		if(selections[0] != null && selections[0] != this.selections[0]) {
+			this.selections[0] = parseFloat(selections[0]);
+			selectionsUpdated = true;
+		}
+		if(selections[1] != null && selections[1] != this.selections[1]) {
+			this.selections[1] = parseFloat(selections[1]);
+			selectionsUpdated = true;
+		}
+
 		$(".slider-manual-input-container[endpoint='upper'] > input", this.getDomRef()).val(this.selections[1]);
 		$(".slider-manual-input-container[endpoint='lower'] > input", this.getDomRef()).val(this.selections[0]);
-		
+
 		if(selectionsUpdated) {
+			//A selection made other than by dragging - a viewstate, the agent - has to move the handles too
+			if(this.slider) {
+				let handles = this.slider.get().map(value => parseFloat(value));
+				if(handles[0] != this.selections[0] || handles[1] != this.selections[1]) {
+					this.slider.set(this.selections);
+				}
+			}
+			this.updateRangeState();
 			this.sqs.facetManager.queueFacetDataFetch(this);
 			this.broadcastSelection();
 		}
+	}
+
+	/*
+	* Function: clearSelection
+	* Back to selecting nothing, with the handles at the ends, without closing the filter.
+	*/
+	clearSelection() {
+		this.selections = [];
+		if(this.slider && this.totalLower != null && this.totalUpper != null) {
+			this.slider.set([this.totalLower, this.totalUpper]);
+		}
+		this.updateRangeState();
+		if(this.chart) {
+			this.updateChart(this.data, this.getSelections());
+		}
+		this.sqs.facetManager.queueFacetDataFetch(this);
+		this.broadcastSelection();
+	}
+
+	coversWholeExtent(selections) {
+		if(this.totalLower == null || this.totalUpper == null) {
+			return false;
+		}
+		return parseFloat(selections[0]) <= this.totalLower && parseFloat(selections[1]) >= this.totalUpper;
+	}
+
+	/*
+	* Function: getChartWindow
+	* The span this filter's own chart covers, sent when it fetches its own data. None, so the
+	* chart always shows the whole extent and the selection is drawn on it.
+	*/
+	getChartWindow() {
+		return [];
+	}
+
+	updateRangeState() {
+		let text = "All values";
+		if(this.hasSelection()) {
+			text = this.formatWithSpaces(this.selections[0])+" – "+this.formatWithSpaces(this.selections[1])+(this.unit ? " "+this.unit : "");
+		}
+		this.renderRangeState(text, this.hasSelection());
 	}
 
 
@@ -300,13 +356,7 @@ class RangeFacet extends Facet {
 		if(this.selections.length < 2) {
 			return false;
 		}
-		if(typeof(this.selections[0]) == "undefined" || typeof(this.selections[1]) == "undefined") {
-			return false;
-		}
-		if(this.selections[0] != this.minDataValue || this.selections[1] != this.maxDataValue) {
-			return true;
-		}
-		return false;
+		return typeof(this.selections[0]) != "undefined" && typeof(this.selections[1]) != "undefined";
 	}
 	
 	/*
@@ -328,13 +378,9 @@ class RangeFacet extends Facet {
 			selections = this.getSelections();
 		}
 
-		if(this.hasSelection()) {
-			this.data = this.sqs.copyObject(this.datasets.filtered);
-		}
-		else {
-			this.data = this.sqs.copyObject(this.datasets.unfiltered);
-		}
-		
+		//The chart covers the whole extent whether or not there is a selection (see getChartWindow)
+		this.data = this.sqs.copyObject(this.datasets.unfiltered);
+
 		let categories = this.data;
 		/*
 		console.log(this.data);
@@ -356,6 +402,7 @@ class RangeFacet extends Facet {
 		else {
 			//this.updateSlider(categories, selections);
 		}
+		this.updateRangeState();
 	}
 
 	/*
@@ -616,7 +663,7 @@ class RangeFacet extends Facet {
 		}
 
 		this.slider = noUiSlider.create(sliderContainer, {
-			start: [this.sliderMin, this.sliderMax],
+			start: startDefault,
 			range: {
 				'min': this.sliderMin,
 				'max': this.sliderMax
@@ -643,8 +690,8 @@ class RangeFacet extends Facet {
         }
 
 
-		$("input", upperManualInputNode).val(this.sliderMax);
-        $("input", lowerManualInputNode).val(this.sliderMin);
+		$("input", upperManualInputNode).val(startDefault[1]);
+        $("input", lowerManualInputNode).val(startDefault[0]);
 
         $(".noUi-handle-upper", this.getDomRef()).prepend(upperManualInputNode);
         $(".noUi-handle-lower", this.getDomRef()).prepend(lowerManualInputNode);
@@ -962,8 +1009,9 @@ class RangeFacet extends Facet {
 
 		this.setSelections([highValue, lowValue]);
 
-		$(".noUi-handle-lower .range-facet-manual-input", this.getDomRef()).val(this.getSelections()[0]);
-		$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(this.getSelections()[1]);
+		let shown = this.hasSelection() ? this.getSelections() : [this.totalLower, this.totalUpper];
+		$(".noUi-handle-lower .range-facet-manual-input", this.getDomRef()).val(shown[0]);
+		$(".noUi-handle-upper .range-facet-manual-input", this.getDomRef()).val(shown[1]);
 
 		let categories = this.data;
 		//let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());
@@ -1023,11 +1071,20 @@ class RangeFacet extends Facet {
 			labels.push(labelLow+" - "+labelHigh);
 		}
 
+		//Bars outside a selection are greyed out, so the chart shows what is selected
+		let selections = this.getSelections();
+		let barColors = categories.map(category => {
+			if(selections.length == 2 && (category.max <= selections[0] || category.min >= selections[1])) {
+				return styles.paneBgColorDark;
+			}
+			return styles.baseColor;
+		});
+
 		let chartJsObject = {
 			labels: labels,
 			datasets: [{
 				data: dataset,
-				backgroundColor: styles.baseColor,
+				backgroundColor: barColors,
 				borderColor: styles.color3
 			}]
 		};
@@ -1065,12 +1122,7 @@ class RangeFacet extends Facet {
 	this.sqs.facetManager.updateAllFacetPositions();
 
 
-	if(this.hasSelection()) {
-		this.data = this.sqs.copyObject(this.datasets.filtered);
-	}
-	else {
-		this.data = this.sqs.copyObject(this.datasets.unfiltered);
-	}
+	this.data = this.sqs.copyObject(this.datasets.unfiltered);
 	
 	let categories = this.data;
 	//let categories = this.reduceResolutionOfDataset(this.data, this.getSelections());

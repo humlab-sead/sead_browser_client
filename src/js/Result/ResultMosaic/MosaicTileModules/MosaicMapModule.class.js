@@ -68,7 +68,7 @@ class MosaicMapModule extends MosaicTileModule {
 	}
 
     getAvailableExportFormats() {
-        return ["json", "csv", "geojson", "mapToImage"];
+        return ["json", "csv", "png", "geojson"];
     }
 
     formatDataForExport(data, format = "json") {
@@ -90,7 +90,7 @@ class MosaicMapModule extends MosaicTileModule {
                     }))
             };
         }
-        return data;
+        return super.formatDataForExport(data, format);
     }
 
 }

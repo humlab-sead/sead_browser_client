@@ -75,7 +75,17 @@ class ResultModule {
 	isVisible() {
 		return true;
 	}
-	
+
+	/*
+	* Function: getSiteCount
+	* How many sites the current result holds, or null when there is nothing to count yet.
+	* Each module keeps its result in a shape of its own, so each answers for itself; this
+	* default covers a module whose data is a plain list of sites.
+	*/
+	getSiteCount() {
+		return Array.isArray(this.data) ? this.data.length : null;
+	}
+
 	/*
 	* Function: setActive
 	*/

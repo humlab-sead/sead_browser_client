@@ -88,7 +88,15 @@ class ResultTable extends ResultModule {
 		this.data.columns = [];
 		this.data.rows = [];
 	}
-	
+
+	/*
+	* Function: getSiteCount
+	* One row per site
+	*/
+	getSiteCount() {
+		return this.data && Array.isArray(this.data.rows) ? this.data.rows.length : null;
+	}
+
 	/*
 	* Function: fetchData
 	*/

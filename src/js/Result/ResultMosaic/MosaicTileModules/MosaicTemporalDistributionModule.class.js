@@ -38,6 +38,7 @@ class MosaicTemporalDistributionModule extends MosaicTileModule {
             body: JSON.stringify(resultMosaic.sites)
         });
         let data = await response.json();
+        this.data = data.analysis_methods_datasets;
 
         let colors = this.sqs.color.getColorScheme(data.analysis_methods_datasets.length);
 
@@ -73,7 +74,9 @@ class MosaicTemporalDistributionModule extends MosaicTileModule {
         });
 
         this.sqs.setLoadingIndicator(this.renderIntoNode, false);
-        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false });
+        resultMosaic.renderPieChartPlotly(this.renderIntoNode, chartData, { showlegend: false }).then(plot => {
+            this.plot = plot;
+        });
         this.renderComplete = true;
     }
 

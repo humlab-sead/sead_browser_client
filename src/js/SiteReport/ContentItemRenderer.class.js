@@ -390,7 +390,7 @@ class ContentItemRenderer {
 			if(option.enabled !== false && option.showControls !== false) {
 				html += "<label class='site-report-view-selector-label' for=''>"+option.title+":</label>";
                 if(option.type == "select") {
-                    html += "<select renderOptionExtraKey='"+key+"' class='site-report-view-selector-control site-report-render-mode-selector sqs'>";
+                    html += "<select renderOptionExtraKey='"+key+"' aria-label='"+String(option.title).replace(/'/g, "&#39;")+"' class='site-report-view-selector-control site-report-render-mode-selector sqs'>";
                     for(let k2 in option.options) {
                         let selectedHtml = option.options[k2].selected ? "selected" : "";
 						let optionTitle = option.options[k2].title;
@@ -400,7 +400,7 @@ class ContentItemRenderer {
                 }
                 if(option.type == "multiselect") {
                     let size = Math.min(option.options.length, 6);
-                    html += "<select multiple size='"+size+"' renderOptionExtraKey='"+key+"' class='site-report-view-selector-control site-report-render-mode-selector sqs'>";
+                    html += "<select multiple size='"+size+"' renderOptionExtraKey='"+key+"' aria-label='"+String(option.title).replace(/'/g, "&#39;")+"' class='site-report-view-selector-control site-report-render-mode-selector sqs'>";
                     for(let k2 in option.options) {
                         let selectedHtml = option.options[k2].selected ? "selected" : "";
                         let optionTitle = option.options[k2].title;
@@ -409,7 +409,7 @@ class ContentItemRenderer {
                     html += "</select>";
                 }
                 if(option.type == "text") {
-                    html += "<input type='text' renderOptionExtraKey='"+key+"' class='site-report-view-selector-control site-report-render-mode-selector sqs' />";
+                    html += "<input type='text' renderOptionExtraKey='"+key+"' aria-label='"+String(option.title).replace(/'/g, "&#39;")+"' class='site-report-view-selector-control site-report-render-mode-selector sqs' />";
                 }
 
 			}

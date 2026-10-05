@@ -442,6 +442,13 @@ class ResultMosaic extends ResultModule {
 			}
 		}
 	}
+
+	/*
+	* Function: getSiteCount
+	*/
+	getSiteCount() {
+		return Array.isArray(this.sites) ? this.sites.length : null;
+	}
 	
 	/**
 	 * Function: render

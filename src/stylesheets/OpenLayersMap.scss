@@ -117,12 +117,19 @@
     font-size: 0.8em;
     color: #666;
     opacity: 0.7;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.45em;
+    margin-top: 2px;
+    min-width: 0;
+}
+
+.result-map-legend-layer-source {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    width: 100%;
-    display: block;
-    margin-top: 2px;
+    min-width: 0;
 }
 
 .result-map-legend-sublayer-title {
@@ -179,7 +186,24 @@
     border-radius: 50%;
 }
 
-.legend-item-close:hover {
+.legend-item-visibility {
+    position: relative;
+    top: 0px;
+    right: 0px;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    line-height: 14px;
+    font-size: 14px;
+    text-align: center;
+    background: transparent;
+    border: none;
+    color: #666;
+    border-radius: 50%;
+}
+
+.legend-item-close:hover,
+.legend-item-visibility:hover {
     color: #000;
     background-color: rgba(0,0,0,0.1);
 }
@@ -245,7 +269,7 @@
 .result-map-legend-item-controls {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 1px;
     flex-shrink: 0; /* Don't shrink the control buttons */
 }
 
@@ -256,8 +280,14 @@
 }
 
 .result-map-legend-item-close-control {
-    padding-left: 4px;
-    padding-right: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+    cursor: pointer;
+}
+
+.result-map-legend-item-visibility-control {
+    padding-left: 2px;
+    padding-right: 2px;
     cursor: pointer;
 }
 
@@ -265,35 +295,37 @@
     overflow: auto;
 }
 
-/* Zoom visibility indicators for aux layers */
-.layer-zoom-indicator {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px 4px;
-    margin-right: 4px;
-    border-radius: 3px;
-    font-size: 11px;
-    transition: all 0.2s ease;
-    cursor: help;
+.result-map-legend-item.legend-item-hidden {
+    opacity: 0.55;
 
-    &.zoom-visible {
-        color: #4caf50;
-        background-color: rgba(76, 175, 80, 0.1);
-        border: 1px solid rgba(76, 175, 80, 0.3);
+    .result-map-legend-sublayer-title,
+    .result-map-legend-layer-source {
+        color: #777;
+    }
+
+    .legend-item-visibility {
+        color: #999;
+    }
+}
+
+.layer-zoom-status {
+    display: none;
+    align-items: center;
+    gap: 0.3em;
+    flex-shrink: 0;
+    max-width: 100%;
+    color: #9a5b00;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+
+    i {
+        color: #ff9800;
     }
 
     &.zoom-hidden {
-        color: #ff9800;
-        background-color: rgba(255, 152, 0, 0.1);
-        border: 1px solid rgba(255, 152, 0, 0.3);
-        cursor: pointer; // Make it clear this is clickable
-        
-        &:hover {
-            background-color: rgba(255, 152, 0, 0.2);
-            border-color: rgba(255, 152, 0, 0.5);
-            transform: scale(1.05);
-        }
+        display: inline-flex;
+        cursor: pointer;
     }
 }
 
@@ -304,10 +336,6 @@
 /* Style adjustment for layers with zoom limitations */
 .result-map-legend-item.layer-zoom-limited {
     opacity: 0.7;
-    
-    .result-map-legend-sublayer-title {
-        color: #ff9800;
-    }
 }
 
 /* Ensure helper element maintains exact dimensions */

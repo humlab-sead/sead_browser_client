@@ -1041,6 +1041,26 @@ class QuickstartSearch {
     hideDropdown() {
         this.$dropdown.hide();
     }
+
+    /*
+    * Function: getState
+    * What the results dropdown is showing, or null while it is closed: the query, the tab
+    * that is open, and how many results each tab holds.
+    */
+    getState() {
+        if(this.$dropdown.length === 0 || !this.$dropdown.is(":visible")) {
+            return null;
+        }
+        const totals = {};
+        this.tabOrder.forEach((tabKey) => {
+            totals[tabKey] = this.getTabTotalFromState(this.getTabState(tabKey));
+        });
+        return {
+            query: this.currentSearchQuery,
+            activeTab: this.activeTab,
+            totals: totals
+        };
+    }
 }
 
 export { QuickstartSearch as default };

@@ -146,8 +146,12 @@ class ResultMap extends ResultModule {
 		// Clear the current legend content
 		$(".result-map-legend-content", this.renderIntoNode).html("");
 		
-		// Get all visible layers from the unified layers array
-		const visibleLayers = this.layers.filter(layer => layer.getVisible());
+		// Get all layers that should be represented in the legend. A layer can be
+		// hidden from the map while still being kept in the legend.
+		const visibleLayers = this.layers.filter(layer => {
+			const props = layer.getProperties();
+			return layer.getVisible() || props.legendVisible === true;
+		});
 		
 		// If no visible layers at all, hide the legend
 		if (visibleLayers.length === 0) {
@@ -181,6 +185,7 @@ class ResultMap extends ResultModule {
 					title: props.title,
 					subtitle: "[Data]",
 					zIndex: layer.getZIndex() || 0,
+					isVisible: layer.getVisible(),
 					canClose: true,
 					canExpand: true
 				});
@@ -193,6 +198,7 @@ class ResultMap extends ResultModule {
 					title: props.title,
 					subtitle: "[External data]",
 					zIndex: layer.getZIndex() || 0,
+					isVisible: layer.getVisible(),
 					canClose: true,
 					canExpand: true
 				});
@@ -209,6 +215,7 @@ class ResultMap extends ResultModule {
 					title: props.title,
 					subtitle: "[Base]",
 					zIndex: layer.getZIndex() || 0,
+					isVisible: layer.getVisible(),
 					canClose: !isLastBaseLayer,
 					canExpand: true
 				});
@@ -224,6 +231,7 @@ class ResultMap extends ResultModule {
 					title: props.title,
 					subtitle: `[${groupName}]`,
 					zIndex: layer.getZIndex() || 0,
+					isVisible: layer.getVisible(),
 					canClose: true,
 					canExpand: true
 				});
@@ -256,6 +264,7 @@ class ResultMap extends ResultModule {
 			title,
 			subtitle,
 			zIndex,
+			isVisible = true,
 			canClose = true,
 			canExpand = true
 		} = options;
@@ -267,22 +276,29 @@ class ResultMap extends ResultModule {
 			layerGroup ? `data-layer-group="${layerGroup}"` : ''
 		].filter(Boolean).join(' ');
 
-		// Add zoom indicator for aux layers
-		const zoomIndicator = layerType === 'aux' ? 
-			'<div class="layer-zoom-indicator zoom-visible" title="Layer visibility depends on zoom level"><i class="fa fa-search" aria-hidden="true"></i></div>' : '';
+		const zoomStatus = layerType === 'aux' ?
+			'<span class="layer-zoom-status layer-zoom-action zoom-visible" title="Layer visibility depends on zoom level" aria-hidden="true"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> Zoom level</span>' : '';
+		const visibilityTitle = isVisible ? "Hide layer" : "Show layer";
+		const visibilityIcon = isVisible ? "fa-eye" : "fa-eye-slash";
+		const visibilityStateClass = isVisible ? "legend-item-visible" : "legend-item-hidden";
 
 		return $(`
-			<div class="result-map-legend-item" ${dataAttributes}>
+			<div class="result-map-legend-item ${visibilityStateClass}" ${dataAttributes}>
 				<div class="result-map-legend-item-header">
 					<div class="result-map-legend-item-expand-control">
 						${canExpand ? '<div class="legend-item-expand" title="Expand/Collapse"><i class="fa fa-chevron-down" aria-hidden="true"></i></div>' : ''}
 					</div>
 					<div class="result-map-legend-item-info">
 						<div class="result-map-legend-sublayer-title">${title}</div>
-						<div class="result-map-legend-layer-type">${subtitle}</div>
+						<div class="result-map-legend-layer-type">
+							<span class="result-map-legend-layer-source">${subtitle}</span>
+							${zoomStatus}
+						</div>
 					</div>
 					<div class="result-map-legend-item-controls">
-						${zoomIndicator}
+						<div class="result-map-legend-item-visibility-control">
+							<div class="legend-item-visibility" title="${visibilityTitle}"><i class="fa ${visibilityIcon}" aria-hidden="true"></i></div>
+						</div>
 						<div class="result-map-legend-item-close-control">
 							${canClose ? '<div class="legend-item-close" title="Remove layer"><i class="fa fa-times" aria-hidden="true"></i></div>' : ''}
 						</div>
@@ -300,7 +316,7 @@ class ResultMap extends ResultModule {
 	bindLegendEventHandlers() {
 
 		// Handle zoom indicator clicks for aux layers
-		$(".layer-zoom-indicator", this.renderIntoNode).off("click").on("click", (evt) => {
+		$(".layer-zoom-action", this.renderIntoNode).off("click").on("click", (evt) => {
 			evt.stopPropagation();
 			const $legendItem = $(evt.target).closest(".result-map-legend-item");
 			const layerId = $legendItem.attr("data-layer-id");
@@ -311,7 +327,7 @@ class ResultMap extends ResultModule {
 			const props = layer.getProperties();
 			const maxScaleDenominator = props.maxScaleDenominator;
 			
-			if (maxScaleDenominator && $(evt.target).closest(".layer-zoom-indicator").hasClass("zoom-hidden")) {
+			if (maxScaleDenominator && $(evt.target).closest(".layer-zoom-action").hasClass("zoom-hidden")) {
 				// Calculate required zoom level to make layer visible
 				const metersPerUnit = this.olMap.getView().getProjection().getMetersPerUnit();
 				const requiredResolution = maxScaleDenominator / (metersPerUnit * (96 / 0.0254));
@@ -323,6 +339,21 @@ class ResultMap extends ResultModule {
 					duration: 500
 				});
 			}
+		});
+
+		// Handle visibility toggle buttons
+		$(".legend-item-visibility", this.renderIntoNode).off("click").on("click", (evt) => {
+			evt.stopPropagation();
+			const parentEl = $(evt.target).closest(".result-map-legend-item");
+			const layerId = parentEl.attr("data-layer-id");
+			const layer = this.layers.find(l => l.getProperties().layerId === layerId);
+
+			if (!layer) {
+				console.warn("Layer not found for visibility toggle:", layerId);
+				return;
+			}
+
+			this.setLegendLayerVisibility(layer, !layer.getVisible());
 		});
 
 		// Handle expand/collapse buttons
@@ -359,6 +390,10 @@ class ResultMap extends ResultModule {
 			}
 
 			const layerType = layer.getProperties().type;
+			layer.setProperties({
+				legendVisible: false,
+				legendHidden: false
+			});
 
 			switch(layerType) {
 				case "baseLayer":
@@ -374,7 +409,9 @@ class ResultMap extends ResultModule {
 					
 				case "dataLayer":
 					console.log("Deselecting data layer");
-					this.setMapDataLayer("none");
+					if(layer.getVisible()) {
+						this.setMapDataLayer("none");
+					}
 					break;
 
 				case "externalLayer":
@@ -392,6 +429,20 @@ class ResultMap extends ResultModule {
 			// Update the legend after changes
 			this.updateLegend();
 		});
+	}
+
+	setLegendLayerVisibility(layer, visible) {
+		layer.setVisible(visible);
+		layer.setProperties({
+			legendVisible: true,
+			legendHidden: !visible
+		});
+
+		if(visible) {
+			this.updateAllLayerZIndexes();
+		}
+		this.syncLayersToZIndex();
+		this.updateAuxLayerZoomIndicators();
 	}
 
 	loadLegendContent(legendItem) {
@@ -687,24 +738,27 @@ class ResultMap extends ResultModule {
 			if (!layer) return;
 
 			const isVisibleAtZoom = this.isAuxLayerVisibleAtCurrentZoom(layer);
-			const $zoomIndicator = $legendItem.find(".layer-zoom-indicator");
+			const $zoomStatus = $legendItem.find(".layer-zoom-status");
+			const $zoomActions = $legendItem.find(".layer-zoom-action");
 			
 			const props = layer.getProperties();
 			const maxScaleDenominator = props.maxScaleDenominator;
 
 			if (isVisibleAtZoom) {
-				$zoomIndicator.removeClass("zoom-hidden").addClass("zoom-visible");
-				$zoomIndicator.attr("title", "Layer is visible at current zoom level");
+				$zoomActions.removeClass("zoom-hidden").addClass("zoom-visible");
+				$zoomActions.attr("title", "Layer is visible at current zoom level");
+				$zoomStatus.attr("aria-hidden", "true");
 				$legendItem.removeClass("layer-zoom-limited");
 			} else {
-				$zoomIndicator.removeClass("zoom-visible").addClass("zoom-hidden");
+				$zoomActions.removeClass("zoom-visible").addClass("zoom-hidden");
+				$zoomStatus.attr("aria-hidden", "false");
 				if (maxScaleDenominator) {
 					const currentRes = this.olMap.getView().getResolution();
 					const metersPerUnit = this.olMap.getView().getProjection().getMetersPerUnit();
 					const currentScale = Math.round(currentRes * metersPerUnit * (96 / 0.0254));
-					$zoomIndicator.attr("title", `Zoom in further to see this layer (current scale: 1:${currentScale.toLocaleString()}, max scale: 1:${maxScaleDenominator.toLocaleString()}). Click to zoom.`);
+					$zoomActions.attr("title", `Zoom in further to see this layer (current scale: 1:${currentScale.toLocaleString()}, max scale: 1:${maxScaleDenominator.toLocaleString()}). Click to zoom.`);
 				} else {
-					$zoomIndicator.attr("title", "Zoom in further to see this layer. Click to zoom.");
+					$zoomActions.attr("title", "Zoom in further to see this layer. Click to zoom.");
 				}
 				$legendItem.addClass("layer-zoom-limited");
 			}
@@ -1532,10 +1586,18 @@ class ResultMap extends ResultModule {
 			console.warn("Base layer not found:", baseLayerId);
 		}
 		layer.setVisible(true);
+		layer.setProperties({
+			legendVisible: true,
+			legendHidden: false
+		});
 
 		this.layers.forEach((layer, index, array) => {
 			if(layer.getProperties().type == "baseLayer" && layer.getVisible() && layer.getProperties().layerId != baseLayerId) {
 				layer.setVisible(false); //Set to invisible while rendering and then when the function below will call the render function it will be set to visible again
+				layer.setProperties({
+					legendVisible: false,
+					legendHidden: false
+				});
 				this.removeLayer(layer.getProperties().layerId)
 			}
 		});
@@ -1549,6 +1611,10 @@ class ResultMap extends ResultModule {
 			console.log("Hiding all aux layers");
 			auxLayers.forEach((layer, index, array) => {
 				layer.setVisible(false);
+				layer.setProperties({
+					legendVisible: false,
+					legendHidden: false
+				});
 			});
 			this.unrenderAuxLayersPanel();
 		}
@@ -1557,6 +1623,10 @@ class ResultMap extends ResultModule {
 			if(layer.getProperties().layerId == auxLayerId) {
 				console.log("Setting aux layer "+auxLayerId+" visible");
 				layer.setVisible(true);
+				layer.setProperties({
+					legendVisible: true,
+					legendHidden: false
+				});
 			}
 		});
 
@@ -1574,6 +1644,10 @@ class ResultMap extends ResultModule {
 			if(layer.getProperties().layerId == auxLayerId) {
 				console.log("Setting aux layer "+auxLayerId+" invisible");
 				layer.setVisible(false);
+				layer.setProperties({
+					legendVisible: false,
+					legendHidden: false
+				});
 			}
 		});
 
@@ -1601,6 +1675,10 @@ class ResultMap extends ResultModule {
 
 		await this.ensureExternalLayerLoaded(externalLayer);
 		externalLayer.setVisible(true);
+		externalLayer.setProperties({
+			legendVisible: true,
+			legendHidden: false
+		});
 
 		this.updateAllLayerZIndexes();
 		this.syncLayersToZIndex();
@@ -1615,6 +1693,10 @@ class ResultMap extends ResultModule {
 		}
 
 		externalLayer.setVisible(false);
+		externalLayer.setProperties({
+			legendVisible: false,
+			legendHidden: false
+		});
 		this.syncLayersToZIndex();
 	}
 
@@ -1693,11 +1775,19 @@ class ResultMap extends ResultModule {
 		dataLayers.forEach((layer, index, array) => {
 			if(layer.getProperties().layerId == dataLayerId && layer.getVisible() == false) {
 				layer.setVisible(true);
+				layer.setProperties({
+					legendVisible: true,
+					legendHidden: false
+				});
 				console.log("Setting data layer "+dataLayerId+" visible");
 				layer.getProperties().renderCallback(this);
 			}
 			if(layer.getProperties().layerId != dataLayerId && layer.getVisible() == true) {
 				layer.setVisible(false);
+				layer.setProperties({
+					legendVisible: false,
+					legendHidden: false
+				});
 			}
 		});
 

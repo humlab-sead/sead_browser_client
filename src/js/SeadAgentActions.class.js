@@ -1083,11 +1083,8 @@ export default class SeadAgentActions {
     currentSiteCount() {
         try {
             let module = this.sqs.resultManager.getActiveModule();
-            if(module && Array.isArray(module.sites)) {
-                return module.sites.length;
-            }
-            if(module && Array.isArray(module.data)) {
-                return module.data.length;
+            if(module) {
+                return module.getSiteCount();
             }
         }
         catch(error) {

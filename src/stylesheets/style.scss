@@ -2282,7 +2282,9 @@ body.facet-resizing * {
   position: absolute;
   top: 3em;
   width: 100%;
-  height: calc(100% - 2em);
+  //14px short of the full height, so the slider can sit higher and leave room under it
+  //for the note on what a selection leaves out
+  height: calc(100% - 2em - 14px);
 }
 
 .droppable-dragover {
@@ -3216,7 +3218,7 @@ polyline{
   position: absolute;
   left: 0;
   bottom: 0;
-  margin-bottom: 10px;
+  margin-bottom: 24px;
 }
 
 .timeline-grid-container {
@@ -7692,16 +7694,41 @@ tr.site-report-table-row > td {
   background: transparent;
 }
 
+/* Three dots that rise in turn, in the agent's bubble while it works */
 #chatbox-loading-indicator {
-  display:inline-block;
-  position: relative;
-  top: 0em;
-  width: 3em;
-  height: 1em;
-  align-self: center;
-  background-image: url('../assets/loading-indicator8.svg');
-  background-repeat: no-repeat;
-  background-size: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 1.3em;
+  vertical-align: middle;
+}
+
+#chatbox-loading-indicator i {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: colors.$inactive-color;
+  opacity: 0.3;
+  animation: chatbox-typing 1.2s ease-in-out infinite;
+}
+
+#chatbox-loading-indicator i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+#chatbox-loading-indicator i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes chatbox-typing {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 0.85;
+    transform: translateY(-3px);
+  }
 }
 
 /* Brightened with a filter rather than by swapping the background, which would drop the
@@ -7798,21 +7825,36 @@ tr.site-report-table-row > td {
 
 #chatbox-input-controls {
   display: flex;
+  align-items: center;
+  gap: 0.45rem;
   width: 100%;
   flex: 0 0 auto;
+  box-sizing: border-box;
+  padding: 0.55rem 0.6rem;
+  border-top: 1px solid colors.$pane-bg-color;
+  background: #fff;
 }
 
+/* The send button: a round icon button at the end of the field */
 #chatbox-input-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
   border: none;
+  border-radius: 50%;
   background: colors.$base-color;
   color: #fff;
-  padding: 0 1.1em;
-  font-family: Rajdhani, sans-serif;
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.12s ease;
+}
+
+#chatbox-input-controls button:active:not(:disabled) {
+  transform: scale(0.92);
 }
 
 #chatbox-input-controls button:hover:not(:disabled) {
@@ -7821,25 +7863,31 @@ tr.site-report-table-row > td {
 
 #chatbox-input-controls button:disabled {
   background: colors.$pane-bg-color-dark;
-  color: #888;
+  color: #999;
   cursor: not-allowed;
 }
 
 #chatbox-input {
-  padding: 0.6em 0.7em;
-  border: none;
-  border-top: 1px solid colors.$pane-bg-color-dark;
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 2.1rem;
+  padding: 0 0.95em;
+  border: 1px solid colors.$pane-bg-color-dark;
+  border-radius: 1.05rem;
   font-family: $normal-font, sans-serif;
   font-size: 0.85rem;
   color: colors.$inactive-color;
-  width: 100%;
-  background: #fff;
+  background: color.scale(colors.$pane-bg-color, $lightness: 50%);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 #chatbox-input:focus {
   outline: none;
   /* Matches the send button rather than the browser default focus ring */
-  box-shadow: inset 0 2px 0 -1px colors.$base-color;
+  border-color: colors.$base-color;
+  background: #fff;
+  box-shadow: 0 0 0 3px color.adjust(colors.$base-color, $alpha: -0.85);
 }
 
 #chatbox-input::placeholder {
@@ -7848,6 +7896,7 @@ tr.site-report-table-row > td {
 
 #chatbox-input:disabled {
   background: colors.$pane-bg-color;
+  border-color: colors.$pane-bg-color;
   color: #999;
   cursor: not-allowed;
 }
@@ -7877,24 +7926,27 @@ tr.site-report-table-row > td {
   cursor: default;
 }
 
-/* The example questions under the greeting; clicking one sends it. */
+/* The example questions under the greeting; clicking one sends it. Wrapped as a row of
+ * chips rather than stacked one per line, so they don't push the input out of sight. */
 .sead-agent-examples {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 0.35rem;
-  margin: 0.25rem 0 0.75rem 0;
+  margin: 0.1rem 0 0.35rem 0;
 }
 
 .sead-agent-example {
   font: inherit;
+  font-size: 0.8rem;
   text-align: left;
   color: colors.$base-color;
-  background: none;
-  border: 1px solid color.adjust(colors.$base-color, $alpha: -0.6);
+  background: #fff;
+  border: 1px solid color.adjust(colors.$base-color, $alpha: -0.65);
   border-radius: 1rem;
-  padding: 0.2rem 0.75rem;
+  padding: 0.25rem 0.75rem;
   cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .sead-agent-example:hover:not(:disabled) {
@@ -7907,15 +7959,23 @@ tr.site-report-table-row > td {
   cursor: default;
 }
 
-/* A line recording something the agent did to the interface, rather than something it said. */
+/* A line recording something the agent did to the interface, rather than something it
+ * said - set apart from the bubbles as a small note, ticked off */
 .message.agent-action p {
-  font-style: italic;
-  opacity: 0.75;
-  margin: 0.15rem 0;
+  font-size: 0.78rem;
+  color: color.scale(colors.$inactive-color, $lightness: 35%);
+  margin: 0 0 0 0.35rem;
+}
+
+.message.agent-action .fa {
+  color: colors.$success-color;
+  margin-right: 0.25rem;
 }
 
 #chatbox-messages {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   /* flex child rather than height:100% - min-height:0 is what lets it scroll instead
    * of pushing the input controls out of the panel */
   flex: 1 1 auto;
@@ -7930,11 +7990,53 @@ tr.site-report-table-row > td {
   overflow-x: hidden;
 }
 
-#chatbox-messages .message p {
-  margin: 0 0 0.65rem 0;
+/* The agent's lines sit left, the user's right, each in a bubble */
+#chatbox-messages .message.from-agent,
+#chatbox-messages .message.agent-action {
+  align-self: flex-start;
+  max-width: 92%;
+}
+
+#chatbox-messages .message.from-user {
+  align-self: flex-end;
+  max-width: 85%;
+}
+
+#chatbox-messages .message-bubble {
+  position: relative;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.9rem;
   overflow-wrap: anywhere;
 }
 
+#chatbox-messages .from-agent .message-bubble {
+  background: color.scale(colors.$pane-bg-color, $lightness: 45%);
+  border: 1px solid colors.$pane-bg-color;
+  border-bottom-left-radius: 0.25rem;
+}
+
+#chatbox-messages .from-user .message-bubble {
+  background: colors.$base-color;
+  color: #fff;
+  border-bottom-right-radius: 0.25rem;
+}
+
+/* Who said it is in the markup for screen readers; the bubble shows it to everyone else */
+#chatbox-messages .message-sender {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+#chatbox-messages .message p {
+  margin: 0 0 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+
+#chatbox-messages .message-bubble > :last-child,
 #chatbox-messages .message:last-child p {
   margin-bottom: 0;
 }
@@ -7951,29 +8053,17 @@ tr.site-report-table-row > td {
 }
 
 #chatbox-messages code {
-  background: colors.$pane-bg-color;
+  background: rgba(0, 0, 0, 0.06);
   padding: 0.05em 0.3em;
   border-radius: 3px;
   font-size: 0.92em;
 }
 
 #chatbox-messages pre {
-  background: colors.$pane-bg-color;
+  background: rgba(0, 0, 0, 0.06);
   padding: 0.5rem;
   border-radius: 3px;
   overflow-x: auto;
-}
-
-.assistant-message {
-  color: colors.$base-color;
-  font-weight: 600;
-}
-
-/* The user's own lines stay neutral so the agent's replies are what the eye finds */
-.user-message {
-  color: colors.$inactive-color;
-  opacity: 0.75;
-  font-weight: 600;
 }
 
 #chatbox-header {
@@ -7981,36 +8071,105 @@ tr.site-report-table-row > td {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: colors.$pane-bg-color-dark;
-  border-bottom: 1px solid color.scale(colors.$pane-bg-color-dark, $lightness: -12%);
-  height: 1.9rem;
+  background: #fff;
+  border-bottom: 1px solid colors.$pane-bg-color;
   flex: 0 0 auto;
   cursor: move;
-  /* Leaves room for the resize grip in the corner it shares */
-  padding-left: 0.35rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+}
+
+#chatbox-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+/* The collapsed bubble in miniature, so the panel still reads as what it opened from */
+#chatbox-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.95rem;
+  background:
+    linear-gradient(145deg,
+      color.scale(colors.$aux-color, $lightness: 16%) 0%,
+      colors.$aux-color 55%,
+      color.scale(colors.$aux-color, $lightness: -14%) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30);
+}
+
+#chatbox-status {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: color.scale(colors.$inactive-color, $lightness: 40%);
+}
+
+#chatbox-status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: colors.$pane-bg-color-dark;
+}
+
+#chatbox-icon[data-state="ready"] #chatbox-status-dot {
+  background: colors.$success-color;
+}
+
+#chatbox-icon[data-state="loading"] #chatbox-status-dot {
+  background: colors.$aux-color;
+  animation: chatbox-status-pulse 1.2s ease-in-out infinite;
+}
+
+#chatbox-icon[data-state="disconnected"] #chatbox-status-dot {
+  background: colors.$error-color;
+}
+
+@keyframes chatbox-status-pulse {
+  50% {
+    opacity: 0.35;
+  }
 }
 
 #chatbox-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
   border: none;
+  border-radius: 50%;
+  background: transparent;
   color: colors.$inactive-color;
-  font-size: 0.9rem;
-  margin-right: 0.6em;
+  font-size: 0.85rem;
   cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
+  opacity: 0.6;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
 }
 
 #chatbox-close-btn:hover {
   opacity: 1;
+  background: colors.$pane-bg-color;
 }
 
 #chatbox-header h3 {
   font-family: Rajdhani, sans-serif;
-  font-size: 1.0rem;
+  font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+  line-height: 1.1;
   color: colors.$inactive-color;
-  margin-left: 0.5em;
+  margin: 0;
 }
 
 /* The expand is a large piece of motion in the corner of the eye; honour the opt-out. */
@@ -8022,5 +8181,11 @@ tr.site-report-table-row > td {
   #chatbox-icon.expanded #chatbox-inner-panel {
     transition-duration: 0.01ms;
     transition-delay: 0s;
+  }
+
+  #chatbox-loading-indicator i,
+  #chatbox-icon[data-state="loading"] #chatbox-status-dot {
+    animation: none;
+    opacity: 0.6;
   }
 }

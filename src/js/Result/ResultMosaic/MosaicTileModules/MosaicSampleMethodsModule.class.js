@@ -112,16 +112,12 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
     
     formatDataForExport(data, format = "json") {
         if(format == "csv") {
-            let includeColumns = ["description","method_abbrev_or_alt_name","method_name","sample_groups_count"];
-
-            //remove columns that we don't want to include
-            data = data.map((item) => {
-                let newItem = {};
-                includeColumns.forEach((column) => {
-                    newItem[column] = item[column];
-                });
-                return newItem;
-            });
+            data = data.map((item) => ({
+                description: item.description || item.method_meta?.description || "",
+                method_abbrev_or_alt_name: item.method_abbrev_or_alt_name || item.method_meta?.method_abbrev_or_alt_name || "",
+                method_name: item.method_name || item.method_meta?.method_name || "",
+                sample_groups_count: item.sample_groups_count
+            }));
         }
         if(format == "png") {
             let resultMosaic = this.sqs.resultManager.getModule("mosaic");

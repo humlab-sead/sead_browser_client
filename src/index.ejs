@@ -399,13 +399,19 @@
       <i class="fa fa-comment-o chat-icon" aria-hidden="true" title="Ask the SEAD Agent"></i>
       <div id="chatbox-inner-panel">
         <div id="chatbox-header">
-          <h3>SEAD Agent</h3>
-          <div id="chatbox-close-btn" class="fa fa-window-minimize"></div>
+          <div id="chatbox-title">
+            <span id="chatbox-avatar"><i class="fa fa-comment-o" aria-hidden="true"></i></span>
+            <div>
+              <h3>SEAD Agent</h3>
+              <div id="chatbox-status"><span id="chatbox-status-dot"></span><span id="chatbox-status-text"></span></div>
+            </div>
+          </div>
+          <button type="button" id="chatbox-close-btn" title="Minimise" aria-label="Minimise"><i class="fa fa-chevron-down" aria-hidden="true"></i></button>
         </div>
         <div id="chatbox-messages"></div>
         <div id="chatbox-input-controls">
-          <input id="chatbox-input" type="text" placeholder="Type your message here..." disabled />
-          <button id="chatbox-send-btn">Send</button>
+          <input id="chatbox-input" type="text" placeholder="Ask the SEAD agent..." disabled />
+          <button type="button" id="chatbox-send-btn" title="Send" aria-label="Send"><i class="fa fa-paper-plane" aria-hidden="true"></i></button>
         </div>
       </div>
     </div>
@@ -919,13 +925,13 @@
     </template>
 
     <fieldset id="site-report-render-options-template" class="site-report-toolbar-main">
-      <legend class="fa fa-cog site-report-toolbar-btn" aria-hidden="true">&nbsp;<span style="font-weight:bold;">Display
+      <legend class="fa fa-cog site-report-toolbar-btn" role="button">&nbsp;<span style="font-weight:bold;">Display
           options</span></legend>
 
       <div class="site-report-display-options-dropdown">
         <div class="site-report-render-options-container site-report-render-options-main-render-type">
           <label class="site-report-view-selector-label" for="">Display as:</label>
-          <select id="" class="site-report-view-selector-control site-report-render-mode-selector sqs"></select>
+          <select id="" class="site-report-view-selector-control site-report-render-mode-selector sqs" aria-label="Display as"></select>
         </div>
         <div class="site-report-render-options-container site-report-render-options-container-extras"></div>
       </div>

@@ -469,7 +469,7 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
     }
 
     getAvailableExportFormats() {
-        return ["json", "csv", "xlsx"];
+        return ["json", "csv", "xlsx", "png"];
     }
 
     formatDataForExport(data, format = "json") {

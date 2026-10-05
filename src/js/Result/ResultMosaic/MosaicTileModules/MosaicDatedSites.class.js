@@ -292,7 +292,7 @@ class MosaicDatedSitesModule extends MosaicTileModule {
   }
 
   getAvailableExportFormats() {
-    return ["json", "csv"];
+    return ["json", "csv", "png"];
   }
 
   formatDataForExport(data, format = "json") {

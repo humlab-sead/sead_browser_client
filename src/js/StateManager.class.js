@@ -539,7 +539,8 @@ class StateManager {
 			result: this.getResultSummary(),
 			siteReport: this.getSiteReportSummary(),
 			dialog: this.getDialogState(),
-			expandedMenus: this.getExpandedMenus()
+			expandedMenus: this.getExpandedMenus(),
+			quickSearch: this.attempt(() => this.sqs.quickstartSearch.getState(), null)
 		};
 	}
 
@@ -579,6 +580,10 @@ class StateManager {
 		}
 		if(state.dialog && state.dialog.open) {
 			summary.dialogOpen = state.dialog.title || true;
+		}
+		//The dropdown covers the top of the filter panel, so it matters as much as a dialog
+		if(state.quickSearch) {
+			summary.quickSearchOpen = state.quickSearch.query;
 		}
 
 		return summary;
@@ -674,13 +679,7 @@ class StateManager {
 	getResultSummary() {
 		return {
 			module: this.attempt(() => this.sqs.resultManager.getActiveModule().name, null),
-			siteCount: this.attempt(() => {
-				let module = this.sqs.resultManager.getActiveModule();
-				if(module && Array.isArray(module.sites)) {
-					return module.sites.length;
-				}
-				return Array.isArray(module.data) ? module.data.length : null;
-			}, null),
+			siteCount: this.attempt(() => this.sqs.resultManager.getActiveModule().getSiteCount(), null),
 			//The tiles actually on screen, read from the DOM.
 			//
 			//Not from resultMosaic.modules: that is the catalogue of every tile type that

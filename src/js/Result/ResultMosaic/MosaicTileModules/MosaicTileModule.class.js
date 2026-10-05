@@ -3,6 +3,8 @@ import { Parser } from '@json2csv/plainjs';
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import ExcelJS from 'exceljs/dist/exceljs.min.js';
+import Plotly from "plotly.js-dist-min";
+import Config from "../../../../config/config.json";
 
 class MosaicTileModule {
     constructor(sqs) {
@@ -264,7 +266,7 @@ class MosaicTileModule {
     }
 
     getAvailableExportFormats() {
-        return ["json", "csv"];
+        return ["json", "csv", "png"];
     }
 
     getExportImageTargetNode() {
@@ -275,6 +277,42 @@ class MosaicTileModule {
 
     sanitizeExportFilename(baseName = "chart") {
         return baseName.replace(/[^a-z0-9]/gi, "_").replace(/_+/g, "_").replace(/^_|_$/g, "").toLowerCase();
+    }
+
+    getExportFilenameBase() {
+        return this.sanitizeExportFilename(this.title || this.name || "chart");
+    }
+
+    normalizeRowsForCsv(data) {
+        const rows = Array.isArray(data) ? data : (data == null ? [] : [data]);
+        return rows.map(row => this.flattenObjectForExport(row));
+    }
+
+    flattenObjectForExport(value, prefix = "", output = {}) {
+        if(value == null || typeof value !== "object" || value instanceof Date) {
+            output[prefix || "value"] = value;
+            return output;
+        }
+
+        if(Array.isArray(value)) {
+            output[prefix || "value"] = value.every(item => item == null || typeof item !== "object")
+                ? value.join("|")
+                : JSON.stringify(value);
+            return output;
+        }
+
+        Object.keys(value).forEach(key => {
+            const exportKey = prefix ? `${prefix}_${key}` : key;
+            const item = value[key];
+            if(item != null && typeof item === "object" && !(item instanceof Date)) {
+                this.flattenObjectForExport(item, exportKey, output);
+            }
+            else {
+                output[exportKey] = item;
+            }
+        });
+
+        return output;
     }
 
     stripHtmlTags(text) {
@@ -399,6 +437,108 @@ class MosaicTileModule {
         }, "image/png");
     }
 
+    async exportImageAsPng() {
+        const filename = `sead_${this.getExportFilenameBase()}_chart`;
+
+        if(this.plot) {
+            const plot = typeof this.plot.then === "function" ? await this.plot : this.plot;
+            if(plot) {
+                await Plotly.downloadImage(plot, {
+                    format: "png",
+                    filename,
+                    scale: window.devicePixelRatio || 1
+                });
+                return true;
+            }
+        }
+
+        const plotlyNode = $(".js-plotly-plot", this.renderIntoNode)[0];
+        if(plotlyNode) {
+            await Plotly.downloadImage(plotlyNode, {
+                format: "png",
+                filename,
+                scale: window.devicePixelRatio || 1
+            });
+            return true;
+        }
+
+        if(this.chart && typeof this.chart.toBase64Image === "function") {
+            this.saveDataUrlAsFile(this.chart.toBase64Image(), `${filename}.png`);
+            return true;
+        }
+
+        if(this.chartType === "zingchart") {
+            const chartNodeId = this.getZingChartExportNodeId();
+            if(chartNodeId && typeof zingchart !== "undefined" && zingchart.exec) {
+                zingchart.exec(chartNodeId, "saveasimage", {
+                    filename,
+                    format: "png"
+                });
+                return true;
+            }
+        }
+
+        const mapCanvas = $(".ol-viewport canvas", this.renderIntoNode)[0];
+        if(mapCanvas) {
+            await this.saveCanvasAsPng(mapCanvas, `${filename}.png`);
+            return true;
+        }
+
+        const canvas = $("canvas", this.renderIntoNode)[0];
+        if(canvas) {
+            await this.saveCanvasAsPng(canvas, `${filename}.png`);
+            return true;
+        }
+
+        console.warn("No image export target found for " + this.name);
+        return false;
+    }
+
+    getZingChartExportNodeId() {
+        if(this.renderIntoNode) {
+            if(typeof this.renderIntoNode === "string") {
+                return this.renderIntoNode.replace(/^#/, "");
+            }
+            if(this.renderIntoNode.id) {
+                return this.renderIntoNode.id;
+            }
+        }
+        return null;
+    }
+
+    saveDataUrlAsFile(dataUrl, filename) {
+        const link = document.createElement("a");
+        link.download = filename;
+        link.href = dataUrl;
+        link.click();
+    }
+
+    saveCanvasAsPng(canvas, filename) {
+        return new Promise(resolve => {
+            try {
+                if(canvas.toBlob) {
+                    canvas.toBlob(blob => {
+                        if(blob) {
+                            saveAs(blob, filename);
+                        }
+                        else {
+                            this.saveDataUrlAsFile(canvas.toDataURL("image/png"), filename);
+                        }
+                        resolve();
+                    }, "image/png");
+                }
+                else {
+                    this.saveDataUrlAsFile(canvas.toDataURL("image/png"), filename);
+                    resolve();
+                }
+            }
+            catch(error) {
+                console.warn("Could not export canvas as PNG", error);
+                resolve();
+            }
+        });
+    }
+
     exportCallback() {
         let exportFormats = this.getAvailableExportFormats();
 
@@ -420,11 +560,6 @@ class MosaicTileModule {
         let pngButtonId = nanoid();
         if(exportFormats.includes("png")) {
             html += "<a id='"+pngButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart as image</a>";
-        }
-
-        let mapToImageButtonId = nanoid();
-        if(exportFormats.includes("mapToImage")) {
-            html += "<a id='"+mapToImageButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart as image</a>";
         }
 
         let geojsonButtonId = nanoid();
@@ -452,8 +587,7 @@ class MosaicTileModule {
                 const blob = new Blob([bytes], {
                     type: "application/json;charset=utf-8"
                 });
-                let filename = this.title.toLowerCase();
-                filename = filename.replace(" ", "_");
+                let filename = this.getExportFilenameBase();
                 saveAs(blob, "sead_"+filename+"_graph_data.json");
                 setTimeout(() => {
                     this.sqs.dialogManager.hidePopOver();
@@ -475,8 +609,7 @@ class MosaicTileModule {
                 const blob = new Blob([bytes], {
                     type: "application/csv;charset=utf-8"
                 });
-                let filename = this.title.toLowerCase();
-                filename = filename.replace(" ", "_");
+                let filename = this.getExportFilenameBase();
     
                 //create zip file since we can't include the metdata in the csv file
                 let zip = new JSZip();
@@ -499,8 +632,7 @@ class MosaicTileModule {
                     return;
                 }
 
-                let filename = this.title.toLowerCase();
-                filename = filename.replace(" ", "_");
+                let filename = this.getExportFilenameBase();
                 let data = this.formatDataForExport(this.data, "xlsx");
                 await this.exportDataAsXlsx(data, exportData, filename);
                 setTimeout(() => {
@@ -510,19 +642,14 @@ class MosaicTileModule {
         }
 
         if(exportFormats.includes("png")) {
-            $("#"+pngButtonId).on("click", () => {
-                let data = this.formatDataForExport(this.data, "png");
-            });
-        }
-
-        if (exportFormats.includes("mapToImage")) {
-            $("#" + mapToImageButtonId).on("click", async () => {
-                const canvas = $(".ol-viewport canvas", this.renderIntoNode)[0];
-                if (canvas) {
-                    canvas.toBlob(function(blob) {
-                        saveAs(blob, "sead_graph_data.png");
-                    }, 'image/png');
+            $("#"+pngButtonId).on("click", async () => {
+                const exported = await this.exportImageAsPng();
+                if(!exported) {
+                    this.formatDataForExport(this.data, "png");
                 }
+                setTimeout(() => {
+                    this.sqs.dialogManager.hidePopOver();
+                }, 1000);
             });
         }
 
@@ -531,7 +658,7 @@ class MosaicTileModule {
                 const geojson = this.formatDataForExport(this.data, "geojson");
                 const bytes = new TextEncoder().encode(JSON.stringify(geojson, null, 2));
                 const blob = new Blob([bytes], { type: "application/geo+json;charset=utf-8" });
-                let filename = this.title.toLowerCase().replace(/ /g, "_");
+                let filename = this.getExportFilenameBase();
                 saveAs(blob, "sead_" + filename + ".geojson");
                 setTimeout(() => {
                     this.sqs.dialogManager.hidePopOver();
@@ -597,6 +724,9 @@ class MosaicTileModule {
     }
 
     formatDataForExport(data, format = "json") {
+        if(format === "csv" || format === "xlsx") {
+            return this.normalizeRowsForCsv(data);
+        }
         return data;
     }
 }

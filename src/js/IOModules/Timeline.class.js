@@ -113,8 +113,11 @@ class Timeline extends Facet {
 			}
 		];
 
+        //The time scale is a zoom window, not a selection: the timeline starts out selecting
+        //nothing, like any other range filter, and only filters once it is narrowed
         let scale = this.getSelectedScale();
-        this.setSliderSelections([scale.older + this.bpDiff, scale.younger], false);
+        this.sliderMin = scale.older + this.bpDiff;
+        this.sliderMax = scale.younger;
 
         this.graphDataOptions = [
             new SEADQueryGraphDataOption(
@@ -767,8 +770,26 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         return displayTrace;
     }
 
+    /*
+    * Function: getWindow
+    * The span the timeline shows - the selected time scale - in the slider's value space.
+    * The chart and the slider both cover it, whatever is selected within it.
+    */
+    getWindow() {
+        return [this.sliderMin, this.sliderMax];
+    }
+
+    /*
+    * Function: getChartWindow
+    * The window in years BP, sent when the timeline fetches its own data so the bins match
+    * what is shown.
+    */
+    getChartWindow() {
+        return this.convertSliderSelectionsToBP(this.getWindow());
+    }
+
     getCurrentConventionalBPRange() {
-        let bpValues = this.convertSliderSelectionsToBP(this.selections);
+        let bpValues = this.convertSliderSelectionsToBP(this.getWindow());
         return {
             minX: Math.min(bpValues[0], bpValues[1]),
             maxX: Math.max(bpValues[0], bpValues[1])
@@ -776,17 +797,100 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
     }
 
     getGraphRange() {
+        let span = this.getWindow();
         let range = [];
         let datingSystem = this.getSelectedDatingSystem();
         if(datingSystem == "BP") {
-            range = [this.selections[0]*-1, this.selections[1]*-1];
+            range = [span[0]*-1, span[1]*-1];
         }
         else {
-            range[0] = this.convertBPtoADBC(this.selections[0]);
-            range[1] = this.convertBPtoADBC(this.selections[1]);
+            range[0] = this.convertBPtoADBC(span[0]);
+            range[1] = this.convertBPtoADBC(span[1]);
         }
 
         return range;
+    }
+
+    hasSelection() {
+        return this.selections.length == 2;
+    }
+
+    /*
+    * Function: positionHandles
+    * Puts the handles where the selection is, or at the ends of the window when there is no
+    * selection. Moving them this way changes nothing that is selected.
+    */
+    positionHandles() {
+        if(!this.slider) {
+            return;
+        }
+        let clamp = (value) => Math.min(Math.max(value, this.sliderMin), this.sliderMax);
+        let values = this.hasSelection()
+            ? [clamp(this.selections[0]), clamp(this.selections[1])]
+            : [this.sliderMin, this.sliderMax];
+        this.sliderUpdateCallback(values, true);
+    }
+
+    /*
+    * Function: commitSliderSelections
+    * Takes a range set with the handles or typed into them as the selection - unless it covers
+    * the widest time scale whole, which selects nothing more than no selection does.
+    */
+    commitSliderSelections(values) {
+        values = [parseFloat(values[0]), parseFloat(values[1])].sort((a, b) => a - b);
+        let widest = this.scaleDefinitions.reduce((wide, scale) => scale.older < wide.older ? scale : wide);
+        if(values[0] <= widest.older + this.bpDiff && values[1] >= widest.younger) {
+            this.clearSelection();
+            return;
+        }
+        this.setSliderSelections(values);
+        this.positionHandles();
+        this.updateRangeState();
+        this.updateAllTracesWithCurrentRange();
+    }
+
+    /*
+    * Function: clearSelection
+    * Back to selecting nothing, with the handles at the ends of the window, without closing
+    * the filter.
+    */
+    clearSelection() {
+        if(!this.hasSelection()) {
+            return;
+        }
+        this.selections = [];
+        this.positionHandles();
+        this.updateRangeState();
+        this.updateAllTracesWithCurrentRange();
+        this.sqs.facetManager.queueFacetDataFetch(this);
+        this.broadcastSelection();
+    }
+
+    /*
+    * Function: updateRangeState
+    * The header text and clear button, and the note under the slider saying what a selection
+    * leaves out.
+    */
+    updateRangeState() {
+        let datingSystem = this.getSelectedDatingSystem() || this.selectedDatingSystem;
+        let text = "All ages";
+        if(this.hasSelection()) {
+            text = this.formatValueForDisplay(this.selections[0], datingSystem, false, datingSystem == "AD/BC")
+                +" – "+this.formatValueForDisplay(this.selections[1], datingSystem, false, true);
+        }
+        this.renderRangeState(text, this.hasSelection());
+
+        let note = $(".timeline-selection-note", this.getDomRef());
+        if(note.length == 0) {
+            note = $("<div class='timeline-selection-note'></div>");
+            $(".timeline-grid-container", this.getDomRef()).append(note);
+        }
+        if(this.hasSelection()) {
+            note.text("Undated samples are not included.").show();
+        }
+        else {
+            note.hide();
+        }
     }
 
     updateGraph() {
@@ -986,6 +1090,9 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
                 // Add a new div for the trace with a delete button
                 this.updateLegend();
 
+                //Grey out what lies outside the selection, if there is one
+                this.updateAllTracesWithCurrentRange();
+
                 // --- FIX: Force x-axis range after adding trace ---
                 let range = this.getGraphRange();
                 if(this.plotlyLayout && this.plotlyLayout.xaxis) {
@@ -1119,6 +1226,25 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         return filteredTrace;
     }
 
+    /*
+    * Function: getBarColors
+    * The bars' colours: their own inside the selection, greyed out outside it, so the chart
+    * shows what is selected. All their own when nothing is.
+    */
+    getBarColors(trace, color) {
+        const selected = this.getSelections();
+        const widths = trace.width || [];
+        return trace.x.map((x, i) => {
+            if(selected.length == 2) {
+                const halfWidth = widths[i] ? Math.abs(widths[i]) / 2 : 0;
+                if(x + halfWidth <= selected[0] || x - halfWidth >= selected[1]) {
+                    return this.sqs.color.colors.paneBgColorDark;
+                }
+            }
+            return color;
+        });
+    }
+
     getChartTraceByName(traceName) {
         return this.chartTraces.find(trace => trace.trace.name === traceName);
     }
@@ -1143,12 +1269,16 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
             const displayTrace = this.getDisplayTrace(filteredTrace);
             
             // Update the displayed trace in Plotly
-            Plotly.restyle(this.timelineDomId, {
+            const update = {
                 x: [displayTrace.x],
                 y: [displayTrace.y],
                 text: displayTrace.text ? [displayTrace.text] : undefined,
                 width: displayTrace.width ? [displayTrace.width] : undefined,
-            }, [index]).catch((error) => {
+            };
+            if(chartTrace.trace.type == "bar") {
+                update["marker.color"] = [this.getBarColors(filteredTrace, chartTrace.trace.marker ? chartTrace.trace.marker.color : null)];
+            }
+            Plotly.restyle(this.timelineDomId, update, [index]).catch((error) => {
                 console.error(`Failed to update trace ${chartTrace.trace.name}:`, error);
             });
         });
@@ -1635,8 +1765,11 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         this.slider.on("update", (values, slider) => {
             this.sliderUpdateCallback(values);
         });
-        this.slider.on("change", (values, slider) => {
-            this.setSliderSelections([parseInt(values[0]), parseInt(values[1])]);
+        this.slider.on("change", (values, handle) => {
+            //Only the handle that was moved changes the selection
+            let next = this.hasSelection() ? [...this.selections] : this.getWindow();
+            next[handle] = parseInt(values[handle]);
+            this.commitSliderSelections(next);
         });
 
         $("#timeline-dating-system-selector").on("change", (e) => {
@@ -1673,6 +1806,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
         this.setSliderSelections(presetSelections, false);
         this.showSelectionsInSlider();
+        this.updateRangeState();
     }
 
     sliderManualInputCallback(evt) {
@@ -1746,7 +1880,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
                 value = this.currentValues[1] - 1;
             }
 
-            this.sliderUpdateCallback([value, this.currentValues[1]], true);
+            this.commitSliderSelections([value, this.hasSelection() ? this.selections[1] : this.currentValues[1]]);
         }
         if(tabIndex == 2) {
             //this is the upper value
@@ -1788,7 +1922,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
                 value = this.currentValues[0] + 1;
             }
 
-            this.sliderUpdateCallback([this.currentValues[0], value], true);
+            this.commitSliderSelections([this.hasSelection() ? this.selections[0] : this.currentValues[0], value]);
         }
     }
 
@@ -1918,28 +2052,13 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 			console.warn("WARN: Slider not initialized yet, cannot set scale");
 		}
 
-        if(this.currentValuesInitialized == false) {
-            console.warn("Current values not initialized at setSelectedScale, setting to slider range");
-            this.currentValues[0] = this.sliderMin;
-            this.currentValues[1] = this.sliderMax;
-        }
-        else {
-            // When changing scales, update currentValues to the full new range
-            // so that data is fetched for the entire new scale
-            this.currentValues[0] = this.sliderMin;
-            this.currentValues[1] = this.sliderMax;
-        }
-        
-
-		this.setSliderSelections(this.currentValues, triggerUpdate);
-
-        console.log("Setting slider values to", this.currentValues);
+        //Picking the scale itself selects nothing (see setSliderScale for what happens to a
+        //selection the new window cuts off)
+        this.positionHandles();
+        this.updateRangeState();
 
         if(triggerUpdate) {
-            // Trigger any updates or re-rendering needed for the slider
-            // Pass true to moveSlider to update the slider position
-            this.sliderUpdateCallback(this.currentValues, true);
-
+            //The chart's bins are for the window, so they have to be fetched again
             this.fetchData();
 
             // Update all existing traces with the new range filtered from their full data
@@ -2090,7 +2209,8 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
     * Sets the selections in years BP (see getSelections), as stored in viewstates or given by the agent.
     */
     setSelections(selections, triggerUpdate = true) {
-        if(selections.length != 2) {
+        if(!Array.isArray(selections) || selections.length != 2) {
+            this.clearSelection();
             return;
         }
 
@@ -2099,6 +2219,8 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         this.setSliderSelections([bpValues[1] * -1, bpValues[0] * -1], triggerUpdate);
 
         this.showSelectionsInSlider();
+        this.updateRangeState();
+        this.updateAllTracesWithCurrentRange();
     }
 
     /*
@@ -2107,6 +2229,10 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
     */
     showSelectionsInSlider() {
         if(!this.slider) {
+            return;
+        }
+        if(!this.hasSelection()) {
+            this.positionHandles();
             return;
         }
 
@@ -2127,9 +2253,11 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
                     'max': this.sliderMax,
                 }
             });
+            //The chart's bins are for the window, which just changed
+            this.sqs.facetManager.queueFacetDataFetch(this);
         }
 
-        this.sliderUpdateCallback([...this.selections], true);
+        this.positionHandles();
         if(this.timelineDomId) {
             this.updateGraph();
         }
@@ -2212,9 +2340,31 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 		}
 	}
 
+    /*
+    * Function: setSliderScale
+    * The user picking a time scale. The handles follow the zoom: a selection reaching beyond
+    * the new window is narrowed to it, and one lying wholly outside it is cleared, so what the
+    * handles show is always what is selected.
+    */
     setSliderScale(scale) {
 		this.selectedScale = scale.id;
+        let windowMin = scale.older + this.bpDiff;
+        let windowMax = scale.younger;
+        let narrowed = null;
+        if(this.hasSelection() && (this.selections[0] < windowMin || this.selections[1] > windowMax)) {
+            narrowed = [Math.max(this.selections[0], windowMin), Math.min(this.selections[1], windowMax)];
+        }
+
 		this.setSelectedScale(scale);
+
+        if(narrowed) {
+            if(narrowed[0] >= narrowed[1]) {
+                this.clearSelection();
+            }
+            else {
+                this.commitSliderSelections(narrowed);
+            }
+        }
 	}
 
     destroy() {
@@ -2346,7 +2496,7 @@ class GISP2GraphDataOption extends GraphDataOption {
             // Fetch the maximum possible range
             bpValues = [-10000000, 10000000];
         } else {
-            bpValues = this.timeline.convertSliderSelectionsToBP(this.timeline.selections);
+            bpValues = this.timeline.convertSliderSelectionsToBP(this.timeline.getWindow());
         }
         
         const series = await fetcher.fetchSeriesData(
@@ -2404,7 +2554,7 @@ class LR04GraphDataOption extends GraphDataOption {
                 filtered = json.data;
             } else {
                 // Filter data by slider range
-                let bpValues = this.timeline.convertSliderSelectionsToBP(this.timeline.selections);
+                let bpValues = this.timeline.convertSliderSelectionsToBP(this.timeline.getWindow());
                 // time_ka is in thousands of years before present, so convert BP to ka for filtering
                 let minKa = Math.min(bpValues[0], bpValues[1]) / 1000;
                 let maxKa = Math.max(bpValues[0], bpValues[1]) / 1000;
@@ -2444,8 +2594,8 @@ class SEADQueryGraphDataOption extends GraphDataOption {
     }
 
     async fetchData(fetchFullRange = false) {
-        // The timeline always sends its window as picks, so the bins land in "filtered" at a resolution
-        // matching the window - the same data a range filter renders when it has a selection.
+        // The timeline sends its window (not its selection) when it fetches its own data, so the bins
+        // land in "filtered" at a resolution matching the window.
         const dataset = this.timeline.datasets.filtered.length > 0
             ? this.timeline.datasets.filtered
             : this.timeline.datasets.unfiltered;
@@ -2540,7 +2690,7 @@ class Spratt2016GraphDataOption extends GraphDataOption {
                 filtered = data;
             } else {
                 // Get BP values from slider
-                let bpValues = this.timeline.convertSliderSelectionsToBP(this.timeline.selections);
+                let bpValues = this.timeline.convertSliderSelectionsToBP(this.timeline.getWindow());
                 // age_calkaBP is in kiloyears, so convert BP to ka for filtering
                 let minKa = Math.min(bpValues[0], bpValues[1]) / 1000;
                 let maxKa = Math.max(bpValues[0], bpValues[1]) / 1000;

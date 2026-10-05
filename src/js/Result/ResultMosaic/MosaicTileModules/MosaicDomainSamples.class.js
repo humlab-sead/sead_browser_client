@@ -194,6 +194,31 @@ class MosaicDomainSamples extends MosaicTileModule {
         if (format == "png") {
             Plotly.downloadImage(this.plot, { format: 'png', filename: 'sead_domain_samples_chart', scale: window.devicePixelRatio || 1 });
         }
+        if (format == "csv") {
+            const rows = [];
+            (data?.domains || []).forEach(domain => {
+                const methodCounts = Array.isArray(domain.method_counts) ? domain.method_counts : [];
+                if(methodCounts.length === 0) {
+                    rows.push({
+                        domain: domain.display_title || domain.facet_code || "Unknown",
+                        facet_code: domain.facet_code || "",
+                        method_id: "",
+                        method_name: "",
+                        sample_count: 0
+                    });
+                }
+                methodCounts.forEach(method => {
+                    rows.push({
+                        domain: domain.display_title || domain.facet_code || "Unknown",
+                        facet_code: domain.facet_code || "",
+                        method_id: method.method_id,
+                        method_name: method.method_name || "",
+                        sample_count: method.sample_count
+                    });
+                });
+            });
+            return rows;
+        }
         return data;
     }
 }

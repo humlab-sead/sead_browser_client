@@ -429,7 +429,10 @@ class Facet {
 		var fc = this.sqs.facetManager.facetStateToDEF(fs, {
 			requestType: requestType,
 			targetCode: targetCode,
-			triggerCode: triggerCode
+			triggerCode: triggerCode,
+			//This facet's own data, as opposed to a result load, which names a facet as its
+			//target too
+			chartFor: this.name
 		});
 
 		let domainCode = this.sqs.domainManager.getActiveDomain().name;
@@ -597,6 +600,41 @@ class Facet {
 		}
 
 		return multistageSelectionsExists;
+	}
+
+	/*
+	* Function: renderRangeState
+	* For a range filter: says in the header what it selects - everything, until it is
+	* narrowed, and then the range - with a button that clears the selection without closing
+	* the filter. Marks the facet as narrowed or not as well, which is what the slider and
+	* the chart take their look from.
+	*
+	* A range filter with no selection and one selecting its whole span look the same on the
+	* slider, but only the second restricts the result (to samples which have a value at
+	* all), so the difference has to be said somewhere.
+	*/
+	renderRangeState(text, narrowed) {
+		let node = $(".facet-range-state", this.getDomRef());
+		if(node.length == 0) {
+			node = $("<div class='facet-range-state'><span class='facet-range-state-text'></span>"
+				+"<span class='facet-range-state-clear' role='button' aria-label='Clear selection' title='Clear selection'>"
+				+"<i class='fa fa-times-circle' aria-hidden='true'></i></span></div>");
+			$(".facet-range-state-clear", node).on("click", (evt) => {
+				evt.stopPropagation();
+				this.clearSelection();
+			});
+			$(".facet-header", this.getDomRef()).append(node);
+		}
+		$(".facet-range-state-text", node).text(text);
+		$(".facet-range-state-clear", node).toggle(narrowed);
+		$(this.getDomRef()).toggleClass("facet-range-narrowed", narrowed);
+	}
+
+	/*
+	* Function: clearSelection
+	* Virtual. Drops the selection but keeps the filter open.
+	*/
+	clearSelection() {
 	}
 
 	lock(locked = true) {

@@ -154,6 +154,47 @@ div.noUi-connects > div.noUi-connect {
 div.noUi-connects {
 	width: calc(100% + 1px) !important; //don't ask me why this is needed - but we get a 1 px white gap on the right side of the slider without this
 }
+//What a range filter selects, in its header: "All values" until it is narrowed, then the
+//range, with a button that clears it
+.facet-range-state {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	font-size: 0.9em;
+	color: rgba(255, 255, 255, 0.85);
+	white-space: nowrap;
+	max-width: 45%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.facet-range-state-clear {
+	margin-left: 0.4em;
+	cursor: pointer;
+	opacity: 0.8;
+}
+
+.facet-range-state-clear:hover {
+	opacity: 1;
+}
+
+//Untouched, the band between the handles is neutral: it is only orange while it selects something
+.facet:not(.facet-range-narrowed) div.noUi-connects > div.noUi-connect {
+	background: colors.$pane-bg-color-dark !important;
+}
+
+.timeline-selection-note {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0.3em;
+	text-align: center;
+	font-size: 0.95em;
+	font-style: italic;
+	color: colors.$inactive-color-light;
+	pointer-events: none;
+}
 
 //Linear/log switch for the chart's y-axis, above the bars and right-aligned with them (see alignToChartArea)
 .range-chart-scale-toggle {

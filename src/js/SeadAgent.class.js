@@ -33,6 +33,12 @@ export default class SeadAgent {
         "What is the difference between a sample group and a sample?"
     ];
 
+    static STATE_LABELS = {
+        ready: "Ready",
+        loading: "Working\u2026",
+        disconnected: "Unavailable"
+    };
+
     static SHORTCUT_PREFIX = "#sead-action/";
     static SHORTCUT_COMMANDS = ["set_result_view", "set_domain", "add_filter", "set_filter_selections", "remove_filter", "clear_filters",
                                 "open_site_report", "close_site_report", "set_site_report_section", "set_site_report_rows",
@@ -96,7 +102,7 @@ export default class SeadAgent {
 
     /*
     * Function: toggleDebug
-    * Dev mode (shift+D) makes the chatbox available even when it isn't enabled in the config.
+    * Dev mode (shift+D) makes the chatbox available while the agent is kept as a dev-only feature.
     */
     toggleDebug() {
         this.debugMode = !this.debugMode;
@@ -106,10 +112,11 @@ export default class SeadAgent {
 
     /*
     * Function: updateChatboxVisibility
-    * The chatbox icon is shown if the agent is enabled in the config, or if dev mode is active.
+    * The chatbox icon is dev-gated for now: the config can still provide the endpoint, but
+    * the launcher is hidden until shift+D toggles debug mode on.
     */
     updateChatboxVisibility() {
-        if(this.sqs.config.seadAgentEnabled || this.debugMode) {
+        if(this.debugMode) {
             $("#chatbox-icon").css("display", "flex");
         }
         else {
@@ -139,8 +146,8 @@ export default class SeadAgent {
         }
         this.setState("loading");
 
-        $("#chatbox-messages").append(`<div class="message"><p><span class="user-message">You:</span> ${this.escapeHtml(message)}</p></div>`);
-        $("#chatbox-messages").append(`<div class="message"><p><span class="assistant-message">SEAD agent:</span><span id="chatbox-loading-indicator"></span></p></div>`);
+        $("#chatbox-messages").append(this.messageHtml("user", this.escapeHtml(message)));
+        $("#chatbox-messages").append(this.messageHtml("agent", `<span id="chatbox-loading-indicator" role="status" aria-label="The SEAD agent is working"><i></i><i></i><i></i></span>`));
         this.scrollToLatestMessage();
 
         try {
@@ -244,7 +251,7 @@ export default class SeadAgent {
     renderActionNotice(action, result) {
         let description = this.describeAction(action, result);
         //Goes above the pending reply, so the record reads in the order things happened
-        $("#chatbox-loading-indicator").parent().before(`<div class="message agent-action"><p>${this.escapeHtml(description)}</p></div>`);
+        $("#chatbox-loading-indicator").closest(".message").before(this.actionNoticeHtml(description));
         this.scrollToLatestMessage();
     }
 
@@ -393,8 +400,23 @@ export default class SeadAgent {
     }
 
     appendActionNotice(description) {
-        $("#chatbox-messages").append(`<div class="message agent-action"><p>${this.escapeHtml(description)}</p></div>`);
+        $("#chatbox-messages").append(this.actionNoticeHtml(description));
         this.scrollToLatestMessage();
+    }
+
+    /*
+    * Function: messageHtml
+    * One line of the conversation, as a bubble - the user's on the right, the agent's on
+    * the left. The sender's name stays in the markup for screen readers, but it is the
+    * bubble's side and colour that tell a sighted user who said it.
+    */
+    messageHtml(sender, content) {
+        let label = sender == "user" ? "You:" : "SEAD agent:";
+        return `<div class="message from-${sender}"><div class="message-bubble"><span class="message-sender">${label}</span> ${content}</div></div>`;
+    }
+
+    actionNoticeHtml(description) {
+        return `<div class="message agent-action"><p><i class="fa fa-check" aria-hidden="true"></i> ${this.escapeHtml(description)}</p></div>`;
     }
 
     /*
@@ -511,11 +533,11 @@ export default class SeadAgent {
             //Replace the pending reply this message was awaited as
             targetMessageLine = indicator.parent();
             indicator.remove();
-            targetMessageLine.html(`<span class="assistant-message">SEAD agent:</span> ${content}`);
+            targetMessageLine.html(`<span class="message-sender">SEAD agent:</span> ${content}`);
         }
         else {
             //Nothing was pending - the greeting, say - so start a line of its own
-            $("#chatbox-messages").append(`<div class="message"><p><span class="assistant-message">SEAD agent:</span> ${content}</p></div>`);
+            $("#chatbox-messages").append(this.messageHtml("agent", content));
             targetMessageLine = $("#chatbox-messages .message").last();
         }
 
@@ -525,8 +547,8 @@ export default class SeadAgent {
 
     /*
     * Function: stripSingleParagraphWrapper
-    * Keeps one-paragraph replies on the same line as the "SEAD agent:" label, but leaves
-    * multi-block markdown (lists, code, several paragraphs) intact.
+    * Keeps a one-paragraph reply from carrying a paragraph's margin into its bubble, but
+    * leaves multi-block markdown (lists, code, several paragraphs) intact.
     */
     stripSingleParagraphWrapper(html) {
         let trimmed = html.trim();
@@ -779,6 +801,10 @@ export default class SeadAgent {
         $("#chatbox-input").prop("disabled", state != "ready");
         $("#chatbox-send-btn").prop("disabled", state != "ready");
         $(".sead-agent-example").prop("disabled", state != "ready");
+        //Shown under the title in the header; the dot's colour is the stylesheet's, keyed
+        //off the same attribute
+        $("#chatbox-icon").attr("data-state", state);
+        $("#chatbox-status-text").text(SeadAgent.STATE_LABELS[state] || "");
     }
 
     /*
@@ -865,7 +891,7 @@ export default class SeadAgent {
     */
     reportUnavailable(message) {
         this.setState("disconnected");
-        $("#chatbox-messages").append(`<div class="message"><p><span class="assistant-message">SEAD agent:</span> ${this.escapeHtml(message)}</p></div>`);
+        $("#chatbox-messages").append(this.messageHtml("agent", this.escapeHtml(message)));
         this.scrollToLatestMessage();
     }
 

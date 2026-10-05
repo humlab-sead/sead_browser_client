@@ -1176,7 +1176,7 @@ class FacetManager {
 	* 
 	* Parameters:
 	* facetState - The internal facetState structure.
-	* requestInfo - Object containing requestType, targetCode and triggerCode, since the request packet needs to be shaped according to these.
+	* requestInfo - Object containing requestType, targetCode and triggerCode, since the request packet needs to be shaped according to these, and chartFor when a facet is fetching its own data.
 	* 
 	* Returns:
 	* The facetState structure in DEF format (json object).
@@ -1228,18 +1228,28 @@ class FacetManager {
 			* in the server generating different categories and thus messing up any viewstate we may be using since the selections in that viewstate
 			* may not map up to the existing categories.
 			*/
-			//if(facetState[key].type == "range" && facetState[key].selections.length == 2 && requestInfo.targetCode != facetState[key].name) {
-			if((facetState[key].type == "range" || facetState[key].type == "rangesintersect")  && facetState[key].selections.length == 2) {
-				picks.push({
-					pickType: 2, //0 = ukn, 1 = discrete, 2 = lower, 3 = upper
-					pickValue: facetState[key].selections[0],
-					text: facetState[key].selections[0]
-				});
-				picks.push({
-					pickType: 3, //0 = ukn, 1 = discrete, 2 = lower, 3 = upper
-					pickValue: facetState[key].selections[1],
-					text: facetState[key].selections[1]
-				});
+			if(facetState[key].type == "range" || facetState[key].type == "rangesintersect") {
+				//A range filter asking for its own chart sends the span the chart covers rather
+				//than its selection: the whole extent, or the timeline's zoom window. Every
+				//other request gets the selection, and only once there is one - a range sent
+				//for an untouched filter would still drop the samples that have no value.
+				let range = facetState[key].selections;
+				if(requestInfo && requestInfo.chartFor == facetState[key].name) {
+					let facet = this.getFacetByName(facetState[key].name);
+					range = facet && typeof facet.getChartWindow == "function" ? facet.getChartWindow() : [];
+				}
+				if(Array.isArray(range) && range.length == 2) {
+					picks.push({
+						pickType: 2, //0 = ukn, 1 = discrete, 2 = lower, 3 = upper
+						pickValue: range[0],
+						text: range[0]
+					});
+					picks.push({
+						pickType: 3, //0 = ukn, 1 = discrete, 2 = lower, 3 = upper
+						pickValue: range[1],
+						text: range[1]
+					});
+				}
 			}
 
 			let facetConfig = {
