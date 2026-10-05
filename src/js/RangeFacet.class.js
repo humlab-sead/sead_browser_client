@@ -3,7 +3,7 @@ import noUiSlider from "nouislider";
 import "nouislider/dist/nouislider.min.css";
 
 import styles from '../stylesheets/style.scss'
-import { Chart, CategoryScale, LinearScale, BarController, BarElement } from "chart.js";
+import { Chart, CategoryScale, LinearScale, LogarithmicScale, BarController, BarElement } from "chart.js";
 /*
 Works like this:
 
@@ -56,8 +56,13 @@ class RangeFacet extends Facet {
 	//this.numberOfCategories = 50; //Number of categories (bars) we want to abstract dataset
 	$(".facet-text-search-btn", this.getDomRef()).hide(); //range facets do not have text searching...
 
+	//A few tall bars can flatten all the others, so the y-axis can be made logarithmic - remembered per filter
+	let userSettings = this.sqs.getUserSettings() || {};
+	this.logScale = userSettings.rangeFacetLogScale ? userSettings.rangeFacetLogScale[this.name] === true : false;
+
 	Chart.register(CategoryScale);
 	Chart.register(LinearScale);
+	Chart.register(LogarithmicScale);
 	Chart.register(BarController);
 	Chart.register(BarElement);
 
@@ -403,8 +408,8 @@ class RangeFacet extends Facet {
 				padding: {
 					left: 0,
 					right: 50,
-					top: 0,
-					bottom: 10
+					top: 24, //room for the linear/log switch above the bars
+					bottom: 20 //room for the slider's value boxes below the bars, which would otherwise cover the first and last bar
 				}
 			},
 			tooltips: {
@@ -419,15 +424,7 @@ class RangeFacet extends Facet {
 						display: false  // This will hide the x-axis labels
 					}
 				},
-				y: {
-					title: {
-						display: true,
-						text: 'Data points',
-						font: {
-							size: 14
-						}
-					}
-				}
+				y: this.getYScaleOptions()
 			}
 		};
 
@@ -435,8 +432,146 @@ class RangeFacet extends Facet {
 		this.chart = new Chart(ctx, {
 			type: "bar",
 			data: JSON.parse(JSON.stringify(chartJSDatasets)), //need a copy here - not a reference
-			options: this.chartJSOptions
+			options: this.chartJSOptions,
+			plugins: [{
+				id: "rangeFacetAlignment",
+				afterLayout: (chart) => this.alignToChartArea(chart)
+			}]
 		});
+
+		this.renderLogScaleToggle();
+	}
+
+	/*
+	 * Function: alignToChartArea
+	 *
+	 * Lines the slider up with the bars, so its ends are the ends of the first and last bar. Where the bars
+	 * start depends on how wide the y-axis labels are, so this is redone whenever the chart is laid out.
+	 * The linear/log switch is right-aligned with the bars too.
+	 */
+	alignToChartArea(chart) {
+		let canvas = chart.canvas;
+		let sliderWrapper = $(".rangeslider-container-wrapper", this.getDomRef())[0];
+		if(!canvas || !sliderWrapper || !chart.chartArea || canvas.offsetWidth == 0 || sliderWrapper.offsetWidth == 0) {
+			return; //hidden, as when minimized - nothing to measure
+		}
+
+		let canvasRect = canvas.getBoundingClientRect();
+		let wrapperRect = sliderWrapper.getBoundingClientRect();
+		let left = canvasRect.left - wrapperRect.left + chart.chartArea.left;
+		let right = wrapperRect.right - canvasRect.left - chart.chartArea.right;
+
+		$(".rangeslider-container", this.getDomRef()).css({
+			"margin-left": left+"px",
+			"margin-right": right+"px"
+		});
+		$(".range-chart-scale-toggle", this.getDomRef()).css("right", (chart.width - chart.chartArea.right)+"px");
+	}
+
+	/*
+	 * Function: getYScaleOptions
+	 *
+	 * The y-axis, linear or logarithmic. On the logarithmic one the axis starts at 0.5, so a bar
+	 * of 1 still shows as a sliver (starting at 1 it would have no height at all), while a bar
+	 * of 0 is not drawn. Only the powers of ten are labelled - 1, 10, 100, 1k.
+	 */
+	getYScaleOptions() {
+		let title = {
+			display: true,
+			text: this.logScale ? 'Data points (log)' : 'Data points',
+			font: {
+				size: 14
+			}
+		};
+
+		if(!this.logScale) {
+			return {
+				type: 'linear',
+				title: title
+			};
+		}
+
+		return {
+			type: 'logarithmic',
+			min: 0.5,
+			title: title,
+			ticks: {
+				autoSkip: false, //the unlabelled ticks are hidden by the callback, skipping could drop a labelled one instead
+				callback: (value) => {
+					let exponent = Math.round(Math.log10(value));
+					if(exponent < 0 || Math.abs(value - Math.pow(10, exponent)) > 1e-9 * value) {
+						return null;
+					}
+					return this.formatLogTick(Math.pow(10, exponent));
+				}
+			}
+		};
+	}
+
+	formatLogTick(value) {
+		if(value >= 1000000) {
+			return (value / 1000000)+"M";
+		}
+		if(value >= 1000) {
+			return (value / 1000)+"k";
+		}
+		return value.toString();
+	}
+
+	/*
+	 * Function: renderLogScaleToggle
+	 *
+	 * The switch above the chart which makes the y-axis linear or logarithmic.
+	 */
+	renderLogScaleToggle() {
+		let chartContainerNode = $(".chart-canvas-container", this.getDomRef());
+		let toggle = $(".range-chart-scale-toggle", chartContainerNode);
+		if(toggle.length == 0) {
+			toggle = $("<div class='range-chart-scale-toggle' role='group' aria-label='Y-axis scale'>"
+				+"<button type='button' class='range-chart-scale-btn' data-scale='linear'>Linear</button>"
+				+"<button type='button' class='range-chart-scale-btn' data-scale='log'>Log</button>"
+				+"</div>");
+			$(".range-chart-scale-btn", toggle).on("click", (evt) => {
+				evt.stopPropagation();
+				let logScale = $(evt.currentTarget).attr("data-scale") == "log";
+				if(logScale != this.logScale) {
+					this.setLogScale(logScale);
+				}
+			});
+			chartContainerNode.append(toggle);
+			this.sqs.tooltipManager.registerTooltip(toggle, "Y-axis scale. A logarithmic one makes small bars next to tall ones visible.");
+		}
+		$(".range-chart-scale-btn", toggle).each((i, btn) => {
+			let active = ($(btn).attr("data-scale") == "log") == this.logScale;
+			$(btn).toggleClass("range-chart-scale-btn-active", active).attr("aria-pressed", active ? "true" : "false");
+		});
+	}
+
+	/*
+	 * Function: setLogScale
+	 *
+	 * Switches the y-axis between linear and logarithmic, and remembers the choice for this filter.
+	 */
+	setLogScale(on) {
+		this.logScale = on;
+
+		let userSettings = this.sqs.getUserSettings() || {};
+		let logScaleFacets = userSettings.rangeFacetLogScale || {};
+		if(on) {
+			logScaleFacets[this.name] = true;
+		}
+		else {
+			delete logScaleFacets[this.name];
+		}
+		this.sqs.storeUserSettings({
+			rangeFacetLogScale: logScaleFacets
+		});
+
+		if(this.chart) {
+			this.chart.options.scales.y = this.getYScaleOptions();
+			this.chart.update();
+		}
+		this.renderLogScaleToggle();
 	}
 
 	formatWithSpaces(number) {

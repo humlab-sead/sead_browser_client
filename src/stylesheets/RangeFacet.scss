@@ -154,3 +154,47 @@ div.noUi-connects > div.noUi-connect {
 div.noUi-connects {
 	width: calc(100% + 1px) !important; //don't ask me why this is needed - but we get a 1 px white gap on the right side of the slider without this
 }
+
+//Linear/log switch for the chart's y-axis, above the bars and right-aligned with them (see alignToChartArea)
+.range-chart-scale-toggle {
+	position: absolute;
+	top: 2px;
+	right: 50px;
+	z-index: 1;
+	display: flex;
+	padding: 1px;
+	border-radius: 999px;
+	background-color: colors.$pane-bg-color;
+	box-shadow: inset 0 0 0 1px colors.$pane-bg-color-dark;
+}
+
+.range-chart-scale-btn {
+	padding: 0 sqs-px(8);
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	font-family: $special-font;
+	font-size: sqs-px(13);
+	font-weight: 600;
+	line-height: sqs-px(17);
+	letter-spacing: 0.03em;
+	color: colors.$inactive-color-light;
+	cursor: pointer;
+	transition: background-color 0.15s, color 0.15s;
+}
+
+.range-chart-scale-btn:hover:not(.range-chart-scale-btn-active) {
+	color: colors.$base-color;
+}
+
+.range-chart-scale-btn:focus-visible {
+	outline: 2px solid colors.$base-color-light;
+	outline-offset: 1px;
+}
+
+.range-chart-scale-btn-active {
+	background-color: colors.$base-color;
+	color: colors.$white;
+	box-shadow: 0 1px 2px colors.$shadow-color;
+	cursor: default;
+}
