@@ -275,342 +275,439 @@
 			"color": "ff3300"
 		}
 	],
+	"analysisMethodFamilies": [
+		"dendrochronology",
+		"palaeoentomology",
+		"archaeobotany",
+		"pollen",
+		"geoarchaeology",
+		"ceramic",
+		"isotope",
+		"radiometric-dating",
+		"calendar-dating",
+		"period-dating",
+		"survey"
+	],
 	"analysisMethodsColors": [
 		{
+			"method_id": 10,
+			"family": "dendrochronology",
+			"color": "dc8b29"
+		},
+		{
 			"method_id": 3,
-			"color": "0074ab"
+			"family": "palaeoentomology",
+			"color": "842c41"
 		},
 		{
 			"method_id": 6,
-			"color": "005178"
+			"family": "palaeoentomology",
+			"color": "a85363"
 		},
 		{
 			"method_id": 8,
-			"color": "bfeaff"
-		},
-		{
-			"method_id": 10,
-			"color": "80d6ff"
-		},
-		{
-			"method_id": 14,
-			"color": "ff7900"
-		},
-		{
-			"method_id": 15,
-			"color": "b35500"
-		},
-		{
-			"method_id": 16,
-			"color": "ffdebf"
-		},
-		{
-			"method_id": 21,
-			"color": "ffbc80"
-		},
-		{
-			"method_id": 32,
-			"color": "daff00"
-		},
-		{
-			"method_id": 33,
-			"color": "99b300"
-		},
-		{
-			"method_id": 35,
-			"color": "f6ffbf"
-		},
-		{
-			"method_id": 36,
-			"color": "edff80"
-		},
-		{
-			"method_id": 37,
-			"color": "8b0099"
-		},
-		{
-			"method_id": 38,
-			"color": "61006b"
-		},
-		{
-			"method_id": 39,
-			"color": "f9bfff"
-		},
-		{
-			"method_id": 40,
-			"color": "f380ff"
-		},
-		{
-			"method_id": 46,
-			"color": "ff3300"
-		},
-		{
-			"method_id": 47,
-			"color": "b32400"
-		},
-		{
-			"method_id": 48,
-			"color": "ffccbf"
-		},
-		{
-			"method_id": 51,
-			"color": "ff9980"
-		},
-		{
-			"method_id": 74,
-			"color": "00b366"
-		},
-		{
-			"method_id": 94,
-			"color": "007d48"
-		},
-		{
-			"method_id": 97,
-			"color": "bfffe4"
-		},
-		{
-			"method_id": 98,
-			"color": "80ffc9"
-		},
-		{
-			"method_id": 100,
-			"color": "400099"
-		},
-		{
-			"method_id": 101,
-			"color": "2d006b"
-		},
-		{
-			"method_id": 104,
-			"color": "dabfff"
-		},
-		{
-			"method_id": 106,
-			"color": "b580ff"
-		},
-		{
-			"method_id": 107,
-			"color": "ffe500"
-		},
-		{
-			"method_id": 109,
-			"color": "b3a000"
-		},
-		{
-			"method_id": 110,
-			"color": "fff9bf"
+			"family": "archaeobotany",
+			"color": "5c7c67"
 		},
 		{
 			"method_id": 111,
-			"color": "fff280"
+			"family": "archaeobotany",
+			"color": "81a08b"
+		},
+		{
+			"method_id": 14,
+			"family": "pollen",
+			"color": "efe49b"
+		},
+		{
+			"method_id": 15,
+			"family": "pollen",
+			"color": "c6bd7b"
+		},
+		{
+			"method_id": 21,
+			"family": "pollen",
+			"color": "a0975c"
+		},
+		{
+			"method_id": 37,
+			"family": "geoarchaeology",
+			"color": "349bd9"
+		},
+		{
+			"method_id": 33,
+			"family": "geoarchaeology",
+			"color": "00377e"
+		},
+		{
+			"method_id": 32,
+			"family": "geoarchaeology",
+			"color": "3381de"
+		},
+		{
+			"method_id": 74,
+			"family": "geoarchaeology",
+			"color": "6eb5ea"
+		},
+		{
+			"method_id": 94,
+			"family": "geoarchaeology",
+			"color": "c0e3fd"
+		},
+		{
+			"method_id": 35,
+			"family": "geoarchaeology",
+			"color": "4682c9"
+		},
+		{
+			"method_id": 36,
+			"family": "geoarchaeology",
+			"color": "30b4e0"
+		},
+		{
+			"method_id": 109,
+			"family": "geoarchaeology",
+			"color": "056494"
+		},
+		{
+			"method_id": 107,
+			"family": "geoarchaeology",
+			"color": "a6cefe"
+		},
+		{
+			"method_id": 110,
+			"family": "geoarchaeology",
+			"color": "044457"
+		},
+		{
+			"method_id": 106,
+			"family": "geoarchaeology",
+			"color": "2c92ce"
 		},
 		{
 			"method_id": 117,
-			"color": "ff0000"
+			"family": "geoarchaeology",
+			"color": "609ee8"
 		},
 		{
 			"method_id": 118,
-			"color": "b30000"
+			"family": "geoarchaeology",
+			"color": "0983a7"
 		},
 		{
 			"method_id": 119,
-			"color": "ffbfbf"
-		},
-		{
-			"method_id": 127,
-			"color": "ff8080"
-		},
-		{
-			"method_id": 128,
-			"color": "00cc00"
-		},
-		{
-			"method_id": 129,
-			"color": "008f00"
-		},
-		{
-			"method_id": 130,
-			"color": "bfffbf"
-		},
-		{
-			"method_id": 131,
-			"color": "80ff80"
-		},
-		{
-			"method_id": 132,
-			"color": "330099"
-		},
-		{
-			"method_id": 133,
-			"color": "24006b"
-		},
-		{
-			"method_id": 134,
-			"color": "d5bfff"
-		},
-		{
-			"method_id": 135,
-			"color": "aa80ff"
-		},
-		{
-			"method_id": 136,
-			"color": "ffcc00"
-		},
-		{
-			"method_id": 137,
-			"color": "b38f00"
-		},
-		{
-			"method_id": 138,
-			"color": "fff2bf"
-		},
-		{
-			"method_id": 139,
-			"color": "ffe680"
-		},
-		{
-			"method_id": 140,
-			"color": "00cc00"
-		},
-		{
-			"method_id": 141,
-			"color": "008f00"
-		},
-		{
-			"method_id": 142,
-			"color": "bfffbf"
-		},
-		{
-			"method_id": 143,
-			"color": "80ff80"
-		},
-		{
-			"method_id": 144,
-			"color": "ff0000"
-		},
-		{
-			"method_id": 145,
-			"color": "b30000"
-		},
-		{
-			"method_id": 146,
-			"color": "ffbfbf"
-		},
-		{
-			"method_id": 147,
-			"color": "ff8080"
-		},
-		{
-			"method_id": 148,
-			"color": "ffcc00"
-		},
-		{
-			"method_id": 149,
-			"color": "b38f00"
-		},
-		{
-			"method_id": 150,
-			"color": "fff2bf"
-		},
-		{
-			"method_id": 151,
-			"color": "ffe680"
-		},
-		{
-			"method_id": 152,
-			"color": "330099"
-		},
-		{
-			"method_id": 153,
-			"color": "24006b"
-		},
-		{
-			"method_id": 154,
-			"color": "d5bfff"
-		},
-		{
-			"method_id": 155,
-			"color": "aa80ff"
-		},
-		{
-			"method_id": 156,
-			"color": "0033cc"
-		},
-		{
-			"method_id": 157,
-			"color": "00248f"
-		},
-		{
-			"method_id": 158,
-			"color": "bfcfff"
-		},
-		{
-			"method_id": 159,
-			"color": "809fff"
-		},
-		{
-			"method_id": 160,
-			"color": "ff9900"
-		},
-		{
-			"method_id": 161,
-			"color": "b36b00"
-		},
-		{
-			"method_id": 162,
-			"color": "ffe6bf"
-		},
-		{
-			"method_id": 163,
-			"color": "ffcc80"
-		},
-		{
-			"method_id": 164,
-			"color": "99ff00"
-		},
-		{
-			"method_id": 165,
-			"color": "6bb300"
-		},
-		{
-			"method_id": 166,
-			"color": "e6ffbf"
-		},
-		{
-			"method_id": 167,
-			"color": "ccff80"
-		},
-		{
-			"method_id": 168,
-			"color": "cc0099"
-		},
-		{
-			"method_id": 169,
-			"color": "8f006b"
-		},
-		{
-			"method_id": 170,
-			"color": "ffbfef"
+			"family": "geoarchaeology",
+			"color": "5cb7f3"
 		},
 		{
 			"method_id": 171,
-			"color": "ff80df"
+			"family": "ceramic",
+			"color": "c15109"
 		},
 		{
 			"method_id": 172,
-			"color": "ffff00"
-		},
-		{
-			"method_id": 174,
-			"color": "b3b300"
+			"family": "ceramic",
+			"color": "a54001"
 		},
 		{
 			"method_id": 175,
-			"color": "ffffbf"
+			"family": "isotope",
+			"color": "533c87"
 		},
 		{
 			"method_id": 176,
-			"color": "ffff80"
+			"family": "isotope",
+			"color": "7460a8"
+		},
+		{
+			"method_id": 151,
+			"family": "radiometric-dating",
+			"color": "7a628c"
+		},
+		{
+			"method_id": 38,
+			"family": "radiometric-dating",
+			"color": "685a80"
+		},
+		{
+			"method_id": 148,
+			"family": "radiometric-dating",
+			"color": "896f99"
+		},
+		{
+			"method_id": 157,
+			"family": "radiometric-dating",
+			"color": "91899b"
+		},
+		{
+			"method_id": 150,
+			"family": "radiometric-dating",
+			"color": "887e96"
+		},
+		{
+			"method_id": 153,
+			"family": "radiometric-dating",
+			"color": "6e6482"
+		},
+		{
+			"method_id": 149,
+			"family": "radiometric-dating",
+			"color": "907691"
+		},
+		{
+			"method_id": 147,
+			"family": "radiometric-dating",
+			"color": "806881"
+		},
+		{
+			"method_id": 156,
+			"family": "radiometric-dating",
+			"color": "9f85a0"
+		},
+		{
+			"method_id": 152,
+			"family": "radiometric-dating",
+			"color": "886f89"
+		},
+		{
+			"method_id": 146,
+			"family": "radiometric-dating",
+			"color": "977e98"
+		},
+		{
+			"method_id": 160,
+			"family": "radiometric-dating",
+			"color": "79617a"
+		},
+		{
+			"method_id": 145,
+			"family": "radiometric-dating",
+			"color": "987484"
+		},
+		{
+			"method_id": 39,
+			"family": "radiometric-dating",
+			"color": "886675"
+		},
+		{
+			"method_id": 154,
+			"family": "radiometric-dating",
+			"color": "a78393"
+		},
+		{
+			"method_id": 159,
+			"family": "radiometric-dating",
+			"color": "906d7d"
+		},
+		{
+			"method_id": 161,
+			"family": "radiometric-dating",
+			"color": "9f7c8c"
+		},
+		{
+			"method_id": 162,
+			"family": "radiometric-dating",
+			"color": "805f6e"
+		},
+		{
+			"method_id": 163,
+			"family": "radiometric-dating",
+			"color": "9c7477"
+		},
+		{
+			"method_id": 164,
+			"family": "radiometric-dating",
+			"color": "8c6668"
+		},
+		{
+			"method_id": 165,
+			"family": "radiometric-dating",
+			"color": "ab8486"
+		},
+		{
+			"method_id": 167,
+			"family": "radiometric-dating",
+			"color": "946d6f"
+		},
+		{
+			"method_id": 168,
+			"family": "radiometric-dating",
+			"color": "a37c7e"
+		},
+		{
+			"method_id": 169,
+			"family": "radiometric-dating",
+			"color": "845f61"
+		},
+		{
+			"method_id": 170,
+			"family": "radiometric-dating",
+			"color": "9b776a"
+		},
+		{
+			"method_id": 174,
+			"family": "calendar-dating",
+			"color": "a8a2a0"
+		},
+		{
+			"method_id": 142,
+			"family": "calendar-dating",
+			"color": "b9b5b4"
+		},
+		{
+			"method_id": 144,
+			"family": "calendar-dating",
+			"color": "c8a895"
+		},
+		{
+			"method_id": 139,
+			"family": "calendar-dating",
+			"color": "aa8877"
+		},
+		{
+			"method_id": 140,
+			"family": "calendar-dating",
+			"color": "b09586"
+		},
+		{
+			"method_id": 135,
+			"family": "calendar-dating",
+			"color": "b2a191"
+		},
+		{
+			"method_id": 143,
+			"family": "calendar-dating",
+			"color": "a29283"
+		},
+		{
+			"method_id": 136,
+			"family": "calendar-dating",
+			"color": "c2b1a1"
+		},
+		{
+			"method_id": 141,
+			"family": "calendar-dating",
+			"color": "aa9a8a"
+		},
+		{
+			"method_id": 166,
+			"family": "calendar-dating",
+			"color": "baa999"
+		},
+		{
+			"method_id": 158,
+			"family": "period-dating",
+			"color": "f7e6b7"
+		},
+		{
+			"method_id": 155,
+			"family": "period-dating",
+			"color": "dabe91"
+		},
+		{
+			"method_id": 137,
+			"family": "period-dating",
+			"color": "d3c9ae"
+		},
+		{
+			"method_id": 134,
+			"family": "period-dating",
+			"color": "eddaa2"
+		},
+		{
+			"method_id": 130,
+			"family": "period-dating",
+			"color": "dad7bf"
+		},
+		{
+			"method_id": 127,
+			"family": "period-dating",
+			"color": "c6b893"
+		},
+		{
+			"method_id": 128,
+			"family": "period-dating",
+			"color": "f7e9c2"
+		},
+		{
+			"method_id": 129,
+			"family": "period-dating",
+			"color": "cfd6ad"
+		},
+		{
+			"method_id": 131,
+			"family": "period-dating",
+			"color": "bfc69e"
+		},
+		{
+			"method_id": 132,
+			"family": "period-dating",
+			"color": "e0e6be"
+		},
+		{
+			"method_id": 133,
+			"family": "period-dating",
+			"color": "c7cea6"
+		},
+		{
+			"method_id": 138,
+			"family": "period-dating",
+			"color": "d7deb5"
+		},
+		{
+			"method_id": 16,
+			"family": "survey",
+			"color": "c0bdba"
+		},
+		{
+			"method_id": 46,
+			"family": "survey",
+			"color": "b1adaa"
+		},
+		{
+			"method_id": 47,
+			"family": "survey",
+			"color": "d0cdca"
+		},
+		{
+			"method_id": 48,
+			"family": "survey",
+			"color": "a19e9b"
+		},
+		{
+			"method_id": 51,
+			"family": "survey",
+			"color": "e1ddda"
+		},
+		{
+			"method_id": 97,
+			"family": "survey",
+			"color": "b8b5b2"
+		},
+		{
+			"method_id": 98,
+			"family": "survey",
+			"color": "c8c5c2"
+		},
+		{
+			"method_id": 100,
+			"family": "survey",
+			"color": "a9a5a2"
+		},
+		{
+			"method_id": 101,
+			"family": "survey",
+			"color": "d9d5d2"
+		},
+		{
+			"method_id": 104,
+			"family": "survey",
+			"color": "bfbdb9"
+		},
+		{
+			"method_id": 40,
+			"family": "survey",
+			"color": "afaeaa"
 		}
 	],
 	"treeSpeciesColors": [
@@ -705,7 +802,7 @@
 			"enabled": true,
 			"title": "Dendrochronology",
 			"icon": "<i class=\"fa fa-tree\" aria-hidden=\"true\"></i>",
-			"color": "#0a0",
+			"color": "#a25f00",
 			"filterBlacklist": [
 				"species",
 				"family",
@@ -780,7 +877,7 @@
 			"enabled": true,
 			"title": "Palaeoentomology",
 			"icon": "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
-			"color": "#a00",
+			"color": "#842c41",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				2,
@@ -814,7 +911,7 @@
 			"enabled": true,
 			"title": "Archaeobotany",
 			"icon": "<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i>",
-			"color": "#9c591b",
+			"color": "#5a7b65",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				3,
@@ -853,7 +950,7 @@
 			"enabled": true,
 			"title": "Pollen",
 			"icon": "<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i>",
-			"color": "#216600",
+			"color": "#7e732a",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				2,
@@ -877,7 +974,7 @@
 			"enabled": true,
 			"title": "Geoarchaeology",
 			"icon": "<i class=\"fa fa-map\" aria-hidden=\"true\"></i>",
-			"color": "#909",
+			"color": "#0479b2",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				1,
@@ -896,7 +993,7 @@
 			"enabled": false,
 			"title": "Isotope",
 			"icon": "<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i>",
-			"color": "#690",
+			"color": "#533c87",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				1,
@@ -915,7 +1012,7 @@
 			"enabled": true,
 			"title": "Ceramic",
 			"icon": "<i class=\"fa fa-beer\" aria-hidden=\"true\"></i>",
-			"color": "#099",
+			"color": "#b74c04",
 			"filterBlacklist": [
 				"tbl_biblio_modern",
 				"sample_group_sampling_contexts"

@@ -565,7 +565,7 @@ class ResultTable extends ResultModule {
 	}
 
 	buildAnalysisMethodsSvg(analysisMethodsDatasets) {
-		analysisMethodsDatasets.sort((a, b) => Number(a.method_id) - Number(b.method_id));
+		analysisMethodsDatasets.sort((a, b) => this.sqs.color.compareAnalysisMethods(a, b));
 		const totalDatasetCount = analysisMethodsDatasets.reduce((total, amd) => total + amd.dataset_count, 0);
 
 		const svgNS = "http://www.w3.org/2000/svg";
@@ -592,21 +592,28 @@ class ResultTable extends ResultModule {
 
 		let currentOffset = 0;
 		analysisMethodsDatasets.forEach(amd => {
-			amd.color = "000";
-			for (let key in this.sqs.config.analysisMethodsColors) {
-				const amc = this.sqs.config.analysisMethodsColors[key];
-				if (amc.method_id == amd.method_id) {
-					amd.color = amc.color;
-				}
-			}
+			amd.color = this.sqs.color.getAnalysisMethodColor(amd.method_id) || "#000000";
 
 			const barWidth = (amd.dataset_count / totalDatasetCount) * 100;
 			const rect = document.createElementNS(svgNS, "rect");
 			rect.setAttribute("x", `${currentOffset}%`);
 			rect.setAttribute("width", `${barWidth}%`);
 			rect.setAttribute("height", "100%");
-			rect.setAttribute("fill", `#${amd.color}`);
+			rect.setAttribute("fill", amd.color);
 			barsGroup.appendChild(rect);
+
+			// A thin gap between segments, so neighbouring methods with similar colors still read as separate
+			if(currentOffset > 0) {
+				const separator = document.createElementNS(svgNS, "line");
+				separator.setAttribute("x1", `${currentOffset}%`);
+				separator.setAttribute("x2", `${currentOffset}%`);
+				separator.setAttribute("y1", "0");
+				separator.setAttribute("y2", "100%");
+				separator.setAttribute("stroke", "#ffffff");
+				separator.setAttribute("stroke-width", "1");
+				separator.setAttribute("pointer-events", "none");
+				barsGroup.appendChild(separator);
+			}
 
 			if (amd.method_name) {
 				const words = amd.method_name.replace(/\(.*?\)/g, '').trim().split(/\s+/);
@@ -622,8 +629,7 @@ class ResultTable extends ResultModule {
 				label.setAttribute("dominant-baseline", "central");
 				label.setAttribute("text-anchor", "middle");
 				label.setAttribute("font-size", "10");
-				label.setAttribute("fill", "white");
-				label.setAttribute("style", "text-shadow: 1px 1px 2px rgba(0,0,0,0.8);");
+				label.setAttribute("fill", this.sqs.color.getContrastingTextColor(amd.color));
 				label.setAttribute("pointer-events", "none");
 				label.setAttribute("data-bar-width", barWidth);
 				label.textContent = labelText;
@@ -635,6 +641,17 @@ class ResultTable extends ResultModule {
 
 			currentOffset += barWidth;
 		});
+
+		// Faint outline so pale segments don't dissolve into a white table row. The clip path cuts the stroke to 1px inside the bar.
+		const outline = document.createElementNS(svgNS, "rect");
+		outline.setAttribute("width", "100%");
+		outline.setAttribute("height", "100%");
+		outline.setAttribute("rx", "3");
+		outline.setAttribute("fill", "none");
+		outline.setAttribute("stroke", "rgba(0,0,0,0.15)");
+		outline.setAttribute("stroke-width", "2");
+		outline.setAttribute("pointer-events", "none");
+		barsGroup.appendChild(outline);
 
 		return svg;
 	}

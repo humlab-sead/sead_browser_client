@@ -84,12 +84,8 @@ class MosaicDomainSamples extends MosaicTileModule {
             }
         });
 
-        const methodIds = Array.from(methodIdSet);
+        const methodIds = Array.from(methodIdSet).sort((a, b) => this.sqs.color.compareAnalysisMethods({ method_id: a }, { method_id: b }));
         const y = data.domains.map(domain => domain.display_title || domain.facet_code || "Unknown");
-        const methodColors = (this.sqs.config.analysisMethodsColors || []).reduce((acc, entry) => {
-            acc[entry.method_id] = entry.color.startsWith('#') ? entry.color : `#${entry.color}`;
-            return acc;
-        }, {});
         const fallbackColors = this.sqs.color.getColorScheme(methodIds.length);
         const traces = methodIds.map((methodId, idx) => {
             const x = data.domains.map(domain => {
@@ -105,7 +101,10 @@ class MosaicDomainSamples extends MosaicTileModule {
                     orientation: 'h',
                     type: "bar",
                     name: methodIdToLabel[methodId] || `Method ${methodId}`,
-                    marker: { color: methodColors[methodId] || fallbackColors[idx % fallbackColors.length] },
+                    marker: {
+                        color: this.sqs.color.getAnalysisMethodColor(methodId) || fallbackColors[idx % fallbackColors.length],
+                        line: { color: "#fff", width: 1 }
+                    },
                     hovertemplate: `%{fullData.name}<br>%{x} samples<extra></extra>`
                 };
             }
