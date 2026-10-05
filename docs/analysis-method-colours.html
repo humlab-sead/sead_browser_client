@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SEAD Method Colours</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Didact+Gothic&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+<style>
+/* Layout: one reading column of comparison panels; every panel puts "Now" beside "Proposed" on a white SEAD surface. */
+:root {
+  --bg: #f3f4f6;
+  --panel: #ffffff;
+  --fg: #23262b;
+  --muted: #5f6670;
+  --rule: #d9dde3;
+  --accent: #2d5e8d;          /* SEAD $base-color */
+  --accent-soft: #e3ebf3;
+  --site: #ffffff;            /* the SEAD client's own white surface, same in both themes on purpose */
+  --site-fg: #333333;
+  --site-pane: #eeeeee;
+  --good: #2f8f46;
+  --warn: #b98a00;
+  --bad: #be1c1c;
+  --font-display: 'Rajdhani', 'Arial Narrow', sans-serif;
+  --font-body: 'Didact Gothic', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15181c; --panel: #1d2126; --fg: #e6e8eb; --muted: #9aa3ad; --rule: #333a42;
+    --accent: #7fa9d4; --accent-soft: #23303d; --good: #5cbf73; --warn: #e0b23a; --bad: #f06a6a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15181c; --panel: #1d2126; --fg: #e6e8eb; --muted: #9aa3ad; --rule: #333a42;
+  --accent: #7fa9d4; --accent-soft: #23303d; --good: #5cbf73; --warn: #e0b23a; --bad: #f06a6a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.4rem; letter-spacing: 0.01em; }
+h2 { font-size: 1.6rem; }
+h3 { font-size: 1.15rem; }
+p { margin: 0; max-width: 68ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.85em; }
+.eyebrow { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.8rem; color: var(--accent); }
+.muted { color: var(--muted); }
+header.intro { display: grid; gap: 10px; padding-bottom: 18px; }
+
+/* Vision toolbar */
+.toolbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--rule); padding-block: 10px; margin-bottom: 28px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.toolbar .label { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.8rem; color: var(--muted); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--panel); }
+.seg button { font: inherit; font-size: 0.9rem; border: 0; background: transparent; color: var(--fg); padding: 6px 12px; cursor: pointer; border-right: 1px solid var(--rule); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.toolbar .note { font-size: 0.85rem; color: var(--muted); min-width: 0; }
+
+section { display: grid; gap: 14px; padding-block: 26px; border-top: 1px solid var(--rule); }
+section > header { display: grid; gap: 6px; }
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px; min-width: 0; }
+.site { background: var(--site); color: var(--site-fg); }
+.sim { filter: var(--cvd, none); }
+
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pair > * { min-width: 0; }
+.pair-label { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78rem; color: var(--muted); margin-bottom: 8px; }
+@media (max-width: 720px) { .pair { grid-template-columns: 1fr; } }
+
+/* Domain cards */
+.domains { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.dcard { display: grid; gap: 8px; align-content: start; }
+.dcard h3 { display: flex; align-items: baseline; gap: 8px; justify-content: space-between; }
+.dcard h3 small { font-family: var(--font-body); font-weight: 400; font-size: 0.75rem; color: var(--muted); }
+.chrome { display: flex; align-items: center; gap: 10px; color: #fff; font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; padding: 8px 12px; border-radius: 4px; }
+.chrome svg { width: 1em; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row .tag { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); width: 66px; flex: none; font-family: var(--font-display); font-weight: 600; }
+.row .grow { flex: 1 1 140px; min-width: 0; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
+.chip i.sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.ratio { font-family: var(--font-mono); font-size: 0.72rem; padding: 1px 6px; border-radius: 10px; border: 1px solid currentColor; white-space: nowrap; }
+.ratio.pass { color: var(--good); } .ratio.fail { color: var(--bad); }
+
+/* Domain menu mock */
+.dmenu { display: grid; gap: 2px; font-family: var(--font-display); font-weight: 600; font-size: 1rem; }
+.dmenu div { display: flex; gap: 10px; align-items: center; padding: 4px 6px; border-radius: 3px; }
+.dmenu div:hover { background: var(--site-pane); }
+.dmenu svg { width: 1.1em; }
+
+/* Result table mock */
+.tablewrap { overflow-x: auto; }
+table.rt { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.88rem; }
+table.rt th { text-align: left; font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: #555; padding: 6px 8px; border-bottom: 2px solid #ddd; }
+table.rt td { padding: 6px 8px; border-bottom: 1px solid #eee; vertical-align: middle; }
+table.rt td.name { width: 28%; }
+table.rt td.barcell { width: 36%; }
+.bar { display: flex; height: 20px; border-radius: 3px; overflow: hidden; }
+.bar.now .seg-b { color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
+.bar.new { gap: 1px; background: #fff; box-shadow: 0 0 0 1px #d7d7d7; }
+.seg-b { display: flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; overflow: hidden; white-space: nowrap; min-width: 0; }
+
+/* Pie */
+.pies { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pies > * { min-width: 0; }
+@media (max-width: 720px) { .pies { grid-template-columns: 1fr; } }
+.pie svg { width: 100%; max-width: 300px; height: auto; display: block; margin: 0 auto; }
+.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 12px; font-size: 0.78rem; margin-top: 10px; }
+.legend span { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.legend em { font-style: normal; color: #777; margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* Tags */
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.atag { display: flex; padding: 0.2em 0.4em; font-size: 0.8em; border: 1px solid #fff; border-radius: 0.2em; background: #eee; color: #000; }
+.taggroup { display: grid; gap: 6px; }
+.taggroup + .taggroup { margin-top: 12px; }
+.taggroup .sname { font-size: 0.85rem; color: #555; }
+
+/* Matrix */
+.matrices { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.matrices > * { min-width: 0; }
+@media (max-width: 860px) { .matrices { grid-template-columns: 1fr; } }
+.mx { overflow-x: auto; }
+.mx table { border-collapse: separate; border-spacing: 2px; font-family: var(--font-mono); font-size: 0.7rem; }
+.mx th { font-weight: 400; color: var(--muted); padding: 0 2px; }
+.mx th.rowh { text-align: right; white-space: nowrap; font-family: var(--font-body); font-size: 0.75rem; }
+.mx th.colh { height: 28px; }
+.mx th.colh i, .mx th.rowh i { display: inline-block; width: 16px; height: 16px; border-radius: 3px; vertical-align: middle; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
+.mx td { width: 34px; height: 26px; text-align: center; border-radius: 3px; font-variant-numeric: tabular-nums; }
+.mx td.bad { background: color-mix(in srgb, var(--bad) 26%, transparent); }
+.mx td.warn { background: color-mix(in srgb, var(--warn) 24%, transparent); }
+.mx td.ok { background: color-mix(in srgb, var(--good) 14%, transparent); }
+.mx td.co { outline: 1.5px solid var(--fg); outline-offset: -2px; }
+.mx td.self { background: transparent; }
+.keyline { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.8rem; color: var(--muted); }
+.keyline span { display: inline-flex; align-items: center; gap: 6px; }
+.keyline b { display: inline-block; width: 14px; height: 12px; border-radius: 2px; }
+.summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.stat { display: grid; gap: 2px; }
+.stat .k { font-size: 0.78rem; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 0.9rem; font-weight: 500; color: var(--muted); }
+.stat .pairname { font-size: 0.75rem; color: var(--muted); }
+
+/* Method list */
+.fam { display: grid; gap: 8px; }
+.famhead { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.famhead .kind { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-family: var(--font-display); font-weight: 600; }
+.mlist { overflow-x: auto; }
+.mlist table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.85rem; }
+.mlist th { text-align: left; font-weight: 400; color: #777; font-size: 0.75rem; padding: 4px 6px; border-bottom: 1px solid #ddd; }
+.mlist td { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; }
+.mlist td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.mlist td.sw { width: 92px; }
+.mlist .swb { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.7rem; color: #777; }
+.mlist .swb i { width: 26px; height: 16px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); flex: none; }
+.mlist tr.zero td { color: #999; }
+.families { display: grid; gap: 12px; }
+details summary { cursor: pointer; color: var(--accent); font-size: 0.85rem; }
+
+ol.decide { margin: 0; padding-left: 1.3em; display: grid; gap: 10px; max-width: 75ch; }
+ol.decide b { font-weight: 600; }
+@media (prefers-reduced-motion: no-preference) { .sim { transition: filter .2s; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="cvd-deutan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.367322 0.860646 -0.227968 0 0  0.280085 0.672501 0.047413 0 0  -0.011820 0.042940 0.968881 0 0  0 0 0 1 0"/></filter>
+    <filter id="cvd-protan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.152286 1.052583 -0.204868 0 0  0.114503 0.786281 0.099216 0 0  -0.003882 -0.048116 1.051998 0 0  0 0 0 1 0"/></filter>
+    <filter id="cvd-tritan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="1.255528 -0.076749 -0.178779 0 0  -0.078411 0.930809 0.147602 0 0  0.004733 0.691367 0.303900 0 0  0 0 0 1 0"/></filter>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="intro">
+    <span class="eyebrow">SEAD browser client · colour proposal</span>
+    <h1>Domain and analysis method colours</h1>
+    <p>Each domain gets one hue. Its methods use shades of that hue, and its UI chrome uses a darker shade of the same hue that holds white text. Dating and other cross-domain methods are drawn in tinted greys, like pencil notes beside the inked finds. Every panel shows today's colours next to the proposal, using real sites and dataset counts from the database.</p>
+  </header>
+
+  <div class="toolbar" role="group" aria-label="Simulate colour vision">
+    <span class="label">View as</span>
+    <div class="seg" id="vision">
+      <button type="button" id="v-normal" data-v="normal" aria-pressed="true">Normal vision</button>
+      <button type="button" id="v-deutan" data-v="deutan" aria-pressed="false">Deuteranopia</button>
+      <button type="button" id="v-protan" data-v="protan" aria-pressed="false">Protanopia</button>
+      <button type="button" id="v-tritan" data-v="tritan" aria-pressed="false">Tritanopia</button>
+    </div>
+    <span class="note" id="vision-note">Switch to see every swatch on this page as a person with that type of colour blindness would.</span>
+  </div>
+
+  <section id="domains">
+    <header>
+      <span class="eyebrow">1 · Domains</span>
+      <h2>Domain colours</h2>
+      <p class="muted">The UI shows a domain's colour as the background of the domain area in the filter menu, with white text on top. That needs a contrast of at least 4.5:1. Today, three domains fall short. In the proposal, the ink shade carries the chrome, and the lighter data colour is used for charts.</p>
+    </header>
+    <div class="domains" id="domain-cards"></div>
+    <div class="pair">
+      <div class="panel site"><div class="pair-label">Domain menu · now</div><div class="dmenu sim" id="dmenu-now"></div></div>
+      <div class="panel site"><div class="pair-label">Domain menu · proposed</div><div class="dmenu sim" id="dmenu-new"></div></div>
+    </div>
+  </section>
+
+  <section id="table">
+    <header>
+      <span class="eyebrow">2 · Result table</span>
+      <h2>The “Analysis methods” column</h2>
+      <p class="muted">Eight real sites, chosen to cover the domain combinations that actually occur together. Today, segments are ordered by method ID and labelled in white. The proposal orders segments by family and then by size, adds a 1px gap between segments, and picks dark or white label text from each segment's lightness.</p>
+    </header>
+    <div class="panel site tablewrap">
+      <table class="rt sim" id="rt">
+        <thead><tr><th>Site</th><th>Now</th><th>Proposed</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="mosaic">
+    <header>
+      <span class="eyebrow">3 · Mosaic</span>
+      <h2>Analysis methods across all datasets</h2>
+      <p class="muted">The General domain's pie tile, drawn from the real dataset totals for each method. Dendrochronology alone accounts for more than half of all datasets.</p>
+    </header>
+    <div class="pies">
+      <div class="panel site pie"><div class="pair-label">Now</div><div class="sim" id="pie-now"></div></div>
+      <div class="panel site pie"><div class="pair-label">Proposed</div><div class="sim" id="pie-new"></div></div>
+    </div>
+  </section>
+
+  <section id="tags">
+    <header>
+      <span class="eyebrow">4 · Site report</span>
+      <h2>Sample group analysis tags</h2>
+      <p class="muted">Tags use the method colour as their background and pick black or white text with the existing WCAG rule in <code>Samples.class.js</code>.</p>
+    </header>
+    <div class="pair">
+      <div class="panel site"><div class="pair-label">Now</div><div class="sim" id="tags-now"></div></div>
+      <div class="panel site"><div class="pair-label">Proposed</div><div class="sim" id="tags-new"></div></div>
+    </div>
+  </section>
+
+  <section id="separation">
+    <header>
+      <span class="eyebrow">5 · Separation</span>
+      <h2>How far apart the colours are</h2>
+      <p class="muted">Each number is the perceptual distance between two colours (OKLab ΔE × 100) under the vision type selected above. Under 3 means the two look like the same colour, and around 10 means they are clearly different side by side. Outlined cells are pairs that actually appear together at real sites.</p>
+    </header>
+    <div class="summary" id="summary"></div>
+    <div class="matrices">
+      <div class="panel"><div class="pair-label">Domain colours · now</div><div class="mx" id="mx-now"></div></div>
+      <div class="panel"><div class="pair-label">Family colours · proposed</div><div class="mx" id="mx-new"></div></div>
+    </div>
+    <div class="keyline">
+      <span><b style="background: color-mix(in srgb, var(--bad) 40%, transparent)"></b>under 5: easily confused</span>
+      <span><b style="background: color-mix(in srgb, var(--warn) 40%, transparent)"></b>5 to 10: distinguishable when side by side</span>
+      <span><b style="background: color-mix(in srgb, var(--good) 30%, transparent)"></b>10 or more: clearly different</span>
+    </div>
+  </section>
+
+  <section id="methods">
+    <header>
+      <span class="eyebrow">6 · Every method</span>
+      <h2>Full method mapping</h2>
+      <p class="muted">All 84 methods in <code>analysisMethodsColors</code>, grouped by proposed family and sorted by dataset count. The 24 methods with 90 or more datasets were tuned together, and the rest are lightness steps on their family's hue. Methods with no datasets are folded away under each family.</p>
+    </header>
+    <div class="families" id="families"></div>
+  </section>
+
+  <section id="decide">
+    <header>
+      <span class="eyebrow">7 · Open questions</span>
+      <h2>To decide before implementing</h2>
+    </header>
+    <ol class="decide">
+      <li><b>Dendrochronology moves from green to amber.</b> This frees green for archaeobotany and pollen, and amber still reads as wood. The green tree icon is the most familiar domain colour today, though.</li>
+      <li><b>Ceramic terracotta sits near the site's orange accent</b> (<code>#ff6600</code>), and geoarchaeology's cerulean sits near the info colour. Either can be nudged (toward brick, and toward teal) if they read as UI.</li>
+      <li><b>Which family does calibrated radiocarbon belong to?</b> CalAMS and Cal are placed under radiometric dating here, but they could go under calendar chronology.</li>
+      <li><b>Domain facet definitions.</b> The <code>isotope</code> facet points at method 175 (aDNA sample extraction). An <code>adna</code> domain exists in the database but not in the client. The archaeobotany facet lists method 4, which is not in <code>tbl_methods</code>. citPtot (555 datasets) is not part of geoarchaeology but is placed with it here.</li>
+      <li><b>Methods inside a dating family are only weakly separated on purpose.</b> At a glance you can tell radiometric, calendar and period dating apart; the label and tooltip name the exact variant.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+const DATA = {"families":[{"key":"dendro","title":"Dendrochronology","kind":"domain","base":"DC8B29","ink":"A25F00","oklch":[0.71,0.144,65]},{"key":"entom","title":"Palaeoentomology","kind":"domain","base":"842C41","ink":"842C41","oklch":[0.43,0.121,10]},{"key":"botany","title":"Archaeobotany","kind":"domain","base":"5C7C67","ink":"5A7B65","oklch":[0.56,0.05,155]},{"key":"pollen","title":"Pollen","kind":"domain","base":"EFE49B","ink":"7E732A","oklch":[0.91,0.093,101]},{"key":"geoarch","title":"Geoarchaeology","kind":"domain","base":"349BD9","ink":"0479B2","oklch":[0.66,0.13,240]},{"key":"ceramic","title":"Ceramic","kind":"domain","base":"C15109","ink":"B74C04","oklch":[0.57,0.16,45]},{"key":"isotope","title":"Isotope / aDNA","kind":"domain","base":"533C87","ink":"533C87","oklch":[0.42,0.12,295]},{"key":"radio","title":"Radiometric dating","kind":"pencil","base":"7A628C","ink":null,"oklch":[0.6,0.05,300]},{"key":"calendar","title":"Calendar chronology","kind":"pencil","base":"A8A2A0","ink":null,"oklch":[0.72,0.03,40]},{"key":"period","title":"Period & relative dating","kind":"pencil","base":"F7E6B7","ink":null,"oklch":[0.86,0.055,90]},{"key":"survey","title":"Survey & recording","kind":"pencil","base":"C0BDBA","ink":null,"oklch":[0.8,0.006,64]}],"methods":[{"id":10,"name":"Dendrochronology","abbrev":"Dendro","n":31659,"family":"dendro","cur":"80d6ff","new":"dc8b29"},{"id":3,"name":"Palaeoentomology","abbrev":"Fossil insects","n":1585,"family":"entom","cur":"0074ab","new":"842c41"},{"id":6,"name":"Chironomid analyses","abbrev":"Chirono","n":0,"family":"entom","cur":"005178","new":"a85363"},{"id":8,"name":"Plant macrofossil analyses","abbrev":"Plant macros","n":392,"family":"botany","cur":"bfeaff","new":"5c7c67"},{"id":111,"name":"Plant macros (volume)","abbrev":null,"n":2,"family":"botany","cur":"fff280","new":"81a08b"},{"id":14,"name":"Palynology","abbrev":"Pollen","n":69,"family":"pollen","cur":"ff7900","new":"efe49b"},{"id":15,"name":"Charcoal analysis","abbrev":"Charcoal","n":0,"family":"pollen","cur":"b35500","new":"c6bd7b"},{"id":21,"name":"Non-pollen palynomorphs","abbrev":"NPP","n":0,"family":"pollen","cur":"ffbc80","new":"a0975c"},{"id":37,"name":"Phosphate degrees","abbrev":"P°","n":703,"family":"geoarch","cur":"8b0099","new":"349bd9"},{"id":33,"name":"Magnetic susceptibility","abbrev":"MS","n":693,"family":"geoarch","cur":"99b300","new":"00377e"},{"id":32,"name":"Loss on ignition","abbrev":"LOI","n":557,"family":"geoarch","cur":"daff00","new":"3381de"},{"id":74,"name":"Total phosphates citric acid","abbrev":"citPtot","n":555,"family":"geoarch","cur":"00b366","new":"6eb5ea"},{"id":94,"name":"Phosphate degrees HCL","abbrev":"P°HCL","n":19,"family":"geoarch","cur":"007d48","new":"c0e3fd"},{"id":35,"name":"Magnetic susceptibility (Low frequency)","abbrev":"MS-lo","n":12,"family":"geoarch","cur":"f6ffbf","new":"4682c9"},{"id":36,"name":"Magnetic susceptibility (High frequency)","abbrev":"MS-hi","n":10,"family":"geoarch","cur":"edff80","new":"30b4e0"},{"id":109,"name":"pH (H2O)","abbrev":null,"n":8,"family":"geoarch","cur":"b3a000","new":"056494"},{"id":107,"name":"Conductivity µS (H2O)","abbrev":null,"n":5,"family":"geoarch","cur":"ffe500","new":"a6cefe"},{"id":110,"name":"pH (KCl 0,1M)","abbrev":null,"n":3,"family":"geoarch","cur":"fff9bf","new":"044457"},{"id":106,"name":"MS loop","abbrev":null,"n":2,"family":"geoarch","cur":"b580ff","new":"2c92ce"},{"id":117,"name":"2mm (%)","abbrev":"2mm (%)","n":2,"family":"geoarch","cur":"ff0000","new":"609ee8"},{"id":118,"name":"0,6mm (%)","abbrev":"Grain size 0,6-2mm (%)","n":2,"family":"geoarch","cur":"b30000","new":"0983a7"},{"id":119,"name":"0,6mm (%)","abbrev":"0,6 mm (%)","n":2,"family":"geoarch","cur":"ffbfbf","new":"5cb7f3"},{"id":171,"name":"Petrographic microscopy","abbrev":"Petrographic","n":10211,"family":"ceramic","cur":"ff80df","new":"c15109"},{"id":172,"name":"Thermal analysis","abbrev":"Thermal","n":865,"family":"ceramic","cur":"ffff00","new":"a54001"},{"id":175,"name":"Ancient DNA analysis (Sample Extraction/Analysis)","abbrev":"aDNA-Sample","n":5,"family":"isotope","cur":"ffffbf","new":"533c87"},{"id":176,"name":"Ancient DNA analysis (Library Preparation)","abbrev":"aDNA-Library","n":5,"family":"isotope","cur":"ffff80","new":"7460a8"},{"id":151,"name":"C14 Conventional","abbrev":"C14 Std","n":581,"family":"radio","cur":"ffe680","new":"7a628c"},{"id":38,"name":"C14 Accelerator dating","abbrev":"C14 AMS","n":496,"family":"radio","cur":"61006b","new":"685a80"},{"id":148,"name":"Radiocarbon (14C Unspecified)","abbrev":"C14 Unspec.","n":177,"family":"radio","cur":"ffcc00","new":"896f99"},{"id":157,"name":"Calibrated AMS radiocarbon date","abbrev":"CalAMS","n":102,"family":"radio","cur":"00248f","new":"91899b"},{"id":150,"name":"Thermoluminescence","abbrev":"TL","n":94,"family":"radio","cur":"fff2bf","new":"887e96"},{"id":153,"name":"C14 dating of humic substances in sediment","abbrev":"C14 Humous","n":49,"family":"radio","cur":"24006b","new":"6e6482"},{"id":149,"name":"Radiometric date by unknown method","abbrev":"UnknownRadio","n":29,"family":"radio","cur":"b38f00","new":"907691"},{"id":147,"name":"Uranium-Series (general)","abbrev":"U-Series","n":16,"family":"radio","cur":"ff8080","new":"806881"},{"id":156,"name":"Calibrated radiocarbon date (method unspecified)","abbrev":"Cal","n":13,"family":"radio","cur":"0033cc","new":"9f85a0"},{"id":152,"name":"Amino Acid Racemization","abbrev":"AAR","n":8,"family":"radio","cur":"330099","new":"886f89"},{"id":146,"name":"U-Series U234/U238","abbrev":"U234/U238","n":7,"family":"radio","cur":"ffbfbf","new":"977e98"},{"id":160,"name":"Electron Spin Resonance","abbrev":"ESR","n":2,"family":"radio","cur":"ff9900","new":"79617a"},{"id":145,"name":"Other date by unknown method","abbrev":"UnknownOther","n":1,"family":"radio","cur":"b30000","new":"987484"},{"id":39,"name":"C14 Conventional","abbrev":"C14","n":0,"family":"radio","cur":"f9bfff","new":"886675"},{"id":154,"name":"Argon39-Argon40","abbrev":"Ar39-Ar40","n":0,"family":"radio","cur":"d5bfff","new":"a78393"},{"id":159,"name":"Interpolated C14","abbrev":"Interp 14C","n":0,"family":"radio","cur":"809fff","new":"906d7d"},{"id":161,"name":"Helium-Uranium","abbrev":"He-U","n":0,"family":"radio","cur":"b36b00","new":"9f7c8c"},{"id":162,"name":"Chlorine 36","abbrev":"Cl36","n":0,"family":"radio","cur":"ffe6bf","new":"805f6e"},{"id":163,"name":"Uranium trend","abbrev":"U-Trend","n":0,"family":"radio","cur":"ffcc80","new":"9c7477"},{"id":164,"name":"Berylium 10","abbrev":"Be10","n":0,"family":"radio","cur":"99ff00","new":"8c6668"},{"id":165,"name":"Potassium-Argon","abbrev":"K-Ar","n":0,"family":"radio","cur":"6bb300","new":"ab8486"},{"id":167,"name":"U-Series Pa231/U235","abbrev":"Pa231/U235","n":0,"family":"radio","cur":"ccff80","new":"946d6f"},{"id":168,"name":"Lead 210","abbrev":"Pb210","n":0,"family":"radio","cur":"cc0099","new":"a37c7e"},{"id":169,"name":"U-Series Th230/U234","abbrev":"Th230/U234","n":0,"family":"radio","cur":"8f006b","new":"845f61"},{"id":170,"name":"Fission-Track","abbrev":"Fis-Track","n":0,"family":"radio","cur":"ffbfef","new":"9b776a"},{"id":174,"name":"Composite chronology","abbrev":"Composite chronology","n":1387,"family":"calendar","cur":"b3b300","new":"a8a2a0"},{"id":142,"name":"Calendar date by unknown method","abbrev":"UnknownCal","n":534,"family":"calendar","cur":"bfffbf","new":"b9b5b4"},{"id":144,"name":"Historical Records","abbrev":"HistCal","n":206,"family":"calendar","cur":"ff0000","new":"c8a895"},{"id":139,"name":"Other archaeological dating","abbrev":"ArchCal","n":144,"family":"calendar","cur":"ffe680","new":"aa8877"},{"id":140,"name":"Wiggle matching of 14C dates","abbrev":"Wiggle","n":90,"family":"calendar","cur":"00cc00","new":"b09586"},{"id":135,"name":"Tephrochronology Calendar","abbrev":"TephraCal","n":11,"family":"calendar","cur":"aa80ff","new":"b2a191"},{"id":143,"name":"Geologically derived calendar date","abbrev":"GeolCal","n":10,"family":"calendar","cur":"80ff80","new":"a29283"},{"id":136,"name":"Tephrochronology C14","abbrev":"TephraC14","n":0,"family":"calendar","cur":"ffcc00","new":"c2b1a1"},{"id":141,"name":"Lichenometry","abbrev":"Lichen","n":0,"family":"calendar","cur":"008f00","new":"aa9a8a"},{"id":166,"name":"Orbital Tuning","abbrev":"Orb-Tuning","n":0,"family":"calendar","cur":"e6ffbf","new":"baa999"},{"id":158,"name":"Geological period (unspecified years)","abbrev":"GeolPer","n":3846,"family":"period","cur":"bfcfff","new":"f7e6b7"},{"id":155,"name":"Archaeological period (unspecified)","abbrev":"ArchPer","n":2719,"family":"period","cur":"aa80ff","new":"dabe91"},{"id":137,"name":"Artefact typology (calendar years)","abbrev":"TypoCal","n":609,"family":"period","cur":"b38f00","new":"d3c9ae"},{"id":134,"name":"Stratigraphic (Geological)","abbrev":"Strat(Geol)","n":408,"family":"period","cur":"d5bfff","new":"eddaa2"},{"id":130,"name":"Historical Period","abbrev":"HistPer","n":147,"family":"period","cur":"bfffbf","new":"dad7bf"},{"id":127,"name":"Pollen Zonation","abbrev":"PollenZone","n":0,"family":"period","cur":"ff8080","new":"c6b893"},{"id":128,"name":"Archaeological period calendar years","abbrev":"ArchPerCal","n":0,"family":"period","cur":"00cc00","new":"f7e9c2"},{"id":129,"name":"Archaeological period C14 years","abbrev":"ArchPerC14","n":0,"family":"period","cur":"008f00","new":"cfd6ad"},{"id":131,"name":"Geological calendar period","abbrev":"GeolPerCal","n":0,"family":"period","cur":"80ff80","new":"bfc69e"},{"id":132,"name":"Geological C14 period","abbrev":"GeolPerC14","n":0,"family":"period","cur":"330099","new":"e0e6be"},{"id":133,"name":"Geological radiometric period","abbrev":"GeolPerRadio","n":0,"family":"period","cur":"24006b","new":"c7cea6"},{"id":138,"name":"Artefact typology (radiometric years)","abbrev":"TypoRadio","n":0,"family":"period","cur":"fff2bf","new":"d7deb5"},{"id":16,"name":"Vegetation survey","abbrev":"Veg survey","n":0,"family":"survey","cur":"ffdebf","new":"c0bdba"},{"id":46,"name":"Volume estimate","abbrev":"Volume est.","n":0,"family":"survey","cur":"ff3300","new":"b1adaa"},{"id":47,"name":"Distance etc measurement","abbrev":"Length measured","n":0,"family":"survey","cur":"b32400","new":"d0cdca"},{"id":48,"name":"Distance etc estimate","abbrev":"Length est.","n":0,"family":"survey","cur":"ffccbf","new":"a19e9b"},{"id":51,"name":"Volume measurement","abbrev":"Volume measured","n":0,"family":"survey","cur":"ff9980","new":"e1ddda"},{"id":97,"name":"ISRIC soil horizons","abbrev":"ISRIC horizons","n":0,"family":"survey","cur":"bfffe4","new":"b8b5b2"},{"id":98,"name":"FAO soil horizons","abbrev":"FAO horizons","n":0,"family":"survey","cur":"80ffc9","new":"c8c5c2"},{"id":100,"name":"Goldberg & Macphail soil horizons","abbrev":"Goldberg & Macphail horizons","n":0,"family":"survey","cur":"400099","new":"a9a5a2"},{"id":101,"name":"Soil horizons by undefined system","abbrev":"Undefined system horizons","n":0,"family":"survey","cur":"2d006b","new":"d9d5d2"},{"id":104,"name":"MAL soil horizon classifications","abbrev":null,"n":0,"family":"survey","cur":"dabfff","new":"bfbdb9"},{"id":40,"name":"Mollusc analyses","abbrev":"Molluscs","n":0,"family":"survey","cur":"f380ff","new":"afaeaa"}]};
+
+const DOMAINS = [
+  { key: "general", title: "General", icon: "fa-solid fa-globe", cur: "#333333", fam: null },
+  { key: "dendrochronology", title: "Dendrochronology", icon: "fa-solid fa-tree", cur: "#00aa00", fam: "dendro" },
+  { key: "palaeoentomology", title: "Palaeoentomology", icon: "fa-solid fa-bug", cur: "#aa0000", fam: "entom" },
+  { key: "archaeobotany", title: "Archaeobotany", icon: "fa-solid fa-circle-half-stroke", cur: "#9c591b", fam: "botany" },
+  { key: "pollen", title: "Pollen", icon: "fa-solid fa-leaf", cur: "#216600", fam: "pollen" },
+  { key: "geoarchaeology", title: "Geoarchaeology", icon: "fa-solid fa-map", cur: "#990099", fam: "geoarch" },
+  { key: "ceramic", title: "Ceramic", icon: "fa-solid fa-beer-mug-empty", cur: "#009999", fam: "ceramic" },
+  { key: "isotope", title: "Isotope", icon: "fa-regular fa-circle-dot", cur: "#669900", fam: "isotope", disabled: true }
+];
+
+const SITES = [
+  { name: "Akrotiri", kind: "Palaeoentomology + dating", m: { 3: 7, 38: 1, 140: 18, 155: 18, 174: 7 } },
+  { name: "Alcester: Alluvial", kind: "Palaeoentomology + dating", m: { 3: 1, 148: 3, 151: 2, 158: 2, 174: 1 } },
+  { name: "Hasholme Hall", kind: "Dendro + palaeoentomology + dating", m: { 3: 1, 10: 2, 148: 1, 151: 2, 155: 2, 174: 1 } },
+  { name: "Church Stretton Site CS1 and CS2", kind: "Palaeoentomology + pollen + dating", m: { 3: 3, 14: 11, 151: 4, 158: 26, 174: 1 } },
+  { name: "Grundsunda Raä 345", kind: "Archaeobotany + geoarchaeology", m: { 8: 2, 32: 4, 33: 5, 37: 5, 74: 4, 117: 2, 118: 2, 119: 2 } },
+  { name: "Norra Björke Raä 57", kind: "Archaeobotany + geoarchaeology", m: { 8: 2, 32: 4, 33: 4, 37: 4, 74: 4, 107: 2, 109: 2, 110: 2 } },
+  { name: "Ål 291", kind: "Ceramic", m: { 171: 9, 172: 3 } },
+  { name: "Horton Kirby, South Darenth", kind: "Mostly dating", m: { 3: 2, 38: 7, 148: 2, 149: 1, 155: 2, 158: 11, 174: 2 } }
+];
+
+// Domain/family pairs that occur together at real sites (from tbl_datasets via sample groups)
+const COOC = [["entom","radio"],["entom","calendar"],["entom","period"],["dendro","entom"],["dendro","radio"],["dendro","calendar"],["dendro","period"],
+  ["entom","pollen"],["pollen","radio"],["pollen","period"],["pollen","calendar"],["botany","geoarch"],["geoarch","radio"],["botany","period"],
+  ["radio","calendar"],["radio","period"],["calendar","period"]].map(p => p.sort().join("|"));
+
+const FAM_ORDER = DATA.families.map(f => f.key);
+const famByKey = Object.fromEntries(DATA.families.map(f => [f.key, f]));
+const methodById = Object.fromEntries(DATA.methods.map(m => [m.id, m]));
+const famIndex = {};
+DATA.families.forEach(f => { famIndex[f.key] = DATA.methods.filter(m => m.family === f.key).map(m => m.id); });
+
+const hex = c => (c.startsWith("#") ? c : "#" + c).toLowerCase();
+
+/* ---------- colour maths (same as the analysis that produced the palette) ---------- */
+const MATS = {
+  deutan: [[0.367322,0.860646,-0.227968],[0.280085,0.672501,0.047413],[-0.011820,0.042940,0.968881]],
+  protan: [[0.152286,1.052583,-0.204868],[0.114503,0.786281,0.099216],[-0.003882,-0.048116,1.051998]],
+  tritan: [[1.255528,-0.076749,-0.178779],[-0.078411,0.930809,0.147602],[0.004733,0.691367,0.303900]]
+};
+function toRgb(h) { h = hex(h).slice(1); if (h.length === 3) h = h.split("").map(c => c + c).join(""); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16) / 255); }
+const lin = c => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+function luminance(h) { const [r, g, b] = toRgb(h).map(lin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; }
+function contrast(a, b) { const la = luminance(a), lb = luminance(b); return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05); }
+function simLin(h, v) {
+  const l = toRgb(h).map(lin);
+  if (v === "normal") return l;
+  const m = MATS[v];
+  return m.map(row => Math.min(1, Math.max(0, row[0] * l[0] + row[1] * l[1] + row[2] * l[2])));
+}
+function oklab([r, g, b]) {
+  let L = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+  let M = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+  let S = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+  [L, M, S] = [L, M, S].map(Math.cbrt);
+  return [0.2104542553 * L + 0.7936177850 * M - 0.0040720468 * S, 1.9779984951 * L - 2.4285922050 * M + 0.4505937099 * S, 0.0259040371 * L + 0.7827717662 * M - 0.8086757660 * S];
+}
+function dE(a, b, v) { const A = oklab(simLin(a, v)), B = oklab(simLin(b, v)); return 100 * Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); }
+const textOn = bg => (1.05 / (luminance(bg) + 0.05) >= (luminance(bg) + 0.05) / 0.05) ? "#ffffff" : "#1d1d1d";
+
+/* Same initials rule as ResultTable.buildAnalysisMethodsSvg */
+function initials(name) {
+  return name.replace(/\(.*?\)/g, "").trim().split(/\s+/).map(w => w.replace(/[^a-zA-Z]/g, "")).filter(w => w.length > 0).slice(0, 3).map(w => w[0].toUpperCase()).join("");
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const label = m => m.abbrev && m.abbrev !== "None" ? m.abbrev : m.name;
+
+/* ---------- 1. domains ---------- */
+function renderDomains() {
+  const cards = DOMAINS.map(d => {
+    const fam = d.fam ? famByKey[d.fam] : null;
+    const ink = fam ? hex(fam.ink) : "#333333";
+    const data = fam ? hex(fam.base) : null;
+    const cNow = contrast(d.cur, "#fff"), cNew = contrast(ink, "#fff");
+    const ratio = c => `<span class="ratio ${c >= 4.5 ? "pass" : "fail"}">${c.toFixed(1)}:1</span>`;
+    return `<div class="panel dcard">
+      <h3>${esc(d.title)} ${d.disabled ? "<small>disabled in client</small>" : ""}</h3>
+      <div class="row"><span class="tag">Now</span><div class="grow chrome sim" style="background:${d.cur}"><i class="${d.icon}"></i>${esc(d.title)}</div>${ratio(cNow)}</div>
+      <div class="row"><span class="tag">Proposed</span><div class="grow chrome sim" style="background:${ink}"><i class="${d.icon}"></i>${esc(d.title)}</div>${ratio(cNew)}</div>
+      <div class="row"><span class="tag"></span>
+        <span class="chip sim"><i class="sw" style="background:${d.cur}"></i>${d.cur}</span>
+        <span class="chip sim"><i class="sw" style="background:${ink}"></i>ink ${ink}</span>
+        ${data ? `<span class="chip sim"><i class="sw" style="background:${data}"></i>data ${data}</span>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+  document.getElementById("domain-cards").innerHTML = cards;
+  const menu = which => DOMAINS.filter(d => !d.disabled).map(d => {
+    const c = which === "now" ? d.cur : (d.fam ? hex(famByKey[d.fam].ink) : "#333333");
+    return `<div><span style="color:${c}"><i class="${d.icon}"></i></span>${esc(d.title)}</div>`;
+  }).join("");
+  document.getElementById("dmenu-now").innerHTML = menu("now");
+  document.getElementById("dmenu-new").innerHTML = menu("new");
+}
+
+/* ---------- 2. result table ---------- */
+function barHtml(site, which) {
+  let ids = Object.keys(site.m).map(Number);
+  if (which === "now") ids.sort((a, b) => a - b);
+  else ids.sort((a, b) => {
+    const fa = methodById[a].family, fb = methodById[b].family;
+    if (fa !== fb) return FAM_ORDER.indexOf(fa) - FAM_ORDER.indexOf(fb);
+    return site.m[b] - site.m[a] || famIndex[fa].indexOf(a) - famIndex[fa].indexOf(b);
+  });
+  return `<div class="bar ${which}">` + ids.map(id => {
+    const m = methodById[id], c = hex(which === "now" ? m.cur : m.new);
+    const style = which === "new" ? `color:${textOn(c)};` : "";
+    return `<div class="seg-b" style="flex:${site.m[id]} 1 0;background:${c};${style}" title="${esc(m.name)}: ${site.m[id]} datasets">${initials(m.name)}</div>`;
+  }).join("") + "</div>";
+}
+function renderTable() {
+  document.querySelector("#rt tbody").innerHTML = SITES.map(s => `<tr>
+    <td class="name">${esc(s.name)}<br><span style="color:#888;font-size:0.78rem">${esc(s.kind)}</span></td>
+    <td class="barcell">${barHtml(s, "now")}</td>
+    <td class="barcell">${barHtml(s, "new")}</td></tr>`).join("");
+  fitLabels();
+}
+function fitLabels() {
+  document.querySelectorAll(".seg-b").forEach(el => {
+    el.style.fontSize = "";
+    el.dataset.t = el.dataset.t || el.textContent;
+    el.textContent = el.dataset.t;
+    if (el.scrollWidth > el.clientWidth - 2) el.textContent = "";
+  });
+}
+
+/* ---------- 3. pies ---------- */
+function pieSvg(which) {
+  const ms = DATA.methods.filter(m => m.n > 0).slice().sort((a, b) => b.n - a.n);
+  const total = ms.reduce((s, m) => s + m.n, 0);
+  let order = ms;
+  if (which === "new") order = ms.slice().sort((a, b) => FAM_ORDER.indexOf(a.family) - FAM_ORDER.indexOf(b.family) || b.n - a.n);
+  const R = 120, r = 50, cx = 140, cy = 140;
+  let a0 = -Math.PI / 2, out = "";
+  const pt = (rad, a) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
+  order.forEach(m => {
+    const frac = m.n / total, a1 = a0 + frac * Math.PI * 2;
+    const large = a1 - a0 > Math.PI ? 1 : 0;
+    const [x0, y0] = pt(R, a0), [x1, y1] = pt(R, a1), [x2, y2] = pt(r, a1), [x3, y3] = pt(r, a0);
+    const c = hex(which === "now" ? m.cur : m.new);
+    const stroke = which === "new" ? ` stroke="#ffffff" stroke-width="1"` : "";
+    out += `<path d="M${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 ${large} 1 ${x1.toFixed(2)},${y1.toFixed(2)} L${x2.toFixed(2)},${y2.toFixed(2)} A${r},${r} 0 ${large} 0 ${x3.toFixed(2)},${y3.toFixed(2)} Z" fill="${c}"${stroke}><title>${esc(m.name)}: ${m.n.toLocaleString("en")} datasets</title></path>`;
+    if (frac > 0.04) {
+      const [lx, ly] = pt((R + r) / 2, (a0 + a1) / 2);
+      const tc = which === "new" ? textOn(c) : "#ffffff";
+      const sh = which === "now" ? ` style="paint-order:stroke" stroke="rgba(0,0,0,.45)" stroke-width="2"` : "";
+      out += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="11" fill="${tc}"${sh}>${esc(label(m))}</text>`;
+    }
+    a0 = a1;
+  });
+  const legend = ms.slice(0, 16).map(m => `<span><i style="background:${hex(which === "now" ? m.cur : m.new)}"></i>${esc(label(m))}<em>${(100 * m.n / total).toFixed(1)}%</em></span>`).join("");
+  return `<svg viewBox="0 0 280 280" role="img" aria-label="Share of datasets by analysis method">${out}</svg><div class="legend">${legend}</div>`;
+}
+function renderPies() {
+  document.getElementById("pie-now").innerHTML = pieSvg("now");
+  document.getElementById("pie-new").innerHTML = pieSvg("new");
+}
+
+/* ---------- 4. tags ---------- */
+function renderTags() {
+  const groups = [SITES[4], SITES[3], SITES[7]];
+  ["now", "new"].forEach(which => {
+    document.getElementById("tags-" + which).innerHTML = groups.map(s => {
+      const ids = Object.keys(s.m).map(Number).sort((a, b) => a - b);
+      return `<div class="taggroup"><span class="sname">${esc(s.name)}</span><div class="tags">` + ids.map(id => {
+        const m = methodById[id], c = hex(which === "now" ? m.cur : m.new);
+        return `<div class="atag" style="background:${c};color:${textOn(c) === "#ffffff" ? "#ffffff" : "#000000"}">${esc(label(m))}</div>`;
+      }).join("") + "</div></div>";
+    }).join("");
+  });
+}
+
+/* ---------- 5. separation ---------- */
+let vision = "normal";
+function matrix(items, el) {
+  const cls = v => v < 5 ? "bad" : v < 10 ? "warn" : "ok";
+  let h = "<table><tr><th></th>" + items.map(it => `<th class="colh" title="${esc(it.name)}"><i class="sim" style="background:${it.c}"></i></th>`).join("") + "</tr>";
+  items.forEach((a, i) => {
+    h += `<tr><th class="rowh">${esc(a.name)} <i class="sim" style="background:${a.c}"></i></th>`;
+    items.forEach((b, j) => {
+      if (i === j) { h += `<td class="self"></td>`; return; }
+      const v = dE(a.c, b.c, vision);
+      const co = a.f && b.f && COOC.includes([a.f, b.f].sort().join("|")) ? " co" : "";
+      h += `<td class="${cls(v)}${co}" title="${esc(a.name)} / ${esc(b.name)}">${v.toFixed(1)}</td>`;
+    });
+    h += "</tr>";
+  });
+  el.innerHTML = h + "</table>";
+}
+function worstPair(list) {
+  let best = { v: Infinity };
+  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+    const v = dE(list[i].c, list[j].c, vision);
+    if (v < best.v) best = { v, a: list[i].name, b: list[j].name };
+  }
+  return best;
+}
+function renderSeparation() {
+  const now = DOMAINS.filter(d => d.fam).map(d => ({ name: d.title, c: d.cur, f: d.fam }));
+  const nu = DATA.families.filter(f => f.key !== "survey").map(f => ({ name: f.title, c: hex(f.base), f: f.key }));
+  matrix(now, document.getElementById("mx-now"));
+  matrix(nu, document.getElementById("mx-new"));
+  const top = DATA.methods.filter(m => m.n > 0).sort((a, b) => b.n - a.n).slice(0, 17);
+  const crossNew = (() => {
+    let best = { v: Infinity };
+    for (let i = 0; i < top.length; i++) for (let j = i + 1; j < top.length; j++) {
+      if (top[i].family === top[j].family) continue;
+      const v = dE(hex(top[i].new), hex(top[j].new), vision);
+      if (v < best.v) best = { v, a: label(top[i]), b: label(top[j]) };
+    }
+    return best;
+  })();
+  const stats = [
+    ["Domains now, weakest pair", worstPair(now)],
+    ["Families proposed, weakest pair", worstPair(nu)],
+    ["Top 17 methods now, weakest pair", worstPair(top.map(m => ({ name: label(m), c: hex(m.cur) })))],
+    ["Top 17 proposed, weakest pair across families", crossNew]
+  ];
+  document.getElementById("summary").innerHTML = stats.map(([k, s]) =>
+    `<div class="panel stat"><span class="k">${k}</span><span class="v">${s.v.toFixed(1)} <small>ΔE</small></span><span class="pairname">${esc(s.a)} / ${esc(s.b)}</span></div>`).join("");
+}
+
+/* ---------- 6. method list ---------- */
+function renderFamilies() {
+  document.getElementById("families").innerHTML = DATA.families.map(f => {
+    const ms = DATA.methods.filter(m => m.family === f.key).sort((a, b) => b.n - a.n);
+    const row = m => `<tr class="${m.n ? "" : "zero"}">
+      <td class="sw"><span class="swb sim"><i style="background:${hex(m.cur)}"></i>${m.cur.toLowerCase()}</span></td>
+      <td class="sw"><span class="swb sim"><i style="background:${hex(m.new)}"></i>${m.new.toLowerCase()}</span></td>
+      <td class="mono">${m.id}</td><td>${esc(m.name)}</td><td>${m.abbrev && m.abbrev !== "None" ? esc(m.abbrev) : ""}</td><td class="n">${m.n.toLocaleString("en")}</td></tr>`;
+    const withData = ms.filter(m => m.n > 0), zero = ms.filter(m => m.n === 0);
+    const head = `<tr><th>Now</th><th>Proposed</th><th>ID</th><th>Method</th><th>Short name</th><th style="text-align:right">Datasets</th></tr>`;
+    return `<div class="panel site fam">
+      <div class="famhead"><h3>${esc(f.title)}</h3><span class="kind">${f.kind === "domain" ? "Domain family" : "Pencil family"}</span>
+        <span class="chip sim"><i class="sw" style="background:${hex(f.base)}"></i>data ${hex(f.base)}</span>
+        ${f.ink ? `<span class="chip sim"><i class="sw" style="background:${hex(f.ink)}"></i>ink ${hex(f.ink)}</span>` : ""}</div>
+      <div class="mlist">${withData.length ? `<table>${head}${withData.map(row).join("")}</table>` : `<p class="muted" style="font-size:.85rem">No datasets in the database yet.</p>`}
+      ${zero.length ? `<details><summary>${zero.length} method${zero.length > 1 ? "s" : ""} without datasets</summary><table>${head}${zero.map(row).join("")}</table></details>` : ""}</div>
+    </div>`;
+  }).join("");
+}
+
+/* ---------- vision toggle ---------- */
+const NOTES = {
+  normal: "Switch to see every swatch on this page as a person with that type of colour blindness would.",
+  deutan: "Deuteranopia: no green-sensitive cones. Red–green confusion, the most common type (around 5% of men, including milder forms).",
+  protan: "Protanopia: no red-sensitive cones. Red–green confusion, with reds appearing darker (around 1–2% of men).",
+  tritan: "Tritanopia: no blue-sensitive cones. Blue–yellow confusion; rare."
+};
+function setVision(v) {
+  vision = v;
+  document.documentElement.style.setProperty("--cvd", v === "normal" ? "none" : `url(#cvd-${v})`);
+  document.querySelectorAll("#vision button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+  document.getElementById("vision-note").textContent = NOTES[v];
+  renderSeparation();
+}
+document.querySelectorAll("#vision button").forEach(b => b.addEventListener("click", () => setVision(b.dataset.v)));
+
+renderDomains();
+renderTable();
+renderPies();
+renderTags();
+renderSeparation();
+renderFamilies();
+let rt;
+window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(fitLabels, 120); });
+</script>
+</body>
+</html>

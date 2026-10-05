@@ -56,12 +56,6 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         let data = await response.json();
         this.data = data.analysis_methods_datasets;
 
-        // Get method_id to color mapping from config
-        const methodColors = (this.sqs.config.analysisMethodsColors || []).reduce((acc, entry) => {
-            acc[entry.method_id] = entry.color.startsWith('#') ? entry.color : `#${entry.color}`;
-            return acc;
-        }, {});
-
         // Fallback color palette if not found in config
         const fallbackColors = this.sqs.color.getColorScheme(data.analysis_methods_datasets.length);
 
@@ -70,8 +64,17 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
             values: [],
             customdata: [],
             marker: {
-                colors: []
+                colors: [],
+                line: {
+                    color: "#fff",
+                    width: 1
+                }
             },
+            insidetextfont: {
+                color: []
+            },
+            // Keep the family grouping from compareAnalysisMethods instead of letting plotly sort by size
+            sort: false,
             type: 'pie',
             hole: 0.4,
             name: "Analysis methods by datasets",
@@ -81,21 +84,16 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
             hovertemplate: "%{percent} of datasets are %{customdata}<extra></extra>"
         }];
 
-        data.analysis_methods_datasets.sort((a, b) => {
-            if(a.dataset_count > b.dataset_count) {
-                return -1;
-            }
-            else {
-                return 1;
-            }
-        });
+        data.analysis_methods_datasets.sort((a, b) => this.sqs.color.compareAnalysisMethods(a, b));
 
         data.analysis_methods_datasets.forEach((method, idx) => {
             chartData[0].labels.push(method.method_abbrev_or_alt_name);
             chartData[0].values.push(method.dataset_count);
             chartData[0].customdata.push(method.method_name);
             // Use config color if available, else fallback
-            chartData[0].marker.colors.push(methodColors[method.method_id] || fallbackColors[idx % fallbackColors.length]);
+            const color = this.sqs.color.getAnalysisMethodColor(method.method_id) || fallbackColors[idx % fallbackColors.length];
+            chartData[0].marker.colors.push(color);
+            chartData[0].insidetextfont.color.push(this.sqs.color.getContrastingTextColor(color));
         });
 
         this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);

@@ -419,6 +419,59 @@ class Color {
 
 		return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 	}
+
+	/*
+	Function: getAnalysisMethodColor
+	Returns the configured color for an analysis method as "#rrggbb", or null if the method has none.
+	 */
+	getAnalysisMethodColor(methodId) {
+		const entry = (Config.analysisMethodsColors || []).find(amc => amc.method_id == methodId);
+		if(!entry || !entry.color) {
+			return null;
+		}
+		return "#" + entry.color.replace(/^#/, "");
+	}
+
+	/*
+	Function: compareAnalysisMethods
+	Sort comparator for objects with a method_id and an optional dataset_count. Groups methods by family,
+	in the order of Config.analysisMethodFamilies, and puts the method with the most datasets first within
+	a family, so the same kinds of methods line up in the same place wherever they are drawn.
+	 */
+	compareAnalysisMethods(a, b) {
+		const families = Config.analysisMethodFamilies || [];
+		const methods = Config.analysisMethodsColors || [];
+		const familyIndex = methodId => {
+			const entry = methods.find(amc => amc.method_id == methodId);
+			const index = entry ? families.indexOf(entry.family) : -1;
+			return index == -1 ? families.length : index;
+		};
+		const familyDiff = familyIndex(a.method_id) - familyIndex(b.method_id);
+		if(familyDiff != 0) {
+			return familyDiff;
+		}
+		const countDiff = (b.dataset_count || 0) - (a.dataset_count || 0);
+		if(countDiff != 0) {
+			return countDiff;
+		}
+		return Number(a.method_id) - Number(b.method_id);
+	}
+
+	/*
+	Function: getContrastingTextColor
+	Returns "#ffffff" or "#000000", whichever has the higher WCAG contrast against the given background color.
+	 */
+	getContrastingTextColor(backgroundColor) {
+		const rgb = this.parseHexColor(backgroundColor);
+		if(!rgb) {
+			return "#000000";
+		}
+		const toLinear = c => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+		const luminance = 0.2126 * toLinear(rgb.r) + 0.7152 * toLinear(rgb.g) + 0.0722 * toLinear(rgb.b);
+		const contrastWithWhite = 1.05 / (luminance + 0.05);
+		const contrastWithBlack = (luminance + 0.05) / 0.05;
+		return contrastWithWhite >= contrastWithBlack ? "#ffffff" : "#000000";
+	}
 }
 
 export { Color as default }
