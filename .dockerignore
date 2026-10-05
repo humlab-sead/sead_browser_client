@@ -1,0 +1,19 @@
+# The image installs and builds these itself
+node_modules
+dist
+src/config/config.json
+
+**/.git
+.env
+.vscode
+.codex
+.claude
+test-results
+playwright-report
+blob-report
+playwright
+tests/artifacts
+tests/.cache
+.playwright-browser-cache
+.playwright-mcp
+no-git-data

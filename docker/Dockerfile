@@ -1,30 +1,43 @@
-FROM docker.io/debian:trixie
+# Built from the checkout it sits in: the build context is the repository root, so
+# this builds whatever is checked out - sead-deployment checks out the release's tag.
+#   podman build -f docker/Dockerfile --build-arg DOMAIN=sead.local .
 
-# Define build-time variables (provided via Docker Compose)
-ARG SBC_REF=master
-ARG DOMAIN
+# ── build: node, the dependencies and the webpack build ──────────────────────
+# Also the image the dev container runs, with the checkout mounted over the copy
+# of the source made here (see compose.override.yml in sead-deployment).
+FROM docker.io/debian:trixie AS build
 
-# Define environment variables for runtime
+RUN apt-get update && apt-get install -y nodejs npm
+
 ENV NODE_OPTIONS=--max-old-space-size=4096
-ENV SBC_REF=${SBC_REF}
-ENV DOMAIN=${DOMAIN}
-
-RUN apt-get update
-RUN apt-get install -y ca-certificates curl gnupg nodejs npm nginx-extras git procps geoip-database
-
-RUN git clone --recurse-submodules https://github.com/humlab-sead/sead_browser_client
 
 WORKDIR /sead_browser_client
 
-RUN git checkout $SBC_REF
+# The dependencies first, so they are only installed again when the lockfile changes
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev
 
-# echo out DOMAIN so we know it is set
-RUN echo "DOMAIN: $DOMAIN"
+COPY . .
 
-RUN npm install --include=dev && \
-    npm run build:prod && \
-    cp -R dist/* /var/www/html/
+# Read by prepare-config.js, which writes them into the client's config
+ARG DOMAIN
+ARG SCHEME=https
+ARG MODE=prod
+ENV DOMAIN=${DOMAIN}
+ENV SCHEME=${SCHEME}
 
-# Base image always serves static assets via nginx.
-# Development mode is provided via docker-compose.override.yml.
+RUN echo "DOMAIN: $DOMAIN, SCHEME: $SCHEME, MODE: $MODE" \
+    && npm run build:${MODE}
+
+# ── runtime: nginx serving the built client ──────────────────────────────────
+FROM docker.io/debian:trixie
+
+RUN apt-get update && apt-get install -y ca-certificates curl nginx-extras procps geoip-database
+
+COPY --from=build /sead_browser_client/dist/ /var/www/html/
+
+# What was built, as 'git describe' put it; reported by 'deploy.sh versions'
+ARG SOURCE_VERSION=
+ENV SOURCE_VERSION=${SOURCE_VERSION}
+
 CMD ["nginx", "-g", "daemon off;"]
