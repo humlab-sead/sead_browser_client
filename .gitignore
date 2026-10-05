@@ -14,3 +14,4 @@ AGENTS.md
 .playwright-mcp/
 tests/.cache/
 no-git-data
+.claude/
