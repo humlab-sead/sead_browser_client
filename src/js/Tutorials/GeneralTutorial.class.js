@@ -13,6 +13,73 @@ class GeneralTutorial {
         });
             
         this.initSteps();
+        this.registerResponsiveStepHandling();
+    }
+
+    registerResponsiveStepHandling() {
+        this.tour.on('show', ({ step }) => {
+            this.prepareStepForCurrentLayout(step);
+        });
+    }
+
+    prepareStepForCurrentLayout(step) {
+        if(this.sqs.layoutManager && this.sqs.layoutManager.getMode() == "mobileMode") {
+            if([2, 3, 4, 5, 6, 7, 18].includes(parseInt(step.id))) {
+                this.showFilterSection();
+            }
+            if([8, 9].includes(parseInt(step.id))) {
+                this.showResultSection();
+            }
+        }
+
+        this.updateStepPlacement(step);
+    }
+
+    showFilterSection() {
+        let activeView = this.sqs.layoutManager.getActiveView();
+        if(activeView && activeView.name == "filters" && activeView.getVisibleSection() != "left") {
+            activeView.switchSection("left");
+        }
+    }
+
+    showResultSection() {
+        let activeView = this.sqs.layoutManager.getActiveView();
+        if(activeView && activeView.name == "filters" && activeView.getVisibleSection() != "right") {
+            activeView.switchSection("right");
+        }
+    }
+
+    updateStepPlacement(step) {
+        if(typeof step.options.attachTo == "undefined" || typeof step.options.attachTo.on == "undefined") {
+            return;
+        }
+
+        if(typeof step.options.desktopAttachOn == "undefined") {
+            step.options.desktopAttachOn = step.options.attachTo.on;
+        }
+        if(typeof step.options.desktopArrow == "undefined") {
+            step.options.desktopArrow = step.options.arrow;
+        }
+
+        let attachOn = step.options.desktopAttachOn;
+        let arrow = step.options.desktopArrow !== false;
+        if(this.sqs.layoutManager && this.sqs.layoutManager.getMode() == "mobileMode") {
+            if(parseInt(step.id) == 7) {
+                attachOn = "top";
+                arrow = false;
+            }
+            else if(attachOn == "right" || attachOn == "left") {
+                attachOn = "bottom";
+            }
+        }
+
+        step.updateStepOptions({
+            attachTo: {
+                ...step.options.attachTo,
+                on: attachOn
+            },
+            arrow: arrow
+        });
     }
 
     initSteps() {

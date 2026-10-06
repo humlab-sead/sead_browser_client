@@ -624,7 +624,7 @@ class SeadQuerySystem {
 
 		let resultModule = options.resultModule || this.getUserSettings().defaultResultModule || this.config.defaultResultModule;
 
-		this.resultManager.setActiveModule(resultModule, true).then(() => {
+		return this.resultManager.setActiveModule(resultModule, true).then(() => {
 			this.facetManager.reset();
 			this.menuManager.resetAll();
 		});

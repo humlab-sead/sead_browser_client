@@ -1084,6 +1084,8 @@ class ResultMap extends ResultModule {
 		}
 
 		//NOTE: This can not be pre-defined in HTML since the DOM object itself is removed along with the overlay it's attached to when the map is destroyed.
+		$("#map-popup-container, #tutorial-map-targeting-box, #tutorial-map-targeting-box-upper-left").remove();
+
 		let popup = $("<div></div>");
 		popup.attr("id", "map-popup-container");
 		let table = $("<table></table>").attr("id", "map-popup-sites-table").append("<tbody></tbody>").appendTo(popup);

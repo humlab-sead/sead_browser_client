@@ -81,7 +81,19 @@ class Tutorial {
       this.setCookie();
       $(".tutorial-dialog").hide();
       this.sqs.dialogManager.hidePopOver();
-      this.tour.start();
+      $("body").addClass("tutorial-active");
+      this.tour.on("complete", () => {
+        $("body").removeClass("tutorial-active");
+      });
+      this.tour.on("cancel", () => {
+        $("body").removeClass("tutorial-active");
+      });
+
+      Promise.resolve(this.sqs.reset({
+        resultModule: "map",
+      })).then(() => {
+        this.tour.start();
+      });
     }
 
     getTutorialSelectForm() {

@@ -4781,6 +4781,10 @@ polyline{
   overflow-y: auto;
 }
 
+body.tutorial-active .cc-window {
+  display: none !important;
+}
+
 .cc-btn {
   color: #fff !important;
 }
@@ -5539,7 +5543,7 @@ svg text {
 
 /* Shepherd caps its steps at a fixed 400px, scale that along with the step text */
 .shepherd-element.tutorial-container {
-  max-width: sqs-px(400);
+  max-width: min(#{sqs-px(400)}, calc(100vw - 1rem));
 }
 
 .shepherd-footer button.yes-button {
