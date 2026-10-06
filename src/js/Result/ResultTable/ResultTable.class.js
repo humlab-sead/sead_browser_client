@@ -369,24 +369,19 @@ class ResultTable extends ResultModule {
 
 		let tableColumns = [
 			{title: "Select", widthGrow:-1, formatter: "rowSelection", titleFormatter:"rowSelection", cssClass: "result-table-select-all-checkbox", hozAlign:"center", headerSort:false, cellClick: (evt, cell) => { cell.getRow().toggleSelect(); }},
-			{title:"View site", widthGrow:0, headerSort: false, field:"site_link_filtered", tooltip: true, cellClick: (e, cell) => {
-				e.preventDefault();
-				e.stopPropagation();
-				let siteId = parseInt(cell.getValue());
-				if(!siteId) {
-					console.log("WARN: No site ID found in cell value");
-					return;
+			{title:"Site name", field:"sitename", tooltip: true, widthGrow:3, cellClick: (e, cell) => {
+				if($(e.target).closest(".result-table-site-name-link").length > 0) {
+					this.openSiteReportFromCell(e, cell.getData().site_link_filtered);
 				}
-				this.sqs.siteReportManager.renderSiteReport(siteId);
 			}, formatter: (cell, formatterParams, onRendered) => {
-					return `
-					<div class='site-report-link site-report-table-button' site-id='${cell.getValue()}'>
-					<i class="fa fa-search" aria-hidden="true"></i>&nbsp;View site
-					</div>`;
+					let link = document.createElement("a");
+					link.className = "result-table-site-name-link";
+					link.href = "/site/"+cell.getData().site_link_filtered;
+					link.textContent = cell.getValue();
+					return link;
 				}
 			},
-			{title:"Site ID", field:"site_link_filtered", widthGrow:1, hozAlign:"center", visible: !mobileMode},
-			{title:"Site name", field:"sitename", tooltip: true, widthGrow:3},
+			{title:"Site ID", field:"site_link_filtered", widthGrow:1, cssClass: "result-table-site-id", visible: !mobileMode},
 			{
 				title: "Country",
 				field: "country",
@@ -547,6 +542,15 @@ class ResultTable extends ResultModule {
 			});
 		}
 
+		tableColumns.push({title:"View site", width: 130, headerSort: false, field:"site_link_filtered", cssClass: "result-table-view-site", cellClick: (e, cell) => {
+			if($(e.target).closest(".site-report-table-button").length > 0) {
+				this.openSiteReportFromCell(e, cell.getValue());
+			}
+		}, formatter: (cell, formatterParams, onRendered) => {
+				return `<a class='site-report-table-button' href='/site/${cell.getValue()}'>View site <i class="fa fa-arrow-right" aria-hidden="true"></i></a>`;
+			}
+		});
+
 		this.tabulatorTable = new Tabulator("#result-datatable", {
 			data: this.data.rows,
 			placeholder:"No data",
@@ -570,6 +574,24 @@ class ResultTable extends ResultModule {
 		*/
 
 		this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
+	}
+
+	/*
+	* Function: openSiteReportFromCell
+	* Opens the site report in place. Modified clicks (ctrl/cmd/shift/middle) are left to the browser so the link can open in a new tab.
+	*/
+	openSiteReportFromCell(e, siteIdValue) {
+		e.stopPropagation(); //don't toggle row selection
+		if(e.ctrlKey || e.metaKey || e.shiftKey || e.button > 0) {
+			return;
+		}
+		e.preventDefault();
+		let siteId = parseInt(siteIdValue);
+		if(!siteId) {
+			console.log("WARN: No site ID found in cell value");
+			return;
+		}
+		this.sqs.siteReportManager.renderSiteReport(siteId);
 	}
 
 	buildAnalysisMethodsSvg(analysisMethodsDatasets) {

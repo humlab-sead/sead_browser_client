@@ -1,6 +1,5 @@
 import { nanoid } from "nanoid";
 import DatasetModule from "./DatasetModule.class";
-import StandardAge from "../../../Common/StandardAge.class";
 /*
 * Class: DatingToPeriodDataset
 *
@@ -18,7 +17,6 @@ class EntityAgesDataset extends DatasetModule {
 		this.datasets = [];
 		this.buildIsComplete = false;
 		this.section = analysis.section;
-		this.summary = null;
 
 		this.methodIds = [174];
         this.methodGroupIds = [];
@@ -173,10 +171,6 @@ class EntityAgesDataset extends DatasetModule {
         };
 
         section.contentItems.push(contentItem);
-	}
-
-	getDatingSummary() {
-		return this.summary;
 	}
 
 	/*

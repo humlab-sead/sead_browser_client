@@ -1,6 +1,5 @@
 import { nanoid } from "nanoid";
 import DatasetModule from "./DatasetModule.class";
-import StandardAge from "../../../Common/StandardAge.class";
 /*
 * Class: DatingToPeriodDataset
 *
@@ -14,12 +13,10 @@ class C14Dataset extends DatasetModule {
 		this.data = analysis.data;
         this.buildIsComplete = true;
         this.methodIds = [151, 148, 38];
-        this.summary = null;
     }
 
     async makeSection(siteData, sections) {
 		let methodDatasets = this.claimDatasets(siteData);
-		let summary = [];
 		let dataGroups = siteData.data_groups.filter(dataGroup => {
 			return dataGroup.method_ids.some(id => this.methodIds.includes(id));
 		});
@@ -127,14 +124,6 @@ class C14Dataset extends DatasetModule {
 						},
 					];
 
-					let stdAge = new StandardAge();
-					stdAge.ageType = method.method_name;
-					stdAge.sample = sample != null ? sample.sample_name : point.physical_sample_id+" (internal id)";
-					stdAge.ageOlder = parseInt(point.dating_values.age) + parseInt(point.dating_values.error_older || 0);
-					stdAge.ageYounger = parseInt(point.dating_values.age) - parseInt(point.dating_values.error_younger || 0);
-					stdAge.isBP = true;
-					summary.push(stdAge);
-
 					rows.push(row);
 				});
 
@@ -167,12 +156,7 @@ class C14Dataset extends DatasetModule {
 			section.contentItems.push(contentItem);
 		});
 
-		this.summary = summary;
     }
-
-	getDatingSummary() {
-		return this.summary;
-	}
 
 	getDatingLabById(site, labId) {
 		for(let key in site.lookup_tables.labs) {
