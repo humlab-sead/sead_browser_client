@@ -92,6 +92,10 @@ class MosaicDendroWaneyEdge extends DendroBaseModule {
         this.active = true;
         this.renderIntoNode = renderIntoNode;
 
+        if(this.renderNoDataIfNoSites()) {
+            return;
+        }
+
         const data = await this.fetchData(renderIntoNode);
 
         if(!this.active) {

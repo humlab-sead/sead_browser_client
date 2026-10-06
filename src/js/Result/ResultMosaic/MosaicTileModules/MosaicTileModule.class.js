@@ -227,15 +227,33 @@ class MosaicTileModule {
             // Module already rendered its own title via tileHtml — only replace the chart area
             this.sqs.setNoDataMsg($chartArea[0]);
         } else {
-            // Module has no own title wrapper; add a title heading to the parent tile
+            // Module has no own title wrapper; add a title heading to the parent tile, unless it has the shared header with the title already
             if (this.title) {
                 const $tile = $(this.renderIntoNode).parent();
-                if ($tile.find('> h2').length === 0) {
+                if ($tile.find('> h2').length === 0 && $tile.find('.mosaic-tile-title').length === 0) {
                     $tile.append(`<h2>${this.title}</h2>`);
                 }
             }
             this.sqs.setNoDataMsg(this.renderIntoNode);
         }
+    }
+
+    /*
+    * Function: renderNoDataIfNoSites
+    *
+    * With no sites in the result a tile has nothing to show - and several endpoints read an empty list of
+    * sites as every site in the database rather than none. Call it once the tile's own container is in place:
+    * it shows "No data" and returns true when there are no sites, and the tile should stop there.
+    */
+    renderNoDataIfNoSites() {
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        if(resultMosaic && Array.isArray(resultMosaic.sites) && resultMosaic.sites.length > 0) {
+            return false;
+        }
+        this.data = [];
+        this.renderNoData();
+        this.renderComplete = true;
+        return true;
     }
 
     async update() {

@@ -36,6 +36,15 @@ class MosaicMapModule extends MosaicTileModule {
         `;
         $(this.renderIntoNode).append(tileHtml);
 
+        if(this.renderNoDataIfNoSites()) {
+            //"No data" takes the map's place, so the map has to be built anew once there are sites again
+            if(this.resultMap != null) {
+                this.resultMap.unrender();
+                this.resultMap = null;
+            }
+            return;
+        }
+
         // Render the map into the inner map container
         if(this.resultMap == null) {
             this.resultMap = new ResultMap(this.sqs.resultManager, `#${mapContainerId}`, false, true);
@@ -59,7 +68,8 @@ class MosaicMapModule extends MosaicTileModule {
     }
 
     async update() {
-        if(this.resultMap != null) {
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        if(this.resultMap != null && resultMosaic.sites.length > 0) {
             this.resultMap.update();
         }
         else {

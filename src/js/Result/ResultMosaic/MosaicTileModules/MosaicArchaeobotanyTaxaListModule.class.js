@@ -42,6 +42,10 @@ class MosaicArchaeobotanyTaxaListModule extends MosaicTileModule {
         `;
         $(this.renderIntoNode).append(tileHtml);
 
+        if(this.renderNoDataIfNoSites()) {
+            return;
+        }
+
         this.sqs.setLoadingIndicator(`#${tableContainerId}`, true);
 
         let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/toptaxa/8", {

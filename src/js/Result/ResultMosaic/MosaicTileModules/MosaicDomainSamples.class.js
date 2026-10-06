@@ -134,6 +134,10 @@ class MosaicDomainSamples extends MosaicTileModule {
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);
+
+        if(this.renderNoDataIfNoSites()) {
+            return;
+        }
         this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);
         const result = await this.fetchData(`#${chartContainerId}`);
         if (!result) {

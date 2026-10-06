@@ -42,6 +42,10 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         `;
         $(this.renderIntoNode).append(tileHtml);
 
+        if(this.renderNoDataIfNoSites()) {
+            return;
+        }
+
         // Show loading indicator on the chart container only
         this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);
 
