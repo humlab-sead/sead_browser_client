@@ -54,7 +54,7 @@
 			"enabled": true,
 			"title": "Dendrochronology",
 			"icon": "<i class=\"fa fa-tree\" aria-hidden=\"true\"></i>",
-			"color": "#a25f00",
+			"color": "#9b6c0e",
 			"filterBlacklist": [
 				"species",
 				"family",
@@ -134,7 +134,7 @@
 			"enabled": true,
 			"title": "Palaeoentomology",
 			"icon": "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
-			"color": "#842c41",
+			"color": "#a30641",
 			"filterBlacklist": [
 				"geochronology",
 				"relative_age_name",
@@ -167,7 +167,7 @@
 			"enabled": true,
 			"title": "Archaeobotany",
 			"icon": "<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i>",
-			"color": "#5a7b65",
+			"color": "#368421",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				2,
@@ -200,7 +200,7 @@
 			"enabled": true,
 			"title": "Pollen",
 			"icon": "<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i>",
-			"color": "#7e732a",
+			"color": "#7f770d",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				2,
@@ -224,7 +224,7 @@
 			"enabled": true,
 			"title": "Geoarchaeology",
 			"icon": "<i class=\"fa fa-map\" aria-hidden=\"true\"></i>",
-			"color": "#0479b2",
+			"color": "#037ab8",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				1,
@@ -243,7 +243,7 @@
 			"enabled": true,
 			"title": "Isotope",
 			"icon": "<i class=\"fa fa-dot-circle-o\" aria-hidden=\"true\"></i>",
-			"color": "#533c87",
+			"color": "#6635a4",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				1,
@@ -262,7 +262,7 @@
 			"enabled": true,
 			"title": "Ceramic",
 			"icon": "<i class=\"fa fa-beer\" aria-hidden=\"true\"></i>",
-			"color": "#b74c04",
+			"color": "#0f7874",
 			"filterBlacklist": [
 				"geochronology",
 				"tbl_biblio_modern",
