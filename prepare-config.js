@@ -12,6 +12,20 @@ const domain = process.env.DOMAIN || 'localhost';
 const scheme = process.env.SCHEME || 'http';
 const wsScheme = scheme === 'https' ? 'wss' : 'ws';
 
+// The client's own version, kept in package.json
+const clientVersion = require('./package.json').version;
+
+// The SEAD release this client is deployed in, and the version of each component of it,
+// which sead-deployment hands to the build from its .env. A build outside a release has
+// no SEAD release, and the components are at whatever refs the deployment has checked out.
+const seadRelease = process.env.SEAD_RELEASE || '';
+const seadReleaseComponents = [
+  { name: 'Browser client', version: `v${clientVersion}` },
+  { name: 'JSON API server', version: process.env.JAS_RELEASE || '' },
+  { name: 'Query API', version: process.env.SEAD_QUERY_API_RELEASE || '' },
+  { name: 'Database schema', version: process.env.SEAD_CHANGE_CONTROL_RELEASE || '' },
+].filter(component => component.version);
+
 const basePath     = path.join(__dirname, 'src/config/config.base.json');
 const overridePath = path.join(__dirname, `src/config/config.${mode}.json`);
 const outputPath   = path.join(__dirname, 'src/config/config.json');
@@ -69,13 +83,16 @@ try {
     : {};
 
   const merged = stripNulls(mergeConfig(base, override));
+  merged.version = clientVersion;
+  merged.seadRelease = seadRelease;
+  merged.seadReleaseComponents = seadReleaseComponents;
   const output = JSON.stringify(merged, null, '\t')
     .replace(/__DOMAIN__/g, domain)
     .replace(/__SCHEME__/g, scheme)
     .replace(/__WS_SCHEME__/g, wsScheme);
 
   fs.writeFileSync(outputPath, output, 'utf8');
-  console.log(`Config for mode '${mode}' with domain '${domain}' (${scheme}) written to config.json`);
+  console.log(`Config for mode '${mode}' with domain '${domain}' (${scheme}), SEAD release '${seadRelease || 'none'}' and client ${clientVersion} written to config.json`);
 } catch (err) {
   console.error('Error preparing config:', err.message);
   process.exit(1);

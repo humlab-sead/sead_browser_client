@@ -75,7 +75,7 @@ class SeadQuerySystem {
 		}];
 		*/
 
-		$("#sead-release-version").text(this.config.version);
+		this.renderReleaseInfo();
 
 		this.storeUserSettings(this.config, false);
 
@@ -1732,6 +1732,23 @@ class SeadQuerySystem {
 				}
 				resolve(rData);
 			});
+		});
+	}
+
+	/*
+	* Function: renderReleaseInfo
+	*
+	* Puts the SEAD release - the version of the whole deployment - into the About dialog,
+	* with the version of each component of it below. The About dialog is copied from this
+	* markup each time it is opened.
+	*/
+	renderReleaseInfo() {
+		$("#sead-release-version").text(this.config.seadRelease ? "SEAD release "+this.config.seadRelease : "SEAD development build");
+
+		let components = $("#sead-release-components").empty();
+		this.config.seadReleaseComponents.forEach((component) => {
+			components.append($("<dt></dt>").text(component.name));
+			components.append($("<dd></dd>").text(component.version));
 		});
 	}
 
