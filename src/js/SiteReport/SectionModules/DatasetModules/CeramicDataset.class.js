@@ -81,51 +81,117 @@ class CeramicDataset extends DatasetModule {
 		//Each method (petrographic microscopy, thermal analysis) gets its own section
 		this.methodIds.forEach(methodId => {
 			let methodDatasets = claimedDatasets.filter(ds => ds.method_id == methodId);
-			let sampleDatasets = this.groupMethodDatasetsBySample(methodDatasets);
+			let sampleDataGroups = this.getMethodDataGroupsBySample(siteData, methodDatasets);
 
-			if(sampleDatasets.length > 0) {
+			if(sampleDataGroups.length > 0) {
 				let methodSection = datasetSections.find(section => section.methodId == methodId);
 				if(typeof methodSection == "undefined") {
 					console.warn("Could not find a site report section for ceramics method "+methodId);
 					return;
 				}
 
-				let ci = this.buildContentItem(sampleDatasets, methodId);
+				let ci = this.buildContentItem(sampleDataGroups, methodId);
 				methodSection.contentItems.push(ci);
 			}
 		});
 	}
 
-	groupMethodDatasetsBySample(methodDatasets) {
-		//These datasets needs to be grouped by physical_sample_id in order to make sense
-		let uniquePhysicalSampleIds = new Set();
-
+	/*
+	* Function: getMethodDataGroupsBySample
+	*
+	* The server compiles one ceramics data group per sample, holding the values of all of the sample's ceramics analyses,
+	* of both methods, along with their datings. This picks out the values belonging to the given method's datasets, per sample.
+	*/
+	getMethodDataGroupsBySample(siteData, methodDatasets) {
+		let analysisEntityIds = new Set();
 		methodDatasets.forEach(ds => {
 			ds.analysis_entities.forEach(ae => {
-				uniquePhysicalSampleIds.add(ae.physical_sample_id);
+				analysisEntityIds.add(String(ae.analysis_entity_id));
 			});
 		});
 
-		let sampleDatasets = [];
-		uniquePhysicalSampleIds.forEach(physicalSampleId => {
-			let sampleDatasetObject = {
-				physicalSampleId: physicalSampleId,
-				datasetId: null,
-				datasets: []
-			};
-			
-			methodDatasets.forEach(ds => {
-				ds.analysis_entities.forEach(ae => {
-					if(ae.physical_sample_id == sampleDatasetObject.physicalSampleId) {
-						sampleDatasetObject.datasets.push(...ae.ceramic_values)
-					}
+		let sampleDataGroups = [];
+		siteData.data_groups.forEach(dataGroup => {
+			if(dataGroup.type != "ceramics") {
+				return;
+			}
+
+			let values = dataGroup.values.filter(value => analysisEntityIds.has(String(value.analysis_entity_id)));
+			if(values.length > 0) {
+				sampleDataGroups.push({
+					physicalSampleId: dataGroup.physical_sample_id,
+					values: values
 				});
-			});
-
-			sampleDatasets.push(sampleDatasetObject);
+			}
 		});
 
-		return sampleDatasets;
+		return sampleDataGroups;
+	}
+
+	/*
+	* Function: getDatingSubTableRows
+	*
+	* Each of a sample's ceramics analyses can carry its own dating, which is often the same for all of them,
+	* so each distinct dating of the sample is listed once.
+	*/
+	getDatingSubTableRows(datingValues) {
+		let rows = [];
+		let renderedDatings = [];
+		datingValues.forEach(value => {
+			let dating = value.data;
+			let datingKey = dating.method_id+":"+dating.relative_age_id;
+			if(renderedDatings.includes(datingKey)) {
+				return;
+			}
+			renderedDatings.push(datingKey);
+
+			let datingValue = dating.relative_age_name;
+			let age = this.formatAge(dating.cal_age_older, dating.cal_age_younger);
+			if(age != null) {
+				datingValue += " ("+age+")";
+			}
+
+			let datingTooltip = "";
+			if(dating.age_type) {
+				datingTooltip = "<h4 class='tooltip-header'>"+dating.age_type+"</h4>";
+			}
+			if(dating.rel_age_desc && dating.rel_age_desc != dating.relative_age_name) {
+				datingTooltip += (datingTooltip != "" ? "<hr/>" : "")+dating.rel_age_desc;
+			}
+
+			rows.push([
+				{
+					"type": "cell",
+					"tooltip": "",
+					"value": value.analysis_entity_id
+				},
+				{
+					"type": "cell",
+					"tooltip": dating.relative_date_method_name ? dating.relative_date_method_name : "",
+					"value": value.key
+				},
+				{
+					"type": "cell",
+					"tooltip": datingTooltip,
+					"value": datingValue
+				}
+			]);
+		});
+
+		return rows;
+	}
+
+	formatAge(older, younger) {
+		if(older == null && younger == null) {
+			return null;
+		}
+		if(older != null && younger != null) {
+			return parseFloat(older)+" - "+parseFloat(younger)+" BP";
+		}
+		if(younger != null) {
+			return "< "+parseFloat(younger)+" BP";
+		}
+		return "> "+parseFloat(older)+" BP";
 	}
 
 	buildSections() {
@@ -157,7 +223,7 @@ class CeramicDataset extends DatasetModule {
 		return builtSections;
 	}
 
-	buildContentItem(datasetGroups, methodId) {
+	buildContentItem(sampleDataGroups, methodId) {
 		let siteData = this.sqs.siteReportManager.siteReport.siteData;
 
 		let chartAxes = [];
@@ -186,9 +252,9 @@ class CeramicDataset extends DatasetModule {
 		let datasetContactIds = [];
 
 		let analysisEntityIds = [];
-		datasetGroups.forEach(dsg => {
-			dsg.datasets.forEach(dsgDataset => {
-				analysisEntityIds.push(dsgDataset.analysis_entity_id)
+		sampleDataGroups.forEach(dsg => {
+			dsg.values.forEach(value => {
+				analysisEntityIds.push(value.analysis_entity_id)
 			});
 		});
 
@@ -210,7 +276,7 @@ class CeramicDataset extends DatasetModule {
 			}
 		});
 
-		datasetGroups.forEach(dsg => {
+		sampleDataGroups.forEach(dsg => {
 
 			//Defining columns
 			var subTableColumns = [
@@ -234,51 +300,59 @@ class CeramicDataset extends DatasetModule {
 
 			//Filling up the rows - all dataset's data goes in the same table for ceramics
 			var subTableRows = [];
-			dsg.datasets.forEach((ds, i) => {
-				let dataset = ds;
+			let datingValues = [];
+			dsg.values.forEach(value => {
+				//The datings of the sample's ceramics analyses, e.g. an archaeological period
+				if(value.valueType == "complex") {
+					datingValues.push(value);
+					return;
+				}
 
-				if(!Number.isNaN(parseFloat(dataset.measurement_value))) {
-					dataset.measurement_value = parseFloat(dataset.measurement_value);
+				let measurementValue = value.value;
+				if(!Number.isNaN(parseFloat(measurementValue))) {
+					measurementValue = parseFloat(measurementValue);
 
 					//check that it's unique
 					let found = false;
 					chartAxes.forEach(ca => {
-						if(ca.title == dataset.name) {
+						if(ca.title == value.key) {
 							found = true;
 						}
 					});
 
 					if(!found) {
 						chartAxes.push({
-							"title": dataset.name,
+							"title": value.key,
 							"value": 2, //because our data (measurement_value) is in subtable column 2
 							"selected": false,
 							"location": "subtable"
 						});
 					}
-					
+
 				}
 
 				var subTableRow = [
 					{
 						"type": "cell",
 						"tooltip": "",
-						"value": dataset.analysis_entity_id
+						"value": value.analysis_entity_id
 					},
 					{
 						"type": "cell",
-						"tooltip": dataset.description,
-						"value": dataset.name
+						"tooltip": value.description,
+						"value": value.key
 					},
 					{
 						"type": "cell",
 						"tooltip": "",
-						"value": dataset.measurement_value
+						"value": measurementValue
 					}
 				];
 
 				subTableRows.push(subTableRow);
 			});
+
+			subTableRows = subTableRows.concat(this.getDatingSubTableRows(datingValues));
 
 			let subTable = {
 				"columns": subTableColumns,
