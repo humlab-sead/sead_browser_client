@@ -71,8 +71,32 @@ class CeramicDataset extends DatasetModule {
 	}
 
 	async makeSection(siteData, sections) {
-		let methodDatasets = this.claimDatasets(siteData);
+		let claimedDatasets = this.claimDatasets(siteData);
+		if(claimedDatasets.length == 0) {
+			return;
+		}
 
+		let datasetSections = this.buildSections();
+
+		//Each method (petrographic microscopy, thermal analysis) gets its own section
+		this.methodIds.forEach(methodId => {
+			let methodDatasets = claimedDatasets.filter(ds => ds.method_id == methodId);
+			let sampleDatasets = this.groupMethodDatasetsBySample(methodDatasets);
+
+			if(sampleDatasets.length > 0) {
+				let methodSection = datasetSections.find(section => section.methodId == methodId);
+				if(typeof methodSection == "undefined") {
+					console.warn("Could not find a site report section for ceramics method "+methodId);
+					return;
+				}
+
+				let ci = this.buildContentItem(sampleDatasets, methodId);
+				methodSection.contentItems.push(ci);
+			}
+		});
+	}
+
+	groupMethodDatasetsBySample(methodDatasets) {
 		//These datasets needs to be grouped by physical_sample_id in order to make sense
 		let uniquePhysicalSampleIds = new Set();
 
@@ -101,14 +125,7 @@ class CeramicDataset extends DatasetModule {
 			sampleDatasets.push(sampleDatasetObject);
 		});
 
-		//var sectionKey = this.sqs.findObjectPropInArray(this.section.sections, "name", analysis.methodId);
-
-		if(sampleDatasets.length > 0) {
-			let datasetSections = this.buildSections();
-
-			let ci = this.buildContentItem(sampleDatasets);
-			datasetSections[0].contentItems.push(ci);
-		}
+		return sampleDatasets;
 	}
 
 	buildSections() {
@@ -130,8 +147,9 @@ class CeramicDataset extends DatasetModule {
 							"contentItems": []
 						});
 						sectionKey = sectionsLength - 1;
-						builtSections.push(this.section.sections[sectionKey]);
 					}
+					//Return the method's section also when it already existed, not only when it was created here
+					builtSections.push(this.section.sections[sectionKey]);
 				}
 			})
 		});
@@ -139,7 +157,7 @@ class CeramicDataset extends DatasetModule {
 		return builtSections;
 	}
 
-	buildContentItem(datasetGroups) {
+	buildContentItem(datasetGroups, methodId) {
 		let siteData = this.sqs.siteReportManager.siteReport.siteData;
 
 		let chartAxes = [];
@@ -320,12 +338,12 @@ class CeramicDataset extends DatasetModule {
 		});
 
 		let ci = {
-			"name": "Ceramics", //Normally: analysis.datasetId
+			"name": "ceramics-"+methodId, //Normally: analysis.datasetId, but must be unique per method since there's one content item per method section
 			"title": "Ceramics", //Normally this would be: analysis.datasetName
 			"datasetReference": this.sqs.renderBiblioReference(siteData, datasetBiblioIds),
 			"datasetReferencePlain": this.sqs.renderBiblioReference(siteData, datasetBiblioIds, false),
 			"datasetContacts": this.sqs.renderContacts(siteData, datasetContacts),
-			"methodId": 171, //or 172, but for what this will be used for, it doesn't matter
+			"methodId": methodId,
 			"renderedBy": this.constructor.name,
 			"data": {
 				"columns": columns,
