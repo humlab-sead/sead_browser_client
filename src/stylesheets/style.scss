@@ -2512,6 +2512,32 @@ body.facet-resizing * {
   grid-row-gap: 10px;
 }
 
+/* Kept discreet: there for whoever looks for it, not to draw the eye */
+.sead-release-info {
+	margin-top: 1.5em;
+}
+
+.sead-release-version {
+	font-size: 0.95em;
+}
+
+.sead-release-components {
+	display: grid;
+	grid-template-columns: max-content max-content;
+	column-gap: 1.5em;
+	row-gap: 0.1em;
+	margin: 0.3em 0 0 1.5em;
+	font-size: 0.85em;
+
+	dt {
+		font-weight: normal;
+	}
+
+	dd {
+		margin: 0;
+	}
+}
+
 #logo-section {
 	margin-top: 20px;
 	display: flex;

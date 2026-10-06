@@ -6,9 +6,11 @@ const readline = require('readline/promises');
 const { spawnSync, execFileSync } = require('child_process');
 const { stdin, stdout } = require('process');
 
-const VERSION_PATTERN = /^\d{4}-(0[1-9]|1[0-2])\.\d+$/;
-const CONFIG_PATH = path.join(__dirname, '..', 'src', 'config', 'config.base.json');
+// The client is versioned with semver and tagged vX.Y.Z. The YYYY-MM.N form belongs to
+// SEAD releases (sead-deployment), which is what the client shows as its release.
+const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 const PACKAGE_PATH = path.join(__dirname, '..', 'package.json');
+const PACKAGE_LOCK_PATH = path.join(__dirname, '..', 'package-lock.json');
 
 function runAndGetOutput(command, args) {
   try {
@@ -31,14 +33,6 @@ function run(command, args) {
   }
 }
 
-function loadConfig() {
-  return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-}
-
-function saveConfig(config) {
-  fs.writeFileSync(CONFIG_PATH, `${JSON.stringify(config, null, '\t')}\n`, 'utf8');
-}
-
 function loadPackage() {
   return JSON.parse(fs.readFileSync(PACKAGE_PATH, 'utf8'));
 }
@@ -47,28 +41,26 @@ function savePackage(pkg) {
   fs.writeFileSync(PACKAGE_PATH, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
 }
 
-function releaseVersionToPackageVersion(releaseVersion) {
-  const match = releaseVersion.match(/^(\d{4})-(\d{2})\.(\d+)$/);
-
-  if (!match) {
-    throw new Error(`Cannot convert release version "${releaseVersion}" to package.json semver.`);
-  }
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const releaseNumber = Number(match[3]);
-  return `${year}.${month}.${releaseNumber}`;
+// Keeps the lockfile's copy of the version in step with package.json
+function savePackageLockVersion(version) {
+  const lock = JSON.parse(fs.readFileSync(PACKAGE_LOCK_PATH, 'utf8'));
+  lock.version = version;
+  lock.packages[''].version = version;
+  fs.writeFileSync(PACKAGE_LOCK_PATH, `${JSON.stringify(lock, null, 2)}\n`, 'utf8');
 }
 
-function buildDefaultVersion(currentVersion) {
-  const now = new Date();
-  const currentPrefix = `${String(now.getFullYear())}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const versionMatch = currentVersion.match(/^(\d{4}-\d{2})\.(\d+)$/);
-  const nextNumber = versionMatch && versionMatch[1] === currentPrefix
-    ? Number(versionMatch[2]) + 1
-    : 0;
+function tagForVersion(version) {
+  return `v${version}`;
+}
 
-  return `${currentPrefix}.${nextNumber}`;
+// The version in package.json while it has not been released, otherwise the next minor version
+function buildDefaultVersion(currentVersion) {
+  if (!tagExists(tagForVersion(currentVersion))) {
+    return currentVersion;
+  }
+
+  const [major, minor] = currentVersion.split('.').map(Number);
+  return `${major}.${minor + 1}.0`;
 }
 
 async function askReleaseVersion(rl, currentVersion) {
@@ -78,19 +70,19 @@ async function askReleaseVersion(rl, currentVersion) {
     const answer = (await rl.question(
       `New release version (${VERSION_PATTERN.source}) [${defaultVersion}]: `
     )).trim();
-    const releaseVersion = answer || defaultVersion;
+    const releaseVersion = (answer || defaultVersion).replace(/^v/, '');
 
     if (VERSION_PATTERN.test(releaseVersion)) {
       return releaseVersion;
     }
 
-    console.log('Invalid format. Expected YYYY-MM.number, for example 2026-04.2');
+    console.log('Invalid format. Expected MAJOR.MINOR.PATCH, for example 1.2.0');
   }
 }
 
 async function askReleaseMode(rl) {
   console.log('\nRelease mode');
-  console.log('1. Commit all current local changes (including config/package version bumps), then release that commit');
+  console.log('1. Commit all current local changes (including the package.json and package-lock.json version bump), then release that commit');
   console.log('2. Create release from what is already committed on origin/master');
 
   while (true) {
@@ -106,11 +98,6 @@ async function askReleaseMode(rl) {
 
     console.log('Please enter 1 or 2.');
   }
-}
-
-function getVersionFromGitRef(ref) {
-  const configContent = runAndGetOutput('git', ['show', `${ref}:src/config/config.base.json`]);
-  return JSON.parse(configContent).version;
 }
 
 function getPackageVersionFromGitRef(ref) {
@@ -129,7 +116,7 @@ async function finalizeLocalCommit(rl, releaseVersion) {
 
   if (porcelainStatus) {
     run('git', ['add', '-A']);
-    const defaultMessage = `release: ${releaseVersion}`;
+    const defaultMessage = `release: ${tagForVersion(releaseVersion)}`;
     const answer = (await rl.question(`Commit message [${defaultMessage}]: `)).trim();
     const commitMessage = answer || defaultMessage;
     run('git', ['commit', '-m', commitMessage]);
@@ -141,20 +128,13 @@ async function finalizeLocalCommit(rl, releaseVersion) {
   return runAndGetOutput('git', ['rev-parse', 'HEAD']);
 }
 
-function prepareRemoteMasterRelease(releaseVersion, packageVersion) {
+function prepareRemoteMasterRelease(releaseVersion) {
   run('git', ['fetch', 'origin', 'master']);
-  const remoteVersion = getVersionFromGitRef('origin/master');
   const remotePackageVersion = getPackageVersionFromGitRef('origin/master');
 
-  if (remoteVersion !== releaseVersion) {
+  if (remotePackageVersion !== releaseVersion) {
     throw new Error(
-      `origin/master has version "${remoteVersion}", but requested release version is "${releaseVersion}".`
-    );
-  }
-
-  if (remotePackageVersion !== packageVersion) {
-    throw new Error(
-      `origin/master package.json version is "${remotePackageVersion}", but expected "${packageVersion}".`
+      `origin/master package.json version is "${remotePackageVersion}", but requested release version is "${releaseVersion}".`
     );
   }
 
@@ -166,10 +146,12 @@ async function confirm(rl, message) {
   return answer === 'y' || answer === 'yes';
 }
 
-function ensureTagDoesNotExist(tagName) {
-  const existingTag = runAndGetOutput('git', ['tag', '--list', tagName]);
+function tagExists(tagName) {
+  return runAndGetOutput('git', ['tag', '--list', tagName]) === tagName;
+}
 
-  if (existingTag === tagName) {
+function ensureTagDoesNotExist(tagName) {
+  if (tagExists(tagName)) {
     throw new Error(`Git tag "${tagName}" already exists.`);
   }
 }
@@ -186,39 +168,33 @@ async function main() {
   const rl = readline.createInterface({ input: stdin, output: stdout });
 
   try {
-    const config = loadConfig();
-    const currentVersion = config.version;
+    const pkg = loadPackage();
+    const currentVersion = pkg.version;
 
     if (!VERSION_PATTERN.test(currentVersion)) {
-      throw new Error(
-        `Current config version "${currentVersion}" does not match YYYY-MM.number. Update it manually first.`
-      );
+      throw new Error(`package.json version "${currentVersion}" is not MAJOR.MINOR.PATCH. Update it manually first.`);
     }
 
     console.log(`Current version: ${currentVersion}`);
     const releaseVersion = await askReleaseVersion(rl, currentVersion);
-    const packageVersion = releaseVersionToPackageVersion(releaseVersion);
-    config.version = releaseVersion;
-    saveConfig(config);
-
-    const pkg = loadPackage();
-    pkg.version = packageVersion;
+    const tagName = tagForVersion(releaseVersion);
+    pkg.version = releaseVersion;
     savePackage(pkg);
+    savePackageLockVersion(releaseVersion);
 
-    console.log(`Updated ${CONFIG_PATH} to version "${releaseVersion}".`);
-    console.log(`Updated ${PACKAGE_PATH} to version "${packageVersion}".`);
+    console.log(`Updated ${PACKAGE_PATH} and ${PACKAGE_LOCK_PATH} to version "${releaseVersion}".`);
 
     const mode = await askReleaseMode(rl);
     const targetSha = mode === 1
       ? await finalizeLocalCommit(rl, releaseVersion)
-      : prepareRemoteMasterRelease(releaseVersion, packageVersion);
+      : prepareRemoteMasterRelease(releaseVersion);
 
-    ensureTagDoesNotExist(releaseVersion);
+    ensureTagDoesNotExist(tagName);
     ensureGhCliAvailable();
 
     const proceed = await confirm(
       rl,
-      `Create GitHub release "${releaseVersion}" targeting commit ${targetSha.slice(0, 7)}?`
+      `Create GitHub release "${tagName}" targeting commit ${targetSha.slice(0, 7)}?`
     );
 
     if (!proceed) {
@@ -226,8 +202,8 @@ async function main() {
       return;
     }
 
-    createGitHubRelease(releaseVersion, targetSha);
-    console.log(`GitHub release "${releaseVersion}" created.`);
+    createGitHubRelease(tagName, targetSha);
+    console.log(`GitHub release "${tagName}" created.`);
   } finally {
     rl.close();
   }

@@ -66,6 +66,10 @@ export default class SitesDataTransfer extends DataTransferModule {
                 resolve: () => new Date().toLocaleDateString('sv-SE')
             },
             {
+                title: "SEAD release",
+                resolve: () => this.sqs.config.seadRelease
+            },
+            {
                 title: "Webclient version",
                 resolve: () => this.sqs.config.version
             },

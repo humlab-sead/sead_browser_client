@@ -592,6 +592,7 @@ class MosaicTileModule {
             description: this.sqs.config.dataExportDescription,
             reference: Config.dataAttributionString,
             license: "https://creativecommons.org/licenses/by/4.0/",
+            sead_release: Config.seadRelease,
             sead_version: Config.version,
             export_date: new Date().toISOString(),
         }
@@ -692,6 +693,7 @@ class MosaicTileModule {
 
         const metaSheet = workbook.addWorksheet("Metadata");
         [
+            ["SEAD release", exportData.sead_release],
             ["SEAD browser version", exportData.sead_version],
             ["SEAD Query API server version", this.sqs.apiVersion],
             ["JSON API server version", this.sqs.dataServerVersion],

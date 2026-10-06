@@ -23,10 +23,20 @@ COPY . .
 ARG DOMAIN
 ARG SCHEME=https
 ARG MODE=prod
+#The SEAD release the client is deployed in and the versions of its components, which
+#the About dialog shows
+ARG SEAD_RELEASE=
+ARG JAS_RELEASE=
+ARG SEAD_QUERY_API_RELEASE=
+ARG SEAD_CHANGE_CONTROL_RELEASE=
 ENV DOMAIN=${DOMAIN}
 ENV SCHEME=${SCHEME}
+ENV SEAD_RELEASE=${SEAD_RELEASE}
+ENV JAS_RELEASE=${JAS_RELEASE}
+ENV SEAD_QUERY_API_RELEASE=${SEAD_QUERY_API_RELEASE}
+ENV SEAD_CHANGE_CONTROL_RELEASE=${SEAD_CHANGE_CONTROL_RELEASE}
 
-RUN echo "DOMAIN: $DOMAIN, SCHEME: $SCHEME, MODE: $MODE" \
+RUN echo "DOMAIN: $DOMAIN, SCHEME: $SCHEME, MODE: $MODE, SEAD_RELEASE: $SEAD_RELEASE" \
     && npm run build:${MODE}
 
 # ── runtime: nginx serving the built client ──────────────────────────────────

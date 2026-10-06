@@ -698,6 +698,7 @@ class ResultModule {
 			{ header: 'SEAD browser URL', key: 'url', width: 50},
 			{ header: 'SEAD Attribution', key: 'attribution', width: 50},
 			{ header: 'Date of export', key: 'date_of_export', width: 10},
+			{ header: 'SEAD release', key: 'sead_release', width: 10},
 			{ header: 'SEAD browser version', key: 'version', width: 10}
 		];
 
@@ -706,6 +707,7 @@ class ResultModule {
 			Config.serverRoot, 
 			Config.dataAttributionString,
 			new Date().toISOString(),
+			Config.seadRelease,
 			Config.version	
 		]);
 
