@@ -1743,12 +1743,11 @@ class SeadQuerySystem {
 	* markup each time it is opened.
 	*/
 	renderReleaseInfo() {
-		$("#sead-release-version").text(this.config.seadRelease ? "SEAD release "+this.config.seadRelease : "SEAD development build");
+		$("#sead-release-version").text(this.config.seadRelease ? this.config.seadRelease : "unknown");
 
 		let components = $("#sead-release-components").empty();
 		this.config.seadReleaseComponents.forEach((component) => {
-			components.append($("<dt></dt>").text(component.name));
-			components.append($("<dd></dd>").text(component.version));
+			components.append($("<li></li>").text(component.name+" "+component.version));
 		});
 	}
 

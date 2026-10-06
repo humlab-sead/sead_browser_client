@@ -16,8 +16,8 @@ const wsScheme = scheme === 'https' ? 'wss' : 'ws';
 const clientVersion = require('./package.json').version;
 
 // The SEAD release this client is deployed in, and the version of each component of it,
-// which sead-deployment hands to the build from its .env. A build outside a release has
-// no SEAD release, and the components are at whatever refs the deployment has checked out.
+// which sead-deployment hands to the build. Outside a release these are the versions it
+// has checked out.
 const seadRelease = process.env.SEAD_RELEASE || '';
 const seadReleaseComponents = [
   { name: 'Browser client', version: `v${clientVersion}` },
