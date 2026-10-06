@@ -4,7 +4,6 @@ import moment from "moment";
 import { nanoid } from 'nanoid'
 import * as d3 from 'd3';
 import config from '../../../../config/config.json';
-import StandardAge from "../../../Common/StandardAge.class";
 
 /*
 * Class: DendrochronologyDataset
@@ -28,8 +27,6 @@ class DendrochronologyDataset extends DatasetModule {
 		this.datasets = [];
 		this.buildIsComplete = false;
 		this.methodMetaDataFetchingComplete = false;
-		this.extentMin = null;
-		this.extentMax = null;
 
 		this.methodIds = [10];
 		this.metaDataFetchingPromises = [];
@@ -40,25 +37,6 @@ class DendrochronologyDataset extends DatasetModule {
 		
 	}
 
-	getDatingSummary() {
-		let summary = [];
-
-		if(this.extentMin == null || this.extentMax == null) {
-			return summary;
-		}
-
-		let stdAge = new StandardAge();
-		stdAge.ageType = "Dendrochronology";
-		stdAge.ageLocation = "";
-		stdAge.ageOlder = this.extentMin;
-		stdAge.ageYounger = this.extentMax;
-		stdAge.sample = null;
-		stdAge.isBP = false;
-
-		summary.push(stdAge);
-		return summary;
-	}
-	
 
 	async getDataBySampleId(physicalSampleId, wsChannel = null) {
 		let chan = null;
@@ -501,8 +479,6 @@ class DendrochronologyDataset extends DatasetModule {
             return fellingYear;
         });
 
-		this.extentMin = extentMin;
-		this.extentMax = extentMax;
 
 		let defaultDisplayOption = "graph";
         //If we couldn't find a single viable dating for any sample, then we can't calculate a range span at all and thus can't draw anything

@@ -11,13 +11,9 @@ import { defaults as defaultControls } from 'ol/control.js';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import css from '../../../stylesheets/style.scss';
-import DatingToPeriodDataset from './DatasetModules/DatingToPeriodDataset.class';
 import { Chart } from "chart.js";
-import DendrochronologyDataset from './DatasetModules/DendrochronologyDataset.class';
-import ESRDataset from './DatasetModules/ESRDataset.class';
 import OpenLayersMap from '../../Common/OpenLayersMap.class';
 import SqsMenu from '../../SqsMenu.class';
-import C14Dataset from './DatasetModules/C14Dataset.class';
 
 /*
 * Class: BasicSiteInformation
@@ -173,7 +169,7 @@ class BasicSiteInformation {
 			);
 		}
 		
-		this.sqs.tooltipManager.registerTooltip("#site-report-time-overview-container .site-report-aux-header-container h4", "This chart shows the extremes (oldest and youngest) of all dated samples in this site, categorized by type of dating. Dating is shown as years before present (BP), which in SEAD is defined as the year "+this.sqs.config.constants.BP+".", {placement: "top", drawSymbol: true});
+		this.sqs.tooltipManager.registerTooltip("#site-report-time-overview-container .site-report-aux-header-container h4", "This chart shows the extremes (oldest and youngest) of all dated samples in this site, by dating method. Dating is shown as years before present (BP), which in SEAD is defined as the year "+this.sqs.config.constants.BP+". Calendar years (AD/BC) are converted to BP. Radiocarbon ages are shown as given, in radiocarbon years, and are not calibrated. Hover a bar for details.", {placement: "top", drawSymbol: true});
 
 		$("#site-report-locations-container").append("<div id='site-report-map-container'>");
 		$("#site-report-sample-coordinates-container").append("<div id='site-report-sample-map-container'></div>");
@@ -204,9 +200,7 @@ class BasicSiteInformation {
 		this.renderMiniMap(siteData);
 		this.renderSampleMap(siteData);
 
-		this.sqs.sqsEventListen("analysisSectionsBuilt", () => {
-			this.renderTimeOverview("site-report-time-overview");
-		}, this);
+		this.renderTimeOverview("site-report-time-overview", siteData);
 	}
 
 	renderInvestigationTime(siteData) {
@@ -247,130 +241,77 @@ class BasicSiteInformation {
 	}
 
 
-	renderTimeOverview(targetAnchorQuery) {
-		let siteDatingSummary = [];
-		this.sqs.siteReportManager.siteReport.modules.forEach(m => {
-			if(m.name == "analysis") {
-				m.module.datasetModules.forEach(dsm => {
-					if(dsm.instance instanceof DatingToPeriodDataset) {
-						siteDatingSummary = siteDatingSummary.concat(dsm.instance.getDatingSummary());
-					}
-
-					if(dsm.instance instanceof DendrochronologyDataset) {
-						siteDatingSummary = siteDatingSummary.concat(dsm.instance.getDatingSummary());
-					}
-
-					if(dsm.instance instanceof ESRDataset) {
-						siteDatingSummary = siteDatingSummary.concat(dsm.instance.getDatingSummary());
-					}
-
-					if(dsm.instance instanceof C14Dataset) {
-						siteDatingSummary = siteDatingSummary.concat(dsm.instance.getDatingSummary());
-					}
-				})
-			}
-		});
-
-		const standardAges = siteDatingSummary;
-
-		if(standardAges.length == 0) {
-			document.getElementById(targetAnchorQuery).innerHTML = "No data";
+	/*
+	* Function: renderTimeOverview
+	*
+	* Draws siteData.age_summary, which the server compiles from all of the site's datings, normalized to years BP.
+	* One bar per dating method, from its oldest to its youngest dating.
+	*/
+	renderTimeOverview(targetAnchorId, siteData) {
+		let ageSummary = siteData.age_summary;
+		if(!ageSummary || !ageSummary.datings || ageSummary.datings.length == 0) {
+			document.getElementById(targetAnchorId).innerHTML = "No data";
 			return;
 		}
 
-		let compoundAges = [];
-		standardAges.forEach(standardAge => {
-			//try to find in compoundAges
-			let found = false;
-			compoundAges.forEach(compoundAge => {
-				if(compoundAge.ageType == standardAge.ageType) {
-					found = true;
-					compoundAge.ages.push(standardAge);
-					if(standardAge.ageOlder > compoundAge.older) {
-						compoundAge.older = standardAge.ageOlder;
-					}
-					if(standardAge.ageYounger < compoundAge.younger) {
-						compoundAge.younger = standardAge.ageYounger;
-					}
-				}
-			});
-			if(!found) {
-				compoundAges.push({
-					ageType: standardAge.ageType,
-					ages: [standardAge],
-					older: standardAge.ageOlder,
-					younger: standardAge.ageYounger,
-					isBP: standardAge.isBP
-				});
-			}
-		});
+		const datings = ageSummary.datings;
+		const bpYear = ageSummary.bp_year ? ageSummary.bp_year : this.sqs.config.constants.BP;
 
-		//labels should be the ageType
-		let labels = [];
-		for(let key in compoundAges) {
-			labels.push(compoundAges[key].ageType);
-		}
-
-		let colors = this.sqs.color.getColorScheme(labels.length);
-
-		let datasets = [{
-			label: "",
-			data: [],
-			backgroundColor: colors,
-		}];
-		for(let key in compoundAges) {
-			let age = compoundAges[key];
-			datasets[0].data.push([age.older, age.younger])
-		}
-
-		const data = {
-			labels: labels,
-			datasets: datasets
+		const formatBP = (value) => {
+			return Math.round(value).toLocaleString('en-US').replace(/,/g, " ")+" BP";
 		};
 
-		let ticksLabelCallback = null;
-		let tooltipCallback = null;
-		if(compoundAges.length > 0 && compoundAges[0].isBP) {
-			ticksLabelCallback = function (value, index, values) {
-				if (value >= 1000) {
-					return value / 1000 + "k BP";
-				} else {
-					return value+" BP";
-				}
-			};
-
-			tooltipCallback = function (tooltipItems) {
-				let older = tooltipItems[0].raw[0];
-				let younger = tooltipItems[0].raw[1];
-				return older+" BP - "+younger+" BP";
+		const tooltipLines = (dating) => {
+			let lines = [];
+			lines.push(dating.older == dating.younger ? formatBP(dating.older) : formatBP(dating.older)+" - "+formatBP(dating.younger));
+			if(dating.open_older) {
+				lines.push("Open-ended: older than "+formatBP(dating.older));
 			}
-		}
-		else {
-			ticksLabelCallback = function (value, index, values) {
-				if (value >= 1000) {
-					return value / 1000 + "k";
-				} else {
-					return value;
-				}
-			};
-
-			tooltipCallback = function (tooltipItems) {
-				let older = tooltipItems[0].raw[0];
-				let younger = tooltipItems[0].raw[1];
-				return older+" - "+younger;
+			if(dating.open_younger) {
+				lines.push("Open-ended: younger than "+formatBP(dating.younger));
 			}
-		}
+			if(dating.method_id == 10) {
+				lines.push("(AD "+Math.round(bpYear - dating.older)+" - AD "+Math.round(bpYear - dating.younger)+")");
+			}
+			lines.push(dating.age_count+(dating.age_count == 1 ? " dating" : " datings")+" of "+dating.sample_count+(dating.sample_count == 1 ? " sample" : " samples"));
+			if(dating.radiocarbon_years_count > 0) {
+				lines.push(dating.radiocarbon_years_count+" in radiocarbon years (not calibrated)");
+			}
+			if(dating.approximate_count > 0) {
+				lines.push(dating.approximate_count+" approximate");
+			}
+			if(dating.disputed_count > 0) {
+				lines.push(dating.disputed_count+" disputed");
+			}
+			if(dating.swapped_count > 0) {
+				lines.push(dating.swapped_count+" stored with older and younger reversed");
+			}
+			return lines;
+		};
 
 		const config = {
 			type: 'bar',
-			data: data,
+			data: {
+				labels: datings.map(dating => dating.method_name),
+				datasets: [{
+					label: "",
+					data: datings.map(dating => [dating.older, dating.younger]),
+					backgroundColor: this.sqs.color.getColorScheme(datings.length),
+					minBarLength: 3
+				}]
+			},
 			options: {
 				scales: {
 					x: {
 						reverse: true,
 						ticks: {
-							callback: ticksLabelCallback,
-					  	},
+							callback: (value) => {
+								if (Math.abs(value) >= 1000) {
+									return value / 1000 + "k BP";
+								}
+								return value+" BP";
+							},
+						},
 					},
 				},
 				indexAxis: 'y',
@@ -378,9 +319,11 @@ class BasicSiteInformation {
 				plugins: {
 					tooltip: {
 						callbacks: {
-							title: tooltipCallback,
-							label: (data) => {
-								return "Dating by "+data.label;
+							title: (tooltipItems) => {
+								return datings[tooltipItems[0].dataIndex].method_name;
+							},
+							label: (tooltipItem) => {
+								return tooltipLines(datings[tooltipItem.dataIndex]);
 							}
 						}
 					},
@@ -395,12 +338,18 @@ class BasicSiteInformation {
 			}
 		};
 
-		
 		let chartId = nanoid();
-		document.getElementById(targetAnchorQuery).innerHTML = '<canvas id="'+chartId+'"></canvas>';
+		let html = '<canvas id="'+chartId+'"></canvas>';
+
+		//Radiocarbon years and calendar years BP are not the same scale, so say which bars include them
+		let radiocarbonMethods = datings.filter(dating => dating.radiocarbon_years_count > 0).map(dating => dating.method_name);
+		if(radiocarbonMethods.length > 0) {
+			html += "<p><small>Includes ages in radiocarbon years, which are not calibrated and so not directly comparable with calendar years BP: "+radiocarbonMethods.join(", ")+".</small></p>";
+		}
+		document.getElementById(targetAnchorId).innerHTML = html;
 
 		const ctx = document.getElementById(chartId).getContext("2d");
-        const chart = new Chart(ctx, config);
+		const chart = new Chart(ctx, config);
 
 		window.addEventListener('resize', () => {
 			chart.resize();
@@ -1132,7 +1081,6 @@ class BasicSiteInformation {
 	destroy() {
 		this.sqs.sqsEventUnlisten("fetchBasicSiteInformation", this);
 		this.sqs.sqsEventUnlisten("layoutResize", this);
-		this.sqs.sqsEventUnlisten("analysisSectionsBuilt", this);
 	}
 }
 export { BasicSiteInformation as default }

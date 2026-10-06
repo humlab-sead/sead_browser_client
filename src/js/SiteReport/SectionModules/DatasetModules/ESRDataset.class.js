@@ -1,6 +1,5 @@
 import { nanoid } from "nanoid";
 import DatasetModule from "./DatasetModule.class";
-import StandardAge from "../../../Common/StandardAge.class";
 /*
 * Class: DatingToPeriodDataset
 *
@@ -18,7 +17,6 @@ class ESRDataset extends DatasetModule {
 		this.datasets = [];
 		this.buildIsComplete = false;
 		this.section = analysis.section;
-		this.summary = null;
 
 		this.methodIds = [160];
 		this.methodGroupIds = [];
@@ -27,7 +25,6 @@ class ESRDataset extends DatasetModule {
 
 	async makeSection(siteData, sections) {
 		let datasets = this.claimDatasets(siteData);
-        this.summary = [];
 
         if(datasets.length == 0) {
             this.buildIsComplete = true;
@@ -82,15 +79,6 @@ class ESRDataset extends DatasetModule {
                         labName = siteData.lookup_tables.labs[key].international_lab_id;
                     }
                 }
-
-                let stdAge = new StandardAge();
-                stdAge.ageType = method.method_name;
-                stdAge.isBP = true; //not verified! someone should check this
-                stdAge.ageOlder = analysisEntity.dating_values.age ? parseInt(analysisEntity.dating_values.age) : null;
-                stdAge.ageYounger = analysisEntity.dating_values.age ? parseInt(analysisEntity.dating_values.age) : null;
-                stdAge.ageLocation = null;
-                stdAge.sample = analysisEntity.physical_sample_id;
-                this.summary.push(stdAge);
 
                 let row = [
                     {
@@ -159,10 +147,6 @@ class ESRDataset extends DatasetModule {
         };
 
         section.contentItems.push(contentItem);
-	}
-
-	getDatingSummary() {
-		return this.summary;
 	}
 
 	formatAge(older, younger) {

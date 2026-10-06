@@ -5772,32 +5772,44 @@ svg text {
 }
 
 .site-report-table-button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  background: colors.$base-color;
-  position: relative;
-  top: 0;
-  color: #fff;
-  border: none;
-  padding-left: 0.25em;
-  padding-right: 0.25em;
-  padding-top: 0.25em;
-  padding-bottom: 0.25em;
-  font-size: 1.0em;
-  text-align: center;
+  gap: 0.5em;
+  background: #fff;
+  color: #1f2a37;
+  border: 1px solid #d6d9dd;
+  border-radius: 6px;
+  padding: 0.35em 0.8em;
+  font-weight: 500;
+  white-space: nowrap;
   cursor: pointer;
-  max-width: 6em;
-  margin: auto;
-  width: calc(100% - 0.5em);
-  height: calc(100% - 6px);
   text-decoration: none !important;
-  border-radius: 4px;
 }
 
 .site-report-table-button:hover {
-  background: color.adjust(colors.$base-color, $lightness: 10%);
+  background: colors.$pane-bg-color;
+  border-color: color.adjust(#d6d9dd, $lightness: -10%);
+}
+
+.result-table-site-name-link {
+  color: colors.$base-color;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: rgba(colors.$base-color, 0.35);
+  text-underline-offset: 3px;
   cursor: pointer;
+}
+
+.result-table-site-name-link:hover {
+  text-decoration-color: colors.$base-color;
+}
+
+.tabulator-cell.result-table-site-id {
+  color: #777;
+}
+
+.tabulator-cell.result-table-view-site {
+  text-align: right;
 }
 
 .tabulator .tabulator-row.tabulator-selected {
@@ -7255,10 +7267,28 @@ tr.site-report-table-row > td {
   /*cursor: wait;*/
 }
 
+.site-report-export-download-btn {
+  position: relative;
+}
+
 .site-report-export-download-btn:hover {
   background-color: colors.$aux-color;
   color: #fff;
   transition: background-color 0.1s, color 0.1s;
+}
+
+//While loading, the indicator replaces the label in place so the button keeps its size
+.site-report-export-download-btn:has(.cute-little-loading-indicator) {
+  color: transparent;
+  cursor: wait;
+}
+
+.site-report-export-download-btn .cute-little-loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
 }
 
 .ecocode-help-btn {
