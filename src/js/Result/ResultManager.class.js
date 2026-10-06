@@ -62,14 +62,33 @@ class ResultManager {
 			
 			$(window).on("seadStatePreLoad", (event, data) => {
 				this.setResultDataFetchingSuspended(true);
+				//So the viewstate waits for its own result, not one rendered before it
+				this.resultModuleRenderStatus = "none";
 			});
 			
 			$(window).on("seadStatePostLoad", (event, data) => {
 				var state = data.state;
-				this.setActiveModule(state.result.module, true);
-				this.importSettings(state.result.settings);
-				if(data.state.facets.length == 0) {
+				if(this.sqs.facetManager.pendingDataFetchQueue.length > 0) {
+					//The result is fetched once the filters have their data (seadFacetPendingDataFetchQueueEmpty) - which only fetches if something is marked as pending, and a filter without a selection never marks it
+					this.setPendingDataFetch(true);
+				}
+				else {
+					//No filter is fetching anything - none were saved, or none exist anymore - so nothing would resume the result. The module is rendered below.
+					this.setPendingDataFetch(false);
 					this.setResultDataFetchingSuspended(false);
+				}
+
+				//The settings belong to the module the viewstate was saved with, which on a phone may not be the one that gets shown.
+				//They go in before it renders, so it can render straight into them.
+				let savedModule = state.result ? this.getResultModuleByName(state.result.module) : false;
+				if(savedModule && state.result.settings && typeof savedModule.importSettings == "function") {
+					savedModule.importSettings(state.result.settings);
+				}
+				if(savedModule) {
+					this.setActiveModule(state.result.module, true);
+				}
+				else {
+					this.ensureActiveModule(true);
 				}
 			});
 			
@@ -360,7 +379,8 @@ class ResultManager {
 	* 
 	*/
 	getResultState() {
-		var resultModuleSettings = this.getResultModuleByName(this.activeModuleId).exportSettings();
+		let module = this.getResultModuleByName(this.activeModuleId);
+		var resultModuleSettings = module && typeof module.exportSettings == "function" ? module.exportSettings() : {};
 
 		if(resultModuleSettings === false) {
 			return false;
@@ -493,6 +513,8 @@ class ResultManager {
 				$("#result-loading-indicator").addClass("result-loading-indicator-error");
 
 				let warningTriangleIcon = "<i style='color:red;' class='fa fa-exclamation-triangle'></i>";
+				//Nothing more is coming, which whoever waits for the render needs to know as much as a success
+				this.resultModuleRenderStatus = "failed";
 
 				this.getActiveModule().unrender();
 				this.renderMsg(true, {

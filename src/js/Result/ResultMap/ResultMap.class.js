@@ -1065,11 +1065,23 @@ class ResultMap extends ResultModule {
 			extent = extentNW.concat(extentSE);
 		}
 
-		this.olMap.getView().fit(extent, {
-			padding: [20, 20, 20, 20],
-			maxZoom: 10,
-			duration: 500
-		});
+		//Settings from a viewstate wait for the data, since the map would fit itself to the data here and lose the view
+		let pendingSettings = this.pendingSettings;
+		this.pendingSettings = null;
+		if(pendingSettings && Array.isArray(pendingSettings.center) && typeof pendingSettings.zoom == "number") {
+			this.olMap.getView().setCenter(pendingSettings.center);
+			this.olMap.getView().setZoom(pendingSettings.zoom);
+		}
+		else {
+			this.olMap.getView().fit(extent, {
+				padding: [20, 20, 20, 20],
+				maxZoom: 10,
+				duration: 500
+			});
+		}
+		if(pendingSettings) {
+			this.applyLayerSettings(pendingSettings);
+		}
 
 		//NOTE: This can not be pre-defined in HTML since the DOM object itself is removed along with the overlay it's attached to when the map is destroyed.
 		let popup = $("<div></div>");
@@ -2992,24 +3004,66 @@ class ResultMap extends ResultModule {
 	}
 	
 	/*
+	* Function: exportSettings
+	* What a viewstate keeps of the map: the view, and which base and data layer are shown.
+	*/
+	exportSettings() {
+		let settings = {
+			baseLayers: [],
+			dataLayers: []
+		};
+		if(this.olMap != null) {
+			settings.center = this.olMap.getView().getCenter();
+			settings.zoom = this.olMap.getView().getZoom();
+		}
+		this.layers.forEach(layer => {
+			let prop = layer.getProperties();
+			if(layer.getVisible() && prop.type == "baseLayer") {
+				settings.baseLayers.push(prop.layerId);
+			}
+			if(layer.getVisible() && prop.type == "dataLayer") {
+				settings.dataLayers.push(prop.layerId);
+			}
+		});
+		return settings;
+	}
+
+	/*
 	* Function: importSettings
+	* Takes the settings from a viewstate. They are applied by renderMap once the result data has arrived.
 	*/
 	importSettings(settings) {
-		if(typeof(settings.center) != "undefined" && typeof(settings.zoom) != "undefined") {
-			this.settingsImportInterval = setInterval(() => { //Map may not have been initialized yet, so wait until it has
-				if(this.olMap != null) {
-					this.olMap.getView().setCenter(settings.center);
-					this.olMap.getView().setZoom(settings.zoom);
-					clearInterval(this.settingsImportInterval);
-					
-					for(let lk in settings.baseLayers) {
-						this.setMapBaseLayer(settings.baseLayers[lk]);
-					}
-					for(let lk in settings.dataLayers) {
-						this.setMapDataLayer(settings.dataLayers[lk]);
-					}
+		this.pendingSettings = settings || null;
+	}
+
+	/*
+	* Function: applyLayerSettings
+	* Shows the base and data layer a viewstate was saved with, if they still exist. The data layer is only marked visible, renderVisibleDataLayers draws it.
+	*/
+	applyLayerSettings(settings) {
+		let baseLayerId = (settings.baseLayers || []).find(layerId => {
+			let layer = this.getLayerById(layerId);
+			return layer && layer.getProperties().type == "baseLayer";
+		});
+		if(baseLayerId && !this.getLayerById(baseLayerId).getVisible()) {
+			this.setMapBaseLayer(baseLayerId);
+		}
+
+		let dataLayerId = (settings.dataLayers || []).find(layerId => {
+			let layer = this.getLayerById(layerId);
+			return layer && layer.getProperties().type == "dataLayer";
+		});
+		if(dataLayerId) {
+			this.layers.forEach(layer => {
+				if(layer.getProperties().type == "dataLayer") {
+					let visible = layer.getProperties().layerId == dataLayerId;
+					layer.setVisible(visible);
+					layer.setProperties({
+						legendVisible: visible,
+						legendHidden: false
+					});
 				}
-			}, 250);
+			});
 		}
 	}
 

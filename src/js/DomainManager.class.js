@@ -33,13 +33,6 @@ class DomainManager {
             $("#facet-menu .l2-title").css("border-left", "4px solid "+newDomain.color);
             */
         });
-        
-        $(window).on("seadStatePreLoad", (event, data) => {
-            let state = data.state;
-            if(state.domain) {
-                this.setActiveDomain(state.domain);
-            }
-        });
     }
 
     getDomain(domainName) {
@@ -54,9 +47,17 @@ class DomainManager {
         return this.activeDomain;
     }
 
+    /*
+    * Function: setActiveDomain
+    *
+    * Returns:
+    * A promise which resolves once domainChanged has been dispatched - the filters and the
+    * result section are rebuilt for the new domain by then, which a viewstate has to wait for
+    * before it adds its own filters, or they would be swept away with the old domain's.
+    */
     setActiveDomain(domainName, updateUrl = true) {
-        if(domainName == this.activeDomain.name) {
-            return;
+        if(domainName == this.activeDomain.name || !this.getDomain(domainName)) {
+            return Promise.resolve();
         }
 
         let previousResultModule = this.sqs.resultManager.getActiveModule();
@@ -85,14 +86,15 @@ class DomainManager {
 		}
 
         if(previousResultModule) {
-            previousResultModule.unrender().then(() => {
+            return previousResultModule.unrender().then(() => {
                 this.sqs.sqsEventDispatch("domainChanged", domainName);
             });
         }
         else {
             this.sqs.sqsEventDispatch("domainChanged", domainName);
+            return Promise.resolve();
         }
-        
+
     }
     
     updateMenu() {

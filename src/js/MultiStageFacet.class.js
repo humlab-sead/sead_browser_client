@@ -24,6 +24,7 @@ class MultiStageFacet extends Facet {
 		this.sortMode = "title";
 		this.sortDirection = "asc";
 		this.currentFilterStage = 0;
+		this.restoreToStage = 0; //the stage a viewstate being restored is headed for, see restoreStageSelections
 		this.filters = []; //this facet can have multiple filters
 		template.stagedFilters.forEach(filterName => {
 			let domContainerId = "filter-container-"+nanoid();
@@ -392,6 +393,55 @@ class MultiStageFacet extends Facet {
 
 		this.broadcastSelection(stage);
 		return true;
+	}
+
+	/*
+	* Function: restoreStageSelections
+	*
+	* Puts back the selections of every stage, as a viewstate saved them, before the facet
+	* has any data. The facet then walks forward through the stages as their data arrives
+	* (see fetchData), ending on the stage the user was standing on - the one after the last
+	* stage with a selection - with every stage before it loaded, which the back button and
+	* the title need.
+	*
+	* Parameters:
+	* stageSelections - The selections keyed by stage name, e.g. { ecocode_system: [2], ecocode: [323, 336] }
+	*/
+	restoreStageSelections(stageSelections) {
+		this.restoreToStage = 0;
+		this.filters.forEach((stage, stageIndex) => {
+			stage.selections = (stageSelections[stage.name] || [])
+				.map(selection => parseInt(selection))
+				.filter(selection => !isNaN(selection));
+
+			if(stage.selections.length > 0 && stageIndex == this.restoreToStage && stageIndex < this.filters.length - 1) {
+				this.restoreToStage = stageIndex + 1;
+			}
+		});
+	}
+
+	/*
+	* Function: fetchData
+	* Fetches the current stage, and while a restore (see restoreStageSelections) is not yet on its stage, moves on to the next and fetches that too.
+	*/
+	fetchData(render = true) {
+		let request = super.fetchData(render);
+		if(!request || !this.restoreToStage || this.currentFilterStage >= this.restoreToStage) {
+			return request;
+		}
+		return request.then(() => {
+			this.updateFacetTitle();
+			//Another fetch may have moved the facet on already
+			if(this.deleted || this.currentFilterStage >= this.restoreToStage) {
+				return;
+			}
+			this.selectNextFilterStage();
+			if(this.currentFilterStage >= this.restoreToStage) {
+				//Arrived - from here on the stages are the user's to move between
+				this.restoreToStage = 0;
+			}
+			return this.fetchData(render);
+		});
 	}
 
 	/*

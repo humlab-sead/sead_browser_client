@@ -221,24 +221,23 @@ class StateManager {
 
 		viewstates.map((state) => {
 			let oldApiWarn = "";
-			if(typeof state.apiVersion == "undefined") {
-				state.apiVersion = "Unknown";
-			}
-			if(state.apiVersion != this.sqs.apiVersion) {
+			//The release the viewstate was saved in. apiVersion was never kept up to date, so it only stands in for viewstates from before clientVersion was saved.
+			let release = state.clientVersion ? state.clientVersion : (state.apiVersion ? state.apiVersion : "Unknown");
+			if(release != this.sqs.config.version) {
 				oldApiWarn = "<i class=\"fa fa-exclamation-triangle old-viewstate-api-warning\" aria-hidden=\"true\"></i>";
 			}
 			var dateString = this.formatTimestampToDateString(state.saved);
 
 			let vsRow = $("<div id='vs-"+state.id+"' class='viewstate-load-item'></div>");
 			vsRow.append("<div class='vs-id' vsid='"+state.id+"'>"+state.id+"</div>");
-			vsRow.append("<div>"+state.name+"</div>");
+			vsRow.append($("<div></div>").text(state.name)); //typed in by the user, so not HTML
 			vsRow.append("<div>"+dateString+"</div>");
-			vsRow.append("<div>"+oldApiWarn+" "+state.apiVersion+"</div>");
+			vsRow.append("<div>"+oldApiWarn+" "+release+"</div>");
 			vsRow.append("<div><i class='fa fa-trash viewstate-delete-btn' aria-hidden='true'></i></div>");
 
 			$("#viewstate-load-list").append(vsRow);
 
-			this.sqs.tooltipManager.registerTooltip("#vs-"+state.id+" .old-viewstate-api-warning", "This viewstate was created using an older version of the SEAD browser and thus may not produce the same result in the current version.");
+			this.sqs.tooltipManager.registerTooltip("#vs-"+state.id+" .old-viewstate-api-warning", "This viewstate was created in another release of the SEAD browser, so the data and the result may have changed since.");
 		});
 
 		this.sqs.tooltipManager.registerTooltip("#vs-del-header", "Deleting a viewstate will only remove it from your personal list. The viewstate will always be accessible via the correct link.", {drawSymbol: true});
@@ -278,31 +277,41 @@ class StateManager {
 	*
 	*/
 	fetchState(stateId) {
-		
-		//var address = Config.serverAddress;
 		$.ajax(Config.dataServerAddress+"/viewstate/"+stateId, {
 			method: "GET",
 			dataType: "json",
-			error: function(jqXHR, textStatus, errorThrown) {
+			error: (jqXHR, textStatus, errorThrown) => {
 				console.warn(textStatus, errorThrown);
+				this.loadStateFailed(stateId);
 			},
 			success: (data, textStatus, jqXHR) => {
-				var state = data[0];
-				console.log("fetchState", state)
-				if(state === null) {
-					console.log("Failed to load viewstate "+stateId);
-					$.notify("Failed to load viewstate "+stateId, "error");
-					
-					$.event.trigger("seadStateLoadFailed", {
-						state: state
-					});
+				//The server answers an id it doesn't know with an empty list
+				let state = Array.isArray(data) && data.length > 0 ? data[0] : null;
+				if(state == null) {
+					this.loadStateFailed(stateId);
 				}
 				else {
 					this.loadState(state);
 				}
 			}
 		});
+	}
 
+	/*
+	* Function: loadStateFailed
+	* Tells the user, and lets everything waiting on the viewstate carry on as if there had been none.
+	*/
+	loadStateFailed(stateId) {
+		console.log("Failed to load viewstate "+stateId);
+		this.sqs.notificationManager.notify("The viewstate "+stateId+" could not be found.", "error", 10000);
+
+		if(this.getViewstateIdFromUrl() == stateId) {
+			window.history.replaceState({}, "SEAD", "/");
+		}
+
+		$.event.trigger("seadStateLoadFailed", {
+			stateId: stateId
+		});
 	}
 
 	/*
@@ -373,9 +382,7 @@ class StateManager {
 			apiVersion: this.sqs.apiVersion,
 			clientVersion: this.sqs.config.version,
 			saved: Date.now(),
-			layout: {
-				left: this.sqs.layoutManager.leftLastSize
-			},
+			layout: this.getLayoutViewstate(),
 			facets: this.sqs.facetManager.getFacetState(),
 			result: this.sqs.resultManager.getResultState(),
 			siteReport: this.sqs.siteReportManager.getReportState(),
@@ -434,7 +441,7 @@ class StateManager {
 	* Parameters:
 	* state - A state object.
 	*/
-	loadState(state) {
+	async loadState(state) {
 		this.lastLoadedState = state;
 		
 		//If you wonder what's going on here, I don't blame you. This is perhaps the laziest function you've ever seen. It does basically nothing.
@@ -446,6 +453,10 @@ class StateManager {
 			state: state
 		});
 
+		//The domain goes first, and has to be finished switching: that rebuilds the filters and the result section, and would sweep away anything restored before it.
+		//Viewstates from before there were domains are in the general one.
+		await this.sqs.domainManager.setActiveDomain(state.domain ? state.domain : "general", false);
+
 		$.event.trigger("seadStateLoad", {
 			state: state
 		});
@@ -453,6 +464,9 @@ class StateManager {
 		$.event.trigger("seadStatePostLoad", {
 			state: state
 		});
+
+		this.restoreLayout(state.layout);
+		this.restoreSiteReport(state.siteReport);
 
 		window.history.pushState(state,
 			"SEAD",
@@ -462,14 +476,55 @@ class StateManager {
 			this.sqs.seoManager.setViewstateMeta(state.id);
 		}
 
+		clearInterval(this.checkLoadStateCompleteInterval);
+		const startedWaiting = Date.now();
 		this.checkLoadStateCompleteInterval = setInterval(() => {
-			if(this.sqs.resultManager.getRenderStatus() == "complete") {
+			//The loading cover comes down on this, so it can't wait on a result that never comes
+			let renderStatus = this.sqs.resultManager.getRenderStatus();
+			if(renderStatus == "complete" || renderStatus == "failed" || Date.now() - startedWaiting > 30000) {
 				clearInterval(this.checkLoadStateCompleteInterval);
 				$.event.trigger("seadStateLoadComplete", {
 					state: state
 				});
 			}
 		}, 100);
+	}
+
+	/*
+	* Function: getLayoutViewstate
+	* How the filter view is split between filters and result. Only the desktop layout has a split to speak of.
+	*/
+	getLayoutViewstate() {
+		let view = this.sqs.layoutManager.getViewByName("filters");
+		if(!view || this.sqs.layoutManager.getMode() != "desktopMode") {
+			return {};
+		}
+		return {
+			left: view.leftLastSize
+		};
+	}
+
+	restoreLayout(layout) {
+		let view = this.sqs.layoutManager.getViewByName("filters");
+		if(!view || !layout || typeof layout.left != "number" || this.sqs.layoutManager.getMode() != "desktopMode") {
+			return;
+		}
+		let left = Math.max(0, Math.min(100, layout.left));
+		view.setSectionSizes(left, 100 - left, false);
+		view.updateSectionCollapseButtons();
+	}
+
+	/*
+	* Function: restoreSiteReport
+	* Opens the site report the viewstate was saved with, over the restored filters - or closes the one showing, if it had none.
+	*/
+	restoreSiteReport(siteReportState) {
+		if(siteReportState && siteReportState.active && siteReportState.siteId) {
+			this.sqs.siteReportManager.renderSiteReport(siteReportState.siteId, false);
+		}
+		else if(this.sqs.activeView == "siteReport") {
+			this.sqs.siteReportManager.unrenderSiteReport();
+		}
 	}
 
 	setViewStateDialog(dialog) {
