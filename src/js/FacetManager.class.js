@@ -409,7 +409,7 @@ class FacetManager {
 		if(!this.facetDataFetchingSuspended) {
 			facet.fetchData();
 		}
-		else {
+		else if(!this.facetDataFetchQueue.includes(facet)) {
 			this.facetDataFetchQueue.push(facet);
 		}
 	}
@@ -498,18 +498,48 @@ class FacetManager {
 		facetDefinitions.sort(function(a, b) {
 			return a.position - b.position;
  		});
- 		
-		for(var key in facetDefinitions) {
-			let facetTemplate = this.getFacetTemplateByFacetId(facetDefinitions[key].name);
-			let facet = this.makeNewFacet(facetTemplate);
-			if(!facet) {
-				console.log("Facet not found: "+facetDefinitions[key].name);
+
+		//A multistage facet is saved as one entry per stage (see getFacetState), and a stage is not a facet of its own - so gather the stages back into their facet
+		let stagedFacets = {};
+		let facetEntries = [];
+		facetDefinitions.forEach(facetDefinition => {
+			let stagedTemplate = this.getStagedFacetTemplateByStageName(facetDefinition.name);
+			if(!stagedTemplate) {
+				facetEntries.push(facetDefinition);
+				return;
+			}
+			if(typeof stagedFacets[stagedTemplate.name] == "undefined") {
+				stagedFacets[stagedTemplate.name] = {
+					name: stagedTemplate.name,
+					stageSelections: {},
+					minimized: false
+				};
+				facetEntries.push(stagedFacets[stagedTemplate.name]);
+			}
+			stagedFacets[stagedTemplate.name].stageSelections[facetDefinition.name] = facetDefinition.selections;
+			stagedFacets[stagedTemplate.name].minimized = stagedFacets[stagedTemplate.name].minimized || facetDefinition.minimized === true;
+		});
+
+		for(var key in facetEntries) {
+			let facetTemplate = this.getFacetTemplateByFacetId(facetEntries[key].name);
+			if(!facetTemplate) {
+				console.log("Facet not found: "+facetEntries[key].name);
 				continue;
 			}
-			facet.setSelections(facetDefinitions[key].selections);
+			let facet = this.makeNewFacet(facetTemplate);
+			if(!facet) {
+				console.log("Facet not found: "+facetEntries[key].name);
+				continue;
+			}
+			if(typeof facetEntries[key].stageSelections != "undefined") {
+				facet.restoreStageSelections(facetEntries[key].stageSelections);
+			}
+			else {
+				facet.setSelections(facetEntries[key].selections);
+			}
 			this.addFacet(facet, false); //This will trigger a facet load request
-			
-			if(facetDefinitions[key].minimized) {
+
+			if(facetEntries[key].minimized) {
 				//Wait until data is loaded before minimizing
 				var interval = setInterval(() => {
 					if(facet.isDataLoaded) {
@@ -532,6 +562,22 @@ class FacetManager {
 				if(facetId == facetDef[catKey].filters[facetKey].name) {
 					var template = facetDef[catKey].filters[facetKey];
 					template.color = facetDef[catKey].color;
+					return template;
+				}
+			}
+		}
+		return false;
+	}
+
+	/*
+	* Function: getStagedFacetTemplateByStageName
+	* The template of the multistage facet which has a stage by this name, or false if there is none.
+	*/
+	getStagedFacetTemplateByStageName(stageName) {
+		for(let catKey in this.sqs.facetDef) {
+			for(let facetKey in this.sqs.facetDef[catKey].filters) {
+				let template = this.sqs.facetDef[catKey].filters[facetKey];
+				if(template.type == "multistage" && Array.isArray(template.stagedFilters) && template.stagedFilters.length > 1 && template.stagedFilters.includes(stageName)) {
 					return template;
 				}
 			}
@@ -583,10 +629,11 @@ class FacetManager {
 	* The genocide version of removeFacet.
 	*/	
 	removeAllFacets() {
-		for(var key in this.facets) {
-			this.facets[key].destroy();
+		//destroy() takes the facet out of this.facets (via seadFacetDeletion), so go through a copy - iterating the live list skips every other facet and leaves it on screen
+		[...this.facets].forEach(facet => {
+			facet.destroy();
 			this.removeSlot();
-		}
+		});
 
 		this.facets = [];
 		this.links = [];

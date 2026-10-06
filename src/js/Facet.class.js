@@ -476,24 +476,33 @@ class Facet {
 					console.warn("WARN: Not importing facet data since this facet is either deleted or "+respData.FacetsConfig.RequestId+" != "+this.requestId);
 				}
 
-				for(var key in this.sqs.facetManager.pendingDataFetchQueue) {
-					if(this === this.sqs.facetManager.pendingDataFetchQueue[key]) {
-						this.sqs.facetManager.pendingDataFetchQueue.splice(key, 1);
-					}
-				}
-
-				if(this.sqs.facetManager.pendingDataFetchQueue.length == 0) {
-					$.event.trigger("seadFacetPendingDataFetchQueueEmpty", {
-						facet: this
-					});
-				}
-				
+				this.leavePendingDataFetchQueue();
 			},
 			error: (respData, textStatus, jqXHR) => {
 				this.showLoadingIndicator(false, true);
+				//The result waits for the queue to empty (while a viewstate loads), and must not wait forever on a request that failed
+				this.leavePendingDataFetchQueue();
 			}
 
 		});
+	}
+
+	/*
+	* Function: leavePendingDataFetchQueue
+	* Takes this facet out of the queue of fetches being waited on, and says so if it was the last.
+	*/
+	leavePendingDataFetchQueue() {
+		for(var key in this.sqs.facetManager.pendingDataFetchQueue) {
+			if(this === this.sqs.facetManager.pendingDataFetchQueue[key]) {
+				this.sqs.facetManager.pendingDataFetchQueue.splice(key, 1);
+			}
+		}
+
+		if(this.sqs.facetManager.pendingDataFetchQueue.length == 0) {
+			$.event.trigger("seadFacetPendingDataFetchQueueEmpty", {
+				facet: this
+			});
+		}
 	}
 
 	/*

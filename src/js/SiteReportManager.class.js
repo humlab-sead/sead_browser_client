@@ -161,8 +161,9 @@ class SiteReportManager {
 	}
 	
 	getReportState() {
+		//this.siteReport outlives the report being closed, so whether one is showing is a question for the view
 		var state = {
-			active: this.siteReport != null ? true : false
+			active: this.siteReport != null && this.sqs.activeView == "siteReport"
 		};
 		
 		if(state.active) {

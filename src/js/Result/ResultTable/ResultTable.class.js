@@ -30,6 +30,8 @@ class ResultTable extends ResultModule {
 		this.tooltipAnchors = [];
 		this.tabulatorTable = null;
 		this.mobileHiddenColumns = [];
+		//The table is rebuilt whenever the data changes, so the sort is kept here to survive that, and for viewstates
+		this.sort = [{column: "sitename", dir: "asc"}];
 		this.data = {
 			columns: [],
 			rows: []
@@ -555,11 +557,13 @@ class ResultTable extends ResultModule {
 			data: this.data.rows,
 			placeholder:"No data",
 			layout: "fitColumns",
-			initialSort:[
-				{column:"sitename", dir:"asc"},
-			],
+			initialSort: this.sort,
 			selectable: true,
 			columns: tableColumns,
+		});
+
+		this.tabulatorTable.on("dataSorted", (sorters) => {
+			this.sort = sorters.map(sorter => ({column: sorter.field, dir: sorter.dir}));
 		});
 
 		let mobileHiddenColumnTitles = ["Site ID", "Data points"];
@@ -828,6 +832,7 @@ class ResultTable extends ResultModule {
 	*/
 	exportSettings() {
 		return {
+			sort: this.sort
 		};
 	}
 	
@@ -835,6 +840,9 @@ class ResultTable extends ResultModule {
 	* Function: importSettings
 	*/
 	importSettings(settings) {
+		if(Array.isArray(settings.sort) && settings.sort.length > 0) {
+			this.sort = settings.sort.filter(sorter => sorter && typeof sorter.column == "string" && (sorter.dir == "asc" || sorter.dir == "desc"));
+		}
 	}
 
 }
