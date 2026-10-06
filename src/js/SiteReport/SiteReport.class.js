@@ -1376,6 +1376,7 @@ class SiteReport {
 			["Site name", exportStruct.meta.siteName],
 			["Date of export", new Date().toLocaleDateString('sv-SE')],
 			["Description", exportStruct.meta.description],
+			["SEAD release", this.sqs.config.seadRelease || ""],
 			["SEAD client version", webclientVersion],
 			["SEAD JAS version", apiVersion],
 		];
@@ -1461,6 +1462,13 @@ class SiteReport {
 				},
 				{
 					text: exportStruct.meta.url+"\n\n",
+				},
+				{
+					text: "SEAD release",
+					style: "subheader2"
+				},
+				{
+					text: (this.sqs.config.seadRelease || "None")+"\n\n",
 				},
 				{
 					text: "SEAD browser version",

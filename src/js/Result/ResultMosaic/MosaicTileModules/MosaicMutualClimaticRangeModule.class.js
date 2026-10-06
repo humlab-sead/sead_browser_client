@@ -571,7 +571,8 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         summarySheet.addRow(["Tmax max (C)", data.axes?.tmax_celsius?.max ?? ""]);
         summarySheet.addRow(["Trange min (C)", data.axes?.trange_celsius?.min ?? ""]);
         summarySheet.addRow(["Trange max (C)", data.axes?.trange_celsius?.max ?? ""]);
-        summarySheet.addRow(["SEAD version", exportData.sead_version]);
+        summarySheet.addRow(["SEAD release", exportData.sead_release]);
+        summarySheet.addRow(["SEAD browser version", exportData.sead_version]);
         summarySheet.addRow(["Export date", exportData.export_date]);
         summarySheet.addRow(["Reference", exportData.reference]);
         summarySheet.addRow(["License", exportData.license]);

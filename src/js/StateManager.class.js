@@ -221,9 +221,10 @@ class StateManager {
 
 		viewstates.map((state) => {
 			let oldApiWarn = "";
-			//The release the viewstate was saved in. apiVersion was never kept up to date, so it only stands in for viewstates from before clientVersion was saved.
-			let release = state.clientVersion ? state.clientVersion : (state.apiVersion ? state.apiVersion : "Unknown");
-			if(release != this.sqs.config.version) {
+			//The SEAD release the viewstate was saved in. Before seadRelease was saved, the client's own version stood in for it,
+			//and before that apiVersion, which was never kept up to date.
+			let release = state.seadRelease ? state.seadRelease : (state.clientVersion ? state.clientVersion : (state.apiVersion ? state.apiVersion : "Unknown"));
+			if(release != this.sqs.config.seadRelease) {
 				oldApiWarn = "<i class=\"fa fa-exclamation-triangle old-viewstate-api-warning\" aria-hidden=\"true\"></i>";
 			}
 			var dateString = this.formatTimestampToDateString(state.saved);
@@ -380,6 +381,7 @@ class StateManager {
 			id: stateId,
 			name: name,
 			apiVersion: this.sqs.apiVersion,
+			seadRelease: this.sqs.config.seadRelease,
 			clientVersion: this.sqs.config.version,
 			saved: Date.now(),
 			layout: this.getLayoutViewstate(),
