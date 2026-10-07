@@ -2,6 +2,10 @@ import { nanoid } from 'nanoid'
 /* 
 Class: StateManager
 StateManager handles saving and loading of states. A state is basically a "savegame". It records the current facets used, their positions, selections and all other relevent data for restoring a certain viewstate at a later time.
+
+A saved viewstate is public or private, as the user chooses when saving it, and can be changed later in the load dialog.
+Public is the default: anyone with the link can open it, and it can be shared. A private one opens only for its owner, when
+signed in - json_api_server answers anyone else as though it did not exist.
 */
 class StateManager {
 	/*
@@ -12,59 +16,138 @@ class StateManager {
 	constructor(sqs) {
 		this.sqs = sqs;
 		
+		//Saving always needs a signed-in user, loading only when viewstates aren't also kept locally
 		$(window).on("seadSaveStateClicked", (event, data) => {
-			this.renderSaveViewstateDialog();
+			this.sqs.userManager.whenSignedIn(() => {
+				this.renderSaveViewstateDialog();
+			});
 		});
 
 		$(window).on("seadLoadStateClicked", (event, data) => {
-			this.renderLoadViewstateDialog();
-			this.updateLoadStateDialog();
+			const showLoadDialog = () => {
+				this.renderLoadViewstateDialog();
+				this.updateLoadStateDialog();
+			};
+			if(Config.requireLoginForViewstateStorage) {
+				this.sqs.userManager.whenSignedIn(showLoadDialog);
+			}
+			else {
+				showLoadDialog();
+			}
 		});
 		
 		this.sqs.sqsEventListen("userLoggedIn", () => {
-			this.updateSaveStateDialog();
 			this.updateLoadStateDialog();
 		});
 
 		this.sqs.sqsEventListen("userLoggedOut", () => {
-			this.updateSaveStateDialog();
 			this.updateLoadStateDialog();
 		});
 
 	}
 
+	/*
+	* Function: renderSaveViewstateDialog
+	* Asks for a name and whether the viewstate is public (the default) or private, with a switch.
+	* Once saved, the dialog shows the link, and a Share button for a public viewstate.
+	*/
 	renderSaveViewstateDialog() {
 		let frag = $("#viewstate-save-template")[0].content.cloneNode(true);
-		this.sqs.dialogManager.showPopOverFragment("Save viewstate", frag);
-		
-		$("#viewstate-save-btn").on("click", () => {
-			let state = this.saveState();
+		const container = this.sqs.dialogManager.showPopOverFragment("Save viewstate", frag, { width: "620px" });
+
+		const toggle = $(".viewstate-private-toggle", container);
+		const visibility = () => toggle.prop("checked") ? "private" : "public";
+		const renderVisibility = () => {
+			$(".viewstate-visibility-option", container).each((index, node) => {
+				$(node).toggleClass("viewstate-visibility-option-active", $(node).attr("data-visibility") == visibility());
+			});
+			$(".viewstate-visibility-hint", container).text(visibility() == "private"
+				? "Only you can open it, when you are signed in."
+				: "Anyone with the link can open it, and you can share it once it is saved.");
+		};
+		toggle.on("change", renderVisibility);
+		//the words either side of the switch choose too
+		$(".viewstate-visibility-option", container).on("click", (evt) => {
+			toggle.prop("checked", $(evt.currentTarget).attr("data-visibility") == "private");
+			renderVisibility();
+		});
+		renderVisibility();
+
+		const save = async () => {
+			let state = this.saveState(visibility());
 			if(state === false) {
 				return;
 			}
-			this.sendState(state).then(() => {
-				this.sqs.dialogManager.hidePopOver();
-				var content = $("#viewstate-post-save-dialog .overlay-dialog-content");
-				$("#viewstate-url", content).html("<a href='"+Config.serverRoot+"/viewstate/"+state.id+"'>"+Config.serverRoot+"/viewstate/"+state.id+"</a>");
-				$("#viewstate-key", content).html(state.id);
-				this.sqs.dialogManager.showPopOver("Viewstate saved", content.html());
-			}).catch(() => {
+			$("#viewstate-save-btn", container).prop("disabled", true);
+			try {
+				await this.sendState(state);
+			}
+			catch(error) {
+				$("#viewstate-save-btn", container).prop("disabled", false);
 				$.notify("The viewstate could not be saved.", "error");
-			});
+				return;
+			}
+			this.renderSavedViewstate(container, state);
+		};
+		$("#viewstate-save-btn", container).on("click", save);
+		$("#viewstate-save-input", container).on("keyup", (evt) => {
+			if(evt.key == "Enter") {
+				save();
+			}
 		});
-
-		this.updateSaveStateDialog();
 	}
 
 	/*
-	* Function: updateSaveStateDialog
-	* Saving needs a signed-in user; the dialog's login component asks for one otherwise.
+	* Function: renderSavedViewstate
+	* The save dialog once the viewstate is saved: its link, to copy, and to share if it is public.
 	*/
-	updateSaveStateDialog() {
-		const signedIn = this.sqs.userManager.getUser() != null;
-		//Scoped to the popover: index.ejs also holds an older, hidden copy of these ids
-		$("#popover-dialog #viewstate-save-input").toggle(signedIn);
-		$("#popover-dialog #viewstate-save-btn").toggle(signedIn);
+	renderSavedViewstate(container, state) {
+		$("#popover-dialog-frame > h1").text("Viewstate saved");
+		$(".viewstate-save-form", container).hide();
+		const saved = $(".viewstate-saved", container).show();
+		$(".viewstate-saved-message", saved).text(state.visibility == "private"
+			? "\""+state.name+"\" is saved as a private viewstate. Only you can open its link, when you are signed in."
+			: "\""+state.name+"\" is saved as a public viewstate. Anyone with its link can open it.");
+		const url = this.getViewstateUrl(state.id);
+		$(".viewstate-link-url", saved).attr("href", url).text(url);
+		$(".viewstate-copy-btn", saved).on("click", () => this.copyViewstateLink(state.id));
+		$(".viewstate-share-btn", saved).toggle(state.visibility != "private").on("click", () => this.shareViewstate(state));
+	}
+
+	getViewstateUrl(stateId) {
+		return Config.serverRoot+"/viewstate/"+stateId;
+	}
+
+	/*
+	* Function: shareViewstate
+	* Shares a public viewstate's link with the system's share sheet where there is one, and
+	* copies it otherwise.
+	*/
+	async shareViewstate(state) {
+		const url = this.getViewstateUrl(state.id);
+		if(navigator.share) {
+			try {
+				await navigator.share({ title: "SEAD viewstate: "+state.name, url: url });
+				return;
+			}
+			catch(error) {
+				if(error.name == "AbortError") {
+					return; //the user closed the share sheet
+				}
+				//not allowed here (no user gesture left after saving, say): copy instead
+			}
+		}
+		this.copyViewstateLink(state.id);
+	}
+
+	async copyViewstateLink(stateId) {
+		try {
+			await navigator.clipboard.writeText(this.getViewstateUrl(stateId));
+			this.sqs.notificationManager.notify("Copied the link to the clipboard", "info", 2000);
+		}
+		catch(error) {
+			this.sqs.notificationManager.notify("The link could not be copied: "+this.getViewstateUrl(stateId), "warning", 8000);
+		}
 	}
 
 	renderLoadViewstateDialog() {
@@ -215,8 +298,10 @@ class StateManager {
 	}
 
 	renderViewStates(viewstates) {
+		//kept so that switching one's visibility can redraw the list
+		this.lastListedViewstates = viewstates;
 		$("#viewstate-load-list").html("");
-		let header = "<div class='viewstate-load-item-header'><div>ID</div><div>Name</div><div>Created</div><div>Release</div><div id='vs-del-header'>Del</div></div>";
+		let header = "<div class='viewstate-load-item-header'><div>ID</div><div>Name</div><div>Created</div><div>Release</div><div>Visibility</div><div></div><div id='vs-del-header'>Del</div></div>";
 		$("#viewstate-load-list").append(header);
 
 		viewstates.map((state) => {
@@ -234,6 +319,16 @@ class StateManager {
 			vsRow.append($("<div></div>").text(state.name)); //typed in by the user, so not HTML
 			vsRow.append("<div>"+dateString+"</div>");
 			vsRow.append("<div>"+oldApiWarn+" "+release+"</div>");
+			vsRow.append(this.renderVisibilityCell(state));
+			const share = $("<div></div>").appendTo(vsRow);
+			if(state.visibility != "private") {
+				$("<button type='button' class='viewstate-share-list-btn' title='Share' aria-label='Share'><i class='fa fa-share-alt' aria-hidden='true'></i></button>")
+					.on("click", (evt) => {
+						evt.stopPropagation();
+						this.shareViewstate(state);
+					})
+					.appendTo(share);
+			}
 			vsRow.append("<div><i class='fa fa-trash viewstate-delete-btn' aria-hidden='true'></i></div>");
 
 			$("#viewstate-load-list").append(vsRow);
@@ -241,7 +336,7 @@ class StateManager {
 			this.sqs.tooltipManager.registerTooltip("#vs-"+state.id+" .old-viewstate-api-warning", "This viewstate was created in another release of the SEAD browser, so the data and the result may have changed since.");
 		});
 
-		this.sqs.tooltipManager.registerTooltip("#vs-del-header", "Deleting a viewstate will only remove it from your personal list. The viewstate will always be accessible via the correct link.", {drawSymbol: true});
+		this.sqs.tooltipManager.registerTooltip("#vs-del-header", "Deleting a public viewstate only removes it from your list: it can still be opened with its link. A private one is deleted altogether.", {drawSymbol: true});
 
 		$(".viewstate-delete-btn").on("click", (evt) => {
 			evt.stopPropagation();
@@ -257,6 +352,55 @@ class StateManager {
 			this.fetchState(vsId);
 			this.sqs.dialogManager.hidePopOver();
 		});
+	}
+
+	/*
+	* Function: renderVisibilityCell
+	* Whether the viewstate is public or private, as a button that switches it. Only viewstates the
+	* server holds have one; one kept in this browser alone has nothing to switch.
+	*/
+	renderVisibilityCell(state) {
+		const cell = $("<div></div>");
+		if(state.visibility == null) {
+			return cell;
+		}
+		const button = $("<button type='button' class='viewstate-visibility-btn'></button>").appendTo(cell);
+		const render = () => {
+			const isPrivate = state.visibility == "private";
+			button.empty()
+				.append($("<i aria-hidden='true'></i>").addClass(isPrivate ? "fa fa-lock" : "fa fa-globe"))
+				.append(document.createTextNode(isPrivate ? " Private" : " Public"))
+				.attr("title", isPrivate ? "Only you can open it. Click to make it public." : "Anyone with the link can open it. Click to make it private.");
+		};
+		render();
+		button.on("click", async (evt) => {
+			evt.stopPropagation();
+			const visibility = state.visibility == "private" ? "public" : "private";
+			button.prop("disabled", true);
+			try {
+				await this.setViewstateVisibility(state.id, visibility);
+				state.visibility = visibility;
+				this.renderViewStates(this.lastListedViewstates);
+			}
+			catch(error) {
+				console.error("Could not change the viewstate", error);
+				$.notify("The viewstate could not be changed.", "error");
+				button.prop("disabled", false);
+			}
+		});
+		return cell;
+	}
+
+	async setViewstateVisibility(viewstateId, visibility) {
+		const response = await fetch(this.sqs.config.dataServerAddress+"/viewstate/"+encodeURIComponent(viewstateId), {
+			method: "PATCH",
+			credentials: "include",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ visibility: visibility })
+		});
+		if(!response.ok) {
+			throw new Error("The server answered "+response.status);
+		}
 	}
 
 	deleteViewstate(viewstateId) {
@@ -281,6 +425,8 @@ class StateManager {
 		$.ajax(Config.dataServerAddress+"/viewstate/"+stateId, {
 			method: "GET",
 			dataType: "json",
+			//so that a private viewstate opens for its owner
+			xhrFields: { withCredentials: true },
 			error: (jqXHR, textStatus, errorThrown) => {
 				console.warn(textStatus, errorThrown);
 				this.loadStateFailed(stateId);
@@ -304,7 +450,8 @@ class StateManager {
 	*/
 	loadStateFailed(stateId) {
 		console.log("Failed to load viewstate "+stateId);
-		this.sqs.notificationManager.notify("The viewstate "+stateId+" could not be found.", "error", 10000);
+		//A private viewstate is not found by anyone but its owner
+		this.sqs.notificationManager.notify("The viewstate "+stateId+" could not be found. If it is private, only its owner can open it, when signed in.", "error", 10000);
 
 		if(this.getViewstateIdFromUrl() == stateId) {
 			window.history.replaceState({}, "SEAD", "/");
@@ -331,7 +478,8 @@ class StateManager {
 		//Who the viewstate belongs to comes from the session cookie
 		var upload = {
 			"key": state.id,
-			"data": JSON.stringify(state)
+			"data": JSON.stringify(state),
+			"visibility": state.visibility
 		};
 
 		upload = JSON.stringify(upload);
@@ -368,8 +516,9 @@ class StateManager {
 	* Returns:
 	* The state object.
 	*/
-	saveState() {
-		var name = $("#viewstate-save-input").val();
+	saveState(visibility = "public") {
+		//the save dialog's name, if it is open
+		var name = $("#popover-dialog #viewstate-save-input").val() || "";
 
 		if(name.length == 0) {
 			name = "Unnamed";
@@ -388,7 +537,8 @@ class StateManager {
 			facets: this.sqs.facetManager.getFacetState(),
 			result: this.sqs.resultManager.getResultState(),
 			siteReport: this.sqs.siteReportManager.getReportState(),
-			domain: this.sqs.domainManager.getActiveDomain().name
+			domain: this.sqs.domainManager.getActiveDomain().name,
+			visibility: visibility
 		};
 
 		if(state.facets === false) {
@@ -420,7 +570,7 @@ class StateManager {
 	}
 
 	saveStateError() {
-		$("#viewstate-save-btn").effect("shake");
+		$("#popover-dialog #viewstate-save-btn").effect("shake");
 	}
 
 	/*
@@ -527,14 +677,6 @@ class StateManager {
 		else if(this.sqs.activeView == "siteReport") {
 			this.sqs.siteReportManager.unrenderSiteReport();
 		}
-	}
-
-	setViewStateDialog(dialog) {
-		this.openedViewStateDialog = dialog;
-	}
-
-	getViewStateDialog() {
-		return this.openedViewStateDialog;
 	}
 
 	/*

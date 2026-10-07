@@ -127,3 +127,56 @@ test.describe('viewstates', () => {
     expect(typeof state.layout.left).toBe('number');
   });
 });
+
+/*
+* Saving and loading viewstates needs a signed-in user. A signed-out user is sent to the sign-in dialog, and once
+* they have signed in through it, the dialog they asked for opens by itself. The provider's popup is stood in for
+* by posting its success message to the page.
+*/
+const USER = { provider: 'orcid', id: '0000-0000-0000-0000', displayName: 'Test User', emails: [] };
+
+async function serveSignedOut(page) {
+  await page.route('**/jsonapi/auth/status', route => route.fulfill({
+    json: { loggedIn: false, providers: [{ id: 'orcid', label: 'ORCID', loginUrl: '/jsonapi/auth/orcid' }] }
+  }));
+  await page.route('**/jsonapi/viewstates', route => route.fulfill({ json: [] }));
+}
+
+async function signInThroughPopup(page) {
+  await page.evaluate((user) => window.postMessage({ type: 'login-success', user: user, roles: [] }, window.location.origin), USER);
+}
+
+test.describe('viewstates when signed out', () => {
+  for(const { event, title, content } of [
+    { event: 'seadSaveStateClicked', title: 'Save viewstate', content: '#viewstate-save-btn' },
+    { event: 'seadLoadStateClicked', title: 'Load viewstate', content: '#viewstate-load-list' }
+  ]) {
+    test(title+' asks for sign-in first, then carries on', async ({ page }) => {
+      await serveSignedOut(page);
+      await page.goto('/');
+      await waitForSystem(page);
+
+      await page.evaluate((event) => $.event.trigger(event, {}), event);
+      await expect(page.locator('#popover-dialog-frame > h1')).toHaveText('Sign in');
+      await expect(page.locator('#popover-dialog #sign-in-dialog-login .login-button[provider=orcid]')).toBeVisible();
+
+      await signInThroughPopup(page);
+      await expect(page.locator('#popover-dialog-frame > h1')).toHaveText(title);
+      await expect(page.locator('#popover-dialog '+content)).toBeAttached();
+    });
+  }
+
+  test('closing the sign-in dialog calls the action off', async ({ page }) => {
+    await serveSignedOut(page);
+    await page.goto('/');
+    await waitForSystem(page);
+
+    await page.evaluate(() => $.event.trigger('seadSaveStateClicked', {}));
+    await expect(page.locator('#popover-dialog-frame > h1')).toHaveText('Sign in');
+    await page.evaluate(() => window.sqs.dialogManager.hidePopOver());
+
+    await signInThroughPopup(page);
+    await expect(page.locator('#popover-dialog')).toBeHidden();
+    expect(await page.evaluate(() => window.sqs.userManager.getUser().displayName)).toBe(USER.displayName);
+  });
+});

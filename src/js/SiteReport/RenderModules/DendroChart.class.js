@@ -1031,29 +1031,27 @@ class DendroChart {
     
     adjustTooltipPosition(tooltip) {
         const tooltipRect = tooltip.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
+        const viewportWidth = document.documentElement.clientWidth;
+        const viewportHeight = document.documentElement.clientHeight;
+        const viewportPadding = 8;
     
         let top = parseInt(tooltip.style.top, 10);
         let left = parseInt(tooltip.style.left, 10);
     
         // Adjust for horizontal overflow
-        if (tooltipRect.right > viewportWidth) {
-            left -= (tooltipRect.right - viewportWidth);
-        } else if (tooltipRect.left < 0) {
-            left = 0;
+        if (tooltipRect.right > viewportWidth - viewportPadding) {
+            left -= (tooltipRect.right - (viewportWidth - viewportPadding));
+        }
+        if (left < viewportPadding) {
+            left = viewportPadding;
         }
     
         // Adjust for vertical overflow
-        if (tooltipRect.bottom > viewportHeight) {
-            top -= (tooltipRect.bottom - viewportHeight);
-        } else if (tooltipRect.top < 0) {
-            top = 0;
+        if (tooltipRect.bottom > viewportHeight - viewportPadding) {
+            top -= (tooltipRect.bottom - (viewportHeight - viewportPadding));
         }
-
-        // Adjust for upper border overflow
-        if (tooltipRect.top < 0) {
-            top = top - tooltipRect.top;
+        if (top < viewportPadding) {
+            top = viewportPadding;
         }
     
         tooltip.style.top = `${top}px`;

@@ -42,7 +42,7 @@
 	"seadAgentEnabled": false,
 	"globeResultModuleEnabled": true,
 	"dataLabResultModuleEnabled": true,
-	"legalNoticeMsg": "The SEAD system is using cookies to enhance functionality and track usage statistics. If you choose to utilize our viewstate functionality you are also agreeing to us storing a pseudonymized version of your email address for identification purposes. For more information please read our <span id='privacy-policy-link' class='jslink'>full policy regarding cookies & GDPR</span>. By continuing to use the site you are agreeing to this policy.",
+	"legalNoticeMsg": "SEAD uses cookies to keep you signed in and to count how the site is used. If you sign in, SEAD keeps an account for you, which you are asked to agree to first. Read our <span id='privacy-policy-link' class='jslink'>privacy policy</span> for what is kept and why. By continuing to use the site you are agreeing to the use of cookies.",
 	"indicatorStringsForUnknownSpecies": [
 		"indet.",
 		"indet",

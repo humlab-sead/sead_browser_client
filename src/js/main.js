@@ -10,6 +10,7 @@ import '../stylesheets/OpenLayersMap.scss';
 import '../stylesheets/SqsLayoutManager.scss';
 import '../stylesheets/SqsMenu.scss';
 import '../stylesheets/RangeFacet.scss';
+import '../stylesheets/AdminPanel.scss';
 import '../stylesheets/style.scss';
 //import '../../flexnav/css/flexnav.css';
 //import '../../flexnav/js/jquery.flexnav.js';
