@@ -18,6 +18,7 @@ import SiteReportManager from './SiteReportManager.class';
 import HelpAgent from './HelpAgent.class.js';
 import UserManager from './UserManager.class.js';
 import DataImportManager from './DataImportManager.class.js';
+import AdminPanel from './AdminPanel.class.js';
 import DomainManager from './DomainManager.class.js';
 import NotificationManager from './NotificationManager.class.js';
 import ExportManager from './ExportManager.class.js';
@@ -508,6 +509,7 @@ class SeadQuerySystem {
 	  	this.help.setState(true);
 		this.userManager = new UserManager(this);
 		this.dataImportManager = new DataImportManager(this);
+		this.adminPanel = new AdminPanel(this);
 		this.searchManager = new SearchManager(this);
 		this.quickstartSearch = new QuickstartSearch(this);
 
@@ -588,10 +590,7 @@ class SeadQuerySystem {
 				onPopupOpen: () => {
 					$("#privacy-policy-link").on("click", (evt) => {
 						evt.stopPropagation();
-						var content = $("#gdpr-infobox").html();
-						window.sqs.dialogManager.showPopOver("Legal policy", content, {
-							width: "700px"
-						});
+						window.sqs.dialogManager.showPrivacyPolicy();
 					});
 				}
 			});
@@ -612,7 +611,6 @@ class SeadQuerySystem {
 				this.facetManager.toggleDebug();
 				this.resultManager.toggleDebug();
 				this.siteReportManager.toggleDebug();
-				this.seadAgent.toggleDebug();
 			}
         });
 	}

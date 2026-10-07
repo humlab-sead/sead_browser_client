@@ -392,6 +392,18 @@ class DialogManager {
 		window.sqs.dialogManager.showPopOver("Legal policy", content);
 	 */
 	
+	/*
+	* Function: showPrivacyPolicy
+	* The privacy policy (#gdpr-infobox in index.ejs), from the Legal menu, the cookie banner
+	* and /privacy.
+	*/
+	showPrivacyPolicy() {
+		const content = $("#gdpr-infobox > .overlay-dialog-content").clone();
+		this.showPopOver("Privacy policy", content, {
+			width: "760px"
+		});
+	}
+
 	sqsMenu() {
 
 		return {
@@ -418,10 +430,7 @@ class DialogManager {
 					name: "legal",
 					title: "<i class=\"fa fa-file-text-o\" aria-hidden=\"true\"></i> Legal",
 					callback: () => {
-						var content = $("#gdpr-infobox > .overlay-dialog-content").html();
-						window.sqs.dialogManager.showPopOver("Legal policy", content, {
-							width: "700px"
-						});
+						this.showPrivacyPolicy();
 					}
 				},
 				{

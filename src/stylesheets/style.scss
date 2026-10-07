@@ -2506,7 +2506,7 @@ body.facet-resizing * {
 
 .viewstate-dialog-content-container {
   display: grid;
-  grid-template-columns: 1.618fr 1fr;
+  grid-template-columns: 1fr;
   grid-template-rows: auto;
   grid-column-gap: 20px;
   grid-row-gap: 10px;
@@ -2581,7 +2581,7 @@ body.facet-resizing * {
 
 .viewstate-load-item-header {
   display:grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 6em 2em 2em;
   grid-template-rows: auto;
   width: 100%;
   font-weight: bold;
@@ -2592,10 +2592,15 @@ body.facet-resizing * {
 
 .viewstate-load-item {
   display:grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 6em 2em 2em;
   grid-template-rows: auto;
   width: 100%;
   grid-column-gap: 20px;
+}
+
+.viewstate-load-item > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .viewstate-load-item:hover {
@@ -2608,20 +2613,134 @@ body.facet-resizing * {
   color: colors.$aux-color;
 }
 
-#viewstate-save-btn {
-  display: none;
+#popover-dialog #viewstate-save-btn {
   background-color: colors.$base-color;
+  border-color: colors.$base-color;
   color: #fff;
-  font-size: 1.2em;
-  padding: 0.5em 1em;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: 1em;
 }
 
-#viewstate-save-input {
-  display:none; //Hidden by default, shown when logged in
+.viewstate-name {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  margin: 0.5em 0 1em 0;
+  font-weight: bold;
+}
+
+#popover-dialog .viewstate-name input {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 22em;
+  padding: 0.3em 0.5em;
+  border: 1px solid #aaa;
+  font-weight: normal;
+}
+
+.viewstate-visibility {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.viewstate-visibility-option {
+  color: colors.$inactive-color;
+  opacity: 0.6;
+  cursor: pointer;
+  user-select: none;
+}
+
+.viewstate-visibility-option-active {
+  color: colors.$base-color;
+  opacity: 1;
+  font-weight: bold;
+}
+
+//A sliding switch over a real checkbox: checked is private
+.viewstate-switch {
+  position: relative;
+  display: inline-block;
+  width: 2.8em;
+  height: 1.5em;
+  margin: 0;
+  cursor: pointer;
+}
+
+.viewstate-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.viewstate-switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.75em;
+  background: colors.$base-color;
+  transition: background-color 0.2s;
+}
+
+.viewstate-switch-track::before {
+  content: "";
+  position: absolute;
+  top: 0.2em;
+  left: 0.2em;
+  width: 1.1em;
+  height: 1.1em;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px colors.$shadow-color;
+  transition: transform 0.2s;
+}
+
+.viewstate-switch input:checked + .viewstate-switch-track {
+  background: colors.$sead-brown;
+}
+
+.viewstate-switch input:checked + .viewstate-switch-track::before {
+  transform: translateX(1.3em);
+}
+
+.viewstate-switch input:focus-visible + .viewstate-switch-track {
+  outline: 2px solid colors.$aux-color;
+  outline-offset: 2px;
+}
+
+.viewstate-visibility-hint {
+  margin: 0.4em 0 1em 0;
+  color: colors.$inactive-color;
+  font-size: 0.9em;
+}
+
+.viewstate-save-actions, .viewstate-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+}
+
+.viewstate-link {
+  align-items: center;
+}
+
+.viewstate-link-url {
+  flex: 1;
+  min-width: 14em;
+  word-break: break-all;
+  font-weight: bold;
+}
+
+.viewstate-visibility-btn, .viewstate-share-list-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.viewstate-visibility-btn:hover, .viewstate-share-list-btn:hover {
+  color: colors.$aux-color;
 }
 
 #settings-menu-label {
@@ -6274,6 +6393,106 @@ a.ms-selectall:hover {
 
 .login-signout-button {
   margin-top: 1em;
+}
+
+.privacy-consent ul, .privacy-policy ul {
+  padding-left: 1.5em;
+}
+
+.privacy-consent li, .privacy-policy li {
+  margin-bottom: 0.3em;
+}
+
+.privacy-policy h3 {
+  font-size: 1.15em;
+  font-weight: bold;
+  margin: 1.2em 0 0.4em 0;
+}
+
+.privacy-policy-version {
+  color: colors.$inactive-color;
+  font-style: italic;
+}
+
+.privacy-consent-policy {
+  margin: 0.75em 0;
+}
+
+.privacy-consent-policy summary {
+  cursor: pointer;
+  color: colors.$base-color;
+  font-weight: bold;
+}
+
+.privacy-consent-policy-text {
+  max-height: 40vh;
+  overflow-y: auto;
+  margin-top: 0.5em;
+  padding: 0.5em 1em;
+  border: 1px solid #ddd;
+  background: colors.$pane-bg-color;
+}
+
+.privacy-consent-agree {
+  display: flex;
+  gap: 0.6em;
+  align-items: flex-start;
+  margin: 1em 0;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.privacy-consent-agree input {
+  margin-top: 0.2em;
+}
+
+.privacy-consent-status, .account-data-status {
+  color: colors.$error-color;
+  font-weight: bold;
+  margin-bottom: 0.5em;
+}
+
+.privacy-consent-status:empty, .account-data-status:empty {
+  display: none;
+}
+
+.privacy-consent-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5em;
+}
+
+.privacy-consent-actions button:disabled, .account-data-delete button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.account-data {
+  margin-top: 1.5em;
+}
+
+.account-data h4 {
+  font-weight: bold;
+}
+
+.account-data-facts th {
+  text-align: left;
+  padding: 0.15em 1.5em 0.15em 0;
+  font-weight: normal;
+  color: colors.$inactive-color;
+  vertical-align: top;
+}
+
+.account-data-facts td {
+  word-break: break-word;
+}
+
+.account-data-delete {
+  margin-top: 1em;
+}
+
+.account-data-delete-button {
+  color: colors.$error-color;
 }
 
 .login-button:hover {

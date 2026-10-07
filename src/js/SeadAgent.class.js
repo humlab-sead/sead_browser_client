@@ -6,6 +6,10 @@ import SeadAgentActions from "./SeadAgentActions.class.js";
 * The chatbox in #chatbox-icon. Talks to the standalone sead_agent service, which runs a
 * pi harness agent against a locally hosted LLM - the requests no longer pass through the
 * json_api_server, and nothing about them leaves the deployment.
+*
+* Only for signed-in users with the sead_agent permission, which an admin gives through a
+* role in the admin panel. Everyone else never sees the chatbox, and the service refuses
+* them too: it checks the session cookie these requests carry with json_api_server.
 */
 export default class SeadAgent {
     /*
@@ -52,7 +56,6 @@ export default class SeadAgent {
         //Where the user last left the panel ({top, left, width, height} in px), so
         //reopening it returns it there instead of to the default corner block
         this.savedGeometry = null;
-        this.debugMode = false;
         //Sent with every message so the agent keeps one conversation per browser session
         //rather than answering each message cold. Generated lazily on the first open.
         this.conversationId = null;
@@ -63,6 +66,10 @@ export default class SeadAgent {
         //The turn currently in flight, so closing the chatbox can abandon it server-side
         this.activeTurnId = null;
 
+        //Shown to whoever may use it, as soon as the sign-in status says so
+        this.sqs.sqsEventListen("userAccessChanged", () => {
+            this.updateChatboxVisibility();
+        });
         this.updateChatboxVisibility();
 
         $("#chatbox-close-btn").on("click", (evt) => {
@@ -101,22 +108,20 @@ export default class SeadAgent {
     }
 
     /*
-    * Function: toggleDebug
-    * Dev mode (shift+D) makes the chatbox available while the agent is kept as a dev-only feature.
+    * Function: mayUse
+    * Whether the signed-in user has the sead_agent permission.
     */
-    toggleDebug() {
-        this.debugMode = !this.debugMode;
-        console.log("SEAD agent debug mode: "+(this.debugMode ? "ON" : "OFF"));
-        this.updateChatboxVisibility();
+    mayUse() {
+        return this.sqs.userManager != null && this.sqs.userManager.hasPermission("sead_agent");
     }
 
     /*
     * Function: updateChatboxVisibility
-    * The chatbox icon is dev-gated for now: the config can still provide the endpoint, but
-    * the launcher is hidden until shift+D toggles debug mode on.
+    * The chatbox is there for users with the sead_agent permission, and taken away - closing
+    * it first, if it was open - when they sign out or lose the permission.
     */
     updateChatboxVisibility() {
-        if(this.debugMode) {
+        if(this.mayUse()) {
             $("#chatbox-icon").css("display", "flex");
         }
         else {
@@ -427,6 +432,8 @@ export default class SeadAgent {
     async postToAgent(url, body, abortController) {
         let response = await fetch(url, {
             method: "POST",
+            //the session cookie, by which the service checks the user's permission
+            credentials: "include",
             headers: {
                 "Content-Type": "application/json"
             },
@@ -435,6 +442,10 @@ export default class SeadAgent {
         });
 
         if(!response.ok) {
+            if(response.status == 401 || response.status == 403) {
+                //signed out, or the permission was taken away: bring the page back in step
+                this.sqs.userManager.checkSigninStatus();
+            }
             throw this.agentError(await this.extractErrorMessage(response));
         }
         return await response.json();
@@ -913,6 +924,7 @@ export default class SeadAgent {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ turnId: turnId }),
+                credentials: "include",
                 keepalive: true
             }).catch(() => {
                 //Best effort - the turn times out on its own anyway

@@ -60,6 +60,12 @@ class Router {
                     this.sqs.seoManager.setViewstateMeta(pathComponents[2]);
                 }
             break;
+            case "privacy":
+                this.sqs.layoutManager.setActiveView("filters");
+                enteredFilterView = true;
+                this.sqs.domainManager.setActiveDomain("general", false);
+                this.sqs.dialogManager.showPrivacyPolicy();
+            break;
             case "species":
             case "taxon":
                 this.sqs.layoutManager.setActiveView("filters");

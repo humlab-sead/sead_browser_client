@@ -1,0 +1,231 @@
+@use "colors";
+
+//The admin panel (AdminPanel.class.js)
+
+.admin-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25em;
+  border-bottom: 2px solid colors.$base-color;
+  margin-bottom: 1em;
+}
+
+.admin-tab {
+  padding: 0.4em 1.2em;
+  border: 1px solid #ccc;
+  border-bottom: none;
+  background: colors.$pane-bg-color;
+  color: colors.$inactive-color;
+  font-weight: bold;
+}
+
+.admin-tab-selected {
+  background: colors.$base-color;
+  border-color: colors.$base-color;
+  color: colors.$white;
+}
+
+.admin-refresh {
+  margin-left: auto;
+  margin-bottom: 0.3em;
+}
+
+.admin-users-toolbar {
+  display: flex;
+  gap: 0.5em;
+  margin: 1em 0 0.5em 0;
+}
+
+.admin-users-filter {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3em 0.5em;
+  border: 1px solid #aaa;
+}
+
+.admin-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0.5em 0;
+}
+
+.admin-status:empty {
+  display: none;
+}
+
+.admin-status-error {
+  color: colors.$error-color;
+  font-weight: bold;
+}
+
+.admin-status-success {
+  color: colors.$success-color;
+}
+
+.admin-users-summary {
+  color: colors.$inactive-color;
+  margin-bottom: 0.5em;
+}
+
+.admin-table-container {
+  max-height: 55vh;
+  overflow: auto;
+  border: 1px solid #ddd;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: colors.$pane-bg-color;
+  padding: 0.4em 0.6em;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 0.5em 0.6em;
+  vertical-align: top;
+  border-top: 1px solid #ddd;
+}
+
+.admin-users-empty {
+  text-align: center;
+  font-style: italic;
+  color: colors.$inactive-color;
+}
+
+.admin-user-name {
+  font-weight: bold;
+}
+
+.admin-user-online {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 0.4em;
+  border-radius: 50%;
+  background: colors.$success-color;
+}
+
+.admin-user-you {
+  margin-left: 0.5em;
+  padding: 0 0.4em;
+  border-radius: 0.25em;
+  font-size: 0.8em;
+  font-weight: normal;
+  color: colors.$white;
+  background: colors.$base-color;
+}
+
+.admin-user-detail {
+  display: block;
+  font-size: 0.9em;
+  color: colors.$inactive-color;
+}
+
+.admin-user-id {
+  font-family: monospace;
+  font-size: 0.85em;
+  color: colors.$inactive-color;
+  word-break: break-all;
+}
+
+.admin-user-seen {
+  white-space: nowrap;
+}
+
+.admin-user-role {
+  display: block;
+  font-weight: normal;
+  margin: 0;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.admin-user-role:has(input:disabled) {
+  cursor: help;
+}
+
+.admin-user-note-input {
+  width: 100%;
+  min-width: 12em;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid #ccc;
+  padding: 0.2em 0.4em;
+}
+
+.admin-user-actions {
+  white-space: nowrap;
+}
+
+.admin-user :disabled {
+  opacity: 0.5;
+}
+
+.admin-add-user {
+  margin-top: 1.5em;
+}
+
+.admin-add-user h4 {
+  font-weight: bold;
+}
+
+.admin-add-user-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+}
+
+.admin-add-user-id, .admin-add-role-id {
+  flex: 1;
+  min-width: 14em;
+  padding: 0.3em 0.5em;
+  border: 1px solid #aaa;
+}
+
+.admin-role-permission-head, .admin-role-permission, .admin-role-users {
+  text-align: center !important;
+}
+
+.admin-role-description {
+  min-width: 16em;
+}
+
+.admin-add-role {
+  margin-top: 1.5em;
+}
+
+.admin-add-role h4 {
+  font-weight: bold;
+}
+
+.admin-add-role-description {
+  flex: 2;
+  min-width: 14em;
+  padding: 0.3em 0.5em;
+  border: 1px solid #aaa;
+}
+
+.admin-add-role-permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5em;
+  margin: 0.75em 0;
+}
+
+.admin-add-role-permission {
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.admin-add-role-id:invalid:not(:placeholder-shown) {
+  border-color: colors.$error-color;
+}

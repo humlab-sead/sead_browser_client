@@ -474,6 +474,54 @@
       </div>
     </template>
 
+    <template id="privacy-consent-template">
+      <div class="privacy-consent">
+        <p>
+          Welcome, <strong class="privacy-consent-name"></strong>. Signing in gives you an account in SEAD. Before you
+          go on, please read what it keeps about you:
+        </p>
+        <ul>
+          <li>who you are, as your sign-in service tells us: your name and identifier, and your email address,
+            organisation and ORCID iD where it gives them</li>
+          <li>when you first and last signed in</li>
+          <li>the roles SEAD's administrators give you, and their notes on why</li>
+          <li>the viewstates you save, and whether each is public or private, linked to you under a pseudonym
+            rather than your name</li>
+        </ul>
+        <p>
+          It is used only to run your account, is kept in Sweden, and is not shared with anyone. You can see it and
+          delete your account at any time from the Account dialog.
+        </p>
+        <details class="privacy-consent-policy">
+          <summary>Read the privacy policy</summary>
+          <div class="privacy-consent-policy-text"></div>
+        </details>
+        <label class="privacy-consent-agree">
+          <input type="checkbox" class="privacy-consent-checkbox" />
+          I have read the privacy policy, and agree to SEAD keeping this information about me.
+        </label>
+        <div class="privacy-consent-status" role="status"></div>
+        <div class="privacy-consent-actions">
+          <button type="button" class="light-theme-button privacy-consent-decline">Cancel and sign out</button>
+          <button type="button" class="light-theme-button privacy-consent-accept" disabled>Continue</button>
+        </div>
+      </div>
+    </template>
+
+    <template id="account-data-template">
+      <div class="account-data">
+        <h4>What SEAD keeps about you</h4>
+        <div class="account-data-content"><div class="cute-little-loading-indicator"></div></div>
+        <p class="account-data-policy">
+          See the <span class="jslink account-data-policy-link">privacy policy</span> for why, and for your rights.
+        </p>
+        <div class="account-data-delete">
+          <button type="button" class="light-theme-button account-data-delete-button">Delete my account</button>
+          <div class="account-data-status" role="status"></div>
+        </div>
+      </div>
+    </template>
+
     <template id="data-import-template">
       <div class="data-import">
         <p>
@@ -496,6 +544,85 @@
 
         <div class="data-import-status" role="status"></div>
         <div class="data-import-report"></div>
+      </div>
+    </template>
+
+    <template id="admin-panel-template">
+      <div class="admin-panel">
+        <div class="admin-tabs" role="tablist">
+          <button type="button" class="admin-tab" role="tab" data-tab="users">Users</button>
+          <button type="button" class="admin-tab" role="tab" data-tab="roles">Roles</button>
+          <button type="button" class="light-theme-button admin-refresh"><i class="fa fa-refresh" aria-hidden="true"></i> Refresh</button>
+        </div>
+
+        <div class="admin-status" role="status"></div>
+
+        <div class="admin-tab-panel" data-tab="users" role="tabpanel">
+          <p>
+            Everyone who has signed in to SEAD, has a role, or is signed in now. A role takes effect at once,
+            also for a user who is signed in. Hover over a role to see what it allows.
+          </p>
+
+          <div class="admin-users-toolbar">
+            <input type="search" class="admin-users-filter" placeholder="Find by name, email, organisation, id or note" aria-label="Find users" />
+          </div>
+          <div class="admin-users-summary"></div>
+
+          <div class="admin-table-container">
+            <table class="admin-table admin-users-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Last sign-in</th>
+                  <th>Roles</th>
+                  <th>Note</th>
+                  <th><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <form class="admin-add-user">
+            <h4>Give a role by user id</h4>
+            <p>
+              For someone who has not signed in yet: the role is waiting for them when they do. Their id is
+              <code>saml:</code> and their eduPersonPrincipalName (e.g. <code>saml:abcd0001@umu.se</code>),
+              or <code>orcid:</code> and their ORCID iD (e.g. <code>orcid:0000-0002-1825-0097</code>).
+            </p>
+            <div class="admin-add-user-fields">
+              <input type="text" class="admin-add-user-id" placeholder="saml:abcd0001@umu.se" aria-label="User id" required />
+              <select class="admin-add-user-role" aria-label="Role"></select>
+              <button type="submit" class="light-theme-button">Give role</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="admin-tab-panel" data-tab="roles" role="tabpanel">
+          <p>
+            What each role may do. A user may do whatever any of their roles allows, and a change takes effect
+            at once for everyone with the role. The sysadmin role is built in: it always administers users, and is
+            also the role that may import data.
+          </p>
+
+          <div class="admin-table-container">
+            <table class="admin-table admin-roles-table">
+              <thead><tr></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <form class="admin-add-role">
+            <h4>New role</h4>
+            <div class="admin-add-user-fields">
+              <input type="text" class="admin-add-role-id" placeholder="Name, e.g. agent-users" aria-label="Role name"
+                pattern="[a-z][a-z0-9_\-]{0,31}" title="1 to 32 lowercase letters, digits, - and _, starting with a letter" required />
+              <input type="text" class="admin-add-role-description" placeholder="What the role is for" aria-label="Role description" maxlength="300" />
+            </div>
+            <div class="admin-add-role-permissions"></div>
+            <button type="submit" class="light-theme-button">Create role</button>
+          </form>
+        </div>
       </div>
     </template>
 
@@ -736,7 +863,6 @@
       <div id="viewstate-load-dialog" class="viewstate-dialog">
         <div class="overlay-dialog-content viewstate-dialog-content-container">
           <div id="viewstate-load-list"></div>
-          <div id="viewStateLoadLogin"></div>
         </div>
       </div>
     </template>
@@ -745,18 +871,38 @@
       <div id="viewstate-save-dialog" class="viewstate-dialog">
         <div class="overlay-dialog-content viewstate-dialog-content-container">
 
-          <div>
+          <div class="viewstate-save-form">
             <p>A viewstate functions as a bookmark that saves your currently selected filters and other user interface
-              settings. Viewstates are public and can be viewed by anyone with the link. Please do not rely on viewstate
-              links as permanent resources.</p>
+              settings. Please do not rely on viewstate links as permanent resources.</p>
 
-          
-            <input id="viewstate-save-input" class="viewstate-input" type="text"
-              placeholder="Viewstate name (optional)" />
-            <button id="viewstate-save-btn">Save</button>
+            <label class="viewstate-name">
+              <span>Name</span>
+              <input id="viewstate-save-input" class="viewstate-input" type="text" maxlength="100" placeholder="Optional" />
+            </label>
+
+            <div class="viewstate-visibility">
+              <span class="viewstate-visibility-option" data-visibility="public"><i class="fa fa-globe" aria-hidden="true"></i> Public</span>
+              <label class="viewstate-switch">
+                <input type="checkbox" class="viewstate-private-toggle" role="switch" aria-label="Private" />
+                <span class="viewstate-switch-track" aria-hidden="true"></span>
+              </label>
+              <span class="viewstate-visibility-option" data-visibility="private"><i class="fa fa-lock" aria-hidden="true"></i> Private</span>
+            </div>
+            <p class="viewstate-visibility-hint"></p>
+
+            <div class="viewstate-save-actions">
+              <button type="button" id="viewstate-save-btn" class="light-theme-button">Save</button>
+            </div>
           </div>
 
-          <div id="viewStateSaveLogin"></div>
+          <div class="viewstate-saved" style="display:none;">
+            <p class="viewstate-saved-message"></p>
+            <div class="viewstate-link">
+              <a class="viewstate-link-url" target="_blank" rel="noopener"></a>
+              <button type="button" class="light-theme-button viewstate-copy-btn"><i class="fa fa-clipboard" aria-hidden="true"></i> Copy link</button>
+              <button type="button" class="light-theme-button viewstate-share-btn"><i class="fa fa-share-alt" aria-hidden="true"></i> Share</button>
+            </div>
+          </div>
 
         </div>
       </div>
@@ -953,37 +1099,111 @@
       </fieldset>
       -->
 
-    <div id="gdpr-infobox" class="overlay-dialog">
-      <div class="overlay-dialog-content">
-        <h3>Use of cookies and tracking</h3>
-        The SEAD system uses cookies to track the usage of the site. This information is used to get a better
-        understanding of what aspects of our system can be improved in terms of usability.
+    <!--
+      The privacy policy. data-privacy-policy-version is the version users accept when they sign in for
+      the first time (UserManager), and must equal json_api_server's PRIVACY_POLICY_VERSION
+      (src/Lib/Auth/UserDirectory.js). Raise both whenever this text changes: everyone is then asked to
+      accept it again.
+    -->
+    <div id="gdpr-infobox" class="overlay-dialog" data-privacy-policy-version="2026-10-07">
+      <div class="overlay-dialog-content privacy-policy">
+        <p class="privacy-policy-version">Version of 7 October 2026</p>
 
-        <h3>GDPR compliance information</h3>
-        Should you choose to use the viewstate functionality in SEAD, the SEAD system needs to store a unique identifier
-        to create the association between your account and the viewstates.
-        For this purpose the SEAD system will stored a pseudonymized (hashed) version of your email address associated
-        with the account you used for logging in.<br /><br />
-        By using the viewstate functionality you are agreeing to SEAD storing some of your personal information. The
-        following points governs this agreement:
+        <h3>Who is responsible</h3>
+        <p>
+          SEAD is run by the Environmental Archaeology Lab (MAL) and Humlab at Umeå University, Sweden. Umeå University
+          is responsible for the personal data SEAD handles. Questions about this policy go to Professor Philip
+          Buckland, see <a href="https://www.sead.se/contact/" target="_blank" rel="noopener noreferrer">sead.se/contact</a>.
+          You can also contact Umeå University's data protection officer, see
+          <a href="https://www.umu.se/en/" target="_blank" rel="noopener noreferrer">umu.se</a>.
+        </p>
+
+        <h3>Using SEAD without signing in</h3>
+        <p>
+          You can search and read everything in SEAD without an account. SEAD uses cookies to count how the site is
+          used, to learn what in it can be made easier to use. Like most web services, our servers log the requests
+          they receive, including the IP address they came from, to keep the service secure and working.
+        </p>
+
+        <h3>Signing in</h3>
+        <p>
+          You sign in through your own organisation (SEAD login) or ORCID. They tell us who you are: an identifier
+          for you, and your name, email address, organisation and ORCID iD where they give them. SEAD never sees
+          your password.
+        </p>
+        <p>
+          When you sign in, a cookie keeps you signed in, and our server keeps what your sign-in service told us
+          for as long as you stay signed in, at most 24 hours. Nothing more is kept until you have accepted this
+          policy.
+        </p>
+
+        <h3>What your account keeps, and why</h3>
+        <p>Once you have accepted this policy, SEAD keeps an account for you with:</p>
         <ul>
-          <li>The SEAD project collects this information solely for internal use and will never share this information
-            with any other party.</li>
-          <li>The information is kept within the borders of Sweden.</li>
-          <li>The data is retained indefinitely.</li>
-          <li>Should the user manually delete their viewstate links, their pseudonymized data will be purged from the
-            live databases as well as subsequent backups. Previously taken backups will retain the data indefinitely.
-          </li>
-          <li>The user has the right to withdraw consent to the storage of his/her personal information at any time.
-            This is done by using the SEAD functionality for deleting each of your saved viewstate links. Note that this
-            will not delete the viewstate itself, but it will delete your pseudonymized information associated with that
-            viewstate.</li>
-          <li>The purpose of the data collection is to link the user's account to a viewstate, to enable the convenient
-            loading of viewstates in the future. Viewstates may also be loaded simply by entering the correct URL in
-            your browser.</li>
-          <li>Questions regarding this policy should be directed to Professor Philip Buckland, please see <a
-              href="https://www.sead.se/contact/">https://www.sead.se/contact/</a> for contact information.</li>
+          <li>your identifier, name, email address, organisation and ORCID iD, as your sign-in service gives them
+            (they are updated from it each time you sign in)</li>
+          <li>when you first and last signed in, how many times you have, and when you accepted which version of
+            this policy</li>
+          <li>the roles SEAD's administrators give you, which decide what you may do (such as using the SEAD agent),
+            and notes they write about why; you can see them yourself</li>
+          <li>the viewstates you save, and whether each is public or private. They are linked to you by a
+            pseudonym, a one-way hash of your identifier, not by your name</li>
         </ul>
+        <p>
+          It is used only to run your account: to sign you in, to let you save and find your viewstates, and to let
+          administrators give you access to features. Our servers also log when you sign in and when an administrator
+          changes your roles, with your identifier, to keep the service secure.
+        </p>
+
+        <h3>Saved viewstates</h3>
+        <p>
+          When you save a viewstate you choose who can open it. A public one (the default) can be opened by anyone
+          with its link, and you can share it; it does not show who saved it. A private one can be opened only by you,
+          when you are signed in. You can change it later in the list of your viewstates.
+        </p>
+
+        <h3>The SEAD agent</h3>
+        <p>
+          If you use the SEAD agent, what you write to it, and a description of what is on your screen, are sent to
+          a language model that SEAD runs on its own servers. The conversation is kept in memory for at most 15
+          minutes after your last message, so that the agent can follow it, and is not saved.
+        </p>
+
+        <h3>Importing data</h3>
+        <p>
+          A workbook exported from SEAD records who exported it (name and email address or ORCID iD). A change
+          request made from it carries that name, and if the change is accepted it becomes part of SEAD's change
+          history.
+        </p>
+
+        <h3>Who can see it, and where it is kept</h3>
+        <p>
+          The staff who run SEAD, as its administrators, can see the accounts. Your data is kept on servers at Umeå
+          University in Sweden. It is not shared with anyone else, sold, or used for marketing.
+        </p>
+
+        <h3>How long it is kept</h3>
+        <p>
+          Your account is kept until you delete it. A sign-in lasts at most 24 hours. Data that has been deleted can
+          remain in backups taken before it was deleted.
+        </p>
+
+        <h3>Your rights</h3>
+        <ul>
+          <li>The Account dialog (in the menu, under your name) shows what your account keeps.</li>
+          <li>You can delete your account there at any time, which also withdraws your consent. Your private
+            viewstates are deleted with it. Your public ones are kept, so links to them still work, but they are no
+            longer linked to you.</li>
+          <li>You can ask us what we keep about you, have it corrected, or object to how we use it, by contacting us
+            as above.</li>
+          <li>You can complain to the Swedish Authority for Privacy Protection (IMY),
+            <a href="https://www.imy.se/" target="_blank" rel="noopener noreferrer">imy.se</a>.</li>
+        </ul>
+
+        <h3>Changes to this policy</h3>
+        <p>
+          If this policy changes, you are asked to read and accept it again the next time you sign in.
+        </p>
       </div>
     </div>
 
