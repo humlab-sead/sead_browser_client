@@ -2243,8 +2243,17 @@ class SeadQuerySystem {
 			if (useHtml) {
 				let ttId = "tt-" + nanoid();
 				cellValue += `<span id='${ttId}'>${valueString}</span>, `;
-				let ttContent = `<h4 class='tooltip-header'>Dimension method</h4>${methodName}<hr/>${methodDescription}`;
-				this.tooltipManager.registerTooltip("#" + ttId, ttContent, { drawSymbol: true });
+				let ttContent = "";
+				if (dimension && dimension.dimension_description) {
+					ttContent += `<h4 class='tooltip-header'>Dimension</h4>${dimension.dimension_description}`;
+				}
+				if (methodName) {
+					if (ttContent) ttContent += "<br/><br/>";
+					ttContent += `<h4 class='tooltip-header'>Dimension method</h4>${methodName}<hr/>${methodDescription}`;
+				}
+				if (ttContent) {
+					this.tooltipManager.registerTooltip("#" + ttId, ttContent, { drawSymbol: true });
+				}
 			} else {
 				cellValue += valueString + ", ";
 			}

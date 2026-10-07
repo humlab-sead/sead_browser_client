@@ -59,63 +59,11 @@ class Samples {
 				var sample = sampleGroup.physical_samples[k];
 				subTable.rows.forEach(row => {
 					if(row[pkeyColumnKey].value == sample.physical_sample_id) {
-						
-						let cellText = "";
-						let unitText = "";
-						let units = [];
-
-						sample.dimensions.forEach(dim => {
-							if(dim.unit_id) {
-								units.push(dim.unit_id);
-							}
-						});
-
-						units = units.filter((value, index, self) => {
-							return self.indexOf(value) === index;
-						});
-
-						let useIndividualUnits = false;
-						if(units.length > 1) {
-							//These units are not all the same
-							useIndividualUnits = true;
-						}
-						
-
-						sample.dimensions.forEach(dim => {
-							let value = dim.dimension_value;
-							let floatVal = parseFloat(dim.dimension_value)
-
-							if(dim.unit_id) {
-								for(let key in siteData.lookup_tables.units) {
-									if(siteData.lookup_tables.units[key].unit_id == dim.unit_id) {
-										let descText = siteData.lookup_tables.units[key].unit_name+" - "+siteData.lookup_tables.units[key].description;
-										unitText = "!%data:"+siteData.lookup_tables.units[key].unit_abbrev+":!%tooltip:"+descText+":!";
-									}
-								}
-							}
-
-							if(floatVal) {
-								value = floatVal;
-							}
-
-							if(useIndividualUnits) {
-								cellText += value+" "+unitText+" x ";
-							}
-							else {
-								cellText += value+" x ";
-							}
-							
-						});
-
-						cellText = cellText.substring(0, cellText.length - 3);
-						if(!useIndividualUnits) {
-							cellText += " "+unitText;
-						}
-
 						row.push({
-							"value": cellText,
+							"value": this.sqs.formatDimensions(sample.dimensions, siteData),
 							"type": "cell",
-							"tooltip": ""
+							"tooltip": "",
+							"data": sample.dimensions
 						});
 					}
 				});
