@@ -369,3 +369,114 @@
     margin: 0.1em 0;
     opacity: 0.8;
 }
+
+/* Eco code layers - the legend controls and the hover readout */
+.result-map-legend-item:has(.ecocode-surface-legend) {
+    max-height: none;
+}
+
+.ecocode-surface-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35em;
+    padding-top: 0.4em;
+    cursor: default;
+    min-width: 16em;
+}
+
+.ecocode-surface-mode {
+    display: flex;
+    margin-bottom: 0.3em;
+
+    .ecocode-surface-mode-btn {
+        flex: 1;
+        padding: 0.25em 0.6em;
+        border: 1px solid #2d5e8d;
+        background-color: #fff;
+        color: #2d5e8d;
+        cursor: pointer;
+        font-size: 0.9em;
+
+        &:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+
+        &:last-child {
+            border-radius: 0 4px 4px 0;
+            border-left: none;
+        }
+
+        &.active {
+            background-color: #2d5e8d;
+            color: #fff;
+        }
+    }
+}
+
+.ecocode-surface-scale-description {
+    font-size: 0.85em;
+    color: #555;
+}
+
+.ecocode-surface-ramp {
+    height: 0.8em;
+    border-radius: 2px;
+    margin-top: 0.3em;
+}
+
+.ecocode-surface-evidence-ramp {
+    /* The fading is shown over a checkerboard, the way it fades over the map */
+    background-color: #fff;
+    background-image: linear-gradient(45deg, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%),
+        linear-gradient(45deg, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 4px 4px;
+}
+
+.ecocode-surface-ramp-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8em;
+    color: #555;
+}
+
+.ecocode-surface-smoothing {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5em;
+    margin-bottom: 0;
+    font-weight: normal;
+}
+
+.ecocode-surface-smoothing-slider {
+    width: 100%;
+    cursor: pointer;
+}
+
+.ecocode-surface-stats {
+    font-size: 0.8em;
+    color: #555;
+    margin-top: 0.3em;
+}
+
+.ecocode-surface-tooltip {
+    position: absolute;
+    z-index: 10;
+    pointer-events: none;
+    padding: 0.4em 0.6em;
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #333;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    font-size: 0.85em;
+    line-height: 1.4;
+    white-space: nowrap;
+
+    .ecocode-surface-tooltip-title {
+        font-weight: bold;
+    }
+
+    .ecocode-surface-tooltip-evidence {
+        color: #666;
+    }
+}

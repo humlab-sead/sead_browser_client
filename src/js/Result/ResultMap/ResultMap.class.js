@@ -20,6 +20,7 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Config from '../../../config/config.json';
 import ResultMapLayers from './ResultMapLayers.class.js';
+import EcoCodeSurface from './EcoCodeSurface.class.js';
 import { set } from 'lodash';
 
 
@@ -54,6 +55,7 @@ class ResultMap extends ResultModule {
 		};
 		this.auxLayersPanelOutsideClickEventNs = `.resultMapAuxLayersPanel_${Math.random().toString(36).slice(2)}`;
 		this.resultMapLayers = new ResultMapLayers(this.sqs);
+		this.ecoCodeSurface = new EcoCodeSurface(this);
 
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
 		if(!this.minimalMap) {
@@ -122,6 +124,7 @@ class ResultMap extends ResultModule {
 		this.layers = this.resultMapLayers.initBaseLayers();
 
 		this.initializeDataLayers();
+		this.ensureEcoCodeLayers();
 		this.initializeExternalDataLayers();
 
 		//Set up viewport resize event handlers
@@ -247,6 +250,17 @@ class ResultMap extends ResultModule {
 
 		// Bind event handlers after adding to DOM
 		this.bindLegendEventHandlers();
+
+		// Layers whose legend holds controls are shown expanded
+		$(".result-map-legend-item", this.renderIntoNode).each((index, element) => {
+			const $legendItem = $(element);
+			const layer = this.getLayerById($legendItem.attr("data-layer-id"));
+			if (layer && layer.getProperties().legendExpanded) {
+				$legendItem.find(".result-map-legend-item-content").show();
+				$legendItem.find(".legend-item-expand i").removeClass("fa-chevron-down").addClass("fa-chevron-up");
+				this.loadLegendContent($legendItem);
+			}
+		});
 
 		this.makeLegendSortable();
 
@@ -455,7 +469,14 @@ class ResultMap extends ResultModule {
 		if (content.find(".legend-content-loaded").length > 0) {
 			return;
 		}
-		
+
+		// A layer can render its own legend, such as the eco code layers with their controls
+		const ownLegendLayer = this.layers.find(l => l.getProperties().layerId === layerId);
+		if (ownLegendLayer && typeof ownLegendLayer.getProperties().renderLegendContent === "function") {
+			ownLegendLayer.getProperties().renderLegendContent(content);
+			return;
+		}
+
 		// Show loading state
 		content.html(`
 			<div class="legend-content-loading">
@@ -987,6 +1008,8 @@ class ResultMap extends ResultModule {
 	* removeAllDataLayers
 	*/
 	renderMap(removeAllDataLayers = true) {
+		this.ensureEcoCodeLayers();
+
 		let filteredData = []; //Filter out points which contrain zero/null coordinates
 		for(let key in this.data) {
 			if(this.data[key].lat != 0 && this.data[key].lng != 0) {
@@ -1037,6 +1060,8 @@ class ResultMap extends ResultModule {
 					this.updateAuxLayerZoomIndicators();
 				}
 			});
+
+			this.ecoCodeSurface.bindHoverReadout(this.olMap);
 		}
 		else {
 			this.olMap.updateSize();
@@ -1153,6 +1178,8 @@ class ResultMap extends ResultModule {
 		}
 		
 		$("#result-map-controls-container").html("");
+
+		this.ensureEcoCodeLayers();
 
 		let auxLayersHtml = "<div class='result-map-map-control-item-container'>";
 		auxLayersHtml += "<div id='result-map-auxlayer-controls-menu' class='result-map-map-control-item'>Overlays</div>";
@@ -1897,6 +1924,27 @@ class ResultMap extends ResultModule {
 		this.layers.push(this.initClusteredPointsLayer());
 		this.layers.push(this.initPointsLayer());
 		this.layers.push(this.initHeatmapLayer());
+	}
+
+	/*
+	* Function: ensureEcoCodeLayers
+	* Adds a data layer per Bugs eco code once the eco code definitions have been loaded, which happens in the background at startup.
+	*/
+	ensureEcoCodeLayers() {
+		if(this.ecoCodeSurface.layers.length > 0) {
+			return;
+		}
+		const ecocodeDefinitions = this.sqs.bugsEcoCodeDefinitions;
+		if(!Array.isArray(ecocodeDefinitions) || ecocodeDefinitions.length == 0) {
+			return;
+		}
+
+		this.ecoCodeSurface.createLayers(ecocodeDefinitions).forEach(layer => {
+			this.layers.push(layer);
+			if(this.olMap) {
+				this.olMap.addLayer(layer);
+			}
+		});
 	}
 
 	initializeExternalDataLayers() {
@@ -3008,12 +3056,13 @@ class ResultMap extends ResultModule {
 	
 	/*
 	* Function: exportSettings
-	* What a viewstate keeps of the map: the view, and which base and data layer are shown.
+	* What a viewstate keeps of the map: the view, which base and data layer are shown, and how the eco code layers are drawn.
 	*/
 	exportSettings() {
 		let settings = {
 			baseLayers: [],
-			dataLayers: []
+			dataLayers: [],
+			ecoCodeSurface: this.ecoCodeSurface.exportSettings()
 		};
 		if(this.olMap != null) {
 			settings.center = this.olMap.getView().getCenter();
@@ -3044,6 +3093,8 @@ class ResultMap extends ResultModule {
 	* Shows the base and data layer a viewstate was saved with, if they still exist. The data layer is only marked visible, renderVisibleDataLayers draws it.
 	*/
 	applyLayerSettings(settings) {
+		this.ecoCodeSurface.importSettings(settings.ecoCodeSurface);
+
 		let baseLayerId = (settings.baseLayers || []).find(layerId => {
 			let layer = this.getLayerById(layerId);
 			return layer && layer.getProperties().type == "baseLayer";
@@ -3137,14 +3188,32 @@ class ResultMap extends ResultModule {
 			const layer = this.layers[key];
 			const prop = layer.getProperties();
 			if (prop.type === "dataLayer") {
-				menu.items.push({
+				const item = {
 					name: prop.layerId, //identifier of this item, should be unique within this menu
 					title: prop.title, //displayed in the UI
 					tooltip: "",
 					staticSelection: prop.visible, //For tabs - highlighting the currently selected
 					selected: prop.visible,
 					callback: this.makeMapControlMenuCallback(prop)
-				});
+				};
+
+				//Layers of a menu group, such as the eco code layers, are put in a sub-menu
+				if(prop.menuGroup) {
+					let groupItem = menu.items.find(menuItem => menuItem.name == "group-"+prop.menuGroup);
+					if(!groupItem) {
+						groupItem = {
+							name: "group-"+prop.menuGroup,
+							title: prop.menuGroup,
+							tooltip: "",
+							children: []
+						};
+						menu.items.push(groupItem);
+					}
+					groupItem.children.push(item);
+				}
+				else {
+					menu.items.push(item);
+				}
 			}
 		}
 
