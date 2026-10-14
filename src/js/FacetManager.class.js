@@ -112,9 +112,14 @@ class FacetManager {
 			this.buildFilterStructure(domainName);
 		});
 
-		setTimeout(() => {
-			//this.addDefaultFacets();
-		}, 500);
+		//a viewstate in the URL brings its own facets, which replace whatever is in place when it loads
+		if(this.sqs.stateManager.getViewstateIdFromUrl() === false) {
+			setTimeout(() => {
+				if(this.getCountOfFacetsForSlots() == 0) {
+					this.addDefaultFacets();
+				}
+			}, 500);
+		}
 
 		//on keydown for 'l' we should print the links to console
 		$(document).on("keydown", (evt) => {
@@ -125,7 +130,7 @@ class FacetManager {
 	}
 	
 	addDefaultFacets() {
-		Config.defaultFilters.forEach((facetId) => {
+		(Config.defaultFilters || []).forEach((facetId) => {
 			let facetTemplate = this.getFacetTemplateByFacetId(facetId);
 			if(!facetTemplate) {
 				console.warn("Facet not found: "+facetId);
