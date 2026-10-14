@@ -192,7 +192,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 		this.populateGraphDataOptionsSelector(this.graphDataOptions);
 
 		this.sqs.tooltipManager.registerTooltip(
-            $("#timeline-data-selector-container > label"), 
+            $("#timeline-data-selector-container > label", this.getDomRef()), 
             `<h3>Data on the timeline</h3>
             <hr/>
             Datasets can either be:
@@ -206,7 +206,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         );
 
 
-        $("#timeline-data-selector-clicked-btn").on("click", (e) => {
+        $("#timeline-data-selector-clicked-btn", this.getDomRef()).on("click", (e) => {
             let graphDataOption = this.getSelectedGraphDataOption()
 
             if(graphDataOption.name == "Import data") {
@@ -702,7 +702,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         //populate the dating systems selector
         this.datingSystems.forEach((system) => {
             const selected = system === this.selectedDatingSystem ? 'selected' : '';
-            $("#timeline-dating-system-selector").append(`<option value="${system}" ${selected}>${system}</option>`);
+            $("#timeline-dating-system-selector", this.getDomRef()).append(`<option value="${system}" ${selected}>${system}</option>`);
         });
     }
 
@@ -710,7 +710,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         //populate the scale definitions selector
         this.scaleDefinitions.forEach((scale) => {
             const selected = scale.id === this.selectedScale ? 'selected' : '';
-            $("#timeline-scale-selector").append(`<option value="${scale.id}" ${selected}>${scale.name}</option>`);
+            $("#timeline-scale-selector", this.getDomRef()).append(`<option value="${scale.id}" ${selected}>${scale.name}</option>`);
         });
     }
 
@@ -721,7 +721,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
                 return;
             }
             const selected = option.name === this.selectedGraphDataOption ? 'selected' : '';
-            $("#timeline-data-selector").append(`<option value="${option.name}" ${selected}>${option.name}</option>`);
+            $("#timeline-data-selector", this.getDomRef()).append(`<option value="${option.name}" ${selected}>${option.name}</option>`);
         });
     }
 
@@ -742,7 +742,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
     }
 
     getSelectedGraphDataOption() {
-        const selectedOption = $("#timeline-data-selector").val();
+        const selectedOption = $("#timeline-data-selector", this.getDomRef()).val();
         const selectedGraphDataOption = this.graphDataOptions.find(option => option.name === selectedOption);
         return selectedGraphDataOption;
     }
@@ -1289,7 +1289,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
     updateLegend() {
         // Clear the legend container
-        const legendContainer = $("#timeline-data-selector-traces-list");
+        const legendContainer = $("#timeline-data-selector-traces-list", this.getDomRef());
         legendContainer.empty();
     
         this.chartTraces.forEach((trace) => {
@@ -1779,7 +1779,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
             this.commitSliderSelections(next);
         });
 
-        $("#timeline-dating-system-selector").on("change", (e) => {
+        $("#timeline-dating-system-selector", this.getDomRef()).on("change", (e) => {
             this.selectedDatingSystem = e.target.value;
 
             let userSettings = this.sqs.getUserSettings();
@@ -1790,12 +1790,12 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
             this.setSelectedScale(selectedScale, true);
         });
 
-        $("#timeline-scale-selector").on("change", (e) => {
+        $("#timeline-scale-selector", this.getDomRef()).on("change", (e) => {
             this.selectedScale = parseInt(e.target.value);
 
             //reset curtains
-            $("#timeline-curtain-left").css('width', '0%');
-            $("#timeline-curtain-right").css('width', '0%');
+            $("#timeline-curtain-left", this.getDomRef()).css('width', '0%');
+            $("#timeline-curtain-right", this.getDomRef()).css('width', '0%');
 
             let userSettings = this.sqs.getUserSettings();
             userSettings.timelineScale = this.selectedScale;
@@ -2076,7 +2076,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 	}
 
     getSelectedDatingSystem() {
-        const selectedOption = $("#timeline-dating-system-selector").val();
+        const selectedOption = $("#timeline-dating-system-selector", this.getDomRef()).val();
         const selectedDatingSystem = this.datingSystems.find(option => option === selectedOption);
         return selectedDatingSystem;
     }
@@ -2251,7 +2251,7 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
 
         if(scale.id != this.selectedScale) {
             this.selectedScale = scale.id;
-            $("#timeline-scale-selector").val(scale.id);
+            $("#timeline-scale-selector", this.getDomRef()).val(scale.id);
             this.sliderMin = scale.older + this.bpDiff;
             this.sliderMax = scale.younger;
             this.slider.updateOptions({
