@@ -4312,6 +4312,70 @@ polyline{
   padding: .5em 0;
 }
 
+#map-popup-container.neotoma-site-popup {
+  width: 26em;
+  max-width: calc(100vw - 2rem);
+}
+
+.neotoma-explorer-link {
+  margin: -.35em 0 .6em 0;
+  font-size: .95em;
+}
+
+.neotoma-explorer-link a,
+.neotoma-datasets a {
+  color: colors.$aux-color;
+  text-decoration: underline;
+}
+
+#map-popup-container.neotoma-site-popup #map-popup-sites-table th,
+#map-popup-container.neotoma-site-popup #map-popup-sites-table td,
+.neotoma-details-table th,
+.neotoma-details-table td {
+  vertical-align: top;
+  padding: .2em .35em;
+  overflow-wrap: anywhere;
+}
+
+#map-popup-container.neotoma-site-popup #map-popup-sites-table th,
+.neotoma-details-table th {
+  width: 9em;
+  font-weight: bold;
+  text-align: left;
+}
+
+#neotoma-site-details-container {
+  max-height: 22em;
+  overflow: auto;
+  border-top: 1px solid colors.$inactive-color;
+  padding-top: .5em;
+}
+
+#neotoma-site-details-container h5 {
+  margin: .6em 0 .3em 0;
+}
+
+.neotoma-details-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.neotoma-collection-units,
+.neotoma-datasets {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.neotoma-collection-units > li {
+  margin: .3em 0;
+}
+
+.neotoma-site-loading,
+.neotoma-site-error {
+  padding: .5em 0;
+}
+
 .jslink {
 	color: blue;
 	text-decoration: underline;
