@@ -11,7 +11,7 @@ import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Imag
 import { StadiaMaps, ImageArcGISRest, OSM, TileWMS } from 'ol/source';
 import Overlay from 'ol/Overlay';
 import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
-import { fromLonLat } from 'ol/proj.js';
+import { fromLonLat, toLonLat } from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
 import { Attribution, Zoom } from 'ol/control';
@@ -85,11 +85,13 @@ class ResultMap extends ResultModule {
 		this.defaultExtent = [-9240982.715065815, -753638.6533165146, 11461833.521917604, 19264301.810231723];
 		this.dataRevision = 0;
 		this.pointStyleCache = {};
-		this.externalPointStyle = null;
+		this.externalPointStyles = {};
 		this.externalSelectedPointStyle = null;
 		this.externalDataLoadPromises = {};
 		this.isoarchLocationDetailsCache = new globalThis.Map();
 		this.isoarchLocationPopupRequestId = 0;
+		this.neotomaSiteDetailsCache = new globalThis.Map();
+		this.neotomaSitePopupRequestId = 0;
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			if(data.selection != this.name) {
@@ -100,10 +102,18 @@ class ResultMap extends ResultModule {
 			}
 		});
 
+		//All points on the map - SEAD's sites and those of the external layers - share this look, and differ only in color
+		this.pointLook = {
+			radius: 6,
+			strokeColor: "#ffffff",
+			strokeWidth: 1.5,
+			fillOpacity: 0.75
+		};
+
 		//These attributes are used to set the style of map points
 		this.style = {
 			default: {
-				fillColor: this.resultManager.sqs.color.getColorScheme(20, 0.5)[13],
+				fillColor: this.resultManager.sqs.color.getColorScheme(20, this.pointLook.fillOpacity)[13],
 				strokeColor: "#fff",
 				textColor: "#fff",
 			},
@@ -477,11 +487,11 @@ class ResultMap extends ResultModule {
 							<h5>Legend</h5>
 							<div class="legend-symbols">
 								<div class="legend-symbol-row">
-									<div class="legend-symbol" style="background-color: ${this.style.default.fillColor}; width: 12px; height: 12px; border-radius: 50%; display: inline-block;"></div>
+									${this.renderLegendPointSymbol(this.style.default.fillColor)}
 									<span>Site location</span>
 								</div>
 								<div class="legend-symbol-row">
-									<div class="legend-symbol" style="background-color: ${this.style.selected.fillColor}; width: 12px; height: 12px; border-radius: 50%; display: inline-block;"></div>
+									${this.renderLegendPointSymbol(this.style.selected.fillColor)}
 									<span>Selected site</span>
 								</div>
 							</div>
@@ -490,13 +500,14 @@ class ResultMap extends ResultModule {
 					break;
 
 				case 'external':
+					const externalLayerProps = layer ? layer.getProperties() : {};
 					legendContent = `
 						<div class="legend-content-loaded">
 							<h5>Legend</h5>
 							<div class="legend-symbols">
 								<div class="legend-symbol-row">
-									<div class="legend-symbol" style="background-color: #3f7f5f; width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 2px solid #ffffff;"></div>
-									<span>Isoarch location</span>
+									${this.renderLegendPointSymbol(this.getPointFillColor(externalLayerProps.pointColor))}
+									<span>${this.escapeHtml(externalLayerProps.legendLabel)}</span>
 								</div>
 							</div>
 						</div>
@@ -1901,6 +1912,7 @@ class ResultMap extends ResultModule {
 
 	initializeExternalDataLayers() {
 		this.layers.push(this.initIsoarchLocationsLayer());
+		this.layers.push(this.initNeotomaSitesLayer());
 	}
 
 	initIsoarchLocationsLayer() {
@@ -1916,10 +1928,41 @@ class ResultMap extends ResultModule {
 			"title": "Isoarch locations",
 			"type": "externalLayer",
 			"dataLoaded": false,
-			"endpoint": "/isoarch/locations"
+			"endpoint": "/isoarch/locations",
+			"pointColor": "#3f7f5f",
+			"legendLabel": "Isoarch location"
 		});
 
 		return isoarchLocationsLayer;
+	}
+
+	/*
+	* Function: initNeotomaSitesLayer
+	*
+	* The sites of the Neotoma Paleoecology Database. The json api server harvests them from Neotoma, whose own API turns
+	* browsers on other sites away.
+	*/
+	initNeotomaSitesLayer() {
+		const neotomaSitesLayer = new VectorLayer({
+			source: new VectorSource({
+				attributions: '© <a href="https://www.neotomadb.org/" target="_blank">Neotoma Paleoecology Database</a>'
+			}),
+			style: (feature) => this.getExternalPointStyle(feature),
+			zIndex: 150,
+			visible: false
+		});
+
+		neotomaSitesLayer.setProperties({
+			"layerId": "neotomaSites",
+			"title": "Neotoma sites",
+			"type": "externalLayer",
+			"dataLoaded": false,
+			"endpoint": "/neotoma/sites",
+			"pointColor": "#c0317a",
+			"legendLabel": "Neotoma site"
+		});
+
+		return neotomaSitesLayer;
 	}
 
 	async ensureExternalLayerLoaded(layer) {
@@ -1949,6 +1992,13 @@ class ResultMap extends ResultModule {
 			const source = layer.getSource();
 			source.clear();
 			source.addFeatures(this.createIsoarchLocationFeatures(locations));
+			layer.set("dataLoaded", true);
+		}
+		else if(props.layerId === "neotomaSites") {
+			const sites = await this.fetchNeotomaSites();
+			const source = layer.getSource();
+			source.clear();
+			source.addFeatures(this.createNeotomaSiteFeatures(sites));
 			layer.set("dataLoaded", true);
 		}
 	}
@@ -2005,6 +2055,48 @@ class ResultMap extends ResultModule {
 			});
 
 			feature.setId(`isoarch-location-${index}`);
+			features.push(feature);
+		});
+
+		return features;
+	}
+
+	async fetchNeotomaSites() {
+		const response = await fetch(`${Config.dataServerAddress}/neotoma/sites`);
+		if(response.status === 503) {
+			//The server has not finished its first harvest from Neotoma
+			const error = new Error("The Neotoma sites have not been harvested yet");
+			error.userMessage = "The Neotoma sites are still being fetched from Neotoma. Please try again in a few minutes.";
+			throw error;
+		}
+		if(!response.ok) {
+			throw new Error(`Failed to fetch Neotoma sites: ${response.status} ${response.statusText}`);
+		}
+
+		const data = await response.json();
+		return Array.isArray(data.sites) ? data.sites : [];
+	}
+
+	createNeotomaSiteFeatures(sites) {
+		const features = [];
+
+		sites.forEach((site) => {
+			const lng = Number(site.longitude);
+			const lat = Number(site.latitude);
+
+			if(!Number.isFinite(lng) || !Number.isFinite(lat)) {
+				return;
+			}
+
+			const feature = new Feature({
+				geometry: new Point(fromLonLat([lng, lat])),
+				id: `neotoma-site-${site.siteid}`,
+				name: site.sitename || "Neotoma site",
+				externalLayerId: "neotomaSites",
+				neotomaSiteId: site.siteid
+			});
+
+			feature.setId(`neotoma-site-${site.siteid}`);
 			features.push(feature);
 		});
 
@@ -2188,9 +2280,10 @@ class ResultMap extends ResultModule {
 
 		return new Style({
 			image: new CircleStyle({
-				radius: 8,
+				radius: this.pointLook.radius,
 				stroke: new Stroke({
-					color: strokeColor
+					color: strokeColor,
+					width: this.pointLook.strokeWidth
 				}),
 				fill: new Fill({
 					color: fillColor
@@ -2254,7 +2347,8 @@ class ResultMap extends ResultModule {
 			image: new CircleStyle({
 				radius: pointSize,
 				stroke: new Stroke({
-					color: strokeColor
+					color: strokeColor,
+					width: this.pointLook.strokeWidth
 				}),
 				fill: new Fill({
 					color: fillColor
@@ -2309,10 +2403,10 @@ class ResultMap extends ResultModule {
 			if(!this.externalSelectedPointStyle) {
 				this.externalSelectedPointStyle = new Style({
 					image: new CircleStyle({
-						radius: 7,
+						radius: this.pointLook.radius,
 						stroke: new Stroke({
-							color: "#ffffff",
-							width: 2
+							color: this.pointLook.strokeColor,
+							width: this.pointLook.strokeWidth
 						}),
 						fill: new Fill({
 							color: "#f60"
@@ -2325,27 +2419,181 @@ class ResultMap extends ResultModule {
 			return this.externalSelectedPointStyle;
 		}
 
-		if(!this.externalPointStyle) {
-			this.externalPointStyle = new Style({
+		const externalLayerId = feature.get("externalLayerId");
+		if(!this.externalPointStyles[externalLayerId]) {
+			const layer = this.getLayerById(externalLayerId);
+			const props = layer ? layer.getProperties() : {};
+			this.externalPointStyles[externalLayerId] = new Style({
 				image: new CircleStyle({
-					radius: 5,
+					radius: this.pointLook.radius,
 					stroke: new Stroke({
-						color: "#ffffff",
-						width: 2
+						color: this.pointLook.strokeColor,
+						width: this.pointLook.strokeWidth
 					}),
 					fill: new Fill({
-						color: "#3f7f5f"
+						color: this.getPointFillColor(props.pointColor || "#3f7f5f")
 					})
 				}),
 				zIndex: 50
 			});
 		}
 
-		return this.externalPointStyle;
+		return this.externalPointStyles[externalLayerId];
+	}
+
+	/*
+	* Function: getPointFillColor
+	*
+	* A point color as it is filled in on the map, with the opacity all points share.
+	*/
+	getPointFillColor(hexColor) {
+		const value = parseInt(hexColor.replace("#", ""), 16);
+		return `rgba(${(value >> 16) & 255},${(value >> 8) & 255},${value & 255},${this.pointLook.fillOpacity})`;
+	}
+
+	/*
+	* Function: renderLegendPointSymbol
+	*
+	* A legend symbol drawn the way the points are on the map.
+	*/
+	renderLegendPointSymbol(fillColor) {
+		const size = this.pointLook.radius * 2;
+		return `<div class="legend-symbol" style="background-color: ${fillColor}; width: ${size}px; height: ${size}px; border-radius: 50%; display: inline-block; border: ${this.pointLook.strokeWidth}px solid ${this.pointLook.strokeColor};"></div>`;
 	}
 
 	escapeHtml(value) {
 		return $("<div></div>").text(value == null ? "" : value).html();
+	}
+
+	/*
+	* Function: clearExternalPopupDecorations
+	*
+	* The popups of the external layers each add a class and a link to the shared popup, which are cleared before any popup is shown.
+	*/
+	clearExternalPopupDecorations() {
+		$("#map-popup-container").removeClass("isoarch-location-popup neotoma-site-popup");
+		$(".isoarch-explorer-link, .neotoma-explorer-link").remove();
+	}
+
+	/*
+	* Function: renderNeotomaSitePopup
+	*
+	* Shows what the site list has of a Neotoma site right away, and its description and datasets once they have been fetched.
+	*/
+	renderNeotomaSitePopup(feature) {
+		const coords = feature.getGeometry().getCoordinates();
+		const prop = feature.getProperties();
+		const siteId = prop.neotomaSiteId;
+		const requestId = ++this.neotomaSitePopupRequestId;
+		const [lng, lat] = toLonLat(coords);
+
+		$("#map-popup-container").show();
+		this.clearExternalPopupDecorations();
+		$("#map-popup-container").addClass("neotoma-site-popup");
+		$("#map-popup-title").remove();
+		$("#map-popup-container").prepend(`<div id="map-popup-title">${this.escapeHtml(prop.name)}</div>`);
+		$("#map-popup-title").after(`
+			<div class="neotoma-explorer-link">
+				<a href="https://apps.neotomadb.org/explorer/?siteids=${encodeURIComponent(siteId)}" target="_blank" rel="noopener noreferrer">Open in Neotoma Explorer</a>
+			</div>
+		`);
+
+		const tableRows = `
+			<tr><th>Neotoma site ID</th><td>${this.escapeHtml(siteId)}</td></tr>
+			<tr><th>Latitude</th><td>${this.escapeHtml(lat.toFixed(5))}</td></tr>
+			<tr><th>Longitude</th><td>${this.escapeHtml(lng.toFixed(5))}</td></tr>
+			<tr class="neotoma-site-details-row">
+				<td colspan="2">
+					<div id="neotoma-site-details-container" data-request-id="${requestId}">
+						<div class="neotoma-site-loading">
+							<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Loading Neotoma datasets...
+						</div>
+					</div>
+				</td>
+			</tr>`;
+		$("#map-popup-sites-table tbody").html(tableRows);
+		this.selectPopupOverlay.setPosition(coords);
+
+		this.fetchAndRenderNeotomaSiteDetails(siteId, requestId);
+	}
+
+	async fetchNeotomaSiteDetails(siteId) {
+		if(this.neotomaSiteDetailsCache.has(siteId)) {
+			return this.neotomaSiteDetailsCache.get(siteId);
+		}
+
+		const detailsRequest = fetch(`${Config.dataServerAddress}/neotoma/site/${encodeURIComponent(siteId)}`)
+			.then(async (response) => {
+				if(!response.ok) {
+					throw new Error(`Failed to fetch Neotoma site: ${response.status} ${response.statusText}`);
+				}
+				return response.json();
+			})
+			.catch((error) => {
+				this.neotomaSiteDetailsCache.delete(siteId);
+				throw error;
+			});
+
+		this.neotomaSiteDetailsCache.set(siteId, detailsRequest);
+		return detailsRequest;
+	}
+
+	async fetchAndRenderNeotomaSiteDetails(siteId, requestId) {
+		let site;
+		try {
+			site = await this.fetchNeotomaSiteDetails(siteId);
+		}
+		catch(error) {
+			console.error("Failed to fetch Neotoma site details:", error);
+		}
+
+		//The popup may have moved on to another point while the details were on their way
+		const container = $("#neotoma-site-details-container");
+		if(container.length === 0 || container.attr("data-request-id") != String(requestId)) {
+			return;
+		}
+
+		if(!site) {
+			container.html(`<div class="neotoma-site-error"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> Could not load the Neotoma datasets.</div>`);
+			return;
+		}
+		container.html(this.renderNeotomaSiteDetails(site));
+	}
+
+	renderNeotomaSiteDetails(site) {
+		let rows = "";
+		if(site.sitedescription) {
+			rows += `<tr><th>Description</th><td>${this.escapeHtml(site.sitedescription)}</td></tr>`;
+		}
+		if(site.altitude != null) {
+			rows += `<tr><th>Altitude</th><td>${this.escapeHtml(site.altitude)} m</td></tr>`;
+		}
+		if(site.geometry_type && site.geometry_type != "Point") {
+			rows += `<tr><th>Location</th><td>An area in Neotoma, shown at its centre</td></tr>`;
+		}
+
+		let html = rows.length > 0 ? `<table class="neotoma-details-table"><tbody>${rows}</tbody></table>` : "";
+
+		const units = Array.isArray(site.collectionunits) ? site.collectionunits : [];
+		const datasetCount = units.reduce((count, unit) => count + (unit.datasets || []).length, 0);
+		html += `<h5>Datasets (${datasetCount})</h5>`;
+		if(datasetCount === 0) {
+			return html + "<em>No datasets listed for this site.</em>";
+		}
+
+		//Datasets are listed under the collection unit - the core, section or sample - they were taken from
+		html += "<ul class='neotoma-collection-units'>";
+		units.filter(unit => (unit.datasets || []).length > 0).forEach((unit) => {
+			const unitTitle = [unit.collectionunit || unit.handle, unit.collectionunittype ? `(${unit.collectionunittype})` : ""].join(" ").trim();
+			const datasets = unit.datasets.map((dataset) => `
+				<li>
+					<a href="https://data.neotomadb.org/datasets/${encodeURIComponent(dataset.datasetid)}" target="_blank" rel="noopener noreferrer">${this.escapeHtml(dataset.datasettype || "Dataset")}</a>
+				</li>`).join("");
+			html += `<li><span class="neotoma-collection-unit-title">${this.escapeHtml(unitTitle)}</span><ul class="neotoma-datasets">${datasets}</ul></li>`;
+		});
+		html += "</ul>";
+
+		return html;
 	}
 
 	formatIsoarchLocationFieldLabel(fieldName) {
@@ -2415,9 +2663,9 @@ class ResultMap extends ResultModule {
 		let tableRows = this.renderIsoarchLocationBasicRows(locationData);
 
 		$("#map-popup-container").show();
+		this.clearExternalPopupDecorations();
 		$("#map-popup-container").addClass("isoarch-location-popup");
 		$("#map-popup-title").remove();
-		$(".isoarch-explorer-link").remove();
 		$("#map-popup-container").prepend(`<div id="map-popup-title">${this.escapeHtml(locationTitle)}</div>`);
 		$("#map-popup-title").after(`
 			<div class="isoarch-explorer-link">
@@ -2923,10 +3171,12 @@ class ResultMap extends ResultModule {
 			if(evt.selected.length == 1 && evt.selected[0].getProperties().externalLayerId == "isoarchLocations") {
 				this.renderIsoarchLocationPopup(evt.selected[0]);
 			}
+			else if(evt.selected.length == 1 && evt.selected[0].getProperties().externalLayerId == "neotomaSites") {
+				this.renderNeotomaSitePopup(evt.selected[0]);
+			}
 			else if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == false) {
 				$("#map-popup-container").show();
-				$("#map-popup-container").removeClass("isoarch-location-popup");
-				$(".isoarch-explorer-link").remove();
+				this.clearExternalPopupDecorations();
 				var feature = evt.selected[0];
 				var coords = feature.getGeometry().getCoordinates();
 				var prop = feature.getProperties();
@@ -2943,8 +3193,7 @@ class ResultMap extends ResultModule {
 			}
 			else if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == true) {
 				$("#map-popup-container").show();
-				$("#map-popup-container").removeClass("isoarch-location-popup");
-				$(".isoarch-explorer-link").remove();
+				this.clearExternalPopupDecorations();
 
 				var feature = evt.selected[0];
 				var coords = feature.getGeometry().getCoordinates();
@@ -2982,8 +3231,7 @@ class ResultMap extends ResultModule {
 			}
 			else {
 				$("#map-popup-container").hide();
-				$("#map-popup-container").removeClass("isoarch-location-popup");
-				$(".isoarch-explorer-link").remove();
+				this.clearExternalPopupDecorations();
 				this.selectPopupOverlay.setPosition();
 			}
 			sqs.sqsEventDispatch("resultMapPopupRender");
@@ -3270,7 +3518,7 @@ class ResultMap extends ResultModule {
 				case "externalLayer":
 					this.setMapExternalLayer(layerProperties.layerId).catch((error) => {
 						console.error("Failed to load external layer:", error);
-						this.sqs.notificationManager.notify("Failed to load external data layer.", "error", 5000);
+						this.sqs.notificationManager.notify(error.userMessage || "Failed to load external data layer.", "error", 5000);
 					});
 					break;
 			}
