@@ -110,9 +110,7 @@
 	"constants": {
 		"BP": 1950
 	},
-	"defaultFilters": [
-		"analysis_entity_ages"
-	],
+	"defaultFilters": [],
 	"ecocodeColors": [
 		{
 			"ecocode_definition_id": 323,
