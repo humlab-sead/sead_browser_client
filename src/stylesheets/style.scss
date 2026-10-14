@@ -6985,11 +6985,11 @@ a.ms-selectall:hover {
 }
 
 .site-report-level-container.site-report-level-expanded {
-  box-shadow: inset 5px 0 0 colors.$aux-color;
+  box-shadow: inset 5px 0 0 colors.$base-color;
 }
 
 .site-report-level-container.site-report-level-expanded > .site-report-level-title {
-  border-left-color: colors.$aux-color;
+  border-left-color: colors.$base-color;
 }
 
 .site-report-section-warning-icon {
@@ -7020,7 +7020,7 @@ a.ms-selectall:hover {
 
 .site-report-level-title:hover {
   background-color: #eee;
-  border-left-color: colors.$aux-color;
+  border-left-color: colors.$base-color;
   transition: border-left-color 0.2s;
 }
 
