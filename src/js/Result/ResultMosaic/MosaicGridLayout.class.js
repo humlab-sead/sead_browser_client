@@ -16,7 +16,7 @@ class MosaicGridLayout {
     constructor() {
         this.COL_COUNT = 12;
         this.ROW_H     = 80;   // px per row unit
-        this.MIN_ROW_H = 80;   // px per row unit
+        this.MIN_ROW_H = 240;  // px per row unit; on short screens the mosaic scrolls instead of squashing the charts
         this.GAP       = 12;   // px gutter / container padding
         this.MIN_TILE_W = 280; // px before configured columns start collapsing
         this.domainCols = 1;

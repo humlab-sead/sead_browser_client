@@ -6793,7 +6793,7 @@ a.ms-selectall:hover {
 
 .mosaic-tile-charts {
   display: grid;
-  grid-template-rows: 80% 20%;
+  grid-template-rows: minmax(0, 1fr) auto; /* the chart takes what the coverage bar leaves */
   min-width: 0;
   min-height: 0;
   height: 100%;
