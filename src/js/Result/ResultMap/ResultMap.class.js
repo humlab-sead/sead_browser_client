@@ -102,10 +102,18 @@ class ResultMap extends ResultModule {
 			}
 		});
 
+		//All points on the map - SEAD's sites and those of the external layers - share this look, and differ only in color
+		this.pointLook = {
+			radius: 6,
+			strokeColor: "#ffffff",
+			strokeWidth: 1.5,
+			fillOpacity: 0.75
+		};
+
 		//These attributes are used to set the style of map points
 		this.style = {
 			default: {
-				fillColor: this.resultManager.sqs.color.getColorScheme(20, 0.5)[13],
+				fillColor: this.resultManager.sqs.color.getColorScheme(20, this.pointLook.fillOpacity)[13],
 				strokeColor: "#fff",
 				textColor: "#fff",
 			},
@@ -479,11 +487,11 @@ class ResultMap extends ResultModule {
 							<h5>Legend</h5>
 							<div class="legend-symbols">
 								<div class="legend-symbol-row">
-									<div class="legend-symbol" style="background-color: ${this.style.default.fillColor}; width: 12px; height: 12px; border-radius: 50%; display: inline-block;"></div>
+									${this.renderLegendPointSymbol(this.style.default.fillColor)}
 									<span>Site location</span>
 								</div>
 								<div class="legend-symbol-row">
-									<div class="legend-symbol" style="background-color: ${this.style.selected.fillColor}; width: 12px; height: 12px; border-radius: 50%; display: inline-block;"></div>
+									${this.renderLegendPointSymbol(this.style.selected.fillColor)}
 									<span>Selected site</span>
 								</div>
 							</div>
@@ -498,7 +506,7 @@ class ResultMap extends ResultModule {
 							<h5>Legend</h5>
 							<div class="legend-symbols">
 								<div class="legend-symbol-row">
-									<div class="legend-symbol" style="background-color: ${externalLayerProps.pointColor}; width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 2px solid #ffffff;"></div>
+									${this.renderLegendPointSymbol(this.getPointFillColor(externalLayerProps.pointColor))}
 									<span>${this.escapeHtml(externalLayerProps.legendLabel)}</span>
 								</div>
 							</div>
@@ -1932,8 +1940,7 @@ class ResultMap extends ResultModule {
 	* Function: initNeotomaSitesLayer
 	*
 	* The sites of the Neotoma Paleoecology Database. The json api server harvests them from Neotoma, whose own API turns
-	* browsers on other sites away. There are some 32k of them, so they are drawn smaller and with a thinner outline than
-	* the Isoarch locations, or they would cover whole continents when zoomed out.
+	* browsers on other sites away.
 	*/
 	initNeotomaSitesLayer() {
 		const neotomaSitesLayer = new VectorLayer({
@@ -1951,9 +1958,7 @@ class ResultMap extends ResultModule {
 			"type": "externalLayer",
 			"dataLoaded": false,
 			"endpoint": "/neotoma/sites",
-			"pointColor": "#7a4fa3",
-			"pointRadius": 4,
-			"pointStrokeWidth": 1,
+			"pointColor": "#c0317a",
 			"legendLabel": "Neotoma site"
 		});
 
@@ -2275,9 +2280,10 @@ class ResultMap extends ResultModule {
 
 		return new Style({
 			image: new CircleStyle({
-				radius: 8,
+				radius: this.pointLook.radius,
 				stroke: new Stroke({
-					color: strokeColor
+					color: strokeColor,
+					width: this.pointLook.strokeWidth
 				}),
 				fill: new Fill({
 					color: fillColor
@@ -2341,7 +2347,8 @@ class ResultMap extends ResultModule {
 			image: new CircleStyle({
 				radius: pointSize,
 				stroke: new Stroke({
-					color: strokeColor
+					color: strokeColor,
+					width: this.pointLook.strokeWidth
 				}),
 				fill: new Fill({
 					color: fillColor
@@ -2396,10 +2403,10 @@ class ResultMap extends ResultModule {
 			if(!this.externalSelectedPointStyle) {
 				this.externalSelectedPointStyle = new Style({
 					image: new CircleStyle({
-						radius: 7,
+						radius: this.pointLook.radius,
 						stroke: new Stroke({
-							color: "#ffffff",
-							width: 2
+							color: this.pointLook.strokeColor,
+							width: this.pointLook.strokeWidth
 						}),
 						fill: new Fill({
 							color: "#f60"
@@ -2418,13 +2425,13 @@ class ResultMap extends ResultModule {
 			const props = layer ? layer.getProperties() : {};
 			this.externalPointStyles[externalLayerId] = new Style({
 				image: new CircleStyle({
-					radius: props.pointRadius || 5,
+					radius: this.pointLook.radius,
 					stroke: new Stroke({
-						color: "#ffffff",
-						width: props.pointStrokeWidth || 2
+						color: this.pointLook.strokeColor,
+						width: this.pointLook.strokeWidth
 					}),
 					fill: new Fill({
-						color: props.pointColor || "#3f7f5f"
+						color: this.getPointFillColor(props.pointColor || "#3f7f5f")
 					})
 				}),
 				zIndex: 50
@@ -2432,6 +2439,26 @@ class ResultMap extends ResultModule {
 		}
 
 		return this.externalPointStyles[externalLayerId];
+	}
+
+	/*
+	* Function: getPointFillColor
+	*
+	* A point color as it is filled in on the map, with the opacity all points share.
+	*/
+	getPointFillColor(hexColor) {
+		const value = parseInt(hexColor.replace("#", ""), 16);
+		return `rgba(${(value >> 16) & 255},${(value >> 8) & 255},${value & 255},${this.pointLook.fillOpacity})`;
+	}
+
+	/*
+	* Function: renderLegendPointSymbol
+	*
+	* A legend symbol drawn the way the points are on the map.
+	*/
+	renderLegendPointSymbol(fillColor) {
+		const size = this.pointLook.radius * 2;
+		return `<div class="legend-symbol" style="background-color: ${fillColor}; width: ${size}px; height: ${size}px; border-radius: 50%; display: inline-block; border: ${this.pointLook.strokeWidth}px solid ${this.pointLook.strokeColor};"></div>`;
 	}
 
 	escapeHtml(value) {
