@@ -178,7 +178,7 @@ class ResultMap extends ResultModule {
 			const groupName = props.group || "Other";
 			
 			if (layerType === "dataLayer") {
-				// Add data layer with expandable legend item
+				// Add data layer with expandable legend item. The data layer can only be hidden, not removed.
 				const legendItem = this.createLegendItem({
 					layerId: props.layerId,
 					layerType: "data",
@@ -186,7 +186,7 @@ class ResultMap extends ResultModule {
 					subtitle: "[Data]",
 					zIndex: layer.getZIndex() || 0,
 					isVisible: layer.getVisible(),
-					canClose: true,
+					canClose: false,
 					canExpand: true
 				});
 				allLegendItems.append(legendItem);
@@ -390,6 +390,10 @@ class ResultMap extends ResultModule {
 			}
 
 			const layerType = layer.getProperties().type;
+			if (layerType === "dataLayer") {
+				// The data layer can only be hidden, not removed
+				return;
+			}
 			layer.setProperties({
 				legendVisible: false,
 				legendHidden: false
@@ -407,13 +411,6 @@ class ResultMap extends ResultModule {
 					layer.setVisible(false);
 					break;
 					
-				case "dataLayer":
-					console.log("Deselecting data layer");
-					if(layer.getVisible()) {
-						this.setMapDataLayer("none");
-					}
-					break;
-
 				case "externalLayer":
 					console.log("Deselecting external layer");
 					this.hideMapExternalLayer(layer.getProperties().layerId);
@@ -432,6 +429,10 @@ class ResultMap extends ResultModule {
 	}
 
 	setLegendLayerVisibility(layer, visible) {
+		if(visible && layer.getProperties().type === "dataLayer") {
+			// A hidden data layer is not redrawn when the result changes, so bring it up to date before showing it
+			layer.getProperties().renderCallback(this);
+		}
 		layer.setVisible(visible);
 		layer.setProperties({
 			legendVisible: true,
@@ -3146,19 +3147,6 @@ class ResultMap extends ResultModule {
 				});
 			}
 		}
-
-		//add a special 'none' menu item
-		menu.items.push({
-			name: "none",
-			title: "None",
-			tooltip: "Disable all data layers",
-			staticSelection: false,
-			selected: false,
-			callback: this.makeMapControlMenuCallback({
-				layerId: "none",
-				type: "dataLayer"
-			})
-		});
 
 		return menu;
 	}
