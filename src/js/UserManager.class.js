@@ -197,7 +197,7 @@ class UserManager {
 	endShibbolethSession(provider) {
 		if(provider == "saml") {
 			//Also end the short-lived Shibboleth session the login was handed over with, so
-			//the next "SEAD login" asks again rather than silently signing the same person in.
+			//the next institution sign-in asks again rather than silently signing the same person in.
 			//This is local only: the university's own sign-in is left alone.
 			fetch("/Shibboleth.sso/Logout", { credentials: 'include' }).catch(() => {});
 		}
@@ -306,7 +306,7 @@ class UserManager {
 			const provider = this.getProvider($(node).attr("provider"));
 			$(node).toggle(provider != null);
 			if(provider != null && $(node).attr("provider") == "saml") {
-				$(".login-button-label", node).text(provider.label);
+				$(".login-button-label", node).text("Sign in with "+provider.label);
 			}
 		});
 		$(".login-no-providers", container).toggle(this.providers.length == 0);

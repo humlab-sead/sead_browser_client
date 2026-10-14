@@ -609,8 +609,9 @@ class AdminPanel {
 			return null;
 		}
 		const provider = this.sqs.userManager.getProvider(providerId);
-		const labels = { saml: "SEAD login", orcid: "ORCID", google: "Google", github: "GitHub" };
-		return provider ? provider.label : (labels[providerId] || providerId);
+		//Not provider.label, which for SAML is worded for the user signing in ("your institution")
+		const labels = { saml: "Institution (eduGAIN)", orcid: "ORCID", google: "Google", github: "GitHub" };
+		return labels[providerId] || (provider ? provider.label : providerId);
 	}
 
 	formatDate(value, withTime = true) {
