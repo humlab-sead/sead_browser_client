@@ -21,8 +21,7 @@
 export default class ScreenReader {
     //What the agent never touches or sees: the chatbox it is talking through, the user's
     //account (signing in and out, accepting the privacy policy and deleting the account, the
-    //sysadmin-only data import, the admin panel - which hands out roles, including the one the
-    //agent itself is reached by), and downloads, which stay
+    //sysadmin-only data import, the admin panel - which hands out roles), and downloads, which stay
     //the user's own click. A region of the page can opt out with data-sead-agent="off".
     static OFF_LIMITS = [
         "[data-sead-agent='off']",

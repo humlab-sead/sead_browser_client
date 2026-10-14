@@ -7,9 +7,7 @@ import SeadAgentActions from "./SeadAgentActions.class.js";
 * pi harness agent against a locally hosted LLM - the requests no longer pass through the
 * json_api_server, and nothing about them leaves the deployment.
 *
-* Only for signed-in users with the sead_agent permission, which an admin gives through a
-* role in the admin panel. Everyone else never sees the chatbox, and the service refuses
-* them too: it checks the session cookie these requests carry with json_api_server.
+* Everyone gets the chatbox, signed in or not.
 */
 export default class SeadAgent {
     /*
@@ -66,11 +64,7 @@ export default class SeadAgent {
         //The turn currently in flight, so closing the chatbox can abandon it server-side
         this.activeTurnId = null;
 
-        //Shown to whoever may use it, as soon as the sign-in status says so
-        this.sqs.sqsEventListen("userAccessChanged", () => {
-            this.updateChatboxVisibility();
-        });
-        this.updateChatboxVisibility();
+        $("#chatbox-icon").css("display", "flex");
 
         $("#chatbox-close-btn").on("click", (evt) => {
             evt.stopPropagation();
@@ -105,32 +99,6 @@ export default class SeadAgent {
             evt.stopPropagation();
             this.sendMessage($(evt.currentTarget).text());
         });
-    }
-
-    /*
-    * Function: mayUse
-    * Whether the signed-in user has the sead_agent permission.
-    */
-    mayUse() {
-        return this.sqs.userManager != null && this.sqs.userManager.hasPermission("sead_agent");
-    }
-
-    /*
-    * Function: updateChatboxVisibility
-    * The chatbox is there for users with the sead_agent permission, and taken away - closing
-    * it first, if it was open - when they sign out or lose the permission.
-    */
-    updateChatboxVisibility() {
-        if(this.mayUse()) {
-            $("#chatbox-icon").css("display", "flex");
-        }
-        else {
-            if(this.expanded) {
-                //collapse first so any in-flight request is aborted and inline drag/resize styles are cleared
-                this.chatboxIconClickCallback(new $.Event("click"));
-            }
-            $("#chatbox-icon").css("display", "none");
-        }
     }
 
     /*
@@ -432,8 +400,6 @@ export default class SeadAgent {
     async postToAgent(url, body, abortController) {
         let response = await fetch(url, {
             method: "POST",
-            //the session cookie, by which the service checks the user's permission
-            credentials: "include",
             headers: {
                 "Content-Type": "application/json"
             },
@@ -442,10 +408,6 @@ export default class SeadAgent {
         });
 
         if(!response.ok) {
-            if(response.status == 401 || response.status == 403) {
-                //signed out, or the permission was taken away: bring the page back in step
-                this.sqs.userManager.checkSigninStatus();
-            }
             throw this.agentError(await this.extractErrorMessage(response));
         }
         return await response.json();
@@ -688,9 +650,6 @@ export default class SeadAgent {
         }
 
         this.onChatboxClosed();
-        //Keeps it hidden if the agent is disabled. Must run after this.expanded is
-        //cleared, or it would re-enter the collapse path.
-        this.updateChatboxVisibility();
     }
 
     /*
@@ -924,7 +883,6 @@ export default class SeadAgent {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ turnId: turnId }),
-                credentials: "include",
                 keepalive: true
             }).catch(() => {
                 //Best effort - the turn times out on its own anyway

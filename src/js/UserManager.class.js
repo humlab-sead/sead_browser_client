@@ -18,8 +18,8 @@ The Account dialog shows what SEAD keeps about the user, and lets them delete th
 Which sign-in options exist is decided by the server: /auth/status lists them, and the
 dialog shows a button only for those. It also gives the user's roles and the permissions
 they give, which decide what is offered: the sysadmin role gets "Import data", the
-administer_users permission "Admin", the sead_agent permission the agent chatbox. The
-server checks them again itself. "userAccessChanged" is dispatched whenever they may have changed.
+administer_users permission "Admin". The server checks them again itself.
+"userAccessChanged" is dispatched whenever they may have changed.
 */
 class UserManager {
 	constructor(sqs) {
