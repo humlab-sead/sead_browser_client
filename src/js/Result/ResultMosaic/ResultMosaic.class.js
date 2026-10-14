@@ -49,6 +49,7 @@ class ResultMosaic extends ResultModule {
 		this.tileLayout = []; // runtime tile descriptors [{ id, col, row, w, h, minW, minH }]
 		this.responsiveLayoutEventOwner = {};
 		this.responsiveLayoutResizeTimeout = null;
+		this.renderedDomainName = null; //The domain whose tiles are in the container, if any
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			this.setActive(data.selection == this.name);
@@ -479,6 +480,11 @@ class ResultMosaic extends ResultModule {
 		xhr.then((respData, textStatus, xhr) => { //success
 			if(respData.RequestId == this.requestId && this.resultManager.getActiveModule().name == this.name) { //Only load this data if it matches the last request id dispatched. Otherwise it's old data.
 				this.importResultData(respData);
+				if(this.renderedDomainName != this.sqs.domainManager.getActiveDomain().name) {
+					//The tiles in place are another domain's, which renderData replaces
+					this.renderData();
+					return;
+				}
 				this.updateGridModules();
 				if(this.sqs.config.showResultExportButton) {
 					$("#mosaic-site-count").text(`${this.sites.length} sites`);
@@ -752,8 +758,24 @@ class ResultMosaic extends ResultModule {
 			this.initTileDrag(tileNode[0], moduleConf);
 			this.initTileResize(tileNode[0], moduleConf);
 
-			await module.render("#"+moduleConf.grid_box_id);
+			try {
+				await module.render("#"+moduleConf.grid_box_id);
+			}
+			catch(error) {
+				this.handleTileRenderError(module, error);
+			}
 		}
+	}
+
+	/*
+	* Function: handleTileRenderError
+	*
+	* A tile whose render threw never marks itself complete, and its unrender waits for that - which would hold up
+	* the unrendering of the whole mosaic, and with it the domain change waiting on it.
+	*/
+	handleTileRenderError(module, error) {
+		console.error("Mosaic tile "+module.name+" failed to render", error);
+		module.renderComplete = true;
 	}
 
 	unrenderGridModules() {
@@ -1094,7 +1116,10 @@ class ResultMosaic extends ResultModule {
 		activeDomain.result_grid_modules.forEach(moduleConf => {
 			if(typeof moduleConf.module != "undefined" && moduleConf.module != null) {
 				console.log("Updating grid module "+moduleConf.module.name);
-				moduleConf.module.update();
+				let module = moduleConf.module;
+				Promise.resolve(module.update()).catch((error) => {
+					this.handleTileRenderError(module, error);
+				});
 			}
 		});
 	}
@@ -1120,16 +1145,28 @@ class ResultMosaic extends ResultModule {
 	/**
 	 * Function: renderData
 	 */
-	renderData() {
+	async renderData() {
+		const requestId = this.requestId;
+		let domain = this.sqs.domainManager.getActiveDomain();
+
+		//Tiles of another domain are left in place when the domain changes while another result module is shown,
+		//since only the active one is unrendered then. They are cleared, not updated.
+		if($(".result-mosaic-tile").length > 0 && this.renderedDomainName != domain.name) {
+			await this.unrender();
+			if(requestId != this.requestId || this.sqs.domainManager.getActiveDomain() != domain) {
+				return; //A newer render has taken over
+			}
+		}
+
 		super.render();
 		$('#result-mosaic-container').show();
 
-		let domain = this.sqs.domainManager.getActiveDomain();
 		this.applyDomainGridLayout(domain);
 
 		this.configureGridLayoutForDomain(domain);
 
 		if ($(".result-mosaic-tile").length === 0) {
+			this.renderedDomainName = domain.name;
 			this.renderGridModules(domain.result_grid_modules);
 		}
 		else {
@@ -2024,14 +2061,36 @@ class ResultMosaic extends ResultModule {
 	
 	async unrender() {
 		return new Promise((resolve) => {
-			let promises = [];
+			//The tiles' instances live in the rendered domain's result_grid_modules - a tile switched to another
+			//chart has one only there - and the latest of each in this.modules
+			let tileModules = new Set();
+			let renderedDomain = this.renderedDomainName ? this.sqs.domainManager.getDomain(this.renderedDomainName) : null;
+			if(renderedDomain) {
+				renderedDomain.result_grid_modules.forEach(moduleConf => {
+					if(moduleConf.module) {
+						tileModules.add(moduleConf.module);
+					}
+					//Unrendered instances are not updated again, a new render makes new ones
+					moduleConf.module = null;
+				});
+			}
 			this.modules.forEach(module => {
-				if(module.module != null && typeof module.module.unrender == "function") {
-					promises.push(module.module.unrender());
+				if(module.module != null) {
+					tileModules.add(module.module);
+				}
+				module.module = null;
+			});
+			this.renderedDomainName = null;
+
+			let promises = [];
+			tileModules.forEach(module => {
+				if(typeof module.unrender == "function") {
+					promises.push(module.unrender());
 				}
 			});
 
-			Promise.all(promises).then(() => {
+			//A tile that fails to unrender doesn't hold up the rest
+			Promise.allSettled(promises).then(() => {
 				this.cleanupPlotlyChartsInContainer("#result-mosaic-container");
 				this.plotlyLayoutRegistry.clear();
 				this.sqs.sqsEventUnlisten("layoutResize", this);
