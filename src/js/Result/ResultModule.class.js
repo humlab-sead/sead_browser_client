@@ -161,7 +161,16 @@ class ResultModule {
 			$(desc).toggle($(desc).attr("data-export-format") == format);
 		});
 		$(".sites-export-datasets").toggle(format == "csv" || format == "json");
-		$("#sites-export-dl").css("display", "inline-flex");
+
+		//The XLSX workbook is built on the server, which takes at most sitesExportMaxSites sites in one
+		let tooManySites = format == "xlsx" && this.sitesExportMaxSites != null && this.sitesExportSiteCount > this.sitesExportMaxSites;
+		$(".sites-export-limit-notice")
+			.text(tooManySites ? "The XLSX export can hold at most "+this.sitesExportMaxSites+" sites, and "+this.sitesExportSiteCount+" are selected. Use filters to narrow down the selection, or choose CSV or JSON." : "")
+			.toggle(tooManySites);
+		$("#sites-export-dl")
+			.toggleClass("disabled", tooManySites)
+			.attr("aria-disabled", tooManySites ? "true" : "false")
+			.css("display", "inline-flex");
 	}
 
 	bindExportModuleDataToButton(button, module = null) {
@@ -195,7 +204,12 @@ class ResultModule {
 			}
 
 			//fetch dataset summaries for selected sites to see what is available for export
-			let datasetSummaries = await this.fetchDatasetSummaries(selectedSites);
+			let [datasetSummaries, sdfMaxSites] = await Promise.all([
+				this.fetchDatasetSummaries(selectedSites),
+				this.fetchSdfMaxSites()
+			]);
+			this.sitesExportSiteCount = selectedSites.length;
+			this.sitesExportMaxSites = sdfMaxSites;
 			datasetSummaries.sort((a, b) => {
 				if(!a.method_name) { //FIXME: Hotfix due to missing method_id 174.
 					return 1;
@@ -277,6 +291,9 @@ class ResultModule {
 				this.selectExportFormat("xlsx");
 
 				$("#sites-export-dl").on("click", () => {
+					if($("#sites-export-dl").hasClass("disabled")) {
+						return;
+					}
 					let format = $(".sites-export-format-btn.selected").attr("data-export-format");
 					if(format == "xlsx") {
 						this.exportSitesAsSdfXlsx(selectedSites);
@@ -865,7 +882,28 @@ class ResultModule {
 			},
 			body: JSON.stringify(siteIds)
 		}).then(res => res.json());
-	
+
+	}
+
+	/*
+	* Function: fetchSdfMaxSites
+	*
+	* How many sites the server puts in one XLSX (SDF) workbook, from /sdf/version. Returns null if the
+	* server can't be asked, in which case the dialog doesn't check and the server's own refusal is shown.
+	*/
+	async fetchSdfMaxSites() {
+		try {
+			const response = await fetch(Config.dataServerAddress+"/sdf/version");
+			if(!response.ok) {
+				return null;
+			}
+			const version = await response.json();
+			return Number.isInteger(version.max_sites) ? version.max_sites : null;
+		}
+		catch(error) {
+			console.warn("Could not fetch the SDF site limit", error);
+			return null;
+		}
 	}
 
 	async exportSitesAsJson(siteIds) {

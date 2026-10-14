@@ -6179,21 +6179,50 @@ svg text {
   max-width: 42em;
 }
 
+/* format tabs, styled like the result section tabs (.first-level-item / .sqs-menu-selected);
+   the panel below holds what goes with the selected format, including the download button */
 .sites-export-formats {
   display: flex;
-  gap: 0.5em;
+  max-width: 32em;
 }
 
-.sites-export-format-btn.selected {
-  background-color: colors.$base-color;
-  border-color: colors.$base-color;
-  color: #fff;
+.sites-export-format-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.5em 1em;
+  background: #eee;
+  color: #000;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+
+  .fa {
+    width: 1.28571429em;
+    text-align: center;
+  }
+
+  &:hover {
+    background: #fafafa;
+  }
+
+  &.selected {
+    background-color: color.adjust(colors.$base-color, $lightness: 10%);
+    color: #fff;
+    cursor: default;
+  }
+}
+
+.sites-export-format-panel {
+  box-sizing: border-box;
+  max-width: 32em;
+  padding: 1em;
+  border: 1px solid #ddd;
+  border-top: 3px solid color.adjust(colors.$base-color, $lightness: 10%);
 }
 
 .sites-export-format-description {
   display: none;
-  max-width: 30em;
-  margin-top: 1em;
   font-size: 0.9em;
 }
 
@@ -6205,6 +6234,21 @@ svg text {
 #sites-export-dl {
   display: none;
   margin-top: 1em;
+}
+
+#sites-export-dl.disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
+.sites-export-limit-notice {
+  display: none;
+  margin-top: 1em;
+  padding: 0.6em 0.8em;
+  border-left: 3px solid colors.$warning-color;
+  background: color.scale(colors.$warning-color, $lightness: 85%);
+  font-size: 0.9em;
 }
 
 .sites-export-dialog .ms-options-wrap {
