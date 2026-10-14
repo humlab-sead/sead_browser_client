@@ -1047,6 +1047,8 @@ class ResultMap extends ResultModule {
 					// Update aux layer zoom indicators when zoom changes
 					this.updateAuxLayerZoomIndicators();
 				}
+				// An open popup may no longer fit where its point has moved to
+				this.fitPopupToMap();
 			});
 		}
 		else {
@@ -3127,6 +3129,88 @@ class ResultMap extends ResultModule {
 	}
 
 	/*
+	* Function: fitPopupToMap
+	*
+	* Keeps the popup within the map: it opens above or below its point, whichever has more room (below the map controls at the top),
+	* is made no taller than that room - its table scrolls instead - and is shifted sideways near the map's edges, with its arrow still
+	* pointing at the point.
+	*/
+	fitPopupToMap() {
+		if(!this.olMap || !this.selectPopupOverlay) {
+			return;
+		}
+		const position = this.selectPopupOverlay.getPosition();
+		const popupElement = this.selectPopupOverlay.getElement();
+		const popup = $(popupElement);
+		if(!position || !popup.is(":visible")) {
+			return;
+		}
+		const pixel = this.olMap.getPixelFromCoordinate(position);
+		const mapSize = this.olMap.getSize();
+		if(!pixel || !mapSize) {
+			return;
+		}
+
+		const margin = 10;
+		const arrowSpace = 17;
+
+		//The map controls at the top and the export button at the bottom lie over the map
+		let topEdge = margin;
+		let bottomEdge = mapSize[1] - margin;
+		const viewportRect = this.olMap.getViewport().getBoundingClientRect();
+		const controls = document.getElementById("result-map-controls-container");
+		if(controls && $(controls).is(":visible")) {
+			const controlsRect = controls.getBoundingClientRect();
+			if(controlsRect.height > 0) {
+				topEdge = Math.max(topEdge, controlsRect.bottom - viewportRect.top + margin);
+			}
+		}
+		const exportPanel = document.getElementById("result-map-export-panel");
+		if(exportPanel && $(exportPanel).is(":visible")) {
+			const exportRect = exportPanel.getBoundingClientRect();
+			if(exportRect.height > 0 && exportRect.top > viewportRect.top + mapSize[1] / 2) {
+				bottomEdge = Math.min(bottomEdge, exportRect.top - viewportRect.top - margin);
+			}
+		}
+
+		const roomAbove = pixel[1] - arrowSpace - topEdge;
+		const roomBelow = bottomEdge - pixel[1] - arrowSpace;
+		const below = roomBelow > roomAbove;
+		const maxHeight = Math.max(below ? roomBelow : roomAbove, 80);
+
+		popup.toggleClass("map-popup-below", below);
+		popup.css("max-width", Math.max(mapSize[0] - 2 * margin, 120)+"px");
+
+		//Only the Isoarch popup's table is a scrolling block, the site lists are short enough as they are. The rest of the popup is
+		//measured uncapped, since a capped popup lets its content overflow rather than shrink.
+		const table = $("#map-popup-sites-table", popup);
+		if(popup.hasClass("isoarch-location-popup") && table.length > 0) {
+			popup.css("max-height", "none");
+			table.css("max-height", "none");
+			const otherContentHeight = popup.outerHeight() - table.outerHeight();
+			table.css("max-height", Math.max(maxHeight - otherContentHeight, 40)+"px");
+		}
+		else {
+			table.css("max-height", "");
+		}
+		popup.css("max-height", maxHeight+"px");
+
+		const width = popup.outerWidth();
+		const left = pixel[0] - width / 2;
+		let shift = 0;
+		if(left < margin) {
+			shift = margin - left;
+		}
+		else if(left + width > mapSize[0] - margin) {
+			shift = mapSize[0] - margin - (left + width);
+		}
+
+		this.selectPopupOverlay.setPositioning(below ? "top-center" : "bottom-center");
+		this.selectPopupOverlay.setOffset([shift, below ? arrowSpace : -arrowSpace]);
+		popupElement.style.setProperty("--map-popup-arrow-shift", (-shift)+"px");
+	}
+
+	/*
 	* Function: createSelectInteraction
 	*/
 	createSelectInteraction() {
@@ -3136,6 +3220,16 @@ class ResultMap extends ResultModule {
 			offset: [0, -17]
 		});
 		this.olMap.addOverlay(this.selectPopupOverlay);
+
+		//The popup is fitted into the map when it is placed and whenever its content changes size, such as when Isoarch details arrive
+		this.selectPopupOverlay.on("change:position", () => this.fitPopupToMap());
+		if(this.popupResizeObserver) {
+			this.popupResizeObserver.disconnect();
+		}
+		this.popupResizeObserver = new ResizeObserver(() => {
+			requestAnimationFrame(() => this.fitPopupToMap());
+		});
+		this.popupResizeObserver.observe(this.selectPopupOverlay.getElement());
 
 		var selectInteraction = new SelectInteraction({
 			//condition: clickCondition,

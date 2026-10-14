@@ -4104,7 +4104,7 @@ polyline{
 
 #map-popup-container:after, #map-popup-container:before {
 	top: 100%;
-	left: 50%;
+	left: calc(50% + var(--map-popup-arrow-shift, 0px));
 	border: solid;
 	content: " ";
 	position: absolute;
@@ -4124,6 +4124,23 @@ polyline{
 	border-width: 9px;
 	margin-left: -9px;
   top: calc(100% - 1px);
+}
+
+/* Opened below its point (ResultMap.fitPopupToMap), the arrow points up from the top edge */
+#map-popup-container.map-popup-below:before,
+#map-popup-container.map-popup-below:after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+}
+
+#map-popup-container.map-popup-below:before {
+  border-bottom-color: rgb(102, 102, 102);
+}
+
+#map-popup-container.map-popup-below:after {
+  border-bottom-color: #ffffff;
+  bottom: calc(100% - 1px);
 }
 
 #map-popup-title {
