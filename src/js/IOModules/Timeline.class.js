@@ -37,13 +37,13 @@ class Timeline extends Facet {
 		this.currentValues = [this.sliderMin, this.sliderMax];
 
 		let userSettings = this.sqs.getUserSettings();
-		this.selectedScale = userSettings.timelineScale || 6;
+		this.selectedScale = userSettings.timelineScale || 7; //20K years
 
 		this.datingSystems = [
 			"BP",
 			"AD/BC"
 		];
-		this.selectedDatingSystem = userSettings.timelineDatingSystem || "BP";
+		this.selectedDatingSystem = userSettings.timelineDatingSystem || "AD/BC";
 
 		this.currentYear = new Date().getFullYear();
 		const yearNowBP = (1950 - this.currentYear) * -1;
@@ -717,6 +717,9 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
     populateGraphDataOptionsSelector(graphDataOptions) {
         //populate the graph data options selector
         graphDataOptions.forEach((option) => {
+            if(option.permanent) {
+                return;
+            }
             const selected = option.name === this.selectedGraphDataOption ? 'selected' : '';
             $("#timeline-data-selector").append(`<option value="${option.name}" ${selected}>${option.name}</option>`);
         });
@@ -1290,6 +1293,10 @@ Paleoceanography,20, PA1003, doi:10.1029/2004PA001071.`,
         legendContainer.empty();
     
         this.chartTraces.forEach((trace) => {
+            const graphDataOption = this.getGraphDataOptionByTraceName(trace.trace.name);
+            if(graphDataOption && graphDataOption.permanent) {
+                return;
+            }
             const eyeClass = trace.hidden ? "fa-eye-slash" : "fa-eye";
             const traceDiv = $(`
                 <div class="timeline-trace-item">
@@ -2472,6 +2479,7 @@ class GraphDataOption {
         this.endpointConfig = endpointConfig;
         this.attribution = attribution;
         this.reverseYAxis = false;
+        this.permanent = false; //Always on the chart, so neither offered as an option nor listed with the added ones
     }
 
     // Base class fetchData - should be overridden by subclasses
@@ -2591,6 +2599,7 @@ class SEADQueryGraphDataOption extends GraphDataOption {
     constructor(timeline, name, color, endpointConfig, attribution = null) {
         super(name, color, "sead_query_api", endpointConfig, attribution);
         this.timeline = timeline;
+        this.permanent = true; //Like the bars of the other range filters
     }
 
     async fetchData(fetchFullRange = false) {
