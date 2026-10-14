@@ -7,6 +7,7 @@ require('ejs-compiled-loader');
 const BundleAnalyzerPlugin =
   require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 
 const cesiumSource = path.resolve(__dirname, 'node_modules/cesium/Source');
 const cesiumWorkers = path.join(cesiumSource, '../Build/Cesium/Workers');
@@ -61,6 +62,12 @@ module.exports = (env, config) => {
         // Add process polyfill (Webpack 5 no longer auto-polyfills)
         process: require.resolve('process/browser'),
       },
+    },
+
+    optimization: {
+      // Terser otherwise starts a worker per CPU, each holding a copy of the bundle, which
+      // takes more memory than a shared server has to spare: the build gets OOM-killed.
+      minimizer: [new TerserPlugin({ parallel: 2 })],
     },
 
     plugins: [
