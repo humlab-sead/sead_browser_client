@@ -63,6 +63,7 @@ class NotificationManager {
             case "error":
                 $(".notification-icon", notificationFragment).html("<i class=\"fa fa-exclamation-triangle\" aria-hidden=\"true\"></i>");
                 $(".notification-type-box", notificationFragment).addClass("notification-level-error");
+                notificationFragment.querySelector(".notification").setAttribute("role", "alert");
                 break;
         }
 

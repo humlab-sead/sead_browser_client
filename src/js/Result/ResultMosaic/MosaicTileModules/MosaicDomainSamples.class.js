@@ -1,12 +1,12 @@
 import { nanoid } from "nanoid";
 import MosaicTileModule from "./MosaicTileModule.class";
-import Plotly from "plotly.js-dist-min";
 
 class MosaicDomainSamples extends MosaicTileModule {
     constructor(sqs) {
         super();
         this.sqs = sqs;
         this.title = "Samples per domain";
+        this.description = "How many of the samples at the sites in the result have been analysed in each domain, split by analysis method. Click a method to add it as a filter.";
         this.name = "mosaic-domain-samples";
         this.domains = ["general", "palaeo", "archaeobotany", "isotopes"];
         this.requestId = 0;
@@ -16,8 +16,9 @@ class MosaicDomainSamples extends MosaicTileModule {
         this.renderIntoNode = null;
         this.plot = null;
         this.renderComplete = false;
-        this.chartType = "plotly";
+        this.chartType = "html";
         this.showChartSelector = false;
+        this.view = "count";
     }
 
     normalizeSiteIds(input) {
@@ -41,6 +42,7 @@ class MosaicDomainSamples extends MosaicTileModule {
     }
 
     async fetchData(renderIntoNode = null) {
+        const requestId = ++this.requestId;
         const resultMosaic = this.sqs.resultManager.getModule("mosaic");
         if (renderIntoNode) {
             this.sqs.setLoadingIndicator(renderIntoNode, true);
@@ -57,60 +59,153 @@ class MosaicDomainSamples extends MosaicTileModule {
             this.sqs.setLoadingIndicator(renderIntoNode, false);
         }
         return {
-            requestId: ++this.requestId,
+            requestId: requestId,
             data
         };
     }
 
-    formatDataToPlotlyChartData(data) {
-        if (!data || !Array.isArray(data.domains) || data.domains.length === 0) {
-            this.renderNoData();
-            return null;
-        }
-        const methodIdSet = new Set();
-        const methodIdToLabel = {};
-        data.domains.forEach(domain => {
-            if (Array.isArray(domain.method_counts)) {
-                domain.method_counts.forEach(mc => {
-                    methodIdSet.add(mc.method_id);
-                    if (!methodIdToLabel[mc.method_id]) {
-                        if (mc.method_name) {
-                            methodIdToLabel[mc.method_id] = mc.method_name;
-                        } else {
-                            methodIdToLabel[mc.method_id] = `Method ${mc.method_id}`;
-                        }
-                    }
-                });
+    getDomainColor(facetCode) {
+        let domain = this.sqs.config.domains.find(domain => domain.name == facetCode);
+        return domain && domain.color ? domain.color : "#8c8c8c";
+    }
+
+    /*
+    * Function: getDomainRows
+    * A row per domain which has samples in the result, with a segment per analysis method with samples in it,
+    * the segments in the usual order of the methods.
+    */
+    getDomainRows() {
+        let rows = [];
+        this.data.domains.forEach(domain => {
+            let methodCounts = (Array.isArray(domain.method_counts) ? domain.method_counts : []).filter(methodCount => methodCount.sample_count > 0);
+            if(methodCounts.length == 0) {
+                return;
             }
+            methodCounts.sort((a, b) => this.sqs.color.compareAnalysisMethods({ method_id: a.method_id }, { method_id: b.method_id }));
+            let total = methodCounts.reduce((sum, methodCount) => sum + methodCount.sample_count, 0);
+            let fallbackColors = this.sqs.color.getColorScheme(methodCounts.length);
+            rows.push({
+                label: domain.display_title || domain.facet_code,
+                color: this.getDomainColor(domain.facet_code),
+                total: total,
+                segments: methodCounts.map((methodCount, index) => ({
+                    methodId: methodCount.method_id,
+                    methodName: methodCount.method_name || "Method "+methodCount.method_id,
+                    count: methodCount.sample_count,
+                    share: total > 0 ? methodCount.sample_count / total : 0,
+                    color: this.sqs.color.getAnalysisMethodColor(methodCount.method_id) || fallbackColors[index % fallbackColors.length]
+                }))
+            });
+        });
+        rows.sort((a, b) => b.total - a.total);
+        return rows;
+    }
+
+    renderView() {
+        let chartNode = this.getChartNode();
+        let rows = this.getDomainRows();
+        let mix = this.view == "mix";
+
+        this.setMosaicTileSubtitle(mix ? "Which methods make up each domain · each bar is 100 %" : "Samples analysed per domain, split by method");
+
+        let emptyDomains = this.data.domains.filter(domain => !rows.find(row => row.label == (domain.display_title || domain.facet_code)));
+        let emptyNote = emptyDomains.length > 0 ? "No samples in this result: "+emptyDomains.map(domain => domain.display_title || domain.facet_code).join(", ")+"." : "";
+
+        if(this.view == "table") {
+            let tableRows = [];
+            rows.forEach(row => {
+                row.segments.forEach(segment => {
+                    tableRows.push([row.label, { text: segment.methodName, color: segment.color }, this.formatCount(segment.count)]);
+                });
+            });
+            this.renderDataTable(chartNode, [
+                { title: "Domain" },
+                { title: "Method" },
+                { title: "Samples", numeric: true }
+            ], tableRows);
+            if(emptyNote) {
+                chartNode.append($("<p class='mosaic-chart-note'></p>").text(emptyNote));
+            }
+            return;
+        }
+
+        let maxTotal = rows.reduce((max, row) => Math.max(max, row.total), 0);
+        let ticks = this.getNiceTicks(maxTotal, 6);
+        let axisMax = ticks[ticks.length - 1];
+
+        let listNode = $("<div class='mosaic-bars mosaic-bars-stacked'></div>");
+        let readoutNode = $("<div class='mosaic-chart-readout' aria-live='polite'><span class='sqs-dot'></span><span class='mosaic-chart-readout-text'></span></div>");
+        let defaultReadout = "Hover or focus a segment to see its method. Click it to add the method as a filter.";
+        let setReadout = (segment = null, row = null) => {
+            readoutNode.find(".sqs-dot").css("background-color", segment ? segment.color : "transparent");
+            readoutNode.find(".mosaic-chart-readout-text").text(segment ? row.label+" · "+segment.methodName+" · "+this.formatCount(segment.count)+(segment.count == 1 ? " sample" : " samples")+" · "+this.formatShare(segment.share)+" of the domain" : defaultReadout);
+        };
+
+        rows.forEach(row => {
+            let rowNode = $("<div class='mosaic-bar-row'></div>");
+            let labelNode = $("<span class='mosaic-bar-label'></span>");
+            labelNode.append($("<span class='sqs-dot'></span>").css("background-color", row.color));
+            labelNode.append($("<span class='mosaic-bar-label-text'></span>").text(row.label));
+            rowNode.append(labelNode);
+
+            let trackNode = $("<span class='mosaic-bar-track'></span>");
+            let barNode = $("<span class='mosaic-bar mosaic-bar-segmented'></span>");
+            barNode.css("width", mix ? "100%" : Math.max(0.6, row.total / axisMax * 100)+"%");
+            row.segments.forEach(segment => {
+                let onClick = this.getFilterToggleCallback("dataset_methods", segment.methodId);
+                let segmentNode = $(onClick ? "<button type='button'></button>" : "<span></span>").addClass("mosaic-bar-segment");
+                segmentNode.css({ flexGrow: segment.count, backgroundColor: segment.color });
+                segmentNode.attr("aria-label", row.label+", "+segment.methodName+", "+this.formatCount(segment.count)+" samples, "+this.formatShare(segment.share)+" of the domain");
+                if(onClick) {
+                    let selected = this.isFilterSelection("dataset_methods", segment.methodId);
+                    segmentNode.attr("aria-pressed", selected ? "true" : "false");
+                    segmentNode.on("click", onClick);
+                }
+                segmentNode.on("mouseenter focus", () => {
+                    listNode.addClass("mosaic-bars-segment-hover");
+                    listNode.find(".mosaic-bar-segment").removeClass("mosaic-bar-segment-hot");
+                    segmentNode.addClass("mosaic-bar-segment-hot");
+                    setReadout(segment, row);
+                });
+                barNode.append(segmentNode);
+            });
+            trackNode.append(barNode);
+            rowNode.append(trackNode);
+
+            let valueText = mix ? row.segments.length+(row.segments.length == 1 ? " method" : " methods") : this.formatCount(row.total);
+            rowNode.append($("<span class='mosaic-bar-value'></span>").text(valueText));
+            listNode.append(rowNode);
         });
 
-        const methodIds = Array.from(methodIdSet).sort((a, b) => this.sqs.color.compareAnalysisMethods({ method_id: a }, { method_id: b }));
-        const y = data.domains.map(domain => domain.display_title || domain.facet_code || "Unknown");
-        const fallbackColors = this.sqs.color.getColorScheme(methodIds.length);
-        const traces = methodIds.map((methodId, idx) => {
-            const x = data.domains.map(domain => {
-                if (!Array.isArray(domain.method_counts)) return 0;
-                const found = domain.method_counts.find(mc => mc.method_id === methodId);
-                return found && typeof found.sample_count === 'number' ? found.sample_count : 0;
-            });
+        listNode.on("mouseleave", () => {
+            listNode.removeClass("mosaic-bars-segment-hover");
+            listNode.find(".mosaic-bar-segment").removeClass("mosaic-bar-segment-hot");
+            setReadout();
+        });
 
-            if (x.some(val => val > 0)) {
-                return {
-                    x,
-                    y,
-                    orientation: 'h',
-                    type: "bar",
-                    name: methodIdToLabel[methodId] || `Method ${methodId}`,
-                    marker: {
-                        color: this.sqs.color.getAnalysisMethodColor(methodId) || fallbackColors[idx % fallbackColors.length],
-                        line: { color: "#fff", width: 1 }
-                    },
-                    hovertemplate: `%{fullData.name}<br>%{x} samples<extra></extra>`
-                };
-            }
-            return null;
-        }).filter(Boolean);
-        return traces;
+        if(!mix) {
+            let axisNode = $("<div class='mosaic-bar-axis' aria-hidden='true'><span></span><span class='mosaic-bar-ticks'></span><span></span></div>");
+            ticks.forEach(tick => {
+                axisNode.find(".mosaic-bar-ticks").append($("<span class='mosaic-bar-tick'></span>").text(this.formatAxisCount(tick)).css("left", (tick / axisMax * 100)+"%"));
+            });
+            listNode.append(axisNode);
+        }
+
+        chartNode.append(listNode);
+        setReadout();
+        chartNode.append(readoutNode);
+        if(emptyNote) {
+            chartNode.append($("<p class='mosaic-chart-note'></p>").text(emptyNote));
+        }
+
+        this.exportImageRows = rows.map(row => ({
+            label: row.label,
+            valueText: mix ? row.segments.length+(row.segments.length == 1 ? " method" : " methods") : this.formatCount(row.total),
+            segments: row.segments.map(segment => ({
+                fraction: mix ? segment.share : segment.count / axisMax,
+                color: segment.color
+            }))
+        }));
     }
 
     async render(renderIntoNode = null) {
@@ -124,9 +219,8 @@ class MosaicDomainSamples extends MosaicTileModule {
             return false;
         }
         this.active = true;
-        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         $(this.renderIntoNode).empty();
-        const varId = (typeof nanoid === 'function') ? nanoid() : Math.random().toString(36).substr(2, 9);
+        const varId = nanoid();
         const chartContainerId = `chart-container-${varId}`;
         const tileHtml = `
             <div class="mosaic-tile-content" id="${varId}">
@@ -138,51 +232,26 @@ class MosaicDomainSamples extends MosaicTileModule {
         if(this.renderNoDataIfNoSites()) {
             return;
         }
-        this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);
         const result = await this.fetchData(`#${chartContainerId}`);
         if (!result) {
             this.renderComplete = true;
             return;
         }
+        if (result.requestId != this.requestId) {
+            return; //A newer render has taken over
+        }
         this.data = result.data;
-        const chartData = this.formatDataToPlotlyChartData(this.data);
-        if (!chartData) {
-            console.warn("No chart data could be generated for samples per domain.");
+
+        if (!this.data || !Array.isArray(this.data.domains) || this.getDomainRows().length == 0) {
+            this.renderNoData();
             this.renderComplete = true;
             return;
         }
-        this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
-        const layout = {
-            barmode: 'stack',
-            yaxis: { automargin: true },
-            plot_bgcolor: "#fff",
-            paper_bgcolor: "#fff",
-            autosize: true,
-            showlegend: false,
-            margin: {
-                l: this.sqs.scalePx(50),
-                r: this.sqs.scalePx(50),
-                b: this.sqs.scalePx(50),
-                t: this.sqs.scalePx(50),
-                pad: 4
-            },
-            font: {
-                family: 'Didact Gothic, sans-serif',
-                size: this.sqs.scalePx(14),
-                color: '#333'
-            },
-            responsive: true
-        };
-        const config = {
-            responsive: true,
-            displayModeBar: false,
-            displaylogo: false,
-            modeBarButtons: [['toImage']]
-        };
-        const anchorNodeId = `#${chartContainerId}`;
-        Plotly.newPlot($(anchorNodeId)[0], chartData, layout, config).then(plot => {
-            this.plot = plot;
+
+        this.renderViewToggle([{ id: "count", label: "Count" }, { id: "mix", label: "Method mix" }, { id: "table", label: "Table" }], () => {
+            this.renderView();
         });
+        this.renderView();
         this.renderComplete = true;
     }
 
@@ -195,10 +264,7 @@ class MosaicDomainSamples extends MosaicTileModule {
     }
 
     formatDataForExport(data, format = "json") {
-        if (format == "png") {
-            Plotly.downloadImage(this.plot, { format: 'png', filename: 'sead_domain_samples_chart', scale: window.devicePixelRatio || 1 });
-        }
-        if (format == "csv") {
+        if (format == "csv" || format == "xlsx") {
             const rows = [];
             (data?.domains || []).forEach(domain => {
                 const methodCounts = Array.isArray(domain.method_counts) ? domain.method_counts : [];

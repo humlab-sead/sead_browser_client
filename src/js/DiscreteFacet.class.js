@@ -63,7 +63,6 @@ class DiscreteFacet extends Facet {
 		this.registerSortEvents();
 		
 		this.sqs.tooltipManager.registerTooltip($(".facet-size-btn", this.getDomRef()), "Show only selections");
-		this.sqs.tooltipManager.registerTooltip($(".facet-text-search-btn", this.getDomRef()), "Filter list by text");
 	}
 	
 	registerSortEvents() {
@@ -125,23 +124,10 @@ class DiscreteFacet extends Facet {
 	 * Function: registerTextSearchEvents
 	 */
 	registerTextSearchEvents() {
-		$(this.getDomRef()).find(".facet-text-search-btn").on("click", () => {
-			if($(this.getDomRef()).find(".facet-text-search-input").css("display") == "none") {
-				$(this.getDomRef()).find(".facet-text-search-input").fadeIn(100).focus();
-			}
-			else {
-				if($(this.getDomRef()).find(".facet-text-search-input").val().length > 0) {
-					$(this.getDomRef()).find(".facet-text-search-input").val("");
-					$(this.getDomRef()).find(".facet-text-search-btn").removeClass("facet-control-active");
-					this.textFilterString = "";
-					this.renderData(this.data);
-				}
-				$(this.getDomRef()).find(".facet-text-search-input").fadeOut(100);
-			}
-		});
-		
-		$(this.getDomRef()).find(".facet-text-search-btn").show();
-		$(this.getDomRef()).find(".facet-text-search-input").on("keyup", (evt) => {
+		$(this.getDomRef()).addClass("facet-searchable");
+		$(this.getDomRef()).find(".facet-text-search-input").attr("placeholder", "Find "+this.title.toLowerCase()+"\u2026");
+		//"input" rather than "keyup", so clearing the field with its own clear button also counts
+		$(this.getDomRef()).find(".facet-text-search-input").on("input", (evt) => {
 			this.textSearch(evt);
 		});
 	}
@@ -411,6 +397,13 @@ class DiscreteFacet extends Facet {
 		var topBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", topBlankSpaceHeight);
 		var bottomBlankSpace = $("<div class='discrete-facet-blank-space'></div>").css("height", bottomBlankSpaceHeight);
 		var out = "";
+		//The bar on each row compares its count with the largest in the list
+		let maxCount = 0;
+		renderData.forEach(dataItem => {
+			if(dataItem.count > maxCount) {
+				maxCount = dataItem.count;
+			}
+		});
 		/*
 		console.log("scrollPos: "+scrollPos);
 		console.log("viewPortHeight: "+viewPortHeight);
@@ -451,12 +444,18 @@ class DiscreteFacet extends Facet {
 					specialFunctionLinks += " ";
 				}
 
+				let countBarWidth = maxCount > 0 ? Math.max(4, dataElement.count / maxCount * 100) : 0;
+				if(dataElement.count == 0) {
+					countBarWidth = 0;
+				}
+
 				out += `
 				<div class='facet-row `+selectedClass+`' facet-row-id='`+dataElement.id+`'>
 					<div class='facet-row-checkbox-container'>
 						<div class='facet-row-checkbox'>`+checkMark+`</div>
 					</div>
 					<div class='facet-row-text' title='`+displayTitle+`'>`+specialFunctionLinks+displayTitle+`</div>
+					<div class='facet-row-count-bar' aria-hidden='true'><span style='width:`+countBarWidth+`%;'></span></div>
 					<div class='facet-row-count' title="This is the number of data points, which is an indication of how much data we have related to this entry">`+dataElement.count+`</div>
 				</div>`;
 			}
@@ -513,21 +512,38 @@ class DiscreteFacet extends Facet {
 	}
 
 	ensureSelectionCountNode() {
-		if($(".facet-selection-count", this.getDomRef()).length == 0) {
-			const selectionCountNode = $("<div class='facet-selection-count'></div>");
+		let selectionCountNode = $(".facet-selection-count", this.getDomRef());
+		if(selectionCountNode.length == 0) {
+			selectionCountNode = $("<div class='facet-selection-count'></div>");
+			$(".facet-header", this.getDomRef()).append(selectionCountNode);
+		}
+		if(!selectionCountNode.data("bound")) {
+			selectionCountNode.data("bound", true);
 			selectionCountNode.on("click", (evt) => {
 				evt.stopPropagation();
 				$(".facet-size-btn", this.getDomRef()).trigger("click");
 			});
-			$(".facet-header", this.getDomRef()).append(selectionCountNode);
 		}
 	}
 
 	updateSelectionCountLabel() {
 		this.ensureSelectionCountNode();
 		const count = this.selections.length;
-		const selectionText = count == 1 ? "selection" : "selections";
-		$(".facet-selection-count", this.getDomRef()).text(count+" "+selectionText);
+		$(".facet-selection-count", this.getDomRef()).text(count+" selected");
+	}
+
+	/*
+	* Function: getSelectionSummary
+	* The selected item itself when there's only one, otherwise how many.
+	*/
+	getSelectionSummary() {
+		if(this.selections.length == 1) {
+			let selectedItem = this.data.find(dataItem => dataItem.id == this.selections[0]);
+			if(selectedItem) {
+				return selectedItem.title;
+			}
+		}
+		return super.getSelectionSummary();
 	}
 
 
@@ -609,9 +625,6 @@ class DiscreteFacet extends Facet {
 		this.scrollPosition = this.getScrollPos();
 		super.minimize(changeFacetSize);
 
-		$(".facet-text-search-input", this.getDomRef()).hide();
-		$(".facet-text-search-btn", this.getDomRef()).hide();
-		
 		$(this.domObj).find(".facet-body").show(); //Un-do hide of facet-body which is done in the super
 		
 		if(changeFacetSize) {
@@ -653,9 +666,6 @@ class DiscreteFacet extends Facet {
 	*/
 	maximize() {
 		super.maximize();
-		
-		//$(".facet-text-search-input", this.getDomRef()).show();
-		$(".facet-text-search-btn", this.getDomRef()).show();
 		
 		$(".discrete-facet-blank-space", this.getDomRef()).show();
 		$("#facet-"+this.id).css("height", this.defaultHeight);

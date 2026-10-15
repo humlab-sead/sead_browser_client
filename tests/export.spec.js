@@ -21,7 +21,7 @@ async function dismissBlockingTutorial(page) {
 }
 
 async function dismissCookieConsent(page) {
-	const consentButton = page.getByRole('button', { name: /i agree/i }).first();
+	const consentButton = page.getByRole('button', { name: /i agree|dismiss cookie message/i }).first();
 	if(await consentButton.isVisible().catch(() => false)) {
 		await consentButton.click();
 		await page.waitForTimeout(200);
@@ -31,13 +31,15 @@ async function dismissCookieConsent(page) {
 async function waitForSiteReportReady(page) {
 	await expect(page.locator('#site-report-main-container')).toBeVisible({ timeout: 30000 });
 	await expect(page.locator('#site-report-content')).toBeVisible({ timeout: 30000 });
+	await page.locator('#site-report-tab-analyses').click();
 	await expect(page.locator('#site-report-section-analyses')).toBeVisible({ timeout: 30000 });
 }
 
+//Shows the first analysis method's datasets
 async function openAnalysesSection(page) {
-	const analysisSectionToggle = page.locator('#site-report-section-analyses .site-report-level-content .site-report-level-title').first();
-	await expect(analysisSectionToggle).toBeVisible({ timeout: 30000 });
-	await analysisSectionToggle.click();
+	const firstMethod = page.locator('.site-report-method-nav-item').first();
+	await expect(firstMethod).toBeVisible({ timeout: 30000 });
+	await firstMethod.click();
 }
 
 function getColumnTitles(columns) {
@@ -154,61 +156,62 @@ test.describe('Site report content item export flow', () => {
 		await waitForSiteReportReady(page);
 		await openAnalysesSection(page);
 
-		const allSubsectionToggles = page.locator('#site-report-section-analyses .site-report-level-content .site-report-level-title');
-		const subsectionCount = await allSubsectionToggles.count();
-		for(let i = 0; i < subsectionCount; i += 1) {
-			await allSubsectionToggles.nth(i).click().catch(() => {});
-		}
-
-		const exportButtons = page.locator('#site-report-section-analyses .content-item-container .site-report-toolbar-export-btn:visible');
-		const exportButtonCount = await exportButtons.count();
-		expect(exportButtonCount).toBeGreaterThan(0);
+		//The analyses tab shows one method at a time, so go through them one by one
+		const methodNavItems = page.locator('.site-report-method-nav-item');
+		const methodCount = await methodNavItems.count();
+		expect(methodCount).toBeGreaterThan(0);
 
 		let foundEcoCodeExport = false;
-		const scanLimit = Math.min(exportButtonCount, 10);
 
-		for(let i = 0; i < scanLimit; i += 1) {
-			await page.evaluate(() => {
-				if(window.sqs && window.sqs.dialogManager) {
-					window.sqs.dialogManager.hidePopOver();
+		for(let m = 0; m < methodCount && !foundEcoCodeExport; m += 1) {
+			await methodNavItems.nth(m).click();
+			const exportButtons = page.locator('#site-report-section-analyses .content-item-container .site-report-toolbar-export-btn:visible');
+			await exportButtons.first().waitFor({ timeout: 10000 }).catch(() => {});
+			const scanLimit = Math.min(await exportButtons.count(), 10);
+
+			for(let i = 0; i < scanLimit; i += 1) {
+				await page.evaluate(() => {
+					if(window.sqs && window.sqs.dialogManager) {
+						window.sqs.dialogManager.hidePopOver();
+					}
+				});
+
+				await exportButtons.nth(i).click();
+				const jsonBtn = page.locator('.site-report-export-download-btn', { hasText: 'Download JSON' }).first();
+				const hasJsonButton = await jsonBtn.isVisible().catch(() => false);
+				if(!hasJsonButton) {
+					continue;
 				}
-			});
 
-			await exportButtons.nth(i).click();
-			const jsonBtn = page.locator('.site-report-export-download-btn', { hasText: 'Download JSON' }).first();
-			const hasJsonButton = await jsonBtn.isVisible().catch(() => false);
-			if(!hasJsonButton) {
-				continue;
-			}
-
-			let jsonDownload = null;
-			try {
-				([jsonDownload] = await Promise.all([
-					page.waitForEvent('download', { timeout: 10000 }),
-					jsonBtn.click()
-				]));
-			}
-			catch (err) {
-				continue;
-			}
-
-			const jsonPath = await jsonDownload.path();
-			const jsonRaw = await fs.readFile(jsonPath, 'utf8');
-			const exportStruct = JSON.parse(jsonRaw);
-			const ecoCodeColumns = inspectEcoCodeColumns(exportStruct);
-
-			if(ecoCodeColumns.hasEcoCodeDefinition) {
-				foundEcoCodeExport = true;
-				expect(ecoCodeColumns.hasColorColumn).toBeTruthy();
-				expect(ecoCodeColumns.hasTaxaColumn).toBeTruthy();
-				break;
-			}
-
-			await page.evaluate(() => {
-				if(window.sqs && window.sqs.dialogManager) {
-					window.sqs.dialogManager.hidePopOver();
+				let jsonDownload = null;
+				try {
+					([jsonDownload] = await Promise.all([
+						page.waitForEvent('download', { timeout: 10000 }),
+						jsonBtn.click()
+					]));
 				}
-			});
+				catch (err) {
+					continue;
+				}
+
+				const jsonPath = await jsonDownload.path();
+				const jsonRaw = await fs.readFile(jsonPath, 'utf8');
+				const exportStruct = JSON.parse(jsonRaw);
+				const ecoCodeColumns = inspectEcoCodeColumns(exportStruct);
+
+				if(ecoCodeColumns.hasEcoCodeDefinition) {
+					foundEcoCodeExport = true;
+					expect(ecoCodeColumns.hasColorColumn).toBeTruthy();
+					expect(ecoCodeColumns.hasTaxaColumn).toBeTruthy();
+					break;
+				}
+
+				await page.evaluate(() => {
+					if(window.sqs && window.sqs.dialogManager) {
+						window.sqs.dialogManager.hidePopOver();
+					}
+				});
+			}
 		}
 
 		test.skip(!foundEcoCodeExport, `No ecocode export detected on site ${smokeSiteId}`);

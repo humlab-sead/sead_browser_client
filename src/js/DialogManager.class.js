@@ -1,12 +1,5 @@
 //import Config from '../config/config.js';
 import Dropzone from 'dropzone';
-import domainGeneralImage from '../assets/domain-images/general.png';
-import domainDendrochronologyImage from '../assets/domain-images/dendrochronology.png';
-import domainPalaeoentomologyImage from '../assets/domain-images/palaeoentomology.png';
-import domainArchaeobotanyImage from '../assets/domain-images/arachaeobotany.png';
-import domainPollenImage from '../assets/domain-images/pollen.png';
-import domainGeoarchaeologyImage from '../assets/domain-images/geoarchaeology.png';
-import domainCeramicImage from '../assets/domain-images/ceramic.png';
 /*
 Class: DialogManager
 Simple machine for handling some basic rendering of overlay/popup-dialogs.
@@ -68,36 +61,7 @@ class DialogManager {
 				</ul>
 				<p>SEAD is free to use and all data is openly available for research and education.</p>
 				<p>Data is organised into the following research domains:</p>
-				<div class="qs-domain-grid">
-					<div class="qs-domain-item">
-						<img src="${domainGeneralImage}" alt="General">
-						<span>Contains all data in SEAD.</span>
-					</div>
-					<div class="qs-domain-item">
-						<img src="${domainDendrochronologyImage}" alt="Dendrochronology">
-						<span>Tree-ring records used for dating and reconstructing past environments.</span>
-					</div>
-					<div class="qs-domain-item">
-						<img src="${domainPalaeoentomologyImage}" alt="Palaeoentomology">
-						<span>Fossil insect remains used as proxies for past climate and land use.</span>
-					</div>
-					<div class="qs-domain-item">
-						<img src="${domainArchaeobotanyImage}" alt="Archaeobotany">
-						<span>Plant macrofossils and seeds reflecting past agriculture and vegetation.</span>
-					</div>
-					<div class="qs-domain-item">
-						<img src="${domainPollenImage}" alt="Pollen">
-						<span>Pollen records documenting vegetation history and landscape change.</span>
-					</div>
-					<div class="qs-domain-item">
-						<img src="${domainGeoarchaeologyImage}" alt="Geoarchaeology">
-						<span>Sediment and soil data related to site formation and landscape processes.</span>
-					</div>
-					<div class="qs-domain-item">
-						<img src="${domainCeramicImage}" alt="Ceramic">
-						<span>Ceramic finds and assemblage analyses from archaeological excavations.</span>
-					</div>
-				</div>
+				${this.renderDomainList()}
 			`;
 			this.showPopOver("What is SEAD?", content, { width: "640px" });
 		});
@@ -187,6 +151,36 @@ class DialogManager {
 			mobileMode = this.sqs.layoutManager.getMode() == "mobileMode";
 		}
 		$("#popover-dialog").toggleClass("popover-mobile-mode", mobileMode);
+	}
+
+	/*
+	* Function: renderDomainList
+	* The research domains, each with its color and title as the domain menu shows them, and a line on what it holds.
+	*/
+	renderDomainList() {
+		const descriptions = {
+			general: "Contains all data in SEAD.",
+			dendrochronology: "Tree-ring records used for dating and reconstructing past environments.",
+			palaeoentomology: "Fossil insect remains used as proxies for past climate and land use.",
+			archaeobotany: "Plant macrofossils and seeds reflecting past agriculture and vegetation.",
+			pollen: "Pollen records documenting vegetation history and landscape change.",
+			geoarchaeology: "Sediment and soil data related to site formation and landscape processes.",
+			ceramic: "Ceramic finds and assemblage analyses from archaeological excavations."
+		};
+
+		let list = $("<ul class='qs-domain-list'></ul>");
+		this.sqs.config.domains.filter(domain => domain.enabled).forEach(domain => {
+			let item = $("<li class='qs-domain-item'></li>");
+			let title = $("<span class='qs-domain-title'></span>");
+			title.append($("<span class='sqs-dot' aria-hidden='true'></span>").css("background-color", domain.color));
+			title.append($("<span></span>").text(domain.title));
+			item.append(title);
+			if(descriptions[domain.name]) {
+				item.append($("<span class='qs-domain-description'></span>").text(descriptions[domain.name]));
+			}
+			list.append(item);
+		});
+		return list.prop("outerHTML");
 	}
 
 	showPopOver(title, content, options = {}) {

@@ -100,6 +100,17 @@ class ResultTable extends ResultModule {
 	}
 
 	/*
+	* Function: getResultSiteIds
+	* In the table's current sort order.
+	*/
+	getResultSiteIds() {
+		if(this.tabulatorTable) {
+			return this.tabulatorTable.getData("active").map(row => row.site_link_filtered);
+		}
+		return this.data && Array.isArray(this.data.rows) ? this.data.rows.map(row => row.site_link_filtered) : [];
+	}
+
+	/*
 	* Function: fetchData
 	*/
 	fetchData() {
@@ -206,19 +217,12 @@ class ResultTable extends ResultModule {
 		return true;
 	}
 
-	renderExportButton(anchorNodeSelector = "#result-table-container") {
-		if($("#result-table-container .result-export-button").length > 0) {
-			console.warn("renderExportButton - Export button already exists");
-			return;
-		}
-		let siteCount = this.data && this.data.rows ? this.data.rows.length : 0;
-		let exportButton = $(`<div class="result-export-button">
-			<span class="result-table-stats">${siteCount} sites</span>
-			<span class="result-export-button-divider"></span>
-			<span class="result-export-button-action"><i class='fa fa-download' aria-hidden='true'></i> Export</span>
-		</div>`);
-		$(anchorNodeSelector).append(exportButton);
-		this.bindExportModuleDataToButton(exportButton, this);
+	/*
+	* Function: renderExportButton
+	* The export button is in the bar under the result, shared by all the result views.
+	*/
+	renderExportButton() {
+		this.resultManager.updateResultSummary();
 	}
 
 	getFeatureTypeIconUrl(iconName) {
@@ -351,17 +355,7 @@ class ResultTable extends ResultModule {
 		$('#result-table-container').css("display", "block");
 		$('#result-table-container').html(`<div id='result-datatable'></div>`);
 
-		if(this.sqs.config.showResultExportButton) {
-			let exportButton = $(`<div class="result-export-button">
-				<span class="result-table-stats">${this.data.rows.length} sites</span>
-				<span class="result-export-button-divider"></span>
-				<span class="result-export-button-action"><i class='fa fa-download' aria-hidden='true'></i> Export</span>
-			</div>`);
-			let exportPanel = $("<div></div>").attr("id", "result-table-export-panel");
-			exportPanel.append(exportButton);
-			$("#result-table-container").append(exportPanel);
-			this.bindExportModuleDataToButton(exportButton, this);
-		}
+		this.resultManager.updateResultSummary();
 
 		let maxAnalysisEntities = this.data.rows.reduce((max, row) => Math.max(max, row.analysis_entities), 0);
 
@@ -383,7 +377,7 @@ class ResultTable extends ResultModule {
 					return link;
 				}
 			},
-			{title:"Site ID", field:"site_link_filtered", widthGrow:1, cssClass: "result-table-site-id", visible: !mobileMode},
+			{title:"Site ID", field:"site_link_filtered", widthGrow:1, minWidth: 96, cssClass: "result-table-site-id", visible: !mobileMode},
 			{
 				title: "Country",
 				field: "country",
@@ -544,12 +538,18 @@ class ResultTable extends ResultModule {
 			});
 		}
 
-		tableColumns.push({title:"View site", width: 130, headerSort: false, field:"site_link_filtered", cssClass: "result-table-view-site", cellClick: (e, cell) => {
+		tableColumns.push({title:"", width: 48, headerSort: false, field:"site_link_filtered", cssClass: "result-table-view-site", cellClick: (e, cell) => {
 			if($(e.target).closest(".site-report-table-button").length > 0) {
 				this.openSiteReportFromCell(e, cell.getValue());
 			}
 		}, formatter: (cell, formatterParams, onRendered) => {
-				return `<a class='site-report-table-button' href='/site/${cell.getValue()}'>View site <i class="fa fa-arrow-right" aria-hidden="true"></i></a>`;
+				let link = document.createElement("a");
+				link.className = "site-report-table-button";
+				link.href = "/site/"+cell.getValue();
+				link.setAttribute("aria-label", "Open the site datasheet for "+cell.getData().sitename);
+				link.title = "Open the site datasheet";
+				link.innerHTML = "<i class='fa fa-angle-right' aria-hidden='true'></i>";
+				return link;
 			}
 		});
 
@@ -560,6 +560,10 @@ class ResultTable extends ResultModule {
 			initialSort: this.sort,
 			selectable: true,
 			columns: tableColumns,
+		});
+
+		this.tabulatorTable.on("rowSelectionChanged", () => {
+			this.resultManager.updateResultSummary();
 		});
 
 		this.tabulatorTable.on("dataSorted", (sorters) => {
@@ -722,6 +726,14 @@ class ResultTable extends ResultModule {
 			});
 		}
 		return this.analysisMethodsSvgResizeObserver;
+	}
+
+	/*
+	* Function: getSelectedCount
+	* How many rows are ticked. Exporting exports those, or all sites when none are.
+	*/
+	getSelectedCount() {
+		return this.tabulatorTable ? this.tabulatorTable.getSelectedData().length : 0;
 	}
 
 	getSelectedSites() {

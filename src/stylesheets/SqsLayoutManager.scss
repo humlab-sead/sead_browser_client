@@ -6,42 +6,31 @@
     display: none;
     position: absolute;
     left: 0;
-    top: 0;
+    top: var(--sqs-header-height);
     margin: 0px;
     padding: 0px;
 }
 
-#site-report-main-container .section-left {
-    height: calc(100vh - #{sqs-px(87 + 21)});
-}
-
-#site-report-main-container .section-right {
-    height: calc(100vh - #{sqs-px(87 + 21)});
-}
-
 .section-left {
-    border-top: 0px solid $inactive-color;
-    background-color: #fff;
+    box-sizing: border-box;
+    background-color: $page-bg-color;
     margin: 0px;
     position: relative;
     
     overflow-x: hidden;
     overflow-y: auto;
-    height: calc(100vh - 0px);
+    height: calc(100vh - var(--sqs-header-height));
     transition: min-width 0.3s ease, max-width 0.3s ease;
 }
 
 .section-right {
+    box-sizing: border-box;
     position: relative;
     margin: 0px;
-    
-    border-left-style: solid;
-    border-left-width: 1px;
-    border-left-color: rgba(6, 6, 9, 0.1);
 
     overflow-x: hidden;
     overflow-y: auto;
-    height: calc(100vh - 0px);
+    height: calc(100vh - var(--sqs-header-height));
     width: 100%;
     transition: min-width 0.3s ease, max-width 0.3s ease;
 }
@@ -127,6 +116,8 @@ body.resizing {
     display: flex; //flex
 	visibility: visible;
 	position: relative;
+	//As wide as its icon, rather than as its parent, the divider, which takes no width
+	width: max-content;
 	top: calc(50vh - 2em);
     left: 5px;
     height: auto;

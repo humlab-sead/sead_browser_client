@@ -146,6 +146,20 @@ class SiteReportManager {
 	}
 	
 	/*
+	* Function: getResultSiteIds
+	*
+	* The sites in the current result, in the order the result view shows them, so a site report
+	* can step to the previous and next one. Empty when there is no result yet.
+	*/
+	getResultSiteIds() {
+		let module = this.sqs.resultManager ? this.sqs.resultManager.getActiveModule() : false;
+		if(!module || typeof module.getResultSiteIds != "function") {
+			return [];
+		}
+		return module.getResultSiteIds();
+	}
+
+	/*
 	* Function: getSiteIdFromUrl
 	*
 	* Returns:

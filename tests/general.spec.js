@@ -8,24 +8,24 @@ test('has title', async ({ page }) => {
   await expect(page).toHaveTitle(/SEAD/);
 });
 
-//test for the domain menu - click the #filter-menu-domain-area button and expect #domains-menu-anchor-point to be visible
+//test for the domain menu - click the #domain-menu button and expect #domains-menu-anchor-point to be visible
 test('domain menu', async ({ page }) => {
   await page.goto('/');
 
   // Click the domain menu button.
-  await page.click('#filter-menu-domain-area');
+  await page.click('#domain-menu');
 
   // Expects the domain menu to be visible.
   await expect(page.locator('#domains-menu-anchor-point')).toBeVisible();
 });
 
 
-//same test as above but for #filter-menu-filter-area and #filters-menu-anchor-point
+//same test as above but for #facet-menu and #filters-menu-anchor-point
 test('filter menu', async ({ page }) => {
   await page.goto('/');
 
   // Click the filter menu button.
-  await page.click('#filter-menu-filter-area');
+  await page.click('#facet-menu');
 
   // Expects the filter menu to be visible.
   await expect(page.locator('#filters-menu-anchor-point')).toBeVisible();
@@ -67,13 +67,59 @@ test('mosaic menu', async ({ page }) => {
   await expect(page.locator('#result-menu > [menu-item="mosaic"]')).toHaveClass(/sqs-menu-selected/);
 });
 
+//the overview shows the result in figures and its charts can be switched to tables
+test('overview charts', async ({ page }) => {
+  await page.goto('/');
+  await page.click('#result-menu > [menu-item="mosaic"]');
+
+  await expect(page.locator('#result-mosaic-summary [data-summary="sites"] .mosaic-summary-value')).toHaveText(/\d/, { timeout: 30000 });
+
+  const analysisMethods = page.locator('.result-mosaic-tile', { has: page.locator('.mosaic-tile-title', { hasText: 'Analytical methods' }) });
+  await expect(analysisMethods.locator('.mosaic-bar-row').first()).toBeVisible({ timeout: 30000 });
+
+  await analysisMethods.getByRole('button', { name: 'Table', exact: true }).click();
+  await expect(analysisMethods.locator('.mosaic-data-table tbody tr').first()).toBeVisible();
+  await expect(analysisMethods.locator('.mosaic-bar-row')).toHaveCount(0);
+});
+
+//the dendrochronology overview draws its variables as bars and histograms, each with its coverage of the samples
+test('dendrochronology overview charts', async ({ page }) => {
+  await page.goto('/dendrochronology');
+  await page.click('#result-menu > [menu-item="mosaic"]');
+
+  const treeSpecies = page.locator('.result-mosaic-tile', { has: page.locator('.mosaic-tile-title', { hasText: 'Tree species' }) });
+  await expect(treeSpecies.locator('.mosaic-bar-row').first()).toBeVisible({ timeout: 30000 });
+  await expect(treeSpecies.locator('.mosaic-coverage-value')).toHaveText(/%/, { timeout: 30000 });
+
+  const treeRings = page.locator('.result-mosaic-tile', { has: page.locator('.mosaic-tile-title', { hasText: 'Tree rings' }) });
+  await expect(treeRings.locator('.mosaic-tile-canvas canvas')).toBeVisible({ timeout: 30000 });
+  await treeRings.getByRole('button', { name: 'Table', exact: true }).click();
+  await expect(treeRings.locator('.mosaic-data-table tbody tr').first()).toBeVisible();
+});
+
+//clicking an eco code in the palaeoentomology overview filters by it, through the staged eco code filter
+test('eco code bar adds filter', async ({ page }) => {
+  await page.goto('/palaeoentomology');
+  await page.click('#result-menu > [menu-item="mosaic"]');
+
+  const ecoCodes = page.locator('.result-mosaic-tile', { has: page.locator('.mosaic-tile-title', { hasText: 'BUGS eco codes' }) });
+  await expect(ecoCodes.locator('button.mosaic-bar-row').first()).toBeVisible({ timeout: 30000 });
+  await ecoCodes.locator('button.mosaic-bar-row').first().click();
+
+  await expect.poll(() => page.evaluate(() => {
+    const facet = window.sqs.facetManager.getFacetByName('ecocode');
+    return facet ? facet.filters.map(stage => stage.name+':'+stage.selections.length).join(',') : null;
+  }), { timeout: 30000 }).toBe('ecocode_system:1,ecocode:1');
+  await expect(ecoCodes.locator('button.mosaic-bar-row[aria-pressed="true"]')).toHaveCount(1, { timeout: 30000 });
+});
+
 
 //open filter menu and click on "Space/Time" submenu and then click on "Site" filter (which will be called #facet-1) and expect to have it deployed in #facet-section
 test('filter deployment', async ({ page }) => {
   await page.goto('/');
 
   // Click the filter menu button.
-  await page.click('#filter-menu-filter-area');
+  await page.click('#facet-menu');
 
   // Click the Space/Time submenu.
   await page.click('#filters-menu-anchor-point > [menu-item="space_time"]');

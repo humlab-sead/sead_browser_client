@@ -1,34 +1,12 @@
 import MosaicTileModule from "./MosaicTileModule.class";
 import { nanoid } from "nanoid";
-import {
-    Chart,
-    BarController,
-    BarElement,
-    CategoryScale,
-    LinearScale,
-    Title,
-    Tooltip,
-    Legend
-  } from 'chart.js';
-  
-  Chart.register(
-    BarController,
-    BarElement,
-    CategoryScale,
-    LinearScale,
-    Title,
-    Tooltip,
-    Legend
-  );
-
-  Chart.defaults.font.family = 'Didact Gothic, sans-serif';
 
 class MosaicEcoCodesModule extends MosaicTileModule {
     constructor(sqs) {
         super();
         this.sqs = sqs;
         this.title = "BUGS eco codes";
-        this.description = "Shows the distribution of BUGS eco-code categories across the selected sites, reflecting ecological preferences of identified taxa.";
+        this.description = "Shows the distribution of BUGS eco-code categories across the selected sites, reflecting ecological preferences of identified taxa. Click an eco code to add it as a filter.";
 		this.name = "mosaic-ecocodes";
 		this.domains = [];
         this.pendingRequestPromise = null;
@@ -37,8 +15,11 @@ class MosaicEcoCodesModule extends MosaicTileModule {
         this.renderIntoNode = null;
         this.requestId = 0;
         this.renderComplete = false;
-        this.chartType = "chartjs";
+        this.chartType = "html";
         this.showChartSelector = false;
+        this.view = "chart";
+        //The eco code filter has two stages: a system, then its codes. These codes are those of the BUGS system.
+        this.ecocodeSystemId = 2;
     }
 
     async render(renderIntoNode = null) {
@@ -55,16 +36,16 @@ class MosaicEcoCodesModule extends MosaicTileModule {
 
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        let requestId = ++this.requestId;
 
         // Clear previous content
         $(this.renderIntoNode).empty();
 
-        // Create a container with a header/title bar and a dedicated chart container for Chart.js
-        const varId = (typeof nanoid === 'function') ? nanoid() : Math.random().toString(36).substr(2, 9);
+        const varId = nanoid();
         const chartContainerId = `chart-container-${varId}`;
         const tileHtml = `
             <div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-chart" id="${chartContainerId}" style="display: flex; align-items: stretch;"></div>
+                <div class="mosaic-tile-chart" id="${chartContainerId}"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);
@@ -76,118 +57,84 @@ class MosaicEcoCodesModule extends MosaicTileModule {
         // Show loading indicator on the chart container only
         this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);
 
-        let ecoCodeNames = [];
-        let datasets = [];
-        datasets.push({
-            label: "Eco codes",
-            data: [],
-            backgroundColor: []
-        });
-
-        let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/ecocodes", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(resultMosaic.sites)
-        });
+        let response = await super.fetchData("/graphs/ecocodes", JSON.stringify(resultMosaic.sites));
+        if(!response) {
+            return false;
+        }
         let responseData = await response.json();
+
+        if(requestId != this.requestId) {
+            return; //A newer render has taken over
+        }
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
         this.data = responseData;
 
-        responseData.ecocode_groups.sort(function(a, b) {
-            return b.totalAbundance - a.totalAbundance;
-        });
-
-        // Calculate total abundance for percentage calculation
-        let totalAbundance = responseData.ecocode_groups.reduce((sum, group) => sum + group.totalAbundance, 0);
-
-        for(let key in responseData.ecocode_groups) {
-            let ecocode = responseData.ecocode_groups[key];
-            let ecoCodeName = ecocode.name;
-            ecoCodeNames.push(ecoCodeName);
-            // Calculate percentage (0-100)
-            let percent = totalAbundance > 0 ? (ecocode.totalAbundance / totalAbundance) * 100 : 0;
-            percent = Math.round(percent * 10) / 10; // Round to one decimal place
-            datasets[0].data.push(percent);
-
-            for(let defKey in this.sqs.bugsEcoCodeDefinitions) {
-                if(this.sqs.bugsEcoCodeDefinitions[defKey].ecocode_definition_id == ecocode.ecocode_definition_id) {
-                    datasets[0].backgroundColor.push(this.sqs.bugsEcoCodeDefinitions[defKey].color);
-                }
-            }
+        if(!Array.isArray(responseData.ecocode_groups) || responseData.ecocode_groups.length == 0) {
+            this.renderNoData();
+            this.renderComplete = true;
+            return;
         }
 
-        const data = {
-            labels: ecoCodeNames,
-            datasets: datasets
-        };
-
-        let config = {
-            type: 'bar',
-            data: data,
-            options: {
-                animation: false,
-                plugins: {
-                    title: {
-                        display: false,
-                        text: ''
-                    },
-                    legend: {
-                        display: false,
-                        position: 'top',
-                    },
-                    tooltip: {
-                        enabled: true,
-                        callbacks: {
-                            title: function(context) {
-                                return context[0].label;
-                            },
-                            label: function(context) {
-                                // Show percentage with one decimal
-                                return context.formattedValue + "% of total abundance";
-                            }
-                        }
-                    }
-                },
-                responsive: true,
-                indexAxis: 'y', // Set the index axis to 'y' for vertical bars
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        stacked: true,
-                        title: {
-                            display: true,
-                            text: 'Percentage (%)'
-                        }
-                    },
-                    y: {
-                        stacked: true
-                    }
-                }
-            }
-        };
-
-        this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
-        this.chartId = `chart-${varId}`;
-        var chartCanvas = $(`<canvas id='${this.chartId}' style='padding:1.5em;'></canvas>`);
-        $(`#${chartContainerId}`).append(chartCanvas);
-
-        let c = new Chart(
-            document.getElementById(this.chartId),
-            config
-        );
-
+        this.renderViewToggle([{ id: "chart", label: "Chart" }, { id: "table", label: "Table" }], () => {
+            this.renderView();
+        });
+        this.renderView();
         this.renderComplete = true;
+    }
+
+    getEcoCodeColor(ecocodeDefinitionId) {
+        for(let defKey in this.sqs.bugsEcoCodeDefinitions) {
+            if(this.sqs.bugsEcoCodeDefinitions[defKey].ecocode_definition_id == ecocodeDefinitionId) {
+                return this.sqs.bugsEcoCodeDefinitions[defKey].color;
+            }
+        }
+        return "#a0a0a0";
+    }
+
+    renderView() {
+        let chartNode = this.getChartNode();
+        let groups = this.data.ecocode_groups.slice().sort((a, b) => b.totalAbundance - a.totalAbundance);
+        let totalAbundance = groups.reduce((sum, group) => sum + group.totalAbundance, 0);
+
+        let rows = groups.map(group => {
+            let share = totalAbundance > 0 ? group.totalAbundance / totalAbundance : 0;
+            return {
+                label: group.name,
+                value: share * 100,
+                valueText: this.formatShare(share),
+                abundance: group.totalAbundance,
+                color: this.getEcoCodeColor(group.ecocode_definition_id),
+                title: group.name+" · abundance "+this.formatCount(group.totalAbundance),
+                selected: this.isFilterSelection("ecocode", group.ecocode_definition_id, "ecocode"),
+                onClick: this.getStageFilterToggleCallback("ecocode", "ecocode", group.ecocode_definition_id, { ecocode_system: [this.ecocodeSystemId] })
+            };
+        });
+
+        this.setMosaicTileSubtitle("Share of the summed abundance of "+this.formatCount(totalAbundance));
+
+        if(this.view == "table") {
+            this.renderDataTable(chartNode, [
+                { title: "Eco code" },
+                { title: "Abundance", numeric: true },
+                { title: "Share", numeric: true }
+            ], rows.map(row => [{ text: row.label, color: row.color }, this.formatCount(row.abundance), row.valueText]));
+            return;
+        }
+
+        this.renderRankedBars(chartNode, rows, { showSwatches: true, axisFormat: tick => tick+" %" });
     }
 
     async update() {
         this.render();
     }
 
+    getAvailableExportFormats() {
+        return ["json", "csv", "png"];
+    }
 
 	formatDataForExport(data, format = "json") {
-		
-        if(format == "csv") {
+
+        if(format == "csv" || format == "xlsx") {
             data = data.ecocode_groups.map((group) => ({
                 ecocode_definition_id: group.ecocode_definition_id,
                 abbreviation: group.abbreviation,

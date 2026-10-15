@@ -97,10 +97,12 @@ class ContentItemRenderer {
 		}
 
 		headerNode.append("<div class='content-item-header-divider'></div>");
-		let refAndContacts = "<h4 class='header-with-underline'>References</h4>";
+		let refAndContacts = "<div class='dataset-reference-dialog'>";
+		refAndContacts += "<h4 class='sqs-label'>References</h4>";
 		refAndContacts += referenceData;
-		refAndContacts += "<h4 class='header-with-underline'>Contacts</h4>";
+		refAndContacts += "<h4 class='sqs-label'>Contacts</h4>";
 		refAndContacts += contactData;
+		refAndContacts += "</div>";
 		headerNode.append(this.renderDatasetReferences(refAndContacts));
 		
 		
@@ -280,6 +282,7 @@ class ContentItemRenderer {
 
 	    closeContentDisplayOptionsPanel(node, dropdownNode) {
 			$(dropdownNode).hide(100);
+			$(".site-report-toolbar-btn", node).first().attr("aria-expanded", "false");
 			$(document).off("mousedown" + this.displayOptionsNamespace);
 			$(document).off("touchstart" + this.displayOptionsNamespace);
 		}
@@ -299,6 +302,7 @@ class ContentItemRenderer {
 				$(document).off("mousedown" + this.displayOptionsNamespace);
 				$(document).off("touchstart" + this.displayOptionsNamespace);
 				$(dropdownNode).show(100);
+				$(".site-report-toolbar-btn", node).first().attr("aria-expanded", "true");
 
 				$(document).on("mousedown" + this.displayOptionsNamespace + " touchstart" + this.displayOptionsNamespace, (e) => {
 					if (!$(node).is(e.target) && $(node).has(e.target).length === 0) {

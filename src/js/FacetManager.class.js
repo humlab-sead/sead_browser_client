@@ -97,10 +97,22 @@ class FacetManager {
 		});
 		
 		this.sqs.sqsEventListen("sqsFacetPostAdd", () => {
+			//A filter card is as high as its header and body, which the slots take their height from
+			this.adjustSlotSizes();
 			this.updateSlotArrows();
+			this.updateAllFacetPositions();
+			this.queueActiveFiltersRender();
 		});
 		this.sqs.sqsEventListen("sqsFacetPostRemove", () => {
 			this.updateSlotArrows();
+			this.updateAllFacetPositions();
+			this.queueActiveFiltersRender();
+		});
+		this.sqs.sqsEventListen("seadFacetSelection", () => {
+			this.queueActiveFiltersRender();
+		});
+		this.sqs.sqsEventListen("facetDataRendered", () => {
+			this.queueActiveFiltersRender();
 		});
 
 		this.sqs.sqsEventListen("domainChanged", (evt, domainName) => {
@@ -205,6 +217,58 @@ class FacetManager {
 		}
 	}
 	
+	queueActiveFiltersRender() {
+		clearTimeout(this.activeFiltersRenderTimeout);
+		this.activeFiltersRenderTimeout = setTimeout(() => {
+			this.renderActiveFilters();
+		}, 0);
+	}
+
+	/*
+	* Function: renderActiveFilters
+	*
+	* The chips above the filters, one for each filter which narrows the result, saying what it
+	* narrows it to. Removing a chip removes its filter.
+	*/
+	renderActiveFilters() {
+		let container = $("#active-filters");
+		container.empty();
+
+		let narrowingFacets = this.facets.filter(facet => !facet.virtual && !facet.deleted && facet.hasSelection());
+		narrowingFacets.forEach(facet => {
+			let chip = $("<span class='active-filter-chip'></span>");
+			chip.append($("<span class='active-filter-chip-title'></span>").text(facet.title));
+			chip.append($("<span class='active-filter-chip-value'></span>").text(facet.getSelectionSummary()));
+			let removeButton = $("<button type='button' class='active-filter-chip-remove'><i class='fa fa-times' aria-hidden='true'></i></button>");
+			removeButton.attr("aria-label", "Remove the "+facet.title+" filter");
+			removeButton.on("click", () => {
+				facet.destroy();
+			});
+			chip.append(removeButton);
+			container.append(chip);
+		});
+
+		if(narrowingFacets.length > 1) {
+			let clearAllButton = $("<button type='button' class='active-filters-clear-all'>Clear all</button>");
+			clearAllButton.on("click", () => {
+				[...this.facets].filter(facet => !facet.virtual).forEach(facet => {
+					facet.destroy();
+				});
+			});
+			container.append(clearAllButton);
+		}
+
+		container.toggleClass("active-filters-visible", narrowingFacets.length > 0);
+	}
+
+	/*
+	* Function: getNarrowingFacetCount
+	* How many filters narrow the result, as opposed to just sitting there.
+	*/
+	getNarrowingFacetCount() {
+		return this.facets.filter(facet => !facet.virtual && !facet.deleted && facet.hasSelection()).length;
+	}
+
 	/*
 	* Function: renderDemoSlot
 	*
@@ -1348,53 +1412,12 @@ class FacetManager {
 				on: "click"
 			},
 			{
-				selector: "#filter-menu-filter-area",
-				on: "click"
-			},
-			{
 				selector: "#demo-slot-menu-link",
 				on: "click"
 			}],
-			callbacks: [
-				{
-					selector: "#facet-menu",
-					on: "mouseover",
-					callback: () => {
-						this.sqs.svgSetFill($("#facet-menu")[0], "#3978b4");
-						$("#filter-menu-filter-area").css("background", "#3978b4");
-					}
-				},
-				{
-					selector: "#facet-menu",
-					on: "mouseout",
-					callback: () => {
-						this.sqs.svgSetFill($("#facet-menu")[0], this.sqs.color.colors.baseColor);
-						$("#filter-menu-filter-area").css("background", this.sqs.color.colors.baseColor);
-					}
-				},
-				{
-					selector: "#filter-menu-filter-area",
-					on: "mouseover",
-					callback: () => {
-						this.sqs.svgSetFill($("#facet-menu")[0], "#3978b4");
-						$("#filter-menu-filter-area").css("background", "#3978b4");
-					}
-				},
-				{
-					selector: "#filter-menu-filter-area",
-					on: "mouseout",
-					callback: () => {
-						this.sqs.svgSetFill($("#facet-menu")[0], this.sqs.color.colors.baseColor);
-						$("#filter-menu-filter-area").css("background", this.sqs.color.colors.baseColor);
-					}
-				},
-			],
+			callbacks: [],
 			anchorTriggerEvent: "click",
 			//customStyleClasses: "sqs-menu-block-vertical-large",
-			viewPortResizeCallback: () => {
-				let pos = $("#filter-menu-filter-area").position().left - 15;
-				$("#filters-menu-anchor-point").css("left", pos+"px");
-			},
 			items: []
 		};
 		
@@ -1711,6 +1734,96 @@ class FacetManager {
 			this.sqs.resultManager.setResultDataFetchingSuspended(false);
 		}
 		
+		return facet;
+	}
+
+	/**
+	 * Function: toggleFacetSelection
+	 *
+	 * Selects a value in the filter with this facet code - adding the filter if it isn't there - or deselects it if it
+	 * is selected already. This is what clicking a bar in the result overview does.
+	 */
+	toggleFacetSelection(facetCode, value) {
+		let facet = this.getFacetByName(facetCode);
+		if(!facet) {
+			//Not spawnFacet's own result load, which re-renders the result from scratch - the selection below
+			//updates it like any other selection does
+			facet = this.spawnFacet(facetCode, [], false);
+			if(!facet) {
+				return false;
+			}
+			facet.addSelection(value);
+			facet.broadcastSelection();
+			return facet;
+		}
+
+		//The facet's own row does the rest - its check mark and its count - when it is rendered
+		let rowNode = $(facet.getDomRef()).find("[facet-row-id='"+value+"']");
+		if(rowNode.length > 0 && typeof facet.toggleRowSelection == "function") {
+			facet.toggleRowSelection(rowNode[0]);
+			return facet;
+		}
+
+		if(facet.getSelections().includes(value)) {
+			facet.removeSelection(value);
+		}
+		else {
+			facet.addSelection(value);
+		}
+		facet.broadcastSelection();
+		return facet;
+	}
+
+	/**
+	 * Function: toggleStageSelection
+	 *
+	 * As toggleFacetSelection, for a value in a later stage of a staged filter - such as an eco code, which is reached
+	 * through its eco code system. The stages before it are given leadingSelections, unless they have them already.
+	 *
+	 * Parameters:
+	 * facetCode - the staged filter, e.g. "ecocode"
+	 * stageName - the stage the value is in, e.g. "ecocode"
+	 * value - the id to select or deselect in that stage
+	 * leadingSelections - the selections of the stages before it, keyed by stage name, e.g. { ecocode_system: [2] }
+	 */
+	toggleStageSelection(facetCode, stageName, value, leadingSelections) {
+		let facet = this.getFacetByName(facetCode);
+		if(!facet) {
+			let facetTemplate = this.getFacetTemplateByFacetId(facetCode);
+			facet = facetTemplate ? this.makeNewFacet(facetTemplate) : null;
+			if(!facet || typeof facet.restoreStageSelections != "function") {
+				return false;
+			}
+			//Put in place as a viewstate puts back a staged filter: the facet walks on to the stage as its data arrives
+			facet.restoreStageSelections(Object.assign({}, leadingSelections, { [stageName]: [value] }));
+			this.addFacet(facet);
+			facet.broadcastSelection();
+			return facet;
+		}
+		if(typeof facet.setStageSelections != "function" || !facet.getFilterByName(stageName)) {
+			return false;
+		}
+
+		let leadingChanged = Object.keys(leadingSelections).some(name => {
+			let stage = facet.getFilterByName(name);
+			return stage && !facet.selectionsAreEqual(stage.selections, leadingSelections[name]);
+		});
+
+		let selections = [value];
+		if(leadingChanged) {
+			//The values of the stage belong to what is selected before it, so they all go when that changes
+			Object.keys(leadingSelections).forEach(name => {
+				let stage = facet.getFilterByName(name);
+				if(stage) {
+					stage.selections = leadingSelections[name].slice();
+				}
+			});
+		}
+		else {
+			let stageSelections = facet.getFilterByName(stageName).selections;
+			selections = stageSelections.includes(value) ? stageSelections.filter(selection => selection != value) : stageSelections.concat([value]);
+		}
+		facet.setStageSelections(stageName, selections);
 		return facet;
 	}
 

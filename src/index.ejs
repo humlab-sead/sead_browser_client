@@ -88,6 +88,10 @@
 
   <link rel="prefetch" as="image" href="/logo-loading-indicator.webp">
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Rajdhani:wght@600;700&display=swap">
+
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
@@ -126,118 +130,78 @@
   <div id="cover-tiles"></div>
   <div id="main-container" style="display:none;">
 
+    <header id="sqs-header">
+      <a id="sead-logo" href="/" aria-label="SEAD, Strategic Environmental Archaeology Database"></a>
+
+      <div id="search-container">
+        <div class="search-input-row">
+          <label for="search-container-input" class="visually-hidden">Quicksearch</label>
+          <i class="fa fa-search search-input-icon" aria-hidden="true"></i>
+          <input id="search-container-input" type="search" placeholder="Quicksearch sites, sample groups, datasets and methods&hellip;" title="Quicksearch works independently of the filters" autocomplete="off" />
+          <button id="search-container-submit" aria-label="Search SEAD">Search</button>
+        </div>
+
+        <div id="search-container-dropdown" class="search-dropdown" style="display:none;">
+          <div class="search-dropdown-tabs">
+            <button class="search-dropdown-tab active" data-tab="sites">Sites</button>
+            <button class="search-dropdown-tab" data-tab="sampleGroups">Sample groups</button>
+            <button class="search-dropdown-tab" data-tab="datasets">Datasets</button>
+            <button class="search-dropdown-tab" data-tab="methods">Methods</button>
+          </div>
+
+          <div class="search-dropdown-panels">
+            <div class="search-dropdown-panel active" data-tab="sites">
+              <div class="search-dropdown-panel-body"></div>
+            </div>
+            <div class="search-dropdown-panel" data-tab="sampleGroups">
+              <div class="search-dropdown-panel-body"></div>
+            </div>
+            <div class="search-dropdown-panel" data-tab="datasets">
+              <div class="search-dropdown-panel-body"></div>
+            </div>
+            <div class="search-dropdown-panel" data-tab="methods">
+              <div class="search-dropdown-panel-body"></div>
+            </div>
+          </div>
+          <div class="search-dropdown-resize-handle"></div>
+        </div>
+      </div>
+
+      <nav id="quickstart-container" aria-label="Main">
+        <button type="button" id="quickstart-what-is-sead">What is SEAD?</button>
+        <button type="button" id="quickstart-data-in-sead">Data in SEAD</button>
+        <button type="button" id="quickstart-feedback">Feedback</button>
+      </nav>
+
+      <div id="aux-menus-container">
+        <button type="button" id="aux-menu-button" class="menu-button" aria-label="Menu">
+          <i class="fa fa-bars" aria-hidden="true"></i>
+        </button>
+        <div id="aux-menu"></div>
+      </div>
+    </header>
+
     <div id="filter-view-main-container" class="responsive-layout-container">
       <div class="section-left">
         <div id="facet-main-container">
-          <div id="logo-aux-container">
-            <div id="sead-logo"></div>
-
-            <div id="aux-menus-container">
-              <div style="margin:0;padding:0;width:100%;height:100%;">
-                <div id="aux-menu-button" class="menu-button">
-                  <i class="fa fa-bars" style='font-size: 1.5em' aria-hidden="true"></i>
-                </div>
-                <div id="aux-menu"></div>
-              </div>
-
-              <!--
-                <div style="margin:0;padding:0;">
-                  <div id="search-menu"></div>
-                </div>
-                -->
+          <div id="filter-toolbar">
+            <h2 id="filter-toolbar-title">Filters</h2>
+            <div id="filter-toolbar-actions">
+              <button type="button" id="domain-menu" class="sqs-btn" aria-haspopup="true">
+                <span class="domain-menu-swatch" aria-hidden="true"></span>
+                <span id="domain-text">Domain: <span class="selected-domain-text">General</span></span>
+                <i class="fa fa-angle-down" aria-hidden="true"></i>
+              </button>
+              <button type="button" id="facet-menu" class="sqs-btn sqs-btn-primary" aria-haspopup="true">
+                <i class="fa fa-plus" aria-hidden="true"></i>
+                Add filter
+              </button>
             </div>
+            <div id="domains-menu-anchor-point"></div>
+            <div id="filters-menu-anchor-point"></div>
           </div>
 
-          <div id="quickstart-container">
-            <button id="quickstart-what-is-sead">What is SEAD?</button>
-            <button id="quickstart-data-in-sead">Data in SEAD</button>
-            <button id="quickstart-feedback">Feedback</button>
-          </div>
-
-          <div id="search-container">
-            <h3>Quicksearch</h3>
-            <div class="search-input-row">
-              <input id="search-container-input" type="text" placeholder="Search sites, sample groups, datasets and methods..." autocomplete="off" />
-              <button id="search-container-submit" aria-label="Search SEAD">Search</button>
-            </div>
-
-            <div id="search-container-dropdown" class="search-dropdown" style="display:none;">
-              <div class="search-dropdown-tabs">
-                <button class="search-dropdown-tab active" data-tab="sites">Sites</button>
-                <button class="search-dropdown-tab" data-tab="sampleGroups">Sample groups</button>
-                <button class="search-dropdown-tab" data-tab="datasets">Datasets</button>
-                <button class="search-dropdown-tab" data-tab="methods">Methods</button>
-              </div>
-
-              <div class="search-dropdown-panels">
-                <div class="search-dropdown-panel active" data-tab="sites">
-                  <div class="search-dropdown-panel-body"></div>
-                </div>
-                <div class="search-dropdown-panel" data-tab="sampleGroups">
-                  <div class="search-dropdown-panel-body"></div>
-                </div>
-                <div class="search-dropdown-panel" data-tab="datasets">
-                  <div class="search-dropdown-panel-body"></div>
-                </div>
-                <div class="search-dropdown-panel" data-tab="methods">
-                  <div class="search-dropdown-panel-body"></div>
-                </div>
-              </div>
-              <div class="search-dropdown-resize-handle"></div>
-            </div>
-          </div>
-
-          <div id="filter-menu-container">
-            <div id="filter-menu-domain-area"></div>
-
-            <svg sodipodi:docname="filter-menu-actual.svg" id="filter-menu-svg" version="1.1"
-              viewBox="0 0 6.558811 43.551031" preserveAspectRatio="none" height="43.951031mm" width="6.5588112mm"
-              inkscape:version="1.2.2 (732a01da63, 2022-12-09)"
-              xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-              xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg"
-              xmlns:svg="http://www.w3.org/2000/svg">
-              <sodipodi:namedview id="namedview2616" pagecolor="#ffffff" bordercolor="#000000" borderopacity="0.25"
-                inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0"
-                inkscape:deskcolor="#d1d1d1" inkscape:document-units="mm" showgrid="false" />
-              <defs id="defs2" />
-              <g id="layer1" transform="translate(-129.54959,-45.948422)">
-                <path
-                  style="fill:#444444;fill-opacity:1;stroke:#ffffff;stroke-width:0;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
-                  d="m 129.54959,45.949721 v 43.746402 0.202031 l 4.85435,-22.075232 z" id="domain-menu"
-                  sodipodi:nodetypes="ccccc" />
-                <path
-                  style="fill:#2d5e8d;fill-opacity:1;stroke:#ffffff;stroke-width:0;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
-                  d="m 130.43747,45.948422 4.85514,21.874495 -4.85514,22.076536 h 5.67093 V 45.951021 l -5.67014,9.6e-4"
-                  id="facet-menu" sodipodi:nodetypes="cccccc" />
-              </g>
-
-
-            </svg>
-
-            <div id="filter-menu-filter-area"></div>
-
-            <div id="filter-menu-text-container">
-              <div id="domain-text" class="filter-menu-text">
-                Domain
-                <div class="selected-domain-text">General</div>
-              </div>
-              <div id="filters-text" class="filter-menu-text">Site filters</div>
-            </div>
-          </div>
-          <div id="domains-menu-anchor-point"></div>
-          <div id="filters-menu-anchor-point"></div>
-
-          <!--
-              <object class="svgClass" type="image/svg+xml" data="./assets/filter-menu.svg"></object>
-              -->
-          <!--<img src="./assets/filter-menu.svg"/>-->
-          <!--
-              <div id="domain-menu">
-              </div>
-              <div id="facet-menu">
-              </div>
-              -->
-
+          <div id="active-filters" aria-label="Active filters"></div>
 
           <div id="facet-section">
           </div>
@@ -266,8 +230,11 @@
       <div class="section-right">
         <div id="result-section">
           <div id="result-tabs-container">
-            <h2 id="result-title">Result</h2>
-            <div id="result-menu"></div>
+            <div id="result-heading">
+              <h2 id="result-title">Result</h2>
+              <div id="result-summary"></div>
+            </div>
+            <div id="result-menu" role="tablist" aria-label="Result view"></div>
           </div>
 
           <div id="result-container">
@@ -275,7 +242,10 @@
             <div id="result-msg-container" class="result-module-container"></div>
             <div id="result-table-container" class="result-module-container"></div>
             <div id="result-map-container" class="result-module-container"></div>
-            <div id="result-mosaic-container" class="result-module-container"></div>
+            <div id="result-mosaic-container" class="result-module-container">
+              <div id="result-mosaic-summary" class="sqs-card" aria-label="The result in figures"></div>
+              <div id="result-mosaic-tiles"></div>
+            </div>
             <div id="result-taxon-container" class="result-module-container"></div>
             <div id="result-globe-container" class="result-module-container"></div>
             <div id="result-lab-container" class="result-module-container">
@@ -301,8 +271,19 @@
                 </div>
               </div>
             </div>
-            <div id="show-query-btn" class="fa fa-database result-export-button"></div>
+            <div id="show-query-btn" class="fa fa-database"></div>
 
+          </div>
+
+          <div id="result-footer">
+            <div id="result-footer-count"></div>
+            <div id="result-footer-actions">
+              <button type="button" id="result-save-view-btn" class="sqs-btn">Save view</button>
+              <button type="button" id="result-export-btn" class="sqs-btn sqs-btn-primary result-export-button">
+                <i class="fa fa-download" aria-hidden="true"></i>
+                <span class="result-export-button-label">Export</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -311,47 +292,98 @@
     </div>
 
     <div id="site-report-main-container" class="responsive-layout-container">
-      <div id="header-container">
-        <div id="site-report-exit-menu">
-          <i class="fa fa-arrow-circle-o-left" aria-hidden="true"></i>
+      <div id="site-report-page">
+        <div class="site-report-topbar">
+          <button type="button" id="site-report-exit-menu" class="site-report-back-link">
+            <i class="fa fa-arrow-left" aria-hidden="true"></i>
+            Back to result<span class="site-report-back-count"></span>
+          </button>
+          <ol class="site-report-breadcrumb" aria-label="Location"></ol>
+          <nav class="site-report-browse" aria-label="Browse the result">
+            <button type="button" class="sqs-btn site-report-browse-prev">&lsaquo; Previous site</button>
+            <span class="site-report-browse-position"></span>
+            <button type="button" class="sqs-btn site-report-browse-next">Next site &rsaquo;</button>
+          </nav>
         </div>
-        <div id="header-space">
-          <img id="sead-logo" src="/SEAD-logo-with-subtext.png" alt="SEAD logo">
-        </div>
-        <div id="whatisthis-menu">
-        </div>
-      </div>
 
-
-      <div id="site-report-grid-container">
-        <!--<div class="section-toggle-button">Switch section</div>-->
-        <div class="section-left">
+        <div class="site-report-titlebar">
           <div class="site-report-title-container">
-            <h1 class="site-report-title">
-              <span>Archaeological site datasheet</span>
-            </h1>
-            <h2 class="site-report-title-site-name"></h2>
+            <div class="site-report-kicker">Archaeological site <span class="site-report-site-id"></span></div>
+            <h1 class="site-report-title-site-name"></h1>
+            <p class="site-report-site-description"></p>
           </div>
-
-          <div id="site-report-tabs"></div>
-
-          <div id="site-report-content">
+          <div class="site-report-actions">
+            <button type="button" class="sqs-btn sqs-btn-primary sqs-btn-large site-report-export-btn">
+              <i class="fa fa-download" aria-hidden="true"></i> Export site data
+            </button>
+            <button type="button" class="sqs-btn sqs-btn-large site-report-cite-btn">Cite</button>
+            <button type="button" class="sqs-btn sqs-btn-large sqs-btn-icon site-report-copy-link-btn" aria-label="Copy link to this site" title="Copy link to this site">
+              <i class="fa fa-link" aria-hidden="true"></i>
+            </button>
           </div>
-
         </div>
 
-        <div class="section-divider"></div>
+        <div class="site-report-summary sqs-card"></div>
 
-        <div class="section-right">
-          <div id="site-report-right-container">
-            <!--<div id="site-report-map-container"></div>-->
-            <div class="site-report-aux-info-container"></div>
+        <div id="site-report-tabs" role="tablist" aria-label="Site datasheet sections"></div>
+
+        <div id="site-report-content">
+          <div class="site-report-tabpanel" data-tab="overview" role="tabpanel" aria-label="Overview">
+            <div class="site-report-columns">
+              <div class="site-report-main-column site-report-overview-main"></div>
+              <aside class="site-report-side-column">
+                <section class="sqs-card site-report-location-card">
+                  <div id="site-report-map-container"></div>
+                  <div class="sqs-card-body">
+                    <h2 class="sqs-card-title">Location</h2>
+                    <dl class="site-report-dl site-report-location-list"></dl>
+                    <div class="site-report-location-note"></div>
+                  </div>
+                </section>
+                <section class="sqs-card sqs-card-body site-report-record-card">
+                  <h2 class="sqs-card-title">Site record</h2>
+                  <dl class="site-report-dl site-report-record-list"></dl>
+                </section>
+              </aside>
+            </div>
+          </div>
+          <div class="site-report-tabpanel" data-tab="samples" role="tabpanel" aria-label="Samples">
+            <div class="site-report-columns">
+              <div class="site-report-main-column site-report-samples-main"></div>
+              <aside class="site-report-side-column site-report-samples-side">
+                <section class="sqs-card site-report-sample-map-card">
+                  <div class="sqs-card-head">
+                    <h2 class="sqs-card-title">Sample locations</h2>
+                  </div>
+                  <div id="site-report-sample-map-container"></div>
+                </section>
+              </aside>
+            </div>
+          </div>
+          <div class="site-report-tabpanel" data-tab="analyses" role="tabpanel" aria-label="Analyses">
+            <div class="site-report-columns">
+              <nav class="sqs-card site-report-method-nav" aria-label="Analysis methods"></nav>
+              <div class="site-report-main-column site-report-analyses-main"></div>
+            </div>
+          </div>
+          <div class="site-report-tabpanel" data-tab="dating" role="tabpanel" aria-label="Dating">
+            <section class="sqs-card sqs-card-body site-report-dating-card">
+              <div class="sqs-card-head-row">
+                <div>
+                  <h2 class="sqs-card-title">Dating overview</h2>
+                  <p class="sqs-card-subtitle site-report-dating-subtitle"></p>
+                </div>
+              </div>
+              <div id="site-report-time-overview"></div>
+              <div class="sqs-note site-report-dating-note"></div>
+              <div class="site-report-dating-methods"></div>
+            </section>
+          </div>
+          <div class="site-report-tabpanel" data-tab="references" role="tabpanel" aria-label="References">
+            <section class="sqs-card sqs-card-body site-report-references-card"></section>
           </div>
         </div>
       </div>
-
-
-
     </div>
 
 
@@ -381,7 +413,7 @@
 
     <div id="popover-dialog">
       <div id="popover-dialog-frame">
-        <div class="popover-close-btn fa fa-times"></div>
+        <button type="button" class="popover-close-btn" aria-label="Close"><i class="fa fa-times" aria-hidden="true"></i></button>
         <h1></h1>
         <div class="popover-content"></div>
       </div>
@@ -676,7 +708,7 @@
   </template>
 
     <template id="notification-box">
-      <div class="notification">
+      <div class="notification" role="status">
         <div class="notification-type-box">
           <div class="notification-icon">
             <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
@@ -684,7 +716,7 @@
         </div>
         <div class="notification-message-box">
           <div class="notification-text"></div>
-          <button class="dismiss-btn"><i class="fa fa-times" aria-hidden="true"></i></button>
+          <button type="button" class="dismiss-btn" aria-label="Dismiss"><i class="fa fa-times" aria-hidden="true"></i></button>
         </div>
       </div>
     </template>
@@ -961,28 +993,31 @@
         <div class="facet-header">
           <h3 class="facet-title">Facet title</h3>
           <div class="small-loading-indicator"></div>
+          <div class="facet-selection-count"></div>
 
-          <input class="facet-text-search-input" type="text" />
-          <div class="fa fa-database facet-sql-btn facet-head-btn" aria-hidden="true"></div>
-          <div class="fa fa-search facet-text-search-btn facet-head-btn" aria-hidden="true"></div>
-          <div class="facet-minimize-btn fa fa-window-minimize facet-head-btn facet-size-btn" aria-hidden="true"></div>
-          <div class="facet-delete-btn fa fa-times facet-head-btn" aria-hidden="true"></div>
+          <button type="button" class="facet-sql-btn facet-head-btn" aria-label="Show the filter's SQL"><i class="fa fa-database" aria-hidden="true"></i></button>
+          <button type="button" class="facet-minimize-btn facet-head-btn facet-size-btn" aria-label="Collapse filter"><i class="fa fa-minus" aria-hidden="true"></i></button>
+          <button type="button" class="facet-delete-btn facet-head-btn" aria-label="Remove filter"><i class="fa fa-times" aria-hidden="true"></i></button>
 
         </div>
         <div class="facet-body">
           <div class="facet-no-data-msg">No Data</div>
+          <label class="facet-search-row">
+            <i class="fa fa-search" aria-hidden="true"></i>
+            <span class="visually-hidden">Filter the list</span>
+            <input class="facet-text-search-input" type="search" placeholder="Find&hellip;" autocomplete="off" />
+          </label>
           <div class="list-container-header">
             <div class="list-container-header-content">
-              <div class="list-container-header-item facet-sort-alpha-btn">
-                <div class="fa fa-sort-alpha-asc sort-symbol" aria-hidden="true"></div>
+              <button type="button" class="list-container-header-item facet-sort-alpha-btn">
                 <span>Name</span>
-              </div>
-              <div class="list-container-header-item facet-sort-num-btn">
-                <div class="fa fa-sort-numeric-asc sort-symbol" aria-hidden="true"></div>
+                <i class="fa fa-sort-alpha-asc sort-symbol" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="list-container-header-item facet-sort-num-btn">
                 <span>Data points</span>
-              </div>
+                <i class="fa fa-sort-numeric-asc sort-symbol" aria-hidden="true"></i>
+              </button>
             </div>
-            <hr class="facet-header-divider" />
           </div>
 
           <div class="list-container"></div>
@@ -1074,9 +1109,8 @@
       </div>
     </template>
 
-    <fieldset id="site-report-render-options-template" class="site-report-toolbar-main">
-      <legend class="fa fa-cog site-report-toolbar-btn" role="button">&nbsp;<span style="font-weight:bold;">Display
-          options</span></legend>
+    <div id="site-report-render-options-template" class="site-report-toolbar-main">
+      <button type="button" class="sqs-btn site-report-toolbar-btn" aria-expanded="false"><i class="fa fa-cog" aria-hidden="true"></i> Display options</button>
 
       <div class="site-report-display-options-dropdown">
         <div class="site-report-render-options-container site-report-render-options-main-render-type">
@@ -1085,17 +1119,15 @@
         </div>
         <div class="site-report-render-options-container site-report-render-options-container-extras"></div>
       </div>
-    </fieldset>
+    </div>
 
-    <fieldset id="site-report-content-item-export-template" class="site-report-toolbar-main">
-      <legend class="fa fa-download site-report-toolbar-btn site-report-toolbar-export-btn" aria-hidden="true">
-        &nbsp;<span style="font-weight:bold;">Export</span></legend>
-    </fieldset>
+    <div id="site-report-content-item-export-template" class="site-report-toolbar-main">
+      <button type="button" class="sqs-btn site-report-toolbar-btn site-report-toolbar-export-btn"><i class="fa fa-download" aria-hidden="true"></i> Export</button>
+    </div>
 
-    <fieldset id="site-report-content-item-reference-template" class="site-report-toolbar-main">
-      <legend class="fa fa-book site-report-toolbar-btn" aria-hidden="true">&nbsp;<span
-          style="font-weight:bold;">Reference</span></legend>
-    </fieldset>
+    <div id="site-report-content-item-reference-template" class="site-report-toolbar-main">
+      <button type="button" class="sqs-btn site-report-toolbar-btn"><i class="fa fa-book" aria-hidden="true"></i> Reference</button>
+    </div>
 
     <!--
       <fieldset id="site-report-content-item-popout-template" class="site-report-toolbar-main">

@@ -6,6 +6,8 @@ import BasicSiteInformation from './SectionModules/BasicSiteInformation.class';
 import Samples from './SectionModules/Samples.class';
 import Analysis from './SectionModules/Analysis.class';
 import EcoCodes from './SectionModules/EcoCodes.class';
+import SiteOverview from './SectionModules/SiteOverview.class';
+import Dating from './SectionModules/Dating.class';
 import Plotly from "plotly.js-dist-min";
 import ExcelJS from 'exceljs/dist/exceljs.min.js';
 import { Vector as VectorLayer } from 'ol/layer';
@@ -42,6 +44,9 @@ class SiteReport {
 		this.fetchComplete = false;
 		this.contentItemRendererRepository = [];
 		this.debugMode = this.siteReportManager.debugMode;
+		this.activeTab = "overview";
+		this.activeMethodId = null;
+		this.methodGroups = [];
 		this.show();
 
         this.showLoadingIndicator();
@@ -61,10 +66,13 @@ class SiteReport {
 		const samples = new Samples(this.sqs, this.site);
 		const ecoCodes = new EcoCodes(this.sqs, this.site);
 		const analysis = new Analysis(this.sqs, this.siteId);
+		const overview = new SiteOverview(this.sqs, this);
+		const dating = new Dating(this.sqs, this);
 
 		bsi.preRender();
+		this.renderBrowseControls();
 
-		this.fetchSite().then(siteData => {
+		Promise.all([this.fetchSite(), this.fetchMethodGroups()]).then(([siteData]) => {
 			console.log(siteData);
 			this.linkDataStructures(siteData);
 
@@ -91,14 +99,21 @@ class SiteReport {
 				"module": ecoCodes,
 				"weight": 0
 			});
+			this.modules.push({
+				"name": "overview",
+				"module": overview
+			});
+			this.modules.push({
+				"name": "dating",
+				"module": dating
+			});
 
 			bsi.render(siteData);
+			dating.render(siteData);
+			overview.render(siteData);
+			this.renderTabs(siteData);
 			samples.render(siteData);
 			analysis.render(siteData);
-		});
-		
-		this.sqs.tooltipManager.registerTooltip("#site-report-exit-menu", "Back to site finder", {
-			placement: "right"
 		});
 
 		$("#site-report-exit-menu").off();
@@ -169,6 +184,343 @@ class SiteReport {
 		const noCache = "false"; //tell the serveer to not use a cached response
 		const postgresFetch = "false"; //tell the server to use an SQL query against postgres instead of mongodb
 		return await $.get(Config.dataServerAddress+"/site/"+this.siteId+"/"+noCache+"/"+postgresFetch);
+	}
+
+	/*
+	* Function: fetchMethodGroups
+	*
+	* The names of the method groups, which the analysis methods are listed under. The site data
+	* only has their ids. Fetched once and kept by the site report manager.
+	*/
+	async fetchMethodGroups() {
+		if(Array.isArray(this.siteReportManager.methodGroups)) {
+			this.methodGroups = this.siteReportManager.methodGroups;
+			return this.methodGroups;
+		}
+		try {
+			let methodGroups = await $.get(this.sqs.config.siteReportServerAddress+"/tbl_method_groups?select=method_group_id,group_name,description");
+			this.siteReportManager.methodGroups = methodGroups;
+			this.methodGroups = methodGroups;
+		}
+		catch(error) {
+			console.warn("Could not fetch the method groups", error);
+			this.methodGroups = [];
+		}
+		return this.methodGroups;
+	}
+
+	getMethodGroupName(methodGroupId) {
+		let methodGroup = this.methodGroups.find(group => group.method_group_id == methodGroupId);
+		return methodGroup ? methodGroup.group_name : "Other methods";
+	}
+
+	/*
+	* Function: getMethod
+	* A method from the site's lookup table.
+	*/
+	getMethod(methodId) {
+		if(!this.siteData) {
+			return null;
+		}
+		let method = this.siteData.lookup_tables.methods.find(method => method.method_id == methodId);
+		return method ? method : null;
+	}
+
+	/*
+	* Function: getAnalysisMethods
+	*
+	* The methods the site's datasets were made with, each with its datasets and the sample groups
+	* they come from, in the order they are listed in: by method group, then by name.
+	*/
+	getAnalysisMethods(siteData = this.siteData) {
+		let methods = [];
+		siteData.datasets.forEach(dataset => {
+			let method = methods.find(m => m.methodId == dataset.method_id);
+			if(!method) {
+				let lookupMethod = siteData.lookup_tables.methods.find(m => m.method_id == dataset.method_id);
+				method = {
+					methodId: dataset.method_id,
+					methodGroupId: dataset.method_group_id,
+					name: lookupMethod ? lookupMethod.method_name : "Method "+dataset.method_id,
+					abbrev: lookupMethod && lookupMethod.method_abbrev_or_alt_name ? lookupMethod.method_abbrev_or_alt_name : null,
+					description: lookupMethod ? lookupMethod.description : "",
+					color: this.sqs.color.getAnalysisMethodColor(dataset.method_id),
+					datasets: [],
+					sampleGroups: []
+				};
+				methods.push(method);
+			}
+			method.datasets.push(dataset);
+			siteData.sample_groups.forEach(sampleGroup => {
+				if(sampleGroup.datasets.includes(dataset.dataset_id) && !method.sampleGroups.includes(sampleGroup)) {
+					method.sampleGroups.push(sampleGroup);
+				}
+			});
+		});
+
+		methods.sort((a, b) => {
+			let groupOrder = this.getMethodGroupSortOrder(a.methodGroupId) - this.getMethodGroupSortOrder(b.methodGroupId);
+			if(groupOrder != 0) {
+				return groupOrder;
+			}
+			return a.name.localeCompare(b.name);
+		});
+		return methods;
+	}
+
+	/*
+	* Function: isDatingMethodGroup
+	* Whether a method group holds dating methods, which are also shown on the dating tab.
+	*/
+	isDatingMethodGroup(methodGroupId) {
+		return [3, 19, 20, 21, 22].includes(parseInt(methodGroupId));
+	}
+
+	getMethodGroupSortOrder(methodGroupId) {
+		//Analyses first, dating after them, anything else last
+		if(this.isDatingMethodGroup(methodGroupId)) {
+			return 100 + parseInt(methodGroupId);
+		}
+		if([1, 2, 4, 9].includes(parseInt(methodGroupId))) {
+			return parseInt(methodGroupId);
+		}
+		return 200 + parseInt(methodGroupId);
+	}
+
+	/*
+	* Function: renderTabs
+	*
+	* The tabs under the site's summary, each with a count of what it holds. A tab with nothing
+	* to show is disabled rather than left out, so the tabs are in the same place for every site.
+	*/
+	renderTabs(siteData = null) {
+		let sampleCount = null;
+		let analysisCount = null;
+		let datingCount = null;
+		let referenceCount = null;
+		if(siteData) {
+			sampleCount = 0;
+			siteData.sample_groups.forEach(sampleGroup => {
+				sampleCount += sampleGroup.physical_samples.length;
+			});
+			analysisCount = this.getAnalysisMethods(siteData).length;
+			datingCount = siteData.age_summary && siteData.age_summary.datings ? siteData.age_summary.datings.length : 0;
+			referenceCount = this.getReferenceBiblioIds(siteData).length;
+		}
+
+		this.tabs = [
+			{ name: "overview", title: "Overview", count: null, disabled: false },
+			{ name: "samples", title: "Samples", count: sampleCount, disabled: sampleCount === 0 },
+			{ name: "analyses", title: "Analyses", count: analysisCount, disabled: analysisCount === 0 },
+			{ name: "dating", title: "Dating", count: datingCount === 0 ? "none" : datingCount, disabled: datingCount === 0 },
+			{ name: "references", title: "References", count: referenceCount, disabled: false }
+		];
+
+		let tabsNode = $("#site-report-tabs");
+		tabsNode.empty().addClass("sqs-tabs");
+		this.tabs.forEach(tab => {
+			let tabNode = $("<button type='button' role='tab' class='sqs-tab'></button>");
+			tabNode.attr("id", "site-report-tab-"+tab.name);
+			tabNode.attr("data-tab", tab.name);
+			tabNode.append($("<span></span>").text(tab.title));
+			if(tab.count != null) {
+				tabNode.append($("<span class='sqs-tab-count'></span>").text(typeof tab.count == "number" ? tab.count.toLocaleString("en-GB") : tab.count));
+			}
+			tabNode.prop("disabled", tab.disabled);
+			tabNode.on("click", () => {
+				this.setActiveTab(tab.name);
+			});
+			tabsNode.append(tabNode);
+		});
+
+		//Arrow keys move between the tabs
+		tabsNode.off("keydown").on("keydown", ".sqs-tab", (evt) => {
+			if(evt.key != "ArrowRight" && evt.key != "ArrowLeft") {
+				return;
+			}
+			let enabledTabs = tabsNode.find(".sqs-tab:not(:disabled)");
+			let index = enabledTabs.index(evt.currentTarget) + (evt.key == "ArrowRight" ? 1 : -1);
+			let nextTab = enabledTabs.eq((index + enabledTabs.length) % enabledTabs.length);
+			nextTab.trigger("focus").trigger("click");
+			evt.preventDefault();
+		});
+
+		this.setActiveTab(this.activeTab);
+	}
+
+	/*
+	* Function: setActiveTab
+	*/
+	setActiveTab(tabName) {
+		let tab = this.tabs ? this.tabs.find(t => t.name == tabName) : null;
+		if(tab && tab.disabled) {
+			tabName = "overview";
+		}
+		this.activeTab = tabName;
+
+		$("#site-report-tabs .sqs-tab").each((index, tabNode) => {
+			let selected = $(tabNode).attr("data-tab") == tabName;
+			$(tabNode).attr("aria-selected", selected ? "true" : "false");
+			$(tabNode).attr("tabindex", selected ? "0" : "-1");
+		});
+		$(".site-report-tabpanel").removeClass("site-report-tabpanel-active");
+		$(".site-report-tabpanel[data-tab='"+tabName+"']").addClass("site-report-tabpanel-active");
+
+		if(tabName == "analyses" && this.activeMethodId == null && this.analysisMethodNavItems && this.analysisMethodNavItems.length > 0) {
+			this.showAnalysisMethod(this.analysisMethodNavItems[0].methodId, false);
+		}
+
+		//Maps drawn while their tab was hidden have no size until told to look again
+		this.sqs.sqsEventDispatch("siteReportTabShown", { tab: tabName });
+		this.sqs.sqsEventDispatch("layoutResize");
+	}
+
+	/*
+	* Function: revealSection
+	* Brings a section into view: the tab it is on, and for an analysis method, the method.
+	*/
+	revealSection(sectionName) {
+		if(sectionName == "samples" || sectionName == "analyses") {
+			this.setActiveTab(sectionName);
+			return;
+		}
+		let analysesSection = this.data.sections.find(section => section.name == "analyses");
+		if(analysesSection && analysesSection.sections.find(section => section.name == sectionName)) {
+			this.showAnalysisMethod(sectionName);
+		}
+	}
+
+	/*
+	* Function: getReferenceBiblioIds
+	* Every reference the site, its sample groups and its datasets cite.
+	*/
+	getReferenceBiblioIds(siteData) {
+		let biblioIds = [];
+		let add = (biblioId) => {
+			if(biblioId != null && !biblioIds.includes(biblioId)) {
+				biblioIds.push(biblioId);
+			}
+		};
+		siteData.biblio.forEach(biblio => add(biblio.biblio_id));
+		siteData.sample_groups.forEach(sampleGroup => {
+			sampleGroup.biblio.forEach(biblio => add(biblio.biblio_id));
+		});
+		siteData.datasets.forEach(dataset => add(dataset.biblio_id));
+		return biblioIds;
+	}
+
+	/*
+	* Function: renderBrowseControls
+	*
+	* Back to the result, with its size, and previous/next for stepping through the sites in it.
+	* Without a result, e.g. when the site report was opened from a link, there is nothing to step
+	* through.
+	*/
+	renderBrowseControls() {
+		let siteIds = this.siteReportManager.getResultSiteIds();
+		let position = siteIds.findIndex(siteId => siteId == this.siteId);
+
+		$(".site-report-back-count").text(siteIds.length > 0 ? " \u00b7 "+siteIds.length.toLocaleString("en-GB")+(siteIds.length == 1 ? " site" : " sites") : "");
+
+		let browseNode = $(".site-report-browse");
+		if(position == -1) {
+			browseNode.hide();
+			return;
+		}
+		browseNode.css("display", "");
+		$(".site-report-browse-position", browseNode).text((position + 1).toLocaleString("en-GB")+" of "+siteIds.length.toLocaleString("en-GB"));
+
+		let prevButton = $(".site-report-browse-prev", browseNode);
+		let nextButton = $(".site-report-browse-next", browseNode);
+		prevButton.prop("disabled", position == 0).off("click").on("click", () => {
+			this.siteReportManager.renderSiteReport(siteIds[position - 1]);
+		});
+		nextButton.prop("disabled", position == siteIds.length - 1).off("click").on("click", () => {
+			this.siteReportManager.renderSiteReport(siteIds[position + 1]);
+		});
+	}
+
+	/*
+	* Function: renderAnalysisMethodNav
+	*
+	* The list of analysis methods beside the analyses, by method group. Picking one shows its
+	* datasets, one method at a time.
+	*/
+	renderAnalysisMethodNav(analysesSection) {
+		let nav = $(".site-report-method-nav");
+		nav.empty();
+		nav.append("<div class='site-report-method-nav-title'>Analysis methods</div>");
+
+		let methods = this.getAnalysisMethods().filter(method => {
+			return analysesSection.sections.find(section => section.name == method.methodId);
+		});
+		this.analysisMethodNavItems = methods;
+
+		let currentMethodGroupId = null;
+		methods.forEach(method => {
+			if(method.methodGroupId != currentMethodGroupId) {
+				currentMethodGroupId = method.methodGroupId;
+				nav.append($("<div class='site-report-method-nav-group sqs-label'></div>").text(this.getMethodGroupName(method.methodGroupId)));
+			}
+			let item = $("<button type='button' class='site-report-method-nav-item'></button>");
+			item.attr("data-method-id", method.methodId);
+			item.append($("<span class='sqs-dot'></span>").css("background-color", method.color || "#8c8c8c"));
+			item.append($("<span class='site-report-method-nav-name'></span>").text(method.name));
+			item.append($("<span class='site-report-method-nav-count'></span>").text(method.datasets.length));
+			item.attr("title", method.datasets.length+(method.datasets.length == 1 ? " dataset" : " datasets"));
+			item.on("click", () => {
+				this.showAnalysisMethod(method.methodId);
+			});
+			nav.append(item);
+		});
+
+		if(this.activeTab == "analyses" && this.activeMethodId == null && methods.length > 0) {
+			this.showAnalysisMethod(methods[0].methodId, false);
+		}
+	}
+
+	/*
+	* Function: showAnalysisMethod
+	*
+	* Shows the datasets of one analysis method on the analyses tab.
+	*/
+	showAnalysisMethod(methodId, switchTab = true) {
+		let analysesSection = this.data.sections.find(section => section.name == "analyses");
+		if(!analysesSection) {
+			return;
+		}
+		let section = analysesSection.sections.find(section => section.name == methodId);
+		if(!section) {
+			return;
+		}
+
+		this.activeMethodId = methodId;
+		if(switchTab && this.activeTab != "analyses") {
+			this.setActiveTab("analyses");
+		}
+
+		$(".site-report-method-nav-item").each((index, item) => {
+			let current = $(item).attr("data-method-id") == methodId;
+			$(item).toggleClass("site-report-method-nav-item-current", current);
+			$(item).attr("aria-current", current ? "true" : "false");
+		});
+
+		let sectionNode = $("#site-report-section-"+section.name);
+		$("#site-report-section-analyses > .site-report-level-content > .site-report-level-container").removeClass("site-report-method-active");
+		sectionNode.addClass("site-report-method-active");
+
+		if(section.collapsed !== false) {
+			section.collapsed = false;
+			this.setSectionCollapsedState(sectionNode, section);
+		}
+
+		//Coming from further down the page, start at the top of the analyses
+		let tabsNode = document.getElementById("site-report-tabs");
+		let pageNode = document.getElementById("site-report-main-container");
+		if(switchTab && tabsNode && pageNode && tabsNode.getBoundingClientRect().top < pageNode.getBoundingClientRect().top) {
+			tabsNode.scrollIntoView({ block: "start" });
+		}
+		this.sqs.sqsEventDispatch("layoutResize");
 	}
 
 	getModuleByName(moduleName) {
@@ -308,7 +660,7 @@ class SiteReport {
 	showLoadingIndicator() {
 		let loadingIndicator = $("#result-loading-indicator")[0].cloneNode(true);
 		$(loadingIndicator).attr("id", "site-report-loading-indicator");
-		$("#site-report-content").append(loadingIndicator);
+		$("#site-report-page").append(loadingIndicator);
 		$(loadingIndicator).fadeIn(100);
 	}
 	
@@ -328,9 +680,17 @@ class SiteReport {
 	* Flips to the site report page in the UI.
 	*/
 	show() {
-		//Empty everything
-		$("#site-report-content").html("");
-		$(".site-report-aux-info-container").html("");
+		//Empty everything the previous site filled in
+		$(".site-report-title-site-name, .site-report-site-description, .site-report-site-id").text("");
+		$(".site-report-breadcrumb, .site-report-summary").empty();
+		$(".site-report-overview-main, .site-report-samples-main, .site-report-analyses-main, .site-report-method-nav").empty();
+		$(".site-report-location-list, .site-report-location-note, .site-report-record-list").empty();
+		$("#site-report-map-container, #site-report-sample-map-container").empty();
+		$("#site-report-time-overview, .site-report-dating-subtitle, .site-report-dating-note, .site-report-dating-methods").empty();
+		$(".site-report-references-card").empty();
+		$("#site-report-page .site-report-columns").removeClass("site-report-columns-single");
+		$("#site-report-main-container").scrollTop(0);
+		this.renderTabs();
 		$(".site-report-container").show();
 	}
 	
@@ -476,6 +836,10 @@ class SiteReport {
 				if(targetSectionId == "site-report-section-analyses" || targetSectionId == "site-report-section-samples") {
 					return;
 				}
+				//An analysis method is opened from the list of methods, its title is just a heading
+				if($(evt.currentTarget).hasClass("site-report-method-title")) {
+					return;
+				}
 
 				var parent = $(evt.currentTarget).parent();
 				var collapsed = parent.children(".site-report-level-content").attr("collapsed") == "true";
@@ -484,7 +848,9 @@ class SiteReport {
 				this.setSectionCollapsedState(parent, section); //Set reverse of current state
 			});
 
-		if(section.hasOwnProperty("methodDescription")) {
+		//An analysis method's description is written out under its heading instead
+		let isAnalysisMethod = level == 1 && parent && parent.name == "analyses";
+		if(section.hasOwnProperty("methodDescription") && !isAnalysisMethod) {
 			this.sqs.tooltipManager.registerTooltip($(".site-report-level-title > div > .title-text", sectionNode), section.methodDescription, {drawSymbol: true, anchorPoint: 'symbol'});
 		}
 		
@@ -493,6 +859,11 @@ class SiteReport {
 			$(".site-report-level-title", sectionNode).addClass("site-report-level-title-static");
 			$(".site-report-sections-expand-button", sectionNode).remove();
 		}
+
+		//An analysis method gets a heading with its color, and a line on its datasets
+		if(level == 1 && parent && parent.name == "analyses") {
+			this.renderAnalysisMethodTitle(sectionNode, section);
+		}
 		
 		if(section.warning) {
 			$(".section-warning", sectionNode).html("<i class=\"fa fa-exclamation-triangle site-report-section-warning-icon\" aria-hidden=\"true\"></i>");
@@ -500,8 +871,8 @@ class SiteReport {
 		}
 
 		if(level == 0) {
-			//$("#site-report-content").append(sectionNode);
-			this.appendNodeToDomByWeight("#site-report-content", sectionNode);
+			//Each top-level section has a tab of its own
+			this.appendNodeToDomByWeight(this.getSectionPanelSelector(section), sectionNode);
 		}
 		else {
 			$("#site-report-section-"+parent.name+" > .site-report-level-content").append(sectionNode);
@@ -527,6 +898,66 @@ class SiteReport {
 		if(typeof(section.sections) != "undefined") {
 			for(var key in section.sections) {
 				await this.renderSection(section.sections[key], section, level+1);
+			}
+		}
+	}
+
+	/*
+	* Function: getSectionPanelSelector
+	* Where on the page a top-level section goes.
+	*/
+	getSectionPanelSelector(section) {
+		if(section.name == "samples") {
+			return ".site-report-samples-main";
+		}
+		if(section.name == "analyses") {
+			return ".site-report-analyses-main";
+		}
+		return ".site-report-overview-main";
+	}
+
+	/*
+	* Function: renderAnalysisMethodTitle
+	*/
+	renderAnalysisMethodTitle(sectionNode, section) {
+		let titleNode = $(".site-report-level-title", sectionNode);
+		titleNode.addClass("site-report-method-title");
+		$(".site-report-sections-expand-button", titleNode).remove();
+
+		let method = this.getAnalysisMethods().find(method => method.methodId == section.name);
+		if(!method) {
+			return;
+		}
+		$(".title-text", titleNode).before($("<span class='sqs-dot'></span>").css("background-color", method.color || "#8c8c8c"));
+
+		let meta = method.datasets.length+(method.datasets.length == 1 ? " dataset" : " datasets");
+		if(method.sampleGroups.length > 0) {
+			let sampleGroupNames = method.sampleGroups.map(sampleGroup => sampleGroup.sample_group_name);
+			if(sampleGroupNames.length > 3) {
+				sampleGroupNames = sampleGroupNames.slice(0, 3).concat([(method.sampleGroups.length - 3)+" more"]);
+			}
+			meta += " \u00b7 from "+sampleGroupNames.join(", ");
+		}
+		let sampleCount = 0;
+		method.sampleGroups.forEach(sampleGroup => {
+			sampleCount += sampleGroup.physical_samples.length;
+		});
+		if(sampleCount > 0) {
+			meta += " \u00b7 "+sampleCount.toLocaleString("en-GB")+(sampleCount == 1 ? " sample" : " samples");
+		}
+		titleNode.append($("<p class='site-report-method-meta'></p>").text(meta));
+		if(method.description) {
+			let descriptionNode = $("<p class='site-report-method-description'></p>").text(method.description);
+			titleNode.append(descriptionNode);
+			//Some methods come with their whole protocol, which would push the datasets off the page
+			if(method.description.length > 200) {
+				descriptionNode.addClass("site-report-method-description-clamped");
+				let toggleNode = $("<button type='button' class='sqs-link-btn site-report-method-description-toggle'>More about the method</button>");
+				toggleNode.on("click", () => {
+					let clamped = descriptionNode.toggleClass("site-report-method-description-clamped").hasClass("site-report-method-description-clamped");
+					toggleNode.text(clamped ? "More about the method" : "Less");
+				});
+				titleNode.append(toggleNode);
 			}
 		}
 	}
@@ -702,7 +1133,7 @@ class SiteReport {
 			label = "Download PDF";
 		}
 
-		let node = $("<a class='site-report-export-download-btn light-theme-button'>"+label+"</a>");
+		let node = $("<button type='button' class='site-report-export-download-btn sqs-btn'><i class='fa fa-download' aria-hidden='true'></i> "+label+"</button>");
 		$(node).on("click", async (evt) => {
 			evt.preventDefault();
 			evt.stopPropagation();
@@ -1797,7 +2228,7 @@ class SiteReport {
 	async renderExportDialog(formats = ["json", "xlsx", "pdf"], section = "all", contentItem = "all") {
 		let dialogNodeId = nanoid();
 		var dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");
-		this.siteReportManager.sqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
+		this.siteReportManager.sqs.dialogManager.showPopOver("Site data export", dialogNode.prop('outerHTML'));
 		
 		formats.forEach((format) => {
 			let btn = this.getExportButton(format, section, contentItem);

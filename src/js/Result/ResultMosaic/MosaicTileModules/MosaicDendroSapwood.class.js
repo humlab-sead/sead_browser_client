@@ -9,7 +9,8 @@ class MosaicDendroSapwood extends MosaicDendroNumericVariable {
             sqs,
             "Sapwood (Sp)",
             "Sapwood",
-            "Number of sapwood rings in the sample"
+            "Number of sapwood rings in the sample",
+            "Sapwood rings"
         );
         this.name = "mosaic-dendro-sapwood";
     }

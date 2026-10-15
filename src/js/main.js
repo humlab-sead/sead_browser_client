@@ -12,6 +12,7 @@ import '../stylesheets/SqsMenu.scss';
 import '../stylesheets/RangeFacet.scss';
 import '../stylesheets/AdminPanel.scss';
 import '../stylesheets/style.scss';
+import '../stylesheets/SiteReport.scss';
 //import '../../flexnav/css/flexnav.css';
 //import '../../flexnav/js/jquery.flexnav.js';
 import 'font-awesome/css/font-awesome.css';

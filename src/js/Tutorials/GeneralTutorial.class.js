@@ -112,8 +112,8 @@ class GeneralTutorial {
             Selecting a domain narrows the available data and filters to those most relevant to a research field. The "General" domain shows all filters and all data in the system.
             `,
             classes: 'tutorial-container',
-            attachTo: { element: '#filter-menu-domain-area', on: 'right' },
-            advanceOn: { selector: '#filter-menu-domain-area', event: 'click' },
+            attachTo: { element: '#domain-menu', on: 'bottom' },
+            advanceOn: { selector: '#domain-menu', event: 'click' },
             buttons: [
                 {
                 text: 'Exit tour',
@@ -147,11 +147,11 @@ class GeneralTutorial {
             title: 'Filters',
             text: `Filters limit the sites shown in the result section.
                 <br /><br />
-            Click on the Filters menu to open it and continue the tour.
+            Click on Add filter to open the filter menu and continue the tour.
             `,
             classes: 'tutorial-container',
-            attachTo: { element: '#filter-menu-filter-area', on: 'right' },
-            advanceOn: { selector: '#filter-menu-filter-area', event: 'click' },
+            attachTo: { element: '#facet-menu', on: 'bottom' },
+            advanceOn: { selector: '#facet-menu', event: 'click' },
             buttons: [
                 {
                 text: 'Exit tour',
@@ -288,8 +288,8 @@ class GeneralTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Site information',
-            text: `This section shows general site information and metadata, such as location, description and data source references.`,
-            attachTo: { element: '#site-report-right-container', on: 'right' },
+            text: `The top of the datasheet says what the site is and where, sums up its samples, analyses and dating, and lets you export or cite it. The rest of its contents are on the tabs below: an overview, the samples, the analyses, the dating and the references.`,
+            attachTo: { element: '.site-report-summary', on: 'bottom' },
             classes: 'tutorial-container',
             buttons: [
                 {
@@ -311,7 +311,19 @@ class GeneralTutorial {
             text: `This section shows the samples at this site. These can be of various types, such as soil samples, wood samples and ceramic shards. These samples are organised into sample groups, which is what you see in this table.
             <br /><br />
             Clicking on a group expands it to show details of the individual samples. You can go ahead and do that now if you like. How the context of a group is defined is up to the scientist who entered the data.`,
-            attachTo: { element: '#site-report-section-samples', on: 'right' },
+            attachTo: { element: '#site-report-section-samples', on: 'top' },
+            beforeShowPromise: () => {
+                return new Promise((resolve) => {
+                    let interval = setInterval(() => {
+                        let siteReport = this.sqs.siteReportManager.siteReport;
+                        if(siteReport && siteReport.tabs && $("#site-report-section-samples").length > 0) {
+                            clearInterval(interval);
+                            siteReport.setActiveTab("samples");
+                            resolve();
+                        }
+                    }, 100);
+                });
+            },
             classes: 'tutorial-container',
             buttons: [
                 {
@@ -330,19 +342,20 @@ class GeneralTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Analyses',
-            text: `This section shows the various analyses performed on the samples. Clicking on an analysis will show you the results.
+            text: `These are the analyses performed on the samples, listed by method. Picking a method shows its results.
             Sometimes several ways of viewing the results are available.
             `,
-            attachTo: { element: '#site-report-section-analyses', on: 'right' },
+            attachTo: { element: '.site-report-method-nav', on: 'right' },
             beforeShowPromise: () => {
                 return new Promise((resolve) => {
-                //poll for the existance of #site-report-section-analyses
-                let interval = setInterval(() => {
-                    if($("#site-report-section-analyses").length > 0) {
-                    clearInterval(interval);
-                    resolve();
-                    }
-                }, 100);
+                    let interval = setInterval(() => {
+                        let siteReport = this.sqs.siteReportManager.siteReport;
+                        if(siteReport && siteReport.tabs && $("#site-report-section-analyses").length > 0) {
+                            clearInterval(interval);
+                            siteReport.setActiveTab("analyses");
+                            resolve();
+                        }
+                    }, 100);
                 });
             },
             classes: 'tutorial-container',
@@ -365,10 +378,10 @@ class GeneralTutorial {
             id: this.stepCounter++,
             title: 'Analyses',
             text: `
-            Go ahead and click on the Palaeoentomology analysis to expand it.`,
-            attachTo: { element: '#site-report-section-3 > h3.site-report-level-title', on: 'right' },
+            Go ahead and click on the Palaeoentomology analysis to show it.`,
+            attachTo: { element: '.site-report-method-nav-item[data-method-id="3"]', on: 'right' },
             classes: 'tutorial-container',
-            advanceOn: { selector: '#site-report-section-3 > h3.site-report-level-title', event: 'click' },
+            advanceOn: { selector: '.site-report-method-nav-item[data-method-id="3"]', event: 'click' },
             buttons: [
             {
                 text: 'Exit tour',
@@ -426,8 +439,8 @@ class GeneralTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Back to filters',
-            text: `There are many other types of datasets and analyses, but we can't cover everything here. Now let's go back to the filters and result section. Click on the 'Back' button in the top left corner.`,
-            attachTo: { element: '#site-report-exit-menu', on: 'right' },
+            text: `There are many other types of datasets and analyses, but we can't cover everything here. Now let's go back to the filters and result section. Click on 'Back to result' in the top left corner.`,
+            attachTo: { element: '#site-report-exit-menu', on: 'bottom' },
             advanceOn: { selector: '#site-report-exit-menu', event: 'click' },
             classes: 'tutorial-container',
             buttons: [

@@ -127,7 +127,7 @@ test.describe('AI smoke flow on sead.test', () => {
         await captureStep(page, path.join(artifactDir, '01-home.png'));
 
         await dismissBlockingTutorial(page);
-        await page.click('#filter-menu-domain-area');
+        await page.click('#domain-menu');
         await expect(page.locator('#domains-menu-anchor-point')).toBeVisible();
         await captureStep(page, path.join(artifactDir, '02-domain-menu.png'));
 

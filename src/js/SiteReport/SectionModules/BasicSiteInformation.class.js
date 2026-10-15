@@ -68,291 +68,318 @@ class BasicSiteInformation {
 	/*
 	* Function: render
 	*
+	* Fills in what the site report says about the site itself: the title, the location, the site
+	* record and the references, and the site and sample maps.
 	*/
 	async render(siteData) {
 		this.data = siteData;
-		var data = this.data;
-		var node = $(".site-report-title-site-name").html(siteData.site_name);
-		this.sqs.tooltipManager.registerTooltip(node, "Name of the site as given by the data provider", {drawSymbol: true, placement: "top"});
-		
-		var exportLinksHtml = "";
-		exportLinksHtml += "<ul class='site-report-export-links'>";
-		exportLinksHtml += `<div class='site-report-export-btn' href=''>
-			<li class='light-theme-button'><i class=\"fa fa-download\" aria-hidden=\"true\" style='margin-right:5px;'></i>
-				<span style='float:right;'>Export all site data</span>
-			</li>
-		</div>`;
-		exportLinksHtml += "</ul>";
-		
-		
-		var siteDecription = siteData.site_description;
-		if(siteDecription == null) {
-			siteDecription = "No data";
-		}
 
-		//only get unique biblio ids
-		let datasetBiblioIds = [];
-		siteData.datasets.forEach(dataset => {
-			if(dataset.biblio_id) {
-				if(!datasetBiblioIds.includes(dataset.biblio_id)) {
-					datasetBiblioIds.push(dataset.biblio_id);
-				}
+		this.renderTitle(siteData);
+		this.renderBreadcrumb(siteData);
+		this.renderLocation(siteData);
+		this.renderSiteRecord(siteData);
+		this.renderReferencesTab(siteData);
+		this.bindActions(siteData);
+
+		this.renderMiniMap(siteData);
+
+		//The sample map is on a tab of its own, and a map can't be fitted to its points while hidden
+		this.sampleMapRendered = false;
+		let renderSampleMapWhenShown = (tabName) => {
+			if(tabName == "samples" && !this.sampleMapRendered) {
+				this.sampleMapRendered = true;
+				this.renderSampleMap(siteData);
+			}
+		};
+		if(!this.siteHasSampleCoordinates(siteData)) {
+			$(".site-report-samples-side").hide();
+			$(".site-report-samples-side").closest(".site-report-columns").addClass("site-report-columns-single");
+		}
+		else {
+			$(".site-report-samples-side").show();
+			renderSampleMapWhenShown(this.sqs.siteReportManager.siteReport.activeTab);
+			this.sqs.sqsEventListen("siteReportTabShown", (evt, data) => {
+				renderSampleMapWhenShown(data.tab);
+			}, this);
+		}
+	}
+
+	renderTitle(siteData) {
+		let titleNode = $(".site-report-title-site-name").text(siteData.site_name);
+		this.sqs.tooltipManager.registerTooltip(titleNode, "Name of the site as given by the data provider", {placement: "top"});
+		$(".site-report-site-id").text("#"+siteData.site_id);
+
+		let descriptionNode = $(".site-report-site-description");
+		if(siteData.site_description) {
+			descriptionNode.text(siteData.site_description).removeClass("site-report-no-data");
+		}
+		else {
+			descriptionNode.text("No site description recorded.").addClass("site-report-no-data");
+		}
+	}
+
+	/*
+	* Function: getOrderedLocations
+	* The site's locations, the country first, without the blanks and repeats the data sometimes has.
+	*/
+	getOrderedLocations(siteData) {
+		let seen = [];
+		let locations = siteData.location.filter(location => {
+			let name = location.location_name ? location.location_name.trim() : "";
+			if(name == "" || seen.includes(name)) {
+				return false;
+			}
+			seen.push(name);
+			return true;
+		});
+		locations.sort((a, b) => {
+			return (a.location_type == "Country" ? 0 : 1) - (b.location_type == "Country" ? 0 : 1);
+		});
+		return locations;
+	}
+
+	renderBreadcrumb(siteData) {
+		let breadcrumbNode = $(".site-report-breadcrumb");
+		breadcrumbNode.empty();
+		this.getOrderedLocations(siteData).forEach(location => {
+			breadcrumbNode.append($("<li></li>").text(location.location_name.trim()));
+		});
+	}
+
+	/*
+	* Function: getLocationTypeLabel
+	* A short name for a type of location, for the list beside the map.
+	*/
+	getLocationTypeLabel(locationType) {
+		const labels = {
+			"Sub-country administrative region": "Region",
+			"Aggregate/non-admin geographical region": "Area",
+			"Unprocessed Bugs Transfer": "Place"
+		};
+		return labels[locationType] ? labels[locationType] : locationType;
+	}
+
+	renderLocation(siteData) {
+		let listNode = $(".site-report-location-list");
+		listNode.empty();
+
+		this.getOrderedLocations(siteData).forEach(location => {
+			listNode.append($("<dt></dt>").text(this.getLocationTypeLabel(location.location_type)));
+			let valueNode = $("<dd></dd>").text(location.location_name.trim());
+			listNode.append(valueNode);
+			if(location.location_description) {
+				this.sqs.tooltipManager.registerTooltip(valueNode, "<div style='font-weight:bold'>"+location.location_type+"</div><div>"+location.location_description+"</div>");
 			}
 		});
 
-		let datasetReferencesHtml = this.sqs.renderBiblioReference(siteData, datasetBiblioIds);
-		if(datasetReferencesHtml == "") {
-			datasetReferencesHtml = "No data";
+		if(siteData.latitude_dd != null && siteData.longitude_dd != null) {
+			let lat = parseFloat(siteData.latitude_dd).toFixed(5);
+			let lon = parseFloat(siteData.longitude_dd).toFixed(5);
+			listNode.append($("<dt></dt>").text("Coordinates"));
+			listNode.append($("<dd class='mono'></dd>").text(lat+", "+lon));
+		}
+		if(siteData.altitude != null && siteData.altitude !== "") {
+			listNode.append($("<dt></dt>").text("Altitude"));
+			listNode.append($("<dd></dd>").text(parseFloat(siteData.altitude)+" m"));
+		}
+		if(siteData.site_location_accuracy) {
+			listNode.append($("<dt></dt>").text("Accuracy"));
+			listNode.append($("<dd id='site-location-accuracy-value'></dd>").text(siteData.site_location_accuracy));
 		}
 
-		let sampleGroupBiblioIds = [];
+		let sampleCount = 0;
+		let samplesWithCoordinates = 0;
 		siteData.sample_groups.forEach(sampleGroup => {
-			sampleGroup.biblio.forEach(biblio => {
-				if(sampleGroupBiblioIds.indexOf(biblio.biblio_id) == -1) {
-					sampleGroupBiblioIds.push(biblio.biblio_id);
+			sampleGroup.physical_samples.forEach(sample => {
+				sampleCount++;
+				if(sample.coordinates && sample.coordinates.length > 0) {
+					samplesWithCoordinates++;
 				}
 			});
 		});
-		let sampleGroupReferencesHtml = this.sqs.renderBiblioReference(siteData, sampleGroupBiblioIds);
-		if(sampleGroupReferencesHtml == "") {
-			sampleGroupReferencesHtml = "No data";
+		let note = "";
+		if(samplesWithCoordinates > 0) {
+			note = samplesWithCoordinates.toLocaleString("en-GB")+" of "+sampleCount.toLocaleString("en-GB")+" samples have coordinates of their own, see the samples tab.";
+		}
+		else if(siteData.sample_groups.some(sampleGroup => sampleGroup.coordinates && sampleGroup.coordinates.length > 0)) {
+			note = "The samples share their sample group's coordinates.";
+		}
+		$(".site-report-location-note").text(note);
+	}
+
+	renderSiteRecord(siteData) {
+		let listNode = $(".site-report-record-list");
+		listNode.empty();
+
+		listNode.append($("<dt></dt>").text("Site ID"));
+		listNode.append($("<dd class='mono'></dd>").text(siteData.site_id));
+
+		if(siteData.national_site_identifier) {
+			listNode.append($("<dt></dt>").text("National ID"));
+			listNode.append($("<dd></dd>").text(siteData.national_site_identifier));
 		}
 
-		let biblioIds = siteData.biblio.map(siteRef => { return siteRef.biblio_id; });
-		let siteReferencesHtml = this.sqs.renderBiblioReference(siteData, biblioIds);
-		if(siteReferencesHtml == "") {
-			siteReferencesHtml = "No data";
+		listNode.append($("<dt></dt>").text("Permalink"));
+		let permalink = this.getPermalink(siteData);
+		listNode.append($("<dd class='mono site-report-permalink'></dd>").append($("<a></a>").attr("href", permalink).text(permalink)));
+
+		let investigationTime = this.getInvestigationYears(siteData);
+		if(investigationTime) {
+			listNode.append($("<dt></dt>").text("Sampled"));
+			listNode.append($("<dd></dd>").text(investigationTime));
 		}
-		
-		var node = $(".site-report-aux-info-container");
 
-		let auxInfoHtml = `<div class='site-report-aux-header-container'><h4>Site identifier</h4></div>
-		<div class='site-report-aux-header-underline'></div>
-		<div class='site-report-aux-info-text-container site-report-information-item'>${siteData.site_id}</div>
-		<div class='site-report-aux-header-container'><h4>Site location</h4></div>
-		<div class='site-report-aux-header-underline'></div>
-		<div id='site-report-locations-container' class='site-report-information-item'></div>
-		<div class='site-report-aux-header-container'><h4>Sample locations</h4></div>
-		<div class='site-report-aux-header-underline'></div>
-		<div id='site-report-sample-coordinates-container' class='site-report-information-item'></div>
-		<div class='site-report-aux-header-container'><h4>Export</h4></div>
-		<div class='site-report-aux-header-underline'></div>
-		<div class='site-report-aux-info-text-container site-report-information-item'>${exportLinksHtml}</div>
-		<div class='site-report-aux-header-container'><h4>Description</h4></div>
-		<div class='site-report-aux-header-underline'></div>
-		<div class='site-report-information-item site-report-site-description site-report-description-text-container site-report-aux-info-text-container'>${siteDecription}</div>
-		<div id='site-report-investigation-time-container'></div>
-		<div id='site-report-time-overview-container' class='site-report-aux-info-text-container'>
-			<div class='site-report-aux-header-container'><h4>Site dating overview</h4></div>
-			<div class='site-report-aux-header-underline'></div>
-			<div id="site-report-time-overview" class='site-report-information-item'></div>
-		</div>
-
-		<div class='site-report-aux-header-container'><h4>Site reference</h4></div>
-		<div class='site-report-aux-header-underline'></div>
-		<div class='site-report-site-description site-report-aux-info-text-container site-report-information-item'>${siteReferencesHtml}</div>
-		<div class='site-report-aux-header-container'><h4>Sample group references</h4></div>
-		<div class='site-report-aux-header-underline'></div>
-		<div class='site-report-site-description site-report-aux-info-text-container site-report-information-item'>${sampleGroupReferencesHtml}</div>
-		<div class='site-report-aux-header-container'><h4>Dataset references</h4></div>
-		<div class='site-report-aux-header-underline'></div>
-		<div class='site-report-site-description site-report-aux-info-text-container site-report-information-item'>${datasetReferencesHtml}</div>`;
-
-		node.append(auxInfoHtml);
-
-		let investigationTimeHtml = this.renderInvestigationTime(siteData);
-		if(investigationTimeHtml !== null) {
-			$("#site-report-investigation-time-container").html(
-				`<div class='site-report-aux-header-container'><h4>Investigation time</h4></div>
-				<div class='site-report-aux-header-underline'></div>
-				<div class='site-report-aux-info-text-container site-report-information-item'>${investigationTimeHtml}</div>`
-			);
-		}
-		
-		this.sqs.tooltipManager.registerTooltip("#site-report-time-overview-container .site-report-aux-header-container h4", "This chart shows the extremes (oldest and youngest) of all dated samples in this site, by dating method. Dating is shown as years before present (BP), which in SEAD is defined as the year "+this.sqs.config.constants.BP+". Calendar years (AD/BC) are converted to BP. Radiocarbon ages are shown as given, in radiocarbon years, and are not calibrated. Hover a bar for details.", {placement: "top", drawSymbol: true});
-
-		$("#site-report-locations-container").append("<div id='site-report-map-container'>");
-		$("#site-report-sample-coordinates-container").append("<div id='site-report-sample-map-container'></div>");
-
-
-		var locationsContainer = $("#site-report-locations-container");
-		for(var i = 0; i < siteData.location.length; i++) {
-			var el = $("<span>" + siteData.location[i].location_name + "</span>");
-			locationsContainer.append(el);
-			this.sqs.tooltipManager.registerTooltip(el, "<div style='font-weight:bold'>"+siteData.location[i].location_type+"</div><div>"+siteData.location[i].location_description+"</div>", {drawSymbol: true});
-			
-			if (i+1 < siteData.location.length) {
-				locationsContainer.append(", ");
+		if(siteData.date_updated) {
+			let updated = new Date(siteData.date_updated);
+			if(!isNaN(updated.getTime())) {
+				listNode.append($("<dt></dt>").text("Updated"));
+				listNode.append($("<dd></dd>").text(updated.toISOString().substring(0, 10)));
 			}
 		}
+	}
 
-		if(siteData.site_location_accuracy) {
-			locationsContainer.append("<div><h5>Location accuracy</h5><span id='site-location-accuracy-value'>"+siteData.site_location_accuracy+"</span></div>");
+	getPermalink(siteData) {
+		return window.location.origin+"/site/"+siteData.site_id;
+	}
+
+	/*
+	* Function: getInvestigationYears
+	* The years the samples were taken in, as a short list, or null if none of them say.
+	*/
+	getInvestigationYears(siteData) {
+		let years = [];
+		siteData.sample_groups.forEach(sampleGroup => {
+			sampleGroup.physical_samples.forEach(sample => {
+				if(sample.date_sampled != null && sample.date_sampled !== "") {
+					let match = String(sample.date_sampled).match(/^\d{4}/);
+					if(match && !years.includes(parseInt(match[0]))) {
+						years.push(parseInt(match[0]));
+					}
+				}
+			});
+		});
+		if(years.length == 0) {
+			return null;
 		}
+		years.sort((a, b) => a - b);
+		if(years.length > 3) {
+			return years[0]+"\u2013"+years[years.length - 1];
+		}
+		return years.join(", ");
+	}
 
-		
-		$(".site-report-export-btn", node).on("click", (evt) => {
+	/*
+	* Function: renderReferencesTab
+	* What the site, its sample groups and its datasets cite, and who to contact about the datasets.
+	*/
+	renderReferencesTab(siteData) {
+		let cardNode = $(".site-report-references-card");
+		cardNode.empty();
+
+		let addGroup = (title, html, note = "") => {
+			let groupNode = $("<div class='site-report-reference-group'></div>");
+			groupNode.append($("<div class='sqs-label'></div>").text(title));
+			if(html == "") {
+				groupNode.append($("<p class='site-report-no-data'></p>").text("None recorded."));
+			}
+			else {
+				groupNode.append($("<div class='site-report-reference-list'></div>").html(html));
+			}
+			if(note) {
+				groupNode.append($("<p class='sqs-muted site-report-reference-note'></p>").text(note));
+			}
+			cardNode.append(groupNode);
+		};
+
+		let siteBiblioIds = siteData.biblio.map(siteRef => siteRef.biblio_id);
+		addGroup("Site", this.sqs.renderBiblioReference(siteData, siteBiblioIds));
+
+		let sampleGroupBiblioIds = [];
+		let citingSampleGroups = [];
+		siteData.sample_groups.forEach(sampleGroup => {
+			sampleGroup.biblio.forEach(biblio => {
+				if(!sampleGroupBiblioIds.includes(biblio.biblio_id)) {
+					sampleGroupBiblioIds.push(biblio.biblio_id);
+				}
+				if(!citingSampleGroups.includes(sampleGroup.sample_group_name)) {
+					citingSampleGroups.push(sampleGroup.sample_group_name);
+				}
+			});
+		});
+		addGroup("Sample groups", this.sqs.renderBiblioReference(siteData, sampleGroupBiblioIds), citingSampleGroups.length > 0 ? "Cited by "+citingSampleGroups.join(", ")+"." : "");
+
+		let datasetBiblioIds = [];
+		siteData.datasets.forEach(dataset => {
+			if(dataset.biblio_id && !datasetBiblioIds.includes(dataset.biblio_id)) {
+				datasetBiblioIds.push(dataset.biblio_id);
+			}
+		});
+		addGroup("Datasets", this.sqs.renderBiblioReference(siteData, datasetBiblioIds));
+
+		let contactsHtml = this.renderDatasetContacts(siteData);
+		if(contactsHtml != "") {
+			addGroup("Dataset contacts", contactsHtml);
+		}
+	}
+
+	/*
+	* Function: getCitationText
+	* How to cite this site's page in SEAD.
+	*/
+	getCitationText(siteData) {
+		let accessed = new Date().toISOString().substring(0, 10);
+		return siteData.site_name+" (site "+siteData.site_id+"). SEAD, the Strategic Environmental Archaeology Database. "+this.getPermalink(siteData)+" (accessed "+accessed+").";
+	}
+
+	bindActions(siteData) {
+		$(".site-report-export-btn").off("click").on("click", (evt) => {
 			evt.preventDefault();
 			evt.stopPropagation();
 			this.exportSite();
 		});
-		
-		this.renderMiniMap(siteData);
-		this.renderSampleMap(siteData);
 
-		this.renderTimeOverview("site-report-time-overview", siteData);
-	}
+		$(".site-report-copy-link-btn").off("click").on("click", () => {
+			this.copyToClipboard(this.getPermalink(siteData), "Link to the site copied.");
+		});
 
-	renderInvestigationTime(siteData) {
-		let totalSamples = 0;
-		let yearCounts = {};
-
-		siteData.sample_groups.forEach(sampleGroup => {
-			sampleGroup.physical_samples.forEach(sample => {
-				totalSamples++;
-				if(sample.date_sampled != null && sample.date_sampled !== "") {
-					let year = null;
-					let parsed = new Date(sample.date_sampled);
-					if(!isNaN(parsed.getFullYear())) {
-						year = parsed.getFullYear();
-					} else {
-						let match = String(sample.date_sampled).match(/^\d{4}/);
-						if(match) {
-							year = parseInt(match[0]);
-						}
-					}
-					if(year !== null) {
-						yearCounts[year] = (yearCounts[year] || 0) + 1;
-					}
-				}
+		$(".site-report-cite-btn").off("click").on("click", () => {
+			let citationText = this.getCitationText(siteData);
+			let siteReferences = this.sqs.renderBiblioReference(siteData, siteData.biblio.map(siteRef => siteRef.biblio_id));
+			let copyButtonId = "copy-citation-"+nanoid();
+			let html = "<div class='site-report-citation'>";
+			html += "<p class='site-report-citation-text'></p>";
+			html += "<button type='button' id='"+copyButtonId+"' class='sqs-btn'><i class='fa fa-clipboard' aria-hidden='true'></i> Copy citation</button>";
+			if(siteReferences != "") {
+				html += "<h4 class='sqs-label'>Please also cite the original publication</h4>"+siteReferences;
+			}
+			html += "</div>";
+			this.sqs.dialogManager.showPopOver("Cite this site", html);
+			$(".site-report-citation-text").text(citationText);
+			$("#"+copyButtonId).on("click", () => {
+				this.copyToClipboard(citationText, "Citation copied.");
 			});
 		});
-
-		if(Object.keys(yearCounts).length === 0) {
-			return null;
-		}
-
-		let sortedYears = Object.keys(yearCounts).map(Number).sort((a, b) => a - b);
-		let html = "";
-		sortedYears.forEach(year => {
-			html += `<div>${yearCounts[year]}/${totalSamples} samples from ${year}</div>`;
-		});
-		return html;
 	}
 
-
-	/*
-	* Function: renderTimeOverview
-	*
-	* Draws siteData.age_summary, which the server compiles from all of the site's datings, normalized to years BP.
-	* One bar per dating method, from its oldest to its youngest dating.
-	*/
-	renderTimeOverview(targetAnchorId, siteData) {
-		let ageSummary = siteData.age_summary;
-		if(!ageSummary || !ageSummary.datings || ageSummary.datings.length == 0) {
-			document.getElementById(targetAnchorId).innerHTML = "No data";
-			return;
+	copyToClipboard(text, confirmation) {
+		if(navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(text).then(() => {
+				this.sqs.notificationManager.notify(confirmation, "info");
+			}).catch(() => {
+				this.sqs.notificationManager.notify("Could not copy to the clipboard.", "error");
+			});
 		}
-
-		const datings = ageSummary.datings;
-		const bpYear = ageSummary.bp_year ? ageSummary.bp_year : this.sqs.config.constants.BP;
-
-		const formatBP = (value) => {
-			return Math.round(value).toLocaleString('en-US').replace(/,/g, " ")+" BP";
-		};
-
-		const tooltipLines = (dating) => {
-			let lines = [];
-			lines.push(dating.older == dating.younger ? formatBP(dating.older) : formatBP(dating.older)+" - "+formatBP(dating.younger));
-			if(dating.open_older) {
-				lines.push("Open-ended: older than "+formatBP(dating.older));
-			}
-			if(dating.open_younger) {
-				lines.push("Open-ended: younger than "+formatBP(dating.younger));
-			}
-			if(dating.method_id == 10) {
-				lines.push("(AD "+Math.round(bpYear - dating.older)+" - AD "+Math.round(bpYear - dating.younger)+")");
-			}
-			lines.push(dating.age_count+(dating.age_count == 1 ? " dating" : " datings")+" of "+dating.sample_count+(dating.sample_count == 1 ? " sample" : " samples"));
-			if(dating.radiocarbon_years_count > 0) {
-				lines.push(dating.radiocarbon_years_count+" in radiocarbon years (not calibrated)");
-			}
-			if(dating.approximate_count > 0) {
-				lines.push(dating.approximate_count+" approximate");
-			}
-			if(dating.disputed_count > 0) {
-				lines.push(dating.disputed_count+" disputed");
-			}
-			if(dating.swapped_count > 0) {
-				lines.push(dating.swapped_count+" stored with older and younger reversed");
-			}
-			return lines;
-		};
-
-		const config = {
-			type: 'bar',
-			data: {
-				labels: datings.map(dating => dating.method_name),
-				datasets: [{
-					label: "",
-					data: datings.map(dating => [dating.older, dating.younger]),
-					backgroundColor: this.sqs.color.getColorScheme(datings.length),
-					minBarLength: 3
-				}]
-			},
-			options: {
-				scales: {
-					x: {
-						reverse: true,
-						ticks: {
-							callback: (value) => {
-								if (Math.abs(value) >= 1000) {
-									return value / 1000 + "k BP";
-								}
-								return value+" BP";
-							},
-						},
-					},
-				},
-				indexAxis: 'y',
-				responsive: true,
-				plugins: {
-					tooltip: {
-						callbacks: {
-							title: (tooltipItems) => {
-								return datings[tooltipItems[0].dataIndex].method_name;
-							},
-							label: (tooltipItem) => {
-								return tooltipLines(datings[tooltipItem.dataIndex]);
-							}
-						}
-					},
-					legend: {
-						display: false
-					},
-					title: {
-						display: true,
-						text: 'Timeline Chart'
-					}
-				}
-			}
-		};
-
-		let chartId = nanoid();
-		let html = '<canvas id="'+chartId+'"></canvas>';
-
-		//Radiocarbon years and calendar years BP are not the same scale, so say which bars include them
-		let radiocarbonMethods = datings.filter(dating => dating.radiocarbon_years_count > 0).map(dating => dating.method_name);
-		if(radiocarbonMethods.length > 0) {
-			html += "<p><small>Includes ages in radiocarbon years, which are not calibrated and so not directly comparable with calendar years BP: "+radiocarbonMethods.join(", ")+".</small></p>";
+		else {
+			this.sqs.notificationManager.notify("Could not copy to the clipboard.", "error");
 		}
-		document.getElementById(targetAnchorId).innerHTML = html;
+	}
 
-		const ctx = document.getElementById(chartId).getContext("2d");
-		const chart = new Chart(ctx, config);
-
-		window.addEventListener('resize', () => {
-			chart.resize();
+	siteHasSampleCoordinates(siteData) {
+		return siteData.sample_groups.some(sampleGroup => {
+			if(sampleGroup.coordinates && sampleGroup.coordinates.length > 0) {
+				return true;
+			}
+			return sampleGroup.physical_samples.some(sample => sample.coordinates && sample.coordinates.length > 0);
 		});
 	}
 
@@ -379,47 +406,39 @@ class BasicSiteInformation {
 		}
 	}
 
+	/*
+	* Function: renderDatasetContacts
+	* The people the site's datasets name, each once for each role they had.
+	*/
 	renderDatasetContacts(siteData) {
-		let datasetContactIds = [];
+		let seen = [];
 		let out = "";
-		for(let key in siteData.datasets) {
-			let dataset = siteData.datasets[key];
-			dataset.contacts.forEach(contact_id => {
-				if(datasetContactIds.indexOf(contact_id) == -1) {
-					datasetContactIds.push(contact_id);
-					siteData.lookup_tables.dataset_contacts.forEach(datasetContact => {
+		siteData.lookup_tables.dataset_contacts.forEach(datasetContact => {
+			let key = datasetContact.contact_id+"-"+datasetContact.contact_type_id;
+			if(seen.includes(key)) {
+				return;
+			}
+			seen.push(key);
 
-						out += "<div class='site-reference-box'>";
-						if(datasetContact.contact_type) {
-							out += datasetContact.contact_type+" ";
-						}
-						if(datasetContact.contact_first_name) {
-							out += datasetContact.contact_first_name+" ";
-						}
-						if(datasetContact.contact_last_name) {
-							out += datasetContact.contact_last_name+" ";
-						}
-						if(datasetContact.contact_address_1) {
-							out += "<br />"+datasetContact.contact_address_1;
-						}
-						if(datasetContact.contact_address_2) {
-							out += "<br />"+datasetContact.contact_address_2;
-						}
-						if(datasetContact.contact_email) {
-							out += "<br />"+datasetContact.contact_email;
-						}
-						if(datasetContact.contact_url) {
-							out += "<br /><a target='_blank' href='"+datasetContact.contact_url+"'>"+datasetContact.contact_url+"</a>";
-						}
-						if(datasetContact.contact_location_name) {
-							out += "<br />"+datasetContact.contact_location_name;
-						}
-
-						out += "</div>";
-					});
+			let name = [datasetContact.contact_first_name, datasetContact.contact_last_name].filter(part => part).join(" ");
+			out += "<div class='site-reference-box'>";
+			if(datasetContact.contact_type) {
+				out += "<span class='sqs-muted'>"+datasetContact.contact_type+"</span> ";
+			}
+			out += "<strong>"+name+"</strong>";
+			[datasetContact.contact_address_1, datasetContact.contact_address_2, datasetContact.contact_location_name].forEach(line => {
+				if(line) {
+					out += "<br />"+line.replace(/\n/g, ", ");
 				}
 			});
-		}
+			if(datasetContact.contact_email) {
+				out += "<br /><a href='mailto:"+datasetContact.contact_email+"'>"+datasetContact.contact_email+"</a>";
+			}
+			if(datasetContact.contact_url) {
+				out += "<br /><a target='_blank' href='"+datasetContact.contact_url+"'>"+datasetContact.contact_url+"</a>";
+			}
+			out += "</div>";
+		});
 		return out;
 	}
 
@@ -546,23 +565,23 @@ class BasicSiteInformation {
 	exportSite() {
 		let dialogNodeId = nanoid();
 		let dialogNode = $("<div id='node-"+dialogNodeId+"' class='dialog-centered-content-container'></div>");
-		this.sqs.dialogManager.showPopOver("Site data export", "<br />"+dialogNode.prop('outerHTML'));
+		this.sqs.dialogManager.showPopOver("Site data export", dialogNode.prop('outerHTML'));
 
 		let btnId = nanoid();
-		$("#node-"+dialogNodeId).append("<a id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn light-theme-button'>Download JSON</a>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
+		$("#node-"+dialogNodeId).append("<button type='button' id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn sqs-btn'><i class='fa fa-download' aria-hidden='true'></i> Download JSON</button>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
 			this.sqs.exportManager.getJsonExport(this.data).then(objectUrl => {
 				this.triggerDownload(this.data.site_name+".json", objectUrl);
 			});
 		});
 
 		const sdfBtnSelector = "#site-report-export-btn-"+nanoid();
-		$("#node-"+dialogNodeId).append("<a id='"+sdfBtnSelector.substring(1)+"' class='site-report-export-download-btn light-theme-button' title='A complete copy of this site in the SEAD Data Format (SDF): every table, row and column. Can be edited and submitted back to SEAD; see the README sheet inside.'>Download XLSX</a>").on("click", sdfBtnSelector, (evt) => {
+		$("#node-"+dialogNodeId).append("<button type='button' id='"+sdfBtnSelector.substring(1)+"' class='site-report-export-download-btn sqs-btn' title='A complete copy of this site in the SEAD Data Format (SDF): every table, row and column. Can be edited and submitted back to SEAD; see the README sheet inside.'><i class='fa fa-download' aria-hidden='true'></i> Download XLSX</button>").on("click", sdfBtnSelector, (evt) => {
 			this.exportSiteAsSdfXlsx(sdfBtnSelector);
 		});
 
 		/* Hidden in favour of the SDF export above, but kept so it can be brought back.
 		btnId = nanoid();
-		$("#node-"+dialogNodeId).append("<a id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn light-theme-button'>Download XLSX</a>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
+		$("#node-"+dialogNodeId).append("<button type='button' id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn sqs-btn'><i class='fa fa-download' aria-hidden='true'></i> Download XLSX</button>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
 			let methodIds = ["all"];
 			this.sqs.exportManager.getXlsxBookExport(this.data, true, methodIds).then(objectUrl => {
 				this.triggerDownload(this.data.site_name+".xlsx", objectUrl);
@@ -571,7 +590,7 @@ class BasicSiteInformation {
 		*/
 
 		btnId = nanoid();
-		$("#node-"+dialogNodeId).append("<a id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn light-theme-button'>Download CSV (ZIP)</a>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
+		$("#node-"+dialogNodeId).append("<button type='button' id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn sqs-btn'><i class='fa fa-download' aria-hidden='true'></i> Download CSV (ZIP)</button>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
 			this.sqs.exportManager.getCsvExport(this.data).then(objectUrl => {
 				this.triggerDownload(this.data.site_name+".zip", objectUrl);
 			});
@@ -661,8 +680,8 @@ class BasicSiteInformation {
 		});
 		
 		
-		var strokeColor = "#333";
-		let fillColor = css.auxColor;
+		var strokeColor = "#fff";
+		let fillColor = css.baseColor;
 		var iconStyle = new Style({
 			image: new CircleStyle({
 				radius: 8,
@@ -1081,6 +1100,7 @@ class BasicSiteInformation {
 	destroy() {
 		this.sqs.sqsEventUnlisten("fetchBasicSiteInformation", this);
 		this.sqs.sqsEventUnlisten("layoutResize", this);
+		this.sqs.sqsEventUnlisten("siteReportTabShown", this);
 	}
 }
 export { BasicSiteInformation as default }

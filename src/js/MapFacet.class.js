@@ -81,6 +81,13 @@ class MapFacet extends Facet {
 	}
 
 	/*
+	* Function: getSelectionSummary
+	*/
+	getSelectionSummary() {
+		return this.selections.length == 1 ? "1 area" : this.selections.length+" areas";
+	}
+
+	/*
 	* Function: normalisePolygons
 	* Brings every shape a selection can arrive in down to a list of polygons. Callers include
 	* saved viewstates, the URL, and the agent, and none of them are obliged to know which

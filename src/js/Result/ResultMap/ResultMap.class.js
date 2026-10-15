@@ -829,22 +829,12 @@ class ResultMap extends ResultModule {
 		return true;
 	}
 
+	/*
+	* Function: renderExportButton
+	* The export button is in the bar under the result, shared by all the result views.
+	*/
 	renderExportButton() {
-		if($("#result-map-container .result-export-button").length > 0) {
-			return;
-		}
-
-		let siteCount = this.data.length;
-		let exportButton = $(`<div class="result-export-button">
-			<span id="map-site-count">${siteCount} sites</span>
-			<span class="result-export-button-divider"></span>
-			<span class="result-export-button-action"><i class='fa fa-download' aria-hidden='true'></i> Export</span>
-		</div>`);
-
-		let exportPanel = $("<div></div>").attr("id", "result-map-export-panel");
-		exportPanel.append(exportButton);
-		$("#result-map-container").append(exportPanel);
-		this.bindExportModuleDataToButton(exportButton, this);
+		this.resultManager.updateResultSummary();
 	}
 
 	/*
@@ -1196,13 +1186,11 @@ class ResultMap extends ResultModule {
 		$("#result-map-controls-container").append(externalLayersHtml);
 		new SqsMenu(this.resultManager.sqs, this.resultMapExternalLayersControlsSqsMenu());
 
-		if(this.sqs.config.showResultExportButton) {
-			this.renderExportButton();
-		}
+		this.renderExportButton();
 	}
 
 	updateInterfaceControls() {
-		$("#map-site-count").text(`${this.data.length} sites`);
+		this.resultManager.updateResultSummary();
 	}
 
 	unrenderAllAuxLayersPanel() {

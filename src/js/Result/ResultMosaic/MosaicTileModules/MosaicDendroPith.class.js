@@ -9,7 +9,8 @@ class MosaicDendroPith extends MosaicDendroNumericVariable {
             sqs,
             "Pith (P)",
             "Pith",
-            "Number of rings from pith (center of tree) to the sample edge"
+            "Number of rings from pith (center of tree) to the sample edge",
+            "Rings from the pith"
         );
         this.name = "mosaic-dendro-pith";
     }

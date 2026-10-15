@@ -20,7 +20,7 @@
 	"maxAllowedSitesInAnExport": 20,
 	"facetSectionDefaultWidth": 38.2,
 	"facetBodyHeight": 268,
-	"discreteFacetRowHeight": 20,
+	"discreteFacetRowHeight": 28,
 	"discreteFacetTextSize": 10,
 	"cookieWarningEnabled": true,
 	"viewstateLoadingScreenEnabled": true,
@@ -762,6 +762,7 @@
 				3,
 				2
 			],
+			"result_grid_min_row_height": 420,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",
@@ -769,24 +770,24 @@
 					"grid_column": "1"
 				},
 				{
-					"module_name": "mosaic-sample-methods",
+					"module_name": "mosaic-analysis-methods",
 					"grid_row": "1",
 					"grid_column": "2"
 				},
 				{
-					"module_name": "mosaic-analysis-methods",
+					"module_name": "mosaic-domain-samples",
 					"grid_row": "2",
+					"grid_column": "span 2"
+				},
+				{
+					"module_name": "mosaic-sample-methods",
+					"grid_row": "3",
 					"grid_column": "1"
 				},
 				{
 					"module_name": "mosaic-feature-types",
-					"grid_row": "2",
-					"grid_column": "2"
-				},
-				{
-					"module_name": "mosaic-domain-samples",
 					"grid_row": "3",
-					"grid_column": "span 2"
+					"grid_column": "2"
 				},
 				{
 					"module_name": "mosaic-taxa-list",
@@ -811,6 +812,7 @@
 				4,
 				3
 			],
+			"result_grid_min_row_height": 320,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-dendro-tree-age",
@@ -880,6 +882,7 @@
 				2,
 				2
 			],
+			"result_grid_min_row_height": 420,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",
@@ -914,6 +917,7 @@
 				3,
 				2
 			],
+			"result_grid_min_row_height": 420,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-archaeobotany-taxa-list",
@@ -953,6 +957,7 @@
 				2,
 				2
 			],
+			"result_grid_min_row_height": 420,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",
@@ -1018,6 +1023,7 @@
 				2,
 				2
 			],
+			"result_grid_min_row_height": 420,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",

@@ -52,7 +52,7 @@ class ResultModule {
 	}
 
 	setExportButtonLoadingIndicator(active = true) {
-		let exportButtons = $("#result-container .result-export-button");
+		let exportButtons = $("#result-section .result-export-button");
 		exportButtons.attr("aria-busy", active ? "true" : "false");
 
 		exportButtons.each(function() {
@@ -84,6 +84,15 @@ class ResultModule {
 	*/
 	getSiteCount() {
 		return Array.isArray(this.data) ? this.data.length : null;
+	}
+
+	/*
+	* Function: getResultSiteIds
+	* The ids of the sites in the current result, in the order they are shown. This default covers
+	* a module whose data is a plain list of sites.
+	*/
+	getResultSiteIds() {
+		return Array.isArray(this.data) ? this.data.map(site => site.id) : [];
 	}
 
 	/*

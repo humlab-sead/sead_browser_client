@@ -207,23 +207,9 @@ class MultiStageFacet extends Facet {
 	 * Function: registerTextSearchEvents
 	 */
 	registerTextSearchEvents() {
-		let filter = this.getCurrentFilter();
-		$(this.getDomRef()).find(".facet-text-search-btn").on("click", () => {
-			if($(this.getDomRef()).find(".facet-text-search-input").css("display") == "none") {
-				$(this.getDomRef()).find(".facet-text-search-input").fadeIn(100).focus();
-			}
-			else {
-				if($(this.getDomRef()).find(".facet-text-search-input").val().length > 0) {
-					$(this.getDomRef()).find(".facet-text-search-input").val("");
-					$(this.getDomRef()).find(".facet-text-search-btn").removeClass("facet-control-active");
-					this.renderData(filter.data);
-				}
-				$(this.getDomRef()).find(".facet-text-search-input").fadeOut(100);
-			}
-		});
-		
-		$(this.getDomRef()).find(".facet-text-search-btn").show();
-		$(this.getDomRef()).find(".facet-text-search-input").on("keyup", (evt) =>  {
+		$(this.getDomRef()).addClass("facet-searchable");
+		//"input" rather than "keyup", so clearing the field with its own clear button also counts
+		$(this.getDomRef()).find(".facet-text-search-input").on("input", (evt) =>  {
 			this.textSearch(evt);
 		});
 	}

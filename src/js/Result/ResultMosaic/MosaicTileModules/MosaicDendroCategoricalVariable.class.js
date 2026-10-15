@@ -1,5 +1,4 @@
 import DendroBaseModule from "./DendroBaseModule.class";
-import { nanoid } from "nanoid";
 
 /**
  * MosaicDendroCategoricalVariable - Display categorical dendro variables
@@ -12,152 +11,36 @@ class MosaicDendroCategoricalVariable extends DendroBaseModule {
         this.title = title || variableName;
         this.description = description || '';
         this.name = "mosaic-dendro-" + variableName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-        this.chartType = "custom";
+        this.display = "shares";
     }
 
-    async fetchData(renderIntoNode = null) {
-        this.sqs.setNoDataMsg(renderIntoNode, false);
-        
-        if(renderIntoNode) {
-            this.sqs.setLoadingIndicator(renderIntoNode, true);
-        }
-
+    async fetchData(requestId) {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        const requestId = ++this.requestId;
+        const result = await this.fetchVariable(this.variableName, resultMosaic.sites, requestId, 'categorical');
 
-        try {
-            const result = await this.fetchVariable(this.variableName, resultMosaic.sites, requestId, 'categorical');
-
-            if(!this.active) {
-                if(renderIntoNode) {
-                    this.sqs.setLoadingIndicator(renderIntoNode, false);
-                }
-                return false;
-            }
-
-            if(result.error || !result.data || !result.data.categories || result.data.categories.length === 0) {
-                if(renderIntoNode) {
-                    this.sqs.setLoadingIndicator(renderIntoNode, false);
-                }
-                return false;
-            }
-
-            // Parse and normalize binary values
-            const normalizedCategories = {};
-            
-            result.data.categories.forEach(cat => {
-                const normalized = this.parseDendroBinaryValue(cat.name);
-                if(normalized !== null) {
-                    if(!normalizedCategories[normalized]) {
-                        normalizedCategories[normalized] = 0;
-                    }
-                    normalizedCategories[normalized] += cat.count;
-                }
-            });
-
-            const categories = Object.entries(normalizedCategories).map(([name, count]) => ({
-                name: name,
-                count: count
-            }));
-
-            if(categories.length === 0) {
-                if(renderIntoNode) {
-                    this.sqs.setLoadingIndicator(renderIntoNode, false);
-                }
-                return false;
-            }
-
-            this.data = {
-                label: this.variableName,
-                description: this.description,
-                categories: categories
-            };
-            
-            if(renderIntoNode) {
-                this.sqs.setLoadingIndicator(renderIntoNode, false);
-            }
-
-            return this.data;
-
-        } catch(error) {
-            console.error(`Error fetching ${this.variableName} data:`, error);
-            if(renderIntoNode) {
-                this.sqs.setLoadingIndicator(renderIntoNode, false);
-            }
-            return false;
-        }
-    }
-
-    async render(renderIntoNode) {
-        super.render();
-        this.renderComplete = false;
-        this.active = true;
-        this.renderIntoNode = renderIntoNode;
-
-        if(this.renderNoDataIfNoSites()) {
-            return;
-        }
-
-        const data = await this.fetchData(renderIntoNode);
-
-        if(!this.active) {
-            this.sqs.resultManager.showLoadingIndicator(false);
-            this.renderComplete = true;
+        if(result.error || !result.data || !result.data.categories || result.data.categories.length === 0) {
             return false;
         }
 
-        if(data === false || !data) {
-            this.renderNoData();
-            this.sqs.resultManager.showLoadingIndicator(false);
-            this.renderComplete = true;
-            return;
+        // Parse and normalize binary values
+        const normalizedCategories = {};
+        result.data.categories.forEach(cat => {
+            const normalized = this.parseDendroBinaryValue(cat.name);
+            if(normalized !== null) {
+                normalizedCategories[normalized] = (normalizedCategories[normalized] || 0) + cat.count;
+            }
+        });
+
+        const categories = ["Yes", "No"].map(name => ({
+            name: name,
+            count: normalizedCategories[name] || 0
+        })).filter(cat => cat.count > 0);
+
+        if(categories.length === 0) {
+            return false;
         }
 
-        $(this.renderIntoNode).empty();
-
-        const varId = nanoid();
-        const total = data.categories.reduce((sum, cat) => sum + cat.count, 0);
-        
-        if(total === 0) {
-            this.renderNoData();
-            this.renderComplete = true;
-            return;
-        }
-
-        const colorIndex = this.getColorIndexForVariable(data.label);
-        const allColors = this.sqs.color.getNiceColorScheme(10);
-        const colors = data.categories.map((cat, idx) => 
-            allColors[(colorIndex + idx) % allColors.length]
-        );
-
-        const wrapperHtml = `
-            <div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-charts">
-                    <div id="chart-${varId}" class="tile-chart-container"></div>
-                    <div id="coverage-${varId}" class="tile-coverage-container"></div>
-                </div>
-            </div>
-        `;
-        $(this.renderIntoNode).append(wrapperHtml);
-        this.setMosaicTileTitle(data.label);
-
-        // Create Plotly donut chart
-        const chartRef = await this.createDonutChart(`chart-${varId}`, data.categories, colors, total, data.label);
-        
-        this.chartInstances.set(varId, { plotly: true, elementId: `chart-${varId}`, name: data.label });
-
-        // Add mini coverage chart — renders immediately with empty bar, animates fill when totalSamples resolves
-        const coverageElement = document.getElementById(`coverage-${varId}`);
-        this.renderCoverageMiniChart(coverageElement, total, this.fetchTotalSamplesCount());
-
-        this.sqs.resultManager.showLoadingIndicator(false);
-        this.renderComplete = true;
-    }
-
-    async update() {
-        this.renderComplete = false;
-        await this.render(this.renderIntoNode);
-        this.renderComplete = true;
+        return { categories: categories };
     }
 }
 

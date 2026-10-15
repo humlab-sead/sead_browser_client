@@ -19,7 +19,7 @@ async function dismissBlockingTutorial(page) {
 }
 
 async function dismissCookieConsent(page) {
-  const consentButton = page.getByRole('button', { name: /i agree/i }).first();
+  const consentButton = page.getByRole('button', { name: /i agree|dismiss cookie message/i }).first();
   if (await consentButton.isVisible().catch(() => false)) {
     await consentButton.click();
     await page.waitForTimeout(200);
@@ -27,7 +27,7 @@ async function dismissCookieConsent(page) {
 }
 
 async function waitForFilterViewReady(page) {
-  await expect(page.locator('#filter-menu-domain-area')).toBeVisible({ timeout: 30000 });
+  await expect(page.locator('#domain-menu')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('#filter-view-main-container #filter-section-toggle-button-left')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('#filter-view-main-container #filter-section-toggle-button-right')).toBeVisible({ timeout: 30000 });
 }

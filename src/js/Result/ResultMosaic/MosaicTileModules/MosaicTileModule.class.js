@@ -6,6 +6,9 @@ import ExcelJS from 'exceljs/dist/exceljs.min.js';
 import Plotly from "plotly.js-dist-min";
 import Config from "../../../../config/config.json";
 
+//The number of samples in the current result, shared by the tiles which show how many of them they cover
+let totalSamplesCountCache = null;
+
 class MosaicTileModule {
     constructor(sqs) {
         this.sqs = sqs;
@@ -17,8 +20,6 @@ class MosaicTileModule {
         this.chartType = "";
         this.name = "";
         this.showChartSelector = true; // Controls whether chart selector dropdown is shown
-        this.coverageCharts = new Map(); // Store coverage chart data for resize
-        this.resizeHandler = this.handleResize.bind(this);
     }
 
     /**
@@ -33,6 +34,334 @@ class MosaicTileModule {
             return;
         }
         $(this.renderIntoNode).closest(".result-mosaic-tile").find(".mosaic-tile-title").first().text(title);
+    }
+
+    /**
+     * The line under the title saying what the chart counts, e.g. "Share of 1,234 datasets".
+     * @param {string} subtitle
+     */
+    setMosaicTileSubtitle(subtitle) {
+        if(!this.renderIntoNode) {
+            return;
+        }
+        let subtitleNode = $(this.renderIntoNode).closest(".result-mosaic-tile").find(".mosaic-tile-subtitle").first();
+        subtitleNode.text(subtitle || "");
+    }
+
+    /**
+     * A segmented control in the tile header for switching between the ways the data can be shown,
+     * e.g. as a chart or as a table. The chosen view is kept in this.view, so it survives the result being updated.
+     * @param {Array<{id: string, label: string}>} views
+     * @param {function} onChange - called with the id of the chosen view
+     */
+    renderViewToggle(views, onChange) {
+        let slotNode = $(this.renderIntoNode).closest(".result-mosaic-tile").find(".mosaic-tile-view-slot").first();
+        slotNode.empty();
+        if(!this.view || !views.find(view => view.id == this.view)) {
+            this.view = views[0].id;
+        }
+
+        let toggleNode = $("<div class='sqs-segmented mosaic-tile-view-toggle' role='group' aria-label='Show as'></div>");
+        views.forEach(view => {
+            let buttonNode = $("<button type='button'></button>").text(view.label);
+            buttonNode.attr("aria-pressed", view.id == this.view ? "true" : "false");
+            buttonNode.on("click", () => {
+                if(this.view == view.id) {
+                    return;
+                }
+                this.view = view.id;
+                toggleNode.find("button").attr("aria-pressed", "false");
+                buttonNode.attr("aria-pressed", "true");
+                onChange(view.id);
+            });
+            toggleNode.append(buttonNode);
+        });
+        slotNode.append(toggleNode);
+    }
+
+    formatCount(value) {
+        return Number(value).toLocaleString("en-GB");
+    }
+
+    //Short enough for the ticks of an axis to fit next to each other: 1.5k rather than 1,500
+    formatAxisCount(value) {
+        return value >= 1000 ? (value / 1000)+"k" : String(value);
+    }
+
+    formatShare(fraction) {
+        let percent = fraction * 100;
+        return (percent > 0 && percent < 0.1 ? "<0.1" : percent.toFixed(1))+" %";
+    }
+
+    /**
+     * Round tick values for an axis running from 0 to at least max.
+     * @param {number} max
+     * @param {number} targetCount - about how many intervals there should be
+     * @returns {number[]}
+     */
+    getNiceTicks(max, targetCount = 4) {
+        if(!(max > 0)) {
+            return [0, 1];
+        }
+        let rawStep = max / targetCount;
+        let magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+        let step = [1, 2, 2.5, 5, 10].map(f => f * magnitude).find(s => s >= rawStep);
+        let ticks = [];
+        for(let tick = 0; tick < max + step * 0.999; tick += step) {
+            ticks.push(Math.round(tick * 1e6) / 1e6);
+        }
+        return ticks;
+    }
+
+    /**
+     * Rows of top items with the rest gathered into one "other" row.
+     * @param {Array} items - sorted, largest first
+     * @param {number} limit - how many to show on their own
+     * @param {function} makeOther - given the items left over, returns the row standing in for them
+     */
+    takeTopItems(items, limit, makeOther) {
+        //Gathering a single item into "1 other" would only hide its name
+        if(items.length <= limit + 1) {
+            return items.slice();
+        }
+        let rest = items.slice(limit);
+        return items.slice(0, limit).concat([makeOther(rest)]);
+    }
+
+    /**
+     * Function: renderRankedBars
+     *
+     * A list of horizontal bars, one row per item: a label, the bar and its value, over an axis. This is how most
+     * overview tiles show their data. Rows can be clicked to add the item as a filter.
+     *
+     * Parameters:
+     * container - the node to render into
+     * rows - [{ label, labelHtml, value, valueText, color, title, onClick, href, actionText, selected, other }]; value decides
+     * the length of the bar. labelHtml, if given, is shown instead of label, which then only names the row to screen readers.
+     * A row with an href is a link, which onClick handles when it is clicked as such; actionText says what clicking it does.
+     * options - { axisFormat: function(tick), showSwatches: boolean, wideLabels: boolean - for long labels, such as taxa }
+     */
+    renderRankedBars(container, rows, options = {}) {
+        let maxValue = rows.reduce((max, row) => Math.max(max, row.value), 0);
+        let ticks = this.getNiceTicks(maxValue);
+        let axisMax = ticks[ticks.length - 1];
+        let axisFormat = options.axisFormat || (tick => this.formatAxisCount(tick));
+
+        let listNode = $("<div class='mosaic-bars'></div>");
+        if(rows.some(row => row.onClick)) {
+            listNode.addClass("mosaic-bars-interactive");
+        }
+        if(options.wideLabels) {
+            listNode.addClass("mosaic-bars-wide-labels");
+        }
+
+        rows.forEach(row => {
+            let rowNode = $("<div class='mosaic-bar-row'></div>");
+            if(row.href) {
+                rowNode = $("<a class='mosaic-bar-row'></a>").attr("href", row.href);
+            }
+            else if(row.onClick) {
+                rowNode = $("<button type='button' class='mosaic-bar-row'></button>");
+            }
+            if(row.other) {
+                rowNode.addClass("mosaic-bar-row-other");
+            }
+            let labelNode = $("<span class='mosaic-bar-label'></span>");
+            if(options.showSwatches) {
+                labelNode.append($("<span class='sqs-dot'></span>").css("background-color", row.color));
+            }
+            let labelTextNode = $("<span class='mosaic-bar-label-text'></span>");
+            if(row.labelHtml) {
+                labelTextNode.html(row.labelHtml);
+            }
+            else {
+                labelTextNode.text(row.label);
+            }
+            labelNode.append(labelTextNode);
+            rowNode.append(labelNode);
+
+            let trackNode = $("<span class='mosaic-bar-track'></span>");
+            let width = axisMax > 0 ? Math.max(row.value > 0 ? 0.6 : 0, row.value / axisMax * 100) : 0;
+            trackNode.append($("<span class='mosaic-bar'></span>").css({ width: width+"%", backgroundColor: row.color }));
+            rowNode.append(trackNode);
+            rowNode.append($("<span class='mosaic-bar-value'></span>").text(row.valueText));
+
+            if(row.title) {
+                rowNode.attr("title", row.title);
+            }
+            if(row.onClick) {
+                let actionText = row.actionText || (row.selected ? "remove filter" : "add as filter");
+                rowNode.attr("aria-label", row.label+", "+row.valueText+", "+actionText);
+                if(row.href) {
+                    rowNode.on("click", event => {
+                        //A link opened in a new tab or window goes there as usual
+                        if(event.ctrlKey || event.metaKey || event.shiftKey) {
+                            return;
+                        }
+                        event.preventDefault();
+                        row.onClick(event);
+                    });
+                }
+                else {
+                    rowNode.attr("aria-pressed", row.selected ? "true" : "false");
+                    rowNode.on("click", row.onClick);
+                }
+            }
+            listNode.append(rowNode);
+        });
+
+        let axisNode = $("<div class='mosaic-bar-axis' aria-hidden='true'><span></span><span class='mosaic-bar-ticks'></span><span></span></div>");
+        ticks.forEach(tick => {
+            let tickNode = $("<span class='mosaic-bar-tick'></span>").text(axisFormat(tick));
+            tickNode.css("left", (axisMax > 0 ? tick / axisMax * 100 : 0)+"%");
+            axisNode.find(".mosaic-bar-ticks").append(tickNode);
+        });
+        listNode.append(axisNode);
+
+        $(container).append(listNode);
+
+        this.exportImageRows = rows.map(row => ({
+            label: row.label,
+            valueText: row.valueText,
+            segments: [{ fraction: axisMax > 0 ? row.value / axisMax : 0, color: row.color }]
+        }));
+        return listNode;
+    }
+
+    /**
+     * Function: renderShareStrip
+     * One bar split into a segment per row, each as wide as its share - the parts of the whole at a glance.
+     */
+    renderShareStrip(container, rows) {
+        let stripNode = $("<div class='mosaic-share-strip' aria-hidden='true'></div>");
+        rows.forEach(row => {
+            stripNode.append($("<span></span>").css({ flexGrow: row.value, backgroundColor: row.color }).attr("title", row.label+" · "+row.valueText));
+        });
+        $(container).append(stripNode);
+        return stripNode;
+    }
+
+    /**
+     * Function: renderCoverage
+     *
+     * A line under a chart saying how much of the result it covers, e.g. that 1,234 of 3,139 samples have a value
+     * for the variable shown. The total can be a promise; the line shows a dash until it is in.
+     *
+     * Parameters:
+     * container - the node to append the line to
+     * covered - how many have data
+     * totalOrPromise - how many there are in all, or a promise for it
+     * noun - what is counted, in the plural, e.g. "samples"
+     */
+    renderCoverage(container, covered, totalOrPromise, noun = "samples") {
+        let coverageNode = $("<div class='mosaic-coverage'><span class='mosaic-coverage-label'></span><span class='mosaic-coverage-track'><span class='mosaic-coverage-fill'></span></span><span class='mosaic-coverage-value'>–</span></div>");
+        coverageNode.find(".mosaic-coverage-label").text(this.formatCount(covered)+" "+noun+" with data");
+        $(container).append(coverageNode);
+
+        Promise.resolve(totalOrPromise).then(total => {
+            if(!(total > 0)) {
+                return;
+            }
+            if(covered > total) {
+                //The data is counted differently from the total, so no share can be told
+                console.warn(this.name+" counts "+covered+" "+noun+" with data, but the result has only "+total);
+                return;
+            }
+            let share = covered / total;
+            coverageNode.find(".mosaic-coverage-label").text(this.formatCount(covered)+" of "+this.formatCount(total)+" "+noun);
+            coverageNode.find(".mosaic-coverage-fill").css("width", (share * 100)+"%");
+            coverageNode.find(".mosaic-coverage-value").text(this.formatShare(share));
+            coverageNode.attr("title", this.formatShare(share)+" of the "+noun+" in the result have data for this chart");
+        }).catch(error => {
+            console.warn("Could not fetch the total for the coverage of "+this.name, error);
+        });
+        return coverageNode;
+    }
+
+    /**
+     * Function: renderDataTable
+     *
+     * Parameters:
+     * container - the node to render into
+     * columns - [{ title, numeric }]
+     * rows - arrays of cell values, one per column; a cell is text, or { text, color } for text with a colored dot
+     */
+    renderDataTable(container, columns, rows) {
+        let tableNode = $("<table class='sqs-table mosaic-data-table'><thead><tr></tr></thead><tbody></tbody></table>");
+        columns.forEach(column => {
+            tableNode.find("thead tr").append($("<th></th>").text(column.title).toggleClass("sqs-num", column.numeric === true));
+        });
+        rows.forEach(row => {
+            let rowNode = $("<tr></tr>");
+            row.forEach((cell, index) => {
+                let cellNode = $("<td></td>").toggleClass("sqs-num", columns[index].numeric === true);
+                if(cell && typeof cell == "object") {
+                    let labelNode = $("<span class='mosaic-table-label'></span>");
+                    labelNode.append($("<span class='sqs-dot'></span>").css("background-color", cell.color));
+                    labelNode.append($("<span></span>").text(cell.text));
+                    cellNode.append(labelNode);
+                }
+                else {
+                    cellNode.text(cell);
+                }
+                rowNode.append(cellNode);
+            });
+            tableNode.find("tbody").append(rowNode);
+        });
+        $(container).append(tableNode);
+        return tableNode;
+    }
+
+    /**
+     * The tile's chart area, emptied, for a tile which draws its chart in HTML rather than with a chart library.
+     */
+    getChartNode() {
+        let chartNode = $(this.renderIntoNode).find(".mosaic-tile-chart").first();
+        chartNode.empty();
+        chartNode.addClass("mosaic-tile-chart-html");
+        chartNode.removeClass("mosaic-tile-chart-fill");
+        return chartNode;
+    }
+
+    /**
+     * Function: isFilterSelection
+     * Whether the value is selected in the filter of this facet code, so a bar can show that it is.
+     */
+    isFilterSelection(facetCode, value, stageName = null) {
+        let facet = this.sqs.facetManager.getFacetByName(facetCode);
+        if(facet && stageName) {
+            let stage = typeof facet.getFilterByName == "function" ? facet.getFilterByName(stageName) : null;
+            return stage ? stage.selections.includes(value) : false;
+        }
+        return facet ? facet.getSelections().includes(value) : false;
+    }
+
+    /**
+     * Function: getFilterToggleCallback
+     * A click handler which adds the value to the filter of this facet code, or takes it out if it is in already.
+     * Null if the active domain doesn't have that filter, in which case the bars aren't clickable.
+     */
+    getFilterToggleCallback(facetCode, value) {
+        if(!this.sqs.facetManager.getFacetTemplateByFacetId(facetCode)) {
+            return null;
+        }
+        return () => {
+            this.sqs.facetManager.toggleFacetSelection(facetCode, value);
+        };
+    }
+
+    /**
+     * Function: getStageFilterToggleCallback
+     * As getFilterToggleCallback, for a value in a later stage of a staged filter, such as an eco code of a system.
+     * leadingSelections are the selections of the stages before it, e.g. { ecocode_system: [2] }.
+     */
+    getStageFilterToggleCallback(facetCode, stageName, value, leadingSelections) {
+        if(!this.sqs.facetManager.getFacetTemplateByFacetId(facetCode)) {
+            return null;
+        }
+        return () => {
+            this.sqs.facetManager.toggleStageSelection(facetCode, stageName, value, leadingSelections);
+        };
     }
 
     showLoadingIndicator(show) {
@@ -70,6 +399,18 @@ class MosaicTileModule {
         }
     }
 
+    /**
+     * Function: getTotalSamplesCount
+     * A promise for the number of samples at the sites in the result, fetched once per result and shared by the tiles.
+     */
+    getTotalSamplesCount() {
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        if(!totalSamplesCountCache || totalSamplesCountCache.sites !== resultMosaic.sites) {
+            totalSamplesCountCache = { sites: resultMosaic.sites, promise: this.fetchTotalSamplesCount() };
+        }
+        return totalSamplesCountCache.promise;
+    }
+
     async fetchData(path, postData) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -97,131 +438,17 @@ class MosaicTileModule {
         });
     }
 
-    /**
-     * Render a mini coverage chart showing what proportion of total samples have data.
-     * Immediately draws the label and an empty bar, then animates fill as totalSamplesOrPromise resolves.
-     *
-     * @param {HTMLElement} container - Container element to append the mini-chart into
-     * @param {number} samplesWithData - Count representing coverage numerator
-     * @param {number|Promise<number>} totalSamplesOrPromise - Total samples count or a Promise for it
-     */
-    async renderCoverageMiniChart(container, samplesWithData, totalSamplesOrPromise) {
-        const miniChartId = nanoid();
-        const miniChartHtml = `
-            <div class="mosaic-mini-chart-container">
-                <div class="mosaic-mini-chart-label">Sample Coverage</div>
-                <div class="mosaic-mini-chart-wrapper">
-                    <canvas id="mini-chart-${miniChartId}" height="16"></canvas>
-                </div>
-                <div class="mosaic-mini-chart-percentage" id="mini-pct-${miniChartId}">N/A</div>
-            </div>
-        `;
-
-        $(container).append(miniChartHtml);
-
-        const canvas = document.getElementById(`mini-chart-${miniChartId}`);
-        const ctx = canvas.getContext('2d');
-        const canvasContainer = canvas.parentElement;
-        canvas.width = canvasContainer.clientWidth;
-        canvas.height = 16;
-
-        const observer = new ResizeObserver(() => {
-            const data = this.coverageCharts.get(miniChartId);
-            if (!data) return;
-            canvas.width = canvasContainer.clientWidth;
-            canvas.height = 16;
-            this.drawCoverageLine(canvas.getContext('2d'), canvas.width, canvas.height, data.percentage);
-        });
-        observer.observe(canvasContainer);
-        this.coverageCharts.set(miniChartId, { canvas, percentage: 0, observer });
-
-        this.drawCoverageLine(ctx, canvas.width, canvas.height, 0);
-
-        const totalSamples = await Promise.resolve(totalSamplesOrPromise);
-        if(!totalSamples || totalSamples === 0) {
-            return;
-        }
-
-        const targetPercentage = samplesWithData / totalSamples;
-        const pctEl = document.getElementById(`mini-pct-${miniChartId}`);
-        const duration = 600;
-        const startTime = performance.now();
-
-        const animate = (now) => {
-            const elapsed = now - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            const current = targetPercentage * eased;
-
-            this.drawCoverageLine(ctx, canvas.width, canvas.height, current);
-
-            if(pctEl) {
-                pctEl.textContent = (current * 100).toFixed(1) + '%';
-            }
-
-            this.coverageCharts.get(miniChartId).percentage = current;
-
-            if(progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                this.drawCoverageLine(ctx, canvas.width, canvas.height, targetPercentage);
-                if(pctEl) {
-                    pctEl.textContent = (targetPercentage * 100).toFixed(1) + '%';
-                }
-                this.coverageCharts.get(miniChartId).percentage = targetPercentage;
-            }
-        };
-
-        requestAnimationFrame(animate);
-    }
-
-    /**
-     * Handle window resize by redrawing all coverage charts
-     */
-    handleResize() {
-        this.coverageCharts.forEach((chartData) => {
-            const { canvas, percentage } = chartData;
-            const canvasContainer = canvas.parentElement;
-            if(!canvasContainer) return;
-            canvas.width = canvasContainer.clientWidth;
-            canvas.height = 16;
-            const ctx = canvas.getContext('2d');
-            this.drawCoverageLine(ctx, canvas.width, canvas.height, percentage);
-        });
-    }
-
-    /**
-     * Draw a rounded coverage bar
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {number} width
-     * @param {number} height
-     * @param {number} percentage - 0 to 1
-     */
-    drawCoverageLine(ctx, width, height, percentage) {
-        const lineY = height / 2;
-        const lineHeight = 6;
-        const padding = 0;
-        const lineWidth = width - (padding * 2);
-        const filledWidth = lineWidth * percentage;
-
-        ctx.fillStyle = '#E0E0E0';
-        ctx.beginPath();
-        ctx.roundRect(padding, lineY - lineHeight / 2, lineWidth, lineHeight, lineHeight / 2);
-        ctx.fill();
-
-        if(filledWidth > 0) {
-            ctx.fillStyle = '#143261';
-            ctx.beginPath();
-            ctx.roundRect(padding, lineY - lineHeight / 2, filledWidth, lineHeight, lineHeight / 2);
-            ctx.fill();
-        }
-    }
-
     async render() {
         this.renderComplete = false;
     }
 
     renderNoData() {
+        //No data, so nothing for the subtitle to describe or for the views to switch between
+        const $tile = $(this.renderIntoNode).closest(".result-mosaic-tile");
+        $tile.find(".mosaic-tile-subtitle").text("");
+        $tile.find(".mosaic-tile-view-slot").empty();
+        this.exportImageRows = null;
+
         const $chartArea = $(this.renderIntoNode).find('.mosaic-tile-chart');
         if ($chartArea.length > 0) {
             // Module already rendered its own title via tileHtml — only replace the chart area
@@ -353,110 +580,109 @@ class MosaicTileModule {
         return trimmed + ellipsis;
     }
 
-    exportTopTaxaListAsPng(data, options = {}) {
-        if(!Array.isArray(data) || data.length === 0) {
-            console.warn("No taxa data available for PNG export");
-            return;
-        }
-
-        const maxRows = options.maxRows || 15;
-        const rows = data.slice(0, maxRows);
-        const resolveLabel = options.resolveLabel || ((item) => `Taxon id ${item.taxon_id}`);
-        const title = options.title || this.title || "Top taxa";
-        const barColor = options.barColor || "rgba(0,123,255,0.8)";
-
-        const exportNode = this.getExportImageTargetNode();
-        const nodeBounds = exportNode ? exportNode.getBoundingClientRect() : null;
-        const width = Math.max(760, Math.ceil(nodeBounds && nodeBounds.width ? nodeBounds.width : 900));
-
+    /**
+     * Function: exportRowsAsPng
+     * Draws the bars of a tile which renders them in HTML (see renderRankedBars) onto a canvas, and saves that.
+     */
+    exportRowsAsPng(filename) {
+        const rows = this.exportImageRows;
+        const width = 900;
         const paddingX = 28;
-        const titleY = 44;
-        const headerY = 78;
-        const rowHeight = 42;
-        const barHeight = 3;
-        const tableTop = 96;
-        const height = tableTop + (rows.length * rowHeight) + 24;
+        const labelWidth = 260;
+        const valueWidth = 110;
+        const rowHeight = 30;
+        const top = 84;
+        const height = top + rows.length * rowHeight + 24;
+        const barX = paddingX + labelWidth;
+        const barWidth = width - barX - valueWidth - paddingX;
 
         const scale = window.devicePixelRatio && window.devicePixelRatio > 1 ? window.devicePixelRatio : 1;
         const canvas = document.createElement("canvas");
         canvas.width = Math.ceil(width * scale);
         canvas.height = Math.ceil(height * scale);
         const ctx = canvas.getContext("2d");
-
         ctx.setTransform(scale, 0, 0, scale, 0, 0);
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, width, height);
-
-        ctx.fillStyle = "#222";
-        ctx.font = "600 24px Didact Gothic, sans-serif";
         ctx.textBaseline = "middle";
-        ctx.fillText(title, paddingX, titleY);
 
-        ctx.font = "600 14px Didact Gothic, sans-serif";
-        ctx.fillStyle = "#333";
-        ctx.fillText("Taxon", paddingX, headerY);
-        ctx.textAlign = "right";
-        ctx.fillText("Count", width - paddingX, headerY);
-        ctx.textAlign = "left";
-        ctx.strokeStyle = "rgba(0,0,0,0.12)";
-        ctx.beginPath();
-        ctx.moveTo(paddingX, headerY + 12);
-        ctx.lineTo(width - paddingX, headerY + 12);
-        ctx.stroke();
+        const tileNode = $(this.renderIntoNode).closest(".result-mosaic-tile");
+        const title = tileNode.find(".mosaic-tile-title").first().text() || this.title || "";
+        const subtitle = tileNode.find(".mosaic-tile-subtitle").first().text();
+        ctx.fillStyle = "#1e1e1e";
+        ctx.font = "600 20px 'IBM Plex Sans', sans-serif";
+        ctx.fillText(title, paddingX, 32);
+        ctx.fillStyle = "#636363";
+        ctx.font = "400 14px 'IBM Plex Sans', sans-serif";
+        ctx.fillText(subtitle, paddingX, 56);
 
-        const maxAbundance = rows.reduce((m, item) => {
-            const abundance = Number(item.abundance) || 0;
-            return abundance > m ? abundance : m;
-        }, 0);
-
-        const countColWidth = 130;
-        const tableWidth = width - (paddingX * 2);
-        const textMaxWidth = tableWidth - countColWidth - 12;
-
-        rows.forEach((item, index) => {
-            const rowTop = tableTop + (index * rowHeight);
-            const rowTextY = rowTop + 13;
-            const abundance = Number(item.abundance) || 0;
-            const labelText = this.stripHtmlTags(resolveLabel(item));
-            const countText = abundance.toLocaleString(navigator.language);
-
-            ctx.font = "400 14px Didact Gothic, sans-serif";
-            ctx.fillStyle = "#1d2b3a";
+        rows.forEach((row, index) => {
+            const y = top + index * rowHeight;
+            ctx.font = "400 14px 'IBM Plex Sans', sans-serif";
+            ctx.fillStyle = "#1e1e1e";
             ctx.textAlign = "left";
-            ctx.fillText(this.truncateCanvasText(ctx, labelText, textMaxWidth), paddingX, rowTextY);
+            ctx.fillText(this.truncateCanvasText(ctx, row.label, labelWidth - 16), paddingX, y + rowHeight / 2);
 
+            let x = barX;
+            row.segments.forEach(segment => {
+                const segmentWidth = barWidth * segment.fraction;
+                ctx.fillStyle = segment.color;
+                ctx.fillRect(x, y + 7, segmentWidth, rowHeight - 14);
+                x += segmentWidth;
+            });
+
+            ctx.fillStyle = "#333333";
             ctx.textAlign = "right";
-            ctx.fillStyle = "#1f1f1f";
-            ctx.fillText(countText, width - paddingX, rowTextY);
-            ctx.textAlign = "left";
-
-            const barPct = maxAbundance > 0 ? abundance / maxAbundance : 0;
-            const barWidth = Math.max(1, (tableWidth * barPct));
-
-            ctx.fillStyle = "rgba(0,0,0,0.06)";
-            ctx.fillRect(paddingX, rowTop + 22, tableWidth, barHeight);
-            ctx.fillStyle = barColor;
-            ctx.fillRect(paddingX, rowTop + 22, barWidth, barHeight);
-
-            ctx.strokeStyle = "rgba(0,0,0,0.06)";
-            ctx.beginPath();
-            ctx.moveTo(paddingX, rowTop + rowHeight - 2);
-            ctx.lineTo(width - paddingX, rowTop + rowHeight - 2);
-            ctx.stroke();
+            ctx.fillText(row.valueText, width - paddingX, y + rowHeight / 2);
         });
 
-        const pngFilename = `sead_${this.sanitizeExportFilename(title)}_chart.png`;
-        canvas.toBlob((pngBlob) => {
-            if(!pngBlob) {
-                console.warn("Could not export Top taxa image");
-                return;
-            }
-            saveAs(pngBlob, pngFilename);
-        }, "image/png");
+        return this.saveCanvasAsPng(canvas, filename);
+    }
+
+    /**
+     * Function: exportChartCanvasAsPng
+     * Saves the canvas of a chart, such as a Chart.js one, on white and under the tile's title and subtitle, as
+     * exportRowsAsPng does for bars drawn in HTML.
+     */
+    exportChartCanvasAsPng(chartCanvas, filename) {
+        //The chart canvas is drawn at the device's pixel ratio, so the frame is scaled to match it
+        const ratio = chartCanvas.clientWidth > 0 ? chartCanvas.width / chartCanvas.clientWidth : 1;
+        const paddingX = 28;
+        const top = 76;
+        const paddingBottom = 20;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.ceil(chartCanvas.width + paddingX * 2 * ratio);
+        canvas.height = Math.ceil(chartCanvas.height + (top + paddingBottom) * ratio);
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width / ratio, canvas.height / ratio);
+        ctx.textBaseline = "middle";
+
+        const tileNode = $(this.renderIntoNode).closest(".result-mosaic-tile");
+        const title = tileNode.find(".mosaic-tile-title").first().text() || this.title || "";
+        const subtitle = tileNode.find(".mosaic-tile-subtitle").first().text();
+        ctx.fillStyle = "#1e1e1e";
+        ctx.font = "600 20px 'IBM Plex Sans', sans-serif";
+        ctx.fillText(title, paddingX, 32);
+        ctx.fillStyle = "#636363";
+        ctx.font = "400 14px 'IBM Plex Sans', sans-serif";
+        ctx.fillText(subtitle, paddingX, 56);
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.drawImage(chartCanvas, paddingX * ratio, top * ratio);
+
+        return this.saveCanvasAsPng(canvas, filename);
     }
 
     async exportImageAsPng() {
         const filename = `sead_${this.getExportFilenameBase()}_chart`;
+
+        if(Array.isArray(this.exportImageRows) && this.exportImageRows.length > 0 && !this.plot) {
+            await this.exportRowsAsPng(`${filename}.png`);
+            return true;
+        }
 
         if(this.plot) {
             const plot = typeof this.plot.then === "function" ? await this.plot : this.plot;
@@ -480,8 +706,8 @@ class MosaicTileModule {
             return true;
         }
 
-        if(this.chart && typeof this.chart.toBase64Image === "function") {
-            this.saveDataUrlAsFile(this.chart.toBase64Image(), `${filename}.png`);
+        if(this.chart && this.chart.canvas && typeof this.chart.toBase64Image === "function") {
+            await this.exportChartCanvasAsPng(this.chart.canvas, `${filename}.png`);
             return true;
         }
 
@@ -564,25 +790,25 @@ class MosaicTileModule {
         
         let jsonButtonId = nanoid();
         if(exportFormats.includes("json")) {
-            html += "<a id='"+jsonButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart data as JSON</a>";
+            html += "<button type='button' id='"+jsonButtonId+"' class='site-report-export-download-btn sqs-btn'><i class='fa fa-download' aria-hidden='true'></i> Chart data as JSON</button>";
         }
         
         let csvButtonId = nanoid();
         if(exportFormats.includes("csv")) {
-            html += "<a id='"+csvButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart data as CSV</a>";
+            html += "<button type='button' id='"+csvButtonId+"' class='site-report-export-download-btn sqs-btn'><i class='fa fa-download' aria-hidden='true'></i> Chart data as CSV</button>";
         }
         let xlsxButtonId = nanoid();
         if(exportFormats.includes("xlsx")) {
-            html += "<a id='"+xlsxButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart data as XLSX</a>";
+            html += "<button type='button' id='"+xlsxButtonId+"' class='site-report-export-download-btn sqs-btn'><i class='fa fa-download' aria-hidden='true'></i> Chart data as XLSX</button>";
         }
         let pngButtonId = nanoid();
         if(exportFormats.includes("png")) {
-            html += "<a id='"+pngButtonId+"' class='site-report-export-download-btn light-theme-button'>Chart as image</a>";
+            html += "<button type='button' id='"+pngButtonId+"' class='site-report-export-download-btn sqs-btn'><i class='fa fa-download' aria-hidden='true'></i> Chart as image</button>";
         }
 
         let geojsonButtonId = nanoid();
         if(exportFormats.includes("geojson")) {
-            html += "<a id='"+geojsonButtonId+"' class='site-report-export-download-btn light-theme-button'>Site data as GeoJSON</a>";
+            html += "<button type='button' id='"+geojsonButtonId+"' class='site-report-export-download-btn sqs-btn'><i class='fa fa-download' aria-hidden='true'></i> Site data as GeoJSON</button>";
         }
 
         html += "</div>";
