@@ -83,9 +83,10 @@ class AbundanceData extends DataHandlingModule {
                                 row.push(this.sqs.formatTaxonSpecies(taxon, null, false));
                             }
                             
+                            //These lookup tables are absent on sites with no abundance elements/modifications at all
                             let modificationsString = "";
                             value.data.modifications.forEach((modification) => {
-                                site.lookup_tables.abundance_modifications.forEach((modType) => {
+                                (site.lookup_tables.abundance_modifications || []).forEach((modType) => {
                                     if(modType.modification_type_id == modification.modification_type_id) {
                                         modificationsString += modType.modification_type_name + ", ";
                                     }
@@ -96,7 +97,7 @@ class AbundanceData extends DataHandlingModule {
                             }
 
                             let abundanceElementString = "";
-                            site.lookup_tables.abundance_elements.forEach((element) => {
+                            (site.lookup_tables.abundance_elements || []).forEach((element) => {
                                 if(element.abundance_element_id == value.data.abundance_element_id) {
                                     abundanceElementString = element.element_name;
                                 }
