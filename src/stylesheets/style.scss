@@ -4958,6 +4958,13 @@ polyline{
   text-decoration: none;
 }
 
+/* Under a sample group placed only at the area it was recorded to, such as a parish */
+.sample-map-tooltip-accuracy {
+  color: colors.$text-muted-color;
+  font-size: sqs-px(12);
+  white-space: nowrap;
+}
+
 .hidden {
 	display:none;
 }

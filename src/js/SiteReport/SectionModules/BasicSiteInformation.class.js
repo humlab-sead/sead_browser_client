@@ -15,6 +15,10 @@ import css from '../../../stylesheets/style.scss';
 import { Chart } from "chart.js";
 import OpenLayersMap from '../../Common/OpenLayersMap.class';
 import SqsMenu from '../../SqsMenu.class';
+import SampleDepths from '../SampleDepths.class.js';
+
+//Coordinate methods which are a height above sea level: Altitude above sea level, Rikets höjdsystem 1970 and 1900
+const elevationCoordinateMethods = [76, 102, 121];
 
 /*
 * Class: BasicSiteInformation
@@ -974,6 +978,9 @@ class BasicSiteInformation {
 						p.sampleGroupName = sampleGroup.sample_group_name;
 						p.tooltip = tooltipText;
 						p.accuracy = pointAccuracy;
+						p.elevation = this.getSampleElevation(sample);
+						p.depth = this.getSampleDepth(sample);
+						p.zLabel = [p.elevation, p.depth].filter(measurement => measurement != null).map(measurement => measurement.label).join(", ");
 					});
 					samplePoints.push(...points);
 				}
@@ -983,8 +990,200 @@ class BasicSiteInformation {
 		return samplePoints;
 	}
 
+	/*
+	* Function: getSampleElevation
+	*
+	* A sample's height above sea level as { value, label }, or null if it has none.
+	*/
+	getSampleElevation(sample) {
+		let coordinate = (sample.coordinates || []).find(coordinate => {
+			return elevationCoordinateMethods.includes(coordinate.coordinate_method_id) && !isNaN(parseFloat(coordinate.measurement));
+		});
+		if(!coordinate) {
+			return null;
+		}
+		let value = parseFloat(coordinate.measurement);
+		return { value: value, label: "Elevation "+this.formatMetres(value)+" m a.s.l." };
+	}
+
+	/*
+	* Function: getSampleDepth
+	*
+	* A sample's depth as { value, label }, or null if it has none. The value is the middle of the sample.
+	*/
+	getSampleDepth(sample) {
+		let depth = this.sampleDepths.getDepth(sample.physical_sample_id);
+		if(!depth) {
+			return null;
+		}
+		let label = "Depth "+this.formatMetres(depth.upper);
+		if(depth.lower != depth.upper) {
+			label += "–"+this.formatMetres(depth.lower);
+		}
+		return { value: (depth.upper + depth.lower) / 2, label: label+" m" };
+	}
+
+	formatMetres(value) {
+		return value.toLocaleString("en-GB", { maximumFractionDigits: 2 });
+	}
+
+	/*
+	* Function: getSampleMapColourScale
+	*
+	* How the samples on the sample map are coloured by their "elevation" or "depth", from the samples on the map:
+	* { measure, min, max, missing, fraction }, where fraction gives how far down the scale a value is, from 0 at the
+	* top to 1 at the bottom. Null when they aren't coloured, as none of them have it.
+	*/
+	getSampleMapColourScale(samplePoints, measure) {
+		if(!measure) {
+			return null;
+		}
+		//Points without a position of their own aren't drawn on the map
+		let shownPoints = samplePoints.filter(point => point.x != null && point.y != null);
+		let values = shownPoints.filter(point => point[measure] != null).map(point => point[measure].value);
+		if(values.length == 0) {
+			return null;
+		}
+		let min = Math.min(...values);
+		let max = Math.max(...values);
+		return {
+			measure: measure,
+			min: min,
+			max: max,
+			missing: shownPoints.length - values.length,
+			fraction: (value) => {
+				if(max == min) {
+					return 0.5;
+				}
+				//Deeper is further down, higher up is less far down
+				return measure == "depth" ? (value - min) / (max - min) : (max - value) / (max - min);
+			}
+		};
+	}
+
+	/*
+	* Function: colourSampleMap
+	*
+	* Colours the samples on the sample map by the measure picked in its menu, and updates its legend.
+	*/
+	colourSampleMap() {
+		let { olMap, sampleGroupPoints, samplePoints, sampleFeatures } = this.sampleMapView;
+		let colourScale = this.getSampleMapColourScale(samplePoints, this.sampleMapColourBy);
+		sampleFeatures.forEach((feature, key) => {
+			let zFraction = undefined;
+			if(colourScale) {
+				let measurement = samplePoints[key][colourScale.measure];
+				zFraction = measurement ? colourScale.fraction(measurement.value) : null;
+			}
+			feature.set("zFraction", zFraction, true);
+		});
+		let samplesLayer = olMap.getLayerByName("Samples");
+		if(samplesLayer) {
+			samplesLayer.changed();
+		}
+		this.renderSampleMapKey(olMap, sampleGroupPoints, samplePoints, colourScale);
+	}
+
+	/*
+	* Function: renderSampleMapKey
+	*
+	* What the points on the sample map are, in a legend on it, and under it, a note on which sample groups are
+	* only located approximately, to an area such as a parish. Samples coloured by their depth or elevation get
+	* a scale, light at the top and dark at the bottom, as they lie.
+	*/
+	renderSampleMapKey(olMap, sampleGroupPoints, samplePoints, colourScale = null) {
+		$("#site-report-sample-map-container .sample-map-legend").remove();
+		$(".site-report-sample-map-note").remove();
+		if(sampleGroupPoints.length == 0 && samplePoints.length == 0) {
+			return;
+		}
+
+		let sampleGroupIds = new Set(sampleGroupPoints.map(point => point.sampleGroupId));
+		let approximateLevels = {}; //Sample group id -> the area it is located to
+		sampleGroupPoints.forEach(point => {
+			if(olMap.isApproximateLocation(point.accuracy)) {
+				approximateLevels[point.sampleGroupId] = point.accuracy;
+			}
+		});
+
+		let legendNode = $("<div class='sample-map-legend'></div>");
+		let addLegendItem = (markerClass, text) => {
+			let itemNode = $("<div class='sample-map-legend-item'></div>");
+			itemNode.append($("<span class='sample-map-legend-marker' aria-hidden='true'></span>").addClass(markerClass));
+			itemNode.append($("<span></span>").text(text));
+			legendNode.append(itemNode);
+		};
+		let approximateCount = Object.keys(approximateLevels).length;
+		if(sampleGroupIds.size > approximateCount) {
+			addLegendItem("sample-map-legend-marker-group", "Sample group");
+		}
+		if(approximateCount > 0) {
+			addLegendItem("sample-map-legend-marker-approximate", "Sample group, approximate location");
+		}
+		if(samplePoints.length > 0 && !colourScale) {
+			addLegendItem("sample-map-legend-marker-sample", "Sample");
+		}
+		if(colourScale) {
+			let measureName = colourScale.measure == "depth" ? "depth" : "elevation";
+			let scaleNode = $("<div class='sample-map-legend-scale'></div>");
+			scaleNode.append($("<div class='sample-map-legend-scale-title'></div>").text(colourScale.measure == "depth" ? "Sample depth, m" : "Sample elevation, m a.s.l."));
+			let barNode = $("<span class='sample-map-legend-scale-bar' aria-hidden='true'></span>");
+			let labelsNode = $("<span class='sample-map-legend-scale-labels'></span>");
+			if(colourScale.min == colourScale.max) {
+				barNode.addClass("sample-map-legend-scale-bar-single").css("background", olMap.sampleDepthColorInterpolator(0.5));
+				labelsNode.append($("<span></span>").text(this.formatMetres(colourScale.min)));
+			}
+			else {
+				barNode.css("background", "linear-gradient(to bottom, "+olMap.sampleDepthColorRamp.join(", ")+")");
+				let top = colourScale.measure == "depth" ? colourScale.min : colourScale.max;
+				let bottom = colourScale.measure == "depth" ? colourScale.max : colourScale.min;
+				labelsNode.append($("<span></span>").text(this.formatMetres(top)));
+				labelsNode.append($("<span></span>").text(this.formatMetres(bottom)));
+			}
+			scaleNode.append($("<div class='sample-map-legend-scale-body'></div>").append(barNode, labelsNode));
+			legendNode.append(scaleNode);
+			if(colourScale.missing > 0) {
+				addLegendItem("sample-map-legend-marker-no-depth", "Sample, no "+measureName);
+			}
+		}
+		$("#site-report-sample-map-container").append(legendNode);
+
+		if(approximateCount == 0) {
+			return;
+		}
+
+		//The areas, from the smallest to the largest, as "a locality or parish"
+		let areaOrder = ["Locality", "Parish", "Municipality", "County", "Landscape"];
+		let areas = [...new Set(Object.values(approximateLevels))];
+		areas.sort((a, b) => {
+			let indexA = areaOrder.includes(a) ? areaOrder.indexOf(a) : areaOrder.length;
+			let indexB = areaOrder.includes(b) ? areaOrder.indexOf(b) : areaOrder.length;
+			return indexA - indexB;
+		});
+		areas = areas.map(area => area.toLowerCase());
+		let areasText = areas.length == 1 ? areas[0] : areas.slice(0, -1).join(", ")+" or "+areas[areas.length - 1];
+
+		let count = approximateCount;
+		let total = sampleGroupIds.size;
+		let text = "";
+		if(total == 1) {
+			text = "The sample group is only located to a "+areasText+". Its point is placed at the centre of that area.";
+		}
+		else {
+			let countText = count == total ? "All "+total : count+" of "+total;
+			text = countText+" sample groups "+(count == 1 ? "is" : "are")+" only located to a "+areasText+". ";
+			text += count == 1 ? "Its point is placed at the centre of that area." : "Their points are placed at the centre of those areas.";
+		}
+
+		let noteNode = $("<div class='sqs-note site-report-sample-map-note'></div>");
+		noteNode.append("<i class='fa fa-info-circle' aria-hidden='true'></i>");
+		noteNode.append($("<span></span>").text(text));
+		$("#site-report-sample-map-container").after(noteNode);
+	}
+
 	renderSampleMap(siteData) {
 		$("#site-report-sample-map-container").html("");
+		$(".site-report-sample-map-note").remove();
 
 		//menu stuff
 		let mapMenu = `
@@ -1003,6 +1202,11 @@ class BasicSiteInformation {
 				<div class='menu-row-item'>Sample group</div>
 				<div class='map-sample-group-menu sqs-menu-container'></div>
 			</div>
+			<div class='menu-row-item-divider map-colour-menu-divider'></div>
+			<div class='map-colour-menu-container'>
+				<div class='menu-row-item'>Colour by</div>
+				<div class='map-colour-menu sqs-menu-container'></div>
+			</div>
 		</div>
 		`;
 
@@ -1015,6 +1219,8 @@ class BasicSiteInformation {
 				this.setSampleMapData(olMap, siteData);
 			}
 		}];
+
+		this.sampleDepths = new SampleDepths(siteData);
 
 		let siteHasSampleCoordinates = false;
 		siteData.sample_groups.forEach(sampleGroup => {
@@ -1071,6 +1277,8 @@ class BasicSiteInformation {
 		};
 		new SqsMenu(this.sqs, menu);
 
+		this.renderSampleMapColourMenu(olMap, siteData);
+
 		let sampleGroupsGeojson = this.getSampleGroupsAsGeoJSON(olMap, siteData.sample_groups, null);
 		let samplesGeojson = this.getSamplesAsGeoJSON(olMap, siteData.sample_groups, null);
 		let allGeojson = sampleGroupsGeojson;
@@ -1114,10 +1322,71 @@ class BasicSiteInformation {
 		olMap.setMapBaseLayer("osm");
 	}
 
+	/*
+	* Function: renderSampleMapColourMenu
+	*
+	* A menu to colour the samples on the sample map by their elevation or their depth, the two of which can't share
+	* a scale, as one counts upwards from the sea and the other downwards from the surface. It starts on the one most
+	* of the samples have, and is only there if some of them have either.
+	*/
+	renderSampleMapColourMenu(olMap, siteData) {
+		let samplePoints = this.getMapSampleLocationPointsFromSiteData(olMap, siteData);
+		let elevationCount = samplePoints.filter(point => point.elevation != null).length;
+		let depthCount = samplePoints.filter(point => point.depth != null).length;
+		this.sampleMapColourBy = null;
+		if(elevationCount > 0 || depthCount > 0) {
+			this.sampleMapColourBy = elevationCount >= depthCount ? "elevation" : "depth";
+		}
+		if(!this.sampleMapColourBy) {
+			$("#site-report-sample-map-container .map-colour-menu-container, #site-report-sample-map-container .map-colour-menu-divider").hide();
+			return;
+		}
+
+		let items = [];
+		let addItem = (name, title) => {
+			items.push({
+				name: name,
+				title: title,
+				staticSelection: false,
+				selected: this.sampleMapColourBy == name,
+				callback: () => {
+					this.sampleMapColourBy = name == "none" ? null : name;
+					this.colourSampleMap();
+				}
+			});
+		};
+		if(elevationCount > 0) {
+			addItem("elevation", "Elevation");
+		}
+		if(depthCount > 0) {
+			addItem("depth", "Depth");
+		}
+		addItem("none", "Nothing");
+
+		new SqsMenu(this.sqs, {
+			title: "<i class=\"fa fa-arrows-v result-map-control-icon\" aria-hidden=\"true\"></i><span class='result-map-tab-title'>Colour by</span>",
+			layout: "vertical",
+			collapsed: true,
+			anchor: "#site-report-sample-map-container .map-colour-menu",
+			staticSelection: true,
+			visible: true,
+			style: {
+				menuTitleClass: "result-map-control-menu-title",
+				l1TitleClass: "result-map-control-item-title"
+			},
+			items: items,
+			triggers: [{
+				selector: "#site-report-sample-map-container .map-colour-menu-container",
+				on: "click"
+			}]
+		});
+	}
+
 	setSampleMapData(olMap, siteData, sampleGroupId = null) {
 		let sampleGroupIdFilter = sampleGroupId;
 		let sampleGroupPoints = this.getMapSampleGroupLocationPointsFromSiteData(olMap, siteData, sampleGroupIdFilter);
 		let samplePoints = this.getMapSampleLocationPointsFromSiteData(olMap, siteData, sampleGroupIdFilter);
+		this.renderSampleMapKey(olMap, sampleGroupPoints, samplePoints, this.getSampleMapColourScale(samplePoints, this.sampleMapColourBy));
 
 		if(sampleGroupPoints.length == 0 && samplePoints.length == 0) {
 			console.log("There are no samples or sample groups with coordinates in this site. Not rendering samples map.");
@@ -1171,6 +1440,9 @@ class BasicSiteInformation {
 		olMap.addPointsLayerFromFeatures("Sample groups", sampleGroupFeatures, "sampleGroupCoordinates");
 		olMap.addPointsLayerFromFeatures("Samples", sampleFeatures, "sampleCoordinates");
 
+		this.sampleMapView = { olMap, sampleGroupPoints, samplePoints, sampleFeatures };
+		this.colourSampleMap();
+
 		let sampleGroupsExtent = olMap.getExtentFromFeatures(sampleGroupFeatures);
 		let samplesExtent = olMap.getExtentFromFeatures(sampleFeatures);
 
@@ -1187,6 +1459,16 @@ class BasicSiteInformation {
 		
 		let padding = 60;
 		let maxZoom = renderBaseLayer ? 16 : 100;
+		//Sample groups only located to an area, such as a parish, are shown from no closer than where the area
+		//roughly fills the map, so as not to look precise. Roughly a locality 5 km across, a parish 20 km, a
+		//municipality 80 km and a county or landscape 300 km, in Sweden.
+		let allApproximate = samplePoints.length == 0 && sampleGroupPoints.every(point => olMap.isApproximateLocation(point.accuracy));
+		if(renderBaseLayer && allApproximate) {
+			let areaMaxZooms = { "Locality": 14, "Parish": 12, "Municipality": 10, "County": 8, "Landscape": 8 };
+			sampleGroupPoints.forEach(point => {
+				maxZoom = Math.min(maxZoom, areaMaxZooms[point.accuracy] || 14);
+			});
+		}
 		olMap.olMap.getView().fit(combinedExtent, {
 			padding: [padding, padding, padding, padding],
 			maxZoom: maxZoom,
@@ -1222,17 +1504,20 @@ class BasicSiteInformation {
 				return;
 			}
 
-			return new Style({
+			//A clicked point keeps its colour, which may be its depth, and gets a ring around it
+			let features = feature.get("features") || [feature];
+			let styles = features[0].get("level") == "Sample" ? olMap.getSampleCoordinatesPointStyle(feature) : olMap.getSampleGroupCoordinatesPointStyle(feature);
+			styles.push(new Style({
 				image: new CircleStyle({
-					radius: 10,
+					radius: styles[0].getImage().getRadius() + 3,
 					stroke: new Stroke({
-						color: "#fff"
-					}),
-					fill: new Fill({
-						color: "#ff0000"
+						color: "#1e1e1e",
+						width: 2.5
 					})
-				})
-			});
+				}),
+				zIndex: 11
+			}));
+			return styles;
 		};
 
 		olMap.addSelectInteraction(selectStyle);

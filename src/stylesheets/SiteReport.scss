@@ -681,6 +681,97 @@ button.site-report-method-dot {
   height: sqs-px(440);
 }
 
+/* What the points on the sample map are, in its lower left corner */
+.sample-map-legend {
+  position: absolute;
+  left: sqs-px(10);
+  bottom: sqs-px(10);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: sqs-px(4);
+  padding: sqs-px(6) sqs-px(10);
+  border: 1px solid colors.$border-color;
+  border-radius: sqs-px(8);
+  background: rgba(255, 255, 255, 0.92);
+  color: colors.$text-color;
+  font-size: sqs-px(12);
+  pointer-events: none;
+}
+
+.sample-map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(8);
+}
+
+/* As the points are drawn on the map, see OpenLayersMap */
+.sample-map-legend-marker {
+  box-sizing: border-box;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+}
+
+.sample-map-legend-marker-group {
+  background: rgba(0, 0, 180, 0.5);
+}
+
+.sample-map-legend-marker-approximate {
+  border: 2px dashed rgb(0, 0, 180);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.sample-map-legend-marker-sample {
+  width: 12px;
+  height: 12px;
+  margin: 0 1px;
+  background: rgba(180, 0, 0, 0.5);
+}
+
+.sample-map-legend-marker-no-depth {
+  width: 12px;
+  height: 12px;
+  margin: 0 1px;
+  background: rgba(130, 130, 130, 0.6);
+}
+
+/* Samples coloured by their depth or elevation, the scale running down as they lie */
+.sample-map-legend-scale-title {
+  font-weight: 600;
+}
+
+.sample-map-legend-scale-body {
+  display: flex;
+  gap: sqs-px(8);
+  margin: sqs-px(2) 0;
+}
+
+.sample-map-legend-scale-bar {
+  flex: none;
+  width: 14px;
+  height: sqs-px(72);
+  border-radius: 3px;
+}
+
+.sample-map-legend-scale-bar-single {
+  height: 14px;
+  border-radius: 50%;
+}
+
+.sample-map-legend-scale-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.site-report-sample-map-note {
+  margin: sqs-px(12) sqs-px(16) sqs-px(16) sqs-px(16);
+}
+
 #site-report-map-container {
   position: relative;
   height: sqs-px(280);
