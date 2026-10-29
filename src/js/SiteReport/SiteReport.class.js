@@ -71,6 +71,7 @@ class SiteReport {
 
 		bsi.preRender();
 		this.renderBackButtonCount();
+		this.bindCompactTabs();
 
 		Promise.all([this.fetchSite(), this.fetchMethodGroups()]).then(([siteData]) => {
 			console.log(siteData);
@@ -114,8 +115,8 @@ class SiteReport {
 
 			bsi.render(siteData);
 			dating.render(siteData);
-			overview.render(siteData);
 			this.renderTabs(siteData);
+			overview.render(siteData);
 			samples.render(siteData);
 			analysis.render(siteData);
 		});
@@ -294,8 +295,11 @@ class SiteReport {
 	/*
 	* Function: renderTabs
 	*
-	* The tabs under the site's summary, each with a count of what it holds. A tab with nothing
-	* to show is disabled rather than left out, so the tabs are in the same place for every site.
+	* The site report's tabs, each with a count of what it holds. A tab with nothing to show is
+	* disabled rather than left out, so the tabs are in the same place for every site.
+	*
+	* The summary under the site's name is the tabs, a cell for each, which SiteOverview fills in.
+	* These are the compact tabs which take over once the summary has scrolled out of view.
 	*/
 	renderTabs(siteData = null) {
 		let sampleCount = null;
@@ -319,6 +323,8 @@ class SiteReport {
 			{ name: "dating", title: "Dating", count: datingCount === 0 ? "none" : datingCount, disabled: datingCount === 0 },
 			{ name: "references", title: "References", count: referenceCount, disabled: false }
 		];
+
+		$(".site-report-compact-bar-site-name").text(siteData ? siteData.site_name : "");
 
 		let tabsNode = $("#site-report-tabs");
 		tabsNode.empty().addClass("sqs-tabs");
@@ -352,11 +358,15 @@ class SiteReport {
 		this.setActiveTab(this.activeTab);
 	}
 
+	getTab(tabName) {
+		return this.tabs ? this.tabs.find(tab => tab.name == tabName) : null;
+	}
+
 	/*
 	* Function: setActiveTab
 	*/
 	setActiveTab(tabName) {
-		let tab = this.tabs ? this.tabs.find(t => t.name == tabName) : null;
+		let tab = this.getTab(tabName);
 		if(tab && tab.disabled) {
 			tabName = "overview";
 		}
@@ -367,12 +377,19 @@ class SiteReport {
 			$(tabNode).attr("aria-selected", selected ? "true" : "false");
 			$(tabNode).attr("tabindex", selected ? "0" : "-1");
 		});
+		$(".site-report-summary-cell").each((index, cellNode) => {
+			let current = $(cellNode).attr("data-tab") == tabName;
+			$(cellNode).toggleClass("site-report-summary-cell-current", current);
+			$(".site-report-summary-link", cellNode).attr("aria-current", current ? "true" : "false");
+		});
 		$(".site-report-tabpanel").removeClass("site-report-tabpanel-active");
 		$(".site-report-tabpanel[data-tab='"+tabName+"']").addClass("site-report-tabpanel-active");
 
 		if(tabName == "analyses" && this.activeMethodId == null && this.analysisMethodNavItems && this.analysisMethodNavItems.length > 0) {
 			this.showAnalysisMethod(this.analysisMethodNavItems[0].methodId, false);
 		}
+
+		this.scrollToTabContent();
 
 		//Maps drawn while their tab was hidden have no size until told to look again
 		this.sqs.sqsEventDispatch("siteReportTabShown", { tab: tabName });
@@ -526,13 +543,54 @@ class SiteReport {
 			this.setSectionCollapsedState(sectionNode, section);
 		}
 
-		//Coming from further down the page, start at the top of the analyses
-		let tabsNode = document.getElementById("site-report-tabs");
-		let pageNode = document.getElementById("site-report-main-container");
-		if(switchTab && tabsNode && pageNode && tabsNode.getBoundingClientRect().top < pageNode.getBoundingClientRect().top) {
-			tabsNode.scrollIntoView({ block: "start" });
+		if(switchTab) {
+			this.scrollToTabContent();
 		}
 		this.sqs.sqsEventDispatch("layoutResize");
+	}
+
+	/*
+	* Function: scrollToTabContent
+	* Coming from further down the page, e.g. from the compact tabs, starts at the top of the tab's contents.
+	*/
+	scrollToTabContent() {
+		let contentNode = document.getElementById("site-report-content");
+		let pageNode = document.getElementById("site-report-main-container");
+		if(!contentNode || !pageNode) {
+			return;
+		}
+		//The page's scroll padding keeps what is scrolled to clear of the compact tabs
+		let scrollPadding = parseFloat(getComputedStyle(pageNode).scrollPaddingTop) || 0;
+		if(contentNode.getBoundingClientRect().top < pageNode.getBoundingClientRect().top + scrollPadding) {
+			contentNode.scrollIntoView({ block: "start" });
+		}
+	}
+
+	/*
+	* Function: bindCompactTabs
+	* Once the summary has scrolled out of view, under the compact tabs, they are shown at the top of the page.
+	*/
+	bindCompactTabs() {
+		let pageNode = $("#site-report-main-container");
+		let frameRequest = null;
+		let updateCompactTabs = () => {
+			frameRequest = null;
+			let summaryNode = $(".site-report-summary")[0];
+			let barContentNode = $(".site-report-compact-bar-content")[0];
+			let shown = false;
+			//While the site loads, the summary is empty and hidden. Scrolled to the top of a tab's contents, the summary
+			//ends right under the bar, give or take a fraction of a pixel.
+			if(summaryNode && barContentNode && summaryNode.offsetHeight > 0) {
+				shown = summaryNode.getBoundingClientRect().bottom <= pageNode[0].getBoundingClientRect().top + barContentNode.offsetHeight + 1;
+			}
+			$(".site-report-compact-bar").toggleClass("site-report-compact-bar-shown", shown);
+		};
+		pageNode.off("scroll.siteReportCompactTabs").on("scroll.siteReportCompactTabs", () => {
+			if(frameRequest == null) {
+				frameRequest = requestAnimationFrame(updateCompactTabs);
+			}
+		});
+		updateCompactTabs();
 	}
 
 	getModuleByName(moduleName) {
@@ -694,6 +752,8 @@ class SiteReport {
 	show() {
 		//Empty everything the previous site filled in
 		$(".site-report-title-site-name, .site-report-site-description, .site-report-site-id").text("");
+		$(".site-report-site-description").removeClass("site-report-site-description-clamped");
+		$(".site-report-site-description-toggle").remove();
 		$(".site-report-summary").empty();
 		$(".site-report-overview-main, .site-report-samples-main, .site-report-analyses-main, .site-report-method-nav").empty();
 		$(".site-report-location-list, .site-report-location-note, .site-report-record-list").empty();
@@ -2329,8 +2389,10 @@ class SiteReport {
 		this.sqs.sqsEventUnlisten("siteReportRenderComplete", this);
 
 		$("#site-report-exit-menu").off("click");
+		$("#site-report-main-container").off("scroll.siteReportCompactTabs");
+		$(".site-report-compact-bar").removeClass("site-report-compact-bar-shown");
 	}
-	
+
 }
 
 export { SiteReport as default }

@@ -7,6 +7,8 @@
 * and summary at the top and its contents on tabs below.
 */
 
+$site-report-compact-bar-height: sqs-px(48);
+
 #site-report-main-container {
   box-sizing: border-box;
   width: 100vw;
@@ -14,6 +16,66 @@
   overflow-x: hidden;
   overflow-y: auto;
   background: colors.$page-bg-color;
+  /* What is scrolled into view stays clear of the compact tabs */
+  scroll-padding-top: $site-report-compact-bar-height;
+}
+
+/*
+* The tabs, compact, at the top of the page once the summary has scrolled out of view. The bar takes up
+* no room of its own, so showing and hiding it doesn't move the page under it.
+*/
+.site-report-compact-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex: none;
+  height: 0;
+}
+
+.site-report-compact-bar-content {
+  display: flex;
+  align-items: flex-end;
+  gap: sqs-px(28);
+  box-sizing: border-box;
+  height: $site-report-compact-bar-height;
+  /* lined up with the page under it */
+  padding: 0 max(#{sqs-px(32)}, calc((100% - #{sqs-px(1240)}) / 2 + #{sqs-px(32)}));
+  border-bottom: 1px solid colors.$border-color;
+  background: colors.$card-bg-color;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-100%);
+  transition: transform 0.2s ease, opacity 0.2s ease, visibility 0s linear 0.2s;
+}
+
+.site-report-compact-bar-shown .site-report-compact-bar-content {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: transform 0.2s ease, opacity 0.2s ease, visibility 0s;
+}
+
+.site-report-compact-bar-site-name {
+  flex: 0 1 auto;
+  align-self: center;
+  max-width: 30%;
+  overflow: hidden;
+  font-size: sqs-px(15);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.site-report-compact-bar-site-name:empty {
+  display: none;
+}
+
+/* The selected tab's underline lies on the bar's border */
+#site-report-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: -1px;
 }
 
 #site-report-page {
@@ -115,7 +177,21 @@ h1.site-report-title-site-name {
   white-space: pre-wrap;
 }
 
-.site-report-no-data, .site-report-site-description.site-report-no-data {
+/* A long description shows its first lines until asked for the rest */
+.site-report-site-description-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.site-report-site-description-toggle {
+  margin-top: sqs-px(4);
+  padding: sqs-px(2) 0;
+  font-size: sqs-px(14);
+}
+
+.site-report-no-data,.site-report-site-description.site-report-no-data {
   color: colors.$text-muted-color;
   font-style: italic;
 }
@@ -126,10 +202,12 @@ h1.site-report-title-site-name {
   gap: sqs-px(8);
 }
 
-/* The site in figures: sample groups, samples, analyses and dating */
+$site-report-summary-tab-bg-color: #eef0f3;
+
+/* The tabs, as the site in figures: where it is, its samples, analyses, dating and references */
 .site-report-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1.25fr) minmax(0, 1fr);
   margin-top: sqs-px(22);
   overflow: hidden; //keeps a cell's hover inside the rounded corners
 }
@@ -138,10 +216,12 @@ h1.site-report-title-site-name {
   display: none;
 }
 
+/* Like tabs: the ones not shown lie back, greyed, and the one shown is in front, white */
 .site-report-summary-cell {
   min-width: 0;
   padding: sqs-px(16) sqs-px(20);
   border-right: 1px solid colors.$border-color-light;
+  background: $site-report-summary-tab-bg-color;
 }
 
 .site-report-summary-cell:last-child {
@@ -151,11 +231,28 @@ h1.site-report-title-site-name {
 /* A cell that leads on: its label is the button, stretched over the whole cell */
 .site-report-summary-cell-link {
   position: relative;
-  transition: background-color 0.15s;
+  transition: background-color 0.15s, box-shadow 0.15s;
 }
 
 .site-report-summary-cell-link:hover {
-  background: #fafafa;
+  background: colors.$card-bg-color;
+}
+
+/* A chevron after the label: › opens the tab, and on the tab shown it points down, to it */
+.site-report-summary-link-chevron {
+  margin-left: sqs-px(6);
+  font-size: sqs-px(14);
+  line-height: 1;
+  transition: transform 0.15s;
+}
+
+.site-report-summary-cell-link:hover .site-report-summary-link-chevron {
+  transform: translateX(3px);
+}
+
+.site-report-summary-cell-current .site-report-summary-link-chevron,
+.site-report-summary-cell-current:hover .site-report-summary-link-chevron {
+  transform: rotate(90deg);
 }
 
 .site-report-summary-link {
@@ -180,6 +277,17 @@ h1.site-report-title-site-name {
 
 .site-report-summary-cell-link:hover .site-report-summary-value {
   color: colors.$base-color-dark;
+}
+
+/* The tab shown below, in front of the others and underlined like the compact tabs */
+.site-report-summary-cell-current, .site-report-summary-cell-current:hover {
+  z-index: 1;
+  background: colors.$card-bg-color;
+  box-shadow: inset 0 -3px 0 colors.$base-color, 0 0 sqs-px(10) rgba(0, 0, 0, 0.1);
+}
+
+.site-report-summary-cell-current .site-report-summary-link {
+  color: colors.$base-color;
 }
 
 .site-report-summary-link:focus-visible {
@@ -225,6 +333,13 @@ h1.site-report-title-site-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.site-report-summary-value-note {
+  margin-left: sqs-px(6);
+  color: colors.$text-muted-color;
+  font-size: sqs-px(13);
+  font-weight: 400;
 }
 
 .site-report-summary-empty .site-report-summary-value {
@@ -280,13 +395,12 @@ h1.site-report-title-site-name {
   outline-offset: -2px;
 }
 
-#site-report-tabs {
-  margin-top: sqs-px(26);
-  border-bottom: 1px solid colors.$border-color;
-}
-
-/* The tabs' contents */
+/*
+* The tabs' contents. At least a screen high, so that a tab opened from the compact tabs can always start at the
+* top of the page, even while it is still being drawn and is short.
+*/
 #site-report-content {
+  min-height: calc(100vh - var(--sqs-header-height) - #{$site-report-compact-bar-height});
   padding-top: sqs-px(24);
 }
 
@@ -1120,16 +1234,29 @@ button.site-report-method-dot {
     font-size: 34px !important;
   }
 
+  /* The overview across the top, the other four tabs two by two under it */
   .site-report-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .site-report-summary-cell:nth-child(2) {
+  .site-report-summary-cell:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .site-report-summary-cell:nth-child(odd) {
     border-right: none;
   }
 
-  .site-report-summary-cell:nth-child(-n + 2) {
+  .site-report-summary-cell:nth-child(-n + 3) {
     border-bottom: 1px solid colors.$border-color-light;
+  }
+
+  .site-report-compact-bar-content {
+    padding: 0 16px;
+  }
+
+  .site-report-compact-bar-site-name {
+    display: none;
   }
 
   .site-report-method-nav {

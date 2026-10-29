@@ -408,7 +408,7 @@ class Dating {
 
 	/*
 	* Function: renderSummaryDating
-	* The "dated to" cell in the summary at the top of the site report.
+	* The dating tab's cell in the summary at the top of the site report.
 	*/
 	renderSummaryDating() {
 		let cellNode = $(".site-report-summary-dating");
@@ -416,7 +416,8 @@ class Dating {
 			return;
 		}
 		let ageSummary = this.siteData.age_summary;
-		$(".site-report-summary-value", cellNode).text(this.formatRange(ageSummary.older, ageSummary.younger));
+		let range = this.formatRange(ageSummary.older, ageSummary.younger);
+		$(".site-report-summary-value", cellNode).text(range).attr("title", range);
 	}
 
 	/*

@@ -115,9 +115,20 @@ class BasicSiteInformation {
 		this.sqs.tooltipManager.registerTooltip(titleNode, "Name of the site as given by the data provider", {placement: "top"});
 		$(".site-report-site-id").text("#"+siteData.site_id);
 
-		let descriptionNode = $(".site-report-site-description");
+		let descriptionNode = $(".site-report-site-description").removeClass("site-report-site-description-clamped");
+		$(".site-report-site-description-toggle").remove();
 		if(siteData.site_description) {
 			descriptionNode.text(siteData.site_description).removeClass("site-report-no-data");
+			//Some sites come with whole survey records, which would push the summary off the page
+			if(siteData.site_description.length > 500 || siteData.site_description.split("\n").length > 6) {
+				descriptionNode.addClass("site-report-site-description-clamped");
+				let toggleNode = $("<button type='button' class='sqs-link-btn site-report-site-description-toggle' aria-expanded='false'>Show full description</button>");
+				toggleNode.on("click", () => {
+					let clamped = descriptionNode.toggleClass("site-report-site-description-clamped").hasClass("site-report-site-description-clamped");
+					toggleNode.text(clamped ? "Show full description" : "Show less").attr("aria-expanded", !clamped);
+				});
+				descriptionNode.after(toggleNode);
+			}
 		}
 		else {
 			descriptionNode.text("No site description recorded.").addClass("site-report-no-data");

@@ -401,7 +401,7 @@ class DendrochronologyTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Returning to the filters',
-            text: `By clicking 'Back to result' you will return to the Dendro domain.`,
+            text: `By clicking 'Back to site search' you will return to the Dendro domain.`,
             attachTo: { element: '#site-report-exit-menu', on: 'bottom' },
             advanceOn: { selector: '#site-report-exit-menu', event: 'click' },
             beforeShowPromise: () => {

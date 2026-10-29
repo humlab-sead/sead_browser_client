@@ -248,11 +248,17 @@
     </div>
 
     <div id="site-report-main-container" class="responsive-layout-container">
+      <div class="site-report-compact-bar">
+        <div class="site-report-compact-bar-content">
+          <div class="site-report-compact-bar-site-name"></div>
+          <div id="site-report-tabs" role="tablist" aria-label="Site datasheet sections"></div>
+        </div>
+      </div>
       <div id="site-report-page">
         <div class="site-report-topbar">
           <button type="button" id="site-report-exit-menu" class="site-report-back-link">
             <i class="fa fa-arrow-left" aria-hidden="true"></i>
-            Back to result<span class="site-report-back-count"></span>
+            Back to site search<span class="site-report-back-count"></span>
           </button>
         </div>
 
@@ -273,9 +279,7 @@
           </div>
         </div>
 
-        <div class="site-report-summary sqs-card"></div>
-
-        <div id="site-report-tabs" role="tablist" aria-label="Site datasheet sections"></div>
+        <nav class="site-report-summary sqs-card" aria-label="Site datasheet sections"></nav>
 
         <div id="site-report-content">
           <div class="site-report-tabpanel" data-tab="overview" role="tabpanel" aria-label="Overview">

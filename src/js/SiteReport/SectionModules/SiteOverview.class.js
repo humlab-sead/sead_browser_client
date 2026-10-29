@@ -1,9 +1,10 @@
 /*
 * Class: SiteOverview
 *
-* The summary under the site's name - its sample groups, samples, analyses and dating in figures -
-* and the overview tab, which says a little about each and leads on to the tab with the rest.
-* Both lead on: a figure, a sample group or an analysis method opens where it's shown in full.
+* The summary under the site's name, which is also the site report's tabs: a cell for each tab, saying
+* in figures what it holds - where the site is, its samples, analyses, dating and references. And the
+* overview tab, which says a little about each and leads on to the tab with the rest. Both lead on: a
+* tab, a sample group or an analysis method opens where it's shown in full.
 */
 class SiteOverview {
 	constructor(sqs, siteReport) {
@@ -59,18 +60,27 @@ class SiteOverview {
 	/*
 	* Function: renderSummaryCell
 	*
-	* One figure in the summary. With a callback, the whole cell is a link: its label is the button, stretched
-	* over the cell, and any buttons in the value or the line under it lie on top and go somewhere of their own.
+	* One tab in the summary, with a figure for what it holds. Unless the tab is disabled, the whole cell opens it:
+	* its label is the button, stretched over the cell, and any buttons in the value or the line under it lie on top
+	* and go somewhere of their own.
 	*/
-	renderSummaryCell(label, value, sub, extraClass = "", callback = null) {
+	renderSummaryCell(tabName, label, value, sub, extraClass = "") {
 		let cellNode = $("<div class='site-report-summary-cell'></div>");
+		cellNode.attr("data-tab", tabName);
 		if(extraClass) {
 			cellNode.addClass(extraClass);
 		}
-		if(callback) {
+		let tab = this.siteReport.getTab(tabName);
+		if(tab && !tab.disabled) {
+			let current = this.siteReport.activeTab == tabName;
 			cellNode.addClass("site-report-summary-cell-link");
+			cellNode.toggleClass("site-report-summary-cell-current", current);
 			let labelNode = $("<button type='button' class='sqs-label site-report-summary-link'></button>").text(label);
-			labelNode.on("click", callback);
+			labelNode.append("<i class='fa fa-angle-right site-report-summary-link-chevron' aria-hidden='true'></i>");
+			labelNode.attr("aria-current", current ? "true" : "false");
+			labelNode.on("click", () => {
+				this.siteReport.setActiveTab(tabName);
+			});
 			cellNode.append(labelNode);
 		}
 		else {
@@ -80,7 +90,7 @@ class SiteOverview {
 			cellNode.append(value);
 		}
 		else {
-			cellNode.append($("<div class='site-report-summary-value'></div>").text(value));
+			cellNode.append($("<div class='site-report-summary-value'></div>").text(value).attr("title", value));
 		}
 		if(sub instanceof jQuery) {
 			cellNode.append($("<div class='site-report-summary-sub'></div>").append(sub));
@@ -95,50 +105,51 @@ class SiteOverview {
 		let summaryNode = $(".site-report-summary");
 		summaryNode.empty();
 
-		let openSamples = () => {
-			this.siteReport.setActiveTab("samples");
-		};
-
-		//The first few sample groups by name, each opening the group on the samples tab
-		let sampleGroupsSub = $("<span></span>");
-		siteData.sample_groups.slice(0, 3).forEach((sampleGroup, index) => {
-			if(index > 0) {
-				sampleGroupsSub.append(" · ");
-			}
-			let linkNode = $("<button type='button' class='site-report-summary-sub-link'></button>").text(sampleGroup.sample_group_name);
-			linkNode.on("click", () => {
-				this.siteReport.revealSampleGroup(sampleGroup.sample_group_id);
-			});
-			sampleGroupsSub.append(linkNode);
-		});
-		if(siteData.sample_groups.length > 3) {
-			sampleGroupsSub.append(" · "+(siteData.sample_groups.length - 3)+" more");
+		//Where the site is: the country, and the places in it under that
+		let bsiModule = this.siteReport.getModuleByName("basicSiteInformation");
+		let locationNames = bsiModule ? bsiModule.module.getOrderedLocations(siteData).map(location => location.location_name.trim()) : [];
+		if(locationNames.length > 0) {
+			summaryNode.append(this.renderSummaryCell("overview", "Overview", locationNames[0], locationNames.slice(1).join(" · ")));
 		}
-		let hasSampleGroups = siteData.sample_groups.length > 0;
-		summaryNode.append(this.renderSummaryCell("Sample groups", siteData.sample_groups.length.toLocaleString("en-GB"), hasSampleGroups ? sampleGroupsSub : "", "", hasSampleGroups ? openSamples : null));
+		else {
+			summaryNode.append(this.renderSummaryCell("overview", "Overview", "Location not recorded", "", "site-report-summary-empty"));
+		}
 
 		let sampleCount = this.getSampleCount(siteData);
-		let samplesWithCoordinates = 0;
-		siteData.sample_groups.forEach(sampleGroup => {
-			sampleGroup.physical_samples.forEach(sample => {
-				if(sample.coordinates && sample.coordinates.length > 0) {
-					samplesWithCoordinates++;
+		if(sampleCount > 0) {
+			let sampleGroupCount = siteData.sample_groups.length;
+			let samplesValue = $("<div class='site-report-summary-value'></div>").text(sampleCount.toLocaleString("en-GB"));
+			samplesValue.append($("<span class='site-report-summary-value-note'></span>").text("in "+sampleGroupCount.toLocaleString("en-GB")+(sampleGroupCount == 1 ? " group" : " groups")));
+
+			//The first few sample groups by name, each opening the group on the samples tab
+			let sampleGroupsSub = $("<span></span>");
+			siteData.sample_groups.slice(0, 3).forEach((sampleGroup, index) => {
+				if(index > 0) {
+					sampleGroupsSub.append(" · ");
 				}
+				let linkNode = $("<button type='button' class='site-report-summary-sub-link'></button>").text(sampleGroup.sample_group_name);
+				linkNode.on("click", () => {
+					this.siteReport.revealSampleGroup(sampleGroup.sample_group_id);
+				});
+				sampleGroupsSub.append(linkNode);
 			});
-		});
-		let samplesSub = samplesWithCoordinates > 0 ? samplesWithCoordinates.toLocaleString("en-GB")+" with coordinates" : "";
-		summaryNode.append(this.renderSummaryCell("Samples", sampleCount.toLocaleString("en-GB"), samplesSub, "", sampleCount > 0 ? openSamples : null));
+			if(sampleGroupCount > 3) {
+				sampleGroupsSub.append(" · "+(sampleGroupCount - 3)+" more");
+			}
+			summaryNode.append(this.renderSummaryCell("samples", "Samples", samplesValue, sampleGroupsSub));
+		}
+		else {
+			summaryNode.append(this.renderSummaryCell("samples", "Samples", "None recorded", "", "site-report-summary-empty"));
+		}
 
 		let methods = this.siteReport.getAnalysisMethods(siteData);
 		if(methods.length > 0) {
 			let datasetCount = siteData.datasets.length;
 			let analysesSub = methods.length+(methods.length == 1 ? " method" : " methods")+" · "+datasetCount.toLocaleString("en-GB")+(datasetCount == 1 ? " dataset" : " datasets");
-			summaryNode.append(this.renderSummaryCell("Analyses", this.renderAnalysesBar(methods), analysesSub, "site-report-summary-analyses", () => {
-				this.siteReport.setActiveTab("analyses");
-			}));
+			summaryNode.append(this.renderSummaryCell("analyses", "Analyses", this.renderAnalysesBar(methods), analysesSub, "site-report-summary-analyses"));
 		}
 		else {
-			summaryNode.append(this.renderSummaryCell("Analyses", "None", ""));
+			summaryNode.append(this.renderSummaryCell("analyses", "Analyses", "None recorded", "", "site-report-summary-empty"));
 		}
 
 		let dating = this.getDatingModule();
@@ -146,13 +157,43 @@ class SiteOverview {
 			let ageSummary = siteData.age_summary;
 			let datedSamples = dating.getDatedSampleIds().length;
 			let datingSub = datedSamples+" of "+sampleCount+" samples · "+ageSummary.datings.map(d => d.method_name).join(", ");
-			summaryNode.append(this.renderSummaryCell("Dated to", dating.formatRange(ageSummary.older, ageSummary.younger), datingSub, "site-report-summary-dating", () => {
-				this.siteReport.setActiveTab("dating");
-			}));
+			summaryNode.append(this.renderSummaryCell("dating", "Dating", dating.formatRange(ageSummary.older, ageSummary.younger), datingSub, "site-report-summary-dating"));
 		}
 		else {
-			summaryNode.append(this.renderSummaryCell("Dating", "None recorded", "", "site-report-summary-dating site-report-summary-empty"));
+			summaryNode.append(this.renderSummaryCell("dating", "Dating", "None recorded", "", "site-report-summary-dating site-report-summary-empty"));
 		}
+
+		let biblioIds = this.siteReport.getReferenceBiblioIds(siteData);
+		if(biblioIds.length > 0) {
+			let biblios = siteData.lookup_tables.biblio.filter(biblio => biblioIds.includes(biblio.biblio_id));
+			let referencesSub = biblios.slice(0, 2).map(biblio => this.getShortReference(biblio)).filter(text => text != "").join(" · ");
+			if(biblioIds.length > 2) {
+				referencesSub += " · "+(biblioIds.length - 2)+" more";
+			}
+			summaryNode.append(this.renderSummaryCell("references", "References", biblioIds.length.toLocaleString("en-GB"), referencesSub));
+		}
+		else {
+			summaryNode.append(this.renderSummaryCell("references", "References", "None recorded", "", "site-report-summary-empty"));
+		}
+	}
+
+	/*
+	* Function: getShortReference
+	* A reference as briefly as it can be cited: "Coope 1977", the first author's surname and the year,
+	* or without an author, the beginning of the title.
+	*/
+	getShortReference(biblio) {
+		if(biblio.bugs_reference) {
+			return biblio.bugs_reference;
+		}
+		let surname = biblio.authors ? biblio.authors.split(/,|&| and /)[0].trim() : "";
+		if(surname != "") {
+			return [surname, biblio.year].filter(part => part).join(" ");
+		}
+		if(biblio.title) {
+			return biblio.title.length > 40 ? biblio.title.slice(0, 40).trim()+"…" : biblio.title;
+		}
+		return biblio.year ? String(biblio.year) : "";
 	}
 
 	/*
