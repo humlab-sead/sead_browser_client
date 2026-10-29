@@ -117,6 +117,14 @@ class SiteReportManager {
 					if(this.sqs.seoManager) {
 						this.sqs.seoManager.setNotFoundMeta("/site/"+siteId);
 					}
+
+					//There's no site report to show, so send the user to the main page once they've read the message.
+					//The URL is replaced rather than pushed, so going back doesn't land on the missing site again.
+					this.sqs.sqsEventListen("popOverClosed", () => {
+						this.sqs.sqsEventUnlisten("popOverClosed", this);
+						history.replaceState({}, "", "/");
+						this.sqs.router.route("/");
+					}, this);
 				}
 				else {
 					let siteName = data[0].site_name || data[0].name || data[0].site || null;
