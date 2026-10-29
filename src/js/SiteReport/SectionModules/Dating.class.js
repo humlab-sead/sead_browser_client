@@ -12,7 +12,7 @@ class Dating {
 		this.siteReport = siteReport;
 		this.siteData = null;
 		this.calendar = "BP"; //"BP" or "AD/BC"
-		this.view = "table"; //"table" or "graph"
+		this.view = "graph"; //"table" or "graph"
 		//How many samples a method lists before the rest are folded away
 		this.rowsPerMethod = 25;
 		this.expandedMethods = [];
