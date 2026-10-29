@@ -1230,7 +1230,7 @@ class TaxaModule {
 
 		if(this.sqs.seoManager) {
 			let taxonName = this.sqs.formatTaxon(taxonData, null, false);
-			this.sqs.seoManager.setTaxonMeta(this.taxonId, taxonName);
+			this.sqs.seoManager.setTaxonMeta(this.taxonId, taxonName, taxonData);
 		}
 
 		this.renderSpecies(instance, taxonData);

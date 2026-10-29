@@ -80,6 +80,10 @@ class SiteReport {
 			this.fetchComplete = true;
 			this.hideLoadingIndicator();
 
+			if(this.sqs.seoManager) {
+				this.sqs.seoManager.setSiteReportMeta(siteData, this.getAnalysisMethods(siteData).map(method => method.name));
+			}
+
 			this.modules.push({
 				"name": "basicSiteInformation",
 				"module": bsi

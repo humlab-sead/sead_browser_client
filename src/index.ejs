@@ -2,51 +2,40 @@
 <html lang="en">
 
 <head>
-  <!-- Global site tag (gtag.js) - Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-168923041-1"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    if (document.location.hostname.search("browser.sead.se") !== -1) {
-      function gtag() { dataLayer.push(arguments); }
-      gtag('js', new Date());
-
-      gtag('config', 'UA-168923041-1');
-    }
-  </script>
-
   <meta charset="utf-8">
   <META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
   <META HTTP-EQUIV="PRAGMA" CONTENT="NO-CACHE">
-  <title>SEAD Browser</title>
+  <title>SEAD Browser – Strategic Environmental Archaeology Database</title>
   <!--<base href="<%= baseUrl %>" />-->
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description"
     content="SEAD is a national research infrastructure for Swedish archaeological science and an international database for environmental archaeology and Quaternary science data." />
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
-  <link rel="canonical" href="<%= baseUrl %>/" />
+  <!-- Every path is served this same page, so the canonical URL, og:url and the page's structured data
+  are left to SeoManager, which knows which page it is. A canonical here would point all of them at the front page. -->
 
-  <meta property="og:title" content="SEAD Browser" />
+  <meta property="og:title" content="SEAD Browser – Strategic Environmental Archaeology Database" />
   <meta property="og:site_name" content="SEAD Browser">
   <meta property="og:type" content="website" />
   <meta property="og:description"
     content="SEAD is a national research infrastructure for Swedish archaeological science and an international database for environmental archaeology and Quaternary science data." />
   <meta property="og:image" content="<%= baseUrl %>/SEAD-logo-square.png" />
   <meta property="og:image:alt" content="SEAD Browser logo" />
-  <meta property="og:url" content="<%= baseUrl %>/" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="SEAD Browser" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="SEAD Browser – Strategic Environmental Archaeology Database" />
   <meta name="twitter:description"
     content="SEAD is a national research infrastructure for Swedish archaeological science and an international database for environmental archaeology and Quaternary science data." />
   <meta name="twitter:image" content="<%= baseUrl %>/SEAD-logo-square.png" />
   <meta name="twitter:image:alt" content="SEAD Browser logo" />
-  <meta name="twitter:url" content="<%= baseUrl %>/" />
 
   <script id="seo-schema-organization" type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "SEAD",
+      "alternateName": "Strategic Environmental Archaeology Database",
       "url": "<%= baseUrl %>/",
+      "logo": "<%= baseUrl %>/SEAD-logo-square.png",
       "email": "<%= typeof supportEmail != 'undefined' ? supportEmail : 'support@humlab.umu.se' %>"
     }
   </script>
@@ -56,33 +45,6 @@
       "@type": "WebSite",
       "name": "SEAD Browser",
       "url": "<%= baseUrl %>/"
-    }
-  </script>
-  <script id="seo-schema-catalog" type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "DataCatalog",
-      "name": "SEAD Browser",
-      "url": "<%= baseUrl %>/",
-      "provider": {
-        "@type": "Organization",
-        "name": "SEAD",
-        "url": "<%= baseUrl %>/"
-      }
-    }
-  </script>
-  <script id="seo-schema-page" type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "SEAD Browser",
-      "description": "SEAD is a national research infrastructure for Swedish archaeological science and an international database for environmental archaeology and Quaternary science data.",
-      "url": "<%= baseUrl %>/",
-      "isPartOf": {
-        "@type": "WebSite",
-        "name": "SEAD Browser",
-        "url": "<%= baseUrl %>/"
-      }
     }
   </script>
 
@@ -99,7 +61,7 @@
   <meta name="apple-mobile-web-app-title" content="SEAD">
   <meta name="application-name" content="SEAD">
   <meta name="msapplication-TileColor" content="#2b5797">
-  <meta name="msapplication-config" content="assets/icons/browserconfig.xml">
+  <meta name="msapplication-config" content="/browserconfig.xml">
   <meta name="theme-color" content="#ffffff">
 
   <!-- Matomo -->
@@ -1271,7 +1233,7 @@
 
     <div id="about-section" class="overlay-dialog">
       <div class="overlay-dialog-close-btn fa fa-times"></div>
-      <h1>The Strategic Environmental Archeology Database</h1>
+      <h1>The Strategic Environmental Archaeology Database</h1>
       <div class="overlay-dialog-content">
         <p>
           SEAD is a national research infrastructure for Swedish archaeological science and an international database

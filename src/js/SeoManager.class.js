@@ -4,7 +4,8 @@ class SeoManager {
 	constructor(sqs) {
 		this.sqs = sqs;
 		this.config = Config;
-		this.defaultTitle = "SEAD Browser";
+		this.siteName = "SEAD Browser";
+		this.defaultTitle = "SEAD Browser – Strategic Environmental Archaeology Database";
 		this.defaultDescription = "SEAD is a national research infrastructure for Swedish archaeological science and an international database for environmental archaeology and Quaternary science data.";
 		this.defaultRobots = "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1";
 		this.defaultImagePath = "/SEAD-logo-square.png";
@@ -103,15 +104,15 @@ class SeoManager {
 	ensureTags() {
 		this.setMetaName("description", this.defaultDescription);
 		this.setMetaName("robots", this.defaultRobots);
-		this.setMetaName("twitter:card", "summary_large_image");
+		//The image is the square logo, which the large card would crop to a strip
+		this.setMetaName("twitter:card", "summary");
 		this.setMetaName("twitter:title", this.defaultTitle);
 		this.setMetaName("twitter:description", this.defaultDescription);
 		this.setMetaName("twitter:image", this.buildAbsoluteUrl(this.defaultImagePath));
 		this.setMetaName("twitter:image:alt", this.defaultImageAlt);
-		this.setMetaName("twitter:url", this.buildAbsoluteUrl("/"));
 
 		this.setMetaProperty("og:title", this.defaultTitle);
-		this.setMetaProperty("og:site_name", "SEAD Browser");
+		this.setMetaProperty("og:site_name", this.siteName);
 		this.setMetaProperty("og:type", "website");
 		this.setMetaProperty("og:description", this.defaultDescription);
 		this.setMetaProperty("og:image", this.buildAbsoluteUrl(this.defaultImagePath));
@@ -126,7 +127,12 @@ class SeoManager {
 		});
 	}
 
-	updateStructuredData({title, description, path = "/"}) {
+	/*
+	* Function: updateStructuredData
+	* The schema.org descriptions of the site and of the page. The entity is what the page is
+	* about, if it is about one thing - a site report's dataset, a taxon - and is cleared otherwise.
+	*/
+	updateStructuredData({title, description, path = "/", entity = null}) {
 		const pagePath = this.normalizePath(path);
 		const absoluteUrl = this.buildAbsoluteUrl(pagePath);
 
@@ -134,7 +140,9 @@ class SeoManager {
 			"@context": "https://schema.org",
 			"@type": "Organization",
 			"name": "SEAD",
+			"alternateName": "Strategic Environmental Archaeology Database",
 			"url": this.buildAbsoluteUrl("/"),
+			"logo": this.buildAbsoluteUrl(this.defaultImagePath),
 			"email": this.config.supportEmail || "support@humlab.umu.se"
 		});
 
@@ -145,17 +153,7 @@ class SeoManager {
 			"url": this.buildAbsoluteUrl("/")
 		});
 
-		this.setJsonLd("seo-schema-catalog", {
-			"@context": "https://schema.org",
-			"@type": "DataCatalog",
-			"name": "SEAD Browser",
-			"url": this.buildAbsoluteUrl("/"),
-			"provider": {
-				"@type": "Organization",
-				"name": "SEAD",
-				"url": this.buildAbsoluteUrl("/")
-			}
-		});
+		this.setJsonLd("seo-schema-catalog", this.getDataCatalog());
 
 		this.setJsonLd("seo-schema-page", {
 			"@context": "https://schema.org",
@@ -169,9 +167,41 @@ class SeoManager {
 				"url": this.buildAbsoluteUrl("/")
 			}
 		});
+
+		let entityNode = document.getElementById("seo-schema-entity");
+		if(entity) {
+			this.setJsonLd("seo-schema-entity", Object.assign({ "@context": "https://schema.org" }, entity));
+		}
+		else if(entityNode) {
+			entityNode.remove();
+		}
 	}
 
-	setSharedMeta({title, description, path = "/", indexable = true}) {
+	getDataCatalog() {
+		let catalog = {
+			"@context": "https://schema.org",
+			"@type": "DataCatalog",
+			"name": this.siteName,
+			"alternateName": "Strategic Environmental Archaeology Database",
+			"description": this.defaultDescription,
+			"url": this.buildAbsoluteUrl("/"),
+			"provider": this.getProvider()
+		};
+		if(this.config.dataLicense && this.config.dataLicense.url) {
+			catalog.license = this.config.dataLicense.url;
+		}
+		return catalog;
+	}
+
+	getProvider() {
+		return {
+			"@type": "Organization",
+			"name": "SEAD",
+			"url": this.buildAbsoluteUrl("/")
+		};
+	}
+
+	setSharedMeta({title, description, path = "/", indexable = true, entity = null}) {
 		const pageTitle = this.sanitizeText(title) || this.defaultTitle;
 		const pageDescription = this.sanitizeText(description) || this.defaultDescription;
 		const pagePath = this.normalizePath(path);
@@ -183,7 +213,6 @@ class SeoManager {
 		this.setMetaName("twitter:description", pageDescription);
 		this.setMetaName("twitter:image", this.buildAbsoluteUrl(this.defaultImagePath));
 		this.setMetaName("twitter:image:alt", this.defaultImageAlt);
-		this.setMetaName("twitter:url", this.buildAbsoluteUrl(pagePath));
 
 		this.setMetaProperty("og:title", pageTitle);
 		this.setMetaProperty("og:description", pageDescription);
@@ -196,7 +225,8 @@ class SeoManager {
 		this.updateStructuredData({
 			title: pageTitle,
 			description: pageDescription,
-			path: pagePath
+			path: pagePath,
+			entity: entity
 		});
 	}
 
@@ -217,7 +247,7 @@ class SeoManager {
 
 		const domainTitle = this.sanitizeText(domain.title || domain.name);
 		this.setSharedMeta({
-			title: domainTitle + " data | SEAD Browser",
+			title: domainTitle + " data | " + this.siteName,
 			description: "Explore " + domainTitle + " datasets, sites, filters and visualizations in SEAD.",
 			path: "/" + domain.name,
 			indexable: true
@@ -238,17 +268,202 @@ class SeoManager {
 		});
 	}
 
-	setTaxonMeta(taxonId, taxonName = null) {
+	/*
+	* Function: setSiteReportMeta
+	* The site report's meta once its data is in: a description of what the site has data on,
+	* and the site as a schema.org Dataset, which is what puts it in Google Dataset Search.
+	*
+	* Parameters:
+	* siteData - The site, as the json api server delivers it.
+	* methodNames - The names of the methods its datasets were made with.
+	*/
+	setSiteReportMeta(siteData, methodNames = []) {
+		const siteName = this.sanitizeText(siteData.site_name) || "Site " + siteData.site_id;
+		const path = "/site/" + siteData.site_id;
+
+		let locationNames = [];
+		siteData.location.forEach(location => {
+			let name = this.sanitizeText(location.location_name);
+			if(name.length > 0 && !locationNames.includes(name)) {
+				locationNames.push(name);
+			}
+		});
+		const country = siteData.location.find(location => location.location_type == "Country");
+		const region = siteData.location.find(location => location.location_type == "Sub-country administrative region");
+		const place = [region, country].filter(location => location).map(location => this.sanitizeText(location.location_name)).join(", ");
+
+		let sampleCount = 0;
+		siteData.sample_groups.forEach(sampleGroup => {
+			sampleCount += sampleGroup.physical_samples.length;
+		});
+
+		let description = "Site report for " + siteName + (place ? ", " + place : "") + ".";
+		if(methodNames.length > 0) {
+			description += " " + sampleCount.toLocaleString("en-GB") + (sampleCount == 1 ? " sample" : " samples")
+				+ " with data from " + this.listNames(methodNames) + ".";
+		}
+		description += " Environmental archaeology data in SEAD.";
+
+		let lastModified = siteData.date_updated;
+		siteData.datasets.forEach(dataset => {
+			if(dataset.date_updated && (!lastModified || dataset.date_updated > lastModified)) {
+				lastModified = dataset.date_updated;
+			}
+		});
+
+		let dataset = {
+			"@type": "Dataset",
+			"name": siteName,
+			"description": description,
+			"url": this.buildAbsoluteUrl(path),
+			"identifier": siteData.site_uuid ? siteData.site_uuid : String(siteData.site_id),
+			"keywords": ["environmental archaeology"].concat(methodNames),
+			"isAccessibleForFree": true,
+			"publisher": this.getProvider(),
+			"includedInDataCatalog": {
+				"@type": "DataCatalog",
+				"name": this.siteName,
+				"url": this.buildAbsoluteUrl("/")
+			}
+		};
+		if(methodNames.length > 0) {
+			dataset.measurementTechnique = methodNames;
+		}
+		if(this.config.dataLicense && this.config.dataLicense.url) {
+			dataset.license = this.config.dataLicense.url;
+		}
+		if(lastModified) {
+			dataset.dateModified = lastModified.substring(0, 10);
+		}
+
+		let spatialCoverage = { "@type": "Place" };
+		if(locationNames.length > 0) {
+			spatialCoverage.name = locationNames.join(", ");
+		}
+		const latitude = parseFloat(siteData.latitude_dd);
+		const longitude = parseFloat(siteData.longitude_dd);
+		if(!isNaN(latitude) && !isNaN(longitude)) {
+			spatialCoverage.geo = {
+				"@type": "GeoCoordinates",
+				"latitude": latitude,
+				"longitude": longitude
+			};
+		}
+		if(spatialCoverage.name || spatialCoverage.geo) {
+			dataset.spatialCoverage = spatialCoverage;
+		}
+
+		let citations = [];
+		siteData.biblio.forEach(biblio => {
+			let citation = this.sanitizeText(biblio.full_reference) || this.sanitizeText(biblio.title);
+			if(citation.length > 0 && !citations.includes(citation)) {
+				citations.push(citation);
+			}
+		});
+		if(citations.length > 0) {
+			dataset.citation = citations;
+		}
+
+		this.setSharedMeta({
+			title: siteName + " | SEAD Site Report",
+			description: description,
+			path: path,
+			indexable: true,
+			entity: dataset
+		});
+	}
+
+	/*
+	* Function: listNames
+	* A few names as an English list, the rest counted: "pollen, insects and 3 other methods".
+	*/
+	listNames(names, maxNames = 3) {
+		if(names.length == 1) {
+			return names[0];
+		}
+		if(names.length <= maxNames) {
+			return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+		}
+		const rest = names.length - maxNames;
+		return names.slice(0, maxNames).join(", ") + " and " + rest + (rest == 1 ? " other method" : " other methods");
+	}
+
+	/*
+	* Function: setTaxonMeta
+	*
+	* Parameters:
+	* taxonId - The taxon's id.
+	* taxonName - The taxon as it is written out, if it is known yet.
+	* taxonData - The taxon, as the json api server delivers it, once it is in. Makes it a schema.org Taxon.
+	*/
+	setTaxonMeta(taxonId, taxonName = null, taxonData = null) {
 		let cleanTaxonName = this.sanitizeText(taxonName);
 		if(cleanTaxonName.length == 0) {
 			cleanTaxonName = "Taxon " + taxonId;
 		}
 
+		let entity = null;
+		let commonNames = [];
+		if(taxonData) {
+			const genus = taxonData.genus ? this.sanitizeText(taxonData.genus.genus_name) : "";
+			const family = taxonData.family ? this.sanitizeText(taxonData.family.family_name) : "";
+			const order = taxonData.order ? this.sanitizeText(taxonData.order.order_name) : "";
+			let species = this.sanitizeText(taxonData.species);
+			if(this.config.indicatorStringsForUnknownSpecies && this.config.indicatorStringsForUnknownSpecies.includes(species.toLowerCase())) {
+				species = "";
+			}
+
+			(taxonData.common_names || []).forEach(commonName => {
+				let name = this.sanitizeText(commonName.common_name);
+				if(name.length > 0 && !commonNames.includes(name)) {
+					commonNames.push(name);
+				}
+			});
+
+			//Each rank's parent, from the order down, so the taxon ends up holding the whole chain
+			let parentTaxon = null;
+			[["order", order], ["family", family], ["genus", genus]].forEach(([rank, name]) => {
+				if(name.length > 0) {
+					let taxon = { "@type": "Taxon", "name": name, "taxonRank": rank };
+					if(parentTaxon) {
+						taxon.parentTaxon = parentTaxon;
+					}
+					parentTaxon = taxon;
+				}
+			});
+
+			entity = {
+				"@type": "Taxon",
+				"name": species.length > 0 ? (genus + " " + species).trim() : genus || cleanTaxonName,
+				"taxonRank": species.length > 0 ? "species" : "genus",
+				"url": this.buildAbsoluteUrl("/taxon/" + taxonId)
+			};
+			if(species.length == 0 && parentTaxon) {
+				//Only the genus is known, which makes the genus the taxon itself
+				parentTaxon = parentTaxon.parentTaxon || null;
+			}
+			if(parentTaxon) {
+				entity.parentTaxon = parentTaxon;
+			}
+			if(commonNames.length > 0) {
+				entity.alternateName = commonNames;
+			}
+
+			//What people search for is the scientific name, so it goes first, not the family
+			cleanTaxonName = entity.name + (family.length > 0 && family != entity.name ? " (" + family + ")" : "");
+		}
+
+		let description = "Taxon datasheet for " + cleanTaxonName + " in SEAD, the Strategic Environmental Archaeology Database.";
+		if(commonNames.length > 0) {
+			description += " Also known as " + commonNames.slice(0, 3).join(", ") + ".";
+		}
+
 		this.setSharedMeta({
 			title: cleanTaxonName + " | SEAD Taxon Datasheet",
-			description: "Taxon datasheet for " + cleanTaxonName + " in the SEAD browser.",
+			description: description,
 			path: "/taxon/" + taxonId,
-			indexable: true
+			indexable: true,
+			entity: entity
 		});
 	}
 
