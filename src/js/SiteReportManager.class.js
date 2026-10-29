@@ -70,6 +70,32 @@ class SiteReportManager {
 		return offerData;
 	}
 	
+	/*
+	* Function: fetchSiteLocations
+	*
+	* Every site that has coordinates, for the map in the site report. Fetched once and then reused,
+	* so going from one site report to the next doesn't fetch them again.
+	*/
+	fetchSiteLocations() {
+		if(!this.siteLocationsPromise) {
+			this.siteLocationsPromise = new Promise((resolve, reject) => {
+				$.ajax(this.sqs.config.siteReportServerAddress+"/tbl_sites?select=site_id,site_name,latitude_dd,longitude_dd&latitude_dd=not.is.null&longitude_dd=not.is.null", {
+					method: "get",
+					dataType: "json",
+					success: (data) => {
+						resolve(data);
+					},
+					error: (xhr, textStatus, errorThrown) => {
+						//Let the next site report try again
+						this.siteLocationsPromise = null;
+						reject(errorThrown);
+					}
+				});
+			});
+		}
+		return this.siteLocationsPromise;
+	}
+
 	renderSiteReport(siteId, updateHistory = true) {
 		if(updateHistory) {
 			var stateObj = {};

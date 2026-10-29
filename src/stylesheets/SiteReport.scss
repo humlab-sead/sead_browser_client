@@ -61,26 +61,6 @@
   font-weight: 400;
 }
 
-.site-report-breadcrumb {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  margin: 0;
-  padding: 0 0 0 sqs-px(12);
-  border-left: 1px solid colors.$border-color;
-  list-style: none;
-}
-
-.site-report-breadcrumb:empty {
-  display: none;
-}
-
-.site-report-breadcrumb li + li::before {
-  content: "\203A";
-  margin: 0 sqs-px(8);
-  color: #9a9a9a;
-}
-
 .site-report-browse {
   display: flex;
   align-items: center;
@@ -478,6 +458,34 @@ h1.site-report-title-site-name {
   position: relative;
   height: sqs-px(280);
   margin: 0;
+}
+
+/* The sites sharing a spot on the site map, to pick one from */
+.site-report-map-popup {
+  min-width: sqs-px(180);
+  max-width: sqs-px(260);
+}
+
+.site-report-map-popup-list {
+  max-height: sqs-px(150);
+  margin-top: sqs-px(6);
+  overflow-y: auto;
+}
+
+.site-report-map-popup-site {
+  display: block;
+  width: 100%;
+  padding: sqs-px(3) sqs-px(4);
+  border: none;
+  background: none;
+  color: colors.$text-color;
+  font-size: sqs-px(14);
+  text-align: left;
+  cursor: pointer;
+}
+
+.site-report-map-popup-site:hover {
+  background-color: colors.$pane-bg-color;
 }
 
 /* Analyses tab: the methods listed on the left, the datasets of the one picked on the right */
@@ -893,11 +901,6 @@ h1.site-report-title-site-name {
 
   h1.site-report-title-site-name {
     font-size: 34px !important;
-  }
-
-  .site-report-breadcrumb {
-    padding-left: 0;
-    border-left: none;
   }
 
   .site-report-browse {

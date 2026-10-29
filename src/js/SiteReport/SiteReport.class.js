@@ -682,7 +682,7 @@ class SiteReport {
 	show() {
 		//Empty everything the previous site filled in
 		$(".site-report-title-site-name, .site-report-site-description, .site-report-site-id").text("");
-		$(".site-report-breadcrumb, .site-report-summary").empty();
+		$(".site-report-summary").empty();
 		$(".site-report-overview-main, .site-report-samples-main, .site-report-analyses-main, .site-report-method-nav").empty();
 		$(".site-report-location-list, .site-report-location-note, .site-report-record-list").empty();
 		$("#site-report-map-container, #site-report-sample-map-container").empty();

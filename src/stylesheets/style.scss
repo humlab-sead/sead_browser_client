@@ -4972,7 +4972,7 @@ polyline{
 
 .site-report-table-row .clickable:hover {
   cursor:pointer;
-  color: white; /* Text color */
+  color: colors.$base-color;
 }
 
 .site-report-link :hover {

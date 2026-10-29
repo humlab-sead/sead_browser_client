@@ -150,6 +150,7 @@ class SiteOverview {
 			let sampleGroupsCard = this.renderCard("Sample groups", "All samples", () => {
 				this.siteReport.setActiveTab("samples");
 			});
+			this.sqs.tooltipManager.registerTooltip($(".sqs-card-title", sampleGroupsCard), "A sample group is a set of related samples from the site, collected with the same sampling method. Samples are usually grouped by structure (e.g. House 1), stratigraphic sequence (e.g. Profile 3) or core, but the investigators decide the grouping.", { drawSymbol: true, anchorPoint: "symbol" });
 			sampleGroupsCard.append(this.renderSampleGroupsTable(siteData));
 			mainNode.append(sampleGroupsCard);
 		}

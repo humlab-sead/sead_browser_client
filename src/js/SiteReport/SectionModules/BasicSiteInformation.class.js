@@ -4,12 +4,14 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer, Graticule } from 'ol/layer';
 import { Group as GroupLayer } from 'ol/layer';
-import { Vector as VectorSource, StadiaMaps } from 'ol/source';
+import { Vector as VectorSource, Cluster as ClusterSource, StadiaMaps } from 'ol/source';
 import {fromLonLat, transform} from 'ol/proj.js';
-import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style.js';
+import { Circle as CircleStyle, Fill, Stroke, Style, Text } from 'ol/style.js';
 import { defaults as defaultControls } from 'ol/control.js';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
+import Overlay from 'ol/Overlay';
+import { boundingExtent, getWidth, getHeight } from 'ol/extent';
 import css from '../../../stylesheets/style.scss';
 import { Chart } from "chart.js";
 import OpenLayersMap from '../../Common/OpenLayersMap.class';
@@ -28,6 +30,11 @@ class BasicSiteInformation {
 		this.buildComplete = false;
 		this.exportTryInterval = null;
 		this.auxiliaryDataFetched = true; //There is currently no auxiliary data to fetch
+		this.miniMapStyle = {
+			siteColor: "#f60",
+			otherSitesColor: this.sqs.color.getColorScheme(20, 0.75)[13] //Same as the sites on the result map
+		};
+		this.miniMapClusterStyles = {};
 		/*
 		this.sqs.sqsEventListen("fetchBasicSiteInformation", () => {
             this.buildComplete = true;
@@ -63,6 +70,8 @@ class BasicSiteInformation {
 
 	preRender() {
 		$(".site-report-title-site-name").html("Loading...");
+		//Get the other sites for the map going while the site itself is fetched
+		this.sqs.siteReportManager.fetchSiteLocations().catch(() => {});
 	}
 
 	/*
@@ -75,7 +84,6 @@ class BasicSiteInformation {
 		this.data = siteData;
 
 		this.renderTitle(siteData);
-		this.renderBreadcrumb(siteData);
 		this.renderLocation(siteData);
 		this.renderSiteRecord(siteData);
 		this.renderReferencesTab(siteData);
@@ -136,14 +144,6 @@ class BasicSiteInformation {
 			return (a.location_type == "Country" ? 0 : 1) - (b.location_type == "Country" ? 0 : 1);
 		});
 		return locations;
-	}
-
-	renderBreadcrumb(siteData) {
-		let breadcrumbNode = $(".site-report-breadcrumb");
-		breadcrumbNode.empty();
-		this.getOrderedLocations(siteData).forEach(location => {
-			breadcrumbNode.append($("<li></li>").text(location.location_name.trim()));
-		});
 	}
 
 	/*
@@ -630,7 +630,8 @@ class BasicSiteInformation {
 	/*
 	* Function: renderMiniMap
 	*
-	* Renders the little map which shows site position in the sidebar.
+	* Renders the little map in the sidebar: the site itself, highlighted and on top, among all the
+	* other sites in SEAD, clustered like on the result map. Clicking another site opens its site report.
 	*/
 	renderMiniMap(siteData) {
 		$("#site-report-map-container").html("");
@@ -650,11 +651,13 @@ class BasicSiteInformation {
 		`;
 
 		$("#site-report-map-container").append(mapMenu);
-		
-		// Set initial view
+
+		let siteCoords = fromLonLat([parseFloat(siteData.longitude_dd), parseFloat(siteData.latitude_dd)]);
+
+		// Set initial view, until the other sites are in and the map can be fitted to the nearest of them
 		olMap.olMap.setView(new View({
-			center: fromLonLat([parseFloat(siteData.longitude_dd), parseFloat(siteData.latitude_dd)]),
-			zoom: 4
+			center: siteCoords,
+			zoom: 7
 		}));
 
 		// Add standard base layers
@@ -663,50 +666,233 @@ class BasicSiteInformation {
 
 		// Render base layer menu
 		olMap.renderBaseLayerMenu("#site-report-map-container .map-base-layer-menu-container");
-		
-		// Create site location marker
-		var iconFeatures = [];
-		
-		var coords = transform([parseFloat(siteData.longitude_dd), parseFloat(siteData.latitude_dd)], 'EPSG:4326', 'EPSG:3857');
-		var iconFeature = new Feature({
-			geometry: new Point(coords),
-			name: siteData.site_name
+
+		// The other sites, filled in once they have been fetched
+		let otherSitesSource = new VectorSource();
+		let otherSitesLayer = new VectorLayer({
+			source: new ClusterSource({
+				distance: 30,
+				source: otherSitesSource
+			}),
+			style: (feature) => {
+				return this.getMiniMapClusterStyle(feature);
+			},
+			zIndex: 200
 		});
-		
-		iconFeatures.push(iconFeature);
-		
-		var vectorSource = new VectorSource({
-			features: iconFeatures //add an array of features
-		});
-		
-		
-		var strokeColor = "#fff";
-		let fillColor = css.baseColor;
-		var iconStyle = new Style({
-			image: new CircleStyle({
-				radius: 8,
-				stroke: new Stroke({
-					color: strokeColor
-				}),
-				fill: new Fill({
-					color: fillColor
+		olMap.olMap.addLayer(otherSitesLayer);
+
+		// This site, in a layer of its own above the others so it's never hidden in a cluster
+		let siteLayer = new VectorLayer({
+			source: new VectorSource({
+				features: [new Feature({
+					geometry: new Point(siteCoords),
+					name: siteData.site_name
+				})]
+			}),
+			style: new Style({
+				image: new CircleStyle({
+					radius: 9,
+					stroke: new Stroke({
+						color: "#fff",
+						width: 2
+					}),
+					fill: new Fill({
+						color: this.miniMapStyle.siteColor
+					})
 				})
-			})
+			}),
+			zIndex: 300
 		});
-		
-		
-		var vectorLayer = new VectorLayer({
-			source: vectorSource,
-			style: iconStyle
-		});
-		
-		olMap.olMap.addLayer(vectorLayer);
-		
+		olMap.olMap.addLayer(siteLayer);
+
+		this.bindMiniMapInteraction(olMap, otherSitesLayer, siteLayer, siteData);
+
 		this.olMap = olMap;
-		
+
+		this.sqs.siteReportManager.fetchSiteLocations().then(sites => {
+			let features = [];
+			sites.forEach(site => {
+				if(site.site_id == siteData.site_id) {
+					return;
+				}
+				features.push(new Feature({
+					geometry: new Point(fromLonLat([site.longitude_dd, site.latitude_dd])),
+					siteId: site.site_id,
+					name: site.site_name
+				}));
+			});
+			otherSitesSource.addFeatures(features);
+			this.fitMiniMapToNearbySites(olMap, siteCoords, features);
+		}).catch(error => {
+			console.warn("Could not fetch the other sites for the site report map", error);
+		});
+
 		this.sqs.sqsEventListen("layoutResize", () => {
 			this.olMap.olMap.updateSize();
 		}, this);
+	}
+
+	/*
+	* Function: getMiniMapClusterStyle
+	*
+	* A single site as a small point, a cluster as a bigger one with the number of sites in it.
+	*/
+	getMiniMapClusterStyle(feature) {
+		let sitesNum = feature.get("features").length;
+		let cacheKey = sitesNum > 1 ? sitesNum : "single";
+		if(!this.miniMapClusterStyles[cacheKey]) {
+			let clusterSizeText = sitesNum > 999 ? sitesNum.toString().substring(0, 1)+"k+" : sitesNum.toString();
+			this.miniMapClusterStyles[cacheKey] = new Style({
+				image: new CircleStyle({
+					radius: sitesNum > 1 ? 8+(Math.log10(sitesNum)*8) : 5,
+					stroke: new Stroke({
+						color: "#fff",
+						width: 1.5
+					}),
+					fill: new Fill({
+						color: this.miniMapStyle.otherSitesColor
+					})
+				}),
+				text: sitesNum > 1 ? new Text({
+					text: clusterSizeText,
+					offsetY: 1,
+					fill: new Fill({
+						color: "#fff"
+					})
+				}) : undefined
+			});
+		}
+		return this.miniMapClusterStyles[cacheKey];
+	}
+
+	/*
+	* Function: fitMiniMapToNearbySites
+	*
+	* Zooms the map in on the site, as far out as needed to also show its nearest neighbours,
+	* but never so far out that the site is lost or so far in that the surroundings are.
+	*/
+	fitMiniMapToNearbySites(olMap, siteCoords, features, neighbourCount = 5) {
+		if(features.length == 0) {
+			return;
+		}
+		//Sites sharing this site's coordinates don't help show what's around it
+		let distances = features.map(feature => {
+			let coords = feature.getGeometry().getCoordinates();
+			return Math.hypot(coords[0] - siteCoords[0], coords[1] - siteCoords[1]);
+		}).filter(distance => distance > 1).sort((a, b) => a - b);
+		if(distances.length == 0) {
+			return;
+		}
+		let radius = distances[Math.min(neighbourCount, distances.length) - 1] * 1.2;
+
+		let view = olMap.olMap.getView();
+		view.fit([siteCoords[0] - radius, siteCoords[1] - radius, siteCoords[0] + radius, siteCoords[1] + radius], {
+			padding: [20, 20, 20, 20],
+			maxZoom: 10
+		});
+		if(view.getZoom() < 5) {
+			view.setCenter(siteCoords);
+			view.setZoom(5);
+		}
+	}
+
+	/*
+	* Function: bindMiniMapInteraction
+	*
+	* Clicking a site opens its site report and clicking a cluster zooms in on it. A cluster of sites
+	* too close together to ever come apart, which happens when they share coordinates, lists them instead.
+	*/
+	bindMiniMapInteraction(olMap, otherSitesLayer, siteLayer, siteData) {
+		let map = olMap.olMap;
+		let maxClusterZoom = 15;
+
+		let popupNode = $("<div class='map-popup-container site-report-map-popup'></div>");
+		$("#site-report-map-container").append(popupNode);
+		let popupOverlay = new Overlay({
+			element: popupNode[0],
+			positioning: "bottom-center",
+			offset: [0, -17],
+			autoPan: {
+				margin: 50 //Clear of the base layer menu
+			}
+		});
+		map.addOverlay(popupOverlay);
+
+		let getFeatureAtPixel = (pixel, layer) => {
+			let hit = null;
+			map.forEachFeatureAtPixel(pixel, (feature) => {
+				hit = feature;
+				return true;
+			}, {
+				layerFilter: candidate => candidate === layer
+			});
+			return hit;
+		};
+
+		map.on("singleclick", (evt) => {
+			popupOverlay.setPosition(undefined);
+			popupNode.hide();
+
+			//Looking past this site, at any sites underneath it that share its coordinates
+			let cluster = getFeatureAtPixel(evt.pixel, otherSitesLayer);
+			if(!cluster) {
+				return;
+			}
+			let sites = cluster.get("features");
+			if(sites.length == 1) {
+				this.sqs.siteReportManager.renderSiteReport(sites[0].get("siteId"));
+				return;
+			}
+
+			let extent = boundingExtent(sites.map(site => site.getGeometry().getCoordinates()));
+			let view = map.getView();
+			let extentInPixelsAtMaxZoom = Math.max(getWidth(extent), getHeight(extent)) / view.getResolutionForZoom(maxClusterZoom);
+			if(extentInPixelsAtMaxZoom > otherSitesLayer.getSource().getDistance()) {
+				view.fit(extent, {
+					padding: [40, 40, 40, 40],
+					maxZoom: maxClusterZoom,
+					duration: 300
+				});
+				return;
+			}
+
+			popupNode.empty();
+			popupNode.append($("<div class='sqs-label'></div>").text(sites.length+" sites here"));
+			let listNode = $("<div class='site-report-map-popup-list'></div>");
+			sites.sort((a, b) => String(a.get("name")).localeCompare(String(b.get("name")))).forEach(site => {
+				let siteNode = $("<button type='button' class='site-report-map-popup-site'></button>").text(site.get("name"));
+				siteNode.on("click", () => {
+					this.sqs.siteReportManager.renderSiteReport(site.get("siteId"));
+				});
+				listNode.append(siteNode);
+			});
+			popupNode.append(listNode);
+			popupNode.show();
+			popupOverlay.setPosition(cluster.getGeometry().getCoordinates());
+		});
+
+		map.on("pointermove", (evt) => {
+			if(evt.dragging) {
+				return;
+			}
+			let viewport = map.getViewport();
+			let cluster = getFeatureAtPixel(evt.pixel, otherSitesLayer);
+			let titles = [];
+			if(getFeatureAtPixel(evt.pixel, siteLayer)) {
+				titles.push(siteData.site_name+" (this site)");
+			}
+			if(cluster) {
+				let sites = cluster.get("features");
+				titles.push(sites.length == 1 ? sites[0].get("name") : sites.length+" sites");
+			}
+			viewport.style.cursor = cluster ? "pointer" : "";
+			if(titles.length > 0) {
+				viewport.title = titles.join(" + ");
+			}
+			else {
+				viewport.removeAttribute("title");
+			}
+		});
 	}
 
 	getMapSampleGroupLocationPointsFromSiteData(olMap, siteData, sampleGroupIdFilter = null) {
