@@ -561,6 +561,7 @@ class DendrochronologyDataset extends DatasetModule {
 						{
 							"enabled": true,
 							"title": "Sort",
+							"placement": "header",
 							"type": "select",
 							"selected": 1,
 							//"options": ["Alphabetical", "Germination year", "Felling year", "Tree species"],

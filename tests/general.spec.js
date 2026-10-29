@@ -97,6 +97,41 @@ test('dendrochronology overview charts', async ({ page }) => {
   await expect(treeRings.locator('.mosaic-data-table tbody tr').first()).toBeVisible();
 });
 
+//a site report's dendrochronology graph has a row per dated sample, which shows its years on hover and opens the sample's dialog when clicked
+test('dendrochronology site report graph', async ({ page }) => {
+  await page.goto('/site/3827');
+  await expect(page.locator('#site-report-main-container')).toBeVisible({ timeout: 30000 });
+  await page.locator('.site-report-summary-analyses').click();
+  await page.locator('.site-report-method-nav-item[data-method-id="10"]').click();
+
+  const rows = page.locator('.dendro-timeline-row');
+  await expect(rows).toHaveCount(2, { timeout: 30000 });
+  await expect(page.locator('.dendro-chart-legend')).toContainText('Tall');
+
+  await rows.filter({ hasText: '12710' }).hover();
+  await expect(page.locator('.dendro-chart-tooltip')).toContainText('1670–1700');
+
+  await rows.filter({ hasText: '12710' }).click();
+  await expect(page.locator('.sample-dialog')).toContainText('Estimated felling year');
+  await expect(page.locator('#popover-dialog-frame > h1')).toHaveText('Sample 12710');
+});
+
+//the samples the dendrochronology graph can't draw, for lack of a dating, are a click away in the spreadsheet view
+test('dendrochronology graph links to its undated samples', async ({ page }) => {
+  await page.goto('/site/3973');
+  await expect(page.locator('#site-report-main-container')).toBeVisible({ timeout: 30000 });
+  await page.locator('.site-report-summary-analyses').click();
+  await page.locator('.site-report-method-nav-item[data-method-id="10"]').click();
+
+  const dataset = page.locator('.site-report-method-active .content-item-container').first();
+  await expect(dataset.locator('.dendro-chart-note')).toContainText("12 samples aren't shown", { timeout: 30000 });
+  await dataset.getByRole('button', { name: 'spreadsheet view' }).click();
+
+  await expect(dataset.locator('.site-report-table')).toBeVisible();
+  await expect(dataset.locator('.dendro-chart')).toHaveCount(0);
+  await expect(dataset.locator('.content-item-view-toggle button[aria-pressed="true"]')).toHaveText('Spreadsheet');
+});
+
 //clicking an eco code in the palaeoentomology overview filters by it, through the staged eco code filter
 test('eco code bar adds filter', async ({ page }) => {
   await page.goto('/palaeoentomology');

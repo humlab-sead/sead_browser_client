@@ -2,7 +2,6 @@ import { nanoid } from 'nanoid';
 import SiteReportTable from './RenderModules/SiteReportTable.class';
 import SiteReportChart from './RenderModules/SiteReportChart.class';
 import DendroChart from './RenderModules/DendroChart.class';
-import DendroPlotly from './RenderModules/DendroPlotly.class';
 
 class ContentItemRenderer {
 	    constructor(siteReport, section, contentItem) {
@@ -263,7 +262,6 @@ class ContentItemRenderer {
 						break;
 					case "dendrochart":
 						renderInstance = new DendroChart(this.siteReport, this.contentItem);
-						//renderInstance = new DendroPlotly(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);
 						this.addRenderInstance(this.contentItem.name, renderInstance);
 						break;

@@ -430,13 +430,17 @@ class SiteReport {
 	* Function: showSample
 	*
 	* Shows everything about one of the site's samples in a dialog, without leaving the page.
+	*
+	* Parameters:
+	* physicalSampleId - The sample
+	* options - As for Samples.renderSampleDialog, e.g. sections of its own to show first.
 	*/
-	showSample(physicalSampleId) {
+	showSample(physicalSampleId, options = {}) {
 		let samplesModule = this.getModuleByName("samples");
 		if(!samplesModule || !this.siteData) {
 			return false;
 		}
-		return samplesModule.module.renderSampleDialog(this.siteData, physicalSampleId);
+		return samplesModule.module.renderSampleDialog(this.siteData, physicalSampleId, options);
 	}
 
 	/*

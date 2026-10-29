@@ -1144,8 +1144,10 @@ class Samples {
 	* Parameters:
 	* siteData - The site's data
 	* physicalSampleId - The sample
+	* options - sections: [{ title, fields: [{ label, text or html, note, help }] }], shown first, e.g. what an
+	* analysis found about the sample when it is opened from that analysis.
 	*/
-	renderSampleDialog(siteData, physicalSampleId) {
+	renderSampleDialog(siteData, physicalSampleId, options = {}) {
 		let sample = null;
 		let sampleGroup = null;
 		siteData.sample_groups.forEach(sg => {
@@ -1164,7 +1166,8 @@ class Samples {
 
 		let dialogNode = $("<div class='sample-dialog'></div>");
 
-		//Each field is a label and either a plain text or an html value, those without a value are left out
+		//Each field is a label and either a plain text or an html value, those without a value are left out.
+		//A field's help explains what its label means, behind a symbol beside it.
 		let renderFields = (title, fields) => {
 			fields = fields.filter(field => (field.text != null && field.text !== "") || (field.html != null && field.html !== ""));
 			if(fields.length == 0) {
@@ -1173,7 +1176,13 @@ class Samples {
 			dialogNode.append($("<h4 class='sqs-label'></h4>").text(title));
 			let listNode = $("<dl class='sample-dialog-fields'></dl>");
 			fields.forEach(field => {
-				listNode.append($("<dt></dt>").text(field.label));
+				let termNode = $("<dt></dt>").text(field.label);
+				if(field.help) {
+					let termId = "sample-dialog-term-"+nanoid();
+					termNode.attr("id", termId);
+					this.sqs.tooltipManager.registerTooltip("#"+termId, field.help, { drawSymbol: true });
+				}
+				listNode.append(termNode);
 				let valueNode = $("<dd></dd>");
 				if(field.html != null) {
 					valueNode.html(field.html);
@@ -1188,6 +1197,10 @@ class Samples {
 			});
 			dialogNode.append(listNode);
 		};
+
+		(options.sections || []).forEach(section => {
+			renderFields(section.title, section.fields);
+		});
 
 		let sampleFields = [
 			{ label: "Sample type", text: sample.sample_type_name, note: sample.sample_type_description },
