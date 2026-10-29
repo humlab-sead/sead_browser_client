@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <title>Archaeobotany</title>
+  <path d="M12 21.5 V8.5"></path>
+  <path d="M8.36 7.14 L6.8 4.6 M15.64 9.14 L17.2 6.6 M8.36 11.14 L6.8 8.6 M15.64 13.14 L17.2 10.6" stroke-width="0.99"></path>
+  <ellipse cx="9.9" cy="9.6" rx="1.7" ry="2.9" transform="rotate(-32 9.9 9.6)" fill="currentColor" fill-opacity="0.16"></ellipse>
+  <ellipse cx="14.1" cy="11.6" rx="1.7" ry="2.9" transform="rotate(32 14.1 11.6)" fill="currentColor" fill-opacity="0.16"></ellipse>
+  <ellipse cx="9.9" cy="13.6" rx="1.7" ry="2.9" transform="rotate(-32 9.9 13.6)" fill="currentColor" fill-opacity="0.16"></ellipse>
+  <ellipse cx="14.1" cy="15.6" rx="1.7" ry="2.9" transform="rotate(32 14.1 15.6)" fill="currentColor" fill-opacity="0.16"></ellipse>
+  <ellipse cx="12" cy="5.4" rx="1.7" ry="2.9" fill="currentColor"></ellipse>
+</svg>

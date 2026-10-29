@@ -815,6 +815,24 @@ body.search-dropdown-resizing * {
   background: #333;
 }
 
+/* The domain icons are masks, so they are painted in the colour of the text around them - the domain's colour in the domain menu */
+.sead-domain-icon {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.25em;
+  background-color: currentColor;
+  -webkit-mask: center / contain no-repeat;
+  mask: center / contain no-repeat;
+}
+
+@each $domain in general, dendrochronology, palaeoentomology, archaeobotany, pollen, geoarchaeology, ceramic {
+  .sead-domain-icon-#{$domain} {
+    -webkit-mask-image: url('../assets/domain-icons/sead-#{$domain}.svg');
+    mask-image: url('../assets/domain-icons/sead-#{$domain}.svg');
+  }
+}
+
 #domain-text .selected-domain-text {
   font-weight: 600;
 }
