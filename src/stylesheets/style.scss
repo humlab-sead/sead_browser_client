@@ -7520,6 +7520,27 @@ button.mosaic-bar-row:focus-visible, a.mosaic-bar-row:focus-visible, .mosaic-bar
   white-space: nowrap;
 }
 
+/* a label which does something of its own, such as switching to its domain */
+button.mosaic-bar-label {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.mosaic-bar-label:hover .mosaic-bar-label-text {
+  text-decoration: underline;
+}
+
+button.mosaic-bar-label:focus-visible {
+  outline: 2px solid colors.$base-color;
+  outline-offset: 1px;
+}
+
 .mosaic-bar-row-other .mosaic-bar-label-text {
   color: colors.$text-muted-color;
 }

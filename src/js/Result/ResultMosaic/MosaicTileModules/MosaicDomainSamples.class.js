@@ -6,7 +6,7 @@ class MosaicDomainSamples extends MosaicTileModule {
         super();
         this.sqs = sqs;
         this.title = "Samples per domain";
-        this.description = "How many of the samples at the sites in the result have been analysed in each domain, split by analysis method. Click a method to add it as a filter.";
+        this.description = "How many of the samples at the sites in the result have been analysed in each domain, split by analysis method. Click a method to add it as a filter, or a domain to switch to it.";
         this.name = "mosaic-domain-samples";
         this.domains = ["general", "palaeo", "archaeobotany", "isotopes"];
         this.requestId = 0;
@@ -70,6 +70,19 @@ class MosaicDomainSamples extends MosaicTileModule {
     }
 
     /*
+    * Function: getSwitchableDomain
+    * The domain of the client which a domain in the summary can be switched to, or null if there is none - such as
+    * one not enabled, or the one already active.
+    */
+    getSwitchableDomain(facetCode) {
+        let domain = this.sqs.domainManager.getDomain(facetCode);
+        if(!domain || domain.enabled === false || domain.name == this.sqs.domainManager.getActiveDomain().name) {
+            return null;
+        }
+        return domain;
+    }
+
+    /*
     * Function: getDomainRows
     * A row per domain which has samples in the result, with a segment per analysis method with samples in it,
     * the segments in the usual order of the methods.
@@ -86,6 +99,7 @@ class MosaicDomainSamples extends MosaicTileModule {
             let fallbackColors = this.sqs.color.getColorScheme(methodCounts.length);
             rows.push({
                 label: domain.display_title || domain.facet_code,
+                domain: this.getSwitchableDomain(domain.facet_code),
                 color: this.getDomainColor(domain.facet_code),
                 total: total,
                 segments: methodCounts.map((methodCount, index) => ({
@@ -104,9 +118,8 @@ class MosaicDomainSamples extends MosaicTileModule {
     renderView() {
         let chartNode = this.getChartNode();
         let rows = this.getDomainRows();
-        let mix = this.view == "mix";
 
-        this.setMosaicTileSubtitle(mix ? "Which methods make up each domain · each bar is 100 %" : "Samples analysed per domain, split by method");
+        this.setMosaicTileSubtitle("Samples analysed per domain, split by method");
 
         let emptyDomains = this.data.domains.filter(domain => !rows.find(row => row.label == (domain.display_title || domain.facet_code)));
         let emptyNote = emptyDomains.length > 0 ? "No samples in this result: "+emptyDomains.map(domain => domain.display_title || domain.facet_code).join(", ")+"." : "";
@@ -135,7 +148,7 @@ class MosaicDomainSamples extends MosaicTileModule {
 
         let listNode = $("<div class='mosaic-bars mosaic-bars-stacked'></div>");
         let readoutNode = $("<div class='mosaic-chart-readout' aria-live='polite'><span class='sqs-dot'></span><span class='mosaic-chart-readout-text'></span></div>");
-        let defaultReadout = "Hover or focus a segment to see its method. Click it to add the method as a filter.";
+        let defaultReadout = "Hover or focus a segment to see its method. Click it to add the method as a filter, or click a domain to switch to it.";
         let setReadout = (segment = null, row = null) => {
             readoutNode.find(".sqs-dot").css("background-color", segment ? segment.color : "transparent");
             readoutNode.find(".mosaic-chart-readout-text").text(segment ? row.label+" · "+segment.methodName+" · "+this.formatCount(segment.count)+(segment.count == 1 ? " sample" : " samples")+" · "+this.formatShare(segment.share)+" of the domain" : defaultReadout);
@@ -144,13 +157,21 @@ class MosaicDomainSamples extends MosaicTileModule {
         rows.forEach(row => {
             let rowNode = $("<div class='mosaic-bar-row'></div>");
             let labelNode = $("<span class='mosaic-bar-label'></span>");
+            if(row.domain) {
+                labelNode = $("<button type='button' class='mosaic-bar-label'></button>");
+                labelNode.attr("title", "Switch to the "+row.domain.title+" domain");
+                labelNode.attr("aria-label", row.label+", switch to the "+row.domain.title+" domain");
+                labelNode.on("click", () => {
+                    this.sqs.domainManager.switchDomain(row.domain.name);
+                });
+            }
             labelNode.append($("<span class='sqs-dot'></span>").css("background-color", row.color));
             labelNode.append($("<span class='mosaic-bar-label-text'></span>").text(row.label));
             rowNode.append(labelNode);
 
             let trackNode = $("<span class='mosaic-bar-track'></span>");
             let barNode = $("<span class='mosaic-bar mosaic-bar-segmented'></span>");
-            barNode.css("width", mix ? "100%" : Math.max(0.6, row.total / axisMax * 100)+"%");
+            barNode.css("width", Math.max(0.6, row.total / axisMax * 100)+"%");
             row.segments.forEach(segment => {
                 let onClick = this.getFilterToggleCallback("dataset_methods", segment.methodId);
                 let segmentNode = $(onClick ? "<button type='button'></button>" : "<span></span>").addClass("mosaic-bar-segment");
@@ -172,8 +193,7 @@ class MosaicDomainSamples extends MosaicTileModule {
             trackNode.append(barNode);
             rowNode.append(trackNode);
 
-            let valueText = mix ? row.segments.length+(row.segments.length == 1 ? " method" : " methods") : this.formatCount(row.total);
-            rowNode.append($("<span class='mosaic-bar-value'></span>").text(valueText));
+            rowNode.append($("<span class='mosaic-bar-value'></span>").text(this.formatCount(row.total)));
             listNode.append(rowNode);
         });
 
@@ -183,13 +203,11 @@ class MosaicDomainSamples extends MosaicTileModule {
             setReadout();
         });
 
-        if(!mix) {
-            let axisNode = $("<div class='mosaic-bar-axis' aria-hidden='true'><span></span><span class='mosaic-bar-ticks'></span><span></span></div>");
-            ticks.forEach(tick => {
-                axisNode.find(".mosaic-bar-ticks").append($("<span class='mosaic-bar-tick'></span>").text(this.formatAxisCount(tick)).css("left", (tick / axisMax * 100)+"%"));
-            });
-            listNode.append(axisNode);
-        }
+        let axisNode = $("<div class='mosaic-bar-axis' aria-hidden='true'><span></span><span class='mosaic-bar-ticks'></span><span></span></div>");
+        ticks.forEach(tick => {
+            axisNode.find(".mosaic-bar-ticks").append($("<span class='mosaic-bar-tick'></span>").text(this.formatAxisCount(tick)).css("left", (tick / axisMax * 100)+"%"));
+        });
+        listNode.append(axisNode);
 
         chartNode.append(listNode);
         setReadout();
@@ -200,9 +218,9 @@ class MosaicDomainSamples extends MosaicTileModule {
 
         this.exportImageRows = rows.map(row => ({
             label: row.label,
-            valueText: mix ? row.segments.length+(row.segments.length == 1 ? " method" : " methods") : this.formatCount(row.total),
+            valueText: this.formatCount(row.total),
             segments: row.segments.map(segment => ({
-                fraction: mix ? segment.share : segment.count / axisMax,
+                fraction: segment.count / axisMax,
                 color: segment.color
             }))
         }));
@@ -248,7 +266,7 @@ class MosaicDomainSamples extends MosaicTileModule {
             return;
         }
 
-        this.renderViewToggle([{ id: "count", label: "Count" }, { id: "mix", label: "Method mix" }, { id: "table", label: "Table" }], () => {
+        this.renderViewToggle([{ id: "count", label: "Count" }, { id: "table", label: "Table" }], () => {
             this.renderView();
         });
         this.renderView();

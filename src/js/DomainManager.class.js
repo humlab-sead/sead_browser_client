@@ -97,6 +97,40 @@ class DomainManager {
 
     }
     
+    /*
+    * Function: confirmDomainSwitch
+    * Switching domain removes all the filters, so the user is asked first if there are any.
+    * Only for when the user picks a domain - a viewstate or the URL setting one doesn't ask.
+    */
+    confirmDomainSwitch(domain) {
+        if(domain.name == this.activeDomain.name) {
+            return true;
+        }
+        let filterCount = this.sqs.facetManager.facets.filter(facet => !facet.virtual && !facet.deleted).length;
+        if(filterCount == 0) {
+            return true;
+        }
+        let filtersText = filterCount == 1 ? "the filter" : "all "+filterCount+" filters";
+        return window.confirm("Switching to the "+domain.title+" domain will remove "+filtersText+" you have added. Do you still wish to do this?");
+    }
+
+    /*
+    * Function: switchDomain
+    * Switches to the domain as when the user picks it in the domain menu, asking first if there are filters to lose.
+    *
+    * Returns:
+    * false if the domain doesn't exist or the user chose not to switch, otherwise true.
+    */
+    switchDomain(domainName) {
+        let domain = this.getDomain(domainName);
+        if(!domain || domain.enabled === false || !this.confirmDomainSwitch(domain)) {
+            return false;
+        }
+        this.setActiveDomain(domain.name);
+        this.renderDomainButton();
+        return true;
+    }
+
     updateMenu() {
         this.sqs.menuManager.createMenu(this.sqsMenu());
         this.renderDomainButton();
@@ -150,8 +184,13 @@ class DomainManager {
                     title: "<span style='color:"+domain.color+";'>"+domain.icon+"</span> "+domain.title,
                     staticSelection: domain.name == selectedDomain.name,
                     callback: () => {
-                        this.setActiveDomain(domain.name);
-                        this.renderDomainButton();
+                        if(!this.switchDomain(domain.name)) {
+                            //The menu has already marked the new domain as selected
+                            let menu = this.sqs.menuManager.getMenuByAnchor("#domains-menu-anchor-point");
+                            if(menu !== false) {
+                                menu.setSelected(this.activeDomain.name);
+                            }
+                        }
                     }
                 });
             }
