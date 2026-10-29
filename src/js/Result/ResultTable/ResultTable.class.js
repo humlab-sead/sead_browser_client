@@ -47,6 +47,11 @@ class ResultTable extends ResultModule {
 				this.updateMobileColumnVisibility();
 			}, 0);
 		});
+
+		//Tabulator's own autoResize is off, since it redraws the table on every frame while the sections are being dragged - this event comes once the resize is done
+		this.resultManager.sqs.sqsEventListen("layoutResize", () => {
+			this.redrawTable();
+		});
 	}
 
 	setActive(active) {
@@ -56,6 +61,14 @@ class ResultTable extends ResultModule {
 		}
 		else {
 			$("#result-table-container").css("display", "grid");
+			//The sections may have been resized while the table was hidden
+			this.redrawTable();
+		}
+	}
+
+	redrawTable() {
+		if(this.active && this.tabulatorTable && this.tabulatorTable.initialized) {
+			this.tabulatorTable.redraw();
 		}
 	}
 	
@@ -557,6 +570,7 @@ class ResultTable extends ResultModule {
 			data: this.data.rows,
 			placeholder:"No data",
 			layout: "fitColumns",
+			autoResize: false,
 			initialSort: this.sort,
 			selectable: true,
 			columns: tableColumns,

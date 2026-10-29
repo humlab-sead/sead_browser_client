@@ -214,18 +214,7 @@ class SqsView {
 		this.leftLastSize = leftSize;
 		this.rightLastSize = rightSize;
 
-		const leftSection = $(this.anchor + " > .section-left");
-		const rightSection = $(this.anchor + " > .section-right");
-		const dragHandle = leftSection.find(".custom-resize-handle");
-
-		if(animate) {
-			leftSection.css('transition', 'width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease');
-			rightSection.css('transition', 'width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease');
-		}
-		else {
-			leftSection.css('transition', 'none');
-			rightSection.css('transition', 'none');
-		}
+		const container = $(this.anchor);
 
 		if(leftSize < this.minSectionWidth) {
 			leftSize = 0;
@@ -241,33 +230,34 @@ class SqsView {
 			this.visibleSection = "both";
 		}
 
-		leftSection.css("width", leftSize + "vw");
-		rightSection.css("width", rightSize + "vw");
-		
-		// Update handle position and appearance based on left section size
-		if(leftSize === 0) {
-			// Section is collapsed - position handle at the left edge
-			dragHandle.addClass('handle-collapsed');
-		} else {
-			dragHandle.removeClass('handle-collapsed');
-		}
+		//The width transition is only switched on for these programmatic changes, so that dragging and window resizing are not animated
+		clearTimeout(this.sectionAnimationTimeout);
+		container.toggleClass("sections-animating", animate);
 
-		if(rightSize == 0) {
-			rightSection.css("display", "none");
-		}
-		else {
-			rightSection.css("display", "block");
-		}
+		this.applySectionWidths(leftSize, rightSize);
 
 		//send event - but wait for css animation to complete
 		if(animate) {
-			setTimeout(() => {
+			this.sectionAnimationTimeout = setTimeout(() => {
+				container.removeClass("sections-animating");
 				this.sqs.sqsEventDispatch("layoutResize");
 			}, 300);
 		}
 		else {
 			this.sqs.sqsEventDispatch("layoutResize");
 		}
+	}
+
+	/*
+	* Function: applySectionWidths
+	* The section widths are derived in CSS from a single custom property on the container, so this is all that needs doing while dragging
+	*/
+	applySectionWidths(leftSize, rightSize) {
+		const container = document.querySelector(this.anchor);
+		if(container) {
+			container.style.setProperty("--section-left-width", leftSize + "vw");
+		}
+		this.updateDividerState(leftSize, rightSize);
 	}
 
     /*
@@ -301,21 +291,23 @@ class SqsView {
 	}
 
 	toggleSectionCollapseButtons(show) {
-		const leftToggleBtn = $("#filter-section-toggle-button-left", this.anchor);
-		const rightToggleBtn = $("#filter-section-toggle-button-right", this.anchor);
-		if(leftToggleBtn.length == 0 && rightToggleBtn.length == 0) {
-			return;
-		}
-
+		$(this.anchor + " > .section-divider").toggleClass("section-divider-active", show);
 		if(show) {
-			leftToggleBtn.show();
-			rightToggleBtn.show();
 			this.updateSectionCollapseButtons();
 		}
-		else {
-			leftToggleBtn.hide();
-			rightToggleBtn.hide();
+	}
+
+	/**
+	* Function: updateDividerState
+	* Marks on the divider which section, if any, is collapsed, so that the drag handle and the collapse buttons can stay on screen
+	**/
+	updateDividerState(leftSize, rightSize) {
+		const divider = document.querySelector(this.anchor + " > .section-divider");
+		if(!divider) {
+			return;
 		}
+		divider.classList.toggle("left-section-collapsed", leftSize === 0);
+		divider.classList.toggle("right-section-collapsed", rightSize === 0);
 	}
 
 	updateSectionCollapseButtons() {
@@ -325,54 +317,24 @@ class SqsView {
 			return;
 		}
 
-		if(this.layoutManager.getMode() != "desktopMode") {
-			leftToggleBtn.hide();
-			rightToggleBtn.hide();
+		const desktopMode = this.layoutManager.getMode() == "desktopMode";
+		$(this.anchor + " > .section-divider").toggleClass("section-divider-active", desktopMode);
+		if(!desktopMode) {
 			return;
 		}
 
-		if(this.visibleSection === "left") {
-			rightToggleBtn.addClass('only-left-section-active');
-			leftToggleBtn.removeClass('flipped');
-			leftToggleBtn.removeClass('only-right-section-active');
-			rightToggleBtn.css('left', '-1.0em');
-			leftToggleBtn.css('visibility', 'hidden');
+		this.updateDividerState(this.visibleSection === "right" ? 0 : null, this.visibleSection === "left" ? 0 : null);
 
-			const filterIconContainer = rightToggleBtn.find('.filter-toggle-icon-container');
-			filterIconContainer.attr('title', 'Show both sections');
-			rightToggleBtn.attr('title', 'Show both sections');
-			rightToggleBtn.attr('aria-label', 'Show both sections');
-		}
-		else if(this.visibleSection === "right") {
-			leftToggleBtn.addClass('flipped');
-			leftToggleBtn.addClass('only-right-section-active');
-			rightToggleBtn.removeClass('only-left-section-active');
-			rightToggleBtn.css('left', '.3em');
-			rightToggleBtn.css('visibility', 'hidden');
+		//When a section is collapsed, only the button which brings it back is shown
+		leftToggleBtn.toggle(this.visibleSection !== "left");
+		rightToggleBtn.toggle(this.visibleSection !== "right");
 
-			const filterIconContainer = leftToggleBtn.find('.filter-toggle-icon-container');
-			filterIconContainer.attr('title', 'Show both sections');
-			leftToggleBtn.attr('title', 'Show both sections');
-			leftToggleBtn.attr('aria-label', 'Show both sections');
-		}
-		else {
-			leftToggleBtn.removeClass('flipped');
-			leftToggleBtn.css('visibility', 'visible');
-			rightToggleBtn.css('left', '.3em');
-			rightToggleBtn.css('visibility', 'visible');
-			leftToggleBtn.removeClass('only-right-section-active');
-			rightToggleBtn.removeClass('only-left-section-active');
-
-			const leftFilterIconContainer = leftToggleBtn.find('.filter-toggle-icon-container');
-			leftFilterIconContainer.attr('title', 'Show only result section');
-			leftToggleBtn.attr('title', 'Show only result section');
-			leftToggleBtn.attr('aria-label', 'Show only result section');
-
-			const rightFilterIconContainer = rightToggleBtn.find('.filter-toggle-icon-container');
-			rightFilterIconContainer.attr('title', 'Show only filter section');
-			rightToggleBtn.attr('title', 'Show only filter section');
-			rightToggleBtn.attr('aria-label', 'Show only filter section');
-		}
+		const leftTitle = this.visibleSection === "right" ? "Show both sections" : "Show only result section";
+		const rightTitle = this.visibleSection === "left" ? "Show both sections" : "Show only filter section";
+		leftToggleBtn.attr('title', leftTitle);
+		leftToggleBtn.attr('aria-label', leftTitle);
+		rightToggleBtn.attr('title', rightTitle);
+		rightToggleBtn.attr('aria-label', rightTitle);
 	}
 
 	initShowOnlyLeftSectionToggle() {
@@ -441,110 +403,88 @@ class SqsView {
 	* Does what it says on the tin.
 	**/
 	setupResizableSections() {
-		// Create a custom drag handle
+		// Create a custom drag handle - it lives in the divider, which sits on the boundary between the sections and does not scroll with them
 		const dragHandle = $('<div class="custom-resize-handle"></div>');
-		$(this.anchor + " > .section-left").append(dragHandle);
-
-		// Check if the left section is already collapsed and position the handle accordingly
-		if (this.leftLastSize === 0) {
-			dragHandle.addClass('handle-collapsed');
+		const divider = $(this.anchor + " > .section-divider");
+		if(divider.length > 0) {
+			divider.prepend(dragHandle);
+		}
+		else {
+			$(this.anchor + " > .section-left").append(dragHandle);
 		}
 
 		let isDragging = false;
-		let initialX, initialLeftWidth;
+		let initialX, initialLeftWidth, totalWidth, isExpandingFromCollapsed;
+		let pendingClientX = null;
+		let frameRequest = null;
 		const container = $(this.anchor);
-		const leftSection = $(this.anchor + " > .section-left");
-		const rightSection = $(this.anchor + " > .section-right");
-		
-		// Function to disable transitions during drag
-		const setTransitionsEnabled = (enabled) => {
-			if (enabled) {
-				leftSection.css('transition', 'min-width 0.3s ease, max-width 0.3s ease');
-				rightSection.css('transition', 'min-width 0.3s ease, max-width 0.3s ease');
+
+		// Applies the latest mouse position - at most once per frame, and without reading any layout, which would force the browser to lay out the result section synchronously
+		const applyDrag = () => {
+			frameRequest = null;
+			const deltaX = pendingClientX - initialX;
+
+			let leftWidthPercent;
+			if (isExpandingFromCollapsed) {
+				// When expanding from collapsed, we want positive movement to expand
+				leftWidthPercent = (Math.max(0, deltaX) / totalWidth) * 100;
 			} else {
-				leftSection.css('transition', 'none');
-				rightSection.css('transition', 'none');
+				leftWidthPercent = ((initialLeftWidth + deltaX) / totalWidth) * 100;
 			}
+			let rightWidthPercent = 100 - leftWidthPercent;
+
+			// Handle minimum threshold for collapsing
+			if(leftWidthPercent < this.minSectionWidth && !isExpandingFromCollapsed) {
+				leftWidthPercent = 0;
+				rightWidthPercent = 100;
+			}
+			else if(rightWidthPercent < this.minSectionWidth) {
+				leftWidthPercent = 100;
+				rightWidthPercent = 0;
+			}
+
+			this.applySectionWidths(leftWidthPercent, rightWidthPercent);
+
+			// Store the new values
+			this.leftLastSize = leftWidthPercent;
+			this.rightLastSize = rightWidthPercent;
 		};
-		
+
 		// Mouse down event - start dragging
 		dragHandle.on('mousedown', (e) => {
 			isDragging = true;
 			initialX = e.clientX;
-			initialLeftWidth = leftSection.outerWidth();
+			// Layout is only read here, once, rather than on every move
+			totalWidth = container.width();
+			initialLeftWidth = $(this.anchor + " > .section-left").outerWidth();
+			isExpandingFromCollapsed = this.leftLastSize === 0;
 			
-			// Disable transitions during drag
-			setTransitionsEnabled(false);
-			
-			// Add dragging class to body for cursor styling
+			// Add dragging class to body for cursor styling - this also switches off the section transitions
+			container.removeClass("sections-animating");
 			$('body').addClass('resizing');
 			
 			e.preventDefault();
 		});
 		
-		// Mouse move event - update section widths during drag
+		// Mouse move event - just note the position, the widths are updated on the next frame
 		$(document).on('mousemove', (e) => {
 			if (!isDragging) return;
-			
-			const deltaX = e.clientX - initialX;
-			const totalWidth = container.width();
-			
-			// Check if we're starting from a collapsed state
-			const isExpandingFromCollapsed = this.leftLastSize === 0;
-			
-			// Calculate new widths
-			let newLeftWidth, leftWidthPercent, rightWidthPercent;
-			
-			if (isExpandingFromCollapsed) {
-				// When expanding from collapsed, we want positive movement to expand
-				newLeftWidth = Math.max(0, deltaX);
-				leftWidthPercent = (newLeftWidth / totalWidth) * 100;
-			} else {
-				newLeftWidth = initialLeftWidth + deltaX;
-				leftWidthPercent = (newLeftWidth / totalWidth) * 100;
+			pendingClientX = e.clientX;
+			if(frameRequest === null) {
+				frameRequest = requestAnimationFrame(applyDrag);
 			}
-			
-			rightWidthPercent = 100 - leftWidthPercent;
-			
-			// Handle minimum threshold for collapsing
-			if(leftWidthPercent < this.minSectionWidth && !isExpandingFromCollapsed) {
-				leftSection.css('width', '0vw');
-				rightSection.css('width', '100vw');
-				this.leftLastSize = 0;
-				this.rightLastSize = 100;
-				// Make sure the handle stays visible
-				dragHandle.addClass('handle-collapsed');
-				return;
-			}
-			if(rightWidthPercent < this.minSectionWidth) {
-				rightSection.css('width', '0vw');
-				leftSection.css('width', '100vw');
-				this.leftLastSize = 100;
-				this.rightLastSize = 0;
-				return;
-			}
-			
-			// Update widths
-			leftSection.css('width', leftWidthPercent + 'vw');
-			rightSection.css('width', rightWidthPercent + 'vw');
-			
-			// If we're expanding from collapsed, update handle position
-			if (isExpandingFromCollapsed && leftWidthPercent > 0) {
-				dragHandle.removeClass('handle-collapsed');
-			}
-			
-			// Store the new values
-			this.leftLastSize = leftWidthPercent;
-			this.rightLastSize = rightWidthPercent;
 		});
 		
 		// Mouse up event - stop dragging
 		$(document).on('mouseup', (e) => {
 			if (isDragging) {
 				isDragging = false;
-				
-				// Re-enable transitions after drag
-				setTransitionsEnabled(true);
+
+				// Make sure the final position is applied
+				if(frameRequest !== null) {
+					cancelAnimationFrame(frameRequest);
+					applyDrag();
+				}
 				
 				// Remove dragging class
 				$('body').removeClass('resizing');
