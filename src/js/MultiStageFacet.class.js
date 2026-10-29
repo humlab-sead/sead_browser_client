@@ -207,23 +207,9 @@ class MultiStageFacet extends Facet {
 	 * Function: registerTextSearchEvents
 	 */
 	registerTextSearchEvents() {
-		let filter = this.getCurrentFilter();
-		$(this.getDomRef()).find(".facet-text-search-btn").on("click", () => {
-			if($(this.getDomRef()).find(".facet-text-search-input").css("display") == "none") {
-				$(this.getDomRef()).find(".facet-text-search-input").fadeIn(100).focus();
-			}
-			else {
-				if($(this.getDomRef()).find(".facet-text-search-input").val().length > 0) {
-					$(this.getDomRef()).find(".facet-text-search-input").val("");
-					$(this.getDomRef()).find(".facet-text-search-btn").removeClass("facet-control-active");
-					this.renderData(filter.data);
-				}
-				$(this.getDomRef()).find(".facet-text-search-input").fadeOut(100);
-			}
-		});
-		
-		$(this.getDomRef()).find(".facet-text-search-btn").show();
-		$(this.getDomRef()).find(".facet-text-search-input").on("keyup", (evt) =>  {
+		$(this.getDomRef()).addClass("facet-searchable");
+		//"input" rather than "keyup", so clearing the field with its own clear button also counts
+		$(this.getDomRef()).find(".facet-text-search-input").on("input", (evt) =>  {
 			this.textSearch(evt);
 		});
 	}
@@ -338,6 +324,25 @@ class MultiStageFacet extends Facet {
 		else {
 			$(".facet-title", this.domObj).text(this.title);
 		}
+	}
+
+	/*
+	* Function: getSelectionSummary
+	* What is selected in each stage, by name, the first stage first: "Bugs EcoCodes / Aquatics, Dung +2".
+	*/
+	getSelectionSummary(maxTitles = 2) {
+		let stageSummaries = [];
+		for(let stage of this.filters) {
+			if(stage.selections.length == 0) {
+				continue;
+			}
+			let selectedItems = stage.selections.map(selection => stage.data.find(dataItem => dataItem.id == selection));
+			if(!selectedItems.every(selectedItem => selectedItem)) {
+				return super.getSelectionSummary(maxTitles);
+			}
+			stageSummaries.push(this.summariseTitles(selectedItems.map(selectedItem => selectedItem.title), maxTitles));
+		}
+		return stageSummaries.join(" / ");
 	}
 
 	/*

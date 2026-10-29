@@ -605,27 +605,7 @@ class Samples {
 			evt.preventDefault();
 			evt.stopPropagation();
 
-			console.log("Clicked on analysis tag: ", method);
-			let siteReport = this.sqs.siteReportManager.siteReport;
-			for(let key in siteReport.data.sections) {
-				let section = siteReport.data.sections[key];
-				if(section.name == "analyses") {
-					section.sections.forEach(l2Section => {
-						if(method.method_id == l2Section.name) {
-							//console.log("Selected section: ", l2Section);
-							l2Section.collapsed = false;
-							this.sqs.siteReportManager.siteReport.setSectionCollapsedState($("#site-report-section-"+l2Section.name)[0], l2Section);
-
-							setTimeout(() => {
-								$("#site-report-section-"+l2Section.name)[0].scrollIntoView({
-									behavior: "smooth",
-								});
-							}, 1000);
-							
-						}
-					});
-				}
-			}
+			this.sqs.siteReportManager.siteReport.showAnalysisMethod(method.method_id);
 		}, {
 			eventType: "click"
 		});

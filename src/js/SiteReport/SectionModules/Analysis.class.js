@@ -137,7 +137,9 @@ class Analysis {
 	async render(siteData) {
 		//analysis.fetch()->delegateAnalyses()->dendro-fetch - need to replace this
 		await this.delegateBuildSection(siteData, this.section);
-		this.sqs.siteReportManager.siteReport.renderSection(this.section);
+		let siteReport = this.sqs.siteReportManager.siteReport;
+		await siteReport.renderSection(this.section);
+		siteReport.renderAnalysisMethodNav(this.section);
 		this.destroyAllDatasetModules();
 	}
 	

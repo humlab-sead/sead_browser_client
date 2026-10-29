@@ -50,6 +50,7 @@ class ResultMosaic extends ResultModule {
 		this.responsiveLayoutEventOwner = {};
 		this.responsiveLayoutResizeTimeout = null;
 		this.renderedDomainName = null; //The domain whose tiles are in the container, if any
+		this.summaryRequestId = 0;
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			this.setActive(data.selection == this.name);
@@ -450,6 +451,10 @@ class ResultMosaic extends ResultModule {
 	getSiteCount() {
 		return Array.isArray(this.sites) ? this.sites.length : null;
 	}
+
+	getResultSiteIds() {
+		return Array.isArray(this.sites) ? this.sites : [];
+	}
 	
 	/**
 	 * Function: render
@@ -485,10 +490,9 @@ class ResultMosaic extends ResultModule {
 					this.renderData();
 					return;
 				}
+				this.renderSummary();
 				this.updateGridModules();
-				if(this.sqs.config.showResultExportButton) {
-					$("#mosaic-site-count").text(`${this.sites.length} sites`);
-				}
+				this.resultManager.updateResultSummary();
 			}
 			else {
 				console.log("WARN: ResultMosaic discarding old result package data ("+respData.RequestId+"/"+this.requestId+").");
@@ -503,26 +507,92 @@ class ResultMosaic extends ResultModule {
 		return this.sites ? this.sites : [];
 	}
 
-	renderExportButton() {
-		if($("#result-mosaic-container .result-export-button").length > 0) {
+	/*
+	* Function: renderSummary
+	*
+	* The row of figures over the tiles: how many sites are in the result, and the countries, sample groups,
+	* samples and datasets they hold. The site count is known at once, the rest is fetched.
+	*/
+	renderSummary() {
+		let summaryNode = $("#result-mosaic-summary");
+		let sites = this.getSelectedSites();
+		let summaryRequestId = ++this.summaryRequestId;
+
+		let cells = [
+			{ key: "sites", label: "Sites" },
+			{ key: "countries", label: "Countries" },
+			{ key: "sampleGroups", label: "Sample groups" },
+			{ key: "samples", label: "Samples" },
+			{ key: "datasets", label: "Datasets" }
+		];
+		if(summaryNode.children().length != cells.length) {
+			summaryNode.empty();
+			cells.forEach(cell => {
+				let cellNode = $("<div class='mosaic-summary-cell'></div>").attr("data-summary", cell.key);
+				cellNode.append($("<div class='sqs-label'></div>").text(cell.label));
+				cellNode.append("<div class='mosaic-summary-value'></div>");
+				summaryNode.append(cellNode);
+			});
+		}
+
+		let setValue = (key, value) => {
+			let valueNode = summaryNode.find("[data-summary='"+key+"'] .mosaic-summary-value");
+			valueNode.text(value == null ? "–" : Number(value).toLocaleString("en-GB"));
+			valueNode.toggleClass("mosaic-summary-value-loading", value === undefined);
+		};
+
+		setValue("sites", sites.length);
+		if(sites.length == 0) {
+			//The endpoints read no sites as all of them
+			["countries", "sampleGroups", "samples", "datasets"].forEach(key => setValue(key, 0));
 			return;
 		}
-		let siteCount = this.sites ? this.sites.length : 0;
-		let exportButton = $(`<div class="result-export-button">
-			<span id="mosaic-site-count">${siteCount} sites</span>
-			<span class="result-export-button-divider"></span>
-			<span class="result-export-button-action"><i class='fa fa-download' aria-hidden='true'></i> Export</span>
-		</div>`);
-		let exportPanel = $("<div></div>").attr("id", "result-mosaic-export-panel");
-		exportPanel.append(exportButton);
-		$("#result-mosaic-container").append(exportPanel);
-		this.bindExportModuleDataToButton(exportButton, this);
+		["countries", "sampleGroups", "samples", "datasets"].forEach(key => setValue(key, undefined));
+
+		let post = (path, body) => {
+			return fetch(this.sqs.config.dataServerAddress+path, {
+				method: "POST",
+				mode: "cors",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body)
+			}).then(response => {
+				if(!response.ok) {
+					throw new Error(response.status+" "+response.statusText);
+				}
+				return response.json();
+			});
+		};
+		let show = (key, promise, read) => {
+			promise.then(data => {
+				if(summaryRequestId == this.summaryRequestId) {
+					setValue(key, read(data));
+				}
+			}).catch(error => {
+				console.warn("Could not fetch the "+key+" count for the result summary", error);
+				if(summaryRequestId == this.summaryRequestId) {
+					setValue(key, null);
+				}
+			});
+		};
+
+		show("countries", post("/graphs/countries", sites), data => data.countries.length);
+		show("sampleGroups", post("/graphs/data_count", { siteIds: sites, path: "sample_groups" }), data => data.item_count);
+		show("samples", post("/graphs/data_count", { siteIds: sites, path: "sample_groups.physical_samples" }), data => data.item_count);
+		show("datasets", post("/graphs/data_count", { siteIds: sites, path: "datasets" }), data => data.item_count);
+	}
+
+	/*
+	* Function: renderExportButton
+	* The export button is in the bar under the result, shared by all the result views.
+	*/
+	renderExportButton() {
+		this.resultManager.updateResultSummary();
 	}
 	
 	applyDomainGridLayout(domain) {
 		// Switch from CSS grid to absolute-positioning tile window manager.
 		// The container height is maintained dynamically by updateContainerHeight().
-		let container = $("#result-mosaic-container");
+		let container = $("#result-mosaic-tiles");
 		container.css({
 			"display": "block",
 			"position": "relative",
@@ -544,49 +614,6 @@ class ResultMosaic extends ResultModule {
 		let gridRow = moduleConf.grid_row.replace(/\s+/g, '');
 		let gridCol = moduleConf.grid_column.replace(/\s+/g, '');
 		return "mosaic-grid-box-" + gridRow + "-" + gridCol;
-	}
-
-	resolveTooltipAnchorNode(anchor) {
-		if(!anchor) {
-			return null;
-		}
-
-		if(typeof anchor == "string") {
-			let anchorNode = $(anchor);
-			if(anchorNode.length > 0) {
-				return anchorNode[0];
-			}
-			return null;
-		}
-
-		if(anchor.jquery) {
-			if(anchor.length > 0) {
-				return anchor[0];
-			}
-			return null;
-		}
-
-		if(anchor.nodeType === 1) {
-			return anchor;
-		}
-
-		return null;
-	}
-
-	getRegisteredTooltipsForNode(node) {
-		let matchingTooltips = [];
-		if(!node || !this.sqs || !this.sqs.tooltipManager || !Array.isArray(this.sqs.tooltipManager.tooltips)) {
-			return matchingTooltips;
-		}
-
-		this.sqs.tooltipManager.tooltips.forEach((tooltip) => {
-			let anchorNode = this.resolveTooltipAnchorNode(tooltip.anchor);
-			if(anchorNode === node) {
-				matchingTooltips.push(tooltip);
-			}
-		});
-
-		return matchingTooltips;
 	}
 
 	getDefaultMosaicTitleTooltip(moduleConf, titleText) {
@@ -615,36 +642,24 @@ class ResultMosaic extends ResultModule {
 		return "Shows " + title + " for the currently selected sites.";
 	}
 
-	ensureMosaicTileTitleTooltip(mosaicTileId, moduleConf) {
-		let titleNode = $("#"+mosaicTileId+" .mosaic-tile-title").first();
-		if(titleNode.length == 0) {
+	/*
+	* Function: ensureMosaicTileInfoButton
+	* The (i) button in the tile header, which says what the chart shows.
+	*/
+	ensureMosaicTileInfoButton(mosaicTileId, moduleConf) {
+		let actionsNode = $("#"+mosaicTileId+" .mosaic-tile-actions").first();
+		if(actionsNode.length == 0) {
 			return;
 		}
-
-		let titleAnchor = "#"+mosaicTileId+" .mosaic-tile-title";
-		let titleText = titleNode.text().trim();
-		let existingTooltips = this.getRegisteredTooltipsForNode(titleNode[0]);
-		let hasCustomTooltip = false;
-		let hasFallbackTooltip = false;
-
-		existingTooltips.forEach((tooltip) => {
-			if(tooltip.anchor == titleAnchor) {
-				hasFallbackTooltip = true;
-			}
-			else {
-				hasCustomTooltip = true;
-			}
-		});
-
-		if(hasCustomTooltip) {
-			if(hasFallbackTooltip) {
-				this.sqs.tooltipManager.unRegisterTooltip(titleAnchor);
-			}
-			return;
+		let infoButton = actionsNode.find(".mosaic-tile-info-btn");
+		if(infoButton.length == 0) {
+			infoButton = $("<button type='button' class='mosaic-tile-icon-btn mosaic-tile-info-btn' aria-label='About this chart'><i class='fa fa-info-circle' aria-hidden='true'></i></button>");
+			actionsNode.append(infoButton);
 		}
 
+		let titleText = $("#"+mosaicTileId+" .mosaic-tile-title").first().text().trim();
 		let tooltipText = this.getDefaultMosaicTitleTooltip(moduleConf, titleText);
-		this.sqs.tooltipManager.registerTooltip(titleAnchor, tooltipText, { drawSymbol: true, anchorPoint: "symbol" });
+		this.sqs.tooltipManager.registerTooltip("#"+mosaicTileId+" .mosaic-tile-info-btn", tooltipText, { placement: "bottom" });
 	}
 
 	renderGridModules(resultGridModules) {
@@ -656,23 +671,26 @@ class ResultMosaic extends ResultModule {
 			if (typeof mConf.default == "undefined" || mConf.default == true) {
 				renderPromises.push(
 					this.renderGridModule(mConf, mConf.mosaicTileId).then(() => {
-						this.ensureMosaicTileTitleTooltip(mConf.mosaicTileId, mConf);
+						let actionsNode = $("#"+mConf.mosaicTileId+" .mosaic-tile-actions");
 
-						// Module selector goes inside the drag handle
 						let moduleSelectionOptions = resultGridModules.map(m => {
 							let moduleMeta = this.getModuleMetaByName(m.module_name);
 							return { name: m.module_name, title: moduleMeta ? moduleMeta.title : m.module_name };
 						});
 						let titleSelectHtml = this.renderGridModuleSelector(resultGridModules, mConf, mConf.grid_box_id, moduleSelectionOptions);
 						if (titleSelectHtml) {
-							$("#"+mConf.mosaicTileId+" .mosaic-tile-drag-handle").append(titleSelectHtml);
+							actionsNode.append(titleSelectHtml);
 						}
 
 						if (this.sqs.config.showMosaicExportButtons) {
-							let exportButton = $("<div></div>").addClass("result-export-button-mosaic").attr("title", "Export").html("<i class='fa fa-download' aria-hidden='true'></i>");
-							$("#"+mConf.mosaicTileId+" .mosaic-tile-drag-handle").append(exportButton);
+							let exportButton = $("<button type='button' class='mosaic-tile-icon-btn result-export-button-mosaic'><i class='fa fa-download' aria-hidden='true'></i></button>");
+							exportButton.attr("aria-label", "Download this chart or its data");
+							exportButton.attr("title", "Download");
+							actionsNode.append(exportButton);
 							this.bindExportModuleDataToButton("#"+mConf.mosaicTileId+" .result-export-button-mosaic", mConf.module);
 						}
+
+						this.ensureMosaicTileInfoButton(mConf.mosaicTileId, mConf);
 					})
 				);
 			}
@@ -729,20 +747,25 @@ class ResultMosaic extends ResultModule {
 		let tileNode = $("<div id='"+mosaicTileId+"' class='result-mosaic-tile'></div>");
 
 		if (!module) {
-			tileNode.append("<div class='mosaic-tile-header mosaic-tile-drag-handle'><h3 class='mosaic-tile-title'>NoSuchModuleError - "+moduleConf.module_name+"</h3></div>");
+			tileNode.append("<div class='mosaic-tile-header mosaic-tile-drag-handle'><div class='mosaic-tile-heading'><h3 class='mosaic-tile-title'>NoSuchModuleError - "+moduleConf.module_name+"</h3></div></div>");
 			tileNode.append("<div class='result-mosaic-graph-container'></div>");
 		}
 		else {
 			moduleConf.module = module;
 			moduleConf.moduleInstanceId = nanoid();
 
-			// The header doubles as the drag handle and holds the title, the chart
-			// selector and the export button. Modules render only their chart into the
-			// graph container; dynamic-title modules update the title via setMosaicTileTitle().
+			// The header doubles as the drag handle and holds the title and subtitle, the module's choice of
+			// views (chart or table), the chart selector and the export and info buttons. Modules render only
+			// their chart into the graph container, and set the subtitle and views via the MosaicTileModule helpers.
 			let registeredMeta = this.getModuleMetaByName(moduleConf.module_name);
 			let initialTitle = module.title || (registeredMeta ? registeredMeta.title : "");
 			let header = $("<div class='mosaic-tile-header mosaic-tile-drag-handle'></div>");
-			$("<h3 class='mosaic-tile-title'></h3>").text(initialTitle).appendTo(header);
+			let heading = $("<div class='mosaic-tile-heading'></div>");
+			$("<h3 class='mosaic-tile-title'></h3>").text(initialTitle).appendTo(heading);
+			$("<p class='mosaic-tile-subtitle'></p>").appendTo(heading);
+			header.append(heading);
+			header.append("<div class='mosaic-tile-view-slot'></div>");
+			header.append("<div class='mosaic-tile-actions'></div>");
 			let graphContainer = $("<div id='"+moduleConf.grid_box_id+"' module-instance-id='"+moduleConf.moduleInstanceId+"' module-name='"+moduleConf.module_name+"' class='result-mosaic-graph-container'></div>");
 			let resizeHandle = $("<div class='mosaic-tile-resize-handle' title='Drag to resize'></div>");
 
@@ -753,7 +776,7 @@ class ResultMosaic extends ResultModule {
 			// Apply initial absolute position (no transition on first placement)
 			this.applyTileGeometry(tileNode[0], moduleConf.tileDescriptor, false);
 
-			$('#result-mosaic-container').append(tileNode);
+			$('#result-mosaic-tiles').append(tileNode);
 
 			this.initTileDrag(tileNode[0], moduleConf);
 			this.initTileResize(tileNode[0], moduleConf);
@@ -791,7 +814,7 @@ class ResultMosaic extends ResultModule {
 	 * @param {boolean} [animate=true]
 	 */
 	applyTileGeometry(el, descriptor, animate = true) {
-		const container = document.getElementById("result-mosaic-container");
+		const container = document.getElementById("result-mosaic-tiles");
 		if (!container) return;
 		const { x, y, width, height } = this.gridLayout.gridToPixel(
 			descriptor.col, descriptor.row, descriptor.w, descriptor.h, container
@@ -823,14 +846,14 @@ class ResultMosaic extends ResultModule {
 	}
 
 	updateContainerHeight() {
-		const container = document.getElementById("result-mosaic-container");
+		const container = document.getElementById("result-mosaic-tiles");
 		if (!container) return;
 		const needed = this.gridLayout.getRequiredHeight(this.tileLayout);
 		container.style.minHeight = needed + "px";
 	}
 
 	updateCSSVars() {
-		const container = document.getElementById("result-mosaic-container");
+		const container = document.getElementById("result-mosaic-tiles");
 		if (!container) return;
 		const gl = this.gridLayout;
 		const cw = gl.getColWidth(container);
@@ -839,9 +862,14 @@ class ResultMosaic extends ResultModule {
 	}
 
 	configureGridLayoutForDomain(domain) {
-		const container = document.getElementById("result-mosaic-container");
+		const container = document.getElementById("result-mosaic-tiles");
 		const previousDomainCols = this.gridLayout.getEffectiveDomainCols();
-		this.gridLayout.configureForDomain(domain, container);
+		//The rows share the height of the result area, less what the summary above them takes
+		const mosaicContainer = $("#result-mosaic-container");
+		let reservedHeight = $("#result-mosaic-summary").outerHeight(true) || 0;
+		reservedHeight += (parseFloat(mosaicContainer.css("padding-top")) || 0) + (parseFloat(mosaicContainer.css("padding-bottom")) || 0);
+		let minRowHeight = domain.result_grid_min_row_height ? this.sqs.scalePx(domain.result_grid_min_row_height) : null;
+		this.gridLayout.configureForDomain(domain, container, document.getElementById("result-container"), reservedHeight, minRowHeight);
 		this.updateCSSVars();
 		return previousDomainCols != this.gridLayout.getEffectiveDomainCols();
 	}
@@ -874,7 +902,7 @@ class ResultMosaic extends ResultModule {
 	initTileDrag(el, moduleConf) {
 		const handle   = el.querySelector(".mosaic-tile-drag-handle");
 		const preview  = document.getElementById("mosaic-drop-preview");
-		const container = document.getElementById("result-mosaic-container");
+		const container = document.getElementById("result-mosaic-tiles");
 		const descriptor = moduleConf.tileDescriptor;
 
 		handle.addEventListener("mousedown", (e) => {
@@ -969,7 +997,7 @@ class ResultMosaic extends ResultModule {
 
 	initTileResize(el, moduleConf) {
 		const handle    = el.querySelector(".mosaic-tile-resize-handle");
-		const container = document.getElementById("result-mosaic-container");
+		const container = document.getElementById("result-mosaic-tiles");
 		const descriptor = moduleConf.tileDescriptor;
 
 		handle.addEventListener("mousedown", (e) => {
@@ -1093,8 +1121,11 @@ class ResultMosaic extends ResultModule {
 					activeDomain.result_grid_modules[key].module = this.getInstanceOfModule(selectedModuleName);
 					$("#"+gridBoxId).attr("module-name", selectedModuleName);
 					$("#"+gridBoxId).html("");
+					//The new chart brings its own subtitle and views
+					$(".mosaic-tile-subtitle", mosaicTileNode).text("");
+					$(".mosaic-tile-view-slot", mosaicTileNode).empty();
 					await activeDomain.result_grid_modules[key].module.render("#"+gridBoxId);
-					this.ensureMosaicTileTitleTooltip(mosaicTileNode.attr("id"), activeDomain.result_grid_modules[key]);
+					this.ensureMosaicTileInfoButton(mosaicTileNode.attr("id"), activeDomain.result_grid_modules[key]);
 				}
 			}
 		});
@@ -1165,6 +1196,8 @@ class ResultMosaic extends ResultModule {
 
 		this.configureGridLayoutForDomain(domain);
 
+		this.renderSummary();
+
 		if ($(".result-mosaic-tile").length === 0) {
 			this.renderedDomainName = domain.name;
 			this.renderGridModules(domain.result_grid_modules);
@@ -1179,10 +1212,7 @@ class ResultMosaic extends ResultModule {
 		});
 		this.bindResponsiveTileLayoutCallbacks();
 
-		if(this.sqs.config.showResultExportButton) {
-			this.renderExportButton();
-			$("#mosaic-site-count").text(`${this.sites.length} sites`);
-		}
+		this.renderExportButton();
 	}
 
 	prepareChartData(data_key_name, data_value_name, data) {
@@ -2091,7 +2121,7 @@ class ResultMosaic extends ResultModule {
 
 			//A tile that fails to unrender doesn't hold up the rest
 			Promise.allSettled(promises).then(() => {
-				this.cleanupPlotlyChartsInContainer("#result-mosaic-container");
+				this.cleanupPlotlyChartsInContainer("#result-mosaic-tiles");
 				this.plotlyLayoutRegistry.clear();
 				this.sqs.sqsEventUnlisten("layoutResize", this);
 				this.sqs.sqsEventUnlisten("layoutResize", this.responsiveLayoutEventOwner);
@@ -2100,7 +2130,8 @@ class ResultMosaic extends ResultModule {
 				this.tileLayout = [];
 
 				console.log("Unrendered all modules, clearing container");
-				$("#result-mosaic-container").html("");
+				$("#result-mosaic-tiles").html("");
+				$("#result-mosaic-summary").empty();
 				resolve();
 			});
 		});

@@ -1,0 +1,1106 @@
+@use "sass:color";
+@use "colors";
+@use "variables" as *;
+
+/*
+* The site report: a page of its own under the header, scrolling as a whole, with the site's name
+* and summary at the top and its contents on tabs below.
+*/
+
+#site-report-main-container {
+  box-sizing: border-box;
+  width: 100vw;
+  height: calc(100vh - var(--sqs-header-height));
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: colors.$page-bg-color;
+}
+
+#site-report-page {
+  position: relative;
+  box-sizing: border-box;
+  /* The view is a flex container, in which the page would otherwise be as wide as its widest content */
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: sqs-px(1240);
+  margin: 0 auto;
+  padding: sqs-px(22) sqs-px(32) sqs-px(56) sqs-px(32);
+}
+
+/* Back to the result, where the site is, and the previous and next site in the result */
+.site-report-topbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: sqs-px(8) sqs-px(12);
+  color: colors.$text-muted-color;
+  font-size: sqs-px(13);
+}
+
+.site-report-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: sqs-px(6);
+  padding: sqs-px(6) 0;
+  border: none;
+  background: none;
+  color: colors.$base-color;
+  font-size: sqs-px(13);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.site-report-back-link:hover {
+  color: colors.$base-color-dark;
+  text-decoration: underline;
+}
+
+.site-report-back-count {
+  color: colors.$text-muted-color;
+  font-weight: 400;
+}
+
+.site-report-browse {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(4);
+  margin-left: auto;
+}
+
+.site-report-browse .sqs-btn {
+  height: sqs-px(32);
+  padding: 0 sqs-px(10);
+}
+
+.site-report-browse-position {
+  padding: 0 sqs-px(8);
+  white-space: nowrap;
+}
+
+/* The site's name, with what it is above and its description under it, and the actions beside */
+.site-report-titlebar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: sqs-px(24);
+  margin-top: sqs-px(18);
+}
+
+.site-report-title-container {
+  flex: 1 1 sqs-px(520);
+  min-width: 0;
+  text-align: left;
+}
+
+.site-report-kicker {
+  color: colors.$text-muted-color;
+  font-size: sqs-px(13);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.site-report-site-id {
+  margin-left: sqs-px(6);
+  color: #333;
+  font-family: $mono-font, monospace;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+h1.site-report-title-site-name {
+  margin: sqs-px(4) 0 0 0 !important;
+  background: none;
+  color: colors.$text-color;
+  font-family: $header-font, sans-serif;
+  font-size: sqs-px(52) !important;
+  font-weight: 700;
+  line-height: 1.02;
+  overflow-wrap: anywhere;
+}
+
+.site-report-site-description {
+  margin: sqs-px(8) 0 0 0;
+  color: #333;
+  font-size: sqs-px(16);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.site-report-no-data, .site-report-site-description.site-report-no-data {
+  color: colors.$text-muted-color;
+  font-style: italic;
+}
+
+.site-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: sqs-px(8);
+}
+
+/* The site in figures: sample groups, samples, analyses and dating */
+.site-report-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: sqs-px(22);
+}
+
+.site-report-summary:empty {
+  display: none;
+}
+
+.site-report-summary-cell {
+  min-width: 0;
+  padding: sqs-px(16) sqs-px(20);
+  border-right: 1px solid colors.$border-color-light;
+}
+
+.site-report-summary-cell:last-child {
+  border-right: none;
+}
+
+.site-report-summary-value {
+  margin-top: sqs-px(6);
+  font-size: sqs-px(22);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.site-report-summary-empty .site-report-summary-value {
+  color: colors.$text-muted-color;
+  font-size: sqs-px(16);
+  font-weight: 500;
+  margin-top: sqs-px(10);
+}
+
+.site-report-summary-sub {
+  margin-top: sqs-px(2);
+  color: colors.$text-muted-color;
+  font-size: sqs-px(13);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* All of the site's analysis methods in one bar, a segment for each */
+.site-report-analyses-bar {
+  display: flex;
+  gap: 1px;
+  height: sqs-px(22);
+  margin-top: sqs-px(9);
+  overflow: hidden;
+  border-radius: sqs-px(4);
+  font-size: sqs-px(11);
+  font-weight: 600;
+}
+
+.site-report-analyses-bar-segment {
+  display: block;
+  flex-basis: 0;
+  min-width: sqs-px(6);
+  padding: 0 sqs-px(4);
+  overflow: hidden;
+  line-height: sqs-px(22);
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#site-report-tabs {
+  margin-top: sqs-px(26);
+  border-bottom: 1px solid colors.$border-color;
+}
+
+/* The tabs' contents */
+#site-report-content {
+  padding-top: sqs-px(24);
+}
+
+.site-report-tabpanel {
+  display: none;
+}
+
+.site-report-tabpanel.site-report-tabpanel-active {
+  display: block;
+}
+
+/* A wide main column and a narrower one beside it, which drops under it when there's no room */
+.site-report-columns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: sqs-px(24);
+}
+
+.site-report-main-column {
+  display: flex;
+  flex: 999 1 sqs-px(600);
+  flex-direction: column;
+  gap: sqs-px(24);
+  min-width: 0;
+}
+
+.site-report-side-column {
+  display: flex;
+  flex: 1 1 sqs-px(340);
+  flex-direction: column;
+  gap: sqs-px(24);
+  min-width: 0;
+}
+
+.site-report-columns-single .site-report-side-column {
+  display: none;
+}
+
+.site-report-dl {
+  display: grid;
+  /* The labels get at most 40% of the width and wrap beyond it, so the values always have room */
+  grid-template-columns: fit-content(40%) minmax(0, 1fr);
+  gap: sqs-px(7) sqs-px(16);
+  margin: sqs-px(12) 0 0 0;
+  font-size: sqs-px(14);
+}
+
+.site-report-dl dt {
+  color: colors.$text-muted-color;
+}
+
+/* break-word rather than anywhere: only a word too long for the line, such as the permalink, is
+ * broken, and it doesn't let the column shrink to a letter's width */
+.site-report-dl dd {
+  margin: 0;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+.site-report-dl dd.mono {
+  font-size: sqs-px(13);
+}
+
+.site-report-location-card {
+  overflow: hidden;
+}
+
+.site-report-location-card .sqs-card-title, .site-report-record-card .sqs-card-title {
+  font-size: sqs-px(16);
+}
+
+.site-report-location-note {
+  margin-top: sqs-px(12);
+  padding-top: sqs-px(12);
+  border-top: 1px solid colors.$border-color-light;
+  color: colors.$text-muted-color;
+  font-size: sqs-px(13);
+}
+
+.site-report-location-note:empty {
+  display: none;
+}
+
+.site-report-permalink a {
+  color: colors.$base-color;
+}
+
+/* Overview */
+.site-report-overview-card .sqs-table, .site-report-overview-card .site-report-table-scroll {
+  margin-top: sqs-px(10);
+}
+
+.site-report-table-scroll {
+  overflow-x: auto;
+}
+
+.site-report-group-name {
+  font-weight: 500;
+}
+
+.site-report-group-id {
+  font-size: sqs-px(12);
+}
+
+.site-report-method-dots {
+  display: inline-flex;
+  gap: sqs-px(4);
+  vertical-align: middle;
+}
+
+.site-report-method-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(sqs-px(260), 1fr));
+  gap: sqs-px(10);
+  margin: sqs-px(12) 0 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-report-method-tile {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(10);
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: sqs-px(12) sqs-px(14);
+  border: 1px solid #e3e3e3;
+  border-radius: sqs-px(10);
+  background: #fafafa;
+  color: colors.$text-color;
+  text-align: left;
+  cursor: pointer;
+}
+
+.site-report-method-tile:hover {
+  border-color: #c9c9c9;
+  background: #f3f3f3;
+}
+
+.site-report-method-tile .fa {
+  color: #8c8c8c;
+  font-size: sqs-px(16);
+}
+
+.site-report-method-tile-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.site-report-method-tile-name {
+  display: block;
+  font-size: sqs-px(14);
+  font-weight: 500;
+}
+
+.site-report-method-tile-sub {
+  display: block;
+  margin-top: sqs-px(2);
+  color: colors.$text-muted-color;
+  font-size: sqs-px(12);
+}
+
+.site-report-reference-list {
+  margin-top: sqs-px(10);
+  font-size: sqs-px(15);
+  line-height: 1.55;
+}
+
+.site-report-reference-list ul {
+  margin: 0;
+  padding-left: sqs-px(18);
+}
+
+.site-report-reference-list li + li {
+  margin-top: sqs-px(6);
+}
+
+/* References tab */
+.site-report-reference-group + .site-report-reference-group {
+  margin-top: sqs-px(18);
+  padding-top: sqs-px(14);
+  border-top: 1px solid colors.$border-color-light;
+}
+
+.site-report-reference-note {
+  margin: sqs-px(6) 0 0 0;
+  font-size: sqs-px(13);
+}
+
+.site-report-reference-group .site-report-no-data {
+  margin: sqs-px(6) 0 0 0;
+}
+
+.site-report-references-card .site-reference-box {
+  margin: 0;
+  padding: sqs-px(10) 0;
+  border-bottom: 1px solid colors.$border-color-light;
+  background: none;
+  font-size: sqs-px(14);
+  line-height: 1.5;
+}
+
+.site-report-references-card .site-reference-box:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.site-report-citation-text {
+  margin: 0 0 sqs-px(12) 0;
+  padding: sqs-px(12) sqs-px(14);
+  border-radius: sqs-px(8);
+  background: #f4f4f4;
+  line-height: 1.5;
+}
+
+.site-report-citation h4 {
+  margin: sqs-px(18) 0 sqs-px(6) 0;
+}
+
+/* Samples tab. The sample group table has many columns, and its sample tables more, so it gets the
+ * full width and the map goes under it. */
+.site-report-tabpanel[data-tab="samples"] .site-report-main-column,
+.site-report-tabpanel[data-tab="samples"] .site-report-side-column {
+  flex-basis: 100%;
+}
+
+.site-report-sample-map-card {
+  overflow: hidden;
+}
+
+#site-report-sample-map-container {
+  position: relative;
+  height: sqs-px(440);
+}
+
+#site-report-map-container {
+  position: relative;
+  height: sqs-px(280);
+  margin: 0;
+}
+
+/* The sites sharing a spot on the site map, to pick one from */
+.site-report-map-popup {
+  min-width: sqs-px(180);
+  max-width: sqs-px(260);
+}
+
+.site-report-map-popup-list {
+  max-height: sqs-px(150);
+  margin-top: sqs-px(6);
+  overflow-y: auto;
+}
+
+.site-report-map-popup-site {
+  display: block;
+  width: 100%;
+  padding: sqs-px(3) sqs-px(4);
+  border: none;
+  background: none;
+  color: colors.$text-color;
+  font-size: sqs-px(14);
+  text-align: left;
+  cursor: pointer;
+}
+
+.site-report-map-popup-site:hover {
+  background-color: colors.$pane-bg-color;
+}
+
+/* Analyses tab: the methods listed on the left, the datasets of the one picked on the right */
+.site-report-method-nav {
+  flex: 1 1 sqs-px(250);
+  max-width: sqs-px(300);
+  padding-bottom: sqs-px(8);
+  overflow: hidden;
+}
+
+.site-report-method-nav:empty {
+  display: none;
+}
+
+.site-report-method-nav-title {
+  padding: sqs-px(10) sqs-px(16);
+  background: colors.$inactive-color;
+  color: #fff;
+  font-size: sqs-px(14);
+  font-weight: 600;
+}
+
+.site-report-method-nav-group {
+  padding: sqs-px(14) sqs-px(16) sqs-px(6) sqs-px(16);
+}
+
+.site-report-method-nav-item {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(10);
+  box-sizing: border-box;
+  width: 100%;
+  padding: sqs-px(10) sqs-px(16) sqs-px(10) sqs-px(13);
+  border: none;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: colors.$text-color;
+  font-size: sqs-px(14);
+  text-align: left;
+  cursor: pointer;
+}
+
+.site-report-method-nav-item:hover {
+  background: #f5f5f5;
+}
+
+.site-report-method-nav-item-current, .site-report-method-nav-item-current:hover {
+  border-left-color: colors.$base-color;
+  background: #efefef;
+  font-weight: 600;
+}
+
+.site-report-method-nav-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.site-report-method-nav-count {
+  color: colors.$text-muted-color;
+  font-size: sqs-px(12);
+  font-weight: 400;
+}
+
+/* Only the picked method shows */
+#site-report-section-analyses > .site-report-level-content > .site-report-level-container {
+  display: none;
+}
+
+#site-report-section-analyses > .site-report-level-content > .site-report-level-container.site-report-method-active {
+  display: block;
+}
+
+/* Dating */
+.site-report-dating-tools {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(8);
+}
+
+#site-report-time-overview {
+  margin-top: sqs-px(18);
+}
+
+.site-report-dating-note {
+  margin-top: sqs-px(16);
+}
+
+.site-report-dating-methods p {
+  margin: sqs-px(12) 0 0 0;
+  font-size: sqs-px(14);
+}
+
+/* Bars on a time axis, older to the left, with the labels in a column of their own */
+.dating-timeline {
+  --dating-label-width: #{sqs-px(210)};
+  --dating-gap: #{sqs-px(16)};
+  position: relative;
+}
+
+.dating-timeline-compact {
+  --dating-label-width: #{sqs-px(180)};
+  margin-top: sqs-px(14);
+}
+
+.dating-timeline-grid {
+  position: absolute;
+  top: 0;
+  bottom: sqs-px(26);
+  left: calc(var(--dating-label-width) + var(--dating-gap));
+  right: 0;
+  pointer-events: none;
+}
+
+.dating-timeline-grid > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #efefef;
+}
+
+.dating-timeline-group + .dating-timeline-group {
+  margin-top: sqs-px(10);
+}
+
+.dating-timeline-group-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: sqs-px(8);
+  height: sqs-px(26);
+}
+
+.dating-timeline-group-head .sqs-link-btn {
+  font-size: sqs-px(12);
+}
+
+.dating-timeline-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--dating-label-width) minmax(0, 1fr);
+  gap: var(--dating-gap);
+  align-items: center;
+  min-height: sqs-px(38);
+}
+
+.dating-timeline-compact .dating-timeline-row {
+  min-height: sqs-px(32);
+}
+
+.dating-timeline-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dating-timeline-label-main {
+  font-size: sqs-px(14);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dating-timeline-label-sub {
+  color: colors.$text-muted-color;
+  font-size: sqs-px(12);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dating-timeline-track {
+  position: relative;
+  height: sqs-px(24);
+}
+
+.dating-timeline-bar {
+  position: absolute;
+  top: sqs-px(3);
+  bottom: sqs-px(3);
+  min-width: 4px;
+  border-radius: sqs-px(4);
+}
+
+/* Radiocarbon years, not comparable with calendar years, and approximate datings */
+.dating-timeline-bar-approximate {
+  opacity: 0.55;
+}
+
+/* Only older than, or younger than: the bar fades out towards its open end */
+.dating-timeline-bar-open-older {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 40%);
+  mask-image: linear-gradient(to right, transparent, #000 40%);
+}
+
+.dating-timeline-bar-open-younger {
+  -webkit-mask-image: linear-gradient(to left, transparent, #000 40%);
+  mask-image: linear-gradient(to left, transparent, #000 40%);
+}
+
+.dating-timeline-range {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #333;
+  font-size: sqs-px(13);
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* A bar too wide to write beside has its range written inside it */
+.dating-timeline-range-inside {
+  padding: 0 sqs-px(4);
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.9);
+}
+
+.dating-timeline-more {
+  margin-left: calc(var(--dating-label-width) + var(--dating-gap));
+  font-size: sqs-px(13);
+}
+
+.dating-timeline-axis {
+  display: grid;
+  grid-template-columns: var(--dating-label-width) minmax(0, 1fr);
+  gap: var(--dating-gap);
+}
+
+.dating-timeline-axis-ticks {
+  position: relative;
+  height: sqs-px(26);
+  border-top: 1px solid #8c8c8c;
+  color: colors.$text-muted-color;
+  font-size: sqs-px(12);
+}
+
+.dating-timeline-axis-ticks > span {
+  position: absolute;
+  top: sqs-px(6);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* Datasets are cards, each with its name and tools at the top */
+#site-report-content .content-item-container {
+  margin: 0 0 sqs-px(20) 0;
+  padding: 0;
+  overflow: visible;
+  background: colors.$card-bg-color;
+  border: 1px solid colors.$border-color;
+  border-radius: sqs-px(12);
+  box-shadow: none;
+}
+
+#site-report-content .content-item-container:hover {
+  border-color: colors.$border-color;
+  box-shadow: none;
+}
+
+#site-report-content .content-item-header-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: sqs-px(8);
+  height: auto;
+  margin: 0;
+  padding: sqs-px(14) sqs-px(20);
+  border-bottom: 1px solid colors.$border-color-light;
+}
+
+#site-report-content .content-item-header-container > h4 {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: sqs-px(17);
+  font-weight: 600;
+}
+
+#site-report-content .content-item-header-divider {
+  display: none;
+}
+
+#site-report-content .dataset-id {
+  margin-left: sqs-px(6);
+  color: colors.$text-muted-color;
+  font-family: $mono-font, monospace;
+  font-size: sqs-px(12);
+  font-weight: 400;
+}
+
+#site-report-content .data-vis-container {
+  margin: 0;
+  padding: sqs-px(12) sqs-px(16) sqs-px(16) sqs-px(16);
+}
+
+/* The dataset tools - display options, export, reference - as small outlined buttons */
+#site-report-content .site-report-toolbar-main {
+  margin: 0;
+}
+
+/* Smaller than the standard button, to sit in the head of a dataset card */
+#site-report-content .site-report-toolbar-btn {
+  height: sqs-px(32);
+  padding: 0 sqs-px(10);
+}
+
+#site-report-content .site-report-toolbar-btn .fa {
+  color: colors.$text-muted-color;
+}
+
+#site-report-content .site-report-display-options-dropdown {
+  top: calc(100% + 4px);
+  left: auto;
+  right: 0;
+  border-color: colors.$border-color;
+  border-radius: sqs-px(10);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+/* Section titles. The tabs already say what the top-level sections are, and an analysis
+ * method is introduced by a heading of its own. */
+#site-report-content .site-report-level-container {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+#site-report-content .site-report-level-title-static {
+  display: none;
+}
+
+#site-report-content .site-report-level-container > .site-report-level-content {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  font-size: sqs-px(14);
+}
+
+#site-report-content .site-report-method-title {
+  display: block;
+  margin: 0 0 sqs-px(20) 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: default;
+}
+
+#site-report-content .site-report-method-title:hover {
+  background: none;
+}
+
+#site-report-content .site-report-method-title > div {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(10);
+}
+
+#site-report-content .site-report-method-title .sqs-dot {
+  width: sqs-px(10);
+  height: sqs-px(10);
+}
+
+#site-report-content .site-report-method-title .title-text {
+  font-size: sqs-px(24);
+  font-weight: 600;
+}
+
+.site-report-method-meta {
+  margin: sqs-px(6) 0 0 0;
+  color: colors.$text-muted-color;
+  font-size: sqs-px(14);
+  font-weight: 400;
+}
+
+.site-report-method-description {
+  margin: sqs-px(6) 0 0 0;
+  max-width: 80ch;
+  color: #444;
+  font-size: sqs-px(14);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* A long description shows its first lines until asked for the rest */
+.site-report-method-description-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+#site-report-content .site-report-method-title .site-report-method-description-toggle {
+  padding: sqs-px(2) 0;
+  font-size: sqs-px(13);
+}
+
+/* Collapsible sections inside a method, if a method has any */
+#site-report-content .site-report-level-content .site-report-level-content .site-report-level-title {
+  border-left: none;
+  border-bottom: 1px solid colors.$border-color-light;
+  font-weight: 600;
+}
+
+@media (max-width: $ui-mobile-breakpoint) {
+  #site-report-page {
+    padding: 16px 16px 40px 16px;
+  }
+
+  h1.site-report-title-site-name {
+    font-size: 34px !important;
+  }
+
+  .site-report-browse {
+    margin-left: 0;
+  }
+
+  .site-report-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .site-report-summary-cell:nth-child(2) {
+    border-right: none;
+  }
+
+  .site-report-summary-cell:nth-child(-n + 2) {
+    border-bottom: 1px solid colors.$border-color-light;
+  }
+
+  .site-report-method-nav {
+    max-width: none;
+  }
+
+  .dating-timeline {
+    --dating-label-width: 110px;
+    --dating-gap: 10px;
+  }
+
+  .dating-timeline-range {
+    display: none;
+  }
+}
+
+/* The tables datasets and samples are shown in, made by DataTables: a light header and plain rows */
+#site-report-content table.site-report-table {
+  border-collapse: collapse;
+  font-size: sqs-px(14);
+}
+
+#site-report-content table.site-report-table > thead {
+  background: #fff;
+  color: colors.$text-muted-color;
+}
+
+#site-report-content table.site-report-table > thead > tr > td,
+#site-report-content table.site-report-table > thead > tr > th {
+  padding: sqs-px(10) sqs-px(12) !important;
+  border-bottom: 1px solid colors.$border-color !important;
+  background: #fff !important;
+  color: colors.$text-muted-color !important;
+  font-family: $normal-font, sans-serif;
+  font-size: sqs-px(12);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 0 !important;
+}
+
+#site-report-content table.site-report-table > tbody > tr > td {
+  padding: sqs-px(10) sqs-px(12) !important;
+  border-bottom: 1px solid colors.$border-color-light;
+  background: #fff !important;
+  color: colors.$text-color !important;
+  border-radius: 0 !important;
+}
+
+#site-report-content table.site-report-table > tbody > tr.site-report-table-row:hover > td,
+#site-report-content table.site-report-table > tbody > tr.site-report-table-row-with-subtable:not(.table-row-expanded):hover > td {
+  background: #f7f7f7 !important;
+}
+
+/* An expanded row, and the samples or values under it, on light grey */
+#site-report-content table.site-report-table > tbody > tr.site-report-table-row-with-subtable.table-row-expanded > td,
+#site-report-content table.site-report-table > tbody > tr.site-report-table-row-with-subtable.table-row-expanded:hover > td {
+  background: #f3f6f9 !important;
+  color: colors.$text-color !important;
+  font-weight: 600;
+}
+
+#site-report-content table.site-report-table > tbody > tr.site-report-subtable-row > td {
+  padding: sqs-px(6) sqs-px(12) sqs-px(14) sqs-px(12) !important;
+  border-left: none;
+  background: #f3f6f9 !important;
+}
+
+#site-report-content .site-report-subtable-row > td > div {
+  margin-left: sqs-px(28);
+  padding: sqs-px(4) sqs-px(8);
+  border: 1px solid #e3e3e3;
+  border-radius: sqs-px(8);
+  background: #fff;
+}
+
+#site-report-content table.site-report-subtable {
+  border-spacing: 0 !important;
+}
+
+#site-report-content .site-report-subtable thead td {
+  padding: sqs-px(8) sqs-px(12) !important;
+  border-bottom: 1px solid colors.$border-color !important;
+  color: colors.$text-muted-color !important;
+  font-size: sqs-px(11) !important;
+  font-weight: 500 !important;
+}
+
+#site-report-content .site-report-subtable tbody tr td {
+  padding: sqs-px(7) sqs-px(12) !important;
+  border: none !important;
+  border-bottom: 1px solid colors.$border-color-light !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+}
+
+#site-report-content .site-report-subtable tbody tr:hover td {
+  background: #f7f7f7 !important;
+}
+
+/* DataTables' controls: rows per page, search and paging */
+#site-report-content .dt-container, #site-report-content .dataTables_wrapper {
+  font-size: sqs-px(13);
+  color: #444;
+}
+
+#site-report-content .dt-container select, #site-report-content .dataTables_wrapper select,
+#site-report-content .dt-container input, #site-report-content .dataTables_wrapper input {
+  height: sqs-px(30);
+  padding: 0 sqs-px(8);
+  border: 1px solid colors.$control-border-color !important;
+  border-radius: sqs-px(6);
+  background: #fff;
+  font-size: sqs-px(13);
+}
+
+#site-report-content .dt-paging .dt-paging-button, #site-report-content .dataTables_paginate .paginate_button {
+  min-width: sqs-px(30);
+  height: sqs-px(30);
+  padding: 0 sqs-px(8) !important;
+  border: none !important;
+  border-radius: sqs-px(6) !important;
+  background: none !important;
+  color: #333 !important;
+  line-height: sqs-px(30);
+}
+
+#site-report-content .dt-paging .dt-paging-button.current, #site-report-content .dataTables_paginate .paginate_button.current {
+  background: colors.$inactive-color !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+#site-report-content .dt-paging .dt-paging-button:hover:not(.current):not(.disabled) {
+  background: #efefef !important;
+}
+
+/* The tags on sample group rows: analysis methods, feature types */
+#site-report-content .sample-group-analysis-tag {
+  border-radius: sqs-px(4);
+}
+
+#site-report-content .data-vis-container {
+  overflow-x: auto;
+}
+
+/* The references and contacts of a dataset, in a dialog: each under a small label, as plain lists */
+.dataset-reference-dialog {
+  font-size: sqs-px(14);
+  line-height: 1.5;
+}
+
+.dataset-reference-dialog h4.sqs-label {
+  margin: 0 0 sqs-px(8) 0;
+}
+
+.dataset-reference-dialog h4.sqs-label ~ h4.sqs-label {
+  margin-top: sqs-px(20);
+  padding-top: sqs-px(16);
+  border-top: 1px solid colors.$border-color-light;
+}
+
+.dataset-reference-dialog ul {
+  display: flex;
+  flex-direction: column;
+  gap: sqs-px(12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dataset-reference-dialog li {
+  overflow-wrap: anywhere;
+}
+
+.dataset-reference-dialog .dataset-contact > div {
+  color: colors.$text-muted-color;
+}
+
+.dataset-reference-dialog .dataset-contact > div:first-child {
+  color: colors.$text-color;
+  font-weight: 600;
+}
+
+.dataset-reference-dialog a {
+  color: colors.$base-color;
+}

@@ -956,7 +956,7 @@ class SiteReportChart {
 			const buttonId = `${this.chartId}-legend-toggle`;
 			const buttonContainer = $(`
 			<div class="site-report-chart-legend-toggle" style="margin-top:10px; text-align:right;">
-				<button id="${buttonId}" class="light-theme-button">
+				<button type="button" id="${buttonId}" class="sqs-btn">
 				<i class="fa fa-list-ul" aria-hidden="true"></i> Show Legend
 				</button>
 			</div>

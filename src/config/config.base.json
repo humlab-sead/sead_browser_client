@@ -20,7 +20,7 @@
 	"maxAllowedSitesInAnExport": 20,
 	"facetSectionDefaultWidth": 38.2,
 	"facetBodyHeight": 268,
-	"discreteFacetRowHeight": 20,
+	"discreteFacetRowHeight": 28,
 	"discreteFacetTextSize": 10,
 	"cookieWarningEnabled": true,
 	"viewstateLoadingScreenEnabled": true,
@@ -755,13 +755,14 @@
 			"name": "general",
 			"enabled": true,
 			"title": "General",
-			"icon": "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-general\" aria-hidden=\"true\"></span>",
 			"color": "#333",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				3,
 				2
 			],
+			"result_grid_min_row_height": 420,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",
@@ -769,24 +770,24 @@
 					"grid_column": "1"
 				},
 				{
-					"module_name": "mosaic-sample-methods",
+					"module_name": "mosaic-analysis-methods",
 					"grid_row": "1",
 					"grid_column": "2"
 				},
 				{
-					"module_name": "mosaic-analysis-methods",
+					"module_name": "mosaic-domain-samples",
 					"grid_row": "2",
+					"grid_column": "span 2"
+				},
+				{
+					"module_name": "mosaic-sample-methods",
+					"grid_row": "3",
 					"grid_column": "1"
 				},
 				{
 					"module_name": "mosaic-feature-types",
-					"grid_row": "2",
-					"grid_column": "2"
-				},
-				{
-					"module_name": "mosaic-domain-samples",
 					"grid_row": "3",
-					"grid_column": "span 2"
+					"grid_column": "2"
 				},
 				{
 					"module_name": "mosaic-taxa-list",
@@ -798,7 +799,7 @@
 			"name": "dendrochronology",
 			"enabled": true,
 			"title": "Dendrochronology",
-			"icon": "<i class=\"fa fa-tree\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-dendrochronology\" aria-hidden=\"true\"></span>",
 			"color": "#9b6c0e",
 			"filterBlacklist": [
 				"species",
@@ -811,6 +812,7 @@
 				4,
 				3
 			],
+			"result_grid_min_row_height": 320,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-dendro-tree-age",
@@ -873,13 +875,14 @@
 			"name": "palaeoentomology",
 			"enabled": true,
 			"title": "Palaeoentomology",
-			"icon": "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-palaeoentomology\" aria-hidden=\"true\"></span>",
 			"color": "#a30641",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				2,
 				2
 			],
+			"result_grid_min_row_height": 420,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",
@@ -907,13 +910,14 @@
 			"name": "archaeobotany",
 			"enabled": true,
 			"title": "Archaeobotany",
-			"icon": "<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-archaeobotany\" aria-hidden=\"true\"></span>",
 			"color": "#368421",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				3,
 				2
 			],
+			"result_grid_min_row_height": 420,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-archaeobotany-taxa-list",
@@ -946,13 +950,14 @@
 			"name": "pollen",
 			"enabled": true,
 			"title": "Pollen",
-			"icon": "<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-pollen\" aria-hidden=\"true\"></span>",
 			"color": "#7f770d",
 			"filterBlacklist": [],
 			"result_grid_layout": [
 				2,
 				2
 			],
+			"result_grid_min_row_height": 420,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",
@@ -970,7 +975,7 @@
 			"name": "geoarchaeology",
 			"enabled": true,
 			"title": "Geoarchaeology",
-			"icon": "<i class=\"fa fa-map\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-geoarchaeology\" aria-hidden=\"true\"></span>",
 			"color": "#037ab8",
 			"filterBlacklist": [],
 			"result_grid_layout": [
@@ -1008,7 +1013,7 @@
 			"name": "ceramic",
 			"enabled": true,
 			"title": "Ceramic",
-			"icon": "<i class=\"fa fa-beer\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-ceramic\" aria-hidden=\"true\"></span>",
 			"color": "#0f7874",
 			"filterBlacklist": [
 				"tbl_biblio_modern",
@@ -1018,6 +1023,7 @@
 				2,
 				2
 			],
+			"result_grid_min_row_height": 420,
 			"result_grid_modules": [
 				{
 					"module_name": "mosaic-map",

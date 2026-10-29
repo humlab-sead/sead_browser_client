@@ -16,7 +16,8 @@ class MosaicGridLayout {
     constructor() {
         this.COL_COUNT = 12;
         this.ROW_H     = 80;   // px per row unit
-        this.MIN_ROW_H = 240;  // px per row unit; on short screens the mosaic scrolls instead of squashing the charts
+        this.DEFAULT_MIN_ROW_H = 240;  // px per row unit; on short screens the mosaic scrolls instead of squashing the charts
+        this.MIN_ROW_H = this.DEFAULT_MIN_ROW_H;
         this.GAP       = 12;   // px gutter / container padding
         this.MIN_TILE_W = 280; // px before configured columns start collapsing
         this.domainCols = 1;
@@ -251,19 +252,25 @@ class MosaicGridLayout {
 
     // ─── config translation ───────────────────────────────────────────────────
 
-    configureForDomain(domain, containerEl) {
+    /**
+     * heightSourceEl - the element whose height the rows share, by default the container's parent
+     * reservedHeight - px of that height taken by other things above or below the tiles
+     * minRowHeight - px a row is at least, for a domain whose tiles need more than the default
+     */
+    configureForDomain(domain, containerEl, heightSourceEl = null, reservedHeight = 0, minRowHeight = null) {
         if(!domain || !Array.isArray(domain.result_grid_layout)) {
             return;
         }
 
+        this.MIN_ROW_H = minRowHeight || this.DEFAULT_MIN_ROW_H;
         const rows = parseInt(domain.result_grid_layout[0], 10) || 1;
         const cols = parseInt(domain.result_grid_layout[1], 10) || 1;
         this.domainCols = Math.max(1, cols);
         this.effectiveDomainCols = this.getResponsiveDomainCols(this.domainCols, containerEl);
 
-        const heightSource = containerEl && containerEl.parentElement
+        const heightSource = heightSourceEl || (containerEl && containerEl.parentElement
             ? containerEl.parentElement
-            : containerEl;
+            : containerEl);
 
         if(!heightSource) {
             return;
@@ -271,7 +278,7 @@ class MosaicGridLayout {
 
         const parentStyle = window.getComputedStyle(heightSource);
         const parentPadV = parseFloat(parentStyle.paddingTop) + parseFloat(parentStyle.paddingBottom);
-        const availableHeight = heightSource.clientHeight - parentPadV - this.GAP * 2 - this.GAP * (rows - 1);
+        const availableHeight = heightSource.clientHeight - parentPadV - reservedHeight - this.GAP * 2 - this.GAP * (rows - 1);
         if(availableHeight > 0) {
             this.ROW_H = Math.max(this.MIN_ROW_H, Math.floor(availableHeight / rows));
         }

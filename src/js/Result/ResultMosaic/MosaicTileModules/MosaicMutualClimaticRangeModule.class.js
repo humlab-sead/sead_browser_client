@@ -39,7 +39,7 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
 
         // Fixed layout margins (px)
         this.MARGIN_LEFT   = 40;
-        this.MARGIN_RIGHT  = 6;
+        this.MARGIN_RIGHT  = 14;
         this.MARGIN_TOP    = 6;
         this.MARGIN_BOTTOM = 40;
 
@@ -123,22 +123,24 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         };
     }
 
-    _densityColor(count, maxDensity) {
-        if (count === 0 || maxDensity === 0) return '#ebebeb';
+    // From a pale to the full base color of the site, by the share of the taxa tolerating the cell
+    _densityRgb(count, maxDensity) {
+        if (count === 0 || maxDensity === 0) return [240, 240, 240];
         const t = count / maxDensity;
-        const r = Math.round(191 + (29  - 191) * t);
-        const g = Math.round(219 + (78  - 219) * t);
-        const b = Math.round(254 + (216 - 254) * t);
+        return [
+            Math.round(220 + (45  - 220) * t),
+            Math.round(230 + (94  - 230) * t),
+            Math.round(240 + (141 - 240) * t)
+        ];
+    }
+
+    _densityColor(count, maxDensity) {
+        const [r, g, b] = this._densityRgb(count, maxDensity);
         return `rgb(${r},${g},${b})`;
     }
 
     _densityColorArgb(count, maxDensity) {
-        if (count === 0 || maxDensity === 0) return "FFEBEBEB";
-        const t = count / maxDensity;
-        const r = Math.round(191 + (29  - 191) * t);
-        const g = Math.round(219 + (78  - 219) * t);
-        const b = Math.round(254 + (216 - 254) * t);
-        return "FF" + [r, g, b].map(value => value.toString(16).padStart(2, "0")).join("").toUpperCase();
+        return "FF" + this._densityRgb(count, maxDensity).map(value => value.toString(16).padStart(2, "0")).join("").toUpperCase();
     }
 
     _matrixToArray(matrix) {
@@ -257,8 +259,8 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
 
         // Axis labels, scaled to the tile and suppressed when there's no room for them.
         const fontPx = Math.max(8, Math.min(11, Math.round(boxH / 28)));
-        ctx.fillStyle = '#555';
-        ctx.font = fontPx + 'px sans-serif';
+        ctx.fillStyle = this.sqs.color.colors.textMutedColor;
+        ctx.font = fontPx + "px 'IBM Plex Sans', sans-serif";
 
         const showTicks = cellW > 2;
 
@@ -302,7 +304,7 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
             this._tooltipEl = null;
         }
         const tooltipEl = document.createElement('div');
-        tooltipEl.style.cssText = 'position:fixed;background:rgba(30,30,30,0.88);color:#fff;padding:6px 10px;border-radius:4px;font-size:12px;line-height:1.6;pointer-events:none;display:none;z-index:9999;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.4);';
+        tooltipEl.className = 'mcr-tooltip';
         document.body.appendChild(tooltipEl);
         this._tooltipEl = tooltipEl;
 
@@ -367,8 +369,25 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         this.active = true;
         const currentRequestId = ++this.requestId;
 
+        if (this._resizeObserver) {
+            this._resizeObserver.disconnect();
+            this._resizeObserver = null;
+        }
         $(this.renderIntoNode).empty();
-        this.showLoadingIndicator(true);
+
+        const varId = nanoid();
+        const chartContainerId = `chart-container-${varId}`;
+        $(this.renderIntoNode).html(
+            `<div class="mosaic-tile-content mcr-tile-content" id="${varId}">
+                <div class="mosaic-tile-chart" id="${chartContainerId}"></div>
+            </div>`
+        );
+
+        if (this.renderNoDataIfNoSites()) {
+            return;
+        }
+
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);
 
         let siteResponse;
         try {
@@ -376,11 +395,12 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         } catch(e) {
             console.error("MosaicMutualClimaticRangeModule fetch error:", e);
             this.sqs.setErrorIndicator(this.renderIntoNode, "Could not fetch MCR data");
+            this.renderComplete = true;
             return false;
         }
 
         if (!this.active || currentRequestId !== this.requestId) return false;
-        this.showLoadingIndicator(false);
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
 
         if (!siteResponse || !siteResponse.density_matrix || !siteResponse.taxa_count) {
             this.renderNoData();
@@ -391,40 +411,32 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         const agg = this._aggregate([siteResponse]);
 
         if (!agg) {
-            $(this.renderIntoNode).html('<div style="padding:1em;color:#888;">No MCR-registered taxa found in the selected sites.</div>');
+            this.renderNoData();
+            $(this.renderIntoNode).find(".mosaic-tile-chart").append($("<p class='mosaic-chart-note'></p>").text("No MCR-registered taxa found in the selected sites."));
             this.renderComplete = true;
             return true;
         }
 
-        const varId       = nanoid();
-        const canvasId    = nanoid();
-        const coverageId  = nanoid();
-        $(this.renderIntoNode).html(
-            `<div class="mosaic-tile-content mcr-tile-content" id="${varId}">
-                <div class="mcr-chart-wrapper">
-                    <canvas id="${canvasId}"></canvas>
-                </div>
-                <div id="coverage-${coverageId}" class="tile-coverage-container"></div>
-            </div>`
-        );
-
-        this._canvas = document.getElementById(canvasId);
-        this._agg    = agg;
-        const resultMosaic    = this.sqs.resultManager.getModule("mosaic");
+        const resultMosaic = this.sqs.resultManager.getModule("mosaic");
         const siteIds = resultMosaic.sites.map(s => parseInt(s.site_id ?? s, 10)).filter(n => !isNaN(n));
         this.data = this._buildExportData(siteResponse, agg, siteIds);
+        this._agg = agg;
+
+        this.setMosaicTileSubtitle("Climate tolerated by "+this.formatCount(agg.totalTaxa)+" MCR taxa · warmest month against annual range");
+
+        const chartNode = this.getChartNode();
+        chartNode.addClass("mosaic-tile-chart-fill");
+        const canvasId = nanoid();
+        chartNode.append(`<div class="mcr-chart-wrapper"><canvas id="${canvasId}"></canvas></div>`);
+        chartNode.append(this._renderLegend());
+
+        this._canvas = document.getElementById(canvasId);
         this._drawChart(this._canvas, agg);
         this._attachTooltip(this._canvas, agg);
 
-        // Coverage mini-chart: sites with MCR data vs total sites in mosaic
-        const totalSites      = resultMosaic.sites.length;
-        const coverageContainer = document.getElementById(`coverage-${coverageId}`);
-        this.renderCoverageMiniChart(coverageContainer, agg.sitesWithData, totalSites);
-
         // Redraw fluidly whenever the chart wrapper changes size — observing the wrapper
-        // (which flexes between the header and the coverage bar) means the canvas always
+        // (which flexes between the header and the legend) means the canvas always
         // tracks its true available area, on the fly, without re-fetching or re-aggregating.
-        if (this._resizeObserver) this._resizeObserver.disconnect();
         this._resizeObserver = new ResizeObserver(() => {
             if (this._canvas && this._agg) this._drawChart(this._canvas, this._agg);
         });
@@ -433,6 +445,16 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
 
         this.renderComplete = true;
         return true;
+    }
+
+    // The key to the colors: fewer to more of the taxa tolerating a cell, and the cells all of them tolerate
+    _renderLegend() {
+        const legendNode = $("<div class='mosaic-chart-legend mcr-legend'></div>");
+        const rampNode = $("<span class='mosaic-chart-legend-item'><span>Fewer taxa</span><span class='mcr-legend-ramp' aria-hidden='true'></span><span>more taxa</span></span>");
+        rampNode.find(".mcr-legend-ramp").css("background", "linear-gradient(to right, "+this._densityColor(1, 100)+", "+this._densityColor(100, 100)+")");
+        legendNode.append(rampNode);
+        legendNode.append("<span class='mosaic-chart-legend-item'><span class='mcr-legend-swatch' aria-hidden='true'></span><span>All taxa agree</span></span>");
+        return legendNode;
     }
 
     async update() {
@@ -455,11 +477,6 @@ class MosaicMutualClimaticRangeModule extends MosaicTileModule {
         this._canvas = null;
         this._agg    = null;
         this._dims   = null;
-        // Clean up coverage mini-chart resize listener
-        if (this.coverageCharts.size > 0) {
-            window.removeEventListener('resize', this.resizeHandler);
-            this.coverageCharts.clear();
-        }
         return super.unrender();
     }
 

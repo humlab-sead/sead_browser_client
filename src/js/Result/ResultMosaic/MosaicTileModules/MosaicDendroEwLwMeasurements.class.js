@@ -8,7 +8,7 @@ class MosaicDendroEwLwMeasurements extends MosaicDendroCategoricalVariable {
         super(
             sqs,
             "EW/LW measurements",
-            "EW/LW Measurements",
+            "EW/LW measurements",
             "Early wood and late wood measurements available"
         );
         this.name = "mosaic-dendro-ew-lw-measurements";

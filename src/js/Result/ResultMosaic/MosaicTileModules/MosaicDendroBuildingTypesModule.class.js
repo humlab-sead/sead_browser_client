@@ -1,6 +1,4 @@
 import DendroBaseModule from "./DendroBaseModule.class";
-import { nanoid } from "nanoid";
-import Chart from 'chart.js/auto';
 
 /**
  * MosaicDendroBuildingTypesModule - Display building type distribution
@@ -9,160 +7,31 @@ class MosaicDendroBuildingTypesModule extends DendroBaseModule {
     constructor(sqs) {
         super(sqs);
         this.title = "Building types";
+        this.description = "The kinds of buildings the sample groups at the sites in the result were taken from, by number of sample groups.";
         this.name = "mosaic-dendro-building-types";
-        this.chartType = "bar";
+        this.categoryNoun = "building type";
+        // The building type is recorded per sample group
+        this.coverageNoun = "sample groups";
     }
 
-    async fetchData(renderIntoNode = null) {
-        this.sqs.setNoDataMsg(renderIntoNode, false);
+    async fetchData(requestId) {
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        const result = await this.fetchBuildingTypes(resultMosaic.sites, requestId);
 
-        if(renderIntoNode) {
-            this.sqs.setLoadingIndicator(renderIntoNode, true);
+        if(result.error || !result.data || !result.data.categories || result.data.categories.length === 0) {
+            return false;
         }
 
-        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        const requestId = ++this.requestId;
-
-        try {
-            const result = await this.fetchBuildingTypes(resultMosaic.sites, requestId);
-
-            if(!this.active) {
-                if(renderIntoNode) this.sqs.setLoadingIndicator(renderIntoNode, false);
-                return false;
-            }
-
-            if(result.error || !result.data || !result.data.categories || result.data.categories.length === 0) {
-                if(renderIntoNode) this.sqs.setLoadingIndicator(renderIntoNode, false);
-                return false;
-            }
-
-            const categories = result.data.categories.map(cat => ({
+        return {
+            categories: result.data.categories.map(cat => ({
                 name: cat.name,
                 count: cat.count
-            }));
-
-            this.data = {
-                label: "Building types",
-                description: "Distribution of building types in the dataset",
-                categories: categories
-            };
-
-            if(renderIntoNode) this.sqs.setLoadingIndicator(renderIntoNode, false);
-            return this.data;
-
-        } catch(error) {
-            console.error("Error fetching building types data:", error);
-            if(renderIntoNode) this.sqs.setLoadingIndicator(renderIntoNode, false);
-            return false;
-        }
+            }))
+        };
     }
 
-    async render(renderIntoNode) {
-        super.render();
-        this.renderComplete = false;
-        this.active = true;
-        this.renderIntoNode = renderIntoNode;
-
-        if(this.renderNoDataIfNoSites()) {
-            return;
-        }
-
-        const data = await this.fetchData(renderIntoNode);
-
-        if(!this.active) {
-            this.sqs.resultManager.showLoadingIndicator(false);
-            this.renderComplete = true;
-            return false;
-        }
-
-        if(data === false || !data) {
-            this.renderNoData();
-            this.sqs.resultManager.showLoadingIndicator(false);
-            this.renderComplete = true;
-            return;
-        }
-
-        $(this.renderIntoNode).empty();
-
-        const varId = nanoid();
-        const total = data.categories.reduce((sum, cat) => sum + cat.count, 0);
-
-        if(total === 0) {
-            this.renderNoData();
-            this.renderComplete = true;
-            return;
-        }
-
-        const sortedCategories = [...data.categories].sort((a, b) => b.count - a.count);
-        const colors = this.sqs.color.getNiceColorScheme(sortedCategories.length);
-
-        const wrapperHtml = `
-            <div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-charts">
-                    <canvas id="chart-${varId}" class="tile-chart-container"></canvas>
-                    <div id="coverage-${varId}" class="tile-coverage-container"></div>
-                </div>
-            </div>
-        `;
-        $(this.renderIntoNode).append(wrapperHtml);
-        this.setMosaicTileTitle(data.label);
-
-        const ctx = document.getElementById(`chart-${varId}`).getContext('2d');
-        const chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: sortedCategories.map(cat => cat.name),
-                datasets: [{
-                    label: 'Samples',
-                    data: sortedCategories.map(cat => cat.count),
-                    backgroundColor: colors,
-                    borderRadius: 3,
-                    minBarLength: 3
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.parsed.x + ' samples';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        title: { display: true, text: 'Sample Count', font: { size: 11 } },
-                        ticks: { font: { size: 10 } },
-                        beginAtZero: true,
-                        grid: { color: '#e0e0e0' }
-                    },
-                    y: {
-                        ticks: { font: { size: 10 } },
-                        grid: { display: false }
-                    }
-                }
-            }
-        });
-
-        this.chartInstances.set(varId, { chart: chart, name: data.label });
-
-        // Add mini coverage chart — renders immediately with empty bar, animates fill when totalSamples resolves
-        const coverageContainer = document.getElementById(`coverage-${varId}`);
-        this.renderCoverageMiniChart(coverageContainer, total, this.fetchTotalSamplesCount());
-
-        this.sqs.resultManager.showLoadingIndicator(false);
-        this.renderComplete = true;
-    }
-
-    async update() {
-        this.renderComplete = false;
-        await this.render(this.renderIntoNode);
-        this.renderComplete = true;
+    getCoverageTotal() {
+        return this.fetchSampleGroupsCount();
     }
 }
 

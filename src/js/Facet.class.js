@@ -51,7 +51,6 @@ class Facet {
 		
 		this.sqs.tooltipManager.registerTooltip($(".facet-title", facetDomObj), this.description, { drawSymbol: true, anchorPoint: "symbol" });
 
-		$(facetDomObj).find(".facet-header-divider").css("background-color", this.color);
 		$("#facet-section").append(facetDomObj);
 		
 		//Config.facetBodyHeight = "20%";
@@ -272,10 +271,11 @@ class Facet {
 	* Un-mimizes the facet.
 	*/
 	maximize() {
-		$("#facet-"+this.id).find(".facet-size-btn").switchClass("fa-check-square", "fa-check");
 		$("#facet-"+this.id+" .facet-size-btn")
 			.switchClass("facet-maximize-btn", "facet-minimize-btn")
-			.removeClass("facet-control-active");
+			.removeClass("facet-control-active")
+			.attr("aria-label", "Collapse filter");
+		$(this.domObj).removeClass("facet-minimized");
 		
 		$("#facet-"+this.id).css("height", this.defaultHeight);
 		$("#facet-"+this.id).find(".facet-body").css("height", this.bodyHeight);
@@ -304,7 +304,9 @@ class Facet {
 	minimize(changeFacetSize = false) {
 		$("#facet-"+this.id+" .facet-size-btn")
 			.switchClass("facet-minimize-btn", "facet-maximize-btn")
-			.addClass("facet-control-active");
+			.addClass("facet-control-active")
+			.attr("aria-label", "Expand filter");
+		$(this.domObj).addClass("facet-minimized");
 
 		/*
 		if(changeFacetSize) {
@@ -623,6 +625,7 @@ class Facet {
 	* all), so the difference has to be said somewhere.
 	*/
 	renderRangeState(text, narrowed) {
+		this.rangeStateText = text;
 		let node = $(".facet-range-state", this.getDomRef());
 		if(node.length == 0) {
 			node = $("<div class='facet-range-state'><span class='facet-range-state-text'></span>"
@@ -637,6 +640,40 @@ class Facet {
 		$(".facet-range-state-text", node).text(text);
 		$(".facet-range-state-clear", node).toggle(narrowed);
 		$(this.getDomRef()).toggleClass("facet-range-narrowed", narrowed);
+	}
+
+	/*
+	* Function: getSelectionSummary
+	* A few words on what the selection is, for the crumb which stands for this filter above the
+	* filters. Facet types with something better to say than a count override this.
+	*
+	* Parameters:
+	* maxTitles - How many selected items to name before saying how many more there are, for the types which name them.
+	*/
+	getSelectionSummary(maxTitles = 2) {
+		if(typeof this.rangeStateText == "string" && this.hasSelection()) {
+			return this.rangeStateText;
+		}
+		let count = this.selections.length;
+		if(typeof this.filters != "undefined") {
+			count = 0;
+			this.filters.forEach(filter => {
+				count += filter.selections.length;
+			});
+		}
+		return count+" selected";
+	}
+
+	/*
+	* Function: summariseTitles
+	* The first few of a list of names, and how many more there are: "Sweden, Norway +3".
+	*/
+	summariseTitles(titles, maxTitles = 2) {
+		let summary = titles.slice(0, maxTitles).join(", ");
+		if(titles.length > maxTitles) {
+			summary += " +"+(titles.length - maxTitles);
+		}
+		return summary;
 	}
 
 	/*

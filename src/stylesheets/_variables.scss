@@ -1,17 +1,19 @@
 // Shared font variables
 $header-font: 'Rajdhani';
-$normal-font: 'Didact Gothic';
+$normal-font: 'IBM Plex Sans';
 $special-font: 'Rajdhani';
 $sead-font: 'Exo 2';
+// Identifiers, counts and other figures that are read and compared
+$mono-font: 'IBM Plex Mono';
 
 // Viewport-relative UI scale.
 // The layout is designed for a viewport of at least $ui-reference-width x $ui-reference-height CSS px
-// (a 1080p screen minus browser chrome). On smaller viewports, such as a 1366x768 laptop or a 1080p
-// laptop at 125-150% OS scaling, sizes shrink proportionally down to $ui-min-scale instead of
+// (a 1440x900 laptop screen, the size the layout is drawn at). On smaller viewports, such as a 1366x768
+// laptop or a 1080p laptop at 150% OS scaling, sizes shrink proportionally down to $ui-min-scale instead of
 // covering a larger share of the screen. devicePixelRatio is deliberately not involved: the browser
 // already divides it out of CSS px, what differs between those screens is the viewport size.
-$ui-reference-width: 1920;
-$ui-reference-height: 950;
+$ui-reference-width: 1440;
+$ui-reference-height: 900;
 $ui-min-scale: 0.8;
 // Below this width the mobile layout takes over, which has its own sizing.
 $ui-mobile-breakpoint: 720px;

@@ -8,8 +8,9 @@ class MosaicDendroTreeRings extends MosaicDendroNumericVariable {
         super(
             sqs,
             "Tree rings",
-            "Tree Rings",
-            "Number of tree rings counted in the sample"
+            "Tree rings",
+            "Number of tree rings counted in the sample",
+            "Tree rings"
         );
         this.name = "mosaic-dendro-tree-rings";
     }

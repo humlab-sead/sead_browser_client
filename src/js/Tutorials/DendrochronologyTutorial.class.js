@@ -111,8 +111,8 @@ class DendrochronologyTutorial {
             text: `The SEAD system contains many types of data from archaeological excavations, buildings and palaeoecological investigations. This data is organised into domains, please click on the domain menu to select the dendrochronology domain.
             `,
             classes: 'tutorial-container',
-            attachTo: { element: '#filter-menu-domain-area', on: 'right' },
-            advanceOn: { selector: '#filter-menu-domain-area', event: 'click' },
+            attachTo: { element: '#domain-menu', on: 'bottom' },
+            advanceOn: { selector: '#domain-menu', event: 'click' },
             buttons: [
                 {
                 text: 'Exit tour',
@@ -170,8 +170,8 @@ class DendrochronologyTutorial {
             text: `By using site filters it is possible to filter the sites according to several criteria. Please click on the filter menu to open it.
             `,
             classes: 'tutorial-container',
-            attachTo: { element: '#filter-menu-filter-area', on: 'right' },
-            advanceOn: { selector: '#filter-menu-filter-area', event: 'click' },
+            attachTo: { element: '#facet-menu', on: 'bottom' },
+            advanceOn: { selector: '#facet-menu', event: 'click' },
             buttons: [
                 {
                 text: 'Exit tour',
@@ -288,7 +288,19 @@ class DendrochronologyTutorial {
             Within dendrochronology, a sample group is usually a section of a building or an artefact.
             <br /><br />
             Clicking on a group expands it to show details of the individual samples. You can go ahead and do that now if you like.`,
-            attachTo: { element: '#site-report-section-samples', on: 'right' },
+            attachTo: { element: '#site-report-section-samples', on: 'top' },
+            beforeShowPromise: () => {
+                return new Promise((resolve) => {
+                    let interval = setInterval(() => {
+                        let siteReport = this.sqs.siteReportManager.siteReport;
+                        if(siteReport && siteReport.tabs && $("#site-report-section-samples").length > 0) {
+                            clearInterval(interval);
+                            siteReport.setActiveTab("samples");
+                            resolve();
+                        }
+                    }, 100);
+                });
+            },
             classes: 'tutorial-container',
             buttons: [
                 {
@@ -307,9 +319,21 @@ class DendrochronologyTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Analyses',
-            text: `This section shows the analyses performed on the samples taken. Click on Dendrochronology to expand it.`,
-            attachTo: { element: ' #site-report-section-analyses', on: 'right' },
-            advanceOn: { selector: '#site-report-section-analyses .site-report-level-container', event: 'click' },
+            text: `These are the analyses performed on the samples taken, listed by method. Click on Dendrochronology to show it.`,
+            attachTo: { element: '.site-report-method-nav', on: 'right' },
+            advanceOn: { selector: '.site-report-method-nav-item[data-method-id="10"]', event: 'click' },
+            beforeShowPromise: () => {
+                return new Promise((resolve) => {
+                    let interval = setInterval(() => {
+                        let siteReport = this.sqs.siteReportManager.siteReport;
+                        if(siteReport && siteReport.tabs && $("#site-report-section-analyses").length > 0) {
+                            clearInterval(interval);
+                            siteReport.setActiveTab("analyses");
+                            resolve();
+                        }
+                    }, 100);
+                });
+            },
             classes: 'tutorial-container',
             buttons: [
                 {
@@ -325,7 +349,7 @@ class DendrochronologyTutorial {
             id: this.stepCounter++,
             title: 'Analyses',
             text: `The two samples from our selected investigation is shown. It is also possible to select different viewing options and sortings under display options. If the site contains undated samples, these will only be shown under the spreadsheet view. Click on the bar for sample 12709 to see the sample information.`,
-            attachTo: { element: '#site-report-section-analyses .site-report-level-container', on: 'right' },
+            attachTo: { element: '#site-report-section-analyses .site-report-method-active', on: 'top' },
             advanceOn: { selector: '.dendro-bar', event: 'click' },
             classes: 'tutorial-container',
             buttons: [
@@ -377,8 +401,8 @@ class DendrochronologyTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Returning to the filters',
-            text: `By clicking the arrow you will return to the Dendro domain.`,
-            attachTo: { element: '#site-report-exit-menu', on: 'right' },
+            text: `By clicking 'Back to result' you will return to the Dendro domain.`,
+            attachTo: { element: '#site-report-exit-menu', on: 'bottom' },
             advanceOn: { selector: '#site-report-exit-menu', event: 'click' },
             beforeShowPromise: () => {
                 //close any active popup dialogs, in case the user clicked the export button in the previous step

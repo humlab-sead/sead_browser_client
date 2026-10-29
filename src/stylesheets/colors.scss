@@ -15,6 +15,16 @@ $warning-color: rgba(200, 160, 0, 0.85);
 $info-color: rgba(70, 140, 205, 1.0);
 $success-color: #2f8f46;
 
+//Surfaces, lines and text of the page: grey cards on a light grey page
+$page-bg-color: #f5f5f5;
+$card-bg-color: #ffffff;
+$border-color: #dcdcdc;
+$border-color-light: #ebebeb;
+$control-border-color: #cfcfcf;
+$text-color: #1e1e1e;
+$text-muted-color: #636363;
+$base-color-dark: #22486c;
+
 
 
 //DARK MODE
@@ -52,4 +62,8 @@ Exporting variables for webpack to make them includeable in js
     errorColor: $error-color;
     warningColor: $warning-color;
     successColor: $success-color;
+    pageBgColor: $page-bg-color;
+    borderColor: $border-color;
+    textColor: $text-color;
+    textMutedColor: $text-muted-color;
   }

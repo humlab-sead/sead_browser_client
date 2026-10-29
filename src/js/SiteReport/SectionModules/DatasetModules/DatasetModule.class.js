@@ -54,7 +54,7 @@ class DatasetModule {
 				html += "<div class='dataset-contact-notes'>"+contact.contact_location_name+"</div>";
 			}
 			if(contact.contact_url) {
-				html += "<div class='dataset-contact-notes'>"+contact.contact_url+"</div>";
+				html += "<div class='dataset-contact-notes'><a href='"+contact.contact_url+"' target='_blank' rel='noopener'>"+contact.contact_url+"</a></div>";
 			}
 			if(contact.contact_type_description) {
 				html += "<div class='dataset-contact-notes'>"+contact.contact_type_description+"</div>";

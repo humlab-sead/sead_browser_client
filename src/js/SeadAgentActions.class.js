@@ -648,6 +648,8 @@ export default class SeadAgentActions {
         report.setSectionCollapsedState(node, section);
 
         if(!section.collapsed) {
+            //Sections are on tabs, and an analysis method shows on its own
+            report.revealSection(name);
             //Same reveal the client does when it expands a section itself
             await this.pause(150);
             try {
@@ -703,6 +705,7 @@ export default class SeadAgentActions {
         if(!section) {
             throw new Error("There is no section '"+name+"' in this site report. Use list_site_report_sections to see what exists.");
         }
+        report.revealSection(name);
         //Rows only exist on the page once their section is open
         if(expand && section.collapsed !== false) {
             await this.setSiteReportSection({ section: name, expanded: true });
