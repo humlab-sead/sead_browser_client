@@ -476,13 +476,7 @@ class CeramicDataset extends DatasetModule {
 							"selected": 1,
 							"options": chartAxes
 						},
-						{
-							"enabled": false,
-							"title": "Sort",
-							"type": "select",
-							"options": [
-							]
-						}
+						this.getSampleSortOption([null])
 					]
 				}
 			]

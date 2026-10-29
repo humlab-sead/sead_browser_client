@@ -809,6 +809,7 @@ button.site-report-method-dot {
   background: none;
   color: colors.$text-color;
   font-size: sqs-px(14);
+  line-height: 1.2;
   text-align: left;
   cursor: pointer;
 }
@@ -853,7 +854,6 @@ button.site-report-method-dot {
   background: transparent;
   color: colors.$text-color;
   font-size: sqs-px(14);
-  line-height: 1.2;
   text-align: left;
   cursor: pointer;
 }
@@ -1146,6 +1146,50 @@ button.site-report-method-dot {
   margin: 0;
 }
 
+/* What the dataset is shown as and how, under its title and its buttons, on a row of their own */
+#site-report-content .content-item-view-controls {
+  order: 1;
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: sqs-px(8) sqs-px(16);
+}
+
+/* Opens from the left, as its button is first in the row */
+#site-report-content .content-item-view-controls .site-report-display-options-dropdown {
+  left: 0;
+  right: auto;
+}
+
+/* Switching between the dataset's views, such as its spreadsheet and its chart, as small as the buttons beside it */
+#site-report-content .content-item-view-toggle button {
+  height: sqs-px(26);
+  padding: 0 sqs-px(10);
+}
+
+/* The controls of the dataset's view which are in its head, such as how to sort it, each a label and a select */
+#site-report-content .content-item-header-extras {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(6);
+}
+
+#site-report-content .content-item-header-extras:empty {
+  display: none;
+}
+
+#site-report-content .content-item-header-extras .site-report-view-selector-label {
+  display: inline;
+  color: colors.$text-muted-color;
+  font-size: sqs-px(13);
+  font-weight: 500;
+}
+
+#site-report-content .content-item-header-extras .site-report-view-selector-control {
+  width: auto;
+}
+
 /* Smaller than the standard button, to sit in the head of a dataset card */
 #site-report-content .site-report-toolbar-btn {
   height: sqs-px(32);
@@ -1191,7 +1235,8 @@ button.site-report-method-dot {
 }
 
 /* The controls look like the buttons beside them, a select with a chevron of its own */
-#site-report-content .site-report-display-options-dropdown .site-report-view-selector-control {
+#site-report-content .site-report-display-options-dropdown .site-report-view-selector-control,
+#site-report-content .content-item-header-extras .site-report-view-selector-control {
   height: sqs-px(32);
   min-height: 0;
   padding: 0 sqs-px(10);
@@ -1206,7 +1251,8 @@ button.site-report-method-dot {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-#site-report-content .site-report-display-options-dropdown select.site-report-view-selector-control:not([multiple]) {
+#site-report-content .site-report-display-options-dropdown select.site-report-view-selector-control:not([multiple]),
+#site-report-content .content-item-header-extras select.site-report-view-selector-control:not([multiple]) {
   appearance: none;
   padding-right: sqs-px(30);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23636363' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -1225,11 +1271,13 @@ button.site-report-method-dot {
   border-radius: sqs-px(4);
 }
 
-#site-report-content .site-report-display-options-dropdown .site-report-view-selector-control:hover {
+#site-report-content .site-report-display-options-dropdown .site-report-view-selector-control:hover,
+#site-report-content .content-item-header-extras .site-report-view-selector-control:hover {
   border-color: #b5b5b5;
 }
 
-#site-report-content .site-report-display-options-dropdown .site-report-view-selector-control:focus {
+#site-report-content .site-report-display-options-dropdown .site-report-view-selector-control:focus,
+#site-report-content .content-item-header-extras .site-report-view-selector-control:focus {
   outline: none;
   border-color: colors.$base-color;
   box-shadow: 0 0 0 3px rgba(colors.$base-color, 0.15);

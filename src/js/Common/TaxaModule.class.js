@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import Color from "../Color.class";
+import "zingchart/es6";
 //import '../../../node_modules/datatables/media/css/jquery.dataTables.min.css';
 import Config from '../../config/config.json';
 import "../../../node_modules/tabulator-tables/dist/css/tabulator.min.css";

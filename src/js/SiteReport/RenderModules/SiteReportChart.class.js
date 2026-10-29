@@ -1,14 +1,4 @@
 import { nanoid } from "nanoid";
-import { 
-	Chart, 
-	CategoryScale, 
-	LinearScale, 
-	BarController, 
-	BarElement,
-	Legend,
-	Tooltip
- } from "chart.js";
-import 'zingchart/es6';
 import Plotly from "plotly.js-dist-min";
 import proj4 from "proj4";
 
@@ -34,6 +24,7 @@ import { map } from "jquery";
 import SqsMenu from "../../SqsMenu.class.js";
 
 import OpenLayersMap from "../../Common/OpenLayersMap.class.js";
+import SampleDepths from "../SampleDepths.class.js";
 import { local } from "d3";
 import { isNumber } from "lodash";
 
@@ -43,25 +34,7 @@ class SiteReportChart {
 		this.sqs = this.siteReport.sqs;
 		this.contentItem = contentItem;
 		this.chartId = null;
-		Chart.register(CategoryScale);
-		Chart.register(LinearScale);
-		Chart.register(BarController);
-		Chart.register(BarElement);
-		Chart.register(Legend);
-		Chart.register(Tooltip);
-
-		this.chartTheme = {
-			graph: {
-				title: {
-					fontFamily: 'Lato',
-					fontSize: 14,
-					padding: 15,
-					fontColor: '#000',
-					adjustLayout: true
-				},
-				backgroundColor: "#f0f0f0"
-			}
-		};
+		this.plotlyGd = null;
 		this.mcrTooltipEl = null;
 	}
 
@@ -115,19 +88,19 @@ class SiteReportChart {
 			if(ro.selected) {
 				switch(ro.type) {
 					case "bar":
-						node = this.renderScatterChartPlotly();
+						node = this.renderBarChart();
+						break;
+					case "sample-bar":
+						node = this.renderSampleBarChart();
+						break;
+					case "depth-profile":
+						node = this.renderDepthProfileChart();
 						break;
 					case "ecocode":
 						node = this.renderEcoCodeChart();
 						break;
 					case "ecocodes-samples":
 						node = this.renderEcoCodesPerSampleChart();
-						break;
-					case "ms-bar":
-						node = this.renderMagneticSusceptibilityBarChart();
-						break;
-					case "loi-bar":
-						node = this.renderLossOnIgnitionChart();
 						break;
 					case "pie":
 						node = this.renderPieChart();
@@ -155,8 +128,8 @@ class SiteReportChart {
 	}
 
 	unrender() {
-		if(this.chartId != null) {
-			zingchart.exec(this.chartId, "destroy");
+		if(this.plotlyGd != null) {
+			Plotly.purge(this.plotlyGd);
 		}
 		if(this.mcrTooltipEl) {
 			this.mcrTooltipEl.remove();
@@ -164,12 +137,6 @@ class SiteReportChart {
 		}
 	}
 	
-	renderBarChart() {
-		//this.renderBarChartZing();
-		//this.renderBarChartCJS();
-		this.renderScatterChartPlotly();
-	}
-
 	getCoordinateSystems(coordinates) {
 		let coordinateSystems = {
 			xy: null,
@@ -817,7 +784,8 @@ class SiteReportChart {
 		const seenSampleIds = new Set();
 		const seenSampleNames = new Set();
 
-		for (const row of contentItem.data.rows) {
+		const rowsBySampleName = [...contentItem.data.rows].sort((a, b) => this.compareSampleNames(a[sampleNameColKey].value, b[sampleNameColKey].value));
+		for (const row of rowsBySampleName) {
 			const sid = row[sampleIdColKey].value;
 			const sname = row[sampleNameColKey].value;
 
@@ -891,23 +859,19 @@ class SiteReportChart {
 
 	// 4) Layout & sizing (match your dynamic height: 130 + 40px per sample)
 	const chartHeight = 130 + (samples.length * 40);
-	const layout = {
+	const layout = this.getPlotlyLayout({
 		barmode: "stack",
-		title: { text: chartTitle, x: 0, xanchor: "left" },
 		height: chartHeight,
-		margin: { l: 120, r: 20, t: 40, b: 40 },
-		xaxis: {
-			title: { text: `Abundance${abundanceUnit ? ` (${abundanceUnit})` : ""}` },
-			zeroline: true,
-			automargin: true
-		},
-		yaxis: {
-			title: { text: "Sample" },
+		xaxis: this.getPlotlyAxis(`Abundance${abundanceUnit ? ` (${abundanceUnit})` : ""}`),
+		yaxis: this.getPlotlyAxis("Sample", {
+			title: { text: "Sample", standoff: 16 },
+			ticklabelstandoff: 6,
 			type: "category",
 			categoryorder: "array",
 			categoryarray: sampleNames,
-			automargin: true
-		},
+			autorange: "reversed",
+			showgrid: false
+		}),
 		// Start with hidden legend
 		showlegend: false,
 		legend: {
@@ -920,10 +884,8 @@ class SiteReportChart {
 			bordercolor: "#ccc",
 			borderwidth: 1
 		},
-		hovermode: "closest",
-		paper_bgcolor: "white",
-		plot_bgcolor: "white"
-	};
+		hovermode: "closest"
+	});
 
 	const config = {
 			responsive: true,
@@ -1027,96 +989,6 @@ class SiteReportChart {
         return selectedOption;
     }
 
-	/*
-	* Function: renderBarChartZing
-	*
-	* Render bar chart using ZingChart
-	*/
-	renderBarChartZing() {
-		var contentItem = this.contentItem;
-		
-		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
-		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
-		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
-
-		var xUnitSymbol = "";
-		var yUnitSymbol = "";
-		
-		if(contentItem.data.columns[xAxisKey].hasOwnProperty("unit")) {
-			xUnitSymbol = contentItem.data.columns[xAxisKey].unit;
-		}
-		if(contentItem.data.columns[yAxisKey].hasOwnProperty("unit")) {
-			yUnitSymbol = contentItem.data.columns[yAxisKey].unit;
-		}
-
-		contentItem.data.rows.sort((a, b) => {
-			if(a[sortCol].value > b[sortCol].value) {
-				return 1;
-			}
-			else {
-				return -1;
-			}
-		});
-
-		
-		var config = {
-			"type": "bar",
-			"plot": {
-				"tooltip": {
-					"text": "<span class='chart-tooltip-info'>"+contentItem.data.columns[xAxisKey].title+": %kv</span>\n"+contentItem.data.columns[yAxisKey].title+": %v",
-					"font-size": 16,
-				},
-				"background-color": "#34454f",
-				"hover-state": {
-					"background-color": "#f60"
-				},
-				"max-trackers": 10000
-			},
-			"scale-x": {
-				"format":"%v"+xUnitSymbol,
-				"label": {
-					"text": contentItem.data.columns[xAxisKey].title
-				},
-				"values": []
-			},
-			"scale-y": {
-				"format":"%v"+yUnitSymbol,
-				"label": {
-					"text": contentItem.data.columns[yAxisKey].title
-				},
-				"values": []
-			},
-			"series": [{
-				"values": [],
-				"text": "Series1"
-			}]
-		};
-		
-		let yValues = [];
-		for(var key in contentItem.data.rows) {
-			yValues.push(contentItem.data.rows[key][yAxisKey].value);
-			config["scale-x"].values.push(contentItem.data.rows[key][xAxisKey].value);
-			config["scale-y"].values.push(contentItem.data.rows[key][yAxisKey].value);
-			config["series"][0].values.push(contentItem.data.rows[key][yAxisKey].value);
-		}
-
-		//This is really silly work-around for a bug in zingchart. The Y-axis doesn't render properly if the maximum difference between the data points is less than 1.0
-		let yDiff = Math.max.apply(null, yValues) - Math.min.apply(null, yValues);
-		if(yDiff < 1) {
-			config["scale-y"].values.push(Math.max.apply(null, yValues) + 1);
-		}
-		
-		this.chartId = "chart-"+nanoid();
-		var chartContainer = $("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
-		$(this.anchorNodeSelector).append(chartContainer);
-
-		zingchart.render({
-			id : this.chartId,
-			data : config,
-			defaults: this.chartTheme
-		});
-	}
-
 	/**
 	 * dataTransform
 	 * 
@@ -1209,461 +1081,506 @@ class SiteReportChart {
 		}
 	}
 
-	renderScatterChartPlotly() {
-		var contentItem = this.contentItem;
-		let chartData = this.dataTransform(contentItem);
-
-		//let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
-		//let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
-		//let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
-
-		// Combine the arrays and sort them based on values
-		let keysArray = chartData.x.values;
-		let valuesArray = chartData.y.values;
-
-		let unitColKey = null;
-		contentItem.data.columns.forEach((column, index) => {
-			if(column.title == 'Unit') {
-				unitColKey = index;
-			}
-		});
-
-		if(unitColKey != null && contentItem.data.rows.length > 0) {
-			chartData.y.unit = contentItem.data.rows[0][unitColKey].value;
-		}
-
-		let combinedArrays = keysArray.map((key, index) => ({ key, value: valuesArray[index] }));
-		combinedArrays.sort((a, b) => a.value - b.value);
-
-		// Extract sorted keys and values
-		let sortedKeys = combinedArrays.map(item => item.key);
-		let sortedValues = combinedArrays.map(item => item.value);
-
-		chartData.y.values = sortedValues;
-		chartData.x.values = sortedKeys;
-
-		/*
-		contentItem.data.rows.sort((a, b) => {
-		  if (a[sortCol].value > b[sortCol].value) {
-			return 1;
-		  } else {
-			return -1;
-		  }
-		});
-		*/
-
-		let graphType = "scatter";
-		
-		let data = [
-		  {
-			x: chartData.x.values,
-			y: chartData.y.values,
-			type: graphType,
-			mode: "markers",
-			text: chartData.y.values.map((val) => `${val} ${chartData.y.unit}`),
-			hoverinfo: "x+text",
-			hovertemplate: `%{y} ${chartData.y.unit}<extra>Sample name %{x}</extra>`,
-			textposition: 'auto',
-			marker: {
-				color: this.sqs.color.colors.baseColor,
-			}
-		  },
-		];
-
-
-		//calculate bottom margin based on lenght of sample names
-		let marginB = 50;
-		let maxSampleNameLength = 0;
-		chartData.x.values.forEach(sampleName => {
-			if(sampleName.length > maxSampleNameLength) {
-				maxSampleNameLength = sampleName.length;
-			}
-		});
-		marginB += maxSampleNameLength * 5;
-
-		let layout = {
-			title: {
-				//text: contentItem.data.columns[yAxisKey].title+" by "+contentItem.data.columns[xAxisKey].title,
-				font: {
-					family: 'Didact Gothic, sans-serif',
-					size: this.sqs.scalePx(22)
-				},
-			},
-			plot_bgcolor: "#fff",
-			paper_bgcolor: "#fff",
-			autosize: true,
-			showlegend: false,
-			margin: {
-				l: 50,
-				r: 50,
-				b: marginB,
-				t: 50,
-				pad: 4
-			},
-			font: {
-				family: 'Didact Gothic, sans-serif',
-				size: this.sqs.scalePx(14),
-				color: '#333'
-			},
-			xaxis: {
-				type: "category", //to get distinct and not linear/range values
-				tickangle: 60,
-				title: {
-					text: 'Sample',
-					font: {
-						family: 'Didact Gothic, sans-serif',
-						size: this.sqs.scalePx(18),
-						color: '#333'
-					},
-				}
-			},
-			yaxis: {
-				showticklabels: true,
-				ticks: "outside",
-				automargin: true,
-				title: {
-					text: chartData.y.unit ? `Value (${chartData.y.unit})` : 'Value',
-					font: {
-						family: 'Didact Gothic, sans-serif',
-						size: this.sqs.scalePx(18),
-						color: '#333'
-					},
-				}
-			}
-		};
-	  
-		this.chartId = "chart-" + nanoid();
-		var chartContainer = $("<div id='" + this.chartId + "' class='site-report-chart-container'></div>");
-		$(this.anchorNodeSelector).append(chartContainer);
-	  
-		Plotly.newPlot(this.chartId, data, layout, {responsive: true, displayModeBar: true});
-	}
-	  
-	
-	
 	/*
-	* Function: renderBarChartZing
+	* Function: getPlotlyLayout
 	*
-	* DEPRECATED. Render bar chart using ChartJS.
+	* The layout all of the site report's Plotly charts start from, so that they look alike: the page's font and colours,
+	* light grid lines and any legend above the chart.
 	*/
-	renderBarChartCJS() {
-		var contentItem = this.contentItem;
-
-		let cir = this.siteReport.getContentItemRenderer(this.contentItem);
-		var ro = cir.getSelectedRenderOption(contentItem);
-		var xAxisKey = ro.options.xAxis;
-		var yAxisKey = ro.options.yAxis;
-		
-		var xAxisLabel = contentItem.data.columns[xAxisKey].title;
-		var yAxisLabel = contentItem.data.columns[yAxisKey].title;
-
-		var chartjsData = {};
-		chartjsData.labels = [];
-		chartjsData.datasets = [];
-		chartjsData.datasets.push({
-			label: "Dataset 1",
-			data: [],
-			hoverBackgroundColor: "#f60"
-		});
-
-		var bgColor = this.sqs.color.getColorScheme(1)[0];
-		bgColor = "#34454f";
-
-		for(var key in contentItem.data.rows) {
-			chartjsData.labels.push(contentItem.data.rows[key][xAxisKey]);
-			chartjsData.datasets[0].data.push(contentItem.data.rows[key][yAxisKey]);
-			chartjsData.datasets[0].backgroundColor = bgColor;
-		}
-
-		this.chartConfig = {
-			"type": "bar",
-			"data": {
-				"labels": chartjsData.labels,
-				"datasets": chartjsData.datasets
-			}
-		};
-
-		this.chartConfig.options = {
-			responsive: true,
-			responsiveAnimationDuration: 0,
-			onResize: (chart, size) => {
-			},
-			legend: {
-				position: "top",
-				display: false
-			},
-			tooltips: {
-				callbacks: {
-					label: function(tooltipItem) {
-						return yAxisLabel+": "+tooltipItem.yLabel;
-					}
-				}
-			},
-			animation: {
-			},
-			title: {
-				display: false,
-				text: contentItem.title
-			},
-			scales: {
-				yAxes: [
-					{
-						scaleLabel: {
-							display: true,
-							labelString: yAxisLabel
-						},
-						ticks: {
-							beginAtZero: true
-						}
-					}
-				],
-				xAxes: [
-					{
-						scaleLabel: {
-							display: true,
-							labelString: xAxisLabel
-						},
-						ticks: {
-							display: contentItem.data.rows.length < 31,
-							beginAtZero: false,
-							autoSkip: false
-						}
-					}
-				]
-			}
-		};
-
-		var chartId = "chart-"+nanoid();
-		var chartContainer = $("<div class='site-report-chart-container'></div>");
-		this.chartNode = $("<canvas id='"+chartId+"' class='site-report-chart'></canvas>");
-		chartContainer.append(this.chartNode);
-		$(this.anchorNodeSelector).append(chartContainer);
-		var ctx = $(this.chartNode)[0].getContext("2d");
-		new Chart(ctx, this.chartConfig);
-
-		return chartContainer;
+	getPlotlyLayout(layout = {}) {
+		const colors = this.sqs.color.colors;
+		const font = { family: "IBM Plex Sans, sans-serif", size: this.sqs.scalePx(13), color: colors.textColor };
+		return Object.assign({
+			font: font,
+			paper_bgcolor: "#fff",
+			plot_bgcolor: "#fff",
+			margin: { l: 10, r: 10, t: 10, b: 10 },
+			showlegend: false,
+			legend: { orientation: "h", x: 0, y: 1.02, xanchor: "left", yanchor: "bottom" },
+			hoverlabel: { font: font, bgcolor: "#fff", bordercolor: colors.borderColor }
+		}, layout);
 	}
 
-	renderLossOnIgnitionChart() {
-		let contentItem = this.contentItem;
-		
-		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
-		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
-		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
+	/*
+	* Function: getPlotlyAxis
+	*
+	* An axis of a site report chart, with its title.
+	*/
+	getPlotlyAxis(title, axis = {}) {
+		const colors = this.sqs.color.colors;
+		return Object.assign({
+			title: { text: title, standoff: this.sqs.scalePx(12) },
+			automargin: true,
+			gridcolor: colors.borderColorLight,
+			linecolor: colors.borderColor,
+			zerolinecolor: colors.borderColor,
+			ticks: "outside",
+			tickcolor: colors.borderColor
+		}, axis);
+	}
 
-		var xUnitSymbol = "";
-		var yUnitSymbol = "";
-		
-		if(contentItem.data.columns[xAxisKey].hasOwnProperty("unit")) {
-			xUnitSymbol = contentItem.data.columns[xAxisKey].unit;
+	getPlotlyConfig() {
+		return {
+			responsive: true,
+			displaylogo: false,
+			modeBarButtonsToRemove: ["select2d", "lasso2d"],
+			toImageButtonOptions: { format: "png", scale: 2 }
+		};
+	}
+
+	/*
+	* Function: renderPlotlyChart
+	*
+	* Draws a Plotly chart last in the anchor node, in the container the site report's PNG and SVG exports look for.
+	*/
+	renderPlotlyChart(traces, layout) {
+		this.chartId = "chart-"+nanoid();
+		$(this.anchorNodeSelector).append("<div id='"+this.chartId+"' class='site-report-chart-container'></div>");
+		this.plotlyGd = document.getElementById(this.chartId);
+		return Plotly.newPlot(this.plotlyGd, traces, layout, this.getPlotlyConfig());
+	}
+
+	compareSampleNames(a, b) {
+		return String(a).localeCompare(String(b), "sv", { numeric: true });
+	}
+
+	toNumberOrNull(value) {
+		let number = typeof value == "number" ? value : parseFloat(value);
+		return isFinite(number) ? number : null;
+	}
+
+	/*
+	* Function: getUniqueLabels
+	*
+	* The labels as distinct categories, since a category axis draws all the bars of the same label as one. A repeated
+	* label gets zero-width spaces after it, which don't show.
+	*/
+	getUniqueLabels(labels) {
+		let counts = {};
+		return labels.map(label => {
+			label = String(label);
+			let count = counts[label] || 0;
+			counts[label] = count + 1;
+			return label + "​".repeat(count);
+		});
+	}
+
+	/*
+	* Function: getMethodValueTitle
+	*
+	* The name of the values the content item's method measures, with their unit, such as "Loss on ignition".
+	*/
+	getMethodValueTitle() {
+		const method = this.siteReport.getMethod(this.contentItem.methodId);
+		if(!method) {
+			return "Value";
 		}
-		if(contentItem.data.columns[yAxisKey].hasOwnProperty("unit")) {
-			yUnitSymbol = contentItem.data.columns[yAxisKey].unit;
+		const unit = this.siteReport.siteData.lookup_tables.units.find(unit => unit.unit_id == method.unit_id);
+		return method.method_name + (unit ? " ("+unit.unit_abbrev+")" : "");
+	}
+
+	/*
+	* Function: getSampleSeries
+	*
+	* The samples of the content item's table, in the order of their names, and the values of the columns the selected
+	* render option draws, as series. Values which aren't numbers, such as a missing burned value, are null.
+	*/
+	getSampleSeries() {
+		const columns = this.contentItem.data.columns;
+		const sampleIdColKey = columns.findIndex(column => column.role == "sample_id");
+		const sampleNameColKey = columns.findIndex(column => column.role == "sample_name");
+		const renderOption = this.siteReport.getContentItemRenderer(this.contentItem).getSelectedRenderOption(this.contentItem);
+		const valueTitle = this.getMethodValueTitle();
+
+		const rows = [...this.contentItem.data.rows].sort((a, b) => this.compareSampleNames(a[sampleNameColKey].value, b[sampleNameColKey].value));
+
+		const samples = rows.map(row => ({ id: row[sampleIdColKey].value, name: row[sampleNameColKey].value }));
+		const series = renderOption.series.map(seriesColumn => {
+			const colKey = columns.findIndex(column => column.title == seriesColumn.column);
+			return {
+				name: renderOption.series.length == 1 ? valueTitle : seriesColumn.column,
+				color: this.sqs.color.colors[seriesColumn.color],
+				values: rows.map(row => this.toNumberOrNull(row[colKey].value))
+			};
+		});
+
+		return { samples, series, valueTitle };
+	}
+
+	/*
+	* Function: renderBarChart
+	*
+	* The bar chart of a table whose axes are picked in its display options, such as the ceramics' measurements.
+	*/
+	renderBarChart() {
+		const chartData = this.dataTransform(this.contentItem);
+
+		let unit = chartData.y.unit;
+		const unitColKey = this.contentItem.data.columns.findIndex(column => column.title == "Unit");
+		if(unitColKey != -1 && this.contentItem.data.rows.length > 0) {
+			unit = this.contentItem.data.rows[0][unitColKey].value;
 		}
 
-		contentItem.data.rows.sort((a, b) => {
-			if(a[sortCol].value > b[sortCol].value) {
-				return 1;
+		const bars = chartData.x.values.map((label, i) => ({ label: label, value: this.toNumberOrNull(chartData.y.values[i]) }));
+		bars.sort((a, b) => this.compareSampleNames(a.label, b.label));
+
+		const series = [{
+			name: chartData.y.title,
+			color: this.sqs.color.colors.baseColor,
+			values: bars.map(bar => bar.value)
+		}];
+		const sorted = this.sortSamples(bars.map(bar => ({ name: bar.label })), series);
+		this.drawSampleBars(sorted.samples.map(sample => sample.name), sorted.series, chartData.y.title + (unit ? " ("+unit+")" : ""), String(chartData.x.title));
+	}
+
+	/*
+	* Function: renderSampleBarChart
+	*
+	* The bar chart of a dataset with a value or a few per sample, such as loss on ignition or magnetic susceptibility.
+	*/
+	renderSampleBarChart() {
+		const { samples, series, valueTitle } = this.getSampleSeries();
+		const sorted = this.sortSamples(samples, series);
+		this.drawSampleBars(sorted.samples.map(sample => sample.name), sorted.series, valueTitle);
+	}
+
+	/*
+	* Function: sortSamples
+	*
+	* The samples, and the values of the series, in the order picked in the chart's "Sort": the order of the samples'
+	* names, which they come in, their depths, or one of the series' values, highest or lowest first. Samples without a
+	* depth or a value go last, still in the order of their names.
+	*
+	* Parameters:
+	* samples - [{ id, name }], in the order of their names.
+	* series - [{ name, color, values }], with a value, or null, per sample.
+	*/
+	sortSamples(samples, series) {
+		const renderOption = this.siteReport.getContentItemRenderer(this.contentItem).getSelectedRenderOption(this.contentItem);
+		const sortOption = (renderOption.options || []).find(option => option.title == "Sort");
+		const sort = sortOption ? (sortOption.options.find(option => option.selected) || sortOption.options[0]) : null;
+
+		let keys = null;
+		if(sort && sort.value == "depth") {
+			const sampleDepths = new SampleDepths(this.siteReport.siteData);
+			keys = samples.map(sample => {
+				const depth = sampleDepths.getDepth(sample.id);
+				return depth ? [depth.upper, depth.lower] : null;
+			});
+		}
+		if(sort && (sort.value == "highest" || sort.value == "lowest")) {
+			const direction = sort.value == "highest" ? -1 : 1;
+			keys = series[sort.series || 0].values.map(value => value == null ? null : [value * direction]);
+		}
+		if(keys == null) {
+			return { samples, series };
+		}
+
+		//Array.sort is stable, so samples with the same key stay in the order of their names
+		const order = samples.map((sample, index) => index);
+		order.sort((a, b) => {
+			if(keys[a] == null || keys[b] == null) {
+				return (keys[a] == null) - (keys[b] == null);
+			}
+			return keys[a][0] - keys[b][0] || (keys[a][1] || 0) - (keys[b][1] || 0);
+		});
+
+		return {
+			samples: order.map(index => samples[index]),
+			series: series.map(s => Object.assign({}, s, { values: order.map(index => s.values[index]) }))
+		};
+	}
+
+	/*
+	* Function: drawSampleBars
+	*
+	* Draws values per sample as bars, with the samples along the x axis in their order. The more samples, the closer the
+	* bars, down to a line each, and over a hundred samples a range slider under the chart picks out a part of them to look
+	* closer at. Hovering anywhere above a sample shows its values.
+	*
+	* Parameters:
+	* labels - The names of the samples, in their order.
+	* series - The values to draw, as [{ name, color, values }], with a value, or null, per sample.
+	* valueTitle - The title of the value axis.
+	* labelTitle - The title of the sample axis.
+	*/
+	drawSampleBars(labels, series, valueTitle, labelTitle = "Sample") {
+		const manyBars = labels.length > 100;
+		const categories = this.getUniqueLabels(labels);
+
+		const traces = series.map(s => ({
+			type: "bar",
+			name: s.name,
+			x: categories,
+			y: s.values,
+			marker: { color: s.color },
+			hovertemplate: s.name+": %{y}<extra></extra>"
+		}));
+
+		const xaxis = this.getPlotlyAxis(labelTitle, {
+			type: "category",
+			categoryorder: "array",
+			categoryarray: categories,
+			showgrid: false
+		});
+		if(manyBars) {
+			xaxis.rangeslider = { visible: true, thickness: 0.1, bgcolor: this.sqs.color.colors.paneBgColor, bordercolor: this.sqs.color.colors.borderColor, borderwidth: 1 };
+		}
+
+		//The sample names may well be drawn on end, and the plot shouldn't shrink for them
+		const longestLabel = Math.max(...labels.map(label => String(label).length));
+
+		const layout = this.getPlotlyLayout({
+			height: this.sqs.scalePx((manyBars ? 480 : 400) + Math.min(longestLabel * 6, 200)),
+			barmode: "group",
+			bargap: labels.length > 60 ? 0.05 : 0.2,
+			bargroupgap: 0,
+			hovermode: "x unified",
+			showlegend: series.length > 1,
+			//The automatic margins leave no room under the range slider for the axis title
+			margin: { l: 10, r: 10, t: 10, b: manyBars ? this.sqs.scalePx(40) : 10 },
+			xaxis: xaxis,
+			yaxis: this.getPlotlyAxis(valueTitle)
+		});
+
+		this.renderPlotlyChart(traces, layout).then(() => {
+			if(manyBars) {
+				this.renderZoomNote(categories);
+			}
+		});
+	}
+
+	/*
+	* Function: renderZoomNote
+	*
+	* The note under a chart with a range slider. It says that the slider zooms the chart, and once it is zoomed, which of
+	* the samples are shown, with a button to show all of them again.
+	*
+	* Parameters:
+	* labels - The categories of the sample axis, in their order.
+	*/
+	renderZoomNote(labels) {
+		const gd = this.plotlyGd;
+		const noteNode = $("<p class='sqs-muted site-report-chart-note site-report-chart-zoom-note'></p>");
+		$(this.anchorNodeSelector).append(noteNode);
+
+		const update = () => {
+			const range = gd.layout.xaxis.range;
+			const first = Math.max(0, Math.ceil(range[0]));
+			const last = Math.min(labels.length - 1, Math.floor(range[1]));
+			noteNode.empty();
+
+			if(first == 0 && last == labels.length - 1) {
+				noteNode.append("<i class='fa fa-arrows-h' aria-hidden='true'></i> ");
+				noteNode.append(document.createTextNode("To zoom in on some of the samples, drag the handles of the overview under the chart, or drag across the chart."));
+				return;
+			}
+
+			const count = Math.max(0, last - first + 1);
+			let note = "Showing "+count.toLocaleString("en-GB")+" of "+labels.length.toLocaleString("en-GB")+" samples";
+			note += count > 0 ? ", "+labels[first]+(count > 1 ? " to "+labels[last] : "")+". " : ". ";
+			noteNode.append("<i class='fa fa-search-plus' aria-hidden='true'></i> ", document.createTextNode(note));
+			let showAllButton = $("<button type='button' class='sqs-link-btn site-report-chart-note-link'>Show all samples</button>");
+			showAllButton.on("click", () => {
+				Plotly.relayout(gd, { "xaxis.autorange": true });
+			});
+			noteNode.append(showAllButton, ".");
+		};
+
+		gd.on("plotly_relayout", update);
+		update();
+	}
+
+	/*
+	* Function: renderDepthProfileChart
+	*
+	* The depth profile of a dataset with a value or a few per sample, for samples which have depths. The samples which
+	* don't are named in a note under it, which leads to the bar chart of all of them.
+	*/
+	renderDepthProfileChart() {
+		const { samples, series, valueTitle } = this.getSampleSeries();
+		const sampleDepths = new SampleDepths(this.siteReport.siteData);
+		samples.forEach(sample => {
+			sample.depth = sampleDepths.getDepth(sample.id);
+		});
+
+		this.drawDepthProfile(samples, series, valueTitle);
+
+		const withoutDepthCount = samples.filter(sample => sample.depth == null).length;
+		if(withoutDepthCount > 0) {
+			let note = withoutDepthCount.toLocaleString("en-GB")+(withoutDepthCount == 1 ? " sample isn't" : " samples aren't")+" shown, as "+(withoutDepthCount == 1 ? "it lacks" : "they lack")+" a depth. "+(withoutDepthCount == 1 ? "It is" : "They are")+" in the ";
+			let noteNode = $("<p class='sqs-muted site-report-chart-note site-report-chart-depth-note'></p>").text(note);
+			let barChartButton = $("<button type='button' class='sqs-link-btn site-report-chart-note-link'>bar chart</button>");
+			barChartButton.on("click", () => {
+				this.siteReport.getContentItemRendererByName(this.contentItem.name).selectRenderOption("sample-bar");
+			});
+			noteNode.append(barChartButton, ".");
+			$(this.anchorNodeSelector).append(noteNode);
+		}
+	}
+
+	/*
+	* Function: drawDepthProfile
+	*
+	* Draws values per sample against the samples' depths, going downwards, as horizontal bars which span each sample from
+	* its upper to its lower boundary. A sample with a single depth gets a thin bar centered on it. Samples at the same or
+	* overlapping depths share them side by side, so that none of them hides another.
+	*
+	* Parameters:
+	* samples - The samples, as [{ name, depth }], with a depth of { upper, lower }, or null for samples which aren't drawn.
+	* series - The values to draw, as [{ name, color, values }], with a value, or null, per sample.
+	* valueTitle - The title of the value axis.
+	*/
+	drawDepthProfile(samples, series, valueTitle) {
+		const bars = [];
+		samples.forEach((sample, index) => {
+			if(sample.depth != null) {
+				bars.push({ index: index, name: sample.name, depth: sample.depth });
+			}
+		});
+
+		//The thickness of the samples with a single depth is most of the smallest step between two depths
+		const depths = [...new Set(bars.flatMap(bar => [bar.depth.upper, bar.depth.lower]))].sort((a, b) => a - b);
+		let smallestStep = Infinity;
+		for(let i = 1; i < depths.length; i++) {
+			smallestStep = Math.min(smallestStep, depths[i] - depths[i - 1]);
+		}
+		const pointThickness = isFinite(smallestStep) ? smallestStep * 0.8 : 0.05;
+
+		bars.forEach(bar => {
+			if(bar.depth.lower > bar.depth.upper) {
+				bar.top = bar.depth.upper;
+				bar.bottom = bar.depth.lower;
 			}
 			else {
-				return -1;
+				bar.top = bar.depth.upper - pointThickness / 2;
+				bar.bottom = bar.depth.upper + pointThickness / 2;
 			}
 		});
+		bars.sort((a, b) => a.top - b.top || a.bottom - b.bottom);
 
-		let sampleNames = [];
-		let datasets = [];
-		datasets.push({
-			label: "Burn loss",
-			backgroundColor: this.sqs.color.colors.burnedColor,
-			data: []
-		});
-
-		//find column named "Sample name"
-		let sampleNameColKey = null;
-		contentItem.data.columns.forEach((col, colKey) => {
-			if(col.title == "Sample name") {
-				sampleNameColKey = colKey;
+		//Overlapping bars go in lanes side by side, as many lanes as the most bars that overlap at once
+		let cluster = [];
+		let laneBottoms = [];
+		const endCluster = () => {
+			cluster.forEach(bar => {
+				bar.lanes = laneBottoms.length;
+			});
+			cluster = [];
+			laneBottoms = [];
+		};
+		bars.forEach(bar => {
+			if(cluster.length > 0 && bar.top >= Math.max(...laneBottoms)) {
+				endCluster();
 			}
+			let lane = laneBottoms.findIndex(bottom => bottom <= bar.top);
+			if(lane == -1) {
+				lane = laneBottoms.length;
+				laneBottoms.push(bar.bottom);
+			}
+			else {
+				laneBottoms[lane] = bar.bottom;
+			}
+			bar.lane = lane;
+			cluster.push(bar);
 		});
+		endCluster();
 
-		for(var key in contentItem.data.rows) {
-			let row = contentItem.data.rows[key];
-			let sampleName = row[sampleNameColKey].value;
-			sampleNames.push(sampleName);
-			let value = row[yAxisKey].value;
-			
-			datasets[0].data.push(value);
-		}
-
-		const data = {
-			labels: sampleNames,
-			datasets: datasets
+		const formatDepth = (depth) => {
+			return depth.lower > depth.upper ? depth.upper+"–"+depth.lower+" m" : depth.upper+" m";
 		};
 
-		let config = {
-			type: 'bar',
-			data: data,
-			options: {
-				plugins: {
-					legend: {
-						position: 'top',
-					},
-					tooltip: {
-						enabled: true,
-						callbacks: {
-							title: function(context) {
-								return "Sample "+context[0].label;
-							},
-							label: function(context) {
-								return context.dataset.label+" loss: "+context.formattedValue+" %";
-							}
-						}
-					}
-				},
-				responsive: true,
-				scales: {
-					x: {
-						stacked: true,
-						title: {
-							display: true,
-							text: 'Sample' // Label for the x-axis
-						}
-					},
-					y: {
-						stacked: true,
-						title: {
-							display: true,
-							text: 'Percentage' // Label for the y-axis
-						},
-						ticks: {
-							callback: function(value) {
-								return value + '%';
-							}
-						}
-					}
-				}
-			}
-		};
-		
-		  
-		this.chartId = "chart-"+nanoid();
-		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
-		$(this.anchorNodeSelector).append(chartContainer);
+		const height = Math.min(Math.max(320, 120 + bars.length * 14), 800) * this.sqs.getUiScale();
 
-		new Chart(
-			document.getElementById(this.chartId),
-			config
-		);
+		//A sample's band of the depth is split between its values, with a gap of up to two pixels to the next sample
+		const depthRange = Math.max(...bars.map(bar => bar.bottom)) - Math.min(...bars.map(bar => bar.top));
+		const metresPerPixel = depthRange / Math.max(height - 120, 1);
+		bars.forEach(bar => {
+			bar.band = (bar.bottom - bar.top) / bar.lanes;
+			bar.gap = Math.min(bar.band * 0.2, metresPerPixel * 2);
+		});
+
+		const traces = series.map((s, seriesIndex) => ({
+			type: "bar",
+			orientation: "h",
+			name: s.name,
+			x: bars.map(bar => s.values[bar.index]),
+			y: bars.map(bar => bar.top),
+			width: bars.map(bar => (bar.band - bar.gap) / series.length),
+			offset: bars.map(bar => bar.band * bar.lane + bar.gap / 2 + (bar.band - bar.gap) / series.length * seriesIndex),
+			marker: { color: s.color },
+			hoverinfo: "skip"
+		}));
+
+		//Hovering anywhere beside a sample shows all of its values, from invisible bars across the samples
+		traces.push({
+			type: "bar",
+			orientation: "h",
+			showlegend: false,
+			x: bars.map(bar => Math.max(0, ...series.map(s => s.values[bar.index] || 0))),
+			y: bars.map(bar => bar.top),
+			width: bars.map(bar => bar.band),
+			offset: bars.map(bar => bar.band * bar.lane),
+			marker: { color: "rgba(0,0,0,0)" },
+			customdata: bars.map(bar => [bar.name, formatDepth(bar.depth)].concat(series.map(s => s.values[bar.index] == null ? "–" : s.values[bar.index]))),
+			hovertemplate: "<b>Sample %{customdata[0]}</b><br>Depth %{customdata[1]}"+series.map((s, i) => "<br>"+s.name+": %{customdata["+(i + 2)+"]}").join("")+"<extra></extra>"
+		});
+
+		const layout = this.getPlotlyLayout({
+			height: height,
+			barmode: "overlay",
+			hovermode: "y",
+			showlegend: series.length > 1,
+			xaxis: this.getPlotlyAxis(valueTitle),
+			yaxis: this.getPlotlyAxis("Depth (m)", { autorange: "reversed", zeroline: false })
+		});
+
+		this.renderPlotlyChart(traces, layout);
 	}
 
 	renderEcoCodeChart() {
 		let contentItem = this.contentItem;
-		let xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
-		let yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value;
-		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
+		let mode = this.getSelectedRenderOptionExtra("Y axis");
+		let yAxisKey = mode.value;
 
 		// Values 1,2 = counts; values 3,4 = percentages (same columns 1,2 but normalised)
 		let isPercentage = yAxisKey >= 3;
 		let colIndex = isPercentage ? yAxisKey - 2 : yAxisKey;
+		let valueTitle = contentItem.data.columns[colIndex].title;
 
-		let ecoCodeNames = [];
-		let rawValues = [];
-		let datasets = [];
-		
-		datasets.push({
-			label: "Eco codes",
-			data: [],
-			backgroundColor: []
+		let total = 0;
+		contentItem.data.rows.forEach(row => {
+			total += row[colIndex].value;
 		});
 
-		// First pass: collect raw values (and total for percentage mode)
-		let total = 0;
-		for(var key in contentItem.data.rows) {
-			let row = contentItem.data.rows[key];
-			let value = row[colIndex].value;
-			rawValues.push(value);
-			total += value;
-		}
-
-		// Second pass: build chart data
-		for(var key in contentItem.data.rows) {
-			let row = contentItem.data.rows[key];
+		let ecoCodeNames = [];
+		let values = [];
+		let colors = [];
+		contentItem.data.rows.forEach(row => {
 			let ecoCodeName = row[0].value;
 			ecoCodeNames.push(ecoCodeName);
-			
-			let displayValue = isPercentage ? (total > 0 ? (rawValues[key] / total) * 100 : 0) : rawValues[key];
-			datasets[0].data.push(displayValue);
-			
-			//Find the color for this ecocode
-			for(let defKey in this.sqs.bugsEcoCodeDefinitions) {
-				if(this.sqs.bugsEcoCodeDefinitions[defKey].name == ecoCodeName) {
-					datasets[0].backgroundColor.push(this.sqs.bugsEcoCodeDefinitions[defKey].color);
-				}
-			}
-		}
+			values.push(isPercentage ? (total > 0 ? (row[colIndex].value / total) * 100 : 0) : row[colIndex].value);
 
-		const data = {
-			labels: ecoCodeNames,
-			datasets: datasets
-		};
+			let ecoCodeDefinition = this.sqs.bugsEcoCodeDefinitions.find(definition => definition.name == ecoCodeName);
+			colors.push(ecoCodeDefinition ? ecoCodeDefinition.color : this.sqs.color.colors.baseColor);
+		});
 
-		let yScaleConfig = { stacked: true };
-		if(isPercentage) {
-			yScaleConfig.title = { display: true, text: 'Percentage (%)' };
-			yScaleConfig.ticks = { callback: function(value) { return value + '%'; } };
-		} else {
-			yScaleConfig.title = { display: true, text: contentItem.data.columns[colIndex].title };
-		}
+		const traces = [{
+			type: "bar",
+			x: this.getUniqueLabels(ecoCodeNames),
+			y: values,
+			marker: { color: colors },
+			hovertemplate: valueTitle+": %{y"+(isPercentage ? ":.1f}%" : "}")+"<extra></extra>"
+		}];
 
-		let config = {
-			type: 'bar',
-			data: data,
-			options: {
-				animation: false,
-				plugins: {
-					title: {
-						display: true,
-						text: 'Eco codes'
-					},
-					legend: {
-						display: false,
-						position: 'top',
-					},
-					tooltip: {
-						enabled: true,
-						callbacks: {
-							title: function(context) {
-								return context[0].label;
-							},
-							label: function(context) {
-								if(isPercentage) {
-									return contentItem.data.columns[colIndex].title+": "+parseFloat(context.raw).toFixed(1)+"%";
-								}
-								return contentItem.data.columns[colIndex].title+": "+context.formattedValue;
-							}
-						}
-					}
-				},
-				responsive: true,
-				scales: {
-					x: {
-						stacked: true,
-					},
-					y: yScaleConfig
-				}
-			}
-		  };
-		
-		  
-		this.chartId = "chart-"+nanoid();
-		var chartContainer = $("<canvas id='"+this.chartId+"' class='site-report-chart-container'></canvas>");
-		$(this.anchorNodeSelector).append(chartContainer);
+		const layout = this.getPlotlyLayout({
+			height: this.sqs.scalePx(420),
+			hovermode: "x unified",
+			xaxis: this.getPlotlyAxis("Eco code", { type: "category", showgrid: false }),
+			yaxis: this.getPlotlyAxis(mode.title, isPercentage ? { ticksuffix: "%" } : {})
+		});
 
-		let c = new Chart(
-			document.getElementById(this.chartId),
-			config
-		);
-
+		this.renderPlotlyChart(traces, layout);
 		this.renderEcoCodeHelpButton();
 	}
 
@@ -1751,9 +1668,9 @@ class SiteReportChart {
 
 	renderEcoCodesPerSampleChart() {
 		let contentItem = this.contentItem;
-		let yAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
+		let mode = this.getSelectedRenderOptionExtra("X axis");
+		let yAxisKey = mode.value;
 		let sortCol = this.getSelectedRenderOptionExtra("Sort").value;
-
 		// Values 1,2 = counts; values 3,4 = percentages of sample total
 		let isPercentage = yAxisKey >= 3;
 		let colIndex = isPercentage ? yAxisKey - 2 : yAxisKey;
@@ -1818,143 +1735,51 @@ class SiteReportChart {
 			}
 		});
 
-		let pkeyCol = null;
-		for(let key in contentItem.data.columns) {
-			if(contentItem.data.columns[key].pkey) {
-				pkeyCol = key;
-			}
-		}
-
-		let datasets = [];
-		let sampleNames = [];
-		contentItem.data.rows.forEach(row => {
-			//each row is a sample
-			let sampleId = row[pkeyCol].value;
-			let sampleName = row[1].value;
-			let aggAbundance = row[2].value;
-			let aggTaxa = row[3].value;
-			let subTable = row[4].value;
-			sampleNames.push(sampleName);
-		});
-
-		//sorting
-		//order of ecocodes should match with their size in the site aggregation chart
-
-		const BAR_HEIGHT = 28;    // px of the coloured bar itself
-		const BAR_GAP    = 14;    // px of gap between bars
-		const CHART_OVERHEAD = 120; // px for title, legend, axes
-		const chartHeight = Math.max(200, sampleNames.length * (BAR_HEIGHT + BAR_GAP) + CHART_OVERHEAD);
-
+		//each row is a sample, in the order of their names
+		const rows = [...contentItem.data.rows].sort((a, b) => this.compareSampleNames(a[1].value, b[1].value));
+		const sampleLabels = this.getUniqueLabels(rows.map(row => row[1].value));
+		const traces = [];
 		ecocodesSorted.forEach(ecocode => {
-
-			let dataset = {
-				label: ecocode.name,
-				data: [], 
-				backgroundColor: ecocode.color,
-				barThickness: BAR_HEIGHT
-			}
-			
-			contentItem.data.rows.forEach(row => {
+			let values = rows.map(row => {
 				let aggAbundance = row[2].value;
 				let aggTaxa = row[3].value;
-				let subTable = row[4].value;
-
-				let foundEcocode = false;
-				subTable.rows.forEach(r => {
-					let rowEcocodeName = r[0].value;
-					let ecocodeDefinitionId = r[3].value;
-					if(rowEcocodeName == ecocode.name) {
-						foundEcocode = true;
-
-						if(isPercentage) {
-							let agg = colIndex === 1 ? aggAbundance : aggTaxa;
-							let percentage = agg > 0 ? (r[colIndex].value / agg) * 100 : 0;
-							dataset.data.push(percentage);
-						} else {
-							dataset.data.push(r[colIndex].value);
-						}
-					}
-				});
-
-				if(!foundEcocode) {
-					dataset.data.push(0);
+				let ecoCodeRow = row[4].value.rows.find(r => r[0].value == ecocode.name);
+				if(!ecoCodeRow) {
+					return 0;
 				}
+				if(isPercentage) {
+					let agg = colIndex === 1 ? aggAbundance : aggTaxa;
+					return agg > 0 ? (ecoCodeRow[colIndex].value / agg) * 100 : 0;
+				}
+				return ecoCodeRow[colIndex].value;
 			});
-			
-			
-			datasets.push(dataset);
+
+			//Eco codes which none of the samples have are left out, of the legend too
+			if(values.every(value => value == 0)) {
+				return;
+			}
+
+			traces.push({
+				type: "bar",
+				orientation: "h",
+				name: ecocode.name,
+				x: values,
+				y: sampleLabels,
+				marker: { color: ecocode.color },
+				hovertemplate: "<b>Sample %{y}</b><br>%{fullData.name}: %{x"+(isPercentage ? ":.1f}%" : "}")+"<extra></extra>"
+			});
 		});
 
-		//Datasets should not be samples, they should be per ecocode
-		const data = {
-			labels: sampleNames,
-			datasets: datasets
-		};
+		const layout = this.getPlotlyLayout({
+			height: this.sqs.scalePx(Math.max(240, rows.length * 36 + 140)),
+			barmode: "stack",
+			hovermode: "closest",
+			showlegend: true,
+			xaxis: this.getPlotlyAxis(mode.title, isPercentage ? { range: [0, 100], ticksuffix: "%" } : {}),
+			yaxis: this.getPlotlyAxis("Sample", { type: "category", categoryorder: "array", categoryarray: sampleLabels, autorange: "reversed", showgrid: false })
+		});
 
-		let config = {
-			type: 'bar',
-			data: data,
-			options: {
-				animation: false,
-				maintainAspectRatio: false,
-				indexAxis: 'y',
-				plugins: {
-					title: {
-						display: true,
-						text: 'Eco codes'
-					},
-					legend: {
-						display: true,
-						position: 'bottom',
-						align: 'center'
-					},
-					tooltip: {
-						enabled: true,
-						callbacks: {
-							title: function(context) {
-								return "Sample: " + context[0].label;
-							},
-							label: function(context) {
-								if(isPercentage) {
-									const pct = parseFloat(context.raw).toFixed(1);
-									return context.dataset.label + ": " + pct + "%";
-								}
-								return context.dataset.label + ": " + context.raw;
-							}
-						}
-					}
-				},
-				responsive: true,
-				scales: {
-					x: {
-						stacked: true,
-						...(isPercentage ? {
-							min: 0,
-							max: 100,
-							ticks: {
-								callback: function(value) {
-									return value + '%';
-								}
-							}
-						} : {}),
-					},
-					y: {
-						stacked: true
-					}
-				}
-			}
-		  };
-		
-		  
-		this.chartId = "chart-"+nanoid();
-		var chartContainer = $(`<div class='site-report-chart-container' style='position:relative; width:100%; height:${chartHeight}px;'><canvas id='${this.chartId}'></canvas></div>`);
-		$(this.anchorNodeSelector).append(chartContainer);
-
-		new Chart(
-			document.getElementById(this.chartId),
-			config
-		);
-
+		this.renderPlotlyChart(traces, layout);
 		this.renderEcoCodeHelpButton();
 	}
 
@@ -2099,210 +1924,41 @@ class SiteReportChart {
 		canvas.addEventListener('mouseleave', () => { tooltipEl.style.display = 'none'; });
 	}
 
-	renderMagneticSusceptibilityBarChart() {
-		const contentItem = this.contentItem;
-
-		const xAxisKey = this.getSelectedRenderOptionExtra("X axis").value;
-		const yAxisKey = this.getSelectedRenderOptionExtra("Y axis").value; // kept for unit lookup
-		const sortCol   = this.getSelectedRenderOptionExtra("Sort").value;
-
-		let xUnitSymbol = "";
-		let yUnitSymbol = "";
-
-		if (contentItem.data.columns[xAxisKey]?.unit) xUnitSymbol = contentItem.data.columns[xAxisKey].unit;
-		if (contentItem.data.columns[yAxisKey]?.unit) yUnitSymbol = contentItem.data.columns[yAxisKey].unit;
-
-		// Sort rows by selected column
-		contentItem.data.rows.sort((a, b) => (a[sortCol].value > b[sortCol].value ? 1 : -1));
-
-		// Find the columns titled "Unburned" and "Burned"
-		let unburnedColKey = null;
-		let burnedColKey = null;
-		contentItem.data.columns.forEach((col, colKey) => {
-			if (col.title === "Unburned") unburnedColKey = colKey;
-			if (col.title === "Burned")   burnedColKey = colKey;
-		});
-
-		// Build arrays for Plotly
-		const sampleNames = [];
-		const unburned = [];
-		const burned = [];
-
-		for (const row of contentItem.data.rows) {
-			const sampleName = row[xAxisKey].value;
-			sampleNames.push(sampleName);
-			unburned.push(Number(row[unburnedColKey]?.value) ?? null);
-			burned.push(Number(row[burnedColKey]?.value) ?? null);
-		}
-
-		const traces = [
-			{
-			type: "bar",
-			name: "Unburned",
-			x: sampleNames,
-			y: unburned,
-			marker: { color: this.sqs.color.colors.baseColor },
-			hovertemplate:
-				"Sample %{x}<br>Unburned: %{y}" + (yUnitSymbol ? ` ${yUnitSymbol}` : "") + "<extra></extra>"
-			},
-			{
-			type: "bar",
-			name: "Burned",
-			x: sampleNames,
-			y: burned,
-			marker: { color: this.sqs.color.colors.burnedColor },
-			hovertemplate:
-				"Sample %{x}<br>Burned: %{y}" + (yUnitSymbol ? ` ${yUnitSymbol}` : "") + "<extra></extra>"
-			}
-		];
-
-		// Layout with grouped barmode instead of stacked
-		const layout = {
-			barmode: "group", // Changed from "stack" to "group" for side-by-side bars
-			margin: { l: 60, r: 20, t: 10, b: 60 },
-			xaxis: {
-			title: { text: "Sample" + (xUnitSymbol ? ` (${xUnitSymbol})` : "") },
-			type: "category",
-			categoryorder: "array",
-			categoryarray: sampleNames,
-			automargin: true
-			},
-			yaxis: {
-			title: { text: yUnitSymbol ? yUnitSymbol : "" },
-			zeroline: true,
-			automargin: true
-			},
-			legend: {
-			orientation: "h",
-			x: 0,
-			y: 1.12,
-			xanchor: "left",
-			yanchor: "bottom"
-			},
-			hovermode: "closest" // per-point like Chart.js default
-		};
-
-		// Plotly config (responsive, with modebar download button)
-		const config = {
-			responsive: true,
-			displaylogo: false
-		};
-
-		// Create/append container (div, not canvas)
-		this.chartId = "chart-" + nanoid();
-		const chartContainer = $(
-			`<div id="${this.chartId}" class="site-report-chart-container"></div>`
-		);
-		$(this.anchorNodeSelector).append(chartContainer);
-
-		// Render
-		Plotly.newPlot(this.chartId, traces, layout, config);
-
-		// Keep a reference to the graph div for later exports
-		this.plotlyGd = document.getElementById(this.chartId);
-	}
-
 	renderPieChart() {
 		var contentItem = this.contentItem;
 		let cir = this.siteReport.getContentItemRenderer(this.contentItem);
 		var ro = cir.getSelectedRenderOption(contentItem);
 		
 		var dimensionKey = ro.options.dimension;
-		
-		var config = {
-			"type": "pie",
-			"plot": {
-				"tooltip": {
-					"text": "<span class='chart-tooltip-info'>%t (Count: %v)</span>",
-					"font-size": 16,
-				},
-				"background-color": "#34454f",
-				"hover-state": {
-					"background-color": "#f60"
-				},
-				"max-trackers": 1000,
-				"value-box":{
-					"font-size":14,
-					"font-weight":"normal",
-					"placement":"in",
-					"text": "%v"
-				}
-				
-				
-			},
-			/*
-			"legend": {
-				"toggle-action": "hide",
-				"header": {
-					"text": "Legend"
-				},
-				"item": {
-					"cursor": "pointer"
-				},
-				"draggable": true,
-				"drag-handler": "icon"
-			},
-			*/
-			"series": [
-			]
-		};
-		
-		
-		var categories = [];
-		
-		for(var key in contentItem.data.rows) {
-			var row = contentItem.data.rows[key];
-			
-			var found = false;
-			for(var k in categories) {
-				if(categories[k].value == row[dimensionKey].value) {
-					categories[k].count++;
-					found = true;
-				}
+
+		let labels = [];
+		let counts = [];
+		contentItem.data.rows.forEach(row => {
+			let index = labels.indexOf(row[dimensionKey].value);
+			if(index == -1) {
+				labels.push(row[dimensionKey].value);
+				counts.push(1);
 			}
-			if(!found) {
-				categories.push({
-					title: row[dimensionKey].value,
-					value: row[dimensionKey].value,
-					count: 1,
-					tooltip: ""
-				});
+			else {
+				counts[index]++;
 			}
-		}
-		
-		//var colors = this.sqs.siteReportManager.siteReport.getColorScheme(categories.length);
-		var colors = this.sqs.color.getMonoColorScheme(categories.length, "#34454f", "#34454f");
-		
-		for(var key in categories) {
-			config.series.push({
-				text: categories[key].value,
-				values : [categories[key].count],
-				backgroundColor: colors[key]
-			});
-		}
-		
-		var chartId = "chart-"+nanoid();
-		var chartContainer = $("<div id='"+chartId+"' class='site-report-chart-container'></div>");
-		$(this.anchorNodeSelector).append(chartContainer);
-		
-		zingchart.render({
-			id : chartId,
-			data : config,
-			defaults: this.chartTheme
 		});
-	}
 
-	convertToChartJsData(data) {
+		const traces = [{
+			type: "pie",
+			labels: labels,
+			values: counts,
+			sort: false,
+			textinfo: "value",
+			marker: { colors: this.sqs.color.getNiceColorScheme(labels.length, this.sqs.color.colors.baseColor), line: { color: "#fff", width: 1 } },
+			hovertemplate: "%{label} (Count: %{value})<extra></extra>"
+		}];
 
-		var chartjsStruct = {
-			"type": data.type.split("-")[1],
-			"data": {
-				"labels": data.labels,
-				"datasets": data.datasets
-			}
-		};
-
-		return chartjsStruct;
+		this.renderPlotlyChart(traces, this.getPlotlyLayout({
+			height: this.sqs.scalePx(400),
+			showlegend: true,
+			legend: { orientation: "v" }
+		}));
 	}
 
 	renderContentDisplayOptionsPanel(section, contentItem) {

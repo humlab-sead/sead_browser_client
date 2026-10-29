@@ -8071,6 +8071,25 @@ button.mosaic-bar-segment {
   margin-bottom: 20px;
 }
 
+/* Under a chart, about the samples it doesn't show */
+.site-report-chart-note {
+  margin: sqs-px(10) 0 0 0;
+  font-size: sqs-px(13);
+}
+
+/* A link in the running text of the note */
+.site-report-chart-note-link {
+  padding: 0;
+  font-size: inherit;
+}
+
+/* The handles of a chart's range slider, which zoom it, in the base colour so that they look like something to grab */
+.site-report-chart-container .rangeslider-handle-min,
+.site-report-chart-container .rangeslider-handle-max {
+  fill: colors.$base-color;
+  stroke: colors.$base-color;
+}
+
 .site-report-chart-tooltip {
   padding: 5px;
 }
