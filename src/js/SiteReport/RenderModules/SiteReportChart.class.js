@@ -1134,11 +1134,6 @@ class SiteReportChart {
 		var xUnitSymbol = "";
 		var yUnitSymbol = "";
 
-		console.log(contentItem)
-		console.log(xAxisRo)
-		console.log(yAxisRo)
-		
-
 		if(xAxisRo.location == "subtable") {
 			contentItem.data.rows.forEach(row => {
 				row.forEach(cell => {
@@ -1323,10 +1318,11 @@ class SiteReportChart {
 				}
 			},
 			yaxis: {
-				showticklabels: false,
+				showticklabels: true,
+				ticks: "outside",
 				automargin: true,
 				title: {
-					text: 'Value',
+					text: chartData.y.unit ? `Value (${chartData.y.unit})` : 'Value',
 					font: {
 						family: 'Didact Gothic, sans-serif',
 						size: this.sqs.scalePx(18),
@@ -1478,7 +1474,7 @@ class SiteReportChart {
 		let datasets = [];
 		datasets.push({
 			label: "Burn loss",
-			backgroundColor: "red",
+			backgroundColor: this.sqs.color.colors.burnedColor,
 			data: []
 		});
 
@@ -2139,14 +2135,13 @@ class SiteReportChart {
 			burned.push(Number(row[burnedColKey]?.value) ?? null);
 		}
 
-		// Traces (colors match your Chart.js config)
 		const traces = [
 			{
 			type: "bar",
 			name: "Unburned",
 			x: sampleNames,
 			y: unburned,
-			marker: { color: "darkblue" },
+			marker: { color: this.sqs.color.colors.baseColor },
 			hovertemplate:
 				"Sample %{x}<br>Unburned: %{y}" + (yUnitSymbol ? ` ${yUnitSymbol}` : "") + "<extra></extra>"
 			},
@@ -2155,7 +2150,7 @@ class SiteReportChart {
 			name: "Burned",
 			x: sampleNames,
 			y: burned,
-			marker: { color: "red" },
+			marker: { color: this.sqs.color.colors.burnedColor },
 			hovertemplate:
 				"Sample %{x}<br>Burned: %{y}" + (yUnitSymbol ? ` ${yUnitSymbol}` : "") + "<extra></extra>"
 			}

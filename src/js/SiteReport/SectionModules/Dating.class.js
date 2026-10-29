@@ -2,9 +2,9 @@
 * Class: Dating
 *
 * The dating tab of the site report, and the dating card on its overview: when the site's samples
-* are dated to, drawn as bars on a time axis, one per dated sample, under the method which dated
-* it. Built from siteData.age_summary, which the server compiles from all of the site's datings,
-* normalized to years BP.
+* are dated to, under the method which dated them - as a table, or as bars on a time axis, one per
+* dated sample. Built from siteData.age_summary, which the server compiles from all of the site's
+* datings, normalized to years BP.
 */
 class Dating {
 	constructor(sqs, siteReport) {
@@ -12,6 +12,7 @@ class Dating {
 		this.siteReport = siteReport;
 		this.siteData = null;
 		this.calendar = "BP"; //"BP" or "AD/BC"
+		this.view = "table"; //"table" or "graph"
 		//How many samples a method lists before the rest are folded away
 		this.rowsPerMethod = 25;
 		this.expandedMethods = [];
@@ -41,20 +42,32 @@ class Dating {
 	}
 
 	/*
+	* Function: formatNumber
+	* Digits grouped by thin spaces, "2 700 000". Calendar years below 10 000 are written as they are, "AD 1303".
+	*/
+	formatNumber(value, groupFourDigits = true) {
+		value = Math.round(value) || 0; //No "-0"
+		if(!groupFourDigits && Math.abs(value) < 10000) {
+			return String(value);
+		}
+		return value.toLocaleString("en-GB").replace(/,/g, "\u2009");
+	}
+
+	/*
 	* Function: formatYear
 	* A year BP in the current calendar. The calendar has no year zero, so 1950 BP is 1 BC.
 	*/
 	formatYear(bp, calendar = this.calendar, withUnit = true) {
 		if(calendar == "BP") {
-			let text = Math.round(bp).toLocaleString("en-GB").replace(/,/g, " ");
+			let text = this.formatNumber(bp);
 			return withUnit ? text+" BP" : text;
 		}
 		let ad = Math.round(this.getBpYear() - bp);
 		if(ad >= 1) {
-			return withUnit ? "AD "+ad : String(ad);
+			return withUnit ? "AD "+this.formatNumber(ad, false) : this.formatNumber(ad, false);
 		}
-		let bc = 1 - ad;
-		return withUnit ? bc+" BC" : String(bc);
+		let bc = this.formatNumber(1 - ad, false);
+		return withUnit ? bc+" BC" : bc;
 	}
 
 	/*
@@ -72,10 +85,10 @@ class Dating {
 		let olderAd = Math.round(bpYear - older);
 		let youngerAd = Math.round(bpYear - younger);
 		if(olderAd >= 1 && youngerAd >= 1) {
-			return "AD "+olderAd+"–"+youngerAd;
+			return "AD "+this.formatNumber(olderAd, false)+"–"+this.formatNumber(youngerAd, false);
 		}
 		if(olderAd < 1 && youngerAd < 1) {
-			return (1 - olderAd)+"–"+(1 - youngerAd)+" BC";
+			return this.formatNumber(1 - olderAd, false)+"–"+this.formatNumber(1 - youngerAd, false)+" BC";
 		}
 		return this.formatYear(older, calendar)+" – "+this.formatYear(younger, calendar);
 	}
@@ -120,22 +133,81 @@ class Dating {
 	}
 
 	/*
-	* Function: renderCalendarToggle
+	* Function: renderSegmentedToggle
+	* Buttons for picking one of a few values, such as the calendar or the view.
+	*
+	* Parameters:
+	* ariaLabel - What is being picked.
+	* options - [[value, label], ...]
+	* selected - The value picked now.
+	* onChange - Called with the value when another one is picked.
 	*/
-	renderCalendarToggle(onChange) {
-		let toggleNode = $("<div class='sqs-segmented' role='group' aria-label='Calendar'></div>");
-		[["AD/BC", "AD / BC"], ["BP", "BP"]].forEach(([calendar, label]) => {
+	renderSegmentedToggle(ariaLabel, options, selected, onChange) {
+		let toggleNode = $("<div class='sqs-segmented' role='group'></div>");
+		toggleNode.attr("aria-label", ariaLabel);
+		options.forEach(([value, label]) => {
 			let button = $("<button type='button'></button>").text(label);
-			button.attr("aria-pressed", this.calendar == calendar ? "true" : "false");
+			button.attr("aria-pressed", selected == value ? "true" : "false");
 			button.on("click", () => {
-				if(this.calendar != calendar) {
-					this.calendar = calendar;
-					onChange();
+				if(selected != value) {
+					onChange(value);
 				}
 			});
 			toggleNode.append(button);
 		});
 		return toggleNode;
+	}
+
+	/*
+	* Function: getDatingRows
+	* One row per sample and dating. A sample's dating is often recorded once for each of its analyses,
+	* which would otherwise list the sample several times over.
+	*/
+	getDatingRows(dating) {
+		let rows = [];
+		let seenKeys = new Set();
+		dating.ages.forEach(age => {
+			let relativeAgeName = age.relative_age_name ? age.relative_age_name.trim() : "";
+			let key = [age.physical_sample_id, relativeAgeName, age.older, age.younger, age.open_older, age.open_younger].join("|");
+			if(seenKeys.has(key)) {
+				return;
+			}
+			seenKeys.add(key);
+
+			let sampleInfo = age.physical_sample_id != null ? this.getSample(age.physical_sample_id) : null;
+			rows.push({
+				label: sampleInfo ? sampleInfo.sample.sample_name : "Sample",
+				sampleGroupName: sampleInfo ? sampleInfo.sampleGroup.sample_group_name : "",
+				relativeAgeName: relativeAgeName,
+				older: age.older,
+				younger: age.younger,
+				openOlder: age.open_older,
+				openYounger: age.open_younger,
+				approximate: age.approximate,
+				radiocarbon: age.radiocarbon_years,
+				disputed: age.disputed
+			});
+		});
+		rows.sort((a, b) => b.older - a.older || a.label.localeCompare(b.label, "en-GB", { numeric: true }));
+		return rows;
+	}
+
+	/*
+	* Function: getRangeText
+	* A row's dating in words, in the current calendar: "605 BC – AD 20", "older than 10 000 BP".
+	*/
+	getRangeText(row) {
+		let rangeText = this.formatRange(row.older, row.younger);
+		if(row.openOlder) {
+			rangeText = "older than "+this.formatYear(row.older);
+		}
+		if(row.openYounger) {
+			rangeText = "younger than "+this.formatYear(row.younger);
+		}
+		if(row.disputed) {
+			rangeText += " (disputed)";
+		}
+		return rangeText;
 	}
 
 	renderDatingTab() {
@@ -154,7 +226,12 @@ class Dating {
 		let headRow = $(".sqs-card-head-row", cardNode);
 		$(".site-report-dating-tools", headRow).remove();
 		let toolsNode = $("<div class='site-report-dating-tools'></div>");
-		toolsNode.append(this.renderCalendarToggle(() => {
+		toolsNode.append(this.renderSegmentedToggle("Show as", [["table", "Table"], ["graph", "Graph"]], this.view, (view) => {
+			this.view = view;
+			this.renderDatingTab();
+		}));
+		toolsNode.append(this.renderSegmentedToggle("Calendar", [["AD/BC", "AD / BC"], ["BP", "BP"]], this.calendar, (calendar) => {
+			this.calendar = calendar;
 			this.renderDatingTab();
 			this.renderSummaryDating();
 			let overviewDatingNode = $(".site-report-overview-dating");
@@ -165,36 +242,22 @@ class Dating {
 		headRow.append(toolsNode);
 
 		let groups = ageSummary.datings.map(dating => {
-			let rows = dating.ages.map(age => {
-				let sampleInfo = age.physical_sample_id != null ? this.getSample(age.physical_sample_id) : null;
-				let label = sampleInfo ? sampleInfo.sample.sample_name : "Sample";
-				let sublabel = sampleInfo ? sampleInfo.sampleGroup.sample_group_name : "";
-				if(age.relative_age_name) {
-					sublabel = age.relative_age_name+(sublabel ? " · "+sublabel : "");
-				}
-				return {
-					label: label,
-					sublabel: sublabel,
-					older: age.older,
-					younger: age.younger,
-					openOlder: age.open_older,
-					openYounger: age.open_younger,
-					approximate: age.approximate || age.radiocarbon_years,
-					disputed: age.disputed
-				};
-			});
-			rows.sort((a, b) => b.older - a.older);
 			return {
 				methodId: dating.method_id,
 				title: dating.method_name,
 				color: this.sqs.color.getAnalysisMethodColor(dating.method_id),
-				rows: rows
+				rows: this.getDatingRows(dating)
 			};
 		});
 
-		let timelineNode = $("#site-report-time-overview");
-		timelineNode.empty();
-		timelineNode.append(this.renderTimeline(groups, { expandable: true }));
+		let contentNode = $("#site-report-time-overview");
+		contentNode.empty();
+		if(this.view == "table") {
+			contentNode.append(this.renderTables(groups));
+		}
+		else {
+			contentNode.append(this.renderTimeline(groups, { expandable: true, rangeLabels: false }));
+		}
 
 		let notDatedCount = sampleCount - datedSampleIds.length;
 		let methodsNode = $(".site-report-dating-methods");
@@ -211,21 +274,113 @@ class Dating {
 
 	getExplanation() {
 		let ageSummary = this.siteData.age_summary;
-		let text = "Each bar spans a sample's dating, from its oldest to its youngest year.";
+		let graph = this.view == "graph";
+		let text = graph ? "Each bar spans a sample's dating, from its oldest to its youngest year. " : "";
 		if(this.calendar == "BP") {
-			text += " Years before present (BP) count back from "+this.getBpYear()+".";
+			text += "Years before present (BP) count back from "+this.getBpYear()+".";
 		}
 		else {
-			text += " Calendar years, converted from years before present (BP, counted back from "+this.getBpYear()+").";
+			text += "Calendar years, converted from years before present (BP, counted back from "+this.getBpYear()+").";
 		}
 		let radiocarbon = ageSummary.datings.filter(dating => dating.radiocarbon_years_count > 0).map(dating => dating.method_name);
 		if(radiocarbon.length > 0) {
-			text += " Some ages are in radiocarbon years, which are not calibrated and so not directly comparable with calendar years ("+radiocarbon.join(", ")+"); they are drawn faded.";
+			text += " Some ages are in radiocarbon years, which are not calibrated and so not directly comparable with calendar years ("+radiocarbon.join(", ")+")";
+			text += graph ? "; they are drawn faded." : ".";
 		}
-		if(ageSummary.datings.some(dating => dating.open_older || dating.open_younger)) {
+		if(graph && ageSummary.datings.some(dating => dating.open_older || dating.open_younger)) {
 			text += " An open end means the dating only says older or younger than a year.";
 		}
 		return text;
+	}
+
+	/*
+	* Function: getVisibleRows
+	* A group's rows, but only the first few of a long one until the user asks for all of them.
+	*/
+	getVisibleRows(group, expandable) {
+		if(expandable && group.rows.length > this.rowsPerMethod && !this.expandedMethods.includes(group.methodId)) {
+			return group.rows.slice(0, this.rowsPerMethod);
+		}
+		return group.rows;
+	}
+
+	renderShowAllButton(group, className) {
+		let moreNode = $("<button type='button' class='sqs-link-btn'></button>").addClass(className);
+		moreNode.text("Show all "+group.rows.length.toLocaleString("en-GB")+" samples");
+		moreNode.on("click", () => {
+			this.expandedMethods.push(group.methodId);
+			this.renderDatingTab();
+		});
+		return moreNode;
+	}
+
+	/*
+	* Function: renderGroupHead
+	* The name of a dating method, over its samples, with a link to its datasets when it has any.
+	*/
+	renderGroupHead(group) {
+		let headNode = $("<div class='dating-timeline-group-head'></div>");
+		headNode.append($("<span class='sqs-dot'></span>").css("background-color", group.color || "#8c8c8c"));
+		headNode.append($("<span class='sqs-label'></span>").text(group.title));
+		if(this.siteReport.getAnalysisMethods().find(method => method.methodId == group.methodId)) {
+			let linkNode = $("<button type='button' class='sqs-link-btn'>Datasets &rarr;</button>");
+			linkNode.on("click", () => {
+				this.siteReport.showAnalysisMethod(group.methodId);
+			});
+			headNode.append(linkNode);
+		}
+		return headNode;
+	}
+
+	/*
+	* Function: renderTables
+	*
+	* A table per method, a row per dated sample, oldest first.
+	*
+	* Parameters:
+	* groups - [{ title, color, methodId, rows: [{ label, sampleGroupName, relativeAgeName, older, younger, openOlder, openYounger, radiocarbon, disputed }] }]
+	*/
+	renderTables(groups) {
+		let tablesNode = $("<div class='dating-tables'></div>");
+
+		groups.forEach(group => {
+			let groupNode = $("<div class='dating-table-group'></div>");
+			groupNode.append(this.renderGroupHead(group));
+
+			//Datings by an archaeological period or the like name it, others are just years
+			let showRelativeAge = group.rows.some(row => row.relativeAgeName);
+			let tableNode = $("<table class='sqs-table dating-table'><thead><tr></tr></thead><tbody></tbody></table>");
+			let headRowNode = $("thead tr", tableNode);
+			headRowNode.append("<th>Sample</th><th>Sample group</th>");
+			if(showRelativeAge) {
+				headRowNode.append("<th>Dated as</th>");
+			}
+			headRowNode.append("<th>Age</th>");
+
+			let rows = this.getVisibleRows(group, true);
+			rows.forEach(row => {
+				let rowNode = $("<tr></tr>");
+				rowNode.append($("<td class='dating-table-sample'></td>").text(row.label));
+				rowNode.append($("<td></td>").text(row.sampleGroupName));
+				if(showRelativeAge) {
+					rowNode.append($("<td></td>").text(row.relativeAgeName));
+				}
+				let ageCell = $("<td class='dating-table-age'></td>").text((row.approximate ? "c. " : "")+this.getRangeText(row));
+				if(row.radiocarbon) {
+					ageCell.append(" ", $("<span class='sqs-muted'></span>").text("(radiocarbon years)"));
+				}
+				rowNode.append(ageCell);
+				$("tbody", tableNode).append(rowNode);
+			});
+			groupNode.append($("<div class='dating-table-scroll'></div>").append(tableNode));
+
+			if(rows.length < group.rows.length) {
+				groupNode.append(this.renderShowAllButton(group, "dating-table-more"));
+			}
+			tablesNode.append(groupNode);
+		});
+
+		return tablesNode;
 	}
 
 	/*
@@ -306,9 +461,9 @@ class Dating {
 	formatTick(bp) {
 		if(this.calendar == "BP") {
 			if(Math.abs(bp) >= 10000) {
-				return Math.round(bp / 1000)+"k";
+				return this.formatNumber(bp / 1000, false)+"k";
 			}
-			return Math.round(bp).toLocaleString("en-GB").replace(/,/g, " ");
+			return this.formatNumber(bp);
 		}
 		let ad = Math.round(this.getBpYear() - bp);
 		if(ad >= 1) {
@@ -324,10 +479,12 @@ class Dating {
 	* Bars on a time axis, older to the left. Each group is a method, with its rows under it.
 	*
 	* Parameters:
-	* groups - [{ title, color, methodId, rows: [{ label, sublabel, older, younger, openOlder, openYounger, approximate, disputed, color }] }]
-	* options - compact: smaller rows, for the overview. expandable: fold long groups.
+	* groups - [{ title, color, methodId, rows: [{ label, sublabel, relativeAgeName, older, younger, openOlder, openYounger, approximate, radiocarbon, disputed, color }] }]
+	* options - compact: smaller rows, for the overview. expandable: fold long groups. rangeLabels: write each
+	* row's dating beside its bar, rather than only in its tooltip.
 	*/
 	renderTimeline(groups, options = {}) {
+		let rangeLabels = options.rangeLabels !== false;
 		let allRows = [];
 		groups.forEach(group => allRows.push(...group.rows));
 		let axis = this.getAxis(allRows);
@@ -336,29 +493,17 @@ class Dating {
 		if(options.compact) {
 			timelineNode.addClass("dating-timeline-compact");
 		}
+		if(!rangeLabels) {
+			timelineNode.addClass("dating-timeline-chart");
+		}
 
 		groups.forEach(group => {
 			let groupNode = $("<div class='dating-timeline-group'></div>");
 			if(group.title) {
-				let headNode = $("<div class='dating-timeline-group-head'></div>");
-				headNode.append($("<span class='sqs-dot'></span>").css("background-color", group.color || "#8c8c8c"));
-				headNode.append($("<span class='sqs-label'></span>").text(group.title));
-				if(this.siteReport.getAnalysisMethods().find(method => method.methodId == group.methodId)) {
-					let linkNode = $("<button type='button' class='sqs-link-btn'>Datasets &rarr;</button>");
-					linkNode.on("click", () => {
-						this.siteReport.showAnalysisMethod(group.methodId);
-					});
-					headNode.append(linkNode);
-				}
-				groupNode.append(headNode);
+				groupNode.append(this.renderGroupHead(group));
 			}
 
-			let rows = group.rows;
-			let folded = options.expandable && rows.length > this.rowsPerMethod && !this.expandedMethods.includes(group.methodId);
-			if(folded) {
-				rows = rows.slice(0, this.rowsPerMethod);
-			}
-
+			let rows = this.getVisibleRows(group, options.expandable);
 			rows.forEach(row => {
 				let rowNode = $("<div class='dating-timeline-row'></div>");
 				let labelNode = $("<div class='dating-timeline-label'></div>");
@@ -379,44 +524,31 @@ class Dating {
 				});
 				barNode.toggleClass("dating-timeline-bar-open-older", !!row.openOlder);
 				barNode.toggleClass("dating-timeline-bar-open-younger", !!row.openYounger);
-				barNode.toggleClass("dating-timeline-bar-approximate", !!row.approximate);
-				let rangeText = this.formatRange(row.older, row.younger);
-				if(row.openOlder) {
-					rangeText = "older than "+this.formatYear(row.older);
-				}
-				if(row.openYounger) {
-					rangeText = "younger than "+this.formatYear(row.younger);
-				}
-				if(row.disputed) {
-					rangeText += " (disputed)";
-				}
-				barNode.attr("title", row.label+": "+rangeText);
+				barNode.toggleClass("dating-timeline-bar-approximate", !!(row.approximate || row.radiocarbon));
+				let rangeText = this.getRangeText(row);
+				barNode.attr("title", row.label+(row.relativeAgeName ? " · "+row.relativeAgeName : "")+": "+rangeText);
 				trackNode.append(barNode);
 
 				//The range is written beside the bar, on whichever side has room, or in it
-				let rangeNode = $("<span class='dating-timeline-range'></span>").text(rangeText);
-				if(right < 70) {
-					rangeNode.css("left", "calc("+right+"% + 8px)");
+				if(rangeLabels) {
+					let rangeNode = $("<span class='dating-timeline-range'></span>").text(rangeText);
+					if(right < 70) {
+						rangeNode.css("left", "calc("+right+"% + 8px)");
+					}
+					else if(left > 30) {
+						rangeNode.css("right", "calc("+(100 - left)+"% + 8px)");
+					}
+					else {
+						rangeNode.addClass("dating-timeline-range-inside").css("left", "calc("+left+"% + 6px)");
+					}
+					trackNode.append(rangeNode);
 				}
-				else if(left > 30) {
-					rangeNode.css("right", "calc("+(100 - left)+"% + 8px)");
-				}
-				else {
-					rangeNode.addClass("dating-timeline-range-inside").css("left", "calc("+left+"% + 6px)");
-				}
-				trackNode.append(rangeNode);
 				rowNode.append(trackNode);
 				groupNode.append(rowNode);
 			});
 
-			if(folded) {
-				let moreNode = $("<button type='button' class='sqs-link-btn dating-timeline-more'></button>");
-				moreNode.text("Show all "+group.rows.length.toLocaleString("en-GB")+" samples");
-				moreNode.on("click", () => {
-					this.expandedMethods.push(group.methodId);
-					this.renderDatingTab();
-				});
-				groupNode.append(moreNode);
+			if(rows.length < group.rows.length) {
+				groupNode.append(this.renderShowAllButton(group, "dating-timeline-more"));
 			}
 
 			timelineNode.append(groupNode);

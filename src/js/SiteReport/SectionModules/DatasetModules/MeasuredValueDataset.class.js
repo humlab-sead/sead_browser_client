@@ -140,11 +140,13 @@ class MeasuredValueDataset extends DatasetModule {
 					"dataType": "string",
 					"pkey": true,
 					"hidden": true,
-					"title": "Sample ID"
+					"title": "Sample ID",
+					"role": "sample_id"
 				},
 				{
 					"dataType": "string",
-					"title": "Sample name"
+					"title": "Sample name",
+					"role": "sample_name"
 				},
 				{
 					"dataType": "string",

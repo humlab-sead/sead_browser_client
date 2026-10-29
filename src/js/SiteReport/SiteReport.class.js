@@ -70,7 +70,7 @@ class SiteReport {
 		const dating = new Dating(this.sqs, this);
 
 		bsi.preRender();
-		this.renderBrowseControls();
+		this.renderBackButtonCount();
 
 		Promise.all([this.fetchSite(), this.fetchMethodGroups()]).then(([siteData]) => {
 			console.log(siteData);
@@ -391,6 +391,34 @@ class SiteReport {
 	}
 
 	/*
+	* Function: revealSampleGroup
+	* Shows one sample group on the samples tab, the table of sample groups narrowed down to it.
+	*/
+	revealSampleGroup(sampleGroupId) {
+		this.setActiveTab("samples");
+		let sampleGroup = this.siteData.sample_groups.find(sampleGroup => sampleGroup.sample_group_id == sampleGroupId);
+		let contentItemRenderer = this.getContentItemRendererByName("sampleGroups");
+		let sampleGroupsTable = contentItemRenderer ? contentItemRenderer.getRenderInstance() : false;
+		if(!sampleGroup || !sampleGroupsTable || typeof sampleGroupsTable.search != "function") {
+			return false;
+		}
+		return sampleGroupsTable.search(sampleGroup.sample_group_name, { rowId: sampleGroupId });
+	}
+
+	/*
+	* Function: showSample
+	*
+	* Shows everything about one of the site's samples in a dialog, without leaving the page.
+	*/
+	showSample(physicalSampleId) {
+		let samplesModule = this.getModuleByName("samples");
+		if(!samplesModule || !this.siteData) {
+			return false;
+		}
+		return samplesModule.module.renderSampleDialog(this.siteData, physicalSampleId);
+	}
+
+	/*
 	* Function: getReferenceBiblioIds
 	* Every reference the site, its sample groups and its datasets cite.
 	*/
@@ -410,34 +438,14 @@ class SiteReport {
 	}
 
 	/*
-	* Function: renderBrowseControls
+	* Function: renderBackButtonCount
 	*
-	* Back to the result, with its size, and previous/next for stepping through the sites in it.
-	* Without a result, e.g. when the site report was opened from a link, there is nothing to step
-	* through.
+	* The size of the result on the button back to it. Without a result, e.g. when the site report
+	* was opened from a link, there is nothing to count.
 	*/
-	renderBrowseControls() {
+	renderBackButtonCount() {
 		let siteIds = this.siteReportManager.getResultSiteIds();
-		let position = siteIds.findIndex(siteId => siteId == this.siteId);
-
 		$(".site-report-back-count").text(siteIds.length > 0 ? " \u00b7 "+siteIds.length.toLocaleString("en-GB")+(siteIds.length == 1 ? " site" : " sites") : "");
-
-		let browseNode = $(".site-report-browse");
-		if(position == -1) {
-			browseNode.hide();
-			return;
-		}
-		browseNode.css("display", "");
-		$(".site-report-browse-position", browseNode).text((position + 1).toLocaleString("en-GB")+" of "+siteIds.length.toLocaleString("en-GB"));
-
-		let prevButton = $(".site-report-browse-prev", browseNode);
-		let nextButton = $(".site-report-browse-next", browseNode);
-		prevButton.prop("disabled", position == 0).off("click").on("click", () => {
-			this.siteReportManager.renderSiteReport(siteIds[position - 1]);
-		});
-		nextButton.prop("disabled", position == siteIds.length - 1).off("click").on("click", () => {
-			this.siteReportManager.renderSiteReport(siteIds[position + 1]);
-		});
 	}
 
 	/*
@@ -2296,177 +2304,6 @@ class SiteReport {
 				return section;
 			}
 		}
-	}
-
-	focusOn(query) {
-		if(query.section) {
-			//find the section
-			let section = this.getSectionByName(query.section);
-			$("#site-report-section-" + section.name)[0].scrollIntoView({ behavior: 'smooth' });
-		}
-		else {
-			console.warning("focusOn: No section specified");
-		}
-	}
-
-	expandSampleGroup(sampleGroupId, sampleId) {
-		let samplesSection = this.getSectionByName("samples");
-		samplesSection.contentItems.forEach((ci) => {
-			if(ci.name == "sampleGroups") {
-				let sampleGroupIdColumnKey = null;
-				for(let key in ci.data.columns) {
-					if(ci.data.columns[key].title == "Sample group id") {
-						sampleGroupIdColumnKey = key;
-					}
-				}
-
-				if(!sampleGroupIdColumnKey) {
-					console.warn("Could not find sample group id column key");
-					return;
-				}
-
-				ci.data.rows.forEach((row) => {
-					let selectedSampleGroupId = row[sampleGroupIdColumnKey].value;
-					if(selectedSampleGroupId == sampleGroupId) {
-						//select and click
-						let selector = "#cic-sampleGroups .site-report-table-row[row-id="+selectedSampleGroupId+"]";
-
-						//only click if it's not already expanded
-						if(!$(selector).hasClass("table-row-expanded")) {
-							$(selector).trigger("click");
-						}
-						else {
-							console.log("Sample group row already expanded", selector);
-						}
-					}
-				});
-			}
-		});
-	}
-
-	pageFlipToSampleGroup(sampleGroupId) {
-		let dataTable = $("#cic-sampleGroups > #contentItem-sampleGroups table").DataTable();
-
-		//find the dataTable column header called 'Sample group id'
-		let sampleGroupIdColumnKey = null;
-		dataTable.columns().header().each((header, index) => {
-			if(header.innerText == "Sample group id") {
-				sampleGroupIdColumnKey = index;
-			}
-		});
-
-		let sampleGroupRowIndex = null;
-		let sampleGroupRowObj = dataTable.row((idx, data) => {
-			if(data[0] == sampleGroupId) {
-				sampleGroupRowIndex = idx;
-			}
-			return data[0] == sampleGroupId;
-		});
-
-		let sortedIndex = null;
-		let rowsSorted = dataTable.rows( { order: 'applied' } );
-		if(!rowsSorted[0]) {
-			console.warn("Could not get sorted rows");
-			return;
-		}
-		rowsSorted[0].forEach((idx, newIdx) => {
-			if(idx == sampleGroupRowObj.index()) {
-				sortedIndex = newIdx;
-			}
-		});
-
-		let pageNumOfSampleGroup = Math.floor(sortedIndex / dataTable.page.len());
-
-		let currentTablePage = dataTable.page();
-
-		if(pageNumOfSampleGroup != currentTablePage) {
-			console.log("Page flipping sample group table to page", pageNumOfSampleGroup);
-			dataTable.page(pageNumOfSampleGroup).draw(false); // The 'false' parameter redraws the table without triggering the 'draw' event
-		}
-
-		//scroll to the sample group
-		let rowNode = dataTable.row(sampleGroupRowObj.index()).node();
-		$(rowNode)[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-	}
-
-	pageFlipToSample(sampleGroupId, sampleName) {
-		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
-
-		let dataTable = $("td > div > div > table", subTable).DataTable();
-
-		//find the dataTable column header called 'Sample name'
-		let sampleNameColumnKey = null;
-		dataTable.columns().header().each((header, index) => {
-			if(header.innerText == "Sample name") {
-				sampleNameColumnKey = index;
-			}
-		});
-
-		let rowObj = dataTable.row((idx, data) => data[sampleNameColumnKey] === sampleName);
-
-		let sortedIndex = null;
-		let rowsSorted = dataTable.rows( { order: 'applied' } );
-		if(!rowsSorted[0]) {
-			console.warn("Could not get sorted rows");
-			return;
-		}
-		rowsSorted[0].forEach((idx, newIdx) => {
-			if(idx == rowObj.index()) {
-				sortedIndex = newIdx;
-			}
-		});
-
-		let pageNumOfSample = Math.floor(sortedIndex / dataTable.page.len());
-		console.log("Page flipping sample table to page", pageNumOfSample);
-		dataTable.page(pageNumOfSample).draw(false); // The 'false' parameter redraws the table without triggering the 'draw' event
-	}
-
-	scrollToSample(sampleGroupId, sampleName) {
-		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
-		let dataTable = $("td > div > div > table", subTable).DataTable();
-		let rowObj = dataTable.row((idx, cells) => cells[1] === sampleName); //cell 1 is the sample name
-		if(!rowObj.index()) {
-			console.warn("Could not find sample row in table");
-			return false;
-		}
-		let rowNode = dataTable.row(rowObj.index()).node();
-		$(rowNode)[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-		return true;
-	}
-
-	highlightSampleGroupRow(sampleGroupId) {
-		$(".highlighted-table-row").removeClass("highlighted-table-row");
-		$("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").addClass("highlighted-table-row");
-		
-		$("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]")[0].addEventListener('animationend', function() {
-			$("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").removeClass('highlighted-table-row');
-		});
-	}
-
-	highlightSampleRow(sampleGroupId, sampleName) {
-		let subTable = $("#cic-sampleGroups .site-report-table-row[row-id="+sampleGroupId+"]").next();
-		$(".highlighted-table-row", subTable).removeClass("highlighted-table-row");
-		let dataTable = $("td > div > div > table", subTable).DataTable();
-
-		//find the dataTable column header called 'Sample name'
-		let sampleNameColumnKey = null;
-		dataTable.columns().header().each((header, index) => {
-			if(header.innerText == "Sample name") {
-				sampleNameColumnKey = index;
-			}
-		});
-
-		let rowObj = dataTable.row((idx, data) => data[sampleNameColumnKey] === sampleName);
-		var rowNode = dataTable.row(rowObj.index()).node();
-
-		// Add 'highlighted-table-row' class to the specified row
-		$(rowNode).addClass('highlighted-table-row');
-
-		$("td", rowNode).addClass("highlighted-table-row");
-
-		$("td", rowNode)[0].addEventListener('animationend', function() {
-			$("td", rowNode).removeClass('highlighted-table-row');
-		});
 	}
 
 	/*

@@ -760,6 +760,7 @@ class OpenLayersMap {
 			  geometry: olPoint,
 			  level: point.level,
 			  name: point.sampleName,
+			  sampleId: point.sampleId,
 			  sampleName: point.sampleName,
 			  sampleGroupId: point.sampleGroupId,
 			  sampleGroupName: point.sampleGroupName,
@@ -1648,25 +1649,29 @@ class OpenLayersMap {
 					tableRows += "</tr>";
 
 					if(clickablePopupElements) {
+						//Shows the sample, or sample group, by searching the sample groups table for it
 						$(popupContainer).on('click', "#"+ttSampleId, () => {
 							let sr = this.sqs.siteReportManager.siteReport;
-							sr.focusOn({ section: "samples" });
-							
+							let contentItemRenderer = sr.getContentItemRendererByName("sampleGroups");
+							let sampleGroupsTable = contentItemRenderer ? contentItemRenderer.getRenderInstance() : false;
+							if(!sampleGroupsTable || typeof sampleGroupsTable.search != "function") {
+								this.sqs.notificationManager.notify("Sample not found", "error");
+								return false;
+							}
+
+							sr.revealSection("samples");
+
+							let found = false;
 							if(fprop.level == "Sample group") {
-								sr.highlightSampleGroupRow(fprop.sampleGroupId);
+								found = sampleGroupsTable.search(fprop.sampleGroupName, { rowId: fprop.sampleGroupId });
 							}
 							if(fprop.level == "Sample") {
-								sr.pageFlipToSampleGroup(fprop.sampleGroupId, fprop.sampleGroupName);
-								sr.expandSampleGroup(fprop.sampleGroupId, fprop.name);
-								sr.pageFlipToSample(fprop.sampleGroupId, fprop.name);
-								let success = sr.scrollToSample(fprop.sampleGroupId, fprop.name);
-								if(!success) {
-									this.sqs.notificationManager.notify("Sample not found", "error");
-									return false;
-								}
-								sr.highlightSampleRow(fprop.sampleGroupId, fprop.name);
+								found = sampleGroupsTable.search(fprop.sampleName, { rowId: fprop.sampleGroupId, subRowId: fprop.sampleId });
 							}
-							
+							if(!found) {
+								this.sqs.notificationManager.notify("Sample not found", "error");
+								return false;
+							}
 						});
 					}
 				}

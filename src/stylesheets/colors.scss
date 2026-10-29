@@ -25,6 +25,9 @@ $text-color: #1e1e1e;
 $text-muted-color: #636363;
 $base-color-dark: #22486c;
 
+//Burned/heated samples in charts (MS, LOI), a muted red paired with $base-color
+$burned-color: #ac4139;
+
 
 
 //DARK MODE
@@ -66,4 +69,5 @@ Exporting variables for webpack to make them includeable in js
     borderColor: $border-color;
     textColor: $text-color;
     textMutedColor: $text-muted-color;
+    burnedColor: $burned-color;
   }

@@ -148,10 +148,12 @@ class LossOnIgnitionDataset extends DatasetModule {
 					"pkey": true,
 					"title": "Sample ID",
 					"hidden": true,
+					"role": "sample_id"
 				},
 				{
 					"dataType": "string",
-					"title": "Sample name"
+					"title": "Sample name",
+					"role": "sample_name"
 				},
 				{
 					"dataType": "string",
