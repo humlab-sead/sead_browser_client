@@ -7469,9 +7469,11 @@ h3.mosaic-tile-title, .mosaic-tile-title {
   padding: sqs-px(8) sqs-px(10) sqs-px(10) sqs-px(10);
 }
 
-/* A chart drawn in HTML: it scrolls rather than squashes when the tile is short */
+/* A chart drawn in HTML: it scrolls rather than squashes when the tile is short. Its scrollbar stops
+   above the tile's resize grip (and the rounded corner), rather than running in under them. */
 .mosaic-tile-chart.mosaic-tile-chart-html {
-  padding: sqs-px(14) sqs-px(18) sqs-px(18) sqs-px(18);
+  margin-bottom: 18px;
+  padding: sqs-px(14) sqs-px(18) sqs-px(6) sqs-px(18);
   overflow-y: auto;
 }
 

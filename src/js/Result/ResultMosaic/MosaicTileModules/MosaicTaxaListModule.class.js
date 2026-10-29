@@ -118,11 +118,9 @@ class MosaicTaxaListModule extends MosaicTileModule {
             return row;
         });
 
-        let subtitle = "Summed abundance";
-        if(rows.length > this.topCount && this.view == "chart" && !this.showAll) {
-            subtitle += " · top "+this.topCount+" of "+this.formatCount(rows.length);
-        }
-        this.setMosaicTileSubtitle(subtitle);
+        //The server only returns the most abundant taxa, not all of them, so rows.length is not the total number of taxa
+        let shownCount = this.view == "chart" && !this.showAll ? Math.min(rows.length, this.topCount) : rows.length;
+        this.setMosaicTileSubtitle("Summed abundance · top "+shownCount+" taxa");
 
         if(this.view == "table") {
             this.renderDataTable(chartNode, [
@@ -141,7 +139,7 @@ class MosaicTaxaListModule extends MosaicTileModule {
 
         if(rows.length > this.topCount) {
             let toggleNode = $("<button type='button' class='sqs-link-btn mosaic-show-all-btn'></button>");
-            toggleNode.text(this.showAll ? "Show the top "+this.topCount : "Show all "+this.formatCount(rows.length)+" taxa");
+            toggleNode.text("Show the top "+(this.showAll ? this.topCount : rows.length));
             toggleNode.on("click", () => {
                 this.showAll = !this.showAll;
                 this.renderView();
