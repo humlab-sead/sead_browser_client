@@ -40,7 +40,8 @@ class ESRDataset extends DatasetModule {
             },
             {
                 "dataType": "string",
-                "title": "Sample"
+                "title": "Sample",
+                "role": "sample_name"
             },
             {
                 "dataType": "string",
@@ -53,6 +54,12 @@ class ESRDataset extends DatasetModule {
             {
                 "dataType": "string",
                 "title": "Notes"
+            },
+            {
+                "dataType": "number",
+                "title": "Sample id",
+                "hidden": true,
+                "role": "sample_id"
             },
         ];
 
@@ -105,6 +112,11 @@ class ESRDataset extends DatasetModule {
                         "type": "cell",
                         "tooltip": "",
                         "value": analysisEntity.dating_values.notes
+                    },
+                    {
+                        "type": "cell",
+                        "tooltip": "",
+                        "value": analysisEntity.physical_sample_id
                     },
                 ]
 

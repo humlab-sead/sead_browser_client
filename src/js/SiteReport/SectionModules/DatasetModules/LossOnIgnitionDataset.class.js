@@ -79,65 +79,6 @@ class LossOnIgnitionDataset extends DatasetModule {
 						"name": "Spreadsheet",
 						"selected": false,
 						"type": "table"
-					},
-					{
-						"name": "Bar chart",
-						"selected": true,
-						"type": "loi-bar",
-						"options": [
-							{
-								"enabled": false,
-								"title": "X axis",
-								"type": "select",
-								"selected": 0,
-								"options": [
-									{
-										"title": 1,
-										"value": 1,
-										"selected": true
-									},
-									{
-										"title": 2,
-										"value": 2,
-										"selected": false
-									},
-								]
-							},
-							{
-								"enabled": false,
-								"title": "Y axis",
-								"type": "select",
-								"selected": 1,
-								"options": [
-									{
-										"title": 1,
-										"value": 1,
-										"selected": false
-									},
-									{
-										"title": 2,
-										"value": 2,
-										"selected": true
-									},
-								]
-							},
-							{
-								"enabled": false,
-								"title": "Sort",
-								"type": "select",
-								"options": [
-									{
-										"title": 1,
-										"value": 1,
-									},
-									{
-										"title": 2,
-										"value": 2,
-										"selected": true
-									},
-								]
-							}
-						]
 					}
 				]
 			};
@@ -148,10 +89,12 @@ class LossOnIgnitionDataset extends DatasetModule {
 					"pkey": true,
 					"title": "Sample ID",
 					"hidden": true,
+					"role": "sample_id"
 				},
 				{
 					"dataType": "string",
-					"title": "Sample name"
+					"title": "Sample name",
+					"role": "sample_name"
 				},
 				{
 					"dataType": "string",
@@ -207,6 +150,9 @@ class LossOnIgnitionDataset extends DatasetModule {
 				]);
             }
 			
+			let physicalSampleIds = contentItem.data.rows.map(row => row[0].value);
+			contentItem.renderOptions = contentItem.renderOptions.concat(this.getSampleChartRenderOptions(siteData, physicalSampleIds, [{ "column": "Value", "color": "burnedColor" }]));
+
 			section.contentItems.push(contentItem);
 		}
 	}

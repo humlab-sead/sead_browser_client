@@ -1135,6 +1135,154 @@ class Samples {
 		let renderPromise = this.sqs.siteReportManager.siteReport.renderSection(section);
 	}
 	
+	/*
+	* Function: renderSampleDialog
+	*
+	* Everything the samples table holds about one sample, and the sample group it is in, in a dialog.
+	* Along with the analyses made on it, and a way to see it in the samples table.
+	*
+	* Parameters:
+	* siteData - The site's data
+	* physicalSampleId - The sample
+	* options - sections: [{ title, fields: [{ label, text or html, note, help }] }], shown first, e.g. what an
+	* analysis found about the sample when it is opened from that analysis.
+	*/
+	renderSampleDialog(siteData, physicalSampleId, options = {}) {
+		let sample = null;
+		let sampleGroup = null;
+		siteData.sample_groups.forEach(sg => {
+			sg.physical_samples.forEach(ps => {
+				if(ps.physical_sample_id == physicalSampleId) {
+					sample = ps;
+					sampleGroup = sg;
+				}
+			});
+		});
+
+		if(sample == null) {
+			this.sqs.notificationManager.notify("Sample not found", "error");
+			return false;
+		}
+
+		let dialogNode = $("<div class='sample-dialog'></div>");
+
+		//Each field is a label and either a plain text or an html value, those without a value are left out.
+		//A field's help explains what its label means, behind a symbol beside it.
+		let renderFields = (title, fields) => {
+			fields = fields.filter(field => (field.text != null && field.text !== "") || (field.html != null && field.html !== ""));
+			if(fields.length == 0) {
+				return;
+			}
+			dialogNode.append($("<h4 class='sqs-label'></h4>").text(title));
+			let listNode = $("<dl class='sample-dialog-fields'></dl>");
+			fields.forEach(field => {
+				let termNode = $("<dt></dt>").text(field.label);
+				if(field.help) {
+					let termId = "sample-dialog-term-"+nanoid();
+					termNode.attr("id", termId);
+					this.sqs.tooltipManager.registerTooltip("#"+termId, field.help, { drawSymbol: true });
+				}
+				listNode.append(termNode);
+				let valueNode = $("<dd></dd>");
+				if(field.html != null) {
+					valueNode.html(field.html);
+				}
+				else {
+					valueNode.text(field.text);
+				}
+				if(field.note) {
+					valueNode.append($("<div class='sample-dialog-field-note'></div>").text(field.note));
+				}
+				listNode.append(valueNode);
+			});
+			dialogNode.append(listNode);
+		};
+
+		(options.sections || []).forEach(section => {
+			renderFields(section.title, section.fields);
+		});
+
+		let sampleFields = [
+			{ label: "Sample type", text: sample.sample_type_name, note: sample.sample_type_description },
+			{ label: "Date sampled", text: sample.date_sampled }
+		];
+		sample.alt_refs.forEach(altRef => {
+			sampleFields.push({ label: altRef.alt_ref_type, text: altRef.alt_ref, note: altRef.description });
+		});
+		sample.descriptions.forEach(desc => {
+			sampleFields.push({ label: desc.type_name, text: desc.description });
+		});
+		sample.locations.forEach(location => {
+			sampleFields.push({ label: location.location_type, text: location.location });
+		});
+		sampleFields.push({ label: "Dimensions", html: this.sqs.formatDimensions(sample.dimensions, siteData) });
+		if(sample.coordinates.length > 0) {
+			sampleFields.push({ label: "Coordinates", html: this.sqs.formatCoordinates(sample.coordinates, siteData) });
+		}
+		if(typeof sample.horizons != "undefined" && sample.horizons.length > 0) {
+			sampleFields.push({ label: "Horizon", html: this.sqs.formatHorizons(sample.horizons, siteData) });
+		}
+		sample.features.forEach(feature => {
+			sampleFields.push({ label: feature.feature_type_name, text: feature.feature_name, note: feature.feature_description });
+		});
+		renderFields("Sample", sampleFields);
+
+		let samplingMethod = this.getSamplingMethodById(siteData, sampleGroup.sampling_method_id);
+		renderFields("Sample group", [
+			{ label: "Name", text: sampleGroup.sample_group_name, note: sampleGroup.sample_group_description },
+			{ label: "Sampling context", text: sampleGroup.sampling_context.map(samplingContext => samplingContext.sampling_context).join(", ") },
+			{ label: "Sampling method", text: samplingMethod ? samplingMethod.method_name : "" }
+		]);
+
+		//The analyses made on the sample, those listed among the analysis methods lead there
+		let siteReport = this.sqs.siteReportManager.siteReport;
+		let sampleDatasetIds = siteData.datasets.filter(dataset => {
+			return Array.isArray(dataset.analysis_entities) && dataset.analysis_entities.some(ae => ae.physical_sample_id == sample.physical_sample_id);
+		}).map(dataset => dataset.dataset_id);
+		let methods = siteReport.getAnalysisMethods(siteData).filter(method => {
+			return method.datasets.some(dataset => sampleDatasetIds.includes(dataset.dataset_id));
+		});
+		if(methods.length > 0) {
+			dialogNode.append($("<h4 class='sqs-label'></h4>").text("Analyses of this sample"));
+			let methodsNode = $("<div class='sample-dialog-methods'></div>");
+			methods.forEach(method => {
+				let navItem = (siteReport.analysisMethodNavItems || []).find(item => item.methodId == method.methodId);
+				let methodNode = $(navItem ? "<button type='button' class='sample-dialog-method'></button>" : "<div class='sample-dialog-method'></div>");
+				methodNode.append($("<span class='sqs-dot'></span>").css("background-color", method.color || "#8c8c8c"));
+				methodNode.append($("<span></span>").text(method.name));
+				if(navItem) {
+					methodNode.on("click", () => {
+						this.sqs.dialogManager.hidePopOver();
+						siteReport.showAnalysisMethod(method.methodId);
+					});
+				}
+				methodsNode.append(methodNode);
+			});
+			dialogNode.append(methodsNode);
+		}
+
+		let showInTableBtn = $("<button type='button' class='sqs-btn sample-dialog-show-in-table-btn'><i class='fa fa-table' aria-hidden='true'></i> Show in the samples table</button>");
+		showInTableBtn.on("click", () => {
+			this.sqs.dialogManager.hidePopOver();
+			let contentItemRenderer = siteReport.getContentItemRendererByName("sampleGroups");
+			let sampleGroupsTable = contentItemRenderer ? contentItemRenderer.getRenderInstance() : false;
+			if(!sampleGroupsTable || typeof sampleGroupsTable.search != "function") {
+				this.sqs.notificationManager.notify("Sample not found", "error");
+				return;
+			}
+			siteReport.revealSection("samples");
+			if(!sampleGroupsTable.search(sample.sample_name, { rowId: sampleGroup.sample_group_id, subRowId: sample.physical_sample_id })) {
+				this.sqs.notificationManager.notify("Sample not found", "error");
+			}
+		});
+		dialogNode.append($("<div class='sample-dialog-actions'></div>").append(showInTableBtn));
+
+		this.sqs.dialogManager.showPopOverFragment("Sample "+sample.sample_name, dialogNode[0], {
+			width: "560px"
+		});
+		return true;
+	}
+
 	getSampleGroupById(sampleGroupId) {
 		for(let key in this.data.sampleGroups) {
 			if(this.data.sampleGroups[key].sampleGroupId == sampleGroupId) {

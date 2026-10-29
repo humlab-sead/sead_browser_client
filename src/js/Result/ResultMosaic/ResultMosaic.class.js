@@ -1,5 +1,6 @@
 //import Config from '../../../config/config.js'
 import ResultModule from '../ResultModule.class.js'
+import 'zingchart/es6';
 import MosaicGridLayout from './MosaicGridLayout.class.js'
 //import ResultMap from "../ResultMap/ResultMap.class";
 

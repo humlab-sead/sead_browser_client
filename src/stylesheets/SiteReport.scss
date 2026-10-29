@@ -7,6 +7,8 @@
 * and summary at the top and its contents on tabs below.
 */
 
+$site-report-compact-bar-height: sqs-px(48);
+
 #site-report-main-container {
   box-sizing: border-box;
   width: 100vw;
@@ -14,6 +16,66 @@
   overflow-x: hidden;
   overflow-y: auto;
   background: colors.$page-bg-color;
+  /* What is scrolled into view stays clear of the compact tabs */
+  scroll-padding-top: $site-report-compact-bar-height;
+}
+
+/*
+* The tabs, compact, at the top of the page once the summary has scrolled out of view. The bar takes up
+* no room of its own, so showing and hiding it doesn't move the page under it.
+*/
+.site-report-compact-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex: none;
+  height: 0;
+}
+
+.site-report-compact-bar-content {
+  display: flex;
+  align-items: flex-end;
+  gap: sqs-px(28);
+  box-sizing: border-box;
+  height: $site-report-compact-bar-height;
+  /* lined up with the page under it */
+  padding: 0 max(#{sqs-px(32)}, calc((100% - #{sqs-px(1240)}) / 2 + #{sqs-px(32)}));
+  border-bottom: 1px solid colors.$border-color;
+  background: colors.$card-bg-color;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-100%);
+  transition: transform 0.2s ease, opacity 0.2s ease, visibility 0s linear 0.2s;
+}
+
+.site-report-compact-bar-shown .site-report-compact-bar-content {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: transform 0.2s ease, opacity 0.2s ease, visibility 0s;
+}
+
+.site-report-compact-bar-site-name {
+  flex: 0 1 auto;
+  align-self: center;
+  max-width: 30%;
+  overflow: hidden;
+  font-size: sqs-px(15);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.site-report-compact-bar-site-name:empty {
+  display: none;
+}
+
+/* The selected tab's underline lies on the bar's border */
+#site-report-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: -1px;
 }
 
 #site-report-page {
@@ -61,23 +123,6 @@
   font-weight: 400;
 }
 
-.site-report-browse {
-  display: flex;
-  align-items: center;
-  gap: sqs-px(4);
-  margin-left: auto;
-}
-
-.site-report-browse .sqs-btn {
-  height: sqs-px(32);
-  padding: 0 sqs-px(10);
-}
-
-.site-report-browse-position {
-  padding: 0 sqs-px(8);
-  white-space: nowrap;
-}
-
 /* The site's name, with what it is above and its description under it, and the actions beside */
 .site-report-titlebar {
   display: flex;
@@ -110,7 +155,10 @@
   text-transform: none;
 }
 
+/* As wide as the name, not the column, so its tooltip points at the name */
 h1.site-report-title-site-name {
+  width: fit-content;
+  max-width: 100%;
   margin: sqs-px(4) 0 0 0 !important;
   background: none;
   color: colors.$text-color;
@@ -129,7 +177,21 @@ h1.site-report-title-site-name {
   white-space: pre-wrap;
 }
 
-.site-report-no-data, .site-report-site-description.site-report-no-data {
+/* A long description shows its first lines until asked for the rest */
+.site-report-site-description-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.site-report-site-description-toggle {
+  margin-top: sqs-px(4);
+  padding: sqs-px(2) 0;
+  font-size: sqs-px(14);
+}
+
+.site-report-no-data,.site-report-site-description.site-report-no-data {
   color: colors.$text-muted-color;
   font-style: italic;
 }
@@ -140,25 +202,128 @@ h1.site-report-title-site-name {
   gap: sqs-px(8);
 }
 
-/* The site in figures: sample groups, samples, analyses and dating */
+$site-report-summary-tab-bg-color: #eef0f3;
+
+/* The tabs, as the site in figures: where it is, its samples, analyses, dating and references */
 .site-report-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1.25fr) minmax(0, 1fr);
   margin-top: sqs-px(22);
+  overflow: hidden; //keeps a cell's hover inside the rounded corners
 }
 
 .site-report-summary:empty {
   display: none;
 }
 
+/* Like tabs: the ones not shown lie back, greyed, and the one shown is in front, white */
 .site-report-summary-cell {
   min-width: 0;
   padding: sqs-px(16) sqs-px(20);
   border-right: 1px solid colors.$border-color-light;
+  background: $site-report-summary-tab-bg-color;
 }
 
 .site-report-summary-cell:last-child {
   border-right: none;
+}
+
+/* A cell that leads on: its label is the button, stretched over the whole cell */
+.site-report-summary-cell-link {
+  position: relative;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+
+.site-report-summary-cell-link:hover {
+  background: colors.$card-bg-color;
+}
+
+/* A chevron after the label: › opens the tab, and on the tab shown it points down, to it */
+.site-report-summary-link-chevron {
+  margin-left: sqs-px(6);
+  font-size: sqs-px(14);
+  line-height: 1;
+  transition: transform 0.15s;
+}
+
+.site-report-summary-cell-link:hover .site-report-summary-link-chevron {
+  transform: translateX(3px);
+}
+
+.site-report-summary-cell-current .site-report-summary-link-chevron,
+.site-report-summary-cell-current:hover .site-report-summary-link-chevron {
+  transform: rotate(90deg);
+}
+
+.site-report-summary-link {
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.site-report-summary-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.site-report-summary-cell-link:hover .site-report-summary-link {
+  color: colors.$base-color;
+}
+
+.site-report-summary-cell-link:hover .site-report-summary-value {
+  color: colors.$base-color-dark;
+}
+
+/* The tab shown below, in front of the others and underlined like the compact tabs */
+.site-report-summary-cell-current, .site-report-summary-cell-current:hover {
+  z-index: 1;
+  background: colors.$card-bg-color;
+  box-shadow: inset 0 -3px 0 colors.$base-color, 0 0 sqs-px(10) rgba(0, 0, 0, 0.1);
+}
+
+.site-report-summary-cell-current .site-report-summary-link {
+  color: colors.$base-color;
+}
+
+.site-report-summary-link:focus-visible {
+  outline: none;
+}
+
+.site-report-summary-link:focus-visible::after {
+  outline: 2px solid colors.$base-color;
+  outline-offset: -4px;
+  border-radius: sqs-px(6);
+}
+
+/* The links in a cell go somewhere of their own, so they lie on top of the cell's */
+.site-report-summary-sub-link, .site-report-summary-cell-link .site-report-analyses-bar {
+  position: relative;
+  z-index: 1;
+}
+
+.site-report-summary-sub-link {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.site-report-summary-sub-link:hover {
+  color: colors.$base-color;
+  text-decoration: underline;
+}
+
+.site-report-summary-sub-link:focus-visible {
+  outline: 2px solid colors.$base-color;
+  outline-offset: 1px;
 }
 
 .site-report-summary-value {
@@ -168,6 +333,13 @@ h1.site-report-title-site-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.site-report-summary-value-note {
+  margin-left: sqs-px(6);
+  color: colors.$text-muted-color;
+  font-size: sqs-px(13);
+  font-weight: 400;
 }
 
 .site-report-summary-empty .site-report-summary-value {
@@ -204,19 +376,31 @@ h1.site-report-title-site-name {
   min-width: sqs-px(6);
   padding: 0 sqs-px(4);
   overflow: hidden;
+  border: none;
+  font: inherit;
   line-height: sqs-px(22);
   text-align: center;
   white-space: nowrap;
   text-overflow: ellipsis;
+  cursor: pointer;
 }
 
-#site-report-tabs {
-  margin-top: sqs-px(26);
-  border-bottom: 1px solid colors.$border-color;
+/* the other methods step back while one is pointed at */
+.site-report-analyses-bar:hover .site-report-analyses-bar-segment:not(:hover) {
+  opacity: 0.45;
 }
 
-/* The tabs' contents */
+.site-report-analyses-bar-segment:focus-visible {
+  outline: 2px solid colors.$base-color;
+  outline-offset: -2px;
+}
+
+/*
+* The tabs' contents. At least a screen high, so that a tab opened from the compact tabs can always start at the
+* top of the page, even while it is still being drawn and is short.
+*/
 #site-report-content {
+  min-height: calc(100vh - var(--sqs-header-height) - #{$site-report-compact-bar-height});
   padding-top: sqs-px(24);
 }
 
@@ -314,8 +498,51 @@ h1.site-report-title-site-name {
   overflow-x: auto;
 }
 
+.site-report-sample-groups-row {
+  cursor: pointer;
+}
+
+.site-report-sample-groups-row:hover > td {
+  background: #fafafa;
+}
+
 .site-report-group-name {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
   font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.site-report-sample-groups-row:hover .site-report-group-name {
+  color: colors.$base-color;
+  text-decoration: underline;
+}
+
+.site-report-method-chip {
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.site-report-method-chip:hover {
+  background: #e3e3e3;
+}
+
+button.site-report-method-dot {
+  width: sqs-px(10);
+  height: sqs-px(10);
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+
+.site-report-group-name:focus-visible, .site-report-method-chip:focus-visible, .site-report-method-dot:focus-visible {
+  outline: 2px solid colors.$base-color;
+  outline-offset: 2px;
 }
 
 .site-report-group-id {
@@ -454,32 +681,135 @@ h1.site-report-title-site-name {
   height: sqs-px(440);
 }
 
+/* What the points on the sample map are, in its lower left corner */
+.sample-map-legend {
+  position: absolute;
+  left: sqs-px(10);
+  bottom: sqs-px(10);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: sqs-px(4);
+  padding: sqs-px(6) sqs-px(10);
+  border: 1px solid colors.$border-color;
+  border-radius: sqs-px(8);
+  background: rgba(255, 255, 255, 0.92);
+  color: colors.$text-color;
+  font-size: sqs-px(12);
+  pointer-events: none;
+}
+
+.sample-map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(8);
+}
+
+/* As the points are drawn on the map, see OpenLayersMap */
+.sample-map-legend-marker {
+  box-sizing: border-box;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+}
+
+.sample-map-legend-marker-group {
+  background: rgba(0, 0, 180, 0.5);
+}
+
+.sample-map-legend-marker-approximate {
+  border: 2px dashed rgb(0, 0, 180);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.sample-map-legend-marker-sample {
+  width: 12px;
+  height: 12px;
+  margin: 0 1px;
+  background: rgba(180, 0, 0, 0.5);
+}
+
+.sample-map-legend-marker-no-depth {
+  width: 12px;
+  height: 12px;
+  margin: 0 1px;
+  background: rgba(130, 130, 130, 0.6);
+}
+
+/* Samples coloured by their depth or elevation, the scale running down as they lie */
+.sample-map-legend-scale-title {
+  font-weight: 600;
+}
+
+.sample-map-legend-scale-body {
+  display: flex;
+  gap: sqs-px(8);
+  margin: sqs-px(2) 0;
+}
+
+.sample-map-legend-scale-bar {
+  flex: none;
+  width: 14px;
+  height: sqs-px(72);
+  border-radius: 3px;
+}
+
+.sample-map-legend-scale-bar-single {
+  height: 14px;
+  border-radius: 50%;
+}
+
+.sample-map-legend-scale-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.site-report-sample-map-note {
+  margin: sqs-px(12) sqs-px(16) sqs-px(16) sqs-px(16);
+}
+
 #site-report-map-container {
   position: relative;
   height: sqs-px(280);
   margin: 0;
 }
 
+/* Shown once the site map has been panned or zoomed away from the site */
+.site-report-map-home-btn {
+  display: none;
+  white-space: nowrap;
+}
+
 /* The sites sharing a spot on the site map, to pick one from */
 .site-report-map-popup {
-  min-width: sqs-px(180);
+  min-width: 0;
   max-width: sqs-px(260);
+  padding: sqs-px(4) sqs-px(6);
+  white-space: nowrap;
 }
 
 .site-report-map-popup-list {
   max-height: sqs-px(150);
-  margin-top: sqs-px(6);
   overflow-y: auto;
+}
+
+.site-report-map-popup .sqs-label + .site-report-map-popup-list {
+  margin-top: sqs-px(6);
 }
 
 .site-report-map-popup-site {
   display: block;
   width: 100%;
-  padding: sqs-px(3) sqs-px(4);
+  padding: sqs-px(2) sqs-px(4);
   border: none;
   background: none;
   color: colors.$text-color;
   font-size: sqs-px(14);
+  line-height: 1.2;
   text-align: left;
   cursor: pointer;
 }
@@ -561,6 +891,7 @@ h1.site-report-title-site-name {
 /* Dating */
 .site-report-dating-tools {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: sqs-px(8);
 }
@@ -636,6 +967,11 @@ h1.site-report-title-site-name {
   min-height: sqs-px(32);
 }
 
+/* The graph view of the dating tab: just the sample names and their bars */
+.dating-timeline-chart .dating-timeline-row {
+  min-height: sqs-px(28);
+}
+
 .dating-timeline-label {
   display: flex;
   flex-direction: column;
@@ -706,6 +1042,28 @@ h1.site-report-title-site-name {
 
 .dating-timeline-more {
   margin-left: calc(var(--dating-label-width) + var(--dating-gap));
+  font-size: sqs-px(13);
+}
+
+/* The table view of the dating tab */
+.dating-table-group + .dating-table-group {
+  margin-top: sqs-px(18);
+}
+
+.dating-table-scroll {
+  overflow-x: auto;
+}
+
+.dating-table-sample {
+  font-weight: 500;
+}
+
+.dating-table-age {
+  white-space: nowrap;
+}
+
+.dating-table-more {
+  margin-top: sqs-px(8);
   font-size: sqs-px(13);
 }
 
@@ -788,6 +1146,50 @@ h1.site-report-title-site-name {
   margin: 0;
 }
 
+/* What the dataset is shown as and how, under its title and its buttons, on a row of their own */
+#site-report-content .content-item-view-controls {
+  order: 1;
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: sqs-px(8) sqs-px(16);
+}
+
+/* Opens from the left, as its button is first in the row */
+#site-report-content .content-item-view-controls .site-report-display-options-dropdown {
+  left: 0;
+  right: auto;
+}
+
+/* Switching between the dataset's views, such as its spreadsheet and its chart, as small as the buttons beside it */
+#site-report-content .content-item-view-toggle button {
+  height: sqs-px(26);
+  padding: 0 sqs-px(10);
+}
+
+/* The controls of the dataset's view which are in its head, such as how to sort it, each a label and a select */
+#site-report-content .content-item-header-extras {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(6);
+}
+
+#site-report-content .content-item-header-extras:empty {
+  display: none;
+}
+
+#site-report-content .content-item-header-extras .site-report-view-selector-label {
+  display: inline;
+  color: colors.$text-muted-color;
+  font-size: sqs-px(13);
+  font-weight: 500;
+}
+
+#site-report-content .content-item-header-extras .site-report-view-selector-control {
+  width: auto;
+}
+
 /* Smaller than the standard button, to sit in the head of a dataset card */
 #site-report-content .site-report-toolbar-btn {
   height: sqs-px(32);
@@ -805,6 +1207,80 @@ h1.site-report-title-site-name {
   border-color: colors.$border-color;
   border-radius: sqs-px(10);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  padding: sqs-px(6) sqs-px(4);
+}
+
+#site-report-content .site-report-display-options-dropdown .site-report-render-options-container {
+  gap: sqs-px(6);
+  margin: sqs-px(8) sqs-px(10);
+}
+
+#site-report-content .site-report-display-options-dropdown .site-report-render-options-container-extras:empty {
+  display: none;
+}
+
+/* The extras are labels and controls in one flat list, so each label after the first is spaced off the control above it */
+#site-report-content .site-report-display-options-dropdown .site-report-view-selector-control + .site-report-view-selector-label {
+  margin-top: sqs-px(6);
+}
+
+/* Small uppercase labels, as .sqs-label */
+#site-report-content .site-report-display-options-dropdown .site-report-view-selector-label {
+  margin: 0;
+  color: colors.$text-muted-color;
+  font-size: sqs-px(11);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* The controls look like the buttons beside them, a select with a chevron of its own */
+#site-report-content .site-report-display-options-dropdown .site-report-view-selector-control,
+#site-report-content .content-item-header-extras .site-report-view-selector-control {
+  height: sqs-px(32);
+  min-height: 0;
+  padding: 0 sqs-px(10);
+  border: 1px solid colors.$control-border-color;
+  border-radius: sqs-px(8);
+  background-color: colors.$card-bg-color;
+  color: colors.$text-color;
+  font-family: inherit;
+  font-size: sqs-px(13);
+  font-weight: 500;
+  line-height: 1.2;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+#site-report-content .site-report-display-options-dropdown select.site-report-view-selector-control:not([multiple]),
+#site-report-content .content-item-header-extras select.site-report-view-selector-control:not([multiple]) {
+  appearance: none;
+  padding-right: sqs-px(30);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23636363' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right sqs-px(10) center;
+  cursor: pointer;
+}
+
+#site-report-content .site-report-display-options-dropdown select[multiple].site-report-view-selector-control {
+  height: auto;
+  padding: sqs-px(4);
+}
+
+#site-report-content .site-report-display-options-dropdown select[multiple].site-report-view-selector-control option {
+  padding: sqs-px(3) sqs-px(6);
+  border-radius: sqs-px(4);
+}
+
+#site-report-content .site-report-display-options-dropdown .site-report-view-selector-control:hover,
+#site-report-content .content-item-header-extras .site-report-view-selector-control:hover {
+  border-color: #b5b5b5;
+}
+
+#site-report-content .site-report-display-options-dropdown .site-report-view-selector-control:focus,
+#site-report-content .content-item-header-extras .site-report-view-selector-control:focus {
+  outline: none;
+  border-color: colors.$base-color;
+  box-shadow: 0 0 0 3px rgba(colors.$base-color, 0.15);
 }
 
 /* Section titles. The tabs already say what the top-level sections are, and an analysis
@@ -903,20 +1379,29 @@ h1.site-report-title-site-name {
     font-size: 34px !important;
   }
 
-  .site-report-browse {
-    margin-left: 0;
-  }
-
+  /* The overview across the top, the other four tabs two by two under it */
   .site-report-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .site-report-summary-cell:nth-child(2) {
+  .site-report-summary-cell:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .site-report-summary-cell:nth-child(odd) {
     border-right: none;
   }
 
-  .site-report-summary-cell:nth-child(-n + 2) {
+  .site-report-summary-cell:nth-child(-n + 3) {
     border-bottom: 1px solid colors.$border-color-light;
+  }
+
+  .site-report-compact-bar-content {
+    padding: 0 16px;
+  }
+
+  .site-report-compact-bar-site-name {
+    display: none;
   }
 
   .site-report-method-nav {
@@ -1017,6 +1502,73 @@ h1.site-report-title-site-name {
   background: #f7f7f7 !important;
 }
 
+/* The search box above a table, like the one in the list filters, with how many rows match beside it */
+#site-report-content .site-report-table-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: sqs-px(6) sqs-px(12);
+  margin-bottom: sqs-px(10);
+}
+
+#site-report-content .site-report-table-search-row {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(8);
+  box-sizing: border-box;
+  width: sqs-px(280);
+  max-width: 100%;
+  height: sqs-px(32);
+  padding: 0 sqs-px(10);
+  border: 1px solid colors.$control-border-color;
+  border-radius: sqs-px(8);
+  background: #fff;
+  color: colors.$text-muted-color;
+  cursor: text;
+}
+
+#site-report-content .site-report-table-search-row:focus-within {
+  border-color: colors.$base-color;
+  box-shadow: 0 0 0 3px rgba(colors.$base-color, 0.15);
+}
+
+#site-report-content .site-report-table-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: colors.$text-color;
+  font-size: sqs-px(13);
+}
+
+#site-report-content .site-report-table-search-status,
+#site-report-content .site-report-subtable-search-note {
+  color: colors.$text-muted-color;
+  font-size: sqs-px(12);
+}
+
+#site-report-content .site-report-subtable-search-note {
+  padding: sqs-px(6) sqs-px(12) sqs-px(2) sqs-px(12);
+}
+
+/* The row a search was pinned to, e.g. a sample clicked on the map, flashes to catch the eye. As an inset shadow, since the
+   cells' backgrounds are set as !important, which an animation can't override */
+#site-report-content tr.site-report-search-target > td {
+  animation: site-report-search-target 2.5s ease-out;
+}
+
+@keyframes site-report-search-target {
+  0%, 40% {
+    box-shadow: inset 0 0 0 100vmax rgba(colors.$base-color, 0.18);
+  }
+  100% {
+    box-shadow: inset 0 0 0 100vmax rgba(colors.$base-color, 0);
+  }
+}
+
 /* DataTables' controls: rows per page, search and paging */
 #site-report-content .dt-container, #site-report-content .dataTables_wrapper {
   font-size: sqs-px(13);
@@ -1103,4 +1655,96 @@ h1.site-report-title-site-name {
 
 .dataset-reference-dialog a {
   color: colors.$base-color;
+}
+
+/* The sample names in the analysis tables, which show the sample in a dialog - linked as the taxa are */
+#site-report-content .site-report-sample-link {
+  color: colors.$base-color;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* A sample in a dialog: the sample, its sample group and the analyses made on it, each under a small label */
+.sample-dialog {
+  font-size: sqs-px(14);
+  line-height: 1.5;
+}
+
+.sample-dialog h4.sqs-label {
+  margin: 0 0 sqs-px(8) 0;
+}
+
+.sample-dialog h4.sqs-label ~ h4.sqs-label {
+  margin-top: sqs-px(20);
+  padding-top: sqs-px(16);
+  border-top: 1px solid colors.$border-color-light;
+}
+
+.sample-dialog-fields {
+  display: grid;
+  grid-template-columns: minmax(sqs-px(120), max-content) minmax(0, 1fr);
+  gap: sqs-px(6) sqs-px(16);
+  margin: 0;
+}
+
+.sample-dialog-fields dt {
+  color: colors.$text-muted-color;
+  font-weight: 400;
+}
+
+.sample-dialog-fields dd {
+  margin: 0;
+  color: colors.$text-color;
+  overflow-wrap: anywhere;
+}
+
+.sample-dialog-field-note {
+  color: colors.$text-muted-color;
+  font-size: sqs-px(13);
+}
+
+.sample-dialog-methods {
+  display: flex;
+  flex-direction: column;
+}
+
+/* As the analysis methods beside the analyses */
+.sample-dialog-method {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(10);
+  box-sizing: border-box;
+  width: 100%;
+  padding: sqs-px(6) sqs-px(8);
+  border: none;
+  border-radius: sqs-px(6);
+  background: transparent;
+  color: colors.$text-color;
+  font-size: sqs-px(14);
+  text-align: left;
+}
+
+button.sample-dialog-method {
+  cursor: pointer;
+}
+
+button.sample-dialog-method:hover {
+  background: #f5f5f5;
+}
+
+.sample-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: sqs-px(20);
+}
+
+@media (max-width: 520px) {
+  .sample-dialog-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .sample-dialog-fields dd {
+    margin-bottom: sqs-px(8);
+  }
 }

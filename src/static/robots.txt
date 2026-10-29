@@ -3,3 +3,5 @@ Allow: /
 Disallow: /viewstate/
 
 Sitemap: __SERVER_ROOT__/sitemap.xml
+Sitemap: __SERVER_ROOT__/sitemap-sites.xml
+Sitemap: __SERVER_ROOT__/sitemap-taxa.xml

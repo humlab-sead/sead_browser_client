@@ -1,4 +1,5 @@
 import { method } from "lodash";
+import SampleDepths from "../../SampleDepths.class.js";
 
 class DatasetModule {
     constructor(analysis) {
@@ -252,6 +253,89 @@ class DatasetModule {
 			}
 		}
 		return null;
+	}
+
+	/*
+	* Function: getSampleChartRenderOptions
+	*
+	* The chart render options of a dataset with one or a few values per sample: a bar chart over its samples and, when they
+	* have depths, a depth profile. That is the one shown, unless many of the samples share the same depths, as in a survey.
+	*
+	* Parameters:
+	* siteData - The site.
+	* physicalSampleIds - The dataset's samples.
+	* series - The columns of the dataset's table to draw, as [{ column, color }], where color is a name in sqs.color.colors.
+	*/
+	getSampleChartRenderOptions(siteData, physicalSampleIds, series) {
+		let sampleDepths = new SampleDepths(siteData);
+		let hasDepthProfile = sampleDepths.hasProfile(physicalSampleIds);
+		let showDepthProfile = hasDepthProfile && sampleDepths.isStratigraphic(physicalSampleIds);
+		let renderOptions = [
+			{
+				"name": "Bar chart",
+				"selected": !showDepthProfile,
+				"type": "sample-bar",
+				"series": series,
+				"options": [
+					this.getSampleSortOption(series.length > 1 ? series.map(s => s.column) : [null], hasDepthProfile)
+				]
+			}
+		];
+		if(hasDepthProfile) {
+			renderOptions.push({
+				"name": "Depth profile",
+				"selected": showDepthProfile,
+				"type": "depth-profile",
+				"series": series
+			});
+		}
+		return renderOptions;
+	}
+
+	/*
+	* Function: getSampleSortOption
+	*
+	* How a chart over samples can be sorted, shown in its header: by the samples' names, by their depths, or by their values,
+	* highest or lowest first.
+	*
+	* Parameters:
+	* seriesTitles - The titles of the chart's series, or [null] for a single series.
+	* sortByDepth - Whether the samples can be sorted by their depths.
+	*/
+	getSampleSortOption(seriesTitles, sortByDepth = false) {
+		let options = [
+			{
+				"title": "Sample name",
+				"value": "name",
+				"selected": true
+			}
+		];
+		if(sortByDepth) {
+			options.push({
+				"title": "Depth",
+				"value": "depth"
+			});
+		}
+		seriesTitles.forEach((seriesTitle, seriesIndex) => {
+			let prefix = seriesTitle ? seriesTitle+", " : "";
+			options.push({
+				"title": prefix+(seriesTitle ? "highest first" : "Highest value first"),
+				"value": "highest",
+				"series": seriesIndex
+			});
+			options.push({
+				"title": prefix+(seriesTitle ? "lowest first" : "Lowest value first"),
+				"value": "lowest",
+				"series": seriesIndex
+			});
+		});
+
+		return {
+			"title": "Sort",
+			"placement": "header",
+			"type": "select",
+			"options": options
+		};
 	}
 
 	getSampleGroupBySampleName(sampleName, siteData) {

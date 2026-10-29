@@ -288,7 +288,7 @@ class GeneralTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Site information',
-            text: `The top of the datasheet says what the site is and where, sums up its samples, analyses and dating, and lets you export or cite it. The rest of its contents are on the tabs below: an overview, the samples, the analyses, the dating and the references.`,
+            text: `The top of the datasheet says what the site is and lets you export or cite it. Under it, the site's contents are summed up on tabs: an overview of where it is, the samples, the analyses, the dating and the references. Click one to open it. Further down the page, the tabs follow along at the top.`,
             attachTo: { element: '.site-report-summary', on: 'bottom' },
             classes: 'tutorial-container',
             buttons: [
@@ -439,7 +439,7 @@ class GeneralTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Back to filters',
-            text: `There are many other types of datasets and analyses, but we can't cover everything here. Now let's go back to the filters and result section. Click on 'Back to result' in the top left corner.`,
+            text: `There are many other types of datasets and analyses, but we can't cover everything here. Now let's go back to the filters and result section. Click on 'Back to site search' in the top left corner.`,
             attachTo: { element: '#site-report-exit-menu', on: 'bottom' },
             advanceOn: { selector: '#site-report-exit-menu', event: 'click' },
             classes: 'tutorial-container',

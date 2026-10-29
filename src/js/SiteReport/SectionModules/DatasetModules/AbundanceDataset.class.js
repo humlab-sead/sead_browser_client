@@ -838,9 +838,11 @@ class AbundanceDataset extends DatasetModule {
 						"title": "Sample ID",
 						"pkey": true,
 						"hidden": true,
+						"role": "sample_id"
 					},
 					{
 						"title": "Sample name",
+						"role": "sample_name"
 					},
 					{
 						"title": "Aggregated abundance",
@@ -1154,7 +1156,8 @@ class AbundanceDataset extends DatasetModule {
 					"pkey": true,
 				},
 				{
-					"title": "Sample name"
+					"title": "Sample name",
+					"role": "sample_name"
 				},
 				{
 					"title": "Abundance count"
@@ -1174,7 +1177,8 @@ class AbundanceDataset extends DatasetModule {
 				{
 					"hidden": "true",
 					"pkey": false,
-					"title": "Sample id"
+					"title": "Sample id",
+					"role": "sample_id"
 				},
 				{
 					"hidden": "true",

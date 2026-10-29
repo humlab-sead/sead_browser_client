@@ -76,65 +76,6 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 						"name": "Spreadsheet",
 						"selected": false,
 						"type": "table"
-					},
-					{
-						"name": "Bar chart",
-						"selected": true,
-						"type": "ms-bar",
-						"options": [
-							{
-								"enabled": false,
-								"title": "X axis",
-								"type": "select",
-								"selected": 0,
-								"options": [
-									{
-										"title": 1,
-										"value": 1,
-										"selected": true
-									},
-									{
-										"title": 2,
-										"value": 2,
-										"selected": false
-									},
-								]
-							},
-							{
-								"enabled": false,
-								"title": "Y axis",
-								"type": "select",
-								"selected": 1,
-								"options": [
-									{
-										"title": 1,
-										"value": 1,
-										"selected": false
-									},
-									{
-										"title": 2,
-										"value": 2,
-										"selected": true
-									},
-								]
-							},
-							{
-								"enabled": false,
-								"title": "Sort",
-								"type": "select",
-								"options": [
-									{
-										"title": 1,
-										"value": 1,
-									},
-									{
-										"title": 2,
-										"value": 2,
-										"selected": true
-									},
-								]
-							}
-						]
 					}
 				]
 			};
@@ -144,12 +85,14 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 					"dataType": "string",
 					"pkey": true,
 					"hidden": true,
-					"title": "Sample ID"
+					"title": "Sample ID",
+					"role": "sample_id"
 				},
 				{
 					"dataType": "string",
 					"pkey": false,
-					"title": "Sample name"
+					"title": "Sample name",
+					"role": "sample_name"
 				},
 				{
 					"dataType": "string",
@@ -246,6 +189,8 @@ class MagneticSusceptibilityDataset extends DatasetModule {
 				]);
 			});
 			
+			contentItem.renderOptions = contentItem.renderOptions.concat(this.getSampleChartRenderOptions(site, [...physicalSampleIds], [{ "column": "Unburned", "color": "baseColor" }, { "column": "Burned", "color": "burnedColor" }]));
+
 			section.contentItems.push(contentItem);
 		}
 	}

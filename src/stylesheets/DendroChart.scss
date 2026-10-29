@@ -1,0 +1,143 @@
+@use "colors";
+@use "variables" as *;
+
+/*
+* The graph of a site's dendrochronology dataset. It is the dating tab's timeline (.dating-timeline in
+* SiteReport.scss), with a row per sample that can be clicked, and a felling range after each bar.
+*/
+
+.dendro-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: sqs-px(6) sqs-px(16);
+  margin-bottom: sqs-px(10);
+  color: colors.$text-muted-color;
+  font-size: sqs-px(13);
+}
+
+.dendro-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: sqs-px(6);
+}
+
+/* As a felling range, in grey */
+.dendro-chart-legend-range {
+  box-sizing: border-box;
+  width: sqs-px(18);
+  height: sqs-px(10);
+  border: 1px dashed #8c8c8c;
+  border-radius: sqs-px(3);
+  background: #e2e2e2;
+}
+
+.dendro-timeline {
+  --dating-label-width: #{sqs-px(150)};
+}
+
+.dendro-timeline-row {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: sqs-px(6);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dendro-timeline-row:hover {
+  background: #f5f5f5;
+}
+
+.dendro-timeline-row:focus-visible {
+  outline: 2px solid colors.$base-color;
+  outline-offset: -2px;
+}
+
+/* The sample's name with its species beside it, on one line */
+.dendro-timeline-label {
+  flex-direction: row;
+  align-items: baseline;
+  gap: sqs-px(8);
+  padding-left: sqs-px(8);
+}
+
+.dendro-timeline-label .dating-timeline-label-main {
+  flex: none;
+}
+
+.dendro-timeline .dating-timeline-track {
+  display: block;
+}
+
+/* The bar goes on into its felling range */
+.dendro-timeline-bar-continued {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* The years the tree may have been felled in: the bar's color, lighter, with a dashed edge */
+.dendro-timeline-felling-range {
+  position: absolute;
+  top: sqs-px(3);
+  bottom: sqs-px(3);
+  box-sizing: border-box;
+  border: 1px dashed;
+  border-left: none;
+  border-radius: 0 sqs-px(4) sqs-px(4) 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6));
+}
+
+.dendro-chart-note {
+  margin: sqs-px(10) 0 0 0;
+  font-size: sqs-px(13);
+}
+
+/* A link in the running text of the note */
+.dendro-chart-note-link {
+  padding: 0;
+  font-size: inherit;
+}
+
+.dendro-chart-tooltip {
+  font-size: sqs-px(13);
+}
+
+.dendro-chart-tooltip-head {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(6);
+  margin-bottom: sqs-px(4);
+  color: colors.$text-color;
+}
+
+.dendro-chart-tooltip-fields {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: sqs-px(2) sqs-px(12);
+  margin: 0;
+}
+
+.dendro-chart-tooltip-fields dt {
+  color: colors.$text-muted-color;
+  font-weight: 400;
+}
+
+.dendro-chart-tooltip-fields dd {
+  margin: 0;
+  color: colors.$text-color;
+}
+
+.dendro-chart-tooltip-hint {
+  margin-top: sqs-px(6);
+  font-size: sqs-px(12);
+}
+
+@media (max-width: $ui-mobile-breakpoint) {
+  .dendro-timeline {
+    --dating-label-width: #{sqs-px(110)};
+  }
+}

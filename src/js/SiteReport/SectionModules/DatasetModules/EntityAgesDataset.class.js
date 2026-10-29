@@ -65,7 +65,8 @@ class EntityAgesDataset extends DatasetModule {
             },
             {
                 "dataType": "string",
-                "title": "Sample"
+                "title": "Sample",
+                "role": "sample_name"
             },
             {
                 "dataType": "string",
@@ -86,6 +87,12 @@ class EntityAgesDataset extends DatasetModule {
             {
                 "dataType": "string",
                 "title": "Age range"
+            },
+            {
+                "dataType": "number",
+                "title": "Sample id",
+                "hidden": true,
+                "role": "sample_id"
             },
         ];
 
@@ -143,6 +150,11 @@ class EntityAgesDataset extends DatasetModule {
                         "type": "cell",
                         "tooltip": "",
                         "value": ae.entity_ages.age_range != null ? ae.entity_ages.age_range : "No data"
+                    },
+                    {
+                        "type": "cell",
+                        "tooltip": "",
+                        "value": ae.physical_sample_id
                     },
                 ];
 

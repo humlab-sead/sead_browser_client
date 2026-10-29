@@ -72,65 +72,6 @@ class MeasuredValueDataset extends DatasetModule {
 						"name": "Spreadsheet",
 						"selected": false,
 						"type": "table"
-					},
-					{
-						"name": "Bar chart",
-						"selected": true,
-						"type": "bar",
-						"options": [
-							{
-								"enabled": false,
-								"title": "X axis",
-								"type": "select",
-								"selected": 1,
-								"options": [
-									{
-										"title": 1,
-										"value": 1,
-										"selected": true
-									},
-									{
-										"title": 2,
-										"value": 2,
-										"selected": false
-									},
-								]
-							},
-							{
-								"enabled": false,
-								"title": "Y axis",
-								"type": "select",
-								"selected": 2,
-								"options": [
-									{
-										"title": 1,
-										"value": 1,
-										"selected": false
-									},
-									{
-										"title": 2,
-										"value": 2,
-										"selected": true
-									},
-								]
-							},
-							{
-								"enabled": false,
-								"title": "Sort",
-								"type": "select",
-								"options": [
-									{
-										"title": 1,
-										"value": 1,
-									},
-									{
-										"title": 2,
-										"value": 2,
-										"selected": true
-									},
-								]
-							}
-						]
 					}
 				]
 			};
@@ -140,11 +81,13 @@ class MeasuredValueDataset extends DatasetModule {
 					"dataType": "string",
 					"pkey": true,
 					"hidden": true,
-					"title": "Sample ID"
+					"title": "Sample ID",
+					"role": "sample_id"
 				},
 				{
 					"dataType": "string",
-					"title": "Sample name"
+					"title": "Sample name",
+					"role": "sample_name"
 				},
 				{
 					"dataType": "string",
@@ -197,6 +140,9 @@ class MeasuredValueDataset extends DatasetModule {
 				]);
 			});
 			
+			let physicalSampleIds = contentItem.data.rows.map(row => row[0].value);
+			contentItem.renderOptions = contentItem.renderOptions.concat(this.getSampleChartRenderOptions(site, physicalSampleIds, [{ "column": "Value", "color": "baseColor" }]));
+
 			section.contentItems.push(contentItem);
 		}
 	}

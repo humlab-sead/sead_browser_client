@@ -348,9 +348,9 @@ class DendrochronologyTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Analyses',
-            text: `The two samples from our selected investigation is shown. It is also possible to select different viewing options and sortings under display options. If the site contains undated samples, these will only be shown under the spreadsheet view. Click on the bar for sample 12709 to see the sample information.`,
+            text: `The two samples from our selected investigation is shown. It is also possible to select different viewing options and sortings under display options. If the site contains undated samples, these will only be shown under the spreadsheet view. Hover over a sample to see its years, and click on sample 12709 to see the sample information.`,
             attachTo: { element: '#site-report-section-analyses .site-report-method-active', on: 'top' },
-            advanceOn: { selector: '.dendro-bar', event: 'click' },
+            advanceOn: { selector: '.dendro-timeline-row', event: 'click' },
             classes: 'tutorial-container',
             buttons: [
                 {
@@ -364,9 +364,9 @@ class DendrochronologyTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Sample information',
-            text: `Here is all the information regarding this sample. Click the X in the upper right corner to close the information window.`,
-            attachTo: { element: '.dendro-chart-tooltip-container', on: 'right' },
-            advanceOn: { selector: '.dendro-tooltip-close-button', event: 'click' },
+            text: `Here is all the information regarding this sample, its dendrochronological measurements first. Click the X in the upper right corner to close the information window.`,
+            attachTo: { element: '#popover-dialog-frame', on: 'right' },
+            advanceOn: { selector: '#popover-dialog-frame .popover-close-btn', event: 'click' },
             classes: 'tutorial-container',
             buttons: [
                 {
@@ -401,7 +401,7 @@ class DendrochronologyTutorial {
         this.tour.addStep({
             id: this.stepCounter++,
             title: 'Returning to the filters',
-            text: `By clicking 'Back to result' you will return to the Dendro domain.`,
+            text: `By clicking 'Back to site search' you will return to the Dendro domain.`,
             attachTo: { element: '#site-report-exit-menu', on: 'bottom' },
             advanceOn: { selector: '#site-report-exit-menu', event: 'click' },
             beforeShowPromise: () => {

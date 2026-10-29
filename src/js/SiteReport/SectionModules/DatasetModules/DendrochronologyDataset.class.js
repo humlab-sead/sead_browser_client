@@ -344,13 +344,19 @@ class DendrochronologyDataset extends DatasetModule {
 			},
 			{
 				title: "Sample name",
-				pkey: true
+				pkey: true,
+				role: "sample_name"
 			},
 			{
 				title: "Group"
 			},
 			{
 				title: "Date sampled"
+			},
+			{
+				title: "Sample id",
+				hidden: true,
+				role: "sample_id"
 			}
 		];
 		let rows = [];
@@ -454,6 +460,10 @@ class DendrochronologyDataset extends DatasetModule {
 				{
 					type: "cell",
 					value: dateSampled
+				},
+				{
+					type: "cell",
+					value: dataGroup.physical_sample_id
 				}
 			]);
 		});
@@ -551,6 +561,7 @@ class DendrochronologyDataset extends DatasetModule {
 						{
 							"enabled": true,
 							"title": "Sort",
+							"placement": "header",
 							"type": "select",
 							"selected": 1,
 							//"options": ["Alphabetical", "Germination year", "Felling year", "Tree species"],
