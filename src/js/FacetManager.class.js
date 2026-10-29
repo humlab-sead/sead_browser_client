@@ -114,6 +114,9 @@ class FacetManager {
 		this.sqs.sqsEventListen("facetDataRendered", () => {
 			this.queueActiveFiltersRender();
 		});
+		this.sqs.sqsEventListen("seadFacetMove", () => {
+			this.queueActiveFiltersRender();
+		});
 
 		this.sqs.sqsEventListen("domainChanged", (evt, domainName) => {
 			for(let i = this.facets.length - 1; i > -1; i--) {
@@ -227,38 +230,75 @@ class FacetManager {
 	/*
 	* Function: renderActiveFilters
 	*
-	* The chips above the filters, one for each filter which narrows the result, saying what it
-	* narrows it to. Removing a chip removes its filter.
+	* The breadcrumb above the filters: every filter in use, in the order of the chain, saying what
+	* it is set to - or "Any" while it doesn't narrow the result. Clicking a crumb brings its filter
+	* into view, and removing a crumb removes its filter.
 	*/
 	renderActiveFilters() {
 		let container = $("#active-filters");
 		container.empty();
 
-		let narrowingFacets = this.facets.filter(facet => !facet.virtual && !facet.deleted && facet.hasSelection());
-		narrowingFacets.forEach(facet => {
+		let chainFacets = this.facets.filter(facet => !facet.virtual && !facet.deleted);
+		chainFacets.sort((a, b) => this.getSlotIdByFacetId(a.id) - this.getSlotIdByFacetId(b.id));
+
+		let chainNode = $("<ol class='active-filters-chain'></ol>");
+		chainFacets.forEach(facet => {
+			let narrowing = facet.hasSelection();
 			let chip = $("<span class='active-filter-chip'></span>");
-			chip.append($("<span class='active-filter-chip-title'></span>").text(facet.title));
-			chip.append($("<span class='active-filter-chip-value'></span>").text(facet.getSelectionSummary()));
+			chip.toggleClass("active-filter-chip-idle", !narrowing);
+
+			let focusButton = $("<button type='button' class='active-filter-chip-focus'></button>");
+			focusButton.append($("<span class='active-filter-chip-title'></span>").text(facet.title));
+			focusButton.append($("<span class='active-filter-chip-value'></span>").text(narrowing ? facet.getSelectionSummary() : "Any"));
+			focusButton.attr("title", facet.title+": "+(narrowing ? facet.getSelectionSummary(Infinity) : "Not narrowing the result"));
+			focusButton.on("click", () => {
+				this.focusFacet(facet);
+			});
+			chip.append(focusButton);
+
 			let removeButton = $("<button type='button' class='active-filter-chip-remove'><i class='fa fa-times' aria-hidden='true'></i></button>");
 			removeButton.attr("aria-label", "Remove the "+facet.title+" filter");
 			removeButton.on("click", () => {
 				facet.destroy();
 			});
 			chip.append(removeButton);
-			container.append(chip);
+			chainNode.append($("<li class='active-filter-crumb'></li>").append(chip));
 		});
 
-		if(narrowingFacets.length > 1) {
+		if(chainFacets.length > 1) {
 			let clearAllButton = $("<button type='button' class='active-filters-clear-all'>Clear all</button>");
 			clearAllButton.on("click", () => {
 				[...this.facets].filter(facet => !facet.virtual).forEach(facet => {
 					facet.destroy();
 				});
 			});
-			container.append(clearAllButton);
+			chainNode.append($("<li class='active-filters-clear-all-item'></li>").append(clearAllButton));
 		}
+		container.append(chainNode);
 
-		container.toggleClass("active-filters-visible", narrowingFacets.length > 0);
+		container.toggleClass("active-filters-visible", chainFacets.length > 0);
+	}
+
+	/*
+	* Function: focusFacet
+	* Expands a filter if it is collapsed and scrolls it into view below the breadcrumb, which
+	* stays on top of the filters.
+	*/
+	focusFacet(facet) {
+		if(facet.minimized) {
+			facet.maximize();
+		}
+		let facetNode = facet.getDomRef();
+		facetNode.css("scroll-margin-top", ($("#active-filters").outerHeight() + 8)+"px");
+		facetNode[0].scrollIntoView({ behavior: "smooth", block: "start" });
+
+		facetNode.removeClass("facet-focus-highlight");
+		facetNode[0].offsetWidth; //restarts the highlight if it is already running
+		facetNode.addClass("facet-focus-highlight");
+		clearTimeout(facet.focusHighlightTimeout);
+		facet.focusHighlightTimeout = setTimeout(() => {
+			facetNode.removeClass("facet-focus-highlight");
+		}, 1500);
 	}
 
 	/*
@@ -609,15 +649,26 @@ class FacetManager {
 			this.addFacet(facet, false); //This will trigger a facet load request
 
 			if(facetEntries[key].minimized) {
-				//Wait until data is loaded before minimizing
-				var interval = setInterval(() => {
-					if(facet.isDataLoaded) {
-						clearInterval(interval);
-						facet.minimize();
-					}
-				}, 250);
+				this.minimizeWhenLoaded(facet);
 			}
 		}
+	}
+
+	/*
+	* Function: minimizeWhenLoaded
+	* Collapses a facet which has just been added, once it has its data - a collapsed facet shows its
+	* selections, which it can't before it knows what they are called.
+	*/
+	minimizeWhenLoaded(facet) {
+		let interval = setInterval(() => {
+			if(facet.deleted) {
+				clearInterval(interval);
+			}
+			else if(facet.isDataLoaded) {
+				clearInterval(interval);
+				facet.minimize();
+			}
+		}, 250);
 	}
 
 	/*

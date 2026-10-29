@@ -860,32 +860,93 @@ body.search-dropdown-resizing * {
   max-height: 70vh;
 }
 
-/* The chips saying which filters narrow the result, and to what */
+/* The breadcrumb of the filters in use, in chain order, saying what each is set to. It stays on top while the filters scroll. */
 #active-filters {
   display: none;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: sqs-px(6);
-  margin-top: sqs-px(14);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin-top: sqs-px(4);
+  padding: sqs-px(10) 0;
+  background-color: colors.$page-bg-color;
 }
 
 #active-filters.active-filters-visible {
+  display: block;
+}
+
+.active-filters-chain {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: sqs-px(6) 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.active-filter-crumb {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+}
+
+/* The separator ends the crumb rather than starting the next, so a wrapped line doesn't start with one */
+.active-filter-crumb:has(+ .active-filter-crumb)::after {
+  content: "\203A";
+  flex: none;
+  margin: 0 sqs-px(6);
+  color: #9a9a9a;
+}
+
+.active-filters-clear-all-item {
+  margin-left: sqs-px(6);
 }
 
 .active-filter-chip {
   display: inline-flex;
   align-items: center;
-  gap: sqs-px(6);
+  gap: sqs-px(2);
+  min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
   height: sqs-px(30);
-  padding: 0 sqs-px(6) 0 sqs-px(11);
+  padding: 0 sqs-px(4) 0 0;
   border: 1px solid colors.$control-border-color;
   border-radius: sqs-px(15);
   background: #fff;
   color: colors.$text-color;
   font-size: sqs-px(13);
+}
+
+.active-filter-chip-idle {
+  border-style: dashed;
+  background: transparent;
+}
+
+.active-filter-chip-idle .active-filter-chip-value {
+  color: colors.$text-muted-color;
+  font-style: italic;
+}
+
+.active-filter-chip-focus {
+  display: inline-flex;
+  align-items: center;
+  gap: sqs-px(6);
+  min-width: 0;
+  height: 100%;
+  padding: 0 sqs-px(4) 0 sqs-px(11);
+  border: none;
+  border-radius: sqs-px(15) 0 0 sqs-px(15);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.active-filter-chip-focus:hover .active-filter-chip-title {
+  color: colors.$base-color;
+  text-decoration: underline;
 }
 
 .active-filter-chip-title {
@@ -897,6 +958,16 @@ body.search-dropdown-resizing * {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The filter a crumb was clicked for, briefly */
+.facet.facet-focus-highlight {
+  animation: facet-focus-highlight 1.5s ease-out;
+}
+
+@keyframes facet-focus-highlight {
+  0%, 30% { box-shadow: 0 0 0 3px colors.$base-color; }
+  100% { box-shadow: 0 0 0 3px rgba(45, 94, 141, 0); }
 }
 
 .active-filter-chip-remove {

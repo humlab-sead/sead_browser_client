@@ -534,16 +534,14 @@ class DiscreteFacet extends Facet {
 
 	/*
 	* Function: getSelectionSummary
-	* The selected item itself when there's only one, otherwise how many.
+	* The selected items by name, or how many there are while the names aren't loaded.
 	*/
-	getSelectionSummary() {
-		if(this.selections.length == 1) {
-			let selectedItem = this.data.find(dataItem => dataItem.id == this.selections[0]);
-			if(selectedItem) {
-				return selectedItem.title;
-			}
+	getSelectionSummary(maxTitles = 2) {
+		let selectedItems = this.selections.map(selection => this.data.find(dataItem => dataItem.id == selection));
+		if(selectedItems.length > 0 && selectedItems.every(selectedItem => selectedItem)) {
+			return this.summariseTitles(selectedItems.map(selectedItem => selectedItem.title), maxTitles);
 		}
-		return super.getSelectionSummary();
+		return super.getSelectionSummary(maxTitles);
 	}
 
 

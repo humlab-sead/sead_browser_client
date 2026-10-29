@@ -327,6 +327,25 @@ class MultiStageFacet extends Facet {
 	}
 
 	/*
+	* Function: getSelectionSummary
+	* What is selected in each stage, by name, the first stage first: "Bugs EcoCodes / Aquatics, Dung +2".
+	*/
+	getSelectionSummary(maxTitles = 2) {
+		let stageSummaries = [];
+		for(let stage of this.filters) {
+			if(stage.selections.length == 0) {
+				continue;
+			}
+			let selectedItems = stage.selections.map(selection => stage.data.find(dataItem => dataItem.id == selection));
+			if(!selectedItems.every(selectedItem => selectedItem)) {
+				return super.getSelectionSummary(maxTitles);
+			}
+			stageSummaries.push(this.summariseTitles(selectedItems.map(selectedItem => selectedItem.title), maxTitles));
+		}
+		return stageSummaries.join(" / ");
+	}
+
+	/*
 	* Function: setStageSelections
 	*
 	* Selects values in one named stage, leaving the facet as clicking those rows would.

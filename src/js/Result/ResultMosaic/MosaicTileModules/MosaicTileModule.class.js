@@ -339,6 +339,7 @@ class MosaicTileModule {
     /**
      * Function: getFilterToggleCallback
      * A click handler which adds the value to the filter of this facet code, or takes it out if it is in already.
+     * A filter added by the click is collapsed, so what it selects is what shows of it.
      * Null if the active domain doesn't have that filter, in which case the bars aren't clickable.
      */
     getFilterToggleCallback(facetCode, value) {
@@ -346,7 +347,11 @@ class MosaicTileModule {
             return null;
         }
         return () => {
-            this.sqs.facetManager.toggleFacetSelection(facetCode, value);
+            let filterAdded = !this.sqs.facetManager.getFacetByName(facetCode);
+            let facet = this.sqs.facetManager.toggleFacetSelection(facetCode, value);
+            if(filterAdded && facet) {
+                this.sqs.facetManager.minimizeWhenLoaded(facet);
+            }
         };
     }
 
@@ -360,7 +365,11 @@ class MosaicTileModule {
             return null;
         }
         return () => {
-            this.sqs.facetManager.toggleStageSelection(facetCode, stageName, value, leadingSelections);
+            let filterAdded = !this.sqs.facetManager.getFacetByName(facetCode);
+            let facet = this.sqs.facetManager.toggleStageSelection(facetCode, stageName, value, leadingSelections);
+            if(filterAdded && facet) {
+                this.sqs.facetManager.minimizeWhenLoaded(facet);
+            }
         };
     }
 

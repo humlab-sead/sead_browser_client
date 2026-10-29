@@ -644,10 +644,13 @@ class Facet {
 
 	/*
 	* Function: getSelectionSummary
-	* A few words on what the selection is, for the chip which stands for this filter above the
+	* A few words on what the selection is, for the crumb which stands for this filter above the
 	* filters. Facet types with something better to say than a count override this.
+	*
+	* Parameters:
+	* maxTitles - How many selected items to name before saying how many more there are, for the types which name them.
 	*/
-	getSelectionSummary() {
+	getSelectionSummary(maxTitles = 2) {
 		if(typeof this.rangeStateText == "string" && this.hasSelection()) {
 			return this.rangeStateText;
 		}
@@ -659,6 +662,18 @@ class Facet {
 			});
 		}
 		return count+" selected";
+	}
+
+	/*
+	* Function: summariseTitles
+	* The first few of a list of names, and how many more there are: "Sweden, Norway +3".
+	*/
+	summariseTitles(titles, maxTitles = 2) {
+		let summary = titles.slice(0, maxTitles).join(", ");
+		if(titles.length > maxTitles) {
+			summary += " +"+(titles.length - maxTitles);
+		}
+		return summary;
 	}
 
 	/*
