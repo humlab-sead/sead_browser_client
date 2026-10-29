@@ -831,8 +831,8 @@ class BasicSiteInformation {
 	/*
 	* Function: bindMiniMapInteraction
 	*
-	* Clicking a site opens its site report. Clicking where several sites overlap, which happens when
-	* they share coordinates or lie close together, lists them instead.
+	* Clicking a site pops up its name, and clicking the name opens its site report. Where several sites
+	* overlap, which happens when they share coordinates or lie close together, they are all listed.
 	*/
 	bindMiniMapInteraction(olMap, otherSitesLayer, siteLayer, siteData) {
 		let map = olMap.olMap;
@@ -865,13 +865,11 @@ class BasicSiteInformation {
 			if(sites.length == 0) {
 				return;
 			}
-			if(sites.length == 1) {
-				this.sqs.siteReportManager.renderSiteReport(sites[0].get("siteId"));
-				return;
-			}
 
 			popupNode.empty();
-			popupNode.append($("<div class='sqs-label'></div>").text(sites.length+" sites here"));
+			if(sites.length > 1) {
+				popupNode.append($("<div class='sqs-label'></div>").text(sites.length+" sites here"));
+			}
 			let listNode = $("<div class='site-report-map-popup-list'></div>");
 			sites.sort((a, b) => String(a.get("name")).localeCompare(String(b.get("name")))).forEach(site => {
 				let siteNode = $("<button type='button' class='site-report-map-popup-site'></button>").text(site.get("name"));

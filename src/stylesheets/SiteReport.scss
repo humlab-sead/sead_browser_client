@@ -695,20 +695,25 @@ button.site-report-method-dot {
 
 /* The sites sharing a spot on the site map, to pick one from */
 .site-report-map-popup {
-  min-width: sqs-px(180);
+  min-width: 0;
   max-width: sqs-px(260);
+  padding: sqs-px(4) sqs-px(6);
+  white-space: nowrap;
 }
 
 .site-report-map-popup-list {
   max-height: sqs-px(150);
-  margin-top: sqs-px(6);
   overflow-y: auto;
+}
+
+.site-report-map-popup .sqs-label + .site-report-map-popup-list {
+  margin-top: sqs-px(6);
 }
 
 .site-report-map-popup-site {
   display: block;
   width: 100%;
-  padding: sqs-px(3) sqs-px(4);
+  padding: sqs-px(2) sqs-px(4);
   border: none;
   background: none;
   color: colors.$text-color;
@@ -757,6 +762,7 @@ button.site-report-method-dot {
   background: transparent;
   color: colors.$text-color;
   font-size: sqs-px(14);
+  line-height: 1.2;
   text-align: left;
   cursor: pointer;
 }
