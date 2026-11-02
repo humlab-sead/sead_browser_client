@@ -11,7 +11,7 @@ const { test, expect } = require('@playwright/test');
 async function openMethod(page, siteId, methodId) {
   await page.goto('/site/' + siteId);
   await expect(page.locator('#site-report-main-container')).toBeVisible({ timeout: 30000 });
-  await page.locator('.site-report-summary-analyses').click();
+  await page.locator('.site-report-summary-cell[data-tab="analyses"]').click();
   await page.locator('.site-report-method-nav-item[data-method-id="' + methodId + '"]').click();
 }
 

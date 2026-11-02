@@ -101,7 +101,7 @@ test('dendrochronology overview charts', async ({ page }) => {
 test('dendrochronology site report graph', async ({ page }) => {
   await page.goto('/site/3827');
   await expect(page.locator('#site-report-main-container')).toBeVisible({ timeout: 30000 });
-  await page.locator('.site-report-summary-analyses').click();
+  await page.locator('.site-report-summary-cell[data-tab="analyses"]').click();
   await page.locator('.site-report-method-nav-item[data-method-id="10"]').click();
 
   const rows = page.locator('.dendro-timeline-row');
@@ -120,7 +120,7 @@ test('dendrochronology site report graph', async ({ page }) => {
 test('dendrochronology graph links to its undated samples', async ({ page }) => {
   await page.goto('/site/3973');
   await expect(page.locator('#site-report-main-container')).toBeVisible({ timeout: 30000 });
-  await page.locator('.site-report-summary-analyses').click();
+  await page.locator('.site-report-summary-cell[data-tab="analyses"]').click();
   await page.locator('.site-report-method-nav-item[data-method-id="10"]').click();
 
   const dataset = page.locator('.site-report-method-active .content-item-container').first();
