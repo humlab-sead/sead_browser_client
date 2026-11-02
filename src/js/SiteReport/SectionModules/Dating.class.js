@@ -417,7 +417,7 @@ class Dating {
 		}
 		let ageSummary = this.siteData.age_summary;
 		let range = this.formatRange(ageSummary.older, ageSummary.younger);
-		$(".site-report-summary-value", cellNode).text(range).attr("title", range);
+		$(".site-report-summary-sub", cellNode).text(range).attr("title", range);
 	}
 
 	/*

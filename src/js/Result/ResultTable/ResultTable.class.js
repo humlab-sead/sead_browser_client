@@ -613,7 +613,21 @@ class ResultTable extends ResultModule {
 			console.log("WARN: No site ID found in cell value");
 			return;
 		}
+		this.clearCellTooltip();
 		this.sqs.siteReportManager.renderSiteReport(siteId);
+	}
+
+	/*
+	* Function: clearCellTooltip
+	*
+	* Tabulator shows a cell tooltip 300ms after the last mousemove over the cell, and only hides it again on a later
+	* mouseout or click. A tap fires the mousemove and the click together, so a tap that leaves the table (opening a site
+	* report) had the tooltip pop up afterwards on top of the next view, with nothing left underneath it to close it.
+	*/
+	clearCellTooltip() {
+		if(this.tabulatorTable && this.tabulatorTable.modules.tooltip) {
+			this.tabulatorTable.modules.tooltip.clearPopup();
+		}
 	}
 
 	buildAnalysisMethodsSvg(analysisMethodsDatasets) {
@@ -838,6 +852,8 @@ class ResultTable extends ResultModule {
 	*/
 	async unrender() {
 		if(this.tabulatorTable) {
+			//destroy() hides a tooltip that is showing, but not one still waiting on its delay
+			this.clearCellTooltip();
 			this.tabulatorTable.clearData();
 			this.tabulatorTable.destroy();
 			this.tabulatorTable = null;

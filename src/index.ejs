@@ -279,7 +279,7 @@
           </div>
         </div>
 
-        <nav class="site-report-summary sqs-card" aria-label="Site datasheet sections"></nav>
+        <nav class="site-report-summary" aria-label="Site datasheet sections"></nav>
 
         <div id="site-report-content">
           <div class="site-report-tabpanel" data-tab="overview" role="tabpanel" aria-label="Overview">
@@ -373,14 +373,6 @@
       </div>
     </div>
 
-    <div id="tutorial-question" class="tutorial-dialog">
-      <h1>Welcome to SEAD</h1>
-      You seem to be a new visitor, would you like a guided tour of SEAD?
-      <div id="tutorial-select-form-container"></div>
-      <button class="yes-button">Start tour</button><button class="no-button">Not now</button>
-    </div>
-    <div id="cookie-consent-content"></div>
-
     <div id="chatbox-icon" style="display:none;">
       <i class="fa fa-comment-o chat-icon" aria-hidden="true" title="Ask the SEAD Agent"></i>
       <div id="chatbox-inner-panel">
@@ -456,6 +448,27 @@
             <i class="fa fa-sign-out" aria-hidden="true"></i>
             <span>Sign out</span>
           </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- The cookie notice (CookieConsent), in the banner until it's agreed to, and from the Cookies menu item -->
+    <template id="cookie-consent-template">
+      <div id="cookie-consent" role="region" aria-labelledby="cookie-consent-title">
+        <h2 id="cookie-consent-title">Cookies used on the website!</h2>
+        <p class="cookie-consent-message"></p>
+        <div class="cookie-consent-actions">
+          <button type="button" class="sqs-btn sqs-btn-primary cookie-consent-accept">I agree</button>
+        </div>
+      </div>
+    </template>
+
+    <template id="cookie-policy-template">
+      <div class="cookie-policy">
+        <p class="cookie-consent-message"></p>
+        <p class="cookie-policy-status" role="status"></p>
+        <div class="cookie-consent-actions cookie-consent-pending">
+          <button type="button" class="sqs-btn sqs-btn-primary cookie-consent-accept">I agree</button>
         </div>
       </div>
     </template>
@@ -1298,18 +1311,18 @@
         </div>
 
         <div id="logo-section">
-          <a href="https://www.su.se/" target="_blank"><img class="about-section-logo" src="/su_logo.jpg" alt="Stockholm University logo" /></a><br />
-          <a href="https://www.riksbank.se/" target="_blank"><img class="about-section-logo"
-              src="/riksbanken-logo.png" alt="Riksbankens Jubileumsfond logo" /></a><br />
+          <a href="https://www.su.se/" target="_blank"><img class="about-section-logo" src="/su_logo.jpg" alt="Stockholm University logo" /></a>
+          <a href="https://www.riksbank.se/" target="_blank"><img class="about-section-logo about-section-logo-solid"
+              src="/riksbanken-logo.png" alt="Riksbankens Jubileumsfond logo" /></a>
           <!--<a href="https://www.sead.se/" target="_blank"><img class="about-section-logo" src="assets/SEAD-logo-small.png" /></a>-->
-          <a href="http://www.humlab.umu.se/" target="_blank"><img class="about-section-logo"
-              src="/umu-logo-en.png" alt="Umea University logo" /></a><br />
-          <!--<a href="https://www.vr.se/inenglish.html" target="_blank"><img class="about-section-logo" src="assets/vr-logo.png" /></a><br />-->
-          <a href="http://www.idesam.umu.se/english/mal/?languageId=1" target="_blank"><img class="about-section-logo"
-              src="/mal-logo.png" alt="MAL logo" /></a><br />
-          <a href="https://swedigarch.se/" target="_blank"><img class="about-section-logo"
-              src="/swedigarch-logo.png" alt="Swedigarch logo" /></a><br />
-          <a href="http://www.lu.se/" target="_blank"><img class="about-section-logo" src="/lu-logo.png" alt="Lund University logo" /></a>
+          <a href="https://www.umu.se/humlab/" target="_blank"><img class="about-section-logo about-section-logo-wide"
+              src="/umu-logo-en.png" alt="Umea University logo" /></a>
+          <!--<a href="https://www.vr.se/inenglish.html" target="_blank"><img class="about-section-logo" src="assets/vr-logo.png" /></a>-->
+          <a href="https://www.umu.se/en/research/infrastructure/mal/" target="_blank"><img class="about-section-logo about-section-logo-solid"
+              src="/mal-logo.png" alt="MAL logo" /></a>
+          <a href="https://swedigarch.se/" target="_blank"><img class="about-section-logo about-section-logo-wide"
+              src="/swedigarch-logo.png" alt="Swedigarch logo" /></a>
+          <a href="http://www.lu.se/" target="_blank"><img class="about-section-logo about-section-logo-tall" src="/lu-logo.png" alt="Lund University logo" /></a>
         </div>
       </div>
 

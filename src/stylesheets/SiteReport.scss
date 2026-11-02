@@ -202,206 +202,144 @@ h1.site-report-title-site-name {
   gap: sqs-px(8);
 }
 
-$site-report-summary-tab-bg-color: #eef0f3;
+$site-report-tab-bg-color: #e4e7eb;
+$site-report-tab-hover-bg-color: #eef0f3;
+$site-report-panel-radius: sqs-px(12);
 
-/* The tabs, as the site in figures: where it is, its samples, analyses, dating and references */
+/*
+* The tabs, as folder tabs on the panel they open: the one open is white and runs on into the panel under it, the
+* others lie back, grey and a little lower. Each says briefly what it holds - where the site is, its samples,
+* analyses, dating and references.
+*/
 .site-report-summary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1.25fr) minmax(0, 1fr);
+  position: relative; //for the tabs' offsetLeft, when they scroll sideways
+  display: flex;
+  align-items: flex-end;
+  gap: sqs-px(6);
   margin-top: sqs-px(22);
-  overflow: hidden; //keeps a cell's hover inside the rounded corners
 }
 
 .site-report-summary:empty {
   display: none;
 }
 
-/* Like tabs: the ones not shown lie back, greyed, and the one shown is in front, white */
 .site-report-summary-cell {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
   min-width: 0;
-  padding: sqs-px(16) sqs-px(20);
-  border-right: 1px solid colors.$border-color-light;
-  background: $site-report-summary-tab-bg-color;
-}
-
-.site-report-summary-cell:last-child {
-  border-right: none;
-}
-
-/* A cell that leads on: its label is the button, stretched over the whole cell */
-.site-report-summary-cell-link {
-  position: relative;
-  transition: background-color 0.15s, box-shadow 0.15s;
-}
-
-.site-report-summary-cell-link:hover {
-  background: colors.$card-bg-color;
-}
-
-/* A chevron after the label: › opens the tab, and on the tab shown it points down, to it */
-.site-report-summary-link-chevron {
-  margin-left: sqs-px(6);
-  font-size: sqs-px(14);
-  line-height: 1;
-  transition: transform 0.15s;
-}
-
-.site-report-summary-cell-link:hover .site-report-summary-link-chevron {
-  transform: translateX(3px);
-}
-
-.site-report-summary-cell-current .site-report-summary-link-chevron,
-.site-report-summary-cell-current:hover .site-report-summary-link-chevron {
-  transform: rotate(90deg);
-}
-
-.site-report-summary-link {
-  display: block;
-  padding: 0;
-  border: none;
-  background: none;
+  box-sizing: border-box;
+  margin: sqs-px(6) 0 0 0;
+  padding: sqs-px(11) sqs-px(16) sqs-px(12) sqs-px(16);
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: sqs-px(10) sqs-px(10) 0 0;
+  background: $site-report-tab-bg-color;
+  color: colors.$text-color;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background-color 0.15s, margin-top 0.15s, padding-bottom 0.15s;
 }
 
-.site-report-summary-link::after {
-  content: "";
-  position: absolute;
-  inset: 0;
+/* Rises a little towards being opened */
+.site-report-summary-cell:not(:disabled):not(.site-report-summary-cell-current):hover {
+  margin-top: sqs-px(3);
+  padding-bottom: sqs-px(15);
+  background: $site-report-tab-hover-bg-color;
 }
 
-.site-report-summary-cell-link:hover .site-report-summary-link {
+.site-report-summary-cell:not(:disabled):not(.site-report-summary-cell-current):hover .site-report-summary-label {
   color: colors.$base-color;
 }
 
-.site-report-summary-cell-link:hover .site-report-summary-value {
-  color: colors.$base-color-dark;
-}
-
-/* The tab shown below, in front of the others and underlined like the compact tabs */
-.site-report-summary-cell-current, .site-report-summary-cell-current:hover {
-  z-index: 1;
-  background: colors.$card-bg-color;
-  box-shadow: inset 0 -3px 0 colors.$base-color, 0 0 sqs-px(10) rgba(0, 0, 0, 0.1);
-}
-
-.site-report-summary-cell-current .site-report-summary-link {
-  color: colors.$base-color;
-}
-
-.site-report-summary-link:focus-visible {
-  outline: none;
-}
-
-.site-report-summary-link:focus-visible::after {
-  outline: 2px solid colors.$base-color;
-  outline-offset: -4px;
-  border-radius: sqs-px(6);
-}
-
-/* The links in a cell go somewhere of their own, so they lie on top of the cell's */
-.site-report-summary-sub-link, .site-report-summary-cell-link .site-report-analyses-bar {
+/*
+* The tab open: as tall as a tab gets, white, and over the panel's top border, so that the two are one surface.
+* The bar along its top is the open tab's mark, as the underline is on the compact tabs.
+*/
+.site-report-summary-cell-current {
   position: relative;
   z-index: 1;
+  margin: 0 0 -1px 0;
+  padding-bottom: sqs-px(19);
+  border-color: colors.$border-color;
+  background: colors.$card-bg-color;
+  box-shadow: inset 0 3px 0 colors.$base-color;
+  cursor: default;
 }
 
-.site-report-summary-sub-link {
-  display: inline;
-  padding: 0;
-  border: none;
-  background: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-
-.site-report-summary-sub-link:hover {
-  color: colors.$base-color;
-  text-decoration: underline;
-}
-
-.site-report-summary-sub-link:focus-visible {
-  outline: 2px solid colors.$base-color;
-  outline-offset: 1px;
-}
-
-.site-report-summary-value {
-  margin-top: sqs-px(6);
-  font-size: sqs-px(22);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.site-report-summary-value-note {
-  margin-left: sqs-px(6);
+.site-report-summary-cell:disabled {
+  background: color.mix($site-report-tab-bg-color, colors.$page-bg-color, 45%);
   color: colors.$text-muted-color;
-  font-size: sqs-px(13);
-  font-weight: 400;
+  cursor: default;
 }
 
-.site-report-summary-empty .site-report-summary-value {
-  color: colors.$text-muted-color;
-  font-size: sqs-px(16);
-  font-weight: 500;
-  margin-top: sqs-px(10);
-}
-
-.site-report-summary-sub {
-  margin-top: sqs-px(2);
-  color: colors.$text-muted-color;
-  font-size: sqs-px(13);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* All of the site's analysis methods in one bar, a segment for each */
-.site-report-analyses-bar {
-  display: flex;
-  gap: 1px;
-  height: sqs-px(22);
-  margin-top: sqs-px(9);
-  overflow: hidden;
-  border-radius: sqs-px(4);
-  font-size: sqs-px(11);
-  font-weight: 600;
-}
-
-.site-report-analyses-bar-segment {
-  display: block;
-  flex-basis: 0;
-  min-width: sqs-px(6);
-  padding: 0 sqs-px(4);
-  overflow: hidden;
-  border: none;
-  font: inherit;
-  line-height: sqs-px(22);
-  text-align: center;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  cursor: pointer;
-}
-
-/* the other methods step back while one is pointed at */
-.site-report-analyses-bar:hover .site-report-analyses-bar-segment:not(:hover) {
-  opacity: 0.45;
-}
-
-.site-report-analyses-bar-segment:focus-visible {
+.site-report-summary-cell:focus-visible {
   outline: 2px solid colors.$base-color;
   outline-offset: -2px;
 }
 
+.site-report-summary-cell-head {
+  display: flex;
+  align-items: baseline;
+  gap: sqs-px(6);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.site-report-summary-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: sqs-px(16);
+  font-weight: 600;
+  transition: color 0.15s;
+}
+
+.site-report-summary-cell-current .site-report-summary-label {
+  color: colors.$base-color;
+}
+
+.site-report-summary-count {
+  color: colors.$text-muted-color;
+  font-size: sqs-px(15);
+  font-weight: 400;
+}
+
+.site-report-summary-sub {
+  margin-top: sqs-px(3);
+  overflow: hidden;
+  color: colors.$text-muted-color;
+  font-size: sqs-px(13);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* All of the site's analysis methods in one thin bar, a segment for each, where the other tabs have a line */
+.site-report-analyses-bar {
+  display: flex;
+  gap: 2px;
+  height: sqs-px(5);
+  margin: sqs-px(10) 0 sqs-px(4) 0;
+  overflow: hidden;
+  border-radius: sqs-px(3);
+}
+
+.site-report-analyses-bar-segment {
+  flex-basis: 0;
+  min-width: sqs-px(4);
+}
+
 /*
-* The tabs' contents. At least a screen high, so that a tab opened from the compact tabs can always start at the
-* top of the page, even while it is still being drawn and is short.
+* The panel the tabs open, under them. At least a screen high, so that a tab opened from the compact tabs can always
+* start at the top of the page, even while it is still being drawn and is short.
 */
 #site-report-content {
+  box-sizing: border-box;
   min-height: calc(100vh - var(--sqs-header-height) - #{$site-report-compact-bar-height});
-  padding-top: sqs-px(24);
+  padding: sqs-px(24);
+  border: 1px solid colors.$border-color;
+  border-radius: 0 0 $site-report-panel-radius $site-report-panel-radius;
+  background: colors.$card-bg-color;
 }
 
 .site-report-tabpanel {
@@ -1379,21 +1317,24 @@ button.site-report-method-dot {
     font-size: 34px !important;
   }
 
-  /* The overview across the top, the other four tabs two by two under it */
+  /* Too many to share the width, so they keep theirs and scroll sideways */
   .site-report-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* Room inside the scrolling for the open tab to reach over the panel's border, which it'd otherwise be cut off at */
+    margin-bottom: -1px;
+    padding-bottom: 1px;
   }
 
-  .site-report-summary-cell:first-child {
-    grid-column: 1 / -1;
+  .site-report-summary-cell {
+    flex: 0 0 auto;
+    max-width: 11rem;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
-  .site-report-summary-cell:nth-child(odd) {
-    border-right: none;
-  }
-
-  .site-report-summary-cell:nth-child(-n + 3) {
-    border-bottom: 1px solid colors.$border-color-light;
+  #site-report-content {
+    padding: 12px;
   }
 
   .site-report-compact-bar-content {

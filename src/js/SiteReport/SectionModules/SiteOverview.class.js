@@ -1,10 +1,10 @@
 /*
 * Class: SiteOverview
 *
-* The summary under the site's name, which is also the site report's tabs: a cell for each tab, saying
-* in figures what it holds - where the site is, its samples, analyses, dating and references. And the
-* overview tab, which says a little about each and leads on to the tab with the rest. Both lead on: a
-* tab, a sample group or an analysis method opens where it's shown in full.
+* The summary under the site's name, which is also the site report's tabs: a tab for each, saying briefly
+* what it holds - where the site is, its samples, analyses, dating and references. And the overview tab,
+* which says a little about each and leads on to the tab with the rest, where a sample group or an
+* analysis method opens where it's shown in full.
 */
 class SiteOverview {
 	constructor(sqs, siteReport) {
@@ -34,23 +34,16 @@ class SiteOverview {
 
 	/*
 	* Function: renderAnalysesBar
-	* The site's analysis methods as one bar, a segment for each, as wide as its share of the datasets.
-	* A segment opens its method's datasets.
+	* The site's analysis methods as one thin bar under the analyses tab's name, a segment for each, as wide as its
+	* share of the datasets. Only a picture of the mix - the tab itself is what opens them.
 	*/
 	renderAnalysesBar(methods) {
-		let barNode = $("<div class='site-report-analyses-bar'></div>");
+		let barNode = $("<span class='site-report-analyses-bar' aria-hidden='true'></span>");
 		methods.forEach(method => {
-			let color = method.color || "#8c8c8c";
-			let segmentNode = $("<button type='button' class='site-report-analyses-bar-segment'></button>");
+			let segmentNode = $("<span class='site-report-analyses-bar-segment'></span>");
 			segmentNode.css({
 				flexGrow: method.datasets.length,
-				backgroundColor: color,
-				color: this.sqs.color.getContrastingTextColor(color)
-			});
-			segmentNode.attr("title", method.name+" · "+method.datasets.length+(method.datasets.length == 1 ? " dataset" : " datasets"));
-			segmentNode.text(method.abbrev || method.name);
-			segmentNode.on("click", () => {
-				this.siteReport.showAnalysisMethod(method.methodId);
+				backgroundColor: method.color || "#8c8c8c"
 			});
 			barNode.append(segmentNode);
 		});
@@ -60,12 +53,12 @@ class SiteOverview {
 	/*
 	* Function: renderSummaryCell
 	*
-	* One tab in the summary, with a figure for what it holds. Unless the tab is disabled, the whole cell opens it:
-	* its label is the button, stretched over the cell, and any buttons in the value or the line under it lie on top
-	* and go somewhere of their own.
+	* One tab in the summary: its name, a count after it, and a line under it on what it holds. The whole tab is one
+	* button, with nothing in it that goes anywhere else, so that it reads as what it is. A tab with nothing on it is
+	* there, so the tabs are always the same, but can't be opened.
 	*/
-	renderSummaryCell(tabName, label, value, sub, extraClass = "") {
-		let cellNode = $("<div class='site-report-summary-cell'></div>");
+	renderSummaryCell(tabName, label, count, sub, extraClass = "") {
+		let cellNode = $("<button type='button' class='site-report-summary-cell'></button>");
 		cellNode.attr("data-tab", tabName);
 		if(extraClass) {
 			cellNode.addClass(extraClass);
@@ -73,30 +66,28 @@ class SiteOverview {
 		let tab = this.siteReport.getTab(tabName);
 		if(tab && !tab.disabled) {
 			let current = this.siteReport.activeTab == tabName;
-			cellNode.addClass("site-report-summary-cell-link");
 			cellNode.toggleClass("site-report-summary-cell-current", current);
-			let labelNode = $("<button type='button' class='sqs-label site-report-summary-link'></button>").text(label);
-			labelNode.append("<i class='fa fa-angle-right site-report-summary-link-chevron' aria-hidden='true'></i>");
-			labelNode.attr("aria-current", current ? "true" : "false");
-			labelNode.on("click", () => {
+			cellNode.attr("aria-current", current ? "true" : "false");
+			cellNode.on("click", () => {
 				this.siteReport.setActiveTab(tabName);
 			});
-			cellNode.append(labelNode);
 		}
 		else {
-			cellNode.append($("<div class='sqs-label'></div>").text(label));
+			cellNode.prop("disabled", true);
 		}
-		if(value instanceof jQuery) {
-			cellNode.append(value);
+
+		let headNode = $("<span class='site-report-summary-cell-head'></span>");
+		headNode.append($("<span class='site-report-summary-label'></span>").text(label));
+		if(count != null) {
+			headNode.append($("<span class='site-report-summary-count'></span>").text(count.toLocaleString("en-GB")));
 		}
-		else {
-			cellNode.append($("<div class='site-report-summary-value'></div>").text(value).attr("title", value));
-		}
+		cellNode.append(headNode);
+
 		if(sub instanceof jQuery) {
-			cellNode.append($("<div class='site-report-summary-sub'></div>").append(sub));
+			cellNode.append(sub);
 		}
-		else if(sub) {
-			cellNode.append($("<div class='site-report-summary-sub'></div>").text(sub));
+		else {
+			cellNode.append($("<span class='site-report-summary-sub'></span>").text(sub).attr("title", sub));
 		}
 		return cellNode;
 	}
@@ -108,59 +99,35 @@ class SiteOverview {
 		//Where the site is: the country, and the places in it under that
 		let bsiModule = this.siteReport.getModuleByName("basicSiteInformation");
 		let locationNames = bsiModule ? bsiModule.module.getOrderedLocations(siteData).map(location => location.location_name.trim()) : [];
-		if(locationNames.length > 0) {
-			summaryNode.append(this.renderSummaryCell("overview", "Overview", locationNames[0], locationNames.slice(1).join(" · ")));
-		}
-		else {
-			summaryNode.append(this.renderSummaryCell("overview", "Overview", "Location not recorded", "", "site-report-summary-empty"));
-		}
+		summaryNode.append(this.renderSummaryCell("overview", "Overview", null, locationNames.length > 0 ? locationNames.join(" · ") : "Location not recorded"));
 
 		let sampleCount = this.getSampleCount(siteData);
 		if(sampleCount > 0) {
 			let sampleGroupCount = siteData.sample_groups.length;
-			let samplesValue = $("<div class='site-report-summary-value'></div>").text(sampleCount.toLocaleString("en-GB"));
-			samplesValue.append($("<span class='site-report-summary-value-note'></span>").text("in "+sampleGroupCount.toLocaleString("en-GB")+(sampleGroupCount == 1 ? " group" : " groups")));
-
-			//The first few sample groups by name, each opening the group on the samples tab
-			let sampleGroupsSub = $("<span></span>");
-			siteData.sample_groups.slice(0, 3).forEach((sampleGroup, index) => {
-				if(index > 0) {
-					sampleGroupsSub.append(" · ");
-				}
-				let linkNode = $("<button type='button' class='site-report-summary-sub-link'></button>").text(sampleGroup.sample_group_name);
-				linkNode.on("click", () => {
-					this.siteReport.revealSampleGroup(sampleGroup.sample_group_id);
-				});
-				sampleGroupsSub.append(linkNode);
-			});
-			if(sampleGroupCount > 3) {
-				sampleGroupsSub.append(" · "+(sampleGroupCount - 3)+" more");
-			}
-			summaryNode.append(this.renderSummaryCell("samples", "Samples", samplesValue, sampleGroupsSub));
+			summaryNode.append(this.renderSummaryCell("samples", "Samples", sampleCount, "in "+sampleGroupCount.toLocaleString("en-GB")+(sampleGroupCount == 1 ? " group" : " groups")));
 		}
 		else {
-			summaryNode.append(this.renderSummaryCell("samples", "Samples", "None recorded", "", "site-report-summary-empty"));
+			summaryNode.append(this.renderSummaryCell("samples", "Samples", null, "None recorded"));
 		}
 
 		let methods = this.siteReport.getAnalysisMethods(siteData);
 		if(methods.length > 0) {
 			let datasetCount = siteData.datasets.length;
-			let analysesSub = methods.length+(methods.length == 1 ? " method" : " methods")+" · "+datasetCount.toLocaleString("en-GB")+(datasetCount == 1 ? " dataset" : " datasets");
-			summaryNode.append(this.renderSummaryCell("analyses", "Analyses", this.renderAnalysesBar(methods), analysesSub, "site-report-summary-analyses"));
+			let cellNode = this.renderSummaryCell("analyses", "Analyses", datasetCount, this.renderAnalysesBar(methods));
+			cellNode.attr("title", methods.map(method => method.name+" · "+method.datasets.length+(method.datasets.length == 1 ? " dataset" : " datasets")).join("\n"));
+			summaryNode.append(cellNode);
 		}
 		else {
-			summaryNode.append(this.renderSummaryCell("analyses", "Analyses", "None recorded", "", "site-report-summary-empty"));
+			summaryNode.append(this.renderSummaryCell("analyses", "Analyses", null, "None recorded"));
 		}
 
 		let dating = this.getDatingModule();
 		if(dating && dating.hasDatings(siteData)) {
 			let ageSummary = siteData.age_summary;
-			let datedSamples = dating.getDatedSampleIds().length;
-			let datingSub = datedSamples+" of "+sampleCount+" samples · "+ageSummary.datings.map(d => d.method_name).join(", ");
-			summaryNode.append(this.renderSummaryCell("dating", "Dating", dating.formatRange(ageSummary.older, ageSummary.younger), datingSub, "site-report-summary-dating"));
+			summaryNode.append(this.renderSummaryCell("dating", "Dating", null, dating.formatRange(ageSummary.older, ageSummary.younger), "site-report-summary-dating"));
 		}
 		else {
-			summaryNode.append(this.renderSummaryCell("dating", "Dating", "None recorded", "", "site-report-summary-dating site-report-summary-empty"));
+			summaryNode.append(this.renderSummaryCell("dating", "Dating", null, "None recorded", "site-report-summary-dating"));
 		}
 
 		let biblioIds = this.siteReport.getReferenceBiblioIds(siteData);
@@ -170,10 +137,10 @@ class SiteOverview {
 			if(biblioIds.length > 2) {
 				referencesSub += " · "+(biblioIds.length - 2)+" more";
 			}
-			summaryNode.append(this.renderSummaryCell("references", "References", biblioIds.length.toLocaleString("en-GB"), referencesSub));
+			summaryNode.append(this.renderSummaryCell("references", "References", biblioIds.length, referencesSub));
 		}
 		else {
-			summaryNode.append(this.renderSummaryCell("references", "References", "None recorded", "", "site-report-summary-empty"));
+			summaryNode.append(this.renderSummaryCell("references", "References", null, "None recorded"));
 		}
 	}
 

@@ -28,6 +28,7 @@ import SearchManager from './SearchManager.class.js';
 import QuickstartSearch from './QuickstartSearch.class.js';
 import SeadAgent from './SeadAgent.class.js';
 import SeoManager from './SeoManager.class.js';
+import CookieConsent from './CookieConsent.class.js';
 import { nanoid } from 'nanoid';
 import ApiWsChannel from './ApiWsChannel.class.js';
 
@@ -540,48 +541,10 @@ class SeadQuerySystem {
 			this.modules.push(this.resultManager.modules[key].module);
 		}
 
-		//FIXME: This is dumb, because this should be handled by the import of the css at the head of this file
-		//but that stopped working for some reason when updating webpack, so now I'm doing it like this as a temporary measure
-		const css = {
-			paneBgColor: "#eeeeee",
-			auxColor: "#ff6600"
-		};
-
-		if(this.config.cookieWarningEnabled) {
-			window.cookieconsent.initialise({
-				container: document.getElementById("cookie-consent-content"),
-				palette:{
-					popup: { background: css.paneBgColor },
-					button: { background: css.auxColor },
-				},
-				revokable:true,
-				onStatusChange: function(status) {
-					console.log(this.hasConsented() ? 'enable cookies' : 'disable cookies');
-				},
-				position: 'bottom-right',
-				content: {
-					header: 'Cookies used on the website!',
-					message: Config.legalNoticeMsg,
-					dismiss: 'I agree'
-				},
-				showLink: false,
-				law: {
-					regionalLaw: false,
-				},
-				location: true,
-				expiryDays: -1,
-				onPopupOpen: () => {
-					$("#privacy-policy-link").on("click", (evt) => {
-						evt.stopPropagation();
-						window.sqs.dialogManager.showPrivacyPolicy();
-					});
-				}
-			});
-		}
+		this.cookieConsent = new CookieConsent(this);
 
 		this.systemReady = true;
 		this.router.route();
-		this.tutorial.init();
 		this.sqsEventDispatch("sqsInitComplete");
 
 		document.addEventListener('keydown', (evt) => {

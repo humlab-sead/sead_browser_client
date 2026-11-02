@@ -2180,7 +2180,7 @@ body.facet-resizing * {
   padding:0;
   width: 100%;
   height: auto;
-  max-height: calc(90vh - 7em);
+  max-height: calc((100vh - var(--sqs-header-height)) * 0.9 - 7em);
   flex: 1 1 auto;
   max-width: 100%;
   min-width: 0;
@@ -3002,33 +3002,55 @@ body.facet-resizing * {
 	font-size: 0.9em;
 }
 
+/*
+* The partners' logos under the About text, three to a row. They come in every shape - squares, a crest, wordmarks
+* three times as wide as high - so each is sized by its shape rather than all to one height, to look about as big as
+* the others: the wide ones lower, the tall one higher, and the ones that are a solid block of colour a little smaller.
+*/
 #logo-section {
-	margin-top: 20px;
-	display: flex;
-	justify-content: center;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	align-items: center;
-	flex-wrap: nowrap;
-
-	br {
-		display: none;
-	}
+	justify-items: center;
+	gap: sqs-px(28) sqs-px(24);
+	margin-top: sqs-px(28);
+	padding: sqs-px(28) sqs-px(8) sqs-px(4) sqs-px(8);
+	border-top: 1px solid colors.$border-color-light;
 
 	a {
-		flex: 1 1 0;
-		min-width: 0;
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		min-width: 0;
+		max-width: 100%;
 	}
 }
 
 .about-section-logo {
-	max-height: 80px;
-	max-width: 100%;
+	display: block;
+	height: sqs-px(72);
 	width: auto;
-	height: auto;
+	max-width: 100%;
 	object-fit: contain;
-	margin: 10px;
+	transition: opacity 0.15s;
+}
+
+.about-section-logo-wide {
+	height: sqs-px(46);
+}
+
+.about-section-logo-tall {
+	height: sqs-px(78);
+}
+
+.about-section-logo-solid {
+	height: sqs-px(60);
+}
+
+@media (max-width: 500px) {
+	#logo-section {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 }
 
 .about-section-logo:hover {
@@ -5328,9 +5350,10 @@ polyline{
   justify-items: center;
   align-items: center;
   width: 100vw;
-  height: 100vh;
+  /* Under the header, which lies above the dialogs, so that a tall dialog isn't cut off by it at the top */
+  height: calc(100vh - var(--sqs-header-height));
   position: fixed;
-  top: 0px;
+  top: var(--sqs-header-height);
   left: 0px;
   background: rgba(30, 30, 30, 0.35);
   z-index: 5;
@@ -5340,7 +5363,8 @@ polyline{
 #popover-dialog-frame {
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
+  /* Within the margins of the room left under the header */
+  max-height: calc((100vh - var(--sqs-header-height)) * 0.9);
   max-width: 90vw;
   min-width: sqs-px(320);
   min-height: 80px;
@@ -5524,30 +5548,51 @@ polyline{
   font-size: 14;
 }
 
-.cc-window {
-  box-shadow: 00px 0px 20px 10px rgba(0, 0, 0, 0.5);
-}
-
-/* The library hardcodes 16px and sizes everything else in em, so this scales the whole window */
-.cc-window, .cc-revoke {
-  font-size: sqs-px(16);
-}
-
-/* Wider and less padded than the library default, so the long legal text wraps into fewer lines
- * and the window doesn't cover as much of short screens */
-.cc-window.cc-floating {
-  max-width: 30em;
-  padding: 1.5em;
-  max-height: calc(100vh - 2em);
+/* The cookie notice, until it's agreed to (CookieConsent). It sits in the bottom right corner above the chatbox
+ * bubble, and is hidden while a dialog is open, so the privacy policy it links to can be read first. */
+#cookie-consent {
+  position: fixed;
+  right: var(--chatbox-margin);
+  bottom: calc(var(--chatbox-collapsed-size) + var(--chatbox-margin) * 2);
+  z-index: 300;
+  box-sizing: border-box;
+  width: sqs-px(420);
+  max-width: calc(100vw - var(--chatbox-margin) * 2);
+  max-height: calc(100vh - var(--sqs-header-height) - var(--chatbox-collapsed-size) - var(--chatbox-margin) * 4);
   overflow-y: auto;
+  padding: sqs-px(20) sqs-px(24);
+  background: colors.$card-bg-color;
+  border: 1px solid colors.$border-color;
+  border-radius: sqs-px(12);
+  box-shadow: 0 sqs-px(16) sqs-px(48) rgba(0, 0, 0, 0.18);
+  color: colors.$text-color;
+  font-size: sqs-px(14);
+  line-height: 1.5;
 }
 
-body.tutorial-active .cc-window {
+#cookie-consent h2 {
+  margin: 0 0 sqs-px(8) 0;
+  background: none;
+  font-family: $normal-font, sans-serif;
+  font-size: sqs-px(16);
+  font-weight: 600;
+}
+
+#cookie-consent p {
+  margin: 0 0 sqs-px(16) 0;
+}
+
+body.tutorial-active #cookie-consent, body:has(#chatbox-icon.expanded) #cookie-consent {
   display: none !important;
 }
 
-.cc-btn {
-  color: #fff !important;
+.cookie-consent-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.privacy-policy .cookie-consent-actions {
+  margin-top: sqs-px(20);
 }
 
 .important-text {
@@ -6015,28 +6060,6 @@ svg text {
 
 .ol-attribution button {
   display:none;
-}
-
-#tutorial-question {
-  display: none;
-  width: 20em;
-  position: fixed;
-  top: 2em;
-  right: -100%;
-  z-index: 100;
-  background: #fff;
-  padding: 1.5em;
-  animation-name: slide-in;
-  animation-duration: 0.5s;
-  animation-delay: 2s;
-  animation-fill-mode: forwards;
-  box-shadow: 0px 0px 10px 10px colors.$shadow-color;
-  border-radius: 3px;
-  border-left: .5em solid colors.$aux-color;
-}
-
-#tutorial-select-form-container {
-  margin-bottom: 1em;
 }
 
 /* animation which creates a slide-in from the right */
@@ -8626,7 +8649,7 @@ tr.site-report-table-row > td {
   padding: 0;
   border-radius: 50%;
   color: #fff;
-  /* The panel's own surface, which the orange fill above it fades away to reveal */
+  /* The panel's own surface, which the blue fill above it fades away to reveal */
   background: #fff;
   /* Layered rather than one flat blur: a tight contact shadow seats it on the page and a
    * wide soft one lifts it off. */
@@ -8655,8 +8678,8 @@ tr.site-report-table-row > td {
     transform 0.16s ease;
 }
 
-/* The bubble's orange fill, carried on an overlay rather than as the element's own
- * background so it can cross-fade. Growing a solid orange rectangle to panel size and
+/* The bubble's blue fill, carried on an overlay rather than as the element's own
+ * background so it can cross-fade. Growing a solid blue rectangle to panel size and
  * only then putting contents in it read as a flash of colour; fading the fill out as the
  * box grows makes the same motion read as the bubble opening into the panel.
  *
@@ -8675,9 +8698,9 @@ tr.site-report-table-row > td {
   pointer-events: none;
   background:
     linear-gradient(145deg,
-      color.scale(colors.$aux-color, $lightness: 16%) 0%,
-      colors.$aux-color 55%,
-      color.scale(colors.$aux-color, $lightness: -14%) 100%);
+      color.scale(colors.$base-color, $lightness: 16%) 0%,
+      colors.$base-color 55%,
+      color.scale(colors.$base-color, $lightness: -14%) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30);
   /* Timed against the panel's fade-in below so the two genuinely cross over, rather than
    * the fill clearing first and leaving an empty white box for a beat */
@@ -9146,9 +9169,9 @@ tr.site-report-table-row > td {
   font-size: 0.95rem;
   background:
     linear-gradient(145deg,
-      color.scale(colors.$aux-color, $lightness: 16%) 0%,
-      colors.$aux-color 55%,
-      color.scale(colors.$aux-color, $lightness: -14%) 100%);
+      color.scale(colors.$base-color, $lightness: 16%) 0%,
+      colors.$base-color 55%,
+      color.scale(colors.$base-color, $lightness: -14%) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30);
 }
 

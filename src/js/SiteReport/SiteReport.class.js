@@ -302,8 +302,10 @@ class SiteReport {
 	* These are the compact tabs which take over once the summary has scrolled out of view.
 	*/
 	renderTabs(siteData = null) {
+		//The same counts as on the summary's tabs: samples, analysis datasets and references, and the dating tab none
 		let sampleCount = null;
-		let analysisCount = null;
+		let methodCount = null;
+		let datasetCount = null;
 		let datingCount = null;
 		let referenceCount = null;
 		if(siteData) {
@@ -311,7 +313,8 @@ class SiteReport {
 			siteData.sample_groups.forEach(sampleGroup => {
 				sampleCount += sampleGroup.physical_samples.length;
 			});
-			analysisCount = this.getAnalysisMethods(siteData).length;
+			methodCount = this.getAnalysisMethods(siteData).length;
+			datasetCount = siteData.datasets.length;
 			datingCount = siteData.age_summary && siteData.age_summary.datings ? siteData.age_summary.datings.length : 0;
 			referenceCount = this.getReferenceBiblioIds(siteData).length;
 		}
@@ -319,8 +322,8 @@ class SiteReport {
 		this.tabs = [
 			{ name: "overview", title: "Overview", count: null, disabled: false },
 			{ name: "samples", title: "Samples", count: sampleCount, disabled: sampleCount === 0 },
-			{ name: "analyses", title: "Analyses", count: analysisCount, disabled: analysisCount === 0 },
-			{ name: "dating", title: "Dating", count: datingCount === 0 ? "none" : datingCount, disabled: datingCount === 0 },
+			{ name: "analyses", title: "Analyses", count: methodCount === 0 ? null : datasetCount, disabled: methodCount === 0 },
+			{ name: "dating", title: "Dating", count: datingCount === 0 ? "none" : null, disabled: datingCount === 0 },
 			{ name: "references", title: "References", count: referenceCount, disabled: false }
 		];
 
@@ -380,8 +383,14 @@ class SiteReport {
 		$(".site-report-summary-cell").each((index, cellNode) => {
 			let current = $(cellNode).attr("data-tab") == tabName;
 			$(cellNode).toggleClass("site-report-summary-cell-current", current);
-			$(".site-report-summary-link", cellNode).attr("aria-current", current ? "true" : "false");
+			$(cellNode).attr("aria-current", current ? "true" : "false");
 		});
+		//Where the tabs are too many for the width, they scroll sideways - the one opened is brought into view
+		let summaryNode = $(".site-report-summary")[0];
+		let currentCellNode = $(".site-report-summary-cell-current")[0];
+		if(summaryNode && currentCellNode && summaryNode.scrollWidth > summaryNode.clientWidth) {
+			summaryNode.scrollLeft = currentCellNode.offsetLeft - (summaryNode.clientWidth - currentCellNode.offsetWidth) / 2;
+		}
 		$(".site-report-tabpanel").removeClass("site-report-tabpanel-active");
 		$(".site-report-tabpanel[data-tab='"+tabName+"']").addClass("site-report-tabpanel-active");
 
