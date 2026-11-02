@@ -18,6 +18,12 @@
   }
 }
 
+@include short-viewport {
+  :root {
+    --sqs-header-height: #{sqs-px(52)};
+  }
+}
+
 html {
 	height: 100%;
 	/* Scales everything sized in rem, including third party widgets */
@@ -555,6 +561,17 @@ div:focus {
 #aux-menu-button:hover {
   background: #f3f3f3;
   border-color: colors.$border-color;
+}
+
+@include short-viewport {
+  #sead-logo {
+    height: sqs-px(42);
+  }
+
+  #search-container #search-container-input,
+  #aux-menu-button {
+    height: sqs-px(34);
+  }
 }
 
 @media (max-width: $ui-mobile-breakpoint) {
@@ -1138,6 +1155,30 @@ h1.main-header {
   padding: 1px;
 }
 
+/* The toolbar's top lines up with the result card's, see #result-section */
+@include short-viewport {
+  #facet-main-container {
+    padding-top: sqs-px(10);
+    padding-bottom: sqs-px(16);
+  }
+
+  #filter-toolbar-title {
+    font-size: sqs-px(24);
+  }
+
+  #filter-toolbar-actions .sqs-btn {
+    height: sqs-px(30);
+  }
+
+  #active-filters {
+    padding: sqs-px(6) 0;
+  }
+
+  #facet-section {
+    margin-top: sqs-px(8);
+  }
+}
+
 @media (max-width: $ui-mobile-breakpoint) {
   #facet-main-container {
     padding: 16px;
@@ -1261,6 +1302,26 @@ h1.main-header {
 #result-export-btn.is-loading {
   opacity: 0.8;
   cursor: progress;
+}
+
+/* Less room around the card and its bars, for more of the result in it */
+@include short-viewport {
+  #result-section {
+    height: calc(100% - #{sqs-px(20)});
+    margin: sqs-px(10) sqs-px(12) sqs-px(10) sqs-px(14);
+  }
+
+  #result-footer {
+    padding: sqs-px(6) sqs-px(16);
+  }
+
+  #result-footer .sqs-btn {
+    height: sqs-px(30);
+  }
+
+  #result-footer-actions {
+    margin-right: calc(var(--chatbox-collapsed-size) + var(--chatbox-margin) - #{sqs-px(12)});
+  }
 }
 
 #result-export-btn .result-export-button-loading-indicator {
@@ -1795,6 +1856,30 @@ body.facet-resizing * {
 
 #result-menu .sqs-menu-selected .first-level-item-title .fa {
   color: colors.$base-color;
+}
+
+/* The heading goes, with the site count still under it, and the tabs are lower */
+@include short-viewport {
+  #result-tabs-container {
+    padding-top: sqs-px(6);
+  }
+
+  #result-heading {
+    padding-bottom: sqs-px(8);
+  }
+
+  /* ResultManager shows it whenever the card is wide enough for it */
+  #result-title {
+    display: none !important;
+  }
+
+  #result-summary {
+    margin-top: 0;
+  }
+
+  #result-menu .first-level-item {
+    padding: sqs-px(6) 0 sqs-px(7) 0;
+  }
 }
 
 #result-container {
@@ -3509,6 +3594,22 @@ polyline{
   background: #efefef;
 }
 
+/* The figures on one line, so they don't take up the room of the tiles under them */
+@include short-viewport {
+  #result-mosaic-summary {
+    grid-template-columns: repeat(auto-fit, minmax(sqs-px(92), 1fr));
+  }
+
+  .mosaic-summary-cell {
+    padding: sqs-px(8) sqs-px(12);
+  }
+
+  .mosaic-summary-value {
+    margin-top: sqs-px(2);
+    font-size: sqs-px(20);
+  }
+}
+
 #result-mosaic-tiles {
   position: relative; /* tiles are absolutely positioned */
   width: 100%;
@@ -3679,6 +3780,37 @@ polyline{
   overflow: hidden;
   white-space: nowrap;
   cursor: move;
+}
+
+.result-map-legend-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: sqs-px(12);
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: inherit;
+}
+
+.result-map-legend-toggle .fa {
+  transition: transform 0.15s;
+}
+
+.result-map-legend-collapsed .result-map-legend-toggle .fa {
+  transform: rotate(180deg);
+}
+
+.result-map-legend-collapsed .result-map-legend-content {
+  display: none;
+}
+
+/* Closed, the header is all there is of it */
+.result-map-legend-container.result-map-legend-collapsed {
+  padding-bottom: 0;
 }
 
 

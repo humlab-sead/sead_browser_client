@@ -121,6 +121,15 @@ class sqsLayoutManager {
 		this.mode = mode;
 	}
 
+	/*
+	* Function: isShortViewport
+	* Whether the desktop layout is short of height, as on a 1080p screen at 200% zoom. It is still the desktop mode, with
+	* both sections side by side, but with less room to spare around things. The stylesheets have the same breakpoint
+	* ($ui-short-breakpoint), and a layoutResize event follows whenever this may have changed.
+	*/
+	isShortViewport() {
+		return this.mode == "desktopMode" && window.matchMedia("(max-height: "+Config.screenShortHeightBreakPoint+"px)").matches;
+	}
 
 }
 

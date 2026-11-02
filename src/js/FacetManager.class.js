@@ -111,6 +111,12 @@ class FacetManager {
 		this.sqs.sqsEventListen("seadFacetSelection", () => {
 			this.queueActiveFiltersRender();
 		});
+		this.sqs.sqsEventListen("layoutResize", () => {
+			clearTimeout(this.fitFacetHeightsTimeout);
+			this.fitFacetHeightsTimeout = setTimeout(() => {
+				this.fitFacetHeights();
+			}, 100);
+		});
 		this.sqs.sqsEventListen("facetDataRendered", () => {
 			this.queueActiveFiltersRender();
 		});
@@ -277,6 +283,13 @@ class FacetManager {
 		container.append(chainNode);
 
 		container.toggleClass("active-filters-visible", chainFacets.length > 0);
+
+		//The filters fit under the active filters, see getFacetRoomHeight
+		let activeFiltersHeight = container.outerHeight(true);
+		if(activeFiltersHeight != this.activeFiltersHeight) {
+			this.activeFiltersHeight = activeFiltersHeight;
+			this.fitFacetHeights();
+		}
 	}
 
 	/*
@@ -795,6 +808,50 @@ class FacetManager {
 	adjustSlotSizes() {
 		for(var key in this.slots) {
 			this.slots[key].fitSizeToFacet();
+		}
+	}
+
+	/*
+	* Function: getFacetRoomHeight
+	*
+	* How high a filter can be and still leave the top of the one under it in view, with the filter section scrolled to the
+	* top, under the toolbar and the active filters. That the next filter is in sight is what says there is more below.
+	* The filters are fitted again as the active filters take up more or fewer lines, see renderActiveFilters.
+	*
+	* Returns:
+	* The height, or null while the filter section isn't shown.
+	*/
+	getFacetRoomHeight() {
+		let sectionNode = document.getElementById("facet-section");
+		let scrollNode = sectionNode ? sectionNode.closest(".section-left") : null;
+		if(!scrollNode || scrollNode.clientHeight == 0) {
+			return null;
+		}
+		let sectionTop = sectionNode.getBoundingClientRect().top - scrollNode.getBoundingClientRect().top + scrollNode.scrollTop;
+		//While the first filter is being added, the active filters are yet to be shown, as a line of them
+		if(!$("#active-filters").is(":visible")) {
+			sectionTop += this.sqs.scalePx(46);
+		}
+		//enough of the next filter for its title to show
+		let nextFacetPeek = this.sqs.scalePx(48);
+		return scrollNode.clientHeight - sectionTop - nextFacetPeek;
+	}
+
+	/*
+	* Function: fitFacetHeights
+	*
+	* Fits the filters to the height of the window, see Facet.fitHeight, and lines them up again.
+	*/
+	fitFacetHeights() {
+		let changed = false;
+		this.facets.forEach(facet => {
+			if(!facet.deleted && facet.fitHeight()) {
+				changed = true;
+			}
+		});
+		if(changed) {
+			this.adjustSlotSizes();
+			this.updateAllFacetPositions();
 		}
 	}
 

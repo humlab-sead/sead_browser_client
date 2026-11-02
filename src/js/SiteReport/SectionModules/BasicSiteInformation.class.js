@@ -124,7 +124,14 @@ class BasicSiteInformation {
 		if(siteData.site_description) {
 			descriptionNode.text(siteData.site_description).removeClass("site-report-no-data");
 			//Some sites come with whole survey records, which would push the summary off the page
-			if(siteData.site_description.length > 500 || siteData.site_description.split("\n").length > 6) {
+			let clamp = siteData.site_description.length > 500 || siteData.site_description.split("\n").length > 6;
+			//and on a short screen, so would much less - anything longer than the lines shown of a clamped one
+			if(!clamp && this.sqs.layoutManager.isShortViewport()) {
+				descriptionNode.addClass("site-report-site-description-clamped");
+				clamp = descriptionNode[0].scrollHeight > descriptionNode[0].clientHeight + 1;
+				descriptionNode.removeClass("site-report-site-description-clamped");
+			}
+			if(clamp) {
 				descriptionNode.addClass("site-report-site-description-clamped");
 				let toggleNode = $("<button type='button' class='sqs-link-btn site-report-site-description-toggle' aria-expanded='false'>Show full description</button>");
 				toggleNode.on("click", () => {

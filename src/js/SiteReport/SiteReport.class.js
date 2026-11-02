@@ -358,7 +358,7 @@ class SiteReport {
 			evt.preventDefault();
 		});
 
-		this.setActiveTab(this.activeTab);
+		this.setActiveTab(this.activeTab, false);
 	}
 
 	getTab(tabName) {
@@ -367,8 +367,12 @@ class SiteReport {
 
 	/*
 	* Function: setActiveTab
+	*
+	* Parameters:
+	* tabName - The tab to open.
+	* opened - Whether the tab is being opened, rather than the tabs being drawn, see scrollToTabContent.
 	*/
-	setActiveTab(tabName) {
+	setActiveTab(tabName, opened = true) {
 		let tab = this.getTab(tabName);
 		if(tab && tab.disabled) {
 			tabName = "overview";
@@ -398,7 +402,7 @@ class SiteReport {
 			this.showAnalysisMethod(this.analysisMethodNavItems[0].methodId, false);
 		}
 
-		this.scrollToTabContent();
+		this.scrollToTabContent(opened);
 
 		//Maps drawn while their tab was hidden have no size until told to look again
 		this.sqs.sqsEventDispatch("siteReportTabShown", { tab: tabName });
@@ -564,9 +568,14 @@ class SiteReport {
 
 	/*
 	* Function: scrollToTabContent
-	* Coming from further down the page, e.g. from the compact tabs, starts at the top of the tab's contents.
+	* Coming from further down the page, e.g. from the compact tabs, starts at the top of the tab's contents. On a short
+	* screen, where the top of the page leaves little of the window for the tab, a tab being opened is brought up to the
+	* top as well, under the compact tabs.
+	*
+	* Parameters:
+	* opened - Whether a tab is being opened.
 	*/
-	scrollToTabContent() {
+	scrollToTabContent(opened = true) {
 		let contentNode = document.getElementById("site-report-content");
 		let pageNode = document.getElementById("site-report-main-container");
 		if(!contentNode || !pageNode) {
@@ -574,7 +583,8 @@ class SiteReport {
 		}
 		//The page's scroll padding keeps what is scrolled to clear of the compact tabs
 		let scrollPadding = parseFloat(getComputedStyle(pageNode).scrollPaddingTop) || 0;
-		if(contentNode.getBoundingClientRect().top < pageNode.getBoundingClientRect().top + scrollPadding) {
+		let contentTop = contentNode.getBoundingClientRect().top - pageNode.getBoundingClientRect().top;
+		if(contentTop < scrollPadding || (opened && contentTop > scrollPadding && this.sqs.layoutManager.isShortViewport())) {
 			contentNode.scrollIntoView({ block: "start" });
 		}
 	}

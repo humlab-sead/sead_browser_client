@@ -330,6 +330,67 @@ $site-report-panel-radius: sqs-px(12);
 }
 
 /*
+* On a short screen the top of the page, down to the tabs, would otherwise take up most of the window: the name is
+* smaller, the description is cut shorter, and there is less room between things.
+*/
+@include short-viewport {
+  #site-report-page {
+    padding-top: sqs-px(8);
+  }
+
+  .site-report-back-link {
+    padding: sqs-px(2) 0;
+  }
+
+  .site-report-titlebar {
+    gap: sqs-px(12);
+    margin-top: sqs-px(6);
+  }
+
+  h1.site-report-title-site-name {
+    margin-top: sqs-px(2) !important;
+    font-size: sqs-px(34) !important;
+  }
+
+  .site-report-site-description {
+    margin-top: sqs-px(4);
+    font-size: sqs-px(14);
+  }
+
+  .site-report-site-description-clamped {
+    -webkit-line-clamp: 2;
+  }
+
+  .site-report-actions .sqs-btn-large {
+    height: sqs-px(36);
+  }
+
+  .site-report-actions .sqs-btn-large.sqs-btn-icon {
+    width: sqs-px(36);
+  }
+
+  .site-report-summary {
+    margin-top: sqs-px(12);
+  }
+
+  .site-report-summary-cell {
+    padding: sqs-px(7) sqs-px(14) sqs-px(8) sqs-px(14);
+  }
+
+  .site-report-summary-cell:not(:disabled):not(.site-report-summary-cell-current):hover {
+    padding-bottom: sqs-px(11);
+  }
+
+  .site-report-summary-cell-current {
+    padding-bottom: sqs-px(14);
+  }
+
+  .site-report-analyses-bar {
+    margin: sqs-px(6) 0 sqs-px(2) 0;
+  }
+}
+
+/*
 * The panel the tabs open, under them. At least a screen high, so that a tab opened from the compact tabs can always
 * start at the top of the page, even while it is still being drawn and is short.
 */

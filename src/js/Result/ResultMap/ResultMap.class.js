@@ -58,14 +58,28 @@ class ResultMap extends ResultModule {
 		$(this.renderIntoNode).append("<div class='result-map-render-container'></div>");
 		if(!this.minimalMap) {
 			$(this.renderIntoNode).append(`<div class='result-map-legend-container'>
-			<h4>Layers</h4>
+			<h4><button type='button' class='result-map-legend-toggle'>Layers <i class='fa fa-chevron-up' aria-hidden='true'></i></button></h4>
 			<div class='result-map-legend-content'></div>
 			</div>`);
 
-			//make it draggable
+			//make it draggable, by its header, which is also what opens and closes it - a click which ends a drag doesn't count
 			$(".result-map-legend-container", this.renderIntoNode).draggable({
 				handle: "h4",
+				cancel: "input,textarea,select,option",
 				containment: "parent"
+			});
+
+			//Closed to start with on a short screen, where it would cover much of the map
+			this.legendCollapsedByUser = false;
+			this.setLegendCollapsed(this.isShortViewport());
+			$(".result-map-legend-toggle", this.renderIntoNode).on("click", () => {
+				this.legendCollapsedByUser = true;
+				this.setLegendCollapsed(!$(".result-map-legend-container", this.renderIntoNode).hasClass("result-map-legend-collapsed"));
+			});
+			this.resultManager.sqs.sqsEventListen("layoutResize", () => {
+				if(!this.legendCollapsedByUser) {
+					this.setLegendCollapsed(this.isShortViewport());
+				}
 			});
 		}
 
@@ -781,8 +795,21 @@ class ResultMap extends ResultModule {
 		$(".result-map-legend-container", this.renderIntoNode).hide();
 	}
 
+	/*
+	* Function: setLegendCollapsed
+	* Closes the legend down to its header, or opens it.
+	*/
+	setLegendCollapsed(collapsed) {
+		$(".result-map-legend-container", this.renderIntoNode).toggleClass("result-map-legend-collapsed", collapsed);
+		$(".result-map-legend-toggle", this.renderIntoNode).attr("aria-expanded", collapsed ? "false" : "true");
+	}
+
 	isMobileMode() {
 		return this.sqs.layoutManager && typeof this.sqs.layoutManager.getMode == "function" && this.sqs.layoutManager.getMode() == "mobileMode";
+	}
+
+	isShortViewport() {
+		return this.sqs.layoutManager && typeof this.sqs.layoutManager.isShortViewport == "function" && this.sqs.layoutManager.isShortViewport();
 	}
 
 	updateAuxLayersPanelResponsiveLayout() {
