@@ -732,21 +732,23 @@
     </template>
 
     <template id="result-taxon-container-content-template">
-      <h1 style="display:inline-block;">Taxon datasheet</h1>
-      <div class="taxon-link-container">
-        <div class="label">Direct link</div>
-        <div class="link"></div>
-        <div class="link-copy">
-          <i class="fa fa-clone" aria-hidden="true"></i>
-          <!--<div class="copy-notification">Copied!</div>-->
-        </div>
-        <div id="taxon-print-button">
-          <i class="fa fa-print" aria-hidden="true"></i>
+      <div class="taxon-datasheet-heading">
+        <h1 style="display:inline-block;">Taxon datasheet</h1>
+        <div class="taxon-link-container">
+          <div class="label">Direct link</div>
+          <div class="link"></div>
+          <div class="link-copy">
+            <i class="fa fa-clone" aria-hidden="true"></i>
+            <!--<div class="copy-notification">Copied!</div>-->
+          </div>
+          <div id="taxon-print-button">
+            <i class="fa fa-print" aria-hidden="true"></i>
+          </div>
         </div>
       </div>
 
       <div class="result-taxon-grid-container">
-        <div class="result-content-box" style="grid-area: a;">
+        <div class="result-content-box taxon-species-box" style="grid-area: a;">
 
           <h3 class="header">
             <div>
@@ -770,6 +772,29 @@
             </div>
           </div>
           <div id="result-taxon-image-container">
+          </div>
+          <!-- An image opened from the thumbnails, shown instead of the rest of the box while it is open -->
+          <div class="taxon-image-viewer" aria-label="Image viewer">
+            <div class="taxon-image-viewer-bar">
+              <button type="button" class="taxon-image-viewer-back" title="Back to the datasheet (Esc)">
+                <i class="fa fa-arrow-left" aria-hidden="true"></i>&nbsp;Datasheet
+              </button>
+              <div class="taxon-image-viewer-title"></div>
+              <div class="taxon-image-viewer-bar-end">
+                <a class="taxon-image-viewer-source" target="_blank" rel="noopener">View at source&nbsp;<i class="fa fa-external-link" aria-hidden="true"></i></a>
+                <div class="taxon-image-viewer-count" aria-live="polite"></div>
+              </div>
+            </div>
+            <div class="taxon-image-viewer-stage">
+              <img class="taxon-image-viewer-image" alt="" />
+              <button type="button" class="taxon-image-viewer-nav taxon-image-viewer-prev" aria-label="Previous image" title="Previous image (←)">
+                <i class="fa fa-chevron-left" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="taxon-image-viewer-nav taxon-image-viewer-next" aria-label="Next image" title="Next image (→)">
+                <i class="fa fa-chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="taxon-image-viewer-caption"></div>
           </div>
         </div>
 

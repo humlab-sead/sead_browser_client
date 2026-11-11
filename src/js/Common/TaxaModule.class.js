@@ -309,7 +309,7 @@ class TaxaModule {
 		let images = [];
 		for(let i = 0; i < imageFiles.length && images.length < 2; i++) {
 			let { fileName, entityPageUrl, entityLabel } = imageFiles[i];
-			let commonsData = await this.fetchJsonOrThrow("https://commons.wikimedia.org/w/api.php?action=query&titles="+encodeURIComponent("File:"+fileName)+"&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=600&format=json&origin=*", "Wikimedia Commons");
+			let commonsData = await this.fetchJsonOrThrow("https://commons.wikimedia.org/w/api.php?action=query&titles="+encodeURIComponent("File:"+fileName)+"&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=600&format=json&origin=*", "Wikimedia Commons");
 			let pages = commonsData && commonsData.query ? commonsData.query.pages : {};
 			let pageKeys = Object.keys(pages);
 			if(pageKeys.length == 0) {
@@ -326,6 +326,7 @@ class TaxaModule {
 				provider: "Wikimedia Commons",
 				sourceUrl: imageInfo.descriptionurl || imageInfo.url,
 				thumbnailUrl: imageInfo.thumburl || imageInfo.url,
+				largeUrl: this.getWikimediaLargeUrl(imageInfo),
 				rightsHolder: this.stripHtml(extMeta.Artist ? extMeta.Artist.value : "") || this.stripHtml(extMeta.Credit ? extMeta.Credit.value : "") || "Wikimedia contributor",
 				license: this.stripHtml(extMeta.LicenseShortName ? extMeta.LicenseShortName.value : "") || this.stripHtml(extMeta.UsageTerms ? extMeta.UsageTerms.value : ""),
 				description: entityLabel,
@@ -378,6 +379,8 @@ class TaxaModule {
 				provider: "iNaturalist",
 				sourceUrl: sourceUrl,
 				thumbnailUrl: thumbnailUrl,
+				//The medium photo with "large" in place of "medium" is the large one, which default_photo doesn't list
+				largeUrl: photo.large_url || (photo.medium_url ? photo.medium_url.replace(/\/medium\.(\w+)(\?|$)/, "/large.$1$2") : ""),
 				rightsHolder: photo.attribution || photo.attribution_text,
 				license: photoLicense,
 				description: taxon.name || scientificName,
@@ -413,6 +416,7 @@ class TaxaModule {
 				provider: "iDigBio",
 				sourceUrl: data.accessuri || data.accessURI || imageUrl,
 				thumbnailUrl: data.thumbnail || data.thumbnailURI || imageUrl,
+				largeUrl: data.accessuri || data.accessURI || imageUrl,
 				rightsHolder: data.rightsholder || data.owner || data.ownerinstitutioncode,
 				license: data.license || data.rights,
 				description: data.scientificname || scientificName,
@@ -460,6 +464,7 @@ class TaxaModule {
 					provider: "Encyclopedia of Life",
 					sourceUrl: image.eolMediaURL,
 					thumbnailUrl: image.eolThumbnailURL,
+					largeUrl: image.eolMediaURL,
 					rightsHolder: image.rightsHolder,
 					license: image.license,
 					description: image.description,
@@ -547,13 +552,10 @@ class TaxaModule {
 		let renderedImages = [];
 		images.forEach(image => {
 			let imageId = "taxa-image-"+nanoid();
-
-			renderedImages.push(Object.assign({}, image, { id: imageId }));
+			let renderedImage = Object.assign({}, image, { id: imageId });
+			renderedImages.push(renderedImage);
 
 			let imageNodeHtml = `<div class='result-taxon-image-thumb-container'>
-			<button type='button' class='taxon-image-close' aria-label='Close expanded image'>
-				<i class='fa fa-times' aria-hidden='true'></i>
-			</button>
 			<div class='result-taxon-image-thumb'>
 				<a href='`+image.sourceUrl+`' target='_blank'>
 					<img id='`+imageId+`' src='`+image.thumbnailUrl+`' />
@@ -563,9 +565,17 @@ class TaxaModule {
 			</div>`;
 
 			let imageNode = $(imageNodeHtml);
+			renderedImage.node = imageNode;
+
+			//An image that won't load is left out, rather than shown as a broken one
+			$("img", imageNode).on("error", () => {
+				this.removeTaxonImage(renderedImage);
+			});
 			
 			imageNodes.push(imageNode);
 		});
+
+		this.taxonImages = renderedImages;
 
 		let ttId = "tt-"+nanoid();
 		
@@ -605,57 +615,209 @@ class TaxaModule {
 		return renderedImages;
 	}
 
+	/*
+	* Function: removeTaxonImage
+	* Takes an image out of the thumbnails and the image viewer, as when it fails to load. With none left, the box says so.
+	*/
+	removeTaxonImage(image) {
+		let index = this.taxonImages.indexOf(image);
+		if(index == -1) {
+			return;
+		}
+		this.taxonImages.splice(index, 1);
+		image.node.remove();
+
+		if(this.taxonImages.length == 0) {
+			this.closeTaxonImageViewer();
+			$("#result-taxon-image-info").hide();
+			$("#result-taxon-image-container-loading-indicator").hide();
+			$("#no-images-msg").show();
+			$("#taxon-images-message-box").show();
+			return;
+		}
+
+		if(this.isTaxonImageViewerOpen()) {
+			if(index < this.taxonImageViewerIndex || this.taxonImageViewerIndex >= this.taxonImages.length) {
+				this.taxonImageViewerIndex = Math.max(0, this.taxonImageViewerIndex - 1);
+			}
+			this.showTaxonImageViewerImage(this.taxonImageViewerIndex);
+		}
+	}
+
 	registerTaxonImageInteractions() {
-		let imageContainer = $("#result-taxon-image-container");
+		this.taxonImages.forEach(image => {
+			$(".result-taxon-image-thumb a", image.node).on("click", (evt) => {
+				evt.preventDefault();
+				this.openTaxonImageViewer(this.taxonImages.indexOf(image));
+			});
+		});
 
-		$(".result-taxon-image-thumb-container", imageContainer).each((index, imageNode) => {
-			let thumbContainer = $(imageNode);
-			let imageAnchor = $(".result-taxon-image-thumb a", thumbContainer);
-			let closeButton = $(".taxon-image-close", thumbContainer);
+		let viewer = $(".taxon-image-viewer");
+		$(".taxon-image-viewer-back", viewer).off("click").on("click", () => {
+			this.closeTaxonImageViewer();
+		});
+		$(".taxon-image-viewer-prev", viewer).off("click").on("click", () => {
+			this.stepTaxonImageViewer(-1);
+		});
+		$(".taxon-image-viewer-next", viewer).off("click").on("click", () => {
+			this.stepTaxonImageViewer(1);
+		});
 
-			imageAnchor.on("click", (evt) => {
-				let hasExpandedImage = imageContainer.hasClass("gallery-expanded");
-				let isExpandedImage = thumbContainer.hasClass("is-expanded");
+		//A swipe sideways on a touch screen goes to the next or previous image
+		let stage = $(".taxon-image-viewer-stage", viewer);
+		stage.off("touchstart touchend");
+		stage.on("touchstart", (evt) => {
+			let touch = evt.originalEvent.changedTouches[0];
+			this.taxonImageSwipeStart = { x: touch.clientX, y: touch.clientY };
+		});
+		stage.on("touchend", (evt) => {
+			if(!this.taxonImageSwipeStart) {
+				return;
+			}
+			let touch = evt.originalEvent.changedTouches[0];
+			let dx = touch.clientX - this.taxonImageSwipeStart.x;
+			let dy = touch.clientY - this.taxonImageSwipeStart.y;
+			this.taxonImageSwipeStart = null;
+			if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+				this.stepTaxonImageViewer(dx < 0 ? 1 : -1);
+			}
+		});
+	}
 
-				if(!hasExpandedImage) {
-					evt.preventDefault();
-					this.expandTaxonImage(thumbContainer);
+	isTaxonImageViewerOpen() {
+		return $(".result-taxon-grid-container").hasClass("taxon-image-viewer-open");
+	}
+
+	/*
+	* Function: openTaxonImageViewer
+	* Opens an image in the image viewer. The species box takes the whole datasheet, the other boxes folding away until
+	* the viewer is closed again. Esc closes it and the arrow keys go between the images.
+	*/
+	openTaxonImageViewer(index) {
+		let gridContainer = $(".result-taxon-grid-container");
+		let scrollContainer = gridContainer.closest(".popover-content");
+
+		if(!this.isTaxonImageViewerOpen()) {
+			this.imageViewerReturnScrollTop = scrollContainer.scrollTop();
+			$(".taxon-image-viewer-title").html($("#rcb-species-value").html());
+			gridContainer.addClass("taxon-image-viewer-open");
+			scrollContainer.scrollTop(0);
+
+			this.imageViewerKeyHandler = (evt) => {
+				//The datasheet was closed with the viewer still open
+				if(!$(".taxon-image-viewer").is(":visible")) {
+					$(document).off("keydown", this.imageViewerKeyHandler);
+					this.imageViewerKeyHandler = null;
 					return;
 				}
-
-				if(hasExpandedImage && !isExpandedImage) {
+				if(evt.key == "Escape") {
 					evt.preventDefault();
-					this.expandTaxonImage(thumbContainer);
+					this.closeTaxonImageViewer();
 				}
-			});
+				else if(evt.key == "ArrowLeft") {
+					evt.preventDefault();
+					this.stepTaxonImageViewer(-1);
+				}
+				else if(evt.key == "ArrowRight") {
+					evt.preventDefault();
+					this.stepTaxonImageViewer(1);
+				}
+			};
+			$(document).on("keydown", this.imageViewerKeyHandler);
+		}
 
-			closeButton.on("click", (evt) => {
-				evt.preventDefault();
-				evt.stopPropagation();
-				this.collapseTaxonImageGallery();
-			});
-		});
+		this.showTaxonImageViewerImage(index);
+		$(".taxon-image-viewer-back").trigger("focus");
 	}
 
-	expandTaxonImage(selectedContainer) {
-		let imageContainer = $("#result-taxon-image-container");
-		imageContainer.addClass("gallery-expanded");
-
-		$(".result-taxon-image-thumb-container", imageContainer).each((index, imageNode) => {
-			let thumbContainer = $(imageNode);
-			if(thumbContainer.is(selectedContainer)) {
-				thumbContainer.removeClass("is-hidden").addClass("is-expanded");
-			}
-			else {
-				thumbContainer.removeClass("is-expanded").addClass("is-hidden");
-			}
-		});
+	stepTaxonImageViewer(step) {
+		let count = this.taxonImages.length;
+		if(count < 2) {
+			return;
+		}
+		this.showTaxonImageViewerImage((this.taxonImageViewerIndex + step + count) % count);
 	}
 
-	collapseTaxonImageGallery() {
-		let imageContainer = $("#result-taxon-image-container");
-		imageContainer.removeClass("gallery-expanded");
-		$(".result-taxon-image-thumb-container", imageContainer).removeClass("is-expanded is-hidden");
+	/*
+	* Function: showTaxonImageViewerImage
+	* Shows an image in the viewer with its caption. The thumbnail, which has already loaded, is shown until a larger
+	* rendition of the image has loaded, and stays if that can't be had.
+	*/
+	showTaxonImageViewerImage(index) {
+		let image = this.taxonImages[index];
+		if(!image) {
+			return;
+		}
+		this.taxonImageViewerIndex = index;
+		let viewer = $(".taxon-image-viewer");
+
+		let viewerImage = $(".taxon-image-viewer-image", viewer);
+		this.loadedLargeTaxonImages = this.loadedLargeTaxonImages || new Set();
+		let largeLoaded = this.loadedLargeTaxonImages.has(image.largeUrl);
+		viewerImage.attr("src", largeLoaded ? image.largeUrl : image.thumbnailUrl);
+		viewerImage.attr("alt", image.description || "");
+		viewer.toggleClass("taxon-image-viewer-loading", !largeLoaded && image.largeUrl != image.thumbnailUrl);
+
+		if(!largeLoaded && image.largeUrl && image.largeUrl != image.thumbnailUrl) {
+			let largeImage = new Image();
+			largeImage.onload = () => {
+				this.loadedLargeTaxonImages.add(image.largeUrl);
+				//Unless the viewer has moved on to another image meanwhile
+				if(this.isTaxonImageViewerOpen() && this.taxonImages[this.taxonImageViewerIndex] === image) {
+					viewerImage.attr("src", image.largeUrl);
+					viewer.removeClass("taxon-image-viewer-loading");
+				}
+			};
+			largeImage.onerror = () => {
+				if(this.taxonImages[this.taxonImageViewerIndex] === image) {
+					viewer.removeClass("taxon-image-viewer-loading");
+				}
+			};
+			largeImage.src = image.largeUrl;
+		}
+
+		let count = this.taxonImages.length;
+		$(".taxon-image-viewer-count", viewer).text(count > 1 ? (index + 1)+" / "+count : "");
+		$(".taxon-image-viewer-nav", viewer).toggle(count > 1);
+
+		//The caption: what the image shows and whose it is
+		let captionParts = [];
+		if(image.description) {
+			let depicted = $("<span class='taxon-image-viewer-depicted'></span>").text(image.description);
+			if(image.commonName) {
+				depicted.append($("<span class='taxon-image-viewer-common-name'></span>").text(" ("+image.commonName+")"));
+			}
+			captionParts.push(depicted);
+		}
+		[image.provider, image.rightsHolder, image.license].forEach(text => {
+			if(text) {
+				captionParts.push($("<span></span>").text(text));
+			}
+		});
+		let captionText = $(".taxon-image-viewer-caption", viewer).empty();
+		captionParts.forEach((part, partIndex) => {
+			if(partIndex > 0) {
+				captionText.append("<span class='taxon-image-viewer-separator' aria-hidden='true'>·</span>");
+			}
+			captionText.append(part);
+		});
+		captionText.attr("title", captionText.text().replace(/\s+/g, " ").trim());
+
+		$(".taxon-image-viewer-source", viewer).attr("href", image.sourceUrl).toggle(!!image.sourceUrl);
+	}
+
+	closeTaxonImageViewer() {
+		if(this.imageViewerKeyHandler) {
+			$(document).off("keydown", this.imageViewerKeyHandler);
+			this.imageViewerKeyHandler = null;
+		}
+
+		let gridContainer = $(".result-taxon-grid-container");
+		if(gridContainer.hasClass("taxon-image-viewer-open")) {
+			gridContainer.removeClass("taxon-image-viewer-open");
+			//Back to where the datasheet was scrolled to before the viewer was opened
+			gridContainer.closest(".popover-content").scrollTop(this.imageViewerReturnScrollTop || 0);
+		}
 	}
 
 	getTaxonImageSearchString(taxonData) {
@@ -669,11 +831,26 @@ class TaxaModule {
 		return (genus+" "+species).trim();
 	}
 
+	/*
+	* Function: getWikimediaLargeUrl
+	* A rendition of a Commons image for the image viewer: 1280 px wide, or the original if it is no wider than that.
+	* Commons renders a thumbnail of any width from the same path, with the width in front of the file name.
+	*/
+	getWikimediaLargeUrl(imageInfo) {
+		const largeWidth = 1280;
+		if(!imageInfo.thumburl || !imageInfo.width || imageInfo.width <= largeWidth) {
+			return imageInfo.url || imageInfo.thumburl;
+		}
+		return imageInfo.thumburl.replace(/\/\d+px-([^/]+)$/, "/"+largeWidth+"px-$1");
+	}
+
 	createNormalizedImage(imageData) {
 		return {
 			provider: imageData.provider || "Unknown",
 			sourceUrl: imageData.sourceUrl || "",
 			thumbnailUrl: imageData.thumbnailUrl || imageData.sourceUrl || "",
+			//What the image viewer shows once an image is opened, the thumbnail if there is nothing larger
+			largeUrl: imageData.largeUrl || imageData.thumbnailUrl || imageData.sourceUrl || "",
 			rightsHolder: imageData.rightsHolder || "",
 			license: imageData.license || "",
 			description: imageData.description || "",
@@ -1272,7 +1449,8 @@ class TaxaModule {
 		this.sqs.dialogManager.showPopOver("", instance, {
 			width: "100vw",
 			height: "100vh",
-			margin: "0px"
+			margin: "0px",
+			popOverClass: "taxon-datasheet-popover"
 		});
 		
 		seasonalityGroups.forEach(group => {
