@@ -314,6 +314,11 @@ export default class SeadAgentActions {
         }
 
         if(rows.length == 0) {
+            //An empty list from a list filter means its values were all narrowed away, not
+            //that there is no list - saying otherwise sends the agent off retrying the filter
+            if(facet.type == "discrete") {
+                return { filter: name, options: [], note: "No values are left to pick: the filters above it in the panel narrow the result to nothing this filter can list. Loosen or remove those filters to see its values." };
+            }
             return { filter: name, options: [], note: "This filter has no selectable list - it may be a range or map filter." };
         }
 

@@ -8116,6 +8116,14 @@ tr.site-report-table-row > td {
   vertical-align: middle;
 }
 
+/* What the agent is doing, beside the dots - empty until it runs its first action */
+#chatbox-working-status {
+  margin-left: 0.5rem;
+  font-size: 0.85em;
+  color: colors.$inactive-color;
+  vertical-align: middle;
+}
+
 #chatbox-loading-indicator i {
   width: 0.42rem;
   height: 0.42rem;

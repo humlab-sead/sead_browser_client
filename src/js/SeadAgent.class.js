@@ -4,7 +4,7 @@ import SeadAgentActions from "./SeadAgentActions.class.js";
 /*
 * Class: SeadAgent
 * The chatbox in #chatbox-icon. Talks to the standalone sead_agent service, which runs a
-* pi harness agent against a locally hosted LLM - the requests no longer pass through the
+* Pydantic AI agent against a locally hosted LLM - the requests no longer pass through the
 * json_api_server, and nothing about them leaves the deployment.
 *
 * Everyone gets the chatbox, signed in or not.
@@ -120,7 +120,7 @@ export default class SeadAgent {
         this.setState("loading");
 
         $("#chatbox-messages").append(this.messageHtml("user", this.escapeHtml(message)));
-        $("#chatbox-messages").append(this.messageHtml("agent", `<span id="chatbox-loading-indicator" role="status" aria-label="The SEAD agent is working"><i></i><i></i><i></i></span>`));
+        $("#chatbox-messages").append(this.messageHtml("agent", `<span id="chatbox-loading-indicator" role="status" aria-label="The SEAD agent is working"><i></i><i></i><i></i></span><span id="chatbox-working-status" aria-live="polite"></span>`));
         this.scrollToLatestMessage();
 
         try {
@@ -172,7 +172,11 @@ export default class SeadAgent {
                 }
 
                 this.activeTurnId = payload.turnId;
+                //A turn can take a while; saying what is happening makes the wait read as
+                //work rather than as a hang
+                this.setWorkingStatus(this.describeWork(payload.action));
                 let outcome = await this.runAgentAction(payload.action);
+                this.setWorkingStatus("Thinking…");
 
                 payload = await this.postToAgent(this.getActionResultUrl(), Object.assign({
                     turnId: payload.turnId,
@@ -386,6 +390,41 @@ export default class SeadAgent {
     messageHtml(sender, content) {
         let label = sender == "user" ? "You:" : "SEAD agent:";
         return `<div class="message from-${sender}"><div class="message-bubble"><span class="message-sender">${label}</span> ${content}</div></div>`;
+    }
+
+    setWorkingStatus(text) {
+        $("#chatbox-working-status").text(text || "");
+    }
+
+    /*
+    * Function: describeWork
+    * What the agent is doing while an action runs, in the user's terms, for the line beside
+    * the loading dots. The changes are the slow ones: they wait for the results to reload.
+    */
+    describeWork(action) {
+        let args = action.args || {};
+        switch(action.command) {
+            case "get_filter_options":
+                return args.search ? "Looking up “"+args.search+"”…" : "Reading a filter’s values…";
+            case "find_areas":                return "Looking up "+(args.name || "the area")+"…";
+            case "list_filters":              return "Reading the filters…";
+            case "get_state":
+            case "read_screen":               return "Looking at the page…";
+            case "add_filter":
+            case "set_filter_selections":
+            case "remove_filter":
+            case "clear_filters":
+            case "set_domain":
+            case "set_map_polygons":          return "Updating the results…";
+            case "set_result_view":           return "Switching the view…";
+            case "open_site_report":          return "Opening the site report…";
+            case "close_site_report":         return "Closing the site report…";
+            case "list_site_report_sections": return "Reading the site report…";
+            case "set_site_report_section":
+            case "set_site_report_rows":      return "Opening the section…";
+            case "export_site_report":        return "Opening the export dialog…";
+            default:                          return "Working…";
+        }
     }
 
     actionNoticeHtml(description) {
