@@ -10,7 +10,7 @@
 			"name": "general",
 			"enabled": true,
 			"title": "General",
-			"icon": "<i class=\"fa fa-globe\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-general\" aria-hidden=\"true\"></span>",
 			"color": "#333",
 			"filterBlacklist": [],
 			"result_grid_layout": [
@@ -53,7 +53,7 @@
 			"name": "dendrochronology",
 			"enabled": true,
 			"title": "Dendrochronology",
-			"icon": "<i class=\"fa fa-tree\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-dendrochronology\" aria-hidden=\"true\"></span>",
 			"color": "#9b6c0e",
 			"filterBlacklist": [
 				"species",
@@ -133,7 +133,7 @@
 			"name": "palaeoentomology",
 			"enabled": true,
 			"title": "Palaeoentomology",
-			"icon": "<i class=\"fa fa-bug\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-palaeoentomology\" aria-hidden=\"true\"></span>",
 			"color": "#a30641",
 			"filterBlacklist": [
 				"geochronology",
@@ -166,7 +166,7 @@
 			"name": "archaeobotany",
 			"enabled": true,
 			"title": "Archaeobotany",
-			"icon": "<i class=\"fa fa-adjust\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-archaeobotany\" aria-hidden=\"true\"></span>",
 			"color": "#368421",
 			"filterBlacklist": [],
 			"result_grid_layout": [
@@ -199,7 +199,7 @@
 			"name": "pollen",
 			"enabled": true,
 			"title": "Pollen",
-			"icon": "<i class=\"fa fa-leaf\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-pollen\" aria-hidden=\"true\"></span>",
 			"color": "#7f770d",
 			"filterBlacklist": [],
 			"result_grid_layout": [
@@ -223,7 +223,7 @@
 			"name": "geoarchaeology",
 			"enabled": true,
 			"title": "Geoarchaeology",
-			"icon": "<i class=\"fa fa-map\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-geoarchaeology\" aria-hidden=\"true\"></span>",
 			"color": "#037ab8",
 			"filterBlacklist": [],
 			"result_grid_layout": [
@@ -261,7 +261,7 @@
 			"name": "ceramic",
 			"enabled": true,
 			"title": "Ceramic",
-			"icon": "<i class=\"fa fa-beer\" aria-hidden=\"true\"></i>",
+			"icon": "<span class=\"sead-domain-icon sead-domain-icon-ceramic\" aria-hidden=\"true\"></span>",
 			"color": "#0f7874",
 			"filterBlacklist": [
 				"geochronology",

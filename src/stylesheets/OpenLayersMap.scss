@@ -361,11 +361,43 @@
     }
 }
 
-/* Ensure zoom control buttons are properly styled when positioned on the right */
+/* The zoom buttons share one white box */
+.ol-zoom.ol-control {
+    padding: 0;
+    border-radius: 6px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
 .ol-zoom button {
-    display: block;
-    width: 2.2em;
-    height: 2.2em;
-    margin: 0.1em 0;
-    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #1e1e1e;
+    font-size: 17px;
+    font-weight: 400;
+}
+
+.ol-zoom button + button {
+    border-top: 1px solid #ebebeb;
+}
+
+.ol-zoom button:hover, .ol-zoom button:focus {
+    background: #f4f4f4;
+    color: #1e1e1e;
+    outline: none;
+}
+
+.ol-zoom .ol-zoom-in {
+    border-radius: 6px 6px 0 0;
+}
+
+.ol-zoom .ol-zoom-out {
+    border-radius: 0 0 6px 6px;
 }

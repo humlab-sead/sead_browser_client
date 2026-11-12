@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <title>Ceramic</title>
+  <path d="M4.5 6.5 C9 4.8 15 4.8 19.5 6.5 L18.2 10.5 L20 13.8 L16.5 19.2 L12.8 17.6 L9.6 20.4 L6.2 15.4 L7.4 11.8 Z" fill="currentColor" fill-opacity="0.16"></path>
+  <path d="M5.7 8.5 C9.6 7.1 14.6 7.1 18.7 8.5" stroke-width="0.99"></path>
+  <path d="M8.4 11.6 L10 13.6 L11.6 11.6 L13.2 13.6 L14.8 11.6 L16.4 13.6" stroke-width="0.99"></path>
+  <g fill="currentColor" stroke="none">
+  <circle cx="10.2" cy="16.4" r="0.7"></circle>
+  <circle cx="12.6" cy="15.8" r="0.7"></circle>
+  <circle cx="15" cy="16.2" r="0.7"></circle>
+  </g>
+</svg>

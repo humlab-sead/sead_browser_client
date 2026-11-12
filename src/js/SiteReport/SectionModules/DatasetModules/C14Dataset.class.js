@@ -55,7 +55,8 @@ class C14Dataset extends DatasetModule {
 				},
 				{
 					"dataType": "string",
-					"title": "Sample"
+					"title": "Sample",
+					"role": "sample_name"
 				},
 				{
 					"dataType": "string",
@@ -68,6 +69,12 @@ class C14Dataset extends DatasetModule {
 				{
 					"dataType": "string",
 					"title": "Lab number"
+				},
+				{
+					"dataType": "number",
+					"title": "Sample id",
+					"hidden": true,
+					"role": "sample_id"
 				},
 			];
 
@@ -121,6 +128,11 @@ class C14Dataset extends DatasetModule {
 							"type": "cell",
 							"tooltip": lab != null ? "Lab name: "+lab.lab_name + "<hr/>International ID: " + lab.international_lab_id : "",
 							"value": point.dating_values.lab_number != null ? point.dating_values.lab_number : "No data"
+						},
+						{
+							"type": "cell",
+							"tooltip": "",
+							"value": point.physical_sample_id
 						},
 					];
 

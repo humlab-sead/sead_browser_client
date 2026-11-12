@@ -22,6 +22,7 @@ import SqsMenu from '../SqsMenu.class.js';
 import { nanoid } from 'nanoid';
 import proj4 from "proj4";
 import Feature from 'ol/Feature';
+import { piecewise, interpolateLab } from 'd3';
 import Point from 'ol/geom/Point';
 import { extend, createEmpty } from 'ol/extent';
 import Config from '../../config/config.json';
@@ -75,6 +76,12 @@ class OpenLayersMap {
 				strokeColor: "#fff"
 			}
 		}
+
+		//Samples coloured by their depth or elevation go from light at the top to dark at the bottom, in one hue so
+		//that it reads as an order. The light end is still dark enough to stand out against a light base map.
+		this.sampleDepthColorRamp = ["#ee8c45", "#dc6634", "#c2452a", "#932b22", "#5e1818"];
+		this.sampleDepthColorInterpolator = piecewise(interpolateLab, this.sampleDepthColorRamp);
+		this.sampleNoDepthColor = "rgba(130, 130, 130, 0.6)";
 
 		//Define base layers
 		let stamenLayer = new TileLayer({
@@ -760,11 +767,13 @@ class OpenLayersMap {
 			  geometry: olPoint,
 			  level: point.level,
 			  name: point.sampleName,
+			  sampleId: point.sampleId,
 			  sampleName: point.sampleName,
 			  sampleGroupId: point.sampleGroupId,
 			  sampleGroupName: point.sampleGroupName,
 			  tooltip: point.tooltip,
 			  z: point.z,
+			  zLabel: point.zLabel,
 			  accuracy: point.accuracy,
 			});
 		});
@@ -1046,32 +1055,23 @@ class OpenLayersMap {
 			zIndex = 10;
 		}
 
-		/*
-		let accuracyLevels = [
-			'Precise',
-			'Locality',
-			'Parish',
-			'Municipality',
-			'County',
-			'Landscape'
-		];
-		*/
+		//A point that is only placed at an area, such as a parish, is hollow with a dashed outline. A cluster only
+		//is if all of its points are, as it marks at least one exact location otherwise.
+		let approximate = feature.get('features').every(f => this.isApproximateLocation(f.get('accuracy')));
+		if(approximate && !options.selected && !options.highlighted) {
+			fillColor = "rgba(255, 255, 255, 0.75)";
+			strokeColor = "rgb(0, 0, 180)";
+			textColor = "rgb(0, 0, 180)";
+		}
 
 		let styles = [];
-
-		let featureAccuracy = "Precise";
-		feature.get('features').forEach(f => {
-			let fProp = f.getProperties();
-			if(fProp.accuracy && fProp.accuracy != "Precise") {
-				featureAccuracy = "Not precise";
-			}
-		});
-		
 		styles.push(new Style({
 			image: new CircleStyle({
 				radius: pointSize,
 				stroke: new Stroke({
-					color: strokeColor
+					color: strokeColor,
+					width: approximate ? 2 : 1.25,
+					lineDash: approximate ? [4, 3] : undefined
 				}),
 				fill: new Fill({
 					color: fillColor
@@ -1087,26 +1087,18 @@ class OpenLayersMap {
 			})
 		}));
 
-		if(featureAccuracy == "Not precise") {
-			styles.push(new Style({
-				image: new CircleStyle({
-					radius: 50,
-					fill: new Fill({
-						color: "rgba(0, 0, 180, 0.25)"
-					})
-				}),
-				zIndex: 5,
-				text: new Text({
-					text: clusterSizeText == 1 ? "" : clusterSizeText,
-					offsetY: 1,
-					fill: new Fill({
-						color: textColor
-					})
-				})
-			}));
-		}
-		
 		return styles;
+	}
+
+	/*
+	* Function: isApproximateLocation
+	*
+	* Whether a point is only placed at an area it was recorded to, such as a parish, rather than where it is.
+	* A sample group's accuracy is such a level, "Precise" or the area. A sample's accuracy is a distance, it
+	* is still placed where it is.
+	*/
+	isApproximateLocation(accuracy) {
+		return typeof accuracy == "string" && accuracy != "" && accuracy != "Precise";
 	}
 
 	getSampleCoordinatesPointStyle(feature, options = { selected: false, highlighted: false }) {
@@ -1119,7 +1111,8 @@ class OpenLayersMap {
 		if(pointsNum > 999) {
 			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
 		}
-		let pointSize = 10;
+		//Samples are often packed tightly, so a single one is small, while several on the same spot leave room for their count
+		let pointSize = pointsNum == 1 ? 6 : 9;
 
 		var zIndex = 0;
 		
@@ -1127,6 +1120,13 @@ class OpenLayersMap {
 		var fillColor = "rgba(180, 0, 0, 0.5)";
 		var strokeColor = this.style.default.strokeColor;
 		var textColor = "#fff";
+
+		let depthColor = this.getSampleDepthColor(feature);
+		if(depthColor) {
+			fillColor = depthColor;
+			//Samples with a depth or elevation go on top of those without
+			zIndex = depthColor == this.sampleNoDepthColor ? 0 : 1;
+		}
 		
 		//if point is highlighted (its a hit when doing a search)
 		if(options.highlighted) {
@@ -1148,7 +1148,8 @@ class OpenLayersMap {
 			image: new CircleStyle({
 				radius: pointSize,
 				stroke: new Stroke({
-					color: strokeColor
+					color: strokeColor,
+					width: depthColor ? 1.25 : 1
 				}),
 				fill: new Fill({
 					color: fillColor
@@ -1165,6 +1166,27 @@ class OpenLayersMap {
 		}));
 		
 		return styles;
+	}
+
+	/*
+	* Function: getSampleDepthColor
+	*
+	* The colour of a sample point when the samples are coloured by their depth or elevation, from the zFraction
+	* of its samples, how far down the scale they are from 0 to 1. Null when they aren't coloured. Samples on the
+	* same spot take the colour of their average, and those without a depth or elevation are grey.
+	*/
+	getSampleDepthColor(feature) {
+		let features = feature.get('features') ? feature.get('features') : [feature];
+		let fractions = features.map(f => f.get('zFraction'));
+		if(fractions.every(fraction => typeof fraction == "undefined")) {
+			return null;
+		}
+		fractions = fractions.filter(fraction => typeof fraction == "number");
+		if(fractions.length == 0) {
+			return this.sampleNoDepthColor;
+		}
+		let fraction = fractions.reduce((sum, value) => sum + value, 0) / fractions.length;
+		return this.sampleDepthColorInterpolator(fraction);
 	}
 
     /*
@@ -1644,29 +1666,40 @@ class OpenLayersMap {
 
 					let ttSampleId = "tt-"+nanoid();
 					tableRows += "<tr data='"+data+"' row-id='"+fprop.id+"'>";
-					tableRows += "<td><span id='"+ttSampleId+"' class='"+textClass+"'>"+fprop.tooltip+"</span></td>";
+					tableRows += "<td><span id='"+ttSampleId+"' class='"+textClass+"'>"+fprop.tooltip+"</span>";
+					if(this.isApproximateLocation(fprop.accuracy)) {
+						tableRows += $("<div class='sample-map-tooltip-accuracy'></div>").text("Approximate location ("+fprop.accuracy.toLowerCase()+")").prop("outerHTML");
+					}
+					if(fprop.zLabel) {
+						tableRows += $("<div class='sample-map-tooltip-accuracy'></div>").text(fprop.zLabel).prop("outerHTML");
+					}
+					tableRows += "</td>";
 					tableRows += "</tr>";
 
 					if(clickablePopupElements) {
+						//Shows the sample, or sample group, by searching the sample groups table for it
 						$(popupContainer).on('click', "#"+ttSampleId, () => {
 							let sr = this.sqs.siteReportManager.siteReport;
-							sr.focusOn({ section: "samples" });
-							
+							let contentItemRenderer = sr.getContentItemRendererByName("sampleGroups");
+							let sampleGroupsTable = contentItemRenderer ? contentItemRenderer.getRenderInstance() : false;
+							if(!sampleGroupsTable || typeof sampleGroupsTable.search != "function") {
+								this.sqs.notificationManager.notify("Sample not found", "error");
+								return false;
+							}
+
+							sr.revealSection("samples");
+
+							let found = false;
 							if(fprop.level == "Sample group") {
-								sr.highlightSampleGroupRow(fprop.sampleGroupId);
+								found = sampleGroupsTable.search(fprop.sampleGroupName, { rowId: fprop.sampleGroupId });
 							}
 							if(fprop.level == "Sample") {
-								sr.pageFlipToSampleGroup(fprop.sampleGroupId, fprop.sampleGroupName);
-								sr.expandSampleGroup(fprop.sampleGroupId, fprop.name);
-								sr.pageFlipToSample(fprop.sampleGroupId, fprop.name);
-								let success = sr.scrollToSample(fprop.sampleGroupId, fprop.name);
-								if(!success) {
-									this.sqs.notificationManager.notify("Sample not found", "error");
-									return false;
-								}
-								sr.highlightSampleRow(fprop.sampleGroupId, fprop.name);
+								found = sampleGroupsTable.search(fprop.sampleName, { rowId: fprop.sampleGroupId, subRowId: fprop.sampleId });
 							}
-							
+							if(!found) {
+								this.sqs.notificationManager.notify("Sample not found", "error");
+								return false;
+							}
 						});
 					}
 				}

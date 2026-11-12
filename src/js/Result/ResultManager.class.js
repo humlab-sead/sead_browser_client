@@ -34,6 +34,10 @@ class ResultManager {
 				this.sqs.dialogManager.showPopOver("Result SQL", formattedSQL);
 			});
 
+			$("#result-save-view-btn").on("click", () => {
+				$.event.trigger("seadSaveStateClicked", {});
+			});
+
 			$(window).on("seadResultMenuSelection", (event, data) => {
 				this.sqs.storeUserSettings({
 					defaultResultModule: data.selection
@@ -100,6 +104,12 @@ class ResultManager {
 			$(window).on("resultModuleRenderComplete", (event, data) => {
 				//console.log("received: resultModuleRenderComplete")
 				this.resultModuleRenderStatus = "complete";
+				this.updateResultSummary();
+			});
+
+			//The summary counts the filters which narrow the result, which changes before the result does
+			this.sqs.sqsEventListen("sqsFacetPostRemove", () => {
+				this.updateResultSummary();
 			});
 			
 			$(window).on("seadStateLoadFailed", () => {
@@ -445,6 +455,58 @@ class ResultManager {
 		let menu = this.sqs.menuManager.getMenuByAnchor("#result-menu");
 		if(menu !== false) {
 			menu.setSelected(resultModuleId);
+		}
+		this.updateResultSummary();
+	}
+
+	/*
+	* Function: updateResultSummary
+	*
+	* The line under the result heading and the bar under the result say how many sites the active
+	* view shows, and the export button exports those. Each result module calls this when its data
+	* changes, since only it knows how many sites it holds.
+	*/
+	updateResultSummary() {
+		let module = this.getActiveModule();
+		let siteCount = module && typeof module.getSiteCount == "function" ? module.getSiteCount() : null;
+		let filterCount = this.sqs.facetManager ? this.sqs.facetManager.getNarrowingFacetCount() : 0;
+
+		if(siteCount == null) {
+			$("#result-summary").text("");
+			$("#result-footer-count").html("");
+			$("#result-export-btn .result-export-button-label").text("Export");
+		}
+		else {
+			let sitesText = siteCount == 1 ? "1 site" : siteCount.toLocaleString("en-GB")+" sites";
+			let summary = sitesText;
+			if(filterCount > 0) {
+				summary += (siteCount == 1 ? " matches " : " match ")+filterCount+(filterCount == 1 ? " filter" : " filters");
+			}
+			else {
+				summary += " in the database";
+			}
+			$("#result-summary").text(summary);
+			$("#result-footer-count").empty().append($("<strong></strong>").text(sitesText));
+
+			let selectedCount = typeof module.getSelectedCount == "function" ? module.getSelectedCount() : null;
+			if(selectedCount != null) {
+				$("#result-footer-count").append($("<span class='sqs-muted'></span>").text(" \u00b7 "+selectedCount+" selected"));
+			}
+			if(selectedCount) {
+				$("#result-export-btn .result-export-button-label").text("Export "+selectedCount+" selected");
+			}
+			else {
+				$("#result-export-btn .result-export-button-label").text("Export "+sitesText);
+			}
+		}
+
+		let canExport = module && siteCount != null && siteCount > 0 && module.name != "lab";
+		$("#result-export-btn").prop("disabled", !canExport).toggle(this.sqs.config.showResultExportButton !== false);
+
+		if(module && module !== this.exportButtonModule) {
+			this.exportButtonModule = module;
+			$("#result-export-btn").off("click");
+			module.bindExportModuleDataToButton("#result-export-btn", module);
 		}
 	}
 

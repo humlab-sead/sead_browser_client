@@ -103,7 +103,15 @@ class GenericDataset extends DatasetModule {
 				{
 					"dataType": "string",
 					"pkey": true,
-					"title": "Sample ID"
+					"hidden": true,
+					"title": "Sample ID",
+					"role": "sample_id"
+				},
+				{
+					"dataType": "string",
+					"pkey": false,
+					"title": "Sample name",
+					"role": "sample_name"
 				},
 				{
 					"dataType": "string",
@@ -113,11 +121,17 @@ class GenericDataset extends DatasetModule {
 			];
 
 			dataset.analysis_entities.forEach(ae => {
+				let sample = this.getSampleById(site, ae.physical_sample_id);
 				contentItem.data.rows.push([
 					{
 						"type": "cell",
 						"tooltip": "",
 						"value": ae.physical_sample_id
+					},
+					{
+						"type": "cell",
+						"tooltip": "",
+						"value": sample != null ? sample.sample_name : ae.physical_sample_id+" (internal id)"
 					},
 					{
 						"type": "cell",

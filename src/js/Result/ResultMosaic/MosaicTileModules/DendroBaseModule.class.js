@@ -1,15 +1,18 @@
 import MosaicTileModule from "./MosaicTileModule.class";
 import { nanoid } from "nanoid";
 import Chart from 'chart.js/auto';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
-import Plotly from 'plotly.js-dist-min';
 
-Chart.defaults.font.family = 'Didact Gothic, sans-serif';
+Chart.defaults.font.family = "'IBM Plex Sans', sans-serif";
 
 /**
  * DendroBaseModule - Base class for dendrochronology tile modules
- * 
- * Provides shared utility functions for parsing and processing dendro data
+ *
+ * Provides shared utility functions for parsing and processing dendro data, and renders the data in one of three ways,
+ * chosen by the subclass with this.display:
+ * - "categories": a ranked bar per category, e.g. per tree species. fetchData returns { categories: [{ name, count, color }] }
+ * - "shares": the share of each of a few fixed answers, e.g. bark or no bark. fetchData returns { categories: [{ name, count }] }
+ * - "histogram": samples per range of a numeric variable. fetchData returns { series: [{ name, values, exportKey }] }
+ * Each can also be shown as a table, and says how many of the samples in the result it covers.
  */
 class DendroBaseModule extends MosaicTileModule {
     constructor(sqs) {
@@ -20,10 +23,17 @@ class DendroBaseModule extends MosaicTileModule {
         this.active = true;
         this.data = null;
         this.renderComplete = false;
-        this.chartInstances = new Map();
-        this.coverageCharts = new Map(); // Store coverage chart data for resize
+        this.chart = null;
+        this.chartType = "html";
         this.showChartSelector = false; // Dendro modules don't need chart selector
-        this.resizeHandler = this.handleResize.bind(this);
+        this.display = "categories";
+        this.view = "chart";
+        this.topCount = 10;
+        this.showAll = false;
+        this.coverageNoun = "samples"; // what the data is counted in
+        this.categoryNoun = "category"; // what a category is, for the subtitle and the table
+        this.valueLabel = "Value"; // the axis title of a histogram
+        this.showCoverage = true; // whether to say how many of the samples in the result have data
     }
 
     /**
@@ -35,7 +45,7 @@ class DendroBaseModule extends MosaicTileModule {
         }
 
         const stringValue = String(value).trim();
-        
+
         if(stringValue === "" || stringValue.toLowerCase() === "undefined") {
             return null;
         }
@@ -61,7 +71,7 @@ class DendroBaseModule extends MosaicTileModule {
 
         // Strip out uncertainty symbols: ?, ~, and any whitespace
         const cleaned = stringValue.replace(/[?~\s]/g, "");
-        
+
         const num = parseFloat(cleaned);
         return isNaN(num) ? null : num;
     }
@@ -75,21 +85,21 @@ class DendroBaseModule extends MosaicTileModule {
         }
 
         const stringValue = String(value).trim();
-        
+
         if(stringValue === "" || stringValue.toLowerCase() === "undefined") {
             return null;
         }
 
         const cleaned = stringValue.replace(/[?~\s]/g, "").toLowerCase();
-        
+
         if(cleaned === "ja" || cleaned === "yes" || cleaned === "y" || cleaned === "j") {
             return "Yes";
         }
-        
+
         if(cleaned === "nej" || cleaned === "no" || cleaned === "n") {
             return "No";
         }
-        
+
         return null;
     }
 
@@ -102,7 +112,7 @@ class DendroBaseModule extends MosaicTileModule {
         }
 
         const stringValue = String(value).trim().toLowerCase();
-        
+
         if(stringValue === "") {
             return null;
         }
@@ -111,12 +121,12 @@ class DendroBaseModule extends MosaicTileModule {
             if(stringValue === "w" || stringValue === "b") {
                 return "Yes";
             }
-            
+
             if(stringValue.includes("ej w") || stringValue === "nej") {
                 return "No";
             }
-            
-            if(stringValue.includes("nära") || 
+
+            if(stringValue.includes("nära") ||
                stringValue.includes("near") ||
                stringValue.includes("?") ||
                stringValue === "undefined" ||
@@ -126,37 +136,24 @@ class DendroBaseModule extends MosaicTileModule {
                 return "Maybe";
             }
         }
-        
+
         return null;
     }
 
     /**
-     * Calculate distribution for numeric values
+     * Parse the categories of a numeric variable into a list of values, one per sample
      */
-    calculateDistribution(values, min, max, bins = 20) {
-        if(values.length === 0 || min === max) {
-            return [];
-        }
-
-        const range = max - min;
-        const binSize = range / bins;
-        const histogram = new Array(bins).fill(0);
-
-        values.forEach(value => {
-            let binIndex = Math.floor((value - min) / binSize);
-            if(binIndex >= bins) binIndex = bins - 1;
-            histogram[binIndex]++;
+    parseNumericCategories(categories) {
+        const values = [];
+        categories.forEach(cat => {
+            const parsedValue = this.parseDendroNumericValue(cat.name);
+            if(parsedValue !== null) {
+                for(let i = 0; i < cat.count; i++) {
+                    values.push(parsedValue);
+                }
+            }
         });
-
-        const maxCount = Math.max(...histogram);
-
-        return histogram.map((count, index) => ({
-            binIndex: index,
-            count: count,
-            height: maxCount > 0 ? (count / maxCount) * 100 : 0,
-            startValue: min + (index * binSize),
-            endValue: min + ((index + 1) * binSize)
-        }));
+        return values;
     }
 
     /**
@@ -171,13 +168,13 @@ class DendroBaseModule extends MosaicTileModule {
 
         try {
             const response = await super.fetchData("/dendro/dynamicchart", JSON.stringify(requestBody));
-            
+
             if(!response) {
                 return { variable: variableName, data: null, error: true, type: type };
             }
 
             const data = await response.json();
-            
+
             return { variable: variableName, data: data, error: false, type: type };
         } catch(error) {
             console.warn(`Failed to fetch ${variableName}:`, error);
@@ -196,13 +193,13 @@ class DendroBaseModule extends MosaicTileModule {
 
         try {
             const response = await super.fetchData("/site/sampletypes", JSON.stringify(requestBody));
-            
+
             if(!response) {
                 return { variable: 'Sample types', data: null, error: true, type: 'categorical' };
             }
 
             const data = await response.json();
-            
+
             return { variable: 'Sample types', data: data, error: false, type: 'sampleTypes' };
         } catch(error) {
             console.warn('Failed to fetch Sample types:', error);
@@ -221,13 +218,13 @@ class DendroBaseModule extends MosaicTileModule {
 
         try {
             const response = await super.fetchData("/site/buildingtypes", JSON.stringify(requestBody));
-            
+
             if(!response) {
                 return { variable: 'Building types', data: null, error: true, type: 'categorical' };
             }
 
             const data = await response.json();
-            
+
             return { variable: 'Building types', data: data, error: false, type: 'buildingTypes' };
         } catch(error) {
             console.warn('Failed to fetch Building types:', error);
@@ -236,416 +233,405 @@ class DendroBaseModule extends MosaicTileModule {
     }
 
     /**
-     * Get color index for consistent coloring across modules
+     * Fetch the number of sample groups at the sites in the result
      */
-    getColorIndexForVariable(variableName) {
-        const colorMap = {
-            'Sapwood (Sp)': 0,
-            'Pith (P)': 1,
-            'Tree rings': 2,
-            'Number of analysed radii.': 3,
-            'Tree age (mirrored)': 4,
-            'Bark (B)': 5,
-            'EW/LW measurements': 6,
-            'Waney edge (W)': 7,
-            'Tree species': 8,
-            'Sample types': 9
-        };
-        return colorMap[variableName] || 0;
+    async fetchSampleGroupsCount() {
+        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        const response = await super.fetchData("/graphs/data_count", JSON.stringify({ siteIds: resultMosaic.sites, path: "sample_groups" }));
+        const data = await response.json();
+        return data.item_count;
     }
 
     /**
-     * Fetch total number of samples for the current sites
-     * Returns null if not available
+     * Fetch the data the tile shows, in the shape this.display calls for, or false if there is none.
+     * Implemented by the subclasses.
      */
-    async fetchTotalSamplesCount() {
-        try {
-            let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-            const requestBody = {
-                sites: resultMosaic.sites,
-                requestId: ++this.requestId
-            };
-            const response = await super.fetchData("/site/samplescount", JSON.stringify(requestBody));
-            if(!response) {
-                return null;
-            }
-            const data = await response.json();
-            return data.count ?? null;
-        } catch(error) {
-            console.warn('Failed to fetch total sample count:', error);
-            return null;
+    async fetchData(requestId) {
+        return false;
+    }
+
+    /**
+     * How many there are in all of what the data is counted in, for the coverage line: a number or a promise for one
+     */
+    getCoverageTotal() {
+        return this.getTotalSamplesCount();
+    }
+
+    async render(renderIntoNode = null) {
+        super.render();
+        this.renderComplete = false;
+        if(renderIntoNode) {
+            this.renderIntoNode = renderIntoNode;
         }
-    }
+        if(this.renderIntoNode == null) {
+            console.warn("Tried to render "+this.name+" without a node to render into!");
+            return false;
+        }
+        this.active = true;
+        const requestId = ++this.requestId;
 
-    /**
-     * Render a mini coverage chart showing what proportion of total samples have this variable.
-     * Immediately draws the label and an empty bar (percentage shown as N/A), then animates
-     * the fill and percentage ticker as soon as totalSamplesOrPromise resolves.
-     *
-     * @param {HTMLElement} container - Container to append the mini-chart to
-     * @param {number} samplesWithVariable - Number of samples that have this variable
-     * @param {number|Promise<number>} totalSamplesOrPromise - Total samples count, or a Promise for it
-     */
-    async renderCoverageMiniChart(container, samplesWithVariable, totalSamplesOrPromise) {
-        const miniChartId = nanoid();
-        const miniChartHtml = `
-            <div class="mosaic-mini-chart-container">
-                <div class="mosaic-mini-chart-label">Sample Coverage</div>
-                <div class="mosaic-mini-chart-wrapper">
-                    <canvas id="mini-chart-${miniChartId}" height="16"></canvas>
-                </div>
-                <div class="mosaic-mini-chart-percentage" id="mini-pct-${miniChartId}">N/A</div>
+        this.destroyChart();
+        $(this.renderIntoNode).empty();
+
+        const varId = nanoid();
+        const chartContainerId = `chart-container-${varId}`;
+        $(this.renderIntoNode).append(`
+            <div class="mosaic-tile-content" id="${varId}">
+                <div class="mosaic-tile-chart" id="${chartContainerId}"></div>
             </div>
-        `;
+        `);
 
-        $(container).append(miniChartHtml);
-
-        // Draw empty bar immediately
-        const canvas = document.getElementById(`mini-chart-${miniChartId}`);
-        const ctx = canvas.getContext('2d');
-        const canvasContainer = canvas.parentElement;
-        canvas.width = canvasContainer.clientWidth;
-        canvas.height = 16;
-
-        const observer = new ResizeObserver(() => {
-            const data = this.coverageCharts.get(miniChartId);
-            if (!data) return;
-            canvas.width = canvasContainer.clientWidth;
-            canvas.height = 16;
-            this.drawCoverageLine(canvas.getContext('2d'), canvas.width, canvas.height, data.percentage);
-        });
-        observer.observe(canvasContainer);
-        this.coverageCharts.set(miniChartId, { canvas, percentage: 0, observer });
-
-        this.drawCoverageLine(ctx, canvas.width, canvas.height, 0);
-
-        // Await total samples count (accepts both a direct value and a Promise)
-        const totalSamples = await Promise.resolve(totalSamplesOrPromise);
-        if (!totalSamples || totalSamples === 0) {
+        if(this.renderNoDataIfNoSites()) {
             return;
         }
 
-        const targetPercentage = samplesWithVariable / totalSamples;
-        const pctEl = document.getElementById(`mini-pct-${miniChartId}`);
-        const duration = 600;
-        const startTime = performance.now();
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);
 
-        const animate = (now) => {
-            const elapsed = now - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            // Ease-out cubic
-            const eased = 1 - Math.pow(1 - progress, 3);
-            const current = targetPercentage * eased;
-
-            this.drawCoverageLine(ctx, canvas.width, canvas.height, current);
-
-            if (pctEl) {
-                pctEl.textContent = (current * 100).toFixed(1) + '%';
-            }
-
-            // Keep stored percentage current so resize redraws correctly during animation
-            this.coverageCharts.get(miniChartId).percentage = current;
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                // Snap to exact final values
-                this.drawCoverageLine(ctx, canvas.width, canvas.height, targetPercentage);
-                if (pctEl) {
-                    pctEl.textContent = (targetPercentage * 100).toFixed(1) + '%';
-                }
-                this.coverageCharts.get(miniChartId).percentage = targetPercentage;
-            }
-        };
-
-        requestAnimationFrame(animate);
-    }
-
-    /**
-     * Handle window resize by redrawing all coverage charts
-     */
-    handleResize() {
-        this.coverageCharts.forEach((chartData, id) => {
-            const { canvas, percentage } = chartData;
-            const canvasContainer = canvas.parentElement;
-            
-            if(!canvasContainer) {
-                return;
-            }
-            
-            // Update canvas width to match container
-            canvas.width = canvasContainer.clientWidth;
-            canvas.height = 16;
-            
-            // Redraw the chart
-            const ctx = canvas.getContext('2d');
-            this.drawCoverageLine(ctx, canvas.width, canvas.height, percentage);
-        });
-    }
-
-    /**
-     * Draw a coverage line with rounded endpoints
-     * @param {CanvasRenderingContext2D} ctx - Canvas context
-     * @param {number} width - Canvas width
-     * @param {number} height - Canvas height
-     * @param {number} percentage - Percentage filled (0-1)
-     */
-    drawCoverageLine(ctx, width, height, percentage) {
-        const lineY = height / 2;
-        const lineHeight = 6;
-        const padding = 0;
-        const lineWidth = width - (padding * 2);
-        const filledWidth = lineWidth * percentage;
-        
-        // Draw background line (gray)
-        ctx.fillStyle = '#E0E0E0';
-        ctx.beginPath();
-        ctx.roundRect(padding, lineY - lineHeight / 2, lineWidth, lineHeight, lineHeight / 2);
-        ctx.fill();
-        
-        // Draw filled line (blue) with rounded endpoints
-        if(filledWidth > 0) {
-            ctx.fillStyle = '#143261';
-            ctx.beginPath();
-            ctx.roundRect(padding, lineY - lineHeight / 2, filledWidth, lineHeight, lineHeight / 2);
-            ctx.fill();
+        let data = false;
+        try {
+            data = await this.fetchData(requestId);
+        } catch(error) {
+            console.error(`Error fetching data for ${this.name}:`, error);
         }
-    }
 
-    /**
-     * Draw a rounded rectangle on canvas
-     */
-    drawRoundedRect(ctx, x, y, width, height, radius, roundLeft, roundRight) {
-        ctx.beginPath();
-        
-        if(roundLeft) {
-            ctx.moveTo(x + radius, y);
-        } else {
-            ctx.moveTo(x, y);
+        if(requestId != this.requestId) {
+            return; //A newer render has taken over
         }
-        
-        if(roundRight) {
-            ctx.lineTo(x + width - radius, y);
-            ctx.arcTo(x + width, y, x + width, y + radius, radius);
-        } else {
-            ctx.lineTo(x + width, y);
-        }
-        
-        if(roundRight) {
-            ctx.lineTo(x + width, y + height - radius);
-            ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
-        } else {
-            ctx.lineTo(x + width, y + height);
-        }
-        
-        if(roundLeft) {
-            ctx.lineTo(x + radius, y + height);
-            ctx.arcTo(x, y + height, x, y + height - radius, radius);
-        } else {
-            ctx.lineTo(x, y + height);
-        }
-        
-        if(roundLeft) {
-            ctx.lineTo(x, y + radius);
-            ctx.arcTo(x, y, x + radius, y, radius);
-        } else {
-            ctx.lineTo(x, y);
-        }
-        
-        ctx.closePath();
-        ctx.fill();
-    }
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
 
-    /**
-     * Draw stacked bar chart on canvas
-     */
-    drawStackedBar(ctx, width, height, categories, colors, total) {
-        const barHeight = 40;
-        const barY = (height - barHeight) / 2;
-        const borderRadius = 3;
-        
-        let currentX = 0;
-        
-        categories.forEach((cat, idx) => {
-            const segmentWidth = (cat.count / total) * width;
-            const percentage = ((cat.count / total) * 100).toFixed(1);
-            
-            ctx.fillStyle = colors[idx];
-            
-            const isFirst = idx === 0;
-            const isLast = idx === categories.length - 1;
-            
-            this.drawRoundedRect(
-                ctx,
-                currentX,
-                barY,
-                segmentWidth,
-                barHeight,
-                borderRadius,
-                isFirst,
-                isLast
-            );
-            
-            if(parseFloat(percentage) > 12) {
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 11px "Didact Gothic", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                
-                const text = `${cat.name} ${percentage}%`;
-                const textX = currentX + segmentWidth / 2;
-                const textY = barY + barHeight / 2;
-                
-                ctx.fillText(text, textX, textY);
-            }
-            
-            currentX += segmentWidth;
-        });
-    }
+        if(!this.active) {
+            this.renderComplete = true;
+            return false;
+        }
 
-    /**
-     * Create a donut chart using Plotly
-     * This provides better label handling and responsiveness
-     */
-    async createDonutChart(elementId, categories, colors, total, variableName) {
-        const values = categories.map(cat => cat.count);
-        const labels = categories.map(cat => cat.name);
-        const percentages = categories.map(cat => ((cat.count / total) * 100).toFixed(1));
-        
-        // Create custom text for labels showing both name and percentage
-        const textLabels = categories.map((cat, i) => `${cat.name}<br>${percentages[i]}%`);
-        
-        const data = [{
-            values: values,
-            labels: labels,
-            text: percentages.map(p => `${p}%`),
-            textposition: 'outside',
-            textinfo: 'text',
-            hovertemplate: '<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>',
-            type: 'pie',
-            hole: 0.6,
-            marker: {
-                colors: colors,
-                line: {
-                    color: '#fff',
-                    width: 2
-                }
-            },
-            pull: 0.01,
-            textfont: {
-                size: 11,
-                color: '#333'
-            }
-        }];
-        
-        const layout = {
-            showlegend: true,
-            legend: {
-                orientation: 'h',
-                x: 0.5,
-                y: -0.2,
-                xanchor: 'center',
-                yanchor: 'top',
-                font: {
-                    family: 'Didact Gothic, sans-serif',
-                    size: 11
-                }
-            },
-            font: {
-                family: 'Didact Gothic, sans-serif',
-            },
-            margin: {
-                l: 20,
-                r: 20,
-                t: 20,
-                b: 60
-            },
-            autosize: true,
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            plot_bgcolor: 'rgba(0,0,0,0)'
-        };
-        
-        const config = {
-            responsive: true,
-            displayModeBar: false
-        };
-        
-        await Plotly.newPlot(elementId, data, layout, config);
-        
-        return { plotly: true, elementId: elementId };
-    }
-
-    /**
-     * Download chart as PNG
-     */
-    downloadChart(chartId) {
-        const chartData = this.chartInstances.get(chartId);
-        if(!chartData) {
-            console.error('Chart not found:', chartId);
+        if(!data) {
+            this.data = null;
+            this.renderNoData();
+            this.renderComplete = true;
             return;
         }
-        
-        if(chartData.plotly) {
-            // Plotly chart
-            const el = chartData.elementId;
-            const filename = `sead_${chartData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart`;
-            Plotly.relayout(el, { paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' })
-                .then(() => Plotly.downloadImage(el, { format: 'png', filename, scale: window.devicePixelRatio || 1 }))
-                .then(() => Plotly.relayout(el, { paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' }));
-        } else if(chartData.chart) {
-            const { chart, name } = chartData;
-            const url = chart.toBase64Image();
-            const link = document.createElement('a');
-            link.download = `sead_${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
-            link.href = url;
-            link.click();
-        } else if(chartData.canvas) {
-            const { canvas, name } = chartData;
-            const url = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = `sead_${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
-            link.href = url;
-            link.click();
+
+        this.data = data;
+        this.renderViewToggle([{ id: "chart", label: "Chart" }, { id: "table", label: "Table" }], () => {
+            this.renderView();
+        });
+        this.renderView();
+        this.renderComplete = true;
+    }
+
+    renderView() {
+        this.destroyChart();
+        this.exportImageRows = null;
+        let chartNode = this.getChartNode();
+
+        if(this.display == "histogram") {
+            this.renderHistogramView(chartNode);
         }
+        else if(this.display == "shares") {
+            this.renderSharesView(chartNode);
+        }
+        else {
+            this.renderCategoriesView(chartNode);
+        }
+    }
+
+    getCategoryRows() {
+        const baseColor = this.sqs.color.colors.baseColor;
+        const total = this.data.categories.reduce((sum, cat) => sum + cat.count, 0);
+        return this.data.categories.slice().sort((a, b) => b.count - a.count).map(cat => ({
+            label: cat.name,
+            value: cat.count,
+            valueText: this.formatCount(cat.count),
+            share: total > 0 ? cat.count / total : 0,
+            color: cat.color || baseColor,
+            title: cat.name+" · "+this.formatCount(cat.count)+" "+this.coverageNoun
+        }));
+    }
+
+    renderCategoriesView(chartNode) {
+        const rows = this.getCategoryRows();
+        const total = rows.reduce((sum, row) => sum + row.value, 0);
+        const withColors = this.data.categories.some(cat => cat.color);
+
+        let subtitle = this.capitalize(this.coverageNoun)+" per "+this.categoryNoun;
+        if(rows.length > this.topCount && this.view == "chart" && !this.showAll) {
+            subtitle += " · top "+this.topCount+" of "+this.formatCount(rows.length);
+        }
+        this.setMosaicTileSubtitle(subtitle);
+
+        if(this.view == "table") {
+            this.renderDataTable(chartNode, [
+                { title: this.capitalize(this.categoryNoun) },
+                { title: this.capitalize(this.coverageNoun), numeric: true },
+                { title: "Share", numeric: true }
+            ], rows.map(row => [withColors ? { text: row.label, color: row.color } : row.label, row.valueText, this.formatShare(row.share)]));
+        }
+        else {
+            this.renderRankedBars(chartNode, this.showAll ? rows : rows.slice(0, this.topCount), { showSwatches: withColors });
+
+            if(rows.length > this.topCount) {
+                let toggleNode = $("<button type='button' class='sqs-link-btn mosaic-show-all-btn'></button>");
+                toggleNode.text(this.showAll ? "Show the top "+this.topCount : "Show all "+this.formatCount(rows.length));
+                toggleNode.on("click", () => {
+                    this.showAll = !this.showAll;
+                    this.renderView();
+                });
+                chartNode.append(toggleNode);
+            }
+        }
+
+        this.renderCoverageLine(chartNode, total);
+    }
+
+    /**
+     * The colors of the answers of a yes/no variable, which differ in lightness and not only in hue
+     */
+    getShareColor(name) {
+        const colors = {
+            "Yes": this.sqs.color.colors.baseColor,
+            "Maybe": "#7fa3c7",
+            "No": "#d0d0d0"
+        };
+        return colors[name] || "#a0a0a0";
+    }
+
+    renderSharesView(chartNode) {
+        const total = this.data.categories.reduce((sum, cat) => sum + cat.count, 0);
+        const rows = this.data.categories.map(cat => {
+            const share = total > 0 ? cat.count / total : 0;
+            return {
+                label: cat.name,
+                value: share * 100,
+                valueText: this.formatShare(share),
+                count: cat.count,
+                color: this.getShareColor(cat.name),
+                title: cat.name+" · "+this.formatCount(cat.count)+" "+this.coverageNoun
+            };
+        });
+
+        this.setMosaicTileSubtitle("Share of "+this.formatCount(total)+" "+this.coverageNoun+" with a recorded value");
+
+        if(this.view == "table") {
+            this.renderDataTable(chartNode, [
+                { title: "Recorded as" },
+                { title: this.capitalize(this.coverageNoun), numeric: true },
+                { title: "Share", numeric: true }
+            ], rows.map(row => [{ text: row.label, color: row.color }, this.formatCount(row.count), row.valueText]));
+        }
+        else {
+            this.renderShareStrip(chartNode, rows);
+            this.renderRankedBars(chartNode, rows, { showSwatches: true, axisFormat: tick => tick+" %" });
+        }
+
+        this.renderCoverageLine(chartNode, total);
+    }
+
+    /**
+     * Function: getHistogramBins
+     * Bins of a round width spanning the values, at most about maxBins of them. Values which are all whole numbers,
+     * such as counts of rings, get bins of whole numbers labelled by the first and last number in them.
+     */
+    getHistogramBins(values, maxBins = 20) {
+        const min = values.reduce((m, value) => Math.min(m, value), Infinity);
+        const max = values.reduce((m, value) => Math.max(m, value), -Infinity);
+        const integers = values.every(value => Number.isInteger(value));
+
+        let width = 1;
+        const rawWidth = (max - min) / maxBins;
+        if(rawWidth > 0) {
+            const magnitude = Math.pow(10, Math.floor(Math.log10(rawWidth)));
+            width = [1, 2, 5, 10].map(f => f * magnitude).find(w => w >= rawWidth);
+            if(integers) {
+                width = Math.max(1, Math.ceil(width));
+            }
+        }
+
+        const start = Math.floor(min / width) * width;
+        const binCount = Math.max(1, Math.floor((max - start) / width) + 1);
+        const round = value => Math.round(value * 1000) / 1000;
+        const bins = [];
+        for(let i = 0; i < binCount; i++) {
+            const binStart = round(start + i * width);
+            const binEnd = integers ? binStart + width - 1 : round(binStart + width);
+            bins.push({
+                startValue: binStart,
+                endValue: binEnd,
+                label: integers && width == 1 ? String(binStart) : binStart+"–"+binEnd
+            });
+        }
+
+        return {
+            bins: bins,
+            binIndex: value => Math.min(binCount - 1, Math.floor((value - start) / width))
+        };
+    }
+
+    /**
+     * The histogram of each series, over bins shared by all of them
+     */
+    getHistogram() {
+        if(this.histogram && this.histogram.data === this.data) {
+            return this.histogram;
+        }
+        const allValues = [].concat(...this.data.series.map(series => series.values));
+        const { bins, binIndex } = this.getHistogramBins(allValues);
+        const series = this.data.series.map(series => {
+            const counts = new Array(bins.length).fill(0);
+            series.values.forEach(value => {
+                counts[binIndex(value)]++;
+            });
+            return Object.assign({}, series, { counts: counts });
+        });
+        this.histogram = { data: this.data, bins: bins, series: series };
+        return this.histogram;
+    }
+
+    getMedian(values) {
+        const sorted = values.slice().sort((a, b) => a - b);
+        const middle = Math.floor(sorted.length / 2);
+        const median = sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+        return Math.round(median * 10) / 10;
+    }
+
+    getHistogramSubtitle() {
+        const values = this.data.series[0].values;
+        return this.formatCount(values.length)+" "+this.coverageNoun+" · median "+this.formatCount(this.getMedian(values));
+    }
+
+    getSeriesColors() {
+        return [this.sqs.color.colors.baseColor, "#8fb0cf"];
+    }
+
+    renderHistogramView(chartNode) {
+        const { bins, series } = this.getHistogram();
+        const colors = this.getSeriesColors();
+        //Two series face each other, the second one drawn downwards
+        const mirrored = series.length == 2;
+
+        this.setMosaicTileSubtitle(this.getHistogramSubtitle());
+
+        if(this.view == "table") {
+            const columns = [{ title: this.valueLabel }].concat(series.map(s => ({ title: series.length > 1 ? s.name : this.capitalize(this.coverageNoun), numeric: true })));
+            const rows = [];
+            bins.forEach((bin, index) => {
+                if(series.some(s => s.counts[index] > 0)) {
+                    rows.push([bin.label].concat(series.map(s => this.formatCount(s.counts[index]))));
+                }
+            });
+            this.renderDataTable(chartNode, columns, rows);
+            this.renderCoverageLine(chartNode, series[0].values.length);
+            return;
+        }
+
+        chartNode.addClass("mosaic-tile-chart-fill");
+
+        if(series.length > 1) {
+            let legendNode = $("<div class='mosaic-chart-legend'></div>");
+            series.forEach((s, index) => {
+                let itemNode = $("<span class='mosaic-chart-legend-item'></span>");
+                itemNode.append($("<span class='sqs-dot'></span>").css("background-color", colors[index % colors.length]));
+                itemNode.append($("<span></span>").text(s.name+(mirrored && index == 1 ? " (drawn downwards)" : "")));
+                legendNode.append(itemNode);
+            });
+            chartNode.append(legendNode);
+        }
+
+        let canvasNode = $("<div class='mosaic-tile-canvas'><canvas></canvas></div>");
+        chartNode.append(canvasNode);
+
+        const colorSet = this.sqs.color.colors;
+        const tickFont = { size: this.sqs.scalePx(11) };
+        const coverageNoun = this.coverageNoun;
+        const valueLabel = this.valueLabel;
+
+        this.chart = new Chart(canvasNode.find("canvas")[0], {
+            type: "bar",
+            data: {
+                labels: bins.map(bin => bin.label),
+                datasets: series.map((s, index) => ({
+                    label: s.name,
+                    data: mirrored && index == 1 ? s.counts.map(count => -count) : s.counts,
+                    backgroundColor: colors[index % colors.length],
+                    hoverBackgroundColor: colorSet.textColor,
+                    borderRadius: 2,
+                    borderSkipped: false,
+                    categoryPercentage: 0.9,
+                    barPercentage: 1
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: { mode: "index", intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: colorSet.textColor,
+                        padding: 10,
+                        cornerRadius: 6,
+                        displayColors: series.length > 1,
+                        callbacks: {
+                            title: items => valueLabel+": "+items[0].label,
+                            label: context => {
+                                const count = Math.abs(context.parsed.y);
+                                return (series.length > 1 ? context.dataset.label+": " : "")+count.toLocaleString("en-GB")+" "+coverageNoun;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: { display: false },
+                        border: { color: colorSet.borderColor },
+                        ticks: { color: colorSet.textMutedColor, font: tickFont, maxRotation: 0, autoSkipPadding: 12 },
+                        title: { display: true, text: valueLabel, color: colorSet.textMutedColor, font: tickFont }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        grid: { color: "#ebebeb" },
+                        border: { display: false },
+                        ticks: {
+                            color: colorSet.textMutedColor,
+                            font: tickFont,
+                            precision: 0,
+                            maxTicksLimit: 5,
+                            callback: value => this.formatAxisCount(Math.abs(value))
+                        }
+                    }
+                }
+            }
+        });
+
+        this.renderCoverageLine(chartNode, series[0].values.length);
+    }
+
+    renderCoverageLine(chartNode, covered) {
+        if(this.showCoverage) {
+            this.renderCoverage(chartNode, covered, this.getCoverageTotal(), this.coverageNoun);
+        }
+    }
+
+    capitalize(text) {
+        return text.charAt(0).toUpperCase()+text.slice(1);
+    }
+
+    destroyChart() {
+        if(this.chart && typeof this.chart.destroy === "function") {
+            this.chart.destroy();
+        }
+        this.chart = null;
+    }
+
+    async update() {
+        await this.render(this.renderIntoNode);
     }
 
     async unrender() {
-        return new Promise((resolve, reject) => {
-            this.waitForRenderCompleteInterval = setInterval(() => {
-                if(this.renderComplete) {
-                    clearInterval(this.waitForRenderCompleteInterval);
-    
-                    this.chartInstances.forEach((chartData, id) => {
-                        if(chartData.chart && typeof chartData.chart.destroy === 'function') {
-                            chartData.chart.destroy();
-                        }
-                    });
-                    this.chartInstances.clear();
-
-                    // Remove resize listener and clear coverage charts
-                    if(this.coverageCharts.size > 0) {
-                        window.removeEventListener('resize', this.resizeHandler);
-                    }
-                    this.coverageCharts.clear();
-
-                    $('.mosaic-tile-download-btn').off('click');
-
-                    this.active = false;
-
-                    if(this.renderIntoNode != null) {
-                        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-                        if(resultMosaic && typeof resultMosaic.cleanupPlotlyChartsInContainer == "function") {
-                            resultMosaic.cleanupPlotlyChartsInContainer(this.renderIntoNode);
-                        }
-                        $(this.renderIntoNode).empty();
-                        resolve();
-                    } else {
-                        console.warn("Render into node was null when trying to unrender!");
-                        reject();
-                    }
-                }
-            }, 100);
-        });
+        this.destroyChart();
+        return super.unrender();
     }
 
     getAvailableExportFormats() {
@@ -653,45 +639,23 @@ class DendroBaseModule extends MosaicTileModule {
     }
 
     formatDataForExport(data, format = "json") {
-        if(format === "png") {
-            const chartEntry = Array.from(this.chartInstances.values())[0];
-            if(!chartEntry) {
-                console.error('No chart found for export');
-                return;
-            }
-            if(chartEntry.plotly) {
-                const el = chartEntry.elementId;
-                const filename = `sead_${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart`;
-                Plotly.relayout(el, { paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' })
-                    .then(() => Plotly.downloadImage(el, { format: 'png', filename, scale: window.devicePixelRatio || 1 }))
-                    .then(() => Plotly.relayout(el, { paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' }));
-            } else if(chartEntry.chart) {
-                const url = chartEntry.chart.toBase64Image();
-                const link = document.createElement('a');
-                link.download = `sead_${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
-                link.href = url;
-                link.click();
-            } else if(chartEntry.canvas) {
-                const url = chartEntry.canvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.download = `sead_${chartEntry.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_chart.png`;
-                link.href = url;
-                link.click();
-            }
-            return data;
-        }
-
         if(!data) return [];
 
-        if(data.distribution && data.distribution.length > 0) {
-            return data.distribution.map(bin => ({
-                bin_start: +bin.startValue.toFixed(2),
-                bin_end: +bin.endValue.toFixed(2),
-                sample_count: bin.count
-            }));
+        if(this.display == "histogram") {
+            const { bins, series } = this.getHistogram();
+            return bins.map((bin, index) => {
+                let row = {
+                    bin_start: bin.startValue,
+                    bin_end: bin.endValue
+                };
+                series.forEach(s => {
+                    row[s.exportKey || "sample_count"] = s.counts[index];
+                });
+                return row;
+            });
         }
 
-        if(data.categories && data.categories.length > 0) {
+        if(data.categories) {
             return data.categories.map(cat => ({
                 category: cat.name,
                 count: cat.count

@@ -1,10 +1,12 @@
+import { nanoid } from "nanoid";
 import MosaicTileModule from "./MosaicTileModule.class";
 
 class MosaicSampleMethodsModule extends MosaicTileModule {
     constructor(sqs) {
         super();
         this.sqs = sqs;
-        this.title = "Sampling methods by sample groups";
+        this.title = "Sampling methods";
+        this.description = "How the sample groups at the sites in the result were sampled, by their share of the sample groups.";
 		this.name = "mosaic-sample-methods";
 		this.domains = ["general", "palaeo", "archaeobotany", "isotopes"];
         this.active = true;
@@ -12,8 +14,11 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         this.renderIntoNode = null;
         this.plot = null;
         this.renderComplete = false;
-        this.chartType = "plotly";
+        this.chartType = "html";
         this.showChartSelector = false;
+        this.topCount = 6;
+        this.view = "chart";
+        this.requestId = 0;
     }
 
     async render(renderIntoNode = null) {
@@ -28,12 +33,11 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         }
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        let requestId = ++this.requestId;
 
-        // Clear previous content
         $(this.renderIntoNode).empty();
 
-        // Create a container with the shared mosaic tile header and chart container
-        const varId = (typeof nanoid === 'function') ? nanoid() : Math.random().toString(36).substr(2, 9);
+        const varId = nanoid();
         const chartContainerId = `chart-container-${varId}`;
         const tileHtml = `
             <div class="mosaic-tile-content" id="${varId}">
@@ -46,7 +50,6 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
             return;
         }
 
-        // Show loading indicator on the chart container only
         this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);
 
         let response = await super.fetchData("/graphs/sample_methods", JSON.stringify(resultMosaic.sites));
@@ -55,67 +58,86 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
         }
 
         let data = await response.json();
+        if(requestId != this.requestId) {
+            return; //A newer render has taken over
+        }
         this.data = data.sample_methods_sample_groups;
-
-        let colors = this.sqs.color.getNiceColorScheme(data.sample_methods_sample_groups.length);
-
-        let chartData = [{
-            labels: [],
-            values: [],
-            customdata: [],
-            marker: {
-                colors: colors
-            },
-            type: 'pie',
-            hole: 0.4,
-            name: "Sampling methods by sample groups",
-            hoverinfo: 'label+percent',
-            textinfo: 'label+percent',
-            textposition: "inside",
-            hovertemplate: "%{percent} of sample groups are %{customdata}<extra></extra>"
-        }];
-
-        data.sample_methods_sample_groups.sort((a, b) => {
-            if(a.sample_groups_count > b.sample_groups_count) {
-                return -1;
-            }
-            else {
-                return 1;
-            }
-        });
-
-        data.sample_methods_sample_groups.forEach(method => {
-            chartData[0].labels.push(method.method_meta.method_abbrev_or_alt_name);
-            chartData[0].values.push(method.sample_groups_count);
-            chartData[0].customdata.push(method.method_meta.method_name);
-        });
-
         this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
-        resultMosaic.renderPieChartPlotly(`#${chartContainerId}`, chartData, { showlegend: false }).then(plot => {
-            this.plot = plot;
-        })
+
+        if(this.data.length == 0) {
+            this.renderNoData();
+            this.renderComplete = true;
+            return;
+        }
+
+        this.renderViewToggle([{ id: "chart", label: "Chart" }, { id: "table", label: "Table" }], () => {
+            this.renderView();
+        });
+        this.renderView();
         this.renderComplete = true;
+    }
+
+    renderView() {
+        let chartNode = this.getChartNode();
+        let methods = this.data.slice().sort((a, b) => b.sample_groups_count - a.sample_groups_count);
+        let sampleGroupCount = methods.reduce((sum, method) => sum + method.sample_groups_count, 0);
+        let baseColor = this.sqs.color.colors.baseColor;
+
+        let rows = methods.map(method => {
+            let share = sampleGroupCount > 0 ? method.sample_groups_count / sampleGroupCount : 0;
+            let name = method.method_meta ? method.method_meta.method_name : "Method "+method.method_id;
+            return {
+                label: name,
+                value: share * 100,
+                valueText: this.formatShare(share),
+                sampleGroupCount: method.sample_groups_count,
+                color: baseColor,
+                title: name+" · "+this.formatCount(method.sample_groups_count)+(method.sample_groups_count == 1 ? " sample group" : " sample groups")
+            };
+        });
+
+        let shownRows = this.takeTopItems(rows, this.topCount, rest => {
+            let restCount = rest.reduce((sum, row) => sum + row.sampleGroupCount, 0);
+            let share = sampleGroupCount > 0 ? restCount / sampleGroupCount : 0;
+            return {
+                label: rest.length+" other methods",
+                value: share * 100,
+                valueText: this.formatShare(share),
+                sampleGroupCount: restCount,
+                color: "#c8c8c8",
+                title: rest.map(row => row.label).join(", "),
+                other: true
+            };
+        });
+
+        let subtitle = "Share of "+this.formatCount(sampleGroupCount)+(sampleGroupCount == 1 ? " sample group" : " sample groups");
+        if(shownRows.length < rows.length) {
+            subtitle += " · top "+this.topCount+" + other";
+        }
+        this.setMosaicTileSubtitle(subtitle);
+
+        if(this.view == "table") {
+            this.renderDataTable(chartNode, [
+                { title: "Sampling method" },
+                { title: "Sample groups", numeric: true },
+                { title: "Share", numeric: true }
+            ], rows.map(row => [row.label, this.formatCount(row.sampleGroupCount), row.valueText]));
+            return;
+        }
+
+        this.renderRankedBars(chartNode, shownRows, { axisFormat: tick => tick+" %" });
     }
 
     async update() {
         this.render();
     }
-    /*
-    async unrender() {
-        let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        resultMosaic.unrenderPlotlyChart(this.renderIntoNode.substring(1));
-        this.pendingRequestPromise = null;
-        this.active = false;
-        $(".result-export-button-mosaic", this.renderIntoNode).remove();
-    }
-    */
 
     getAvailableExportFormats() {
         return ["json", "csv", "png"];
     }
-    
+
     formatDataForExport(data, format = "json") {
-        if(format == "csv") {
+        if(format == "csv" || format == "xlsx") {
             data = data.map((item) => ({
                 description: item.description || item.method_meta?.description || "",
                 method_abbrev_or_alt_name: item.method_abbrev_or_alt_name || item.method_meta?.method_abbrev_or_alt_name || "",
@@ -123,14 +145,10 @@ class MosaicSampleMethodsModule extends MosaicTileModule {
                 sample_groups_count: item.sample_groups_count
             }));
         }
-        if(format == "png") {
-            let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-            resultMosaic.exportPieChartPlotly(this.renderIntoNode, this.plot);
-        }
 
         return data;
     }
-    
+
 }
 
 export default MosaicSampleMethodsModule;

@@ -27,6 +27,19 @@ const seoDomainUrlsXml = seoDomainPaths
   .map((domainPath) => `  <url>\n    <loc>${seoServerRoot}/${domainPath}</loc>\n    <lastmod>${seoLastmod}</lastmod>\n  </url>`)
   .join('\n');
 
+// The client's pages that are a single path segment: the domains (all of them, as Router.domainExists
+// accepts disabled ones too) and the privacy policy. Each gets a copy of index.html at <path>/index.html,
+// which is how the client's nginx tells them apart from a page that does not exist, and answers 404 for
+// those. The site reports and the rest are told apart by pattern there, and by the router.
+const clientPagePaths = (seadConfig.domains || [])
+  .filter((domain) => domain && domain.name && domain.name !== 'general')
+  .map((domain) => domain.name)
+  .concat(['privacy']);
+const htmlPageParameters = {
+  baseUrl: seadConfig.serverRoot,
+  supportEmail: seadConfig.supportEmail,
+};
+
 module.exports = (env, config) => {
   const isProduction = process.env.NODE_ENV === 'production';
 
@@ -81,11 +94,14 @@ module.exports = (env, config) => {
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, './src/index.ejs'),
         filename: 'index.html',
-        templateParameters: {
-          baseUrl: seadConfig.serverRoot,
-          supportEmail: seadConfig.supportEmail,
-        },
+        templateParameters: htmlPageParameters,
       }),
+
+      ...clientPagePaths.map((pagePath) => new HtmlWebpackPlugin({
+        template: path.resolve(__dirname, './src/index.ejs'),
+        filename: `${pagePath}/index.html`,
+        templateParameters: htmlPageParameters,
+      })),
 
       new CopyWebpackPlugin({
         patterns: [

@@ -28,7 +28,7 @@ async function dismissBlockingTutorial(page) {
 }
 
 async function dismissCookieConsent(page) {
-  const consentButton = page.getByRole('button', { name: /i agree/i }).first();
+  const consentButton = page.getByRole('button', { name: /i agree|dismiss cookie message/i }).first();
   if (await consentButton.isVisible().catch(() => false)) {
     await consentButton.click();
     await page.waitForTimeout(200);
@@ -43,7 +43,7 @@ async function assertNoHorizontalOverflow(page, maxOverflowPx = 2) {
 }
 
 async function waitForFilterViewReady(page) {
-  await expect(page.locator('#filter-menu-domain-area')).toBeVisible({ timeout: 30000 });
+  await expect(page.locator('#domain-menu')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('#filter-view-main-container #switch-section-button')).toBeVisible({ timeout: 30000 });
 }
 
@@ -93,7 +93,7 @@ test.describe('Mobile layout smoke', () => {
 
     await sectionToggleButton.click();
     await expect(sectionToggleButton).toHaveText(initialLabel, { timeout: 10000 });
-    await expect(page.locator('#filter-menu-domain-area')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('#domain-menu')).toBeVisible({ timeout: 30000 });
     await assertNoHorizontalOverflow(page);
 
     await page.screenshot({

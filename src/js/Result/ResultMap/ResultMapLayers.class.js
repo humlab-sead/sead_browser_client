@@ -258,6 +258,27 @@ export default class ResultMapLayers {
 	}
 
 	
+    getMapProxyUrl(url) {
+        const providerUrl = new URL(url, window.location.origin);
+        const providerPaths = {
+            'pub.raa.se': { prefix: '/visning/', proxy: '/maps/raa/visning/' },
+            'inspire-raa.metria.se': { prefix: '/geoserver/', proxy: '/maps/raa/inspire/' }
+        };
+        const provider = providerPaths[providerUrl.hostname];
+        if(provider && providerUrl.pathname.startsWith(provider.prefix)) {
+            return provider.proxy + providerUrl.pathname.slice(provider.prefix.length) + providerUrl.search;
+        }
+        if(['gisapp.msb.se', 'gis-tjanster.mcf.se'].includes(providerUrl.hostname) &&
+            /^\/arcgis\/services\/Oversvamningskarteringar\/karteringar\/MapServer\/WmsServer$/i.test(providerUrl.pathname)) {
+            // ArcGIS encodes the separators in its advertised legend query as %26.
+            const search = /^\?request=GetLegendGraphic%26/i.test(providerUrl.search)
+                ? providerUrl.search.replace(/%26/gi, '&')
+                : providerUrl.search;
+            return '/maps/mcf/flooding' + search;
+        }
+        return url;
+    }
+
     async fetchWmsLayerInfo(baseUrl, options = {}) {
         const defaultOptions = {
             version: '1.3.0',
@@ -272,7 +293,7 @@ export default class ResultMapLayers {
             const capabilitiesUrl = `${baseUrl}?SERVICE=WMS&REQUEST=GetCapabilities&VERSION=${config.version}`;
             
             // Fetch capabilities
-            const response = await fetch(capabilitiesUrl);
+            const response = await fetch(this.getMapProxyUrl(capabilitiesUrl));
             if (!response.ok) {
                 const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
                 error.status = response.status;
@@ -357,7 +378,7 @@ export default class ResultMapLayers {
                 ? (online.getAttributeNS(XLINK_NS, 'href') || online.getAttribute('href'))
                 : (online.getAttribute?.('xlink:href') || online.getAttribute?.('href'));
 
-            if (href) return href;
+            if (href) return this.getMapProxyUrl(href);
             }
             return null;
         };
@@ -577,7 +598,7 @@ export default class ResultMapLayers {
             },
             {
                 key: "mcf-flooding",
-                layerUrl: "https://gisapp.msb.se/arcgis/services/Oversvamningskarteringar/karteringar/MapServer/WmsServer",
+                layerUrl: "https://gis-tjanster.mcf.se/arcgis/services/Oversvamningskarteringar/karteringar/MapServer/WmsServer",
                 groupName: "MCF flooding",
                 options: {
                     attributions: [
@@ -775,7 +796,7 @@ export default class ResultMapLayers {
             // Create the OpenLayers TileLayer
             let layer = new TileLayer({
                 source: new TileWMS({
-                    url: layerUrl,
+                    url: this.getMapProxyUrl(layerUrl),
                     params: wmsParams,
                     serverType: config.serverType,
                     attributions: config.attributions,

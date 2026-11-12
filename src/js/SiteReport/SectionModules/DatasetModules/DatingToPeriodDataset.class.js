@@ -111,7 +111,8 @@ class DatingToPeriodDataset extends DatasetModule {
 				},
 				{
 					"dataType": "string",
-					"title": "Sample"
+					"title": "Sample",
+					"role": "sample_name"
 				},
 				{
 					"dataType": "string",
@@ -170,6 +171,13 @@ class DatingToPeriodDataset extends DatasetModule {
 					"title": "Age"
 				});
 			}
+
+			columns.push({
+				"dataType": "number",
+				"title": "Sample id",
+				"hidden": true,
+				"role": "sample_id"
+			});
 
 			let rows = [];
 			
@@ -247,6 +255,12 @@ class DatingToPeriodDataset extends DatasetModule {
 						"value": this.formatAge(from, to)
 					});
 				}
+
+				row.push({
+					"type": "cell",
+					"tooltip": "",
+					"value": point.physical_sample_id
+				});
 
 				rows.push(row);
 			});

@@ -242,7 +242,15 @@ class CeramicDataset extends DatasetModule {
 			{
 				"dataType": "string",
 				"pkey": false,
-				"title": "Sample name"
+				"title": "Sample name",
+				"role": "sample_name"
+			},
+			{
+				"dataType": "number",
+				"pkey": false,
+				"title": "Sample id",
+				"hidden": true,
+				"role": "sample_id"
 			},
 		];
 
@@ -382,6 +390,11 @@ class CeramicDataset extends DatasetModule {
 					"type": "cell",
 					"tooltip": "",
 					"value": physicalSample.sample_name
+				},
+				{
+					"type": "cell",
+					"tooltip": "",
+					"value": physicalSample.physical_sample_id
 				}
 			];
 
@@ -463,13 +476,7 @@ class CeramicDataset extends DatasetModule {
 							"selected": 1,
 							"options": chartAxes
 						},
-						{
-							"enabled": false,
-							"title": "Sort",
-							"type": "select",
-							"options": [
-							]
-						}
+						this.getSampleSortOption([null])
 					]
 				}
 			]

@@ -31,10 +31,16 @@ class AdnaDataset extends DatasetModule {
 			},
 			{
 				title: "Sample name",
-				pkey: true
+				pkey: true,
+				role: "sample_name"
 			},
 			{
 				title: "Group"
+			},
+			{
+				title: "Sample id",
+				hidden: true,
+				role: "sample_id"
 			}
 		];
 		let rows = [];
@@ -121,6 +127,10 @@ class AdnaDataset extends DatasetModule {
 				{
 					type: "cell",
 					value: this.getSampleGroupBySampleName(dataGroup.sample_name, siteData).sample_group_name
+				},
+				{
+					type: "cell",
+					value: dataGroup.physical_sample_id
 				}
 			]);
 

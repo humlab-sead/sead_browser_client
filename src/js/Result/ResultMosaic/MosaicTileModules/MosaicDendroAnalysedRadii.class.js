@@ -8,8 +8,9 @@ class MosaicDendroAnalysedRadii extends MosaicDendroNumericVariable {
         super(
             sqs,
             "Number of analysed radii.",
-            "Analysed Radii",
-            "Number of radii that were analyzed from the tree sample"
+            "Analysed radii",
+            "Number of radii that were analyzed from the tree sample",
+            "Analysed radii"
         );
         this.name = "mosaic-dendro-analysed-radii";
     }

@@ -30,11 +30,14 @@ class MosaicMapModule extends MosaicTileModule {
         const varId = (typeof nanoid === 'function') ? nanoid() : Math.random().toString(36).substr(2, 9);
         const mapContainerId = `map-container-${varId}`;
         const tileHtml = `
-            <div class="mosaic-tile-content" id="${varId}">
+            <div class="mosaic-tile-content mosaic-map-tile-content" id="${varId}">
                 <div class="map-tile-map" id="${mapContainerId}" style="flex: 1 1 0; min-height: 200px; width: 100%;"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);
+
+        let siteCount = this.sqs.resultManager.getModule("mosaic").getSiteCount() || 0;
+        this.setMosaicTileSubtitle(this.formatCount(siteCount)+(siteCount == 1 ? " site" : " sites"));
 
         if(this.renderNoDataIfNoSites()) {
             //"No data" takes the map's place, so the map has to be built anew once there are sites again
@@ -44,6 +47,12 @@ class MosaicMapModule extends MosaicTileModule {
             }
             return;
         }
+
+        let openMapButton = $("<button type='button' class='sqs-btn mosaic-map-open-btn'>Open in Map view</button>");
+        openMapButton.on("click", () => {
+            $.event.trigger("seadResultMenuSelection", { selection: "map" });
+        });
+        $("#"+varId).append(openMapButton);
 
         // Render the map into the inner map container
         if(this.resultMap == null) {
@@ -70,6 +79,7 @@ class MosaicMapModule extends MosaicTileModule {
     async update() {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
         if(this.resultMap != null && resultMosaic.sites.length > 0) {
+            this.setMosaicTileSubtitle(this.formatCount(resultMosaic.sites.length)+(resultMosaic.sites.length == 1 ? " site" : " sites"));
             this.resultMap.update();
         }
         else {

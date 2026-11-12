@@ -1,3 +1,4 @@
+import { nanoid } from "nanoid";
 import MosaicTileModule from "./MosaicTileModule.class";
 
 class MosaicTaxaListModule extends MosaicTileModule {
@@ -12,8 +13,14 @@ class MosaicTaxaListModule extends MosaicTileModule {
         this.active = true;
         this.data = null;
         this.renderIntoNode = null;
-        this.chartType = "table";
+        this.chartType = "html";
         this.showChartSelector = false;
+        this.endpoint = "/graphs/toptaxa";
+        this.linkTaxa = true; //Whether a taxon opens its page when clicked
+        this.topCount = 10;
+        this.showAll = false;
+        this.view = "chart";
+        this.requestId = 0;
     }
 
     async render(renderIntoNode = null) {
@@ -28,16 +35,15 @@ class MosaicTaxaListModule extends MosaicTileModule {
         }
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        let requestId = ++this.requestId;
 
-        // Clear previous content
         $(this.renderIntoNode).empty();
 
-        // Create a container with a header/title bar and a dedicated table container
-        const varId = (typeof nanoid === 'function') ? nanoid() : Math.random().toString(36).substr(2, 9);
-        const tableContainerId = `table-container-${varId}`;
+        const varId = nanoid();
+        const chartContainerId = `chart-container-${varId}`;
         const tileHtml = `
             <div class="mosaic-tile-content" id="${varId}">
-                <div class="taxa-list-tile-table" id="${tableContainerId}" style="flex: 1 1 0; width: 100%; overflow-y: auto;"></div>
+                <div class="mosaic-tile-chart" id="${chartContainerId}"></div>
             </div>
         `;
         $(this.renderIntoNode).append(tileHtml);
@@ -46,100 +52,104 @@ class MosaicTaxaListModule extends MosaicTileModule {
             return;
         }
 
-        this.sqs.setLoadingIndicator(`#${tableContainerId}`, true);
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);
 
-        let response = await fetch(this.sqs.config.dataServerAddress+"/graphs/toptaxa", {
-            method: "POST",
-            mode: "cors",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(resultMosaic.sites)
-        });
+        let response = await super.fetchData(this.endpoint, JSON.stringify(resultMosaic.sites));
+        if(!response) {
+            return false;
+        }
         let data = await response.json();
+
+        if(requestId != this.requestId) {
+            return; //A newer render has taken over
+        }
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
 
         //Check if we're still active and don't render if we're not
         if(this.active == false) {
             console.log("Not rendering "+this.name+" because it's no longer active");
+            this.renderComplete = true;
             return false;
         }
 
-        this.data = data;
+        this.data = Array.isArray(data) ? data : [];
 
-        let renderMaxCount = 15;
-
-        // calculate maximum abundance so we can show a proportional background bar per row
-        let maxAbundance = 0;
-        if(Array.isArray(data) && data.length) {
-            maxAbundance = data.reduce((m, it) => {
-                const v = Number(it.abundance) || 0;
-                return v > m ? v : m;
-            }, 0);
+        if(this.data.length == 0) {
+            this.renderNoData();
+            this.renderComplete = true;
+            return;
         }
 
-        // render the data as a compact div list with integrated thin bars under each item
-        let out = "";
-        out += "<div class='mosaic-top-taxa-container mosaic-top-taxa-container-linked'>";
-        out += "<div class='mosaic-top-taxa-list-container' style='width:100%;'>";
-        // header row
-        out += "<div style='display:flex; justify-content:space-between; font-weight:600; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.06);'>";
-        out += "<div>Taxon</div>";
-        out += "<div>Count</div>";
-        out += "</div>";
-
-        // items
-        data.forEach((item) => {
-            if(renderMaxCount-- <= 0) {
-                return;
-            }
-
-            // compute percentage of the max abundance (0-100)
-            let pct = 0;
-            if(maxAbundance > 0) {
-                pct = (Number(item.abundance) || 0) / maxAbundance * 100;
-                pct = Math.min(100, Math.round(pct * 100) / 100);
-            }
-
-            out += "<div class='taxa-item' style='padding:2px 0; border-bottom:1px solid rgba(0,0,0,0.03);'>";
-            out += "<div style='display:flex; justify-content:space-between; align-items:center;'>";
-            if(item.family && item.genus && item.species) {
-                out += "<div style='flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'>"+this.sqs.formatTaxon(item, null, true, true)+"</div>";
-            }
-            else {
-                out += "<div style='flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'>Taxon id "+item.taxon_id+"</div>";
-            }
-            out += "<div style='margin-left:12px; flex:0 0 auto; text-align:right; white-space:nowrap;'>"+item.abundance.toLocaleString(navigator.language)+"</div>";
-            out += "</div>";
-
-            // integrated ultra-thin bar (2px) with minimal spacing so it takes almost no extra space
-            out += "<div style='margin-top:2px; height:2px; display:block; overflow:visible;'>";
-            out += "<div class='taxa-item-count-bar' style='height:2px; width:"+pct+"%;'></div>";
-            out += "</div>";
-
-            out += "</div>";
+        this.renderViewToggle([{ id: "chart", label: "Chart" }, { id: "table", label: "Table" }], () => {
+            this.renderView();
         });
-        out += "</div>"; // .mosaic-top-taxa-list-container
-        out += "</div>"; // .mosaic-top-taxa-container
-
-        const $tableContainer = $(`#${tableContainerId}`);
-        this.sqs.setLoadingIndicator(`#${tableContainerId}`, false);
-        $tableContainer.html(out);
-        $tableContainer.off(".mosaicTaxaListLinkHover");
-        $tableContainer.on("mouseenter.mosaicTaxaListLinkHover focusin.mosaicTaxaListLinkHover", ".taxon-link", function() {
-            $(this).closest(".taxa-item").addClass("taxa-item-link-hover");
-        });
-        $tableContainer.on("mouseleave.mosaicTaxaListLinkHover focusout.mosaicTaxaListLinkHover", ".taxon-link", function() {
-            $(this).closest(".taxa-item").removeClass("taxa-item-link-hover");
-        });
+        this.renderView();
         this.renderComplete = true;
+    }
+
+    getTaxonName(item, html) {
+        if(item.family && item.genus && item.species) {
+            return this.sqs.formatTaxon(item, null, html, false);
+        }
+        return "Taxon id "+item.taxon_id;
+    }
+
+    renderView() {
+        let chartNode = this.getChartNode();
+        let baseColor = this.sqs.color.colors.baseColor;
+
+        let rows = this.data.slice().sort((a, b) => (Number(b.abundance) || 0) - (Number(a.abundance) || 0)).map(item => {
+            let abundance = Number(item.abundance) || 0;
+            let row = {
+                label: this.getTaxonName(item, false),
+                labelHtml: this.getTaxonName(item, true),
+                value: abundance,
+                valueText: this.formatCount(abundance),
+                color: baseColor,
+                title: this.getTaxonName(item, false)+" · abundance "+this.formatCount(abundance)
+            };
+            if(this.linkTaxa) {
+                row.href = "/taxon/"+item.taxon_id;
+                row.actionText = "open the taxon";
+                row.onClick = () => {
+                    this.sqs.taxaModule.renderTaxon(item.taxon_id);
+                };
+            }
+            return row;
+        });
+
+        //The server only returns the most abundant taxa, not all of them, so rows.length is not the total number of taxa
+        let shownCount = this.view == "chart" && !this.showAll ? Math.min(rows.length, this.topCount) : rows.length;
+        this.setMosaicTileSubtitle("Summed abundance · top "+shownCount+" taxa");
+
+        if(this.view == "table") {
+            this.renderDataTable(chartNode, [
+                { title: "Family" },
+                { title: "Taxon" },
+                { title: "Abundance", numeric: true }
+            ], this.data.map(item => [
+                item.family || "",
+                item.genus && item.species ? item.genus+" "+item.species : "Taxon id "+item.taxon_id,
+                this.formatCount(Number(item.abundance) || 0)
+            ]));
+            return;
+        }
+
+        this.renderRankedBars(chartNode, this.showAll ? rows : rows.slice(0, this.topCount), { wideLabels: true });
+
+        if(rows.length > this.topCount) {
+            let toggleNode = $("<button type='button' class='sqs-link-btn mosaic-show-all-btn'></button>");
+            toggleNode.text("Show the top "+(this.showAll ? this.topCount : rows.length));
+            toggleNode.on("click", () => {
+                this.showAll = !this.showAll;
+                this.renderView();
+            });
+            chartNode.append(toggleNode);
+        }
     }
 
     async update() {
         this.render();
-    }
-
-    async fetchData() {
-        
     }
 
     getAvailableExportFormats() {
@@ -147,22 +157,7 @@ class MosaicTaxaListModule extends MosaicTileModule {
     }
 
     formatDataForExport(data, format = "json") {
-        if(format == "png") {
-            this.exportTopTaxaListAsPng(data, {
-                title: this.title,
-                maxRows: 15,
-                barColor: "rgba(0,123,255,0.8)",
-                resolveLabel: (item) => {
-                    if(item.family && item.genus && item.species) {
-                        return this.sqs.formatTaxon(item, null, true, false);
-                    }
-                    return "Taxon id " + item.taxon_id;
-                }
-            });
-            return data;
-        }
-
-        if(format == "csv") {
+        if(format == "csv" || format == "xlsx") {
             let includeColumns = ["abundance", "family", "genus", "species", "taxon_id"];
 
             //remove columns that we don't want to include

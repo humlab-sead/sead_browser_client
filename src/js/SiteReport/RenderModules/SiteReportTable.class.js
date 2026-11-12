@@ -36,7 +36,12 @@ class SiteReportTable {
 		this.rows = this.contentItem.data.rows;
 		this.rowsTooltips = this.contentItem.data.rowsTooltips;
 		this.tooltipIds = [];
-		
+		this.searchNode = null; //DOM node ref of the search box above the table
+		this.searchQuery = ""; //What the rows are currently searched for
+		this.searchTarget = null; //A specific row, and sub-row, the search is pinned to - see search()
+		this.searchMatches = null; //Row index -> the indexes of its sub-rows that matched (null meaning all of them), null when not searching
+		this.searchIndex = null; //The searchable text of each row and its sub-rows, built on the first search
+
 		this.contentItem.renderOptions.forEach((ro) => {
 			if(ro.type == "table") {
 				this.renderOptions = ro;
@@ -113,6 +118,7 @@ class SiteReportTable {
 		}
 
 		//Attach table to DOM
+		$(this.anchorNodeSelector).append(this.renderSearchBox());
 		$(this.anchorNodeSelector).append(this.tableNode);
 		
 		//Bind callbacks to any cell-buttons that might have been rendered - I apologize to future me for this nesting, it's not as bad as it looks
@@ -146,8 +152,8 @@ class SiteReportTable {
 			"autoWidth": false,
 			"paging": this.rows.length > this.pagingRows,
 			"bInfo": false,
-			"bFilter": false,
-			"sDom": '<"top"i>rt<"bottom"flp><"clear">',
+			"bFilter": true, //Searched from our own search box, see applySearch, so DataTables' one is left out of sDom
+			"sDom": '<"top"i>rt<"bottom"lp><"clear">',
 			"order": [[1, 'asc']],
 			"fnDrawCallback": (data) => {
 				//console.log("draw callback", data)
@@ -166,6 +172,7 @@ class SiteReportTable {
 		$(this.tableNode).on("draw.dt", (a, b, c, d, e) => {
 			if(this.hasSubTable() && $(b.nTable).hasClass("site-report-subtable") === false) {
 				this.resetAllSubTableExpansions();
+				this.expandSearchMatches();
 			}
 			
 			var currentRows = this.getCurrentlyDisplayedRows();
@@ -186,6 +193,261 @@ class SiteReportTable {
 			
 			this.makeSubTableAggregationBarBindings();
 		}
+
+		//A search made before the table was re-rendered still applies
+		if(this.searchQuery != "" || this.searchTarget != null) {
+			this.applySearch();
+		}
+	}
+
+	/*
+	* Function: renderSearchBox
+	*
+	* The search box above the table, which narrows the rows down as you type.
+	*/
+	renderSearchBox() {
+		this.searchNode = $(`<div class='site-report-table-search'>
+			<label class='site-report-table-search-row'>
+				<i class='fa fa-search' aria-hidden='true'></i>
+				<span class='visually-hidden'>Search the table</span>
+				<input class='site-report-table-search-input' type='search' placeholder='Search this table&hellip;' autocomplete='off' />
+			</label>
+			<span class='site-report-table-search-status' aria-live='polite'></span>
+		</div>`);
+
+		let searchTimeout = null;
+		let inputNode = $(".site-report-table-search-input", this.searchNode);
+		inputNode.val(this.searchQuery);
+		inputNode.on("input", () => {
+			clearTimeout(searchTimeout);
+			searchTimeout = setTimeout(() => {
+				this.search(inputNode.val());
+			}, 200);
+		});
+		inputNode.on("keydown", (evt) => {
+			if(evt.key == "Escape" && inputNode.val() != "") {
+				clearTimeout(searchTimeout);
+				this.search("");
+			}
+		});
+
+		return this.searchNode;
+	}
+
+	/*
+	* Function: search
+	*
+	* Narrows the table down to the rows matching the query - every word of it, anywhere in the row. A row with a subtable
+	* also matches when any of its sub-rows does, and is then expanded to show just those.
+	*
+	* With a target, the table is narrowed down to that one row, or sub-row, instead - for showing e.g. a sample clicked on
+	* a map - and the query is just what the search box shows.
+	*
+	* Parameters:
+	*  query - The text to search for
+	*  target - Optional, { rowId, subRowId } - the primary key value of a row, and optionally of a sub-row in its subtable
+	*
+	* Returns:
+	*  Whether anything was found
+	*/
+	search(query, target = null) {
+		this.searchQuery = query;
+		this.searchTarget = target;
+		$(".site-report-table-search-input", this.searchNode).val(query);
+		this.applySearch();
+
+		if(this.searchTarget != null) {
+			return this.revealSearchTarget();
+		}
+		return this.searchMatches == null || this.searchMatches.size > 0;
+	}
+
+	applySearch() {
+		if(!this.dt) {
+			return;
+		}
+
+		this.searchMatches = this.findSearchMatches();
+		if(this.searchMatches == null) {
+			this.dt.search.fixed("siteReportSearch", null);
+		}
+		else {
+			this.dt.search.fixed("siteReportSearch", (rowText, rowData, rowIndex) => this.searchMatches.has(rowIndex));
+		}
+		this.dt.draw(); //Which expands the rows that matched through their sub-rows, see expandSearchMatches
+
+		let status = "";
+		if(this.searchMatches != null) {
+			status = this.searchMatches.size.toLocaleString("en-GB")+" of "+this.rows.length.toLocaleString("en-GB")+" rows";
+		}
+		$(".site-report-table-search-status", this.searchNode).text(status);
+	}
+
+	findSearchMatches() {
+		if(this.searchTarget != null) {
+			return this.findSearchTargetMatches();
+		}
+
+		let terms = this.searchQuery.toLowerCase().split(/\s+/).filter(term => term != "");
+		if(terms.length == 0) {
+			return null;
+		}
+
+		if(this.searchIndex == null) {
+			this.searchIndex = this.buildSearchIndex();
+		}
+
+		let matches = new Map();
+		this.searchIndex.forEach((entry, rowIndex) => {
+			if(terms.every(term => entry.text.includes(term))) {
+				matches.set(rowIndex, null);
+				return;
+			}
+			//Words can match in the row as well as in the sub-row, so that a search can name both a sample group and a sample in it
+			let subRowIndexes = [];
+			entry.subRows.forEach((subRowText, subRowIndex) => {
+				if(terms.every(term => entry.text.includes(term) || subRowText.includes(term))) {
+					subRowIndexes.push(subRowIndex);
+				}
+			});
+			if(subRowIndexes.length > 0) {
+				matches.set(rowIndex, subRowIndexes);
+			}
+		});
+		return matches;
+	}
+
+	findSearchTargetMatches() {
+		let matches = new Map();
+		this.rows.forEach((row, rowIndex) => {
+			if(row[this.rowPkey].value != this.searchTarget.rowId) {
+				return;
+			}
+			let subRowIndexes = null;
+			if(this.hasSubTable() && this.searchTarget.subRowId != null) {
+				let subTable = row[this.getSubTableKey()].value;
+				let subTablePkey = subTable.columns.findIndex(column => column.pkey === true);
+				subRowIndexes = [];
+				subTable.rows.forEach((subRow, subRowIndex) => {
+					if(subRow[subTablePkey].value == this.searchTarget.subRowId) {
+						subRowIndexes.push(subRowIndex);
+					}
+				});
+				if(subRowIndexes.length == 0) {
+					subRowIndexes = null; //The sub-row isn't there, the row it should be in is the closest we get
+				}
+			}
+			matches.set(rowIndex, subRowIndexes);
+		});
+		return matches;
+	}
+
+	buildSearchIndex() {
+		return this.rows.map(row => {
+			let subRows = [];
+			if(this.hasSubTable()) {
+				let subTable = row[this.getSubTableKey()].value;
+				subRows = subTable.rows.map(subRow => this.getRowSearchText(subRow, subTable.columns));
+			}
+			return {
+				text: this.getRowSearchText(row, this.columns),
+				subRows: subRows
+			};
+		});
+	}
+
+	/*
+	* Function: getRowSearchText
+	*
+	* The text of a row's visible cells, as searched.
+	*/
+	getRowSearchText(row, columns) {
+		let texts = [];
+		for(let colKey in row) {
+			let cell = row[colKey];
+			let column = columns[colKey];
+			if(typeof column == "undefined" || cell == null || cell.type == "subtable" || column.dataType == "aggregation") {
+				continue;
+			}
+			if(column.hidden == true || column.hidden == "true") {
+				continue;
+			}
+			texts.push(this.getSearchableText(cell.value));
+			if(typeof cell.unit != "undefined" && cell.unit != null) {
+				texts.push(cell.unit);
+			}
+			if(typeof cell.data == "string") {
+				texts.push(cell.data); //E.g. the full text of a value which is shown shortened
+			}
+		}
+		return texts.join(" ").toLowerCase();
+	}
+
+	getSearchableText(value) {
+		if(typeof value == "undefined" || value == null || typeof value == "object") {
+			return "";
+		}
+		let text = value.toString().replace(/!%data:([\s\S]*?):!%tooltip:[\s\S]*?:!/g, "$1"); //Just the visible part of a value with a tooltip, see parseStringValueMarkup
+		if(/[<&]/.test(text)) {
+			//Parsed into a document which is never rendered, so nothing in it loads or runs
+			text = new DOMParser().parseFromString(text, "text/html").body.textContent;
+		}
+		return text;
+	}
+
+	/*
+	* Function: expandSearchMatches
+	*
+	* Expands the rows on the current page which matched the search through their sub-rows.
+	*/
+	expandSearchMatches() {
+		if(this.searchMatches == null) {
+			return;
+		}
+		this.dt.rows({ page: "current" }).indexes().each((rowIndex) => {
+			if(this.searchMatches.get(rowIndex)) {
+				this.triggerSubTable(this.rows[rowIndex].nodeId);
+			}
+		});
+	}
+
+	getSearchMatchedSubRows(row) {
+		if(this.searchMatches == null) {
+			return null;
+		}
+		let subRowIndexes = this.searchMatches.get(this.rows.indexOf(row));
+		return typeof subRowIndexes == "undefined" ? null : subRowIndexes;
+	}
+
+	/*
+	* Function: revealSearchTarget
+	*
+	* Scrolls to the row the search is pinned to and makes it flash, to catch the eye.
+	*/
+	revealSearchTarget() {
+		let targetNode = $();
+		this.searchMatches.forEach((subRowIndexes, rowIndex) => {
+			let rowNode = $("#"+this.rows[rowIndex].nodeId);
+			if(this.searchTarget.subRowId == null) {
+				targetNode = rowNode;
+			}
+			else if(subRowIndexes != null) {
+				targetNode = rowNode.next(".site-report-subtable-row").find("tr[subrow-index='"+subRowIndexes[0]+"']");
+			}
+		});
+
+		if(targetNode.length == 0) {
+			return false;
+		}
+
+		targetNode.removeClass("site-report-search-target");
+		targetNode[0].offsetWidth; //Reflow, so the flash starts over when it's the same row as last time
+		targetNode.addClass("site-report-search-target");
+		targetNode.one("animationend", () => {
+			targetNode.removeClass("site-report-search-target");
+		});
+		targetNode[0].scrollIntoView({ behavior: "smooth", block: "center" });
+		return true;
 	}
 
 	updateData(contentItem) {
@@ -196,6 +458,7 @@ class SiteReportTable {
 		this.columns = this.contentItem.data.columns;
 		this.rows = this.contentItem.data.rows;
 		this.rowsTooltips = this.contentItem.data.rowsTooltips;
+		this.searchIndex = null;
 
 		this.render(this.anchorNodeSelector);
 
@@ -214,6 +477,9 @@ class SiteReportTable {
 		}
 		if(this.tableNodeId) {
 			$("#"+this.tableNodeId).remove();
+		}
+		if(this.searchNode) {
+			this.searchNode.remove();
 		}
 	}
 
@@ -349,7 +615,7 @@ class SiteReportTable {
 	resetAllSubTableExpansions() {
 		for(var key in this.rows) {
 			this.unrenderSubTable(this.rows[key].nodeId)
-			this.rows[key][this.getSubTableKey()].expanded = false;
+			this.rows[key][this.getSubTableKey()].value.expanded = false;
 		}
 	}
 
@@ -389,7 +655,21 @@ class SiteReportTable {
 		}
 	}
 
+	getColumnKeyByRole(role) {
+		for(let key in this.columns) {
+			if(this.columns[key].role == role) {
+				return key;
+			}
+		}
+		return null;
+	}
+
 	renderTableRow(row) {
+		//The sample names link to the sample, if the table says which of its columns are the sample's name and id
+		let sampleNameColKey = this.getColumnKeyByRole("sample_name");
+		let sampleIdColKey = this.getColumnKeyByRole("sample_id");
+		let physicalSampleId = sampleIdColKey != null && row[sampleIdColKey] ? row[sampleIdColKey].value : null;
+
 		let rowClasses = "site-report-table-row subtable-collapsed";
 		if(this.hasSubTable()) {
 			rowClasses += " site-report-table-row-with-subtable"
@@ -470,6 +750,9 @@ class SiteReportTable {
 					if(unit != null) {
 						cellContent = cellContent+" "+unit;
 					}
+					if(colKey == sampleNameColKey && physicalSampleId != null) {
+						cellContent = "<a href='#' class='site-report-sample-link' data-physical-sample-id='"+physicalSampleId+"'>"+cellContent+"</a>";
+					}
 					var cellNode = $("<td id='"+cellNodeId+"' class='"+colClasses+"'>"+cellContent+"</td>");
 					rowNode.append(cellNode);
 				}
@@ -483,6 +766,13 @@ class SiteReportTable {
 			let chevronNode = $('<td class="site-report-expand-chevron"><i class="fa fa-chevron-right"></i></td>');
 			rowNode.prepend(chevronNode);
 		}
+
+		//Shows the sample in a dialog, without also expanding the row's subtable
+		$(".site-report-sample-link", rowNode).on("click", (evt) => {
+			evt.preventDefault();
+			evt.stopPropagation();
+			this.siteReport.showSample($(evt.currentTarget).attr("data-physical-sample-id"));
+		});
 
 		$(rowNode).on("click", (evt) => {
 			var rowNode = $(evt.currentTarget);
@@ -507,7 +797,7 @@ class SiteReportTable {
 		}
 		
 		if(subTable.expanded === false) {
-			this.renderSubTable(rowNodeId, subTable);
+			this.renderSubTable(rowNodeId, subTable, this.getSearchMatchedSubRows(row));
 			subTable.expanded = true;
 		}
 		else {
@@ -758,14 +1048,26 @@ class SiteReportTable {
 		}
 	}
 
-	renderSubTable(rowNodeId, subTable) {
+	/*
+	* Function: renderSubTable
+	*
+	* Parameters:
+	*  rowNodeId - The row to render the subtable under
+	*  subTable - The subtable
+	*  visibleSubRows - Optional, the indexes of the sub-rows to show, e.g. the ones matching a search - all of them if null
+	*/
+	renderSubTable(rowNodeId, subTable, visibleSubRows = null) {
 
 		$("#"+rowNodeId).addClass("table-row-expanded");
 		$("#"+rowNodeId+" .site-report-expand-chevron i").removeClass("fa-chevron-right").addClass("fa-chevron-down");
-		
+
 		let subTableId = "subtable-"+nanoid();
-		
-		var subTableHtml = "<div id='subtable-container-"+subTableId+"'><table id='"+subTableId+"' class='site-report-subtable'><thead>";
+
+		var subTableHtml = "<div id='subtable-container-"+subTableId+"'>";
+		if(visibleSubRows != null) {
+			subTableHtml += "<div class='site-report-subtable-search-note'>"+visibleSubRows.length.toLocaleString("en-GB")+" of "+subTable.rows.length.toLocaleString("en-GB")+" rows match the search</div>";
+		}
+		subTableHtml += "<table id='"+subTableId+"' class='site-report-subtable'><thead>";
 		subTableHtml += "<tr>";
 		subTable.columns.forEach((d, i) => {
 			let render = true;
@@ -781,7 +1083,10 @@ class SiteReportTable {
 		subTableHtml += "</thead><tbody>";
 
 		subTable.rows.forEach((row, i) => {
-			subTableHtml += "<tr>";
+			if(visibleSubRows != null && !visibleSubRows.includes(i)) {
+				return;
+			}
+			subTableHtml += "<tr subrow-index='"+i+"'>";
 			for(var vk in row) {
 				let render = true;
 				if(subTable.columns[vk].hasOwnProperty("hidden") && subTable.columns[vk].hidden) {
@@ -821,9 +1126,10 @@ class SiteReportTable {
 
 		$(rowHtml).insertAfter($("#"+rowNodeId).first()).show();
 
+		let visibleSubRowsNum = visibleSubRows != null ? visibleSubRows.length : subTable.rows.length;
 		$("#"+subTableId).DataTable({
 			"responsive": true,
-			"paging": subTable.rows.length > this.pagingRows,
+			"paging": visibleSubRowsNum > this.pagingRows,
 			"bInfo": false,
 			"bFilter": false,
 			"sDom": '<"top"i>rt<"bottom"flp><"clear">',

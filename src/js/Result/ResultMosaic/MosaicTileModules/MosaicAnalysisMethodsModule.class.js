@@ -7,6 +7,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         super();
         this.sqs = sqs;
         this.title = "Analytical methods";
+        this.description = "The analysis methods of the datasets at the sites in the result, by their share of the datasets. Click a method to add it as a filter.";
 		this.name = "mosaic-analysis-methods";
 		this.domains = ["general", "palaeo", "archaeobotany", "isotopes"];
         this.pendingRequestPromise = null;
@@ -15,8 +16,11 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         this.renderIntoNode = null;
         this.plot = null;
         this.renderComplete = false;
-        this.chartType = "plotly";
+        this.chartType = "html";
         this.showChartSelector = false;
+        this.topCount = 5;
+        this.view = "chart";
+        this.requestId = 0;
     }
 
     async render(renderIntoNode = null) {
@@ -31,11 +35,10 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         }
         this.active = true;
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
+        let requestId = ++this.requestId;
 
-        // Clear previous content
         $(this.renderIntoNode).empty();
 
-        // Create a container with the shared mosaic tile header and chart container
         const varId = nanoid();
         const chartContainerId = `chart-container-${varId}`;
         const tileHtml = `
@@ -49,7 +52,6 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
             return;
         }
 
-        // Show loading indicator on the chart container only
         this.sqs.setLoadingIndicator(`#${chartContainerId}`, true);
 
         let response = await super.fetchData("/graphs/analysis_methods", JSON.stringify(resultMosaic.sites));
@@ -58,54 +60,79 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
         }
 
         let data = await response.json();
+        if(requestId != this.requestId) {
+            return; //A newer render has taken over
+        }
         this.data = data.analysis_methods_datasets;
+        this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
 
-        // Fallback color palette if not found in config
-        const fallbackColors = this.sqs.color.getColorScheme(data.analysis_methods_datasets.length);
+        if(this.data.length == 0) {
+            this.renderNoData();
+            this.renderComplete = true;
+            return;
+        }
 
-        let chartData = [{
-            labels: [],
-            values: [],
-            customdata: [],
-            marker: {
-                colors: [],
-                line: {
-                    color: "#fff",
-                    width: 1
-                }
-            },
-            insidetextfont: {
-                color: []
-            },
-            // Keep the family grouping from compareAnalysisMethods instead of letting plotly sort by size
-            sort: false,
-            type: 'pie',
-            hole: 0.4,
-            name: "Analysis methods by datasets",
-            hoverinfo: 'label+percent',
-            textinfo: 'label+percent',
-            textposition: "inside",
-            hovertemplate: "%{percent} of datasets are %{customdata}<extra></extra>"
-        }];
+        this.renderViewToggle([{ id: "chart", label: "Chart" }, { id: "table", label: "Table" }], () => {
+            this.renderView();
+        });
+        this.renderView();
+        this.renderComplete = true;
+    }
 
-        data.analysis_methods_datasets.sort((a, b) => this.sqs.color.compareAnalysisMethods(a, b));
+    getMethodColor(method, index) {
+        return this.sqs.color.getAnalysisMethodColor(method.method_id) || this.sqs.color.getColorScheme(this.data.length)[index % this.data.length];
+    }
 
-        data.analysis_methods_datasets.forEach((method, idx) => {
-            chartData[0].labels.push(method.method_abbrev_or_alt_name);
-            chartData[0].values.push(method.dataset_count);
-            chartData[0].customdata.push(method.method_name);
-            // Use config color if available, else fallback
-            const color = this.sqs.color.getAnalysisMethodColor(method.method_id) || fallbackColors[idx % fallbackColors.length];
-            chartData[0].marker.colors.push(color);
-            chartData[0].insidetextfont.color.push(this.sqs.color.getContrastingTextColor(color));
+    renderView() {
+        let chartNode = this.getChartNode();
+        let methods = this.data.slice().sort((a, b) => b.dataset_count - a.dataset_count);
+        let datasetCount = methods.reduce((sum, method) => sum + method.dataset_count, 0);
+
+        let rows = methods.map((method, index) => {
+            let share = datasetCount > 0 ? method.dataset_count / datasetCount : 0;
+            return {
+                label: method.method_name,
+                value: share * 100,
+                valueText: this.formatShare(share),
+                datasetCount: method.dataset_count,
+                color: this.getMethodColor(method, index),
+                title: method.method_name+" · "+this.formatCount(method.dataset_count)+(method.dataset_count == 1 ? " dataset" : " datasets"),
+                selected: this.isFilterSelection("dataset_methods", method.method_id),
+                onClick: this.getFilterToggleCallback("dataset_methods", method.method_id)
+            };
         });
 
-        this.sqs.setLoadingIndicator(`#${chartContainerId}`, false);
-        // Render the Plotly chart into the tile chart container
-        resultMosaic.renderPieChartPlotly(`#${chartContainerId}`, chartData, { showlegend: false }).then(plot => {
-            this.plot = plot;
-        })
-        this.renderComplete = true;
+        let shownRows = this.takeTopItems(rows, this.topCount, rest => {
+            let restCount = rest.reduce((sum, row) => sum + row.datasetCount, 0);
+            let share = datasetCount > 0 ? restCount / datasetCount : 0;
+            return {
+                label: rest.length+" other methods",
+                value: share * 100,
+                valueText: this.formatShare(share),
+                datasetCount: restCount,
+                color: "#c8c8c8",
+                title: rest.map(row => row.label).join(", "),
+                other: true
+            };
+        });
+
+        let subtitle = "Share of "+this.formatCount(datasetCount)+(datasetCount == 1 ? " dataset" : " datasets");
+        if(shownRows.length < rows.length) {
+            subtitle += " · top "+this.topCount+" + other";
+        }
+        this.setMosaicTileSubtitle(subtitle);
+
+        if(this.view == "table") {
+            this.renderDataTable(chartNode, [
+                { title: "Method" },
+                { title: "Datasets", numeric: true },
+                { title: "Share", numeric: true }
+            ], rows.map(row => [{ text: row.label, color: row.color }, this.formatCount(row.datasetCount), row.valueText]));
+            return;
+        }
+
+        this.renderShareStrip(chartNode, shownRows);
+        this.renderRankedBars(chartNode, shownRows, { showSwatches: true, axisFormat: tick => tick+" %" });
     }
 
     async update() {
@@ -117,7 +144,7 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
     }
 
     formatDataForExport(data, format = "json") {
-        if(format == "csv") {
+        if(format == "csv" || format == "xlsx") {
             let includeColumns = ["description","method_abbrev_or_alt_name","method_name","dataset_count"];
 
             //remove columns that we don't want to include
@@ -128,10 +155,6 @@ class MosaicAnalysisMethodsModule extends MosaicTileModule {
                 });
                 return newItem;
             });
-        }
-        if(format == "png") {
-            let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-            resultMosaic.exportPieChartPlotly(this.renderIntoNode, this.plot);
         }
 
         return data;

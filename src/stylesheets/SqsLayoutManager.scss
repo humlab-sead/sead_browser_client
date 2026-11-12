@@ -6,87 +6,90 @@
     display: none;
     position: absolute;
     left: 0;
-    top: 0;
+    top: var(--sqs-header-height);
     margin: 0px;
     padding: 0px;
 }
 
-#site-report-main-container .section-left {
-    height: calc(100vh - #{sqs-px(87 + 21)});
-}
-
-#site-report-main-container .section-right {
-    height: calc(100vh - #{sqs-px(87 + 21)});
-}
-
 .section-left {
-    border-top: 0px solid $inactive-color;
-    background-color: #fff;
+    box-sizing: border-box;
+    background-color: $page-bg-color;
     margin: 0px;
     position: relative;
     
     overflow-x: hidden;
     overflow-y: auto;
-    height: calc(100vh - 0px);
-    transition: min-width 0.3s ease, max-width 0.3s ease;
+    height: calc(100vh - var(--sqs-header-height));
+    //The widths of both sections follow from this one property, set on the container by SqsView
+    width: var(--section-left-width, 30vw);
 }
 
 .section-right {
+    box-sizing: border-box;
     position: relative;
     margin: 0px;
-    
-    border-left-style: solid;
-    border-left-width: 1px;
-    border-left-color: rgba(6, 6, 9, 0.1);
 
     overflow-x: hidden;
     overflow-y: auto;
-    height: calc(100vh - 0px);
-    width: 100%;
-    transition: min-width 0.3s ease, max-width 0.3s ease;
+    height: calc(100vh - var(--sqs-header-height));
+    width: calc(100vw - var(--section-left-width, 30vw));
 }
 
-/* Custom resize handle */
+/* Only programmatic size changes are animated - dragging the divider and resizing the window follow directly */
+.sections-animating > .section-left,
+.sections-animating > .section-right {
+    transition: width 0.3s ease;
+}
+
+/* The divider sits on the boundary between the sections, taking no width of its own */
+.section-divider {
+    position: relative;
+    flex: none;
+    width: 0px;
+    z-index: 3;
+}
+
+/* Custom resize handle - a thin line which is always visible, so that the sections read as separate */
 .custom-resize-handle {
+    display: none;
     position: absolute;
     top: 0;
-    right: 0;
-    width: 8px;
-    height: 100%;
-    background-color: transparent;
+    bottom: 0;
+    left: -6px;
+    width: 12px;
     cursor: col-resize;
-    transition: background-color 0.2s ease;
 }
 
-/* Add hover effect for normal state */
-.custom-resize-handle:hover {
-    background-color: $inactive-color;
+.custom-resize-handle::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    transform: translateX(-50%);
+    background-color: $control-border-color;
+    transition: width 0.15s ease, background-color 0.15s ease;
 }
 
-.custom-resize-handle.hover-highlight {
-    background-color: $inactive-color;
+.custom-resize-handle:hover::before,
+.custom-resize-handle.hover-highlight::before,
+body.resizing .custom-resize-handle::before {
+    width: 3px;
+    background-color: $base-color;
 }
 
-/* Also make it visible during active dragging */
-body.resizing .custom-resize-handle {
-    background-color: $inactive-color;
+/* When a section is collapsed, its edge of the screen is where the divider ends up - so keep the handle inside the screen */
+.left-section-collapsed .custom-resize-handle {
+    left: 0px;
 }
 
-/* Style for when the section is collapsed */
-.handle-collapsed {
-    position: fixed; /* Change from absolute to fixed positioning */
-    right: auto;
-    left: 0;  /* Position at the left edge of viewport when collapsed */
-    background-color: rgba(150, 150, 150, 0.5); /* Make slightly more visible */
-    width: 8px;
-    height: 100vh; /* Full viewport height */
-    z-index: 1002; /* Ensure it's above other elements */
+.right-section-collapsed .custom-resize-handle {
+    left: -12px;
 }
 
-/* Make the handle more visible when hovered */
-.handle-collapsed:hover {
-    background-color: $inactive-color;
-    width: 10px; /* Slightly wider on hover for better usability */
+.section-divider-active.right-section-collapsed + .section-right {
+    display: none;
 }
 
 body.resizing {
@@ -123,68 +126,70 @@ body.resizing {
     background-color: color.adjust($success-color, $lightness: -8%);
 }
 
+/* The collapse buttons sit as a small pill on the middle of the drag handle */
+.section-collapse-controls {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 0px;
+    transform: translate(-50%, -50%);
+    flex-direction: column;
+    overflow: hidden;
+    background-color: $card-bg-color;
+    border: 1px solid $control-border-color;
+    border-radius: 999px;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.section-divider-active .custom-resize-handle {
+    display: block;
+}
+
+.section-divider-active .section-collapse-controls {
+    display: flex;
+}
+
+.left-section-collapsed .section-collapse-controls {
+    transform: translate(0%, -50%);
+    border-left: none;
+    border-radius: 0 999px 999px 0;
+}
+
+.right-section-collapsed .section-collapse-controls {
+    transform: translate(-100%, -50%);
+    border-right: none;
+    border-radius: 999px 0 0 999px;
+}
+
 .filter-section-toggle-button {
-    display: flex; //flex
-	visibility: visible;
-	position: relative;
-	top: calc(50vh - 2em);
-    left: 5px;
-    height: auto;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2em;
+    width: 20px;
+    height: 26px;
+    padding: 0px;
+    border: none;
+    background: none;
+    color: $text-muted-color;
+    font-size: 16px;
+    line-height: 26px;
+    text-align: center;
     cursor: pointer;
-    z-index: 1;
-    padding-top: 0em;
-    padding-bottom: 0em;
-}
-
-.only-left-section-active {
-    transform: scaleX(-1);
-    position: relative;
-    margin-left: 17px;
-}
-
-.only-right-section-active {
-    left: 8px;
+    transition: color 0.15s ease, background-color 0.15s ease;
 }
 
 .filter-section-toggle-button:hover {
-    color: $aux-color;
+    color: $base-color;
+    background-color: $pane-bg-color;
 }
 
-.filter-section-toggle-button:hover .filter-toggle-icon path {
-    fill: $aux-color !important;
+.filter-section-toggle-button:focus-visible {
+    outline: 2px solid $base-color;
+    outline-offset: -2px;
 }
 
-#filter-section-toggle-button-right {
-    margin-top: -15px;
-}
-
-.only-right-section-active .filter-toggle-icon {
+/* The button left on a collapsed section brings it back, so it points the other way */
+.left-section-collapsed .filter-section-toggle-button i,
+.right-section-collapsed .filter-section-toggle-button i {
+    display: inline-block;
     transform: scaleX(-1);
-}
-
-.filter-toggle-icon-container {
-    position: relative;
-    left: 6px;
-}
-
-#filter-section-toggle-button-left .filter-toggle-icon {
-    transform: scaleX(-1);
-    
-}
-
-#filter-section-toggle-button-left.flipped .filter-toggle-icon {
-    transform: scaleX(1);
-}
-
-#filter-toggle-text {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    font-size: 0.9em;
-    font-weight: bold;
 }
 
 .full-section {

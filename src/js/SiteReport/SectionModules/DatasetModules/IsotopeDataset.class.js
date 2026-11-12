@@ -64,11 +64,18 @@ class IsotopeDataset extends DatasetModule {
             },
             {
                 "dataType": "string",
-                "title": "Sample"
+                "title": "Sample",
+                "role": "sample_name"
             },
             {
                 "dataType": "string",
                 "title": "Preparation method"
+            },
+            {
+                "dataType": "number",
+                "title": "Sample id",
+                "hidden": true,
+                "role": "sample_id"
             }
         ];
 
@@ -198,6 +205,8 @@ class IsotopeDataset extends DatasetModule {
                     });
                 }
 
+                let sample = this.getSampleById(siteData, ae.physical_sample_id);
+
                 let row = [
                     {
                         "type": "subtable",
@@ -211,12 +220,17 @@ class IsotopeDataset extends DatasetModule {
                     {
                         "type": "cell",
                         "tooltip": "",
-                        "value": ae.physical_sample_id
+                        "value": sample != null ? sample.sample_name : ae.physical_sample_id+" (internal id)"
                     },
                     {
                         "type": "cell",
                         "tooltip": prepMethodDesc,
                         "value": prepMethodString
+                    },
+                    {
+                        "type": "cell",
+                        "tooltip": "",
+                        "value": ae.physical_sample_id
                     }
                 ];
 

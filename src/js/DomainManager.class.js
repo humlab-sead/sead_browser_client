@@ -97,8 +97,53 @@ class DomainManager {
 
     }
     
+    /*
+    * Function: confirmDomainSwitch
+    * Switching domain removes all the filters, so the user is asked first if there are any.
+    * Only for when the user picks a domain - a viewstate or the URL setting one doesn't ask.
+    */
+    confirmDomainSwitch(domain) {
+        if(domain.name == this.activeDomain.name) {
+            return true;
+        }
+        let filterCount = this.sqs.facetManager.facets.filter(facet => !facet.virtual && !facet.deleted).length;
+        if(filterCount == 0) {
+            return true;
+        }
+        let filtersText = filterCount == 1 ? "the filter" : "all "+filterCount+" filters";
+        return window.confirm("Switching to the "+domain.title+" domain will remove "+filtersText+" you have added. Do you still wish to do this?");
+    }
+
+    /*
+    * Function: switchDomain
+    * Switches to the domain as when the user picks it in the domain menu, asking first if there are filters to lose.
+    *
+    * Returns:
+    * false if the domain doesn't exist or the user chose not to switch, otherwise true.
+    */
+    switchDomain(domainName) {
+        let domain = this.getDomain(domainName);
+        if(!domain || domain.enabled === false || !this.confirmDomainSwitch(domain)) {
+            return false;
+        }
+        this.setActiveDomain(domain.name);
+        this.renderDomainButton();
+        return true;
+    }
+
     updateMenu() {
         this.sqs.menuManager.createMenu(this.sqsMenu());
+        this.renderDomainButton();
+    }
+
+    /*
+    * Function: renderDomainButton
+    * The button above the filters which opens the domain menu says which domain is active.
+    */
+    renderDomainButton() {
+        let domain = this.getActiveDomain();
+        $("#domain-text .selected-domain-text").text(domain.title);
+        $("#domain-menu .domain-menu-swatch").css("background-color", domain.color);
     }
 
     /*
@@ -115,53 +160,12 @@ class DomainManager {
             triggers: [{
 				selector: "#domain-menu",
 				on: "click"
-			},
-            {
-				selector: "#filter-menu-domain-area",
-				on: "click"
 			}],
             callbacks: [{
                 selector: "#domain-menu",
-                on: "mouseover",
-                callback: () => {
-                    this.sqs.svgSetFill($("#domain-menu")[0], "#666");
-                    $("#filter-menu-domain-area").css("background", "#666");
-                }
-            },
-            {
-                selector: "#filter-menu-domain-area",
-                on: "mouseover",
-                callback: () => {
-                    this.sqs.svgSetFill($("#domain-menu")[0], "#666");
-                    $("#filter-menu-domain-area").css("background", "#666");
-                }
-            },
-            {
-                selector: "#domain-menu",
-                on: "mouseout",
-                callback: () => {
-                    let domain = this.getActiveDomain();
-                    this.sqs.svgSetFill($("#domain-menu")[0], domain.color);
-                    $("#filter-menu-domain-area").css("background", domain.color);
-                }
-            },
-            {
-                selector: "#filter-menu-domain-area",
-                on: "mouseout",
-                callback: () => {
-                    let domain = this.getActiveDomain();
-                    this.sqs.svgSetFill($("#domain-menu")[0], domain.color);
-                    $("#filter-menu-domain-area").css("background", domain.color);
-                }
-            },
-            {
-                selector: "#domain-menu",
                 on: "selectionchange",
                 callback: () => {
-                    let domain = this.getActiveDomain();
-                    $("#domain-text .selected-domain-text").text(domain.title);
-                    this.sqs.svgSetFill($("#domain-menu")[0], domain.color);
-                    $("#filter-menu-domain-area").css("background", domain.color);
+                    this.renderDomainButton();
                 }
             }],
             customStyleClasses: "sqs-menu-block-vertical-flexible",
@@ -180,10 +184,13 @@ class DomainManager {
                     title: "<span style='color:"+domain.color+";'>"+domain.icon+"</span> "+domain.title,
                     staticSelection: domain.name == selectedDomain.name,
                     callback: () => {
-                        this.setActiveDomain(domain.name);
-                        $("#domain-text > .selected-domain-text").text(domain.title);
-                        $("#domain-menu").css("fill", domain.color);
-                        $("#filter-menu-domain-area").css("background", domain.color);
+                        if(!this.switchDomain(domain.name)) {
+                            //The menu has already marked the new domain as selected
+                            let menu = this.sqs.menuManager.getMenuByAnchor("#domains-menu-anchor-point");
+                            if(menu !== false) {
+                                menu.setSelected(this.activeDomain.name);
+                            }
+                        }
                     }
                 });
             }

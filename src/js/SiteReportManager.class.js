@@ -70,6 +70,32 @@ class SiteReportManager {
 		return offerData;
 	}
 	
+	/*
+	* Function: fetchSiteLocations
+	*
+	* Every site that has coordinates, for the map in the site report. Fetched once and then reused,
+	* so going from one site report to the next doesn't fetch them again.
+	*/
+	fetchSiteLocations() {
+		if(!this.siteLocationsPromise) {
+			this.siteLocationsPromise = new Promise((resolve, reject) => {
+				$.ajax(this.sqs.config.siteReportServerAddress+"/tbl_sites?select=site_id,site_name,latitude_dd,longitude_dd&latitude_dd=not.is.null&longitude_dd=not.is.null", {
+					method: "get",
+					dataType: "json",
+					success: (data) => {
+						resolve(data);
+					},
+					error: (xhr, textStatus, errorThrown) => {
+						//Let the next site report try again
+						this.siteLocationsPromise = null;
+						reject(errorThrown);
+					}
+				});
+			});
+		}
+		return this.siteLocationsPromise;
+	}
+
 	renderSiteReport(siteId, updateHistory = true) {
 		if(updateHistory) {
 			var stateObj = {};
@@ -91,6 +117,14 @@ class SiteReportManager {
 					if(this.sqs.seoManager) {
 						this.sqs.seoManager.setNotFoundMeta("/site/"+siteId);
 					}
+
+					//There's no site report to show, so send the user to the main page once they've read the message.
+					//The URL is replaced rather than pushed, so going back doesn't land on the missing site again.
+					this.sqs.sqsEventListen("popOverClosed", () => {
+						this.sqs.sqsEventUnlisten("popOverClosed", this);
+						history.replaceState({}, "", "/");
+						this.sqs.router.route("/");
+					}, this);
 				}
 				else {
 					let siteName = data[0].site_name || data[0].name || data[0].site || null;
@@ -145,6 +179,20 @@ class SiteReportManager {
 		this.sqs.matomoTrackPageView("Filter view");
 	}
 	
+	/*
+	* Function: getResultSiteIds
+	*
+	* The sites in the current result, in the order the result view shows them, so a site report
+	* can step to the previous and next one. Empty when there is no result yet.
+	*/
+	getResultSiteIds() {
+		let module = this.sqs.resultManager ? this.sqs.resultManager.getActiveModule() : false;
+		if(!module || typeof module.getResultSiteIds != "function") {
+			return [];
+		}
+		return module.getResultSiteIds();
+	}
+
 	/*
 	* Function: getSiteIdFromUrl
 	*

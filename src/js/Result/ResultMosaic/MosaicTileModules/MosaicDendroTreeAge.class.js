@@ -1,6 +1,4 @@
 import DendroBaseModule from "./DendroBaseModule.class";
-import { nanoid } from "nanoid";
-import Chart from 'chart.js/auto';
 
 /**
  * MosaicDendroTreeAge - Display tree age distribution as mirrored histogram
@@ -9,277 +7,44 @@ class MosaicDendroTreeAge extends DendroBaseModule {
     constructor(sqs) {
         super(sqs);
         this.title = "Tree age distribution";
+        this.description = "The estimated ages of the trees the samples come from. A sample's age is often given as a range: its least age is drawn upwards and its greatest age downwards.";
         this.name = "mosaic-dendro-tree-age";
-        this.chartType = "bar";
+        this.display = "histogram";
+        this.valueLabel = "Age (years)";
     }
 
-    async fetchData(renderIntoNode = null) {
-
+    async fetchData(requestId) {
         let resultMosaic = this.sqs.resultManager.getModule("mosaic");
-        const requestId = ++this.requestId;
 
-        try {
-            const [treeAgeMin, treeAgeMax] = await Promise.all([
-                this.fetchVariable("Tree age ≥", resultMosaic.sites, requestId, 'numeric'),
-                this.fetchVariable("Tree age ≤", resultMosaic.sites, requestId, 'numeric')
-            ]);
+        const [treeAgeMin, treeAgeMax] = await Promise.all([
+            this.fetchVariable("Tree age ≥", resultMosaic.sites, requestId, 'numeric'),
+            this.fetchVariable("Tree age ≤", resultMosaic.sites, requestId, 'numeric')
+        ]);
 
-            if(!this.active) {
-                return false;
-            }
-
-            if(treeAgeMin.error || treeAgeMax.error || 
-               !treeAgeMin.data || !treeAgeMax.data ||
-               !treeAgeMin.data.categories || !treeAgeMax.data.categories ||
-               treeAgeMin.data.categories.length === 0 || treeAgeMax.data.categories.length === 0) {
-                return false;
-            }
-
-            // Extract values for mirrored histogram
-            const minValues = [];
-            const maxValues = [];
-            
-            treeAgeMin.data.categories.forEach(cat => {
-                const parsedValue = this.parseDendroNumericValue(cat.name);
-                if(parsedValue !== null) {
-                    for(let i = 0; i < cat.count; i++) {
-                        minValues.push(parsedValue);
-                    }
-                }
-            });
-            
-            treeAgeMax.data.categories.forEach(cat => {
-                const parsedValue = this.parseDendroNumericValue(cat.name);
-                if(parsedValue !== null) {
-                    for(let i = 0; i < cat.count; i++) {
-                        maxValues.push(parsedValue);
-                    }
-                }
-            });
-            
-            if(minValues.length === 0 || maxValues.length === 0) {
-                return false;
-            }
-
-            this.data = {
-                minValues: minValues,
-                maxValues: maxValues,
-                minLabel: "Tree age ≥",
-                maxLabel: "Tree age ≤"
-            };
-
-            return this.data;
-
-        } catch(error) {
-            console.error("Error fetching tree age data:", error);
-            return false;
-        }
-    }
-
-    async render(renderIntoNode) {
-        super.render();
-
-        this.sqs.setLoadingIndicator(renderIntoNode, "loading");
-        this.renderComplete = false;
-        this.active = true;
-        this.renderIntoNode = renderIntoNode;
-
-        if(this.renderNoDataIfNoSites()) {
-            return;
-        }
-
-        const data = await this.fetchData(renderIntoNode);
-
-        if(!this.active) {
-            this.renderComplete = true;
+        if(treeAgeMin.error || treeAgeMax.error ||
+           !treeAgeMin.data || !treeAgeMax.data ||
+           !treeAgeMin.data.categories || !treeAgeMax.data.categories ||
+           treeAgeMin.data.categories.length === 0 || treeAgeMax.data.categories.length === 0) {
             return false;
         }
 
-        if(data === false || !data) {
-            this.renderComplete = true;
-            return;
+        const minValues = this.parseNumericCategories(treeAgeMin.data.categories);
+        const maxValues = this.parseNumericCategories(treeAgeMax.data.categories);
+
+        if(minValues.length === 0 || maxValues.length === 0) {
+            return false;
         }
 
-        $(this.renderIntoNode).empty();
-
-        const varId = nanoid();
-        
-        // Find global min and max for shared axis
-        const allValues = [...data.minValues, ...data.maxValues];
-        allValues.sort((a, b) => a - b);
-        const globalMin = allValues[0];
-        const globalMax = allValues[allValues.length - 1];
-        
-        // Create bins with shared edges
-        const bins = 20;
-        const range = globalMax - globalMin;
-        const binSize = range / bins;
-        
-        // Calculate distributions
-        const minHistogram = new Array(bins).fill(0);
-        const maxHistogram = new Array(bins).fill(0);
-        
-        data.minValues.forEach(value => {
-            let binIndex = Math.floor((value - globalMin) / binSize);
-            if(binIndex >= bins) binIndex = bins - 1;
-            minHistogram[binIndex]++;
-        });
-        
-        data.maxValues.forEach(value => {
-            let binIndex = Math.floor((value - globalMin) / binSize);
-            if(binIndex >= bins) binIndex = bins - 1;
-            maxHistogram[binIndex]++;
-        });
-        
-        // Prepare bin centers
-        const labels = [];
-        for(let i = 0; i < bins; i++) {
-            labels.push(Math.round(globalMin + (i + 0.5) * binSize));
-        }
-        
-        // Get SEAD colors
-        const colorIndex = this.getColorIndexForVariable('Tree age (mirrored)');
-        const allColors = this.sqs.color.getNiceColorScheme(10);
-        const colors = [allColors[colorIndex % allColors.length], allColors[(colorIndex + 1) % allColors.length]];
-        
-        const wrapperHtml = `
-            <div class="mosaic-tile-content" id="${varId}">
-                <div class="mosaic-tile-charts">
-                    <canvas id="chart-${varId}" class="tile-chart-container"></canvas>
-                    <div id="coverage-${varId}" class="tile-coverage-container"></div>
-                </div>
-            </div>
-        `;
-        $(this.renderIntoNode).append(wrapperHtml);
-        
-        const ctx = document.getElementById(`chart-${varId}`).getContext('2d');
-        const chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Youngest (≥)',
-                        data: minHistogram,
-                        backgroundColor: colors[0] + 'B3',
-                        borderColor: colors[0],
-                        borderWidth: 1,
-                        borderRadius: 3
-                    },
-                    {
-                        label: 'Oldest (≤)',
-                        data: maxHistogram.map(v => -v),
-                        backgroundColor: colors[1] + 'B3',
-                        borderColor: colors[1],
-                        borderWidth: 1,
-                        borderRadius: 3
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const value = Math.abs(context.parsed.y);
-                                return context.dataset.label + ': ' + value;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Age (years)',
-                            font: {
-                                size: 11
-                            }
-                        },
-                        ticks: {
-                            font: {
-                                size: 10
-                            }
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Sample Count',
-                            font: {
-                                size: 11
-                            }
-                        },
-                        ticks: {
-                            font: {
-                                size: 10
-                            },
-                            callback: function(value) {
-                                return Math.abs(value);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        
-        this.chartInstances.set(varId, { chart: chart, name: this.title });
-
-        // Add mini coverage chart — renders immediately with empty bar, animates fill when totalSamples resolves
-        const coverageContainer = document.getElementById(`coverage-${varId}`);
-        
-        this.renderCoverageMiniChart(coverageContainer, data.minValues.length, this.fetchTotalSamplesCount());
-
-        this.sqs.setLoadingIndicator(this.renderIntoNode, "done");
-        this.renderComplete = true;
+        return {
+            series: [
+                { name: "At least (≥)", values: minValues, exportKey: "youngest_count" },
+                { name: "At most (≤)", values: maxValues, exportKey: "oldest_count" }
+            ]
+        };
     }
 
-    formatDataForExport(data, format = "json") {
-        if(format === "png") {
-            return super.formatDataForExport(data, format);
-        }
-        if(!data || !data.minValues || !data.maxValues || data.minValues.length === 0) return [];
-
-        const allValues = [...data.minValues, ...data.maxValues];
-        const globalMin = Math.min(...allValues);
-        const globalMax = Math.max(...allValues);
-
-        if(globalMin === globalMax) {
-            return [{ bin_start_years: globalMin, bin_end_years: globalMax, youngest_count: data.minValues.length, oldest_count: data.maxValues.length }];
-        }
-
-        const bins = 20;
-        const binSize = (globalMax - globalMin) / bins;
-        const minHist = new Array(bins).fill(0);
-        const maxHist = new Array(bins).fill(0);
-
-        data.minValues.forEach(v => {
-            const i = Math.min(Math.floor((v - globalMin) / binSize), bins - 1);
-            minHist[i]++;
-        });
-        data.maxValues.forEach(v => {
-            const i = Math.min(Math.floor((v - globalMin) / binSize), bins - 1);
-            maxHist[i]++;
-        });
-
-        return Array.from({ length: bins }, (_, i) => ({
-            bin_start_years: +(globalMin + i * binSize).toFixed(1),
-            bin_end_years: +(globalMin + (i + 1) * binSize).toFixed(1),
-            youngest_count: minHist[i],
-            oldest_count: maxHist[i]
-        }));
-    }
-
-    async update() {
-        this.renderComplete = false;
-        await this.render(this.renderIntoNode);
-        this.renderComplete = true;
+    getHistogramSubtitle() {
+        return "Samples per estimated tree age · median "+this.formatCount(this.getMedian(this.data.series[0].values))+"–"+this.formatCount(this.getMedian(this.data.series[1].values))+" years";
     }
 }
 

@@ -330,7 +330,6 @@ class SeadQuerySystem {
 	bootstrapSystem() {
 
 		$("#preload-loading-indicator").remove();
-		$("#header-container").css("display", "flex");
 
 		this.color = new Color();
 		for(let key in this.bugsEcoCodeDefinitions) {
@@ -387,23 +386,7 @@ class SeadQuerySystem {
 				},
 				{
 					type: "show",
-					selector: "#aux-menu-button",
-					evaluator: () => {
-						let visibleSection = this.layoutManager.getActiveView().getVisibleSection();
-						return this.layoutManager.getMode() == "desktopMode" || visibleSection == "left";
-					}
-				},
-				{
-					type: "show",
 					selector: "#facet-menu",
-					evaluator: () => {
-						let visibleSection = this.layoutManager.getActiveView().getVisibleSection();
-						return this.layoutManager.getMode() == "desktopMode" || visibleSection == "left";
-					}
-				},
-				{
-					type: "show",
-					selector: "#logo-aux-container > #sead-logo",
 					evaluator: () => {
 						let visibleSection = this.layoutManager.getActiveView().getVisibleSection();
 						return this.layoutManager.getMode() == "desktopMode" || visibleSection == "left";
@@ -1976,7 +1959,7 @@ class SeadQuerySystem {
 				htmlOutput += "<div class='dataset-contact-notes'>" + contact.contact_location_name + "</div>";
 			}
 			if (contact.contact_url) {
-				htmlOutput += "<div class='dataset-contact-notes'>" + contact.contact_url + "</div>";
+				htmlOutput += "<div class='dataset-contact-notes'><a href='" + contact.contact_url + "' target='_blank' rel='noopener'>" + contact.contact_url + "</a></div>";
 			}
 			if (contact.contact_type_description) {
 				htmlOutput += "<div class='dataset-contact-notes'>" + contact.contact_type_description + "</div>";
@@ -2406,7 +2389,7 @@ class SeadQuerySystem {
 				html += "<div class='dataset-contact-notes'>"+contact.contact_location_name+"</div>";
 			}
 			if(contact.contact_url) {
-				html += "<div class='dataset-contact-notes'>"+contact.contact_url+"</div>";
+				html += "<div class='dataset-contact-notes'><a href='"+contact.contact_url+"' target='_blank' rel='noopener'>"+contact.contact_url+"</a></div>";
 			}
 			if(contact.contact_type_description) {
 				html += "<div class='dataset-contact-notes'>"+contact.contact_type_description+"</div>";
