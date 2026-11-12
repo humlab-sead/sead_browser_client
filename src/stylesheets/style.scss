@@ -7946,6 +7946,53 @@ button.mosaic-bar-segment {
   box-shadow: 0 sqs-px(4) sqs-px(12) rgba(0, 0, 0, 0.2);
 }
 
+/* When the evidence comes from: the SVG is drawn to the size of its box, which takes the height the legend,
+   readout and coverage line leave */
+.mosaic-tile-canvas.mosaic-temporal-canvas {
+  min-height: sqs-px(140);
+  overflow: hidden;
+}
+
+.mosaic-temporal-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  border-radius: sqs-px(4);
+}
+
+.mosaic-temporal-svg:focus {
+  outline: none;
+}
+
+.mosaic-temporal-svg:focus-visible {
+  outline: 2px solid colors.$base-color;
+  outline-offset: 1px;
+}
+
+.mosaic-chart-readout.mosaic-temporal-readout {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: sqs-px(4) sqs-px(14);
+  margin-top: sqs-px(10);
+}
+
+.mosaic-temporal-readout-item {
+  display: inline-flex;
+  align-items: center;
+  gap: sqs-px(6);
+}
+
+/* Radiocarbon years are hatched in the chart, so their key is a hatched dot */
+.mosaic-temporal-hatch-swatch {
+  display: inline-block;
+  flex: none;
+  width: sqs-px(10);
+  height: sqs-px(10);
+  border-radius: 50%;
+  background: repeating-linear-gradient(45deg, #8a8a8a 0 2px, #ffffff 2px 3.5px);
+}
+
 .light-theme-button {
   display: inline-block;
   border: 1px solid #aaa;

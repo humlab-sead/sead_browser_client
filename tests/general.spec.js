@@ -82,6 +82,25 @@ test('overview charts', async ({ page }) => {
   await expect(analysisMethods.locator('.mosaic-bar-row')).toHaveCount(0);
 });
 
+//the overview shows when the dates of the sites are from, a band per kind of dating, and steps through time with the arrow keys
+test('overview temporal distribution', async ({ page }) => {
+  await page.goto('/');
+  await page.click('#result-menu > [menu-item="mosaic"]');
+
+  const temporal = page.locator('.result-mosaic-tile', { has: page.locator('.mosaic-tile-title', { hasText: 'When the evidence comes from' }) });
+  const chart = temporal.locator('svg.mosaic-temporal-svg');
+  await expect(chart.locator('path').first()).toBeVisible({ timeout: 30000 });
+  await expect(temporal.locator('.mosaic-chart-legend-item', { hasText: 'Dendrochronology' })).toBeVisible();
+
+  await chart.focus();
+  await page.keyboard.press('End');
+  await expect(temporal.locator('.mosaic-temporal-readout')).toContainText(/AD \d{4}–\d{4} · \d/);
+
+  await temporal.getByRole('button', { name: 'Table', exact: true }).click();
+  await expect(temporal.locator('.mosaic-data-table tbody tr').first()).toBeVisible();
+  await expect(chart).toHaveCount(0);
+});
+
 //the dendrochronology overview draws its variables as bars and histograms, each with its coverage of the samples
 test('dendrochronology overview charts', async ({ page }) => {
   await page.goto('/dendrochronology');
