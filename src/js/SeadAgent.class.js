@@ -174,6 +174,8 @@ export default class SeadAgent {
                 this.activeTurnId = payload.turnId;
                 //A turn can take a while; saying what is happening makes the wait read as
                 //work rather than as a hang
+                //Whatever was streamed in this leg was not the answer - the agent went on to act
+                this.renderStreamingText("");
                 this.setWorkingStatus(this.describeWork(payload.action));
                 let outcome = await this.runAgentAction(payload.action);
                 this.setWorkingStatus("Thinking…");
@@ -440,7 +442,10 @@ export default class SeadAgent {
         let response = await fetch(url, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                //Asks for the answer as it is written. A service that can't stream answers in
+                //one piece, as it always did, and both are handled below.
+                "Accept": "application/x-ndjson, application/json"
             },
             body: JSON.stringify(body),
             signal: abortController.signal
@@ -449,7 +454,100 @@ export default class SeadAgent {
         if(!response.ok) {
             throw this.agentError(await this.extractErrorMessage(response));
         }
-        return await response.json();
+        if((response.headers.get("Content-Type") || "").indexOf("application/x-ndjson") == -1 || !response.body) {
+            return await response.json();
+        }
+        return await this.readAgentStream(response);
+    }
+
+    /*
+    * Function: readAgentStream
+    * Reads a streamed answer: one JSON object per line. Lines with a type are progress - what
+    * the agent is doing, and the reply as far as it has been written - and the last line is
+    * the answer as a whole, the same object an unstreamed answer would be. The service has
+    * already sent the HTTP status by the time a turn can fail, so a failure arrives as that
+    * last line instead, with status "error".
+    */
+    async readAgentStream(response) {
+        let reader = response.body.getReader();
+        let decoder = new TextDecoder();
+        let pending = "";
+        let answer = null;
+
+        for(;;) {
+            let { value, done } = await reader.read();
+            if(done) {
+                break;
+            }
+            pending += decoder.decode(value, { stream: true });
+            let lines = pending.split("\n");
+            pending = lines.pop();
+            lines.forEach(line => {
+                answer = this.handleStreamLine(line) || answer;
+            });
+        }
+        answer = this.handleStreamLine(pending + decoder.decode()) || answer;
+
+        if(!answer) {
+            throw this.agentError("The SEAD agent's answer was cut off. Please try again.");
+        }
+        if(answer.status == "error") {
+            throw this.agentError(answer.error || "The SEAD agent could not be reached.");
+        }
+        return answer;
+    }
+
+    handleStreamLine(line) {
+        if(!line || line.trim().length == 0) {
+            return null;
+        }
+        let event;
+        try {
+            event = JSON.parse(line);
+        }
+        catch(error) {
+            console.warn("SEAD agent sent a line that is not JSON", line);
+            return null;
+        }
+        if(event.type == "text") {
+            this.renderStreamingText(event.text);
+            return null;
+        }
+        if(event.type == "status") {
+            this.setWorkingStatus(event.text);
+            return null;
+        }
+        return event;
+    }
+
+    /*
+    * Function: renderStreamingText
+    * Shows the reply as far as it has been written, in the bubble it will be finished in. The
+    * service has already taken out of it whatever the finished reply would not contain - the
+    * text is rendered as markdown here exactly as the finished reply is. Empty text takes it
+    * back: what the agent wrote before deciding to do something was not the answer.
+    */
+    renderStreamingText(text) {
+        let indicator = $("#chatbox-loading-indicator");
+        if(indicator.length == 0) {
+            return;
+        }
+        let line = indicator.parent();
+        let target = line.find(".chatbox-streaming-text");
+        if(!text) {
+            target.remove();
+            indicator.show();
+            $("#chatbox-working-status").show();
+            return;
+        }
+        if(target.length == 0) {
+            target = $('<div class="chatbox-streaming-text"></div>').appendTo(line);
+        }
+        indicator.hide();
+        $("#chatbox-working-status").hide();
+        target.html(this.stripSingleParagraphWrapper(micromark(text)));
+        this.upgradeShortcuts(target);
+        this.scrollToLatestMessage();
     }
 
     agentError(message) {
