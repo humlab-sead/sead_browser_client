@@ -58,14 +58,19 @@ function watchAgentTraffic(page) {
         if(!leg) {
             return;
         }
-        leg.answeredAt = Date.now();
         leg.status = response.status();
         try {
-            leg.answer = await response.json();
+            //A streamed answer is lines of JSON, and the last one is the answer itself
+            const body = await response.text();
+            const lines = body.split('\n').filter(line => line.trim().length > 0);
+            leg.answer = JSON.parse(lines[lines.length - 1]);
+            leg.streamed = lines.length > 1 || (response.headers()['content-type'] || '').includes('ndjson');
         }
         catch(error) {
             leg.answer = null;
         }
+        //Read after the body, which for a stream arrives only as the answer is finished
+        leg.answeredAt = Date.now();
         delete leg.request;
         const final = leg.status != 200 || !leg.answer || leg.answer.status != 'action_required';
         if(final) {
@@ -78,7 +83,7 @@ function watchAgentTraffic(page) {
     };
 }
 
-function summariseTurn(message, legs, startedAt) {
+function summariseTurn(message, legs, startedAt, firstTextAt) {
     const final = legs[legs.length - 1];
     let serverMs = 0;
     let browserMs = 0;
@@ -106,6 +111,10 @@ function summariseTurn(message, legs, startedAt) {
         status: final ? final.status : null,
         reply: final && final.answer ? (final.answer.output_text || final.answer.error || null) : null,
         totalMs: Date.now() - startedAt,
+        //When the user first saw reply text appear, if the answer was streamed - the wait
+        //the user actually notices
+        firstTextMs: firstTextAt ? firstTextAt - startedAt : null,
+        streamed: legs.some(leg => leg.streamed),
         serverMs,
         browserMs,
         legs: legs.length,
@@ -140,13 +149,20 @@ for(const evalCase of cases) {
                 const answered = traffic.nextFinalAnswer();
                 await input.fill(message);
                 await page.locator('#chatbox-send-btn').click();
+                //The first streamed text to appear; never, if the answer is not streamed
+                let firstTextAt = null;
+                const sawText = page.locator('.chatbox-streaming-text').first()
+                    .waitFor({ state: 'attached', timeout: 300000 })
+                    .then(() => { firstTextAt = Date.now(); })
+                    .catch(() => {});
                 await answered;
+                await Promise.race([sawText, page.waitForTimeout(50)]);
                 const legs = traffic.legs.slice(firstLeg);
                 if(legs.length == 1 && legs[0].status == 429 && attempt < 7) {
                     await page.waitForTimeout(15000);
                     continue;
                 }
-                turns.push(summariseTurn(message, legs, startedAt));
+                turns.push(summariseTurn(message, legs, startedAt, firstTextAt));
                 break;
             }
         }
