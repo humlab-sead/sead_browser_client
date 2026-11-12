@@ -776,7 +776,7 @@
 					"grid_column": "2"
 				},
 				{
-					"module_name": "mosaic-domain-samples",
+					"module_name": "mosaic-temporal-distribution",
 					"grid_row": "2",
 					"grid_column": "span 2"
 				},
