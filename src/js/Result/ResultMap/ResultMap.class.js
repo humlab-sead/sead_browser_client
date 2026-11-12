@@ -13,7 +13,7 @@ import Overlay from 'ol/Overlay';
 import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
 import { fromLonLat, toLonLat } from 'ol/proj.js';
 import { Select as SelectInteraction } from 'ol/interaction';
-import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
+import { Circle as CircleStyle, Fill, Icon, RegularShape, Stroke, Style, Text} from 'ol/style.js';
 import { Attribution, Zoom } from 'ol/control';
 import XYZ from 'ol/source/XYZ';
 import Feature from 'ol/Feature';
@@ -100,7 +100,6 @@ class ResultMap extends ResultModule {
 		this.dataRevision = 0;
 		this.pointStyleCache = {};
 		this.externalPointStyles = {};
-		this.externalSelectedPointStyle = null;
 		this.externalDataLoadPromises = {};
 		this.isoarchLocationDetailsCache = new globalThis.Map();
 		this.isoarchLocationPopupRequestId = 0;
@@ -143,10 +142,51 @@ class ResultMap extends ResultModule {
 			}
 		}
 
+		//A selected point keeps its color and gets a ring around it
+		this.selectionRingLook = {
+			color: "#222",
+			width: 2.5,
+			gap: 1.5
+		};
+
+		//The sites of the external layers are black shapes, a shape per layer, which leaves color to the main domains of
+		//SEAD's sites. They have the white edge of SEAD's circles.
+		this.externalPointLook = {
+			fillColor: "#000",
+			strokeColor: this.pointLook.strokeColor,
+			strokeWidth: this.pointLook.strokeWidth
+		};
+		//The shapes are about as wide as SEAD's circles - a filled black shape looks heavier than a colored circle, so
+		//they are a little narrower. Their radius is that of the circle through their corners.
+		const circleDiameter = this.pointLook.radius * 2;
+		this.pointShapes = {
+			square: { points: 4, angle: Math.PI / 4, radius: circleDiameter * 0.75 / Math.SQRT2 },
+			triangle: { points: 3, angle: 0, radius: circleDiameter * 0.9 / Math.sqrt(3) }
+		};
+
+		//The main kind of evidence of every site - the domain most of its analysed samples are from - which the sites
+		//are colored by. It is null until it has been fetched, and until then the sites are drawn in the default color.
+		this.siteMainDomains = null;
+		this.siteMainDomainsPromise = null;
+		//Sites without analysed samples have no main domain
+		this.noMainDomainColor = "#8c8c8c";
+		//For a domain the client has no color of its own for
+		this.unknownDomainColor = "#555555";
+		this.clusterPieImageCache = {};
+
 		this.layers = this.resultMapLayers.initBaseLayers();
 
 		this.initializeDataLayers();
 		this.initializeExternalDataLayers();
+
+		//A popup is about a site on the map, so it is closed when the layer the site is on is hidden or removed
+		this.layers.filter(layer => ["dataLayer", "externalLayer"].includes(layer.getProperties().type)).forEach(layer => {
+			layer.on("change:visible", () => {
+				if(!layer.getVisible()) {
+					this.clearSelectionsOnLayer(layer);
+				}
+			});
+		});
 
 		//Set up viewport resize event handlers
 		this.resultManager.sqs.sqsEventListen("layoutResize", () => this.resizeCallback());
@@ -211,7 +251,8 @@ class ResultMap extends ResultModule {
 					zIndex: layer.getZIndex() || 0,
 					isVisible: layer.getVisible(),
 					canClose: false,
-					canExpand: true
+					canExpand: true,
+					keyHtml: this.isSiteLayer(props.layerId) ? `<div class="result-map-evidence-key">${this.renderEvidenceKeyRows()}</div>` : ""
 				});
 				allLegendItems.append(legendItem);
 			} 
@@ -224,7 +265,13 @@ class ResultMap extends ResultModule {
 					zIndex: layer.getZIndex() || 0,
 					isVisible: layer.getVisible(),
 					canClose: true,
-					canExpand: true
+					canExpand: true,
+					keyHtml: `<div class="result-map-evidence-key">
+						<div class="result-map-evidence-key-row">
+							${this.renderLegendShapeSymbol(props.pointShape)}
+							<span class="result-map-evidence-key-label">${this.escapeHtml(props.legendLabel)}</span>
+						</div>
+					</div>`
 				});
 				allLegendItems.append(legendItem);
 			}
@@ -290,7 +337,8 @@ class ResultMap extends ResultModule {
 			zIndex,
 			isVisible = true,
 			canClose = true,
-			canExpand = true
+			canExpand = true,
+			keyHtml = ""
 		} = options;
 
 		const dataAttributes = [
@@ -328,6 +376,7 @@ class ResultMap extends ResultModule {
 						</div>
 					</div>
 				</div>
+				${keyHtml}
 				<div class="result-map-legend-item-content" style="display: none;">
 					<div class="legend-content-placeholder">
 						Layer details will appear here...
@@ -496,6 +545,20 @@ class ResultMap extends ResultModule {
 			
 			switch(layerType) {
 				case 'data':
+					if(this.siteMainDomains && this.isSiteLayer(layerId)) {
+						legendContent = `
+							<div class="legend-content-loaded">
+								<p>Each site is colored by its main kind of evidence: the domain most of its analysed samples belong to.${layerId == "clusterPoints" ? " A cluster shows the mix of its sites." : ""}</p>
+								<div class="legend-symbols">
+									<div class="legend-symbol-row">
+										${this.renderLegendSelectedSymbol()}
+										<span>Selected site</span>
+									</div>
+								</div>
+							</div>
+						`;
+						break;
+					}
 					legendContent = `
 						<div class="legend-content-loaded">
 							<h5>Legend</h5>
@@ -520,7 +583,7 @@ class ResultMap extends ResultModule {
 							<h5>Legend</h5>
 							<div class="legend-symbols">
 								<div class="legend-symbol-row">
-									${this.renderLegendPointSymbol(this.getPointFillColor(externalLayerProps.pointColor))}
+									${this.renderLegendShapeSymbol(externalLayerProps.pointShape)}
 									<span>${this.escapeHtml(externalLayerProps.legendLabel)}</span>
 								</div>
 							</div>
@@ -892,16 +955,34 @@ class ResultMap extends ResultModule {
 	}
 
 	/*
+	* Function: showLoadingIndicator
+	*
+	* The map view uses the result area's indicator. A minimal map lives inside another view, such as the mosaic's
+	* map tile, so it gets an indicator over itself instead, leaving that view's other contents alone.
+	*/
+	showLoadingIndicator(on = true, error = false) {
+		if(this.minimalMap) {
+			this.sqs.setLoadingIndicator(this.renderIntoNode, error ? "error" : on);
+		}
+		else {
+			this.resultManager.showLoadingIndicator(on, error);
+		}
+	}
+
+	/*
 	* Function: fetchData
 	*/
 	async fetchData() {
 		if(this.resultManager.getResultDataFetchingSuspended()) {
 			return false;
 		}
-		
+
 		var reqData = this.resultManager.getRequestData(++this.requestId, "map");
 
-		this.resultManager.showLoadingIndicator(true);
+		//Not waited for - the sites are recolored when it arrives
+		this.loadSiteMainDomains();
+
+		this.showLoadingIndicator(true);
 		return $.ajax(Config.serverAddress+"/api/result/load", {
 			data: JSON.stringify(reqData),
 			dataType: "json",
@@ -914,16 +995,17 @@ class ResultMap extends ResultModule {
 					this.importResultData(respData);
 					this.renderMap();
 					this.renderVisibleDataLayers();
+					this.updateEvidenceKey();
 					this.updateInterfaceControls();
 					this.resultManager.sqs.sqsEventDispatch("resultModuleRenderComplete");
-					this.resultManager.showLoadingIndicator(false);
+					this.showLoadingIndicator(false);
 				}
 				else {
 					console.log("WARN: ResultMap discarding old result package data ("+respData.RequestId+"/"+this.requestId+").");
 				}
 			},
 			error: (respData, textStatus, jqXHR) => {
-				this.resultManager.showLoadingIndicator(false, true);
+				this.showLoadingIndicator(false, true);
 			}
 		});
 	}
@@ -1855,6 +1937,30 @@ class ResultMap extends ResultModule {
 		});
 	}
 
+	/*
+	* Function: clearSelectionsOnLayer
+	*
+	* Clears the selection, and so closes its popup, if what is selected is on the given layer.
+	*/
+	clearSelectionsOnLayer(layer) {
+		if(!this.olMap) {
+			return;
+		}
+
+		let selectedOnLayer = false;
+		this.olMap.getInteractions().forEach((interaction) => {
+			if(interaction.getProperties().selectInteraction) {
+				selectedOnLayer = selectedOnLayer || interaction.getFeatures().getArray().some(feature => interaction.getLayer(feature) === layer);
+			}
+		});
+
+		if(selectedOnLayer) {
+			this.clearSelections();
+			this.clearExternalPopupDecorations();
+			$("#map-popup-container").hide();
+		}
+	}
+
 	renderClusteredPointsLayer() {
 		console.log("Rendering clustered points layer");
 
@@ -1946,7 +2052,7 @@ class ResultMap extends ResultModule {
 			"type": "externalLayer",
 			"dataLoaded": false,
 			"endpoint": "/isoarch/locations",
-			"pointColor": "#3f7f5f",
+			"pointShape": "square",
 			"legendLabel": "Isoarch location"
 		});
 
@@ -1975,7 +2081,7 @@ class ResultMap extends ResultModule {
 			"type": "externalLayer",
 			"dataLoaded": false,
 			"endpoint": "/neotoma/sites",
-			"pointColor": "#c0317a",
+			"pointShape": "triangle",
 			"legendLabel": "Neotoma site"
 		});
 
@@ -2183,7 +2289,7 @@ class ResultMap extends ResultModule {
 		// Create vector layer
 		const pointsLayer = new VectorLayer({
 			source: new VectorSource(),
-			style: this.getPointStyle(),
+			style: (feature) => this.getPointStyle(feature),
 			zIndex: 200,
 			visible: layerConfig.getProperties().visible
 		});
@@ -2243,17 +2349,22 @@ class ResultMap extends ResultModule {
 		return heatmapLayer;
 	}
 
+	hasMapPosition(dataPoint) {
+		const lng = Number(dataPoint.lng);
+		const lat = Number(dataPoint.lat);
+		return Number.isFinite(lng) && Number.isFinite(lat) && lng !== 0 && lat !== 0;
+	}
+
 	createPointFeatures(data = this.data) {
 		const features = [];
 
 		for(let key in data) {
 			const dataPoint = data[key];
-			const lng = Number(dataPoint.lng);
-			const lat = Number(dataPoint.lat);
-
-			if(!Number.isFinite(lng) || !Number.isFinite(lat) || lng === 0 || lat === 0) {
+			if(!this.hasMapPosition(dataPoint)) {
 				continue;
 			}
+			const lng = Number(dataPoint.lng);
+			const lat = Number(dataPoint.lat);
 
 			const feature = new Feature({
 				geometry: new Point(fromLonLat([lng, lat])),
@@ -2278,24 +2389,96 @@ class ResultMap extends ResultModule {
 		layer.set("dataRevision", this.dataRevision);
 	}
 
-	createCachedPointStyle(options = { selected: false, highlighted: false }) {
-		var zIndex = 0;
-		var fillColor = this.style.default.fillColor;
-		var strokeColor = this.style.default.strokeColor;
-
-		if(options.highlighted) {
-			fillColor = this.style.highlighted.fillColor;
-			strokeColor = this.style.highlighted.strokeColor;
-			zIndex = 10;
+	/*
+	* Function: loadSiteMainDomains
+	*
+	* Fetches the main domain of every site, once, and recolors the sites when it arrives. A failed fetch leaves the
+	* sites in the default color, and is tried again with the next result.
+	*/
+	loadSiteMainDomains() {
+		if(this.siteMainDomains || this.siteMainDomainsPromise) {
+			return this.siteMainDomainsPromise;
 		}
 
-		if(options.selected) {
-			fillColor = this.style.selected.fillColor;
-			strokeColor = this.style.selected.strokeColor;
-			zIndex = 10;
-		}
+		this.siteMainDomainsPromise = fetch(Config.dataServerAddress+"/sites/main_domains")
+			.then(response => {
+				if(!response.ok) {
+					throw new Error(`${response.status} ${response.statusText}`);
+				}
+				return response.json();
+			})
+			.then(data => {
+				this.siteMainDomains = data;
+				this.layers.filter(layer => layer.getProperties().type == "dataLayer").forEach(layer => layer.changed());
+				this.updateEvidenceKey();
+			})
+			.catch(error => {
+				console.warn("WARN: ResultMap could not fetch the main domains of the sites, so they are not colored by them:", error);
+				this.siteMainDomainsPromise = null;
+			});
 
+		return this.siteMainDomainsPromise;
+	}
+
+	/*
+	* Function: getSiteMainDomain
+	*
+	* The facet code of the domain the site's evidence is mainly from, or null if it has no analysed samples.
+	*/
+	getSiteMainDomain(siteId) {
+		return this.siteMainDomains.sites[siteId] || null;
+	}
+
+	getMainDomainColor(facetCode) {
+		if(facetCode == null) {
+			return this.noMainDomainColor;
+		}
+		const domain = Config.domains.find(domain => domain.name == facetCode);
+		return domain && domain.color ? domain.color : this.unknownDomainColor;
+	}
+
+	getMainDomainTitle(facetCode) {
+		if(facetCode == null) {
+			return "No analysed samples";
+		}
+		const domain = Config.domains.find(domain => domain.name == facetCode);
+		if(domain) {
+			return domain.title;
+		}
+		const serverDomain = this.siteMainDomains.domains.find(domain => domain.facet_code == facetCode);
+		return serverDomain ? serverDomain.display_title : facetCode;
+	}
+
+	/*
+	* Function: getSiteColor
+	*
+	* The color of the site's main domain, or the default color while the main domains are not known.
+	*/
+	getSiteColor(feature) {
+		if(!this.siteMainDomains) {
+			return null;
+		}
+		return this.getMainDomainColor(this.getSiteMainDomain(feature.getId()));
+	}
+
+	createSelectionRingStyle(radius, zIndex) {
 		return new Style({
+			image: new CircleStyle({
+				radius: radius + this.pointLook.strokeWidth / 2 + this.selectionRingLook.gap + this.selectionRingLook.width / 2,
+				stroke: new Stroke({
+					color: this.selectionRingLook.color,
+					width: this.selectionRingLook.width
+				})
+			}),
+			zIndex: zIndex
+		});
+	}
+
+	createCachedPointStyle(fillColor, options = { selected: false, highlighted: false }) {
+		const zIndex = options.selected || options.highlighted ? 10 : 0;
+		const strokeColor = options.highlighted ? this.style.highlighted.strokeColor : this.style.default.strokeColor;
+
+		const styles = [new Style({
 			image: new CircleStyle({
 				radius: this.pointLook.radius,
 				stroke: new Stroke({
@@ -2307,83 +2490,175 @@ class ResultMap extends ResultModule {
 				})
 			}),
 			zIndex: zIndex
-		});
+		})];
+
+		if(options.selected) {
+			styles.push(this.createSelectionRingStyle(this.pointLook.radius, zIndex));
+		}
+
+		return styles;
 	}
 
 	/*
 	* Function: getPointStyle
 	*/
 	getPointStyle(feature, options = { selected: false, highlighted: false }) {
+		let fillColor = this.style.default.fillColor;
+		if(options.highlighted) {
+			fillColor = this.style.highlighted.fillColor;
+		}
+		else if(this.getSiteColor(feature)) {
+			fillColor = this.getPointFillColor(this.getSiteColor(feature));
+		}
+
 		const styleKey = [
+			fillColor,
 			options.selected ? "selected" : "default",
 			options.highlighted ? "highlighted" : "normal"
 		].join("-");
 
 		if(!this.pointStyleCache[styleKey]) {
-			this.pointStyleCache[styleKey] = this.createCachedPointStyle(options);
+			this.pointStyleCache[styleKey] = this.createCachedPointStyle(fillColor, options);
 		}
 
 		return this.pointStyleCache[styleKey];
 	}
 
 	/*
+	* Function: getClusterImage
+	*
+	* A cluster is drawn as a pie of the main domains of its sites, or a plain circle if they all share one.
+	*/
+	getClusterImage(sites, radius) {
+		const counts = new globalThis.Map();
+		sites.forEach(site => {
+			const color = this.getSiteColor(site);
+			counts.set(color, (counts.get(color) || 0) + 1);
+		});
+
+		if(counts.size == 1) {
+			return this.createClusterCircleImage(radius, this.getPointFillColor(counts.keys().next().value));
+		}
+
+		//The slices are counted in 36ths, largest first, so that clusters of about the same make-up share an image
+		const slices = [...counts.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.map(([color, count]) => [color, Math.max(1, Math.round(count / sites.length * 36))]);
+		const cacheKey = Math.round(radius)+":"+slices.map(slice => slice.join("/")).join(",");
+
+		if(!this.clusterPieImageCache[cacheKey]) {
+			this.clusterPieImageCache[cacheKey] = this.createClusterPieImage(Math.round(radius), slices);
+		}
+		return this.clusterPieImageCache[cacheKey];
+	}
+
+	createClusterCircleImage(radius, fillColor) {
+		return new CircleStyle({
+			radius: radius,
+			stroke: new Stroke({
+				color: this.pointLook.strokeColor,
+				width: this.pointLook.strokeWidth
+			}),
+			fill: new Fill({
+				color: fillColor
+			})
+		});
+	}
+
+	createClusterPieImage(radius, slices) {
+		const pixelRatio = window.devicePixelRatio || 1;
+		const size = Math.ceil((radius + this.pointLook.strokeWidth) * 2);
+		const center = size / 2;
+		const totalUnits = slices.reduce((sum, slice) => sum + slice[1], 0);
+
+		const canvas = document.createElement("canvas");
+		canvas.width = Math.ceil(size * pixelRatio);
+		canvas.height = Math.ceil(size * pixelRatio);
+		const context = canvas.getContext("2d");
+		context.scale(pixelRatio, pixelRatio);
+
+		let angle = -Math.PI / 2;
+		slices.forEach(([color, units]) => {
+			const sliceAngle = units / totalUnits * Math.PI * 2;
+			context.beginPath();
+			context.moveTo(center, center);
+			context.arc(center, center, radius, angle, angle + sliceAngle);
+			context.closePath();
+			context.fillStyle = this.getPointFillColor(color);
+			context.fill();
+			angle += sliceAngle;
+		});
+
+		context.beginPath();
+		context.arc(center, center, radius, 0, Math.PI * 2);
+		context.lineWidth = this.pointLook.strokeWidth;
+		context.strokeStyle = this.pointLook.strokeColor;
+		context.stroke();
+
+		return new Icon({
+			img: canvas,
+			scale: 1 / pixelRatio
+		});
+	}
+
+	/*
 	* Function: getClusterPointStyle
 	*/
 	getClusterPointStyle(feature, options = { selected: false, highlighted: false }) {
-		var pointsNum = feature.get('features').length;
+		const sites = feature.get('features');
+		var pointsNum = sites.length;
 		var clusterSizeText = pointsNum.toString();
 		if(pointsNum > 999) {
 			clusterSizeText = pointsNum.toString().substring(0, 1)+"k+";
 		}
-		var pointSize = 8+(Math.log10(feature.getProperties().features.length)*15);
-		
+		var pointSize = 8+(Math.log10(pointsNum)*15);
+
 		var zIndex = 0;
-		
-		//default values if point is not selected and not highlighted
-		var fillColor = this.style.default.fillColor;
-		var strokeColor = this.style.default.strokeColor;
-		var textColor = "#fff";
-		
+		var textColor = this.style.default.textColor;
+		var image = null;
+
 		//if point is highlighted (its a hit when doing a search)
 		if(options.highlighted) {
-			fillColor = this.style.highlighted.fillColor;
-			strokeColor = this.style.highlighted.strokeColor;
+			image = this.createClusterCircleImage(pointSize, this.style.highlighted.fillColor);
 			textColor = this.style.highlighted.textColor;
 			zIndex = 200;
 		}
+		else if(this.siteMainDomains) {
+			image = this.getClusterImage(sites, pointSize);
+		}
+		else {
+			image = this.createClusterCircleImage(pointSize, this.style.default.fillColor);
+		}
+
 		//if point is selected (clicked on)
 		if(options.selected) {
-			fillColor = this.style.selected.fillColor;
-			strokeColor = this.style.selected.strokeColor;
-			textColor = this.style.selected.textColor;
 			zIndex = 200;
 		}
 
 		var styles = [];
 		styles.push(new Style({
-			image: new CircleStyle({
-				radius: pointSize,
-				stroke: new Stroke({
-					color: strokeColor,
-					width: this.pointLook.strokeWidth
-				}),
-				fill: new Fill({
-					color: fillColor
-				})
-			}),
+			image: image,
 			zIndex: zIndex,
 			text: new Text({
 				text: clusterSizeText,
 				offsetY: 1,
 				fill: new Fill({
 					color: textColor
-				})
+				}),
+				//The domain colors include light ones
+				stroke: this.siteMainDomains && !options.highlighted ? new Stroke({
+					color: "rgba(0, 0, 0, 0.45)",
+					width: 3
+				}) : undefined
 			})
 		}));
-		
-		
+
+		if(options.selected) {
+			styles.push(this.createSelectionRingStyle(pointSize, zIndex));
+		}
+
 		if(pointsNum == 1) {
-			var pointName = feature.get('features')[0].getProperties().name;
+			var pointName = sites[0].getProperties().name;
 			if(pointName != null) {
 				styles.push(new Style({
 					zIndex: zIndex,
@@ -2402,9 +2677,8 @@ class ResultMap extends ResultModule {
 					})
 				}));
 			}
-			
 		}
-		
+
 		return styles;
 	}
 
@@ -2415,47 +2689,44 @@ class ResultMap extends ResultModule {
 		return this.getPointStyle(feature, options);
 	}
 
+	/*
+	* Function: getExternalPointStyle
+	*
+	* A site of an external layer: the black shape of its layer.
+	*/
 	getExternalPointStyle(feature, options = { selected: false }) {
-		if(options.selected) {
-			if(!this.externalSelectedPointStyle) {
-				this.externalSelectedPointStyle = new Style({
-					image: new CircleStyle({
-						radius: this.pointLook.radius,
-						stroke: new Stroke({
-							color: this.pointLook.strokeColor,
-							width: this.pointLook.strokeWidth
-						}),
-						fill: new Fill({
-							color: "#f60"
-						})
-					}),
-					zIndex: 100
-				});
-			}
-
-			return this.externalSelectedPointStyle;
-		}
-
 		const externalLayerId = feature.get("externalLayerId");
-		if(!this.externalPointStyles[externalLayerId]) {
+		const styleKey = externalLayerId+"-"+(options.selected ? "selected" : "default");
+
+		if(!this.externalPointStyles[styleKey]) {
 			const layer = this.getLayerById(externalLayerId);
-			const props = layer ? layer.getProperties() : {};
-			this.externalPointStyles[externalLayerId] = new Style({
-				image: new CircleStyle({
-					radius: this.pointLook.radius,
+			const shape = this.pointShapes[layer ? layer.getProperties().pointShape : null] || this.pointShapes.square;
+			const zIndex = options.selected ? 100 : 50;
+
+			const styles = [new Style({
+				image: new RegularShape({
+					points: shape.points,
+					angle: shape.angle,
+					radius: shape.radius,
 					stroke: new Stroke({
-						color: this.pointLook.strokeColor,
-						width: this.pointLook.strokeWidth
+						color: this.externalPointLook.strokeColor,
+						width: this.externalPointLook.strokeWidth
 					}),
 					fill: new Fill({
-						color: this.getPointFillColor(props.pointColor || "#3f7f5f")
+						color: this.externalPointLook.fillColor
 					})
 				}),
-				zIndex: 50
-			});
+				zIndex: zIndex
+			})];
+
+			if(options.selected) {
+				styles.push(this.createSelectionRingStyle(shape.radius, zIndex));
+			}
+
+			this.externalPointStyles[styleKey] = styles;
 		}
 
-		return this.externalPointStyles[externalLayerId];
+		return this.externalPointStyles[styleKey];
 	}
 
 	/*
@@ -2464,7 +2735,11 @@ class ResultMap extends ResultModule {
 	* A point color as it is filled in on the map, with the opacity all points share.
 	*/
 	getPointFillColor(hexColor) {
-		const value = parseInt(hexColor.replace("#", ""), 16);
+		let hex = hexColor.replace("#", "");
+		if(hex.length == 3) {
+			hex = hex.split("").map(digit => digit+digit).join("");
+		}
+		const value = parseInt(hex, 16);
 		return `rgba(${(value >> 16) & 255},${(value >> 8) & 255},${value & 255},${this.pointLook.fillOpacity})`;
 	}
 
@@ -2476,6 +2751,90 @@ class ResultMap extends ResultModule {
 	renderLegendPointSymbol(fillColor) {
 		const size = this.pointLook.radius * 2;
 		return `<div class="legend-symbol" style="background-color: ${fillColor}; width: ${size}px; height: ${size}px; border-radius: 50%; display: inline-block; border: ${this.pointLook.strokeWidth}px solid ${this.pointLook.strokeColor};"></div>`;
+	}
+
+	/*
+	* Function: renderLegendShapeSymbol
+	*
+	* A legend symbol for the sites of an external layer, drawn the way they are on the map.
+	*/
+	renderLegendShapeSymbol(shapeName) {
+		const shape = this.pointShapes[shapeName] || this.pointShapes.square;
+		const size = Math.ceil((shape.radius + this.externalPointLook.strokeWidth) * 2);
+		//The corners as RegularShape places them: the first straight up, turned by the shape's angle
+		const corners = [];
+		for(let i = 0; i < shape.points; i++) {
+			const angle = shape.angle + i * 2 * Math.PI / shape.points;
+			corners.push([size / 2 + shape.radius * Math.sin(angle), size / 2 - shape.radius * Math.cos(angle)].map(v => v.toFixed(2)).join(","));
+		}
+		return `<svg class="legend-symbol" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true" style="display: inline-block; vertical-align: middle;"><polygon points="${corners.join(" ")}" fill="${this.externalPointLook.fillColor}" stroke="${this.externalPointLook.strokeColor}" stroke-width="${this.externalPointLook.strokeWidth}"/></svg>`;
+	}
+
+	renderLegendSelectedSymbol() {
+		const size = this.pointLook.radius * 2;
+		const ringOffset = this.selectionRingLook.gap + this.selectionRingLook.width;
+		return `<div class="legend-symbol" style="background-color: ${this.getPointFillColor(this.noMainDomainColor)}; width: ${size}px; height: ${size}px; margin: ${ringOffset}px; border-radius: 50%; display: inline-block; border: ${this.pointLook.strokeWidth}px solid ${this.pointLook.strokeColor}; box-shadow: 0 0 0 ${this.selectionRingLook.gap}px ${this.pointLook.strokeColor}, 0 0 0 ${ringOffset}px ${this.selectionRingLook.color};"></div>`;
+	}
+
+	/*
+	* Function: isSiteLayer
+	*
+	* Whether the data layer draws the sites as points, colored by their main domain - as the heatmap does not.
+	*/
+	isSiteLayer(layerId) {
+		return layerId == "points" || layerId == "clusterPoints";
+	}
+
+	/*
+	* Function: renderEvidenceKeyRows
+	*
+	* The key to the colors of the sites: the main domains of the sites in the result, the most common first, with
+	* how many sites each is the main domain of.
+	*/
+	renderEvidenceKeyRows() {
+		if(!this.siteMainDomains || !this.data) {
+			return "";
+		}
+
+		const counts = new globalThis.Map();
+		this.data.forEach(dataPoint => {
+			if(!this.hasMapPosition(dataPoint)) {
+				return;
+			}
+			const facetCode = this.getSiteMainDomain(dataPoint.id);
+			counts.set(facetCode, (counts.get(facetCode) || 0) + 1);
+		});
+
+		//The sites without analysed samples come last, whatever their number
+		return [...counts.entries()]
+			.sort((a, b) => (a[0] == null) - (b[0] == null) || b[1] - a[1])
+			.map(([facetCode, count]) => `
+				<div class="result-map-evidence-key-row">
+					${this.renderLegendPointSymbol(this.getPointFillColor(this.getMainDomainColor(facetCode)))}
+					<span class="result-map-evidence-key-label">${this.escapeHtml(this.getMainDomainTitle(facetCode))}</span>
+					<span class="result-map-evidence-key-count">${count.toLocaleString("en-US")}</span>
+				</div>
+			`).join("");
+	}
+
+	/*
+	* Function: renderPopupSiteRow
+	*
+	* A site in the map popup, marked with the color of its main domain once those are known.
+	*/
+	renderPopupSiteRow(feature) {
+		const prop = feature.getProperties();
+		let marker = "";
+		if(this.siteMainDomains) {
+			const facetCode = this.getSiteMainDomain(feature.getId());
+			const title = this.escapeHtml("Main evidence: "+this.getMainDomainTitle(facetCode));
+			marker = `<span class="result-map-popup-evidence-marker" style="background-color: ${this.getMainDomainColor(facetCode)};" title="${title}" aria-label="${title}"></span>`;
+		}
+		return "<tr row-site-id='"+prop.id+"'><td>"+marker+prop.name+"</td></tr>";
+	}
+
+	updateEvidenceKey() {
+		$(".result-map-evidence-key", this.renderIntoNode).html(this.renderEvidenceKeyRows());
 	}
 
 	escapeHtml(value) {
@@ -3291,7 +3650,7 @@ class ResultMap extends ResultModule {
 				var prop = feature.getProperties();
 
 				$("#map-popup-title").remove();
-				var tableRows = "<tr row-site-id='"+prop.id+"'><td>"+prop.name+"</td></tr>";
+				var tableRows = this.renderPopupSiteRow(feature);
 				tableRows = sqs.sqsOffer("resultMapPopupSites", {
 					tableRows: tableRows,
 					olFeatures: prop.features
@@ -3312,7 +3671,7 @@ class ResultMap extends ResultModule {
 				
 				var tableRows = "";
 				for(var fk in prop.features) {
-					tableRows += "<tr row-site-id='"+prop.features[fk].getProperties().id+"'><td>"+prop.features[fk].getProperties().name+"</td></tr>";
+					tableRows += this.renderPopupSiteRow(prop.features[fk]);
 				}
 
 				tableRows = sqs.sqsOffer("resultMapPopupSites", {
