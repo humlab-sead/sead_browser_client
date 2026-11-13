@@ -252,10 +252,15 @@ class MosaicTileModule {
      * covered - how many have data
      * totalOrPromise - how many there are in all, or a promise for it
      * noun - what is counted, in the plural, e.g. "samples"
+     * options - { compact: boolean - a short meter beside its label rather than a track across the tile, for a chart
+     * with no bars for the track to line up with, where a long thin bar would look like a scrollbar;
+     * predicate: string - what the covered ones do, e.g. "have dates", to end the label with }
      */
-    renderCoverage(container, covered, totalOrPromise, noun = "samples") {
+    renderCoverage(container, covered, totalOrPromise, noun = "samples", options = {}) {
         let coverageNode = $("<div class='mosaic-coverage'><span class='mosaic-coverage-label'></span><span class='mosaic-coverage-track'><span class='mosaic-coverage-fill'></span></span><span class='mosaic-coverage-value'>–</span></div>");
-        coverageNode.find(".mosaic-coverage-label").text(this.formatCount(covered)+" "+noun+" with data");
+        coverageNode.toggleClass("mosaic-coverage-compact", options.compact === true);
+        let predicate = options.predicate ? " "+options.predicate : "";
+        coverageNode.find(".mosaic-coverage-label").text(this.formatCount(covered)+" "+noun+(predicate || " with data"));
         $(container).append(coverageNode);
 
         Promise.resolve(totalOrPromise).then(total => {
@@ -268,7 +273,7 @@ class MosaicTileModule {
                 return;
             }
             let share = covered / total;
-            coverageNode.find(".mosaic-coverage-label").text(this.formatCount(covered)+" of "+this.formatCount(total)+" "+noun);
+            coverageNode.find(".mosaic-coverage-label").text(this.formatCount(covered)+" of "+this.formatCount(total)+" "+noun+predicate);
             coverageNode.find(".mosaic-coverage-fill").css("width", (share * 100)+"%");
             coverageNode.find(".mosaic-coverage-value").text(this.formatShare(share));
             coverageNode.attr("title", this.formatShare(share)+" of the "+noun+" in the result have data for this chart");

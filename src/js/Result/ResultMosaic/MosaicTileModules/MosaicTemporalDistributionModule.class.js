@@ -167,7 +167,7 @@ class MosaicTemporalDistributionModule extends MosaicTileModule {
         chartNode.append(canvasNode);
         this.readoutNode = $("<div class='mosaic-chart-readout mosaic-temporal-readout' aria-live='polite'></div>");
         chartNode.append(this.readoutNode);
-        this.renderCoverage(chartNode, this.data.dated_site_count, this.data.site_count, "sites");
+        this.renderCoverage(chartNode, this.data.dated_site_count, this.data.site_count, "sites", { compact: true, predicate: "have dates" });
 
         this.chartSize = null;
         this.cursorBin = null;

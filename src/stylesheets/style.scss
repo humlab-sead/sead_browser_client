@@ -7898,6 +7898,18 @@ button.mosaic-bar-segment {
   white-space: nowrap;
 }
 
+/* The compact coverage line, for a chart with no bars for the track to line up with: a short meter after its
+   label, so it reads as a figure rather than as a scrollbar across the tile */
+.mosaic-coverage.mosaic-coverage-compact {
+  grid-template-columns: auto sqs-px(80) auto;
+  justify-content: start;
+  gap: sqs-px(10);
+}
+
+.mosaic-coverage-compact .mosaic-coverage-value {
+  text-align: left;
+}
+
 /* Mutual Climatic Range tile: the heatmap takes the height its legend and coverage line leave,
    so the canvas is sized to its real box */
 .mcr-chart-wrapper {
