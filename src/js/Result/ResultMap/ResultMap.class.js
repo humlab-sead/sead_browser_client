@@ -20,6 +20,7 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Config from '../../../config/config.json';
 import ResultMapLayers from './ResultMapLayers.class.js';
+import Dating from '../../SiteReport/SectionModules/Dating.class.js';
 import { set } from 'lodash';
 
 
@@ -105,6 +106,8 @@ class ResultMap extends ResultModule {
 		this.isoarchLocationPopupRequestId = 0;
 		this.neotomaSiteDetailsCache = new globalThis.Map();
 		this.neotomaSitePopupRequestId = 0;
+		this.seadSiteSummaryCache = new globalThis.Map();
+		this.seadSitePopupRequestId = 0;
 
 		$(window).on("seadResultMenuSelection", (event, data) => {
 			if(data.selection != this.name) {
@@ -2844,11 +2847,205 @@ class ResultMap extends ResultModule {
 	/*
 	* Function: clearExternalPopupDecorations
 	*
-	* The popups of the external layers each add a class and a link to the shared popup, which are cleared before any popup is shown.
+	* The popups of single sites - SEAD's and those of the external layers - each add a class and a line under the title
+	* to the shared popup, which are cleared before any popup is shown.
 	*/
 	clearExternalPopupDecorations() {
-		$("#map-popup-container").removeClass("isoarch-location-popup neotoma-site-popup");
-		$(".isoarch-explorer-link, .neotoma-explorer-link").remove();
+		$("#map-popup-container").removeClass("isoarch-location-popup neotoma-site-popup sead-site-popup");
+		$(".isoarch-explorer-link, .neotoma-explorer-link, .sead-site-popup-subtitle").remove();
+	}
+
+	/*
+	* Function: renderSeadSitePopup
+	*
+	* A SEAD site in the popup: what the map knows of it right away - its name and main domain - and a summary
+	* of its evidence, dating and references once that has been fetched, with a way into its site report.
+	*/
+	renderSeadSitePopup(feature, coords) {
+		const prop = feature.getProperties();
+		const siteId = feature.getId();
+		const requestId = ++this.seadSitePopupRequestId;
+
+		$("#map-popup-container").show();
+		this.clearExternalPopupDecorations();
+		$("#map-popup-container").addClass("sead-site-popup");
+		$("#map-popup-title").remove();
+		$("#map-popup-container").prepend(`<div id="map-popup-title">${this.escapeHtml(prop.name)}</div>`);
+
+		$("#map-popup-sites-table tbody").html(`
+			<tr>
+				<td>
+					<div id="sead-site-summary-container" data-request-id="${requestId}">
+						${this.renderSeadSiteEvidencePlaceholder(siteId)}
+					</div>
+					<button type="button" class="sqs-btn sqs-btn-primary site-report-link sead-site-popup-open" site-id="${this.escapeHtml(siteId)}">
+						Open site report <i class="fa fa-arrow-right" aria-hidden="true"></i>
+					</button>
+				</td>
+			</tr>
+		`);
+		this.selectPopupOverlay.setPosition(coords);
+
+		this.fetchAndRenderSeadSiteSummary(siteId, requestId);
+	}
+
+	/*
+	* Function: renderSeadSiteEvidencePlaceholder
+	*
+	* While the summary is on its way: the main domain the site is colored by, if known.
+	*/
+	renderSeadSiteEvidencePlaceholder(siteId) {
+		let mainDomain = "";
+		if(this.siteMainDomains) {
+			const facetCode = this.getSiteMainDomain(siteId);
+			mainDomain = `
+				<div class="sead-site-summary-domain">
+					${this.renderSeadSiteDomainMarker(facetCode)}
+					<span class="sead-site-summary-domain-title">${this.escapeHtml(this.getMainDomainTitle(facetCode))}</span>
+				</div>`;
+		}
+		return `
+			${mainDomain}
+			<div class="sead-site-summary-loading">
+				<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Loading summary...
+			</div>`;
+	}
+
+	renderSeadSiteDomainMarker(facetCode) {
+		return `<span class="result-map-popup-evidence-marker" style="background-color: ${this.getMainDomainColor(facetCode)};" aria-hidden="true"></span>`;
+	}
+
+	async fetchSeadSiteSummary(siteId) {
+		if(this.seadSiteSummaryCache.has(siteId)) {
+			return this.seadSiteSummaryCache.get(siteId);
+		}
+
+		const summaryRequest = fetch(`${Config.dataServerAddress}/summary/site/${encodeURIComponent(siteId)}`)
+			.then(response => {
+				if(!response.ok) {
+					throw new Error(`Failed to fetch the summary of site ${siteId}: ${response.status} ${response.statusText}`);
+				}
+				return response.json();
+			})
+			.catch(error => {
+				this.seadSiteSummaryCache.delete(siteId);
+				throw error;
+			});
+
+		this.seadSiteSummaryCache.set(siteId, summaryRequest);
+		return summaryRequest;
+	}
+
+	async fetchAndRenderSeadSiteSummary(siteId, requestId) {
+		let summary = null;
+		try {
+			summary = await this.fetchSeadSiteSummary(siteId);
+		}
+		catch(error) {
+			console.error(error);
+		}
+
+		//The popup may have moved on to another point while the summary was on its way
+		const container = $("#sead-site-summary-container");
+		if(container.length === 0 || container.attr("data-request-id") != String(requestId)) {
+			return;
+		}
+
+		if(!summary) {
+			container.html(`<div class="sead-site-summary-error"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> Could not load the summary of this site.</div>`);
+			return;
+		}
+
+		const subtitle = [summary.place.join(", "), summary.national_site_identifier].filter(part => part).join(" · ");
+		if(subtitle) {
+			$("#map-popup-title").after(`<div class="sead-site-popup-subtitle">${this.escapeHtml(subtitle)}</div>`);
+		}
+		container.html(this.renderSeadSiteSummary(summary));
+	}
+
+	renderSeadSiteSummary(summary) {
+		let html = "";
+
+		if(summary.evidence.length > 0) {
+			html += `<div class="sead-site-summary-evidence">`;
+			summary.evidence.forEach(domain => {
+				//A method is only worth listing when it says more than its domain
+				const methods = domain.methods.filter(method => method != domain.display_title);
+				html += `
+					<div class="sead-site-summary-domain">
+						${this.renderSeadSiteDomainMarker(domain.facet_code)}
+						<span class="sead-site-summary-domain-title">${this.escapeHtml(this.getMainDomainTitle(domain.facet_code))}</span>
+						<span class="sead-site-summary-domain-counts">${this.formatCount(domain.datasets, "dataset")} · ${this.formatCount(domain.samples, "sample")}</span>
+						${methods.length > 0 ? `<div class="sead-site-summary-domain-methods">${this.escapeHtml(methods.join(", "))}</div>` : ""}
+					</div>`;
+			});
+			html += `</div>`;
+		}
+		else {
+			html += `<div class="sead-site-summary-domain">
+				${this.renderSeadSiteDomainMarker(null)}
+				<span class="sead-site-summary-domain-title">No analysed samples</span>
+			</div>`;
+		}
+
+		const rows = [];
+		if(summary.sample_count > 0) {
+			rows.push(["Samples", `${this.formatCount(summary.sample_count, "sample")} in ${this.formatCount(summary.sample_group_count, "sample group")}`]);
+		}
+		if(summary.age_summary) {
+			rows.push(["Dated", this.escapeHtml(this.getSeadSiteDatingText(summary.age_summary))]);
+		}
+		if(summary.first_reference) {
+			const more = summary.reference_count > 1 ? ` <span class="sead-site-summary-more">+${summary.reference_count - 1} more</span>` : "";
+			const reference = this.getReferenceText(summary.first_reference);
+			rows.push(["Reference", `<span class="sead-site-summary-reference" title="${this.escapeHtml(reference)}">${this.escapeHtml(reference)}</span>${more}`]);
+		}
+
+		if(rows.length > 0) {
+			html += `<table class="sead-site-summary-table"><tbody>`;
+			rows.forEach(([label, value]) => {
+				html += `<tr><th>${label}</th><td>${value}</td></tr>`;
+			});
+			html += `</tbody></table>`;
+		}
+
+		return html;
+	}
+
+	/*
+	* Function: getSeadSiteDatingText
+	*
+	* What the site's datings span, in the calendar its site report would show them in, e.g. "10 000 – 7 000 BP"
+	* or "older than 40 000 BP", and by how many methods.
+	*/
+	getSeadSiteDatingText(ageSummary) {
+		const dating = new Dating(this.sqs, null);
+		dating.siteData = { age_summary: ageSummary };
+		dating.calendar = dating.getDefaultCalendar(dating.siteData);
+
+		const rangeText = dating.getRangeText({
+			older: ageSummary.older,
+			younger: ageSummary.younger,
+			openOlder: ageSummary.datings.some(item => item.older == ageSummary.older && item.open_older),
+			openYounger: ageSummary.datings.some(item => item.younger == ageSummary.younger && item.open_younger)
+		});
+		return rangeText+" · "+this.formatCount(ageSummary.datings.length, "method");
+	}
+
+	getReferenceText(biblio) {
+		if(biblio.full_reference && biblio.full_reference.trim() != "") {
+			return biblio.full_reference.trim();
+		}
+		const year = biblio.year ? "("+biblio.year+")" : null;
+		//Without authors, the title leads
+		if(!biblio.authors) {
+			return [biblio.title, year].filter(part => part).join(" ");
+		}
+		return [biblio.authors, year, biblio.title].filter(part => part).join(" ");
+	}
+
+	formatCount(count, noun) {
+		return count.toLocaleString("en-GB")+" "+noun+(count == 1 ? "" : "s");
 	}
 
 	/*
@@ -3643,21 +3840,11 @@ class ResultMap extends ResultModule {
 				this.renderNeotomaSitePopup(evt.selected[0]);
 			}
 			else if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == false) {
-				$("#map-popup-container").show();
-				this.clearExternalPopupDecorations();
-				var feature = evt.selected[0];
-				var coords = feature.getGeometry().getCoordinates();
-				var prop = feature.getProperties();
-
-				$("#map-popup-title").remove();
-				var tableRows = this.renderPopupSiteRow(feature);
-				tableRows = sqs.sqsOffer("resultMapPopupSites", {
-					tableRows: tableRows,
-					olFeatures: prop.features
-				}).tableRows;
-				$("#map-popup-sites-table tbody").html(tableRows);
-
-				this.selectPopupOverlay.setPosition(coords);
+				this.renderSeadSitePopup(evt.selected[0], evt.selected[0].getGeometry().getCoordinates());
+			}
+			else if(evt.selected.length == 1 && evt.selected[0].getProperties().features.length == 1) {
+				//A cluster of one site is that site
+				this.renderSeadSitePopup(evt.selected[0].getProperties().features[0], evt.selected[0].getGeometry().getCoordinates());
 			}
 			else if(evt.selected.length == 1 && evt.selected[0].getProperties().hasOwnProperty("features") == true) {
 				$("#map-popup-container").show();

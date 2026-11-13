@@ -458,3 +458,115 @@
     border-radius: 50%;
     vertical-align: baseline;
 }
+
+#map-popup-container.sead-site-popup {
+    width: 24em;
+    max-width: calc(100vw - 2rem);
+
+    #map-popup-sites-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    #map-popup-sites-table > tbody > tr > td {
+        padding: 0;
+    }
+}
+
+.sead-site-popup-subtitle {
+    margin: -0.5em 0 0.7em 0;
+    color: #555;
+    font-size: 0.95em;
+    overflow-wrap: anywhere;
+}
+
+.sead-site-summary-evidence {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
+    margin-bottom: 0.6em;
+}
+
+.sead-site-summary-domain {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    column-gap: 0.45em;
+    align-items: baseline;
+
+    .result-map-popup-evidence-marker {
+        margin-right: 0;
+    }
+}
+
+.sead-site-summary-domain-title {
+    font-weight: 600;
+}
+
+.sead-site-summary-domain-counts {
+    color: #555;
+    font-size: 0.9em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.sead-site-summary-domain-methods {
+    grid-column: 2 / -1;
+    color: #666;
+    font-size: 0.85em;
+}
+
+.sead-site-summary-loading,
+.sead-site-summary-error {
+    padding: 0.4em 0;
+    color: #555;
+}
+
+.sead-site-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 1px solid #ddd;
+
+    th,
+    td {
+        padding: 0.35em 0 0 0;
+        vertical-align: top;
+        text-align: left;
+    }
+
+    th {
+        width: 6.5em;
+        padding-right: 0.5em;
+        font-weight: 600;
+        color: #444;
+    }
+
+    td {
+        overflow-wrap: anywhere;
+    }
+}
+
+//A long reference is cut to two lines; the whole of it is in its title
+.sead-site-summary-reference {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.sead-site-summary-more {
+    color: #666;
+    font-size: 0.9em;
+}
+
+//A primary button, kept so over the plain-link look of .site-report-link it also has
+.sqs-btn.sqs-btn-primary.sead-site-popup-open {
+    width: 100%;
+    margin-top: 0.8em;
+    top: 0;
+    color: #fff;
+    text-decoration: none;
+
+    :hover {
+        background-color: transparent;
+    }
+}
