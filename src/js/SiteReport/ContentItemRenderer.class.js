@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid';
 import SiteReportTable from './RenderModules/SiteReportTable.class';
 import SiteReportChart from './RenderModules/SiteReportChart.class';
 import DendroChart from './RenderModules/DendroChart.class';
+import InclusionSpectrum from './RenderModules/InclusionSpectrum.class';
 
 class ContentItemRenderer {
 	    constructor(siteReport, section, contentItem) {
@@ -262,6 +263,11 @@ class ContentItemRenderer {
 						break;
 					case "dendrochart":
 						renderInstance = new DendroChart(this.siteReport, this.contentItem);
+						renderInstance.render(anchorSelector);
+						this.addRenderInstance(this.contentItem.name, renderInstance);
+						break;
+					case "inclusion-frequencies":
+						renderInstance = new InclusionSpectrum(this.siteReport, this.contentItem);
 						renderInstance.render(anchorSelector);
 						this.addRenderInstance(this.contentItem.name, renderInstance);
 						break;
@@ -547,7 +553,7 @@ class ContentItemRenderer {
 			let exportFormats = ["json", "xlsx"];
 			//let exportFormats = ["json", "xlsx", "pdf"];
 			
-			if(selectedRoType != "table" && selectedRoType != "dendrochart") {
+			if(selectedRoType != "table" && selectedRoType != "dendrochart" && selectedRoType != "inclusion-frequencies") {
 				exportFormats.push("png");
 			}
 

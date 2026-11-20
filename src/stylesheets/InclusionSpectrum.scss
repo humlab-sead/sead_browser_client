@@ -1,0 +1,197 @@
+@use "colors";
+@use "variables" as *;
+
+/*
+* The inclusion-frequency spectrum of a site's petrographic ceramics data (InclusionSpectrum.class.js): a row per sample,
+* a gradient bar per fraction on a shared log10 axis, and the components as labels at the position of their frequency label.
+*/
+
+.inclusion-spectrum {
+  --inclusion-fine-color: #{colors.$base-color};
+  --inclusion-coarse-color: #{colors.$burned-color};
+}
+
+.inclusion-spectrum-scroll {
+  overflow-x: auto;
+}
+
+.inclusion-spectrum-grid {
+  display: grid;
+  grid-template-columns: sqs-px(130) minmax(sqs-px(200), 1fr) minmax(sqs-px(200), 1fr) sqs-px(150);
+  column-gap: sqs-px(14);
+  min-width: sqs-px(700);
+  font-size: sqs-px(13);
+}
+
+.inclusion-spectrum-corner {
+  align-self: end;
+  padding-bottom: sqs-px(4);
+  color: colors.$text-muted-color;
+  font-size: sqs-px(12);
+}
+
+.inclusion-spectrum-panel-title {
+  margin-bottom: sqs-px(4);
+  font-weight: 600;
+}
+
+.inclusion-spectrum-panel-header.inclusion-spectrum-fine .inclusion-spectrum-panel-title {
+  color: var(--inclusion-fine-color);
+}
+
+.inclusion-spectrum-panel-header.inclusion-spectrum-coarse .inclusion-spectrum-panel-title {
+  color: var(--inclusion-coarse-color);
+}
+
+/* The axis: the labels read upwards from their tick, and the percentages are along the bottom */
+.inclusion-spectrum-axis {
+  position: relative;
+  height: sqs-px(104);
+  border-bottom: 1px solid colors.$control-border-color;
+  color: colors.$text-color;
+  font-size: sqs-px(11.5);
+}
+
+.inclusion-spectrum-axis-label {
+  position: absolute;
+  bottom: sqs-px(26);
+  transform: translateX(-50%) rotate(180deg);
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+  line-height: 1;
+  cursor: default;
+}
+
+.inclusion-spectrum-boundary {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  height: sqs-px(7);
+  background: colors.$text-muted-color;
+}
+
+.inclusion-spectrum-percentage {
+  position: absolute;
+  bottom: sqs-px(7);
+  transform: translateX(-50%);
+  color: colors.$text-muted-color;
+  font-size: sqs-px(10.5);
+  white-space: nowrap;
+}
+
+.inclusion-spectrum-percentage.is-first {
+  transform: none;
+}
+
+.inclusion-spectrum-percentage.is-last {
+  transform: translateX(-100%);
+}
+
+.inclusion-spectrum-sample {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  padding-top: sqs-px(1);
+  border-top: 1px solid colors.$border-color-light;
+}
+
+.inclusion-spectrum-sample-btn {
+  max-width: 100%;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inclusion-spectrum-info {
+  padding-top: sqs-px(1);
+  border-top: 1px solid colors.$border-color-light;
+  font-size: sqs-px(12);
+  line-height: 1.5;
+}
+
+.inclusion-spectrum-bar {
+  position: relative;
+  min-height: sqs-px(36);
+  border-top: 1px solid colors.$border-color-light;
+}
+
+/* From almost white to the fraction's color. The same gradient for every sample, the axis is what gives it a meaning. */
+.inclusion-spectrum-strip {
+  position: absolute;
+  top: sqs-px(4);
+  left: 0;
+  right: 0;
+  height: sqs-px(12);
+  border-radius: sqs-px(3);
+  background: linear-gradient(to right, #f7f9fb, var(--inclusion-fine-color));
+}
+
+.inclusion-spectrum-bar.inclusion-spectrum-coarse .inclusion-spectrum-strip {
+  background: linear-gradient(to right, #fbf8f7, var(--inclusion-coarse-color));
+}
+
+.inclusion-spectrum-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: colors.$border-color-light;
+}
+
+.inclusion-spectrum-pin {
+  position: absolute;
+  top: sqs-px(4);
+  width: 2px;
+  height: sqs-px(12);
+  margin-left: -1px;
+  background: colors.$text-color;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.inclusion-spectrum-marker {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 0 sqs-px(5);
+  border: 1px solid colors.$control-border-color;
+  border-radius: sqs-px(10);
+  background: colors.$card-bg-color;
+  color: colors.$text-color;
+  font-size: sqs-px(12);
+  line-height: sqs-px(16);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.inclusion-spectrum-marker:focus-visible {
+  outline: 2px solid colors.$base-color;
+  outline-offset: 1px;
+}
+
+.inclusion-spectrum-bar.inclusion-spectrum-fine .inclusion-spectrum-marker {
+  border-color: var(--inclusion-fine-color);
+}
+
+.inclusion-spectrum-bar.inclusion-spectrum-coarse .inclusion-spectrum-marker {
+  border-color: var(--inclusion-coarse-color);
+}
+
+.inclusion-spectrum-empty {
+  position: absolute;
+  top: sqs-px(20);
+  left: 0;
+  font-size: sqs-px(12);
+}
+
+.inclusion-spectrum-note {
+  margin: sqs-px(10) 0 0;
+  font-size: sqs-px(12.5);
+}
+
+/* Narrow: the sample name and tempering figures take less room, and the chart scrolls rather than squeezing the bars */
+@media (max-width: $ui-mobile-breakpoint) {
+  .inclusion-spectrum-grid {
+    grid-template-columns: sqs-px(90) sqs-px(240) sqs-px(240) sqs-px(150);
+    column-gap: sqs-px(10);
+  }
+}

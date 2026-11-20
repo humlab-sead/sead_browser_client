@@ -12,6 +12,7 @@ import LossOnIgnitionDataset from "./DatasetModules/LossOnIgnitionDataset.class"
 import EntityAgesDataset from "./DatasetModules/EntityAgesDataset.class";
 import ESRDataset from "./DatasetModules/ESRDataset.class";
 import AdnaDataset from "./DatasetModules/AdnaDataset.class";
+import Microphotographs from "./Microphotographs.class";
 /*
 * Class: Analysis
 * 
@@ -141,6 +142,12 @@ class Analysis {
 		await siteReport.renderSection(this.section);
 		siteReport.renderAnalysisMethodNav(this.section);
 		this.destroyAllDatasetModules();
+
+		//The microphotographs of the site, if it has any, come after the analysis methods
+		this.microphotographs = new Microphotographs(this.sqs, this.siteId);
+		this.microphotographs.render(siteReport).catch((error) => {
+			console.warn("Could not render the microphotographs", error);
+		});
 	}
 	
 	/*
@@ -384,6 +391,10 @@ class Analysis {
 	* Function: destroy
 	*/
 	destroy() {
+		if(this.microphotographs) {
+			this.microphotographs.destroy();
+			this.microphotographs = null;
+		}
 	}
 
 	/*

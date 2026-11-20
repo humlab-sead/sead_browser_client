@@ -1,4 +1,5 @@
 import DatasetModule from "./DatasetModule.class";
+import InclusionSpectrum from "../../RenderModules/InclusionSpectrum.class";
 /*
 * Class: CeramicDataset
 *
@@ -424,6 +425,10 @@ class CeramicDataset extends DatasetModule {
 			}
 		});
 
+		//Values under the "Fine fraction: " and "Coarse fraction: " lookups are Whitbread frequency labels, which get a view of their own.
+		//The old 0-5 scale values (KFL) have none, and keep their views.
+		let hasInclusionFrequencies = sampleDataGroups.some(dsg => InclusionSpectrum.hasInclusionFrequencies(dsg.values));
+
 		let ci = {
 			"name": "ceramics-"+methodId, //Normally: analysis.datasetId, but must be unique per method since there's one content item per method section
 			"title": "Ceramics", //Normally this would be: analysis.datasetName
@@ -439,7 +444,7 @@ class CeramicDataset extends DatasetModule {
 			"renderOptions": [
 				{
 					"name": "Spreadsheet",
-					"selected": true,
+					"selected": !hasInclusionFrequencies,
 					"type": "table",
 					"options": [
 						{
@@ -482,6 +487,14 @@ class CeramicDataset extends DatasetModule {
 			]
 		};
 		
+		if(hasInclusionFrequencies) {
+			ci.renderOptions.unshift({
+				"name": "Inclusion frequencies",
+				"selected": true,
+				"type": "inclusion-frequencies"
+			});
+		}
+
 		return ci;
 	}
 	

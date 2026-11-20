@@ -1,0 +1,529 @@
+@use "sass:color";
+@use "colors";
+@use "variables" as *;
+
+/*
+* The thin section viewer: a gallery of microphotographs to pick from, and a desktop to inspect the picked ones on.
+* It is in the Microphotographs tile of the result mosaic and in the site report.
+*/
+
+.tsa-body {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.thin-section-tile-chart {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.tsa-empty {
+  padding: 1.5em;
+  color: colors.$text-muted-color;
+  font-size: sqs-px(14);
+}
+
+/* In a page, the viewer has a height of its own */
+.tsa-body--embedded {
+  flex: 0 0 auto;
+  min-height: sqs-px(300);
+
+  .tsa-gallery-scroll {
+    flex: 0 0 auto;
+    max-height: sqs-px(560);
+  }
+
+  .tsa-desktop {
+    flex: 0 0 auto;
+    height: sqs-px(640);
+  }
+}
+
+/* Gallery */
+
+.tsa-gallery-hint {
+  margin: 0.6em 0.75em 0.4em;
+  font-size: sqs-px(13);
+  color: colors.$text-muted-color;
+
+  .tsa-inspect-btn--inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    vertical-align: middle;
+    padding: 0.15em 0.6em;
+    font-size: 0.95em;
+    line-height: 1.4;
+  }
+}
+
+.tsa-gallery-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.75em;
+}
+
+.tsa-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(sqs-px(180), 1fr));
+  gap: 0.75em;
+}
+
+.tsa-gallery-item {
+  cursor: pointer;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  overflow: hidden;
+  background: colors.$card-bg-color;
+  box-shadow: 0 0 0 1px colors.$border-color;
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: colors.$base-color;
+  }
+
+  &:focus-visible {
+    outline: 2px solid colors.$base-color;
+    outline-offset: 1px;
+  }
+
+  &.tsa-selected {
+    border-color: colors.$aux-color;
+
+    .tsa-gallery-overlay {
+      opacity: 1;
+    }
+  }
+}
+
+.tsa-gallery-imgwrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #111;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.tsa-gallery-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(colors.$aux-color, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+
+  .fa {
+    color: #fff;
+    font-size: 1.8em;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+}
+
+/* The site and sample names and the metadata of an image, under it */
+.tsa-caption {
+  box-sizing: border-box;
+  height: 64px;
+  padding: 4px 8px;
+  overflow: hidden;
+  background: colors.$card-bg-color;
+  color: colors.$text-color;
+  font-size: 11px;
+  line-height: 14px;
+  text-align: left;
+  user-select: text;
+}
+
+.tsa-caption > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tsa-caption-site {
+  color: colors.$text-muted-color;
+}
+
+.tsa-caption-sample {
+  font-weight: 600;
+}
+
+.tsa-caption-meta {
+  color: colors.$text-muted-color;
+}
+
+.tsa-caption-missing {
+  color: #8a5a00;
+  font-style: italic;
+}
+
+.tsa-gallery-footer {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75em;
+  padding: 0.6em 0.75em;
+  border-top: 1px solid colors.$border-color-light;
+  background: colors.$page-bg-color;
+  margin-bottom: 18px;
+}
+
+.tsa-footer-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+}
+
+.tsa-selection-count {
+  font-size: sqs-px(13);
+  color: colors.$text-muted-color;
+}
+
+.tsa-inspect-btn {
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+/* Inspect desktop */
+
+.tsa-inspect-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em 1em;
+  padding: 0.5em 0.75em;
+  border-bottom: 1px solid colors.$border-color-light;
+  background: colors.$page-bg-color;
+}
+
+.tsa-inspect-hint {
+  flex: 1 1 auto;
+  font-size: sqs-px(13);
+  color: colors.$text-muted-color;
+}
+
+.tsa-layout-btns {
+  display: flex;
+  gap: 0.4em;
+  flex: 0 0 auto;
+}
+
+.tsa-toolbar-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55em;
+  flex: 0 0 auto;
+}
+
+.tsa-toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(0,0,0,0.18);
+}
+
+.tsa-layout-btn,
+.tsa-zoom-btn,
+.tsa-ston-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  white-space: nowrap;
+}
+
+.tsa-zoom-btn.tsa-zoom-btn--active {
+  background: colors.$aux-color;
+  border-color: color.adjust(colors.$aux-color, $lightness: -12%);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(colors.$aux-color, 0.35), 0 0 10px rgba(colors.$aux-color, 0.55);
+}
+
+.tsa-desktop {
+  flex: 1 1 0;
+  min-height: 0;
+  position: relative;
+  overflow: auto;
+  background: color.adjust(colors.$pane-bg-color, $lightness: -3%);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(colors.$base-color, 0.45) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(colors.$base-color, 0.45) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.08;
+    transition: opacity 0.2s;
+  }
+
+  &.tsa-desktop--dragging::before {
+    opacity: 0.45;
+  }
+
+  &.tsa-desktop--zoom-active .tsa-card-imgwrap {
+    cursor: crosshair;
+    touch-action: none;
+  }
+}
+
+.tsa-image-card {
+  position: absolute;
+  width: 240px;
+  min-width: 180px;
+  min-height: 160px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  overflow: hidden;
+  z-index: 1;
+
+  &.tsa-snapping {
+    transition: left 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                top  0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                width  0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                height 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  &.tsa-dragging {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    transition: none;
+  }
+
+  .tsa-caption {
+    flex: 0 0 auto;
+  }
+}
+
+/* The handle shows when the card is pointed at, over the top of the image */
+.tsa-card-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4em;
+  padding: 0.4em 0.6em;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  cursor: grab;
+  border-radius: 4px 4px 0 0;
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.tsa-image-card:hover .tsa-card-handle,
+.tsa-image-card.tsa-image-card--adjustments-open .tsa-card-handle {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tsa-card-name {
+  flex: 1 1 auto;
+  font-size: 0.75em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tsa-card-imgwrap {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #111;
+  position: relative;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+}
+
+.tsa-zoom-lens {
+  position: absolute;
+  border: 2px solid colors.$aux-color;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.45);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.tsa-zoom-overlay {
+  position: fixed;
+  width: 200px;
+  height: 200px;
+  border: 2px solid colors.$aux-color;
+  background: #000;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1100;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: auto;
+  }
+}
+
+.tsa-adjust-toggle,
+.tsa-close-btn {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 3px;
+  color: #fff;
+  font-size: 0.8em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.tsa-adjust-toggle {
+  &:hover {
+    background: rgba(255,255,255,0.2);
+  }
+
+  &.tsa-adjust-toggle--active {
+    background: colors.$aux-color;
+    border-color: colors.$aux-color;
+  }
+}
+
+.tsa-close-btn:hover {
+  background: rgba(200,50,50,0.6);
+  border-color: rgba(200,50,50,0.8);
+}
+
+.tsa-card-controls {
+  position: absolute;
+  top: 2.2em;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 3;
+  padding: 0.6em 0.7em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  background: rgba(20, 30, 48, 0.88);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  overflow-y: auto;
+
+  label {
+    display: grid;
+    grid-template-columns: 6em 1fr 3.5em;
+    align-items: center;
+    gap: 0.3em;
+    font-size: 0.78em;
+    color: rgba(255,255,255,0.8);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+    accent-color: colors.$aux-color;
+  }
+}
+
+.tsa-ctrl-val {
+  font-size: 0.9em;
+  text-align: right;
+  color: rgba(255,255,255,0.7);
+}
+
+.tsa-apply-all-btn,
+.tsa-normalize-btn {
+  width: 100%;
+  margin-top: 0.35em;
+  padding: 0.35em 0.6em;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 3px;
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+  font-size: 0.76em;
+  cursor: pointer;
+  text-align: center;
+
+  &:hover {
+    background: rgba(255,255,255,0.2);
+  }
+
+  &:active {
+    background: rgba(colors.$aux-color, 0.35);
+    border-color: colors.$aux-color;
+  }
+}
+
+.tsa-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 10;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid rgba(0,0,0,0.25);
+    border-bottom: 2px solid rgba(0,0,0,0.25);
+  }
+}
+
+/* The Microphotographs block of the analyses tab of the site report */
+.site-report-microphotographs .tsa-body {
+  margin-top: sqs-px(8);
+  border: 1px solid colors.$border-color;
+  border-radius: 4px;
+  overflow: hidden;
+}
