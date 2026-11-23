@@ -12,6 +12,9 @@
 *
 * The values are the content item's ceramics values with a key of "Fine fraction: <Component>" or
 * "Coarse fraction: <Component>", read from the subtables of the rows of its spreadsheet.
+*
+* Components can be picked, from the row of them above the chart or by clicking their labels in it, to highlight them in
+* every sample, or to show only them. Which are picked is kept while the chart is drawn anew.
 */
 class InclusionSpectrum {
 	constructor(siteReport, contentItem) {
@@ -21,6 +24,8 @@ class InclusionSpectrum {
 		this.anchorNodeSelector = null;
 		this.chartNode = null;
 		this.resizeObserver = null;
+		this.selectedComponents = new Set(); //The names of the components picked, e.g. "Sand"
+		this.selectionMode = "highlight"; //"highlight" the picked components, or "only" show them
 
 		this.axisMin = 0.2;
 		this.axisMax = 100;
@@ -164,6 +169,8 @@ class InclusionSpectrum {
 		let samples = this.getSamples();
 		this.chartNode = $("<div class='inclusion-spectrum'></div>");
 
+		this.chartNode.append(this.renderComponentFilter(samples));
+
 		let scrollNode = $("<div class='inclusion-spectrum-scroll'></div>");
 		let gridNode = $("<div class='inclusion-spectrum-grid' role='table' aria-label='Inclusion frequencies per sample'></div>");
 
@@ -196,14 +203,163 @@ class InclusionSpectrum {
 
 		$(this.anchorNodeSelector).append(this.chartNode);
 
+		this.chartNode.on("click", ".inclusion-spectrum-marker", evt => {
+			this.toggleComponent($(evt.currentTarget).attr("data-component"));
+		});
+		this.chartNode.on("keydown", ".inclusion-spectrum-marker", evt => {
+			if(evt.key == "Enter" || evt.key == " ") {
+				evt.preventDefault();
+				this.toggleComponent($(evt.currentTarget).attr("data-component"));
+			}
+		});
+
 		//The labels are placed by their measured size, which isn't known until the chart is visible and has its width
-		this.layoutMarkers();
+		this.applySelection();
 		if(typeof ResizeObserver != "undefined") {
 			this.resizeObserver = new ResizeObserver(() => {
 				this.layoutMarkers();
 			});
 			this.resizeObserver.observe(this.chartNode[0]);
 		}
+	}
+
+	/*
+	* Function: getComponents
+	* The components of the samples, each once, with the fractions it is in and the number of samples it is in, the fine
+	* fraction's first and then by name.
+	*/
+	getComponents(samples) {
+		let components = new Map();
+		samples.forEach(sample => {
+			let inSample = new Set();
+			this.fractions.forEach(fraction => {
+				sample.fractions[fraction.key].forEach(item => {
+					if(!components.has(item.component)) {
+						components.set(item.component, { name: item.component, fractions: [], sampleCount: 0 });
+					}
+					let component = components.get(item.component);
+					if(!component.fractions.includes(fraction.key)) {
+						component.fractions.push(fraction.key);
+					}
+					inSample.add(item.component);
+				});
+			});
+			inSample.forEach(name => components.get(name).sampleCount++);
+		});
+		let fractionOrder = component => this.fractions.findIndex(fraction => fraction.key == component.fractions[0]);
+		return Array.from(components.values()).sort((a, b) => fractionOrder(a) - fractionOrder(b) || a.name.localeCompare(b.name, "en-GB"));
+	}
+
+	/*
+	* Function: renderComponentFilter
+	* The components to pick from, and whether the picked ones are highlighted or the only ones shown.
+	*/
+	renderComponentFilter(samples) {
+		let filterNode = $("<div class='inclusion-spectrum-filter' role='group' aria-label='Highlight inclusions'></div>");
+		filterNode.append($("<span class='inclusion-spectrum-filter-label'></span>").text("Inclusions"));
+
+		let chipsNode = $("<div class='inclusion-spectrum-chips'></div>");
+		this.getComponents(samples).forEach(component => {
+			let chipNode = $("<button type='button' class='inclusion-spectrum-chip'></button>");
+			chipNode.addClass("inclusion-spectrum-"+component.fractions[0]);
+			chipNode.attr("data-component", component.name);
+			chipNode.attr("title", component.name+": recorded in "+component.sampleCount+" of "+samples.length+" samples");
+			chipNode.append($("<span></span>").text(component.name));
+			chipNode.append($("<span class='inclusion-spectrum-chip-count mono'></span>").text(component.sampleCount));
+			chipNode.on("click", () => this.toggleComponent(component.name));
+			chipsNode.append(chipNode);
+		});
+		filterNode.append(chipsNode);
+
+		let controlsNode = $("<div class='inclusion-spectrum-filter-controls'></div>");
+		let modeNode = $("<div class='inclusion-spectrum-mode' role='group' aria-label='How the picked inclusions are shown'></div>");
+		[{ mode: "highlight", text: "Highlight" }, { mode: "only", text: "Show only" }].forEach(item => {
+			let buttonNode = $("<button type='button' class='inclusion-spectrum-mode-btn'></button>").text(item.text).attr("data-mode", item.mode);
+			buttonNode.on("click", () => {
+				this.selectionMode = item.mode;
+				this.applySelection();
+			});
+			modeNode.append(buttonNode);
+		});
+		controlsNode.append(modeNode);
+		let clearNode = $("<button type='button' class='sqs-link-btn inclusion-spectrum-clear'>Clear</button>");
+		clearNode.on("click", () => {
+			this.selectedComponents.clear();
+			this.applySelection();
+		});
+		controlsNode.append(clearNode);
+		filterNode.append(controlsNode);
+
+		filterNode.append($("<span class='sqs-muted inclusion-spectrum-filter-hint'></span>").text("Click an inclusion, here or in the chart, to highlight it in every sample."));
+		return filterNode;
+	}
+
+	toggleComponent(name) {
+		if(!name) {
+			return;
+		}
+		if(this.selectedComponents.has(name)) {
+			this.selectedComponents.delete(name);
+		}
+		else {
+			this.selectedComponents.add(name);
+		}
+		this.applySelection();
+	}
+
+	/*
+	* Function: applySelection
+	* Shows which components are picked: in the row of them, and in the chart, where the others are faded or hidden. The
+	* labels are then placed anew, since hidden ones take no room.
+	*/
+	applySelection() {
+		if(!this.chartNode) {
+			return;
+		}
+		//A component no longer in the data can't be picked
+		let present = new Set($(".inclusion-spectrum-chip", this.chartNode).toArray().map(node => $(node).attr("data-component")));
+		this.selectedComponents.forEach(name => {
+			if(!present.has(name)) {
+				this.selectedComponents.delete(name);
+			}
+		});
+
+		let selecting = this.selectedComponents.size > 0;
+		let only = selecting && this.selectionMode == "only";
+		this.chartNode.toggleClass("has-selection", selecting);
+
+		$(".inclusion-spectrum-chip", this.chartNode).each((i, node) => {
+			let selected = this.selectedComponents.has($(node).attr("data-component"));
+			$(node).toggleClass("is-selected", selected).attr("aria-pressed", selected ? "true" : "false");
+		});
+		$(".inclusion-spectrum-mode-btn", this.chartNode).each((i, node) => {
+			let current = $(node).attr("data-mode") == this.selectionMode;
+			$(node).toggleClass("is-current", current).attr("aria-pressed", current ? "true" : "false").prop("disabled", !selecting);
+		});
+		$(".inclusion-spectrum-clear", this.chartNode).prop("disabled", !selecting);
+
+		$(".inclusion-spectrum-marker", this.chartNode).each((i, node) => {
+			let selected = this.selectedComponents.has($(node).attr("data-component"));
+			$(node).toggleClass("is-selected", selected);
+			$(node).toggleClass("is-dimmed", selecting && !selected && !only);
+			$(node).toggleClass("is-hidden", only && !selected);
+			$(node).attr("aria-pressed", selected ? "true" : "false");
+		});
+		$(".inclusion-spectrum-pin", this.chartNode).each((i, node) => {
+			let components = String($(node).attr("data-components")).split("|");
+			let selected = components.some(name => this.selectedComponents.has(name));
+			$(node).toggleClass("is-selected", selected);
+			$(node).toggleClass("is-dimmed", selecting && !selected && !only);
+			$(node).toggleClass("is-hidden", only && !selected);
+		});
+		//A fraction of a sample with none of the picked components says so, when only those are shown
+		$(".inclusion-spectrum-bar", this.chartNode).each((i, node) => {
+			let markers = $(".inclusion-spectrum-marker", node);
+			let none = only && markers.length > 0 && markers.filter(".is-selected").length == 0;
+			$(".inclusion-spectrum-filter-empty", node).toggle(none);
+		});
+
+		this.layoutMarkers();
 	}
 
 	/*
@@ -276,8 +432,9 @@ class InclusionSpectrum {
 			let band = labelInfo.band;
 			let tooltip = component.component+": "+labelInfo.label+" (≈ "+band+" %)";
 
-			let markerNode = $("<span class='inclusion-spectrum-marker' tabindex='0'></span>").text(component.component);
-			markerNode.attr("title", tooltip).attr("aria-label", tooltip);
+			let markerNode = $("<span class='inclusion-spectrum-marker' role='button' tabindex='0'></span>").text(component.component);
+			markerNode.attr("title", tooltip+". Click to highlight it in every sample.").attr("aria-label", tooltip);
+			markerNode.attr("data-component", component.component);
 			markerNode.attr("data-position", this.getPosition(labelInfo.position));
 			barNode.append(markerNode);
 
@@ -285,7 +442,11 @@ class InclusionSpectrum {
 				pins[labelInfo.label] = $("<span class='inclusion-spectrum-pin' aria-hidden='true'></span>").css("left", this.getPosition(labelInfo.position) * 100+"%");
 				barNode.append(pins[labelInfo.label]);
 			}
+			//Which components the pin is for, so that it is shown with them
+			let pinComponents = pins[labelInfo.label].attr("data-components");
+			pins[labelInfo.label].attr("data-components", pinComponents ? pinComponents+"|"+component.component : component.component);
 		});
+		barNode.append($("<span class='sqs-muted inclusion-spectrum-empty inclusion-spectrum-filter-empty'></span>").text("None of these").hide());
 		return barNode;
 	}
 
@@ -330,8 +491,12 @@ class InclusionSpectrum {
 		$(".inclusion-spectrum-bar", this.chartNode).each((i, barElement) => {
 			let barNode = $(barElement);
 			let width = barElement.clientWidth;
-			let markerNodes = $(".inclusion-spectrum-marker", barNode).toArray();
-			if(width == 0 || markerNodes.length == 0) {
+			let markerNodes = $(".inclusion-spectrum-marker", barNode).not(".is-hidden").toArray();
+			if(width == 0) {
+				return;
+			}
+			if(markerNodes.length == 0) {
+				barNode.css("height", "");
 				return;
 			}
 

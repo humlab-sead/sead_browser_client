@@ -188,6 +188,157 @@
   font-size: sqs-px(12.5);
 }
 
+/* The components to pick from, above the chart */
+.inclusion-spectrum-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: sqs-px(6) sqs-px(12);
+  margin-bottom: sqs-px(14);
+  font-size: sqs-px(13);
+}
+
+.inclusion-spectrum-filter-label {
+  color: colors.$text-muted-color;
+  font-size: sqs-px(12);
+}
+
+.inclusion-spectrum-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: sqs-px(6);
+}
+
+.inclusion-spectrum-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: sqs-px(6);
+  padding: sqs-px(2) sqs-px(9);
+  border: 1px solid var(--inclusion-fine-color);
+  border-radius: sqs-px(12);
+  background: colors.$card-bg-color;
+  color: colors.$text-color;
+  font-size: sqs-px(12.5);
+  line-height: sqs-px(18);
+  cursor: pointer;
+
+  &.inclusion-spectrum-coarse {
+    border-color: var(--inclusion-coarse-color);
+  }
+
+  &:hover {
+    background: rgba(colors.$base-color, 0.08);
+  }
+
+  &.is-selected {
+    background: var(--inclusion-fine-color);
+    color: #fff;
+  }
+
+  &.is-selected.inclusion-spectrum-coarse {
+    background: var(--inclusion-coarse-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid colors.$base-color;
+    outline-offset: 1px;
+  }
+}
+
+.inclusion-spectrum-chip-count {
+  font-size: sqs-px(11);
+  opacity: 0.7;
+}
+
+.inclusion-spectrum-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: sqs-px(10);
+}
+
+.inclusion-spectrum-mode {
+  display: inline-flex;
+  border: 1px solid colors.$control-border-color;
+  border-radius: sqs-px(4);
+  overflow: hidden;
+}
+
+.inclusion-spectrum-mode-btn {
+  padding: sqs-px(2) sqs-px(9);
+  border: none;
+  background: colors.$card-bg-color;
+  color: colors.$text-color;
+  font-size: sqs-px(12);
+  cursor: pointer;
+
+  & + & {
+    border-left: 1px solid colors.$control-border-color;
+  }
+
+  &.is-current {
+    background: colors.$text-color;
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.inclusion-spectrum-clear:disabled {
+  visibility: hidden;
+}
+
+.inclusion-spectrum-filter-hint {
+  flex-basis: 100%;
+  font-size: sqs-px(12);
+}
+
+/* The labels in the chart can be clicked to pick their component */
+.inclusion-spectrum .inclusion-spectrum-marker {
+  cursor: pointer;
+  transition: opacity 0.15s, background-color 0.15s;
+
+  &.is-selected {
+    font-weight: 600;
+    color: #fff;
+  }
+
+  &.is-dimmed {
+    opacity: 0.25;
+  }
+
+  &.is-hidden {
+    display: none;
+  }
+}
+
+.inclusion-spectrum-bar.inclusion-spectrum-fine .inclusion-spectrum-marker.is-selected {
+  background: var(--inclusion-fine-color);
+}
+
+.inclusion-spectrum-bar.inclusion-spectrum-coarse .inclusion-spectrum-marker.is-selected {
+  background: var(--inclusion-coarse-color);
+}
+
+.inclusion-spectrum-pin {
+  transition: opacity 0.15s;
+
+  &.is-dimmed {
+    opacity: 0.25;
+  }
+
+  &.is-hidden {
+    display: none;
+  }
+
+  &.is-selected {
+    width: 3px;
+    margin-left: -1.5px;
+  }
+}
+
 /* Narrow: the sample name and tempering figures take less room, and the chart scrolls rather than squeezing the bars */
 @media (max-width: $ui-mobile-breakpoint) {
   .inclusion-spectrum-grid {
