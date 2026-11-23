@@ -52,7 +52,11 @@ class ThinSectionViewer {
         this.currentView = "gallery";
         this.currentLayout = null;
         this.lastDesktopWidth = 0;
+        this.lastDesktopHeight = 0;
         this._resizeObserver = null;
+        this.modal = null; //The node the viewer is moved into while expanded, see openModal()
+        this.modalPlaceholder = null;
+        this._modalKeyHandler = null;
         this.zoomToolActive = false;
         this.zoomLensSize = 40;
         this.zoomScale = 4;
@@ -78,12 +82,121 @@ class ThinSectionViewer {
             this.images = images;
         }
         this.leaveInspect();
+        this.closeModal();
         this.container = $(container);
         this.container.empty();
         this.body = $("<div class='tsa-body' id='tsa-body-"+this.viewerId+"'></div>");
         this.body.toggleClass("tsa-body--embedded", this.embedded);
         this.container.append(this.body);
+        //The button is in both the gallery and the inspect view, which are rendered anew, the body is not
+        this.body.on("click", ".tsa-expand-btn", () => {
+            if(this.modal) {
+                this.closeModal();
+            }
+            else {
+                this.openModal();
+            }
+        });
         this.renderGallery();
+    }
+
+    renderExpandButton() {
+        return "<button type='button' class='tsa-expand-btn sqs-btn'></button>";
+    }
+
+    updateExpandButtons() {
+        if(!this.body) {
+            return;
+        }
+        const expanded = this.modal != null;
+        this.body.find(".tsa-expand-btn")
+            .html(expanded
+                ? "<i class='fa fa-compress' aria-hidden='true'></i> Close"
+                : "<i class='fa fa-expand' aria-hidden='true'></i> Expand")
+            .attr("title", expanded ? "Back to the page (Esc)" : "Show the microphotographs over the whole page")
+            .attr("aria-pressed", expanded ? "true" : "false");
+    }
+
+    /*
+    * Function: openModal
+    * Moves the viewer out of its place in the page into a layer over the page, which leaves only the header visible,
+    * where it keeps the view it was in. closeModal() puts it back.
+    */
+    openModal() {
+        if(this.modal || !this.body) {
+            return;
+        }
+        //Keeps the room of the viewer in the page, so that the page doesn't jump
+        this.modalPlaceholder = $("<div class='tsa-modal-placeholder'></div>").css("height", this.body.outerHeight()+"px");
+        this.body.before(this.modalPlaceholder);
+        this.modal = $("<div class='tsa-modal' role='dialog' aria-modal='true' aria-label='Microphotographs'><div class='tsa-modal-frame'></div></div>");
+        //Next to the dialogs, so that they come over it, see ThinSectionViewer.scss
+        const dialog = $("#popover-dialog");
+        if(dialog.length) {
+            dialog.before(this.modal);
+        }
+        else {
+            $("body").append(this.modal);
+        }
+        $("body").addClass("tsa-modal-open");
+        this.modal.find(".tsa-modal-frame").append(this.body);
+        this.body.addClass("tsa-body--modal");
+        //A click on the dimmed margin around the viewer closes it
+        this.modal.on("mousedown", evt => {
+            if(evt.target === this.modal[0]) {
+                this.closeModal();
+            }
+        });
+        //Esc closes it, unless it is meant for a dialog opened over it, e.g. that of the export
+        this._modalKeyHandler = evt => {
+            if(evt.key == "Escape" && !$("#popover-dialog").is(":visible")) {
+                this.closeModal();
+            }
+        };
+        document.addEventListener("keydown", this._modalKeyHandler, true);
+        this.updateExpandButtons();
+        this.relayout();
+    }
+
+    closeModal() {
+        if(!this.modal) {
+            return;
+        }
+        document.removeEventListener("keydown", this._modalKeyHandler, true);
+        this._modalKeyHandler = null;
+        if(this.body) {
+            this.body.removeClass("tsa-body--modal");
+            if(this.modalPlaceholder) {
+                this.modalPlaceholder.replaceWith(this.body);
+            }
+        }
+        if(this.modalPlaceholder) {
+            this.modalPlaceholder.remove();
+            this.modalPlaceholder = null;
+        }
+        this.modal.remove();
+        this.modal = null;
+        $("body").removeClass("tsa-modal-open");
+        this.hideZoomPreview();
+        this.updateExpandButtons();
+        this.relayout();
+    }
+
+    /*
+    * Function: relayout
+    * Fits the images of the inspect view anew to its size, if they are in one of the layouts.
+    */
+    relayout() {
+        if(this.currentView != "inspect" || !this.currentLayout) {
+            return;
+        }
+        const desktopSelector = "#tsa-desktop-"+this.viewerId;
+        this.applyLayout(this.currentLayout, desktopSelector, false);
+        const desktop = $(desktopSelector)[0];
+        if(desktop) {
+            this.lastDesktopWidth = desktop.clientWidth;
+            this.lastDesktopHeight = desktop.clientHeight;
+        }
     }
 
     /*
@@ -113,6 +226,7 @@ class ThinSectionViewer {
     */
     destroy() {
         this.leaveInspect();
+        this.closeModal();
         if(this.body) {
             this.body.remove();
             this.body = null;
@@ -249,7 +363,10 @@ class ThinSectionViewer {
             return;
         }
 
-        let html = "<p class='tsa-gallery-hint'>Select the images you wish to inspect and then <button type='button' class='tsa-inspect-btn tsa-inspect-btn--inline sqs-btn' id='tsa-inspect-btn-hint-"+this.viewerId+"' disabled><i class='fa fa-search-plus' aria-hidden='true'></i> Inspect selected</button></p>";
+        let html = "<div class='tsa-gallery-header'>";
+        html += "<p class='tsa-gallery-hint'>Select the images you wish to inspect and then <button type='button' class='tsa-inspect-btn tsa-inspect-btn--inline sqs-btn' id='tsa-inspect-btn-hint-"+this.viewerId+"' disabled><i class='fa fa-search-plus' aria-hidden='true'></i> Inspect selected</button></p>";
+        html += this.renderExpandButton();
+        html += "</div>";
         html += "<div class='tsa-gallery-scroll'><div class='tsa-gallery-grid'>";
         this.images.forEach(image => {
             const key = this.getImageKey(image);
@@ -273,6 +390,7 @@ class ThinSectionViewer {
         html += "</span>";
         html += "</div>";
         body.html(html);
+        this.updateExpandButtons();
 
         const updateSelectionState = () => {
             const count = this.selectedImages.size;
@@ -352,11 +470,14 @@ class ThinSectionViewer {
                     <button type="button" class="tsa-ston-btn sqs-btn" title="Download the images for use in STON">
                         <i class="fa fa-download" aria-hidden="true"></i> Export for STON
                     </button>
+                    <div class="tsa-toolbar-divider" aria-hidden="true"></div>
+                    ${this.renderExpandButton()}
                 </div>
             </div>
             <div class="tsa-desktop" id="tsa-desktop-${this.viewerId}"></div>
         `;
         body.html(toolbarHtml);
+        this.updateExpandButtons();
 
         $("#tsa-back-"+this.viewerId).on("click", () => {
             this.renderGallery();
@@ -579,20 +700,38 @@ class ThinSectionViewer {
         $(document).off(`mousemove.tsa-${this.viewerId} mouseup.tsa-${this.viewerId}`);
     }
 
+    /*
+    * Function: applyLayout
+    * Arranges the cards in a row, a column or a grid, as large as they can be with all of them in view: they fit both
+    * the width and the height of the desktop, so that it doesn't scroll, and are centered in it. Only when that would
+    * make them smaller than MIN_CARD_WIDTH, e.g. a long column, do they go beyond it, and the desktop scrolls.
+    */
     applyLayout(layout, desktopSelector, animate = true) {
         this.currentLayout = layout;
         const $desktop = $(desktopSelector);
+        const desktopNode = $desktop[0];
+        if (!desktopNode) return;
         const snapGrid = 20;
-        const desktopW = $desktop.width();
+        const MIN_CARD_WIDTH = 160;
         const cards = $desktop.find(".tsa-image-card").toArray();
         const n = cards.length;
         if (!n) return;
+        //The room inside the scrollbars, if there are any yet, as the cards are placed to need none
+        const desktopW = desktopNode.clientWidth;
+        const desktopH = desktopNode.clientHeight;
 
-        const snap     = (v) => Math.round(v / snapGrid) * snapGrid;
         // Floor-snap for widths: guarantees cols x cardW <= desktopW so cards never overflow the container
         const snapDown = (v) => Math.floor(v / snapGrid) * snapGrid;
         //The height of a card is that of its image, which keeps its proportions, and its caption
-        const cardHeight = (cardW, ratio) => snap((cardW / ratio) + CAPTION_HEIGHT);
+        const cardHeight = (cardW, ratio) => Math.floor((cardW / ratio) + CAPTION_HEIGHT);
+        //The tallest image decides how wide the cards can be for a given height
+        const minRatio = Math.min(...cards.map(card => $(card).data("aspectRatio") || 1));
+        const widthForHeight = (h) => (h - CAPTION_HEIGHT) * minRatio;
+        const fitWidth = (cols, rows) => {
+            const w = Math.min(desktopW / cols, widthForHeight(desktopH / rows));
+            return Math.max(MIN_CARD_WIDTH, snapDown(w));
+        };
+        const centerOffset = (used, room) => Math.max(0, Math.floor((room - used) / 2));
         const place = ($card, card, props) => {
             // Override CSS min-width so the layout-computed width is never overridden by the stylesheet floor
             const allProps = Object.assign({ 'min-width': '0' }, props);
@@ -604,36 +743,39 @@ class ThinSectionViewer {
             }
         };
 
+        //The number of columns: one for a column, all for a row, and for a grid whichever makes the cards the largest
+        let cols = 1;
         if (layout === "row") {
-            const cardW = snapDown(Math.max(snapGrid, desktopW / n));
-            cards.forEach((card, i) => {
-                const $card = $(card);
-                const ratio = $card.data("aspectRatio") || 1;
-                const cardH = cardHeight(cardW, ratio);
-                place($card, card, { left: snap(i * cardW) + "px", top: "0px", width: cardW + "px", height: cardH + "px" });
-            });
-        } else if (layout === "column") {
-            const cardW = snapDown(desktopW);
-            let top = 0;
-            cards.forEach((card) => {
-                const $card = $(card);
-                const ratio = $card.data("aspectRatio") || 1;
-                const cardH = cardHeight(cardW, ratio);
-                place($card, card, { left: "0px", top: top + "px", width: cardW + "px", height: cardH + "px" });
-                top = snap(top + cardH);
-            });
+            cols = n;
         } else if (layout === "grid") {
-            const cols = Math.ceil(Math.sqrt(n));
-            const cardW = snapDown(Math.max(snapGrid, desktopW / cols));
-            cards.forEach((card, i) => {
-                const $card = $(card);
-                const ratio = $card.data("aspectRatio") || 1;
-                const cardH = cardHeight(cardW, ratio);
-                const col = i % cols;
-                const row = Math.floor(i / cols);
-                place($card, card, { left: snap(col * cardW) + "px", top: snap(row * cardH) + "px", width: cardW + "px", height: cardH + "px" });
-            });
+            let bestW = -1;
+            for (let c = 1; c <= n; c++) {
+                const w = Math.min(desktopW / c, widthForHeight(desktopH / Math.ceil(n / c)));
+                if (w > bestW) {
+                    bestW = w;
+                    cols = c;
+                }
+            }
+        } else if (layout !== "column") {
+            return;
         }
+        const rows = Math.ceil(n / cols);
+        const cardW = fitWidth(cols, rows);
+        const rowH = cardHeight(cardW, minRatio);
+        const left0 = centerOffset(cols * cardW, desktopW);
+        const top0 = centerOffset(rows * rowH, desktopH);
+        cards.forEach((card, i) => {
+            const $card = $(card);
+            const ratio = $card.data("aspectRatio") || 1;
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            place($card, card, {
+                left: (left0 + col * cardW) + "px",
+                top: (top0 + row * rowH) + "px",
+                width: cardW + "px",
+                height: cardHeight(cardW, ratio) + "px"
+            });
+        });
     }
 
     applyFilters(imgId, filters) {
@@ -1238,19 +1380,21 @@ class ThinSectionViewer {
         const $desktop = $(desktopSelector);
         const el = $desktop[0];
         if (!el) return;
-        this.lastDesktopWidth = $desktop.width();
+        this.lastDesktopWidth = el.clientWidth;
+        this.lastDesktopHeight = el.clientHeight;
 
         let debounceTimer = null;
         this._resizeObserver = new ResizeObserver(() => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
-                const newW = $desktop.width();
-                if (!newW || newW === this.lastDesktopWidth) return;
+                const newW = el.clientWidth;
+                const newH = el.clientHeight;
+                if (!newW || (newW === this.lastDesktopWidth && newH === this.lastDesktopHeight)) return;
 
                 if (this.currentLayout) {
-                    // Re-apply named layout to the new width, no animation
+                    // Re-apply named layout to the new size, no animation
                     this.applyLayout(this.currentLayout, desktopSelector, false);
-                } else {
+                } else if (newW !== this.lastDesktopWidth) {
                     // Free mode: scale left/width proportionally, derive height from aspect ratio
                     const ratio = newW / this.lastDesktopWidth;
                     $desktop.find(".tsa-image-card").each((_, card) => {
@@ -1267,6 +1411,7 @@ class ThinSectionViewer {
                     });
                 }
                 this.lastDesktopWidth = newW;
+                this.lastDesktopHeight = newH;
             }, 100);
         });
         this._resizeObserver.observe(el);

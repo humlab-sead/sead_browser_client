@@ -43,7 +43,82 @@
   }
 }
 
+/*
+* Expanded: the viewer is moved into a layer over the page, under the header like the dialogs, and one level below
+* them, so that a dialog opened from the viewer, e.g. that of the export, comes over it.
+*/
+.tsa-modal {
+  position: fixed;
+  top: var(--sqs-header-height, 0px);
+  left: 0;
+  width: 100vw;
+  height: calc(100vh - var(--sqs-header-height, 0px));
+  box-sizing: border-box;
+  padding: 1.5vh 1.5vw;
+  display: flex;
+  background: rgba(30, 30, 30, 0.35);
+  z-index: 4;
+}
+
+.tsa-modal-frame {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: colors.$card-bg-color;
+  border-radius: 4px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+
+.tsa-body.tsa-body--modal {
+  flex: 1 1 0;
+  min-height: 0;
+  margin: 0;
+  border: none;
+
+  .tsa-gallery-scroll {
+    flex: 1 1 0;
+    max-height: none;
+  }
+
+  .tsa-desktop {
+    flex: 1 1 0;
+    height: auto;
+  }
+
+  .tsa-gallery-footer {
+    margin-bottom: 0;
+  }
+}
+
+body.tsa-modal-open {
+  overflow: hidden;
+}
+
+.tsa-expand-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
 /* Gallery */
+
+.tsa-gallery-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  padding-right: 0.75em;
+
+  .tsa-gallery-hint {
+    flex: 1 1 auto;
+  }
+}
 
 .tsa-gallery-hint {
   margin: 0.6em 0.75em 0.4em;
