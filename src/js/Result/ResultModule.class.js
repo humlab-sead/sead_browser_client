@@ -15,6 +15,11 @@ import SiteExportWorker from '../Workers/SiteExport.worker.js';
 import DatasetExportWorker from '../Workers/DatasetExport.worker.js';
 
 import "@nobleclem/jquery-multiselect";
+
+//An XLSX export of more sites than this gets a notice that it will take a while
+const SDF_LARGE_EXPORT_SITES = 100;
+//How often a running XLSX export job is asked for its progress
+const SDF_JOB_POLL_MS = 1000;
 import "@nobleclem/jquery-multiselect/jquery.multiselect.css";
 
 
@@ -131,15 +136,31 @@ class ResultModule {
 	}
 	*/
 
-	async fetchExportData(siteIds) {
-		return await fetch(Config.dataServerAddress+"/export/bulk/sites", {
+	/*
+	* Function: fetchSiteList
+	*
+	* The site list export's rows, one per site (JSON API server, /export/site_list): site_id, site_name,
+	* latitude, longitude, altitude, national_site_identifier, domain, sample_groups_num, samples_num,
+	* plus url, the site's page in this SEAD instance. The domain is the site's main domain, the one the
+	* result map colours it by.
+	*/
+	async fetchSiteList(siteIds) {
+		const response = await fetch(Config.dataServerAddress+"/export/site_list", {
 			method: 'POST',
 			mode: 'cors',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify(siteIds)
-		}).then(res => res.json());
+			body: JSON.stringify(this.normalizeSiteIds(siteIds))
+		});
+		if(!response.ok) {
+			throw new Error("the server returned "+response.status);
+		}
+		const rows = await response.json();
+		rows.forEach(row => {
+			row.url = Config.serverRoot+"/site/"+row.site_id;
+		});
+		return rows;
 	}
 
 	getSelectedMethodIdsForExport() {
@@ -161,25 +182,52 @@ class ResultModule {
 	* Marks a format as chosen in the "Export sites" dialog and shows what goes with it: its
 	* description, the download button, and the dataset selection for the formats that use it.
 	* The XLSX export always contains every dataset, so it gets no dataset selection.
+	* With "Site list only" as the content, every format holds the same table of sites, so the
+	* dialog describes that instead, and has no datasets to choose or size to warn about.
 	*/
 	selectExportFormat(format) {
+		let content = this.getSelectedExportContent();
 		$(".sites-export-format-btn").each((i, btn) => {
 			$(btn).toggleClass("selected", $(btn).attr("data-export-format") == format);
 		});
 		$(".sites-export-format-description").each((i, desc) => {
-			$(desc).toggle($(desc).attr("data-export-format") == format);
+			$(desc).toggle(content == "all" && $(desc).attr("data-export-format") == format);
 		});
-		$(".sites-export-datasets").toggle(format == "csv" || format == "json");
+		$(".sites-export-content-description").each((i, desc) => {
+			$(desc).toggle($(desc).attr("data-export-content") == content);
+		});
+		$(".sites-export-datasets").toggle(content == "all" && (format == "csv" || format == "json"));
 
-		//The XLSX workbook is built on the server, which takes at most sitesExportMaxSites sites in one
-		let tooManySites = format == "xlsx" && this.sitesExportMaxSites != null && this.sitesExportSiteCount > this.sitesExportMaxSites;
+		//The XLSX workbook is built on the server. It takes any number of sites, unless the server
+		//is set up with a limit (sitesExportMaxSites); a large one takes a while, which is said up front.
+		let sdfExport = content == "all" && format == "xlsx";
+		let tooManySites = sdfExport && this.sitesExportMaxSites != null && this.sitesExportSiteCount > this.sitesExportMaxSites;
+		let largeExport = sdfExport && !tooManySites && this.sitesExportSiteCount > SDF_LARGE_EXPORT_SITES;
+		let notice = "";
+		if(tooManySites) {
+			notice = "The XLSX export can hold at most "+this.sitesExportMaxSites+" sites, and "+this.sitesExportSiteCount+" are selected. Use filters to narrow down the selection, or choose CSV or JSON.";
+		}
+		else if(largeExport) {
+			notice = "This is a large export: "+this.sitesExportSiteCount.toLocaleString("en")+" sites in one workbook. "
+				+"Building it can take a minute or more and the file can be over 100 MB; a progress bar shows how far it has come. "
+				+"Excel holds at most about a million rows, so if the selection has more, you will be told how many sites to export at a time.";
+		}
 		$(".sites-export-limit-notice")
-			.text(tooManySites ? "The XLSX export can hold at most "+this.sitesExportMaxSites+" sites, and "+this.sitesExportSiteCount+" are selected. Use filters to narrow down the selection, or choose CSV or JSON." : "")
-			.toggle(tooManySites);
+			.text(notice)
+			.toggle(tooManySites || largeExport);
 		$("#sites-export-dl")
 			.toggleClass("disabled", tooManySites)
 			.attr("aria-disabled", tooManySites ? "true" : "false")
 			.css("display", "inline-flex");
+	}
+
+	/*
+	* Function: getSelectedExportContent
+	*
+	* What the "Export sites" dialog is set to export: "all" (all data, the default) or "sites" (the site list).
+	*/
+	getSelectedExportContent() {
+		return $("input[name='sites-export-content']:checked").val() == "sites" ? "sites" : "all";
 	}
 
 	bindExportModuleDataToButton(button, module = null) {
@@ -297,6 +345,9 @@ class ResultModule {
 				$(".sites-export-format-btn").on("click", (evt) => {
 					this.selectExportFormat($(evt.currentTarget).attr("data-export-format"));
 				});
+				$("input[name='sites-export-content']").on("change", () => {
+					this.selectExportFormat($(".sites-export-format-btn.selected").attr("data-export-format"));
+				});
 				this.selectExportFormat("xlsx");
 
 				$("#sites-export-dl").on("click", () => {
@@ -304,6 +355,10 @@ class ResultModule {
 						return;
 					}
 					let format = $(".sites-export-format-btn.selected").attr("data-export-format");
+					if(this.getSelectedExportContent() == "sites") {
+						this.exportSiteList(selectedSites, format);
+						return;
+					}
 					if(format == "xlsx") {
 						this.exportSitesAsSdfXlsx(selectedSites);
 					}
@@ -427,40 +482,67 @@ class ResultModule {
 		this.exportInProgress = true;
 
 		$(button).append(`<div class="cute-little-loading-indicator"></div>`);
-		$("#export-progress-bar-container .status-msg").text("Building workbook...");
-		$(".export-progress-bar-fill").css({ width: "0%" });
+		this.showSdfProgress("Starting the export...", 0);
 		$("#export-progress-bar-container").css("display", "block");
 
+		let job = null;
+		$("#export-progress-cancel").show().off("click").on("click", () => {
+			if(job) {
+				job.cancelled = true;
+				fetch(Config.dataServerAddress+"/sdf/export/jobs/"+job.id, { method: "DELETE" }).catch(() => {});
+			}
+			this.showSdfProgress("Cancelling...", null);
+		});
+
 		try {
-			const response = await fetch(Config.dataServerAddress+"/sdf/export", {
+			//The server builds the workbook as a job: it answers at once, and is asked for its
+			//progress until the file is ready, so a large export gets a real progress bar.
+			const started = await this.sdfJobRequest(fetch(Config.dataServerAddress+"/sdf/export/jobs", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ siteIds: siteIds })
-			});
+			}));
+			job = { id: started.id, cancelled: false };
 
-			if(!response.ok) {
-				let message = "the server returned "+response.status;
-				try {
-					const error = await response.json();
-					if(error && error.error) {
-						message = error.error;
-					}
+			let status = started;
+			while(status.state == "queued" || status.state == "running") {
+				if(job.cancelled) {
+					break;
 				}
-				catch(e) {
-					//not a JSON error body - keep the status
-				}
-				throw new Error(message);
+				this.showSdfJobStatus(status);
+				await new Promise(resolve => setTimeout(resolve, SDF_JOB_POLL_MS));
+				status = await this.sdfJobRequest(fetch(Config.dataServerAddress+"/sdf/export/jobs/"+job.id));
 			}
 
+			if(job.cancelled || status.state == "cancelled") {
+				job.cancelled = true;
+				throw new Error("cancelled");
+			}
+			if(status.state == "failed") {
+				throw new Error(status.error && status.error.error ? status.error.error : "the server could not build the workbook");
+			}
+
+			$("#export-progress-cancel").hide();
+			const response = await fetch(Config.dataServerAddress+"/sdf/export/jobs/"+job.id+"/file");
+			if(!response.ok) {
+				await this.sdfJobRequest(Promise.resolve(response));
+			}
 			const blob = await this.readSdfResponse(response);
 			saveAs(blob, this.sdfFilename(response, siteIds));
 		}
 		catch(error) {
-			console.error("SDF Excel export failed", error);
-			this.sqs.notificationManager.notify("Excel export failed: "+(error && error.message ? error.message : "unknown error"), "error");
+			//once cancelled, whatever the job says next (often that it is gone) is the cancel
+			if(job && job.cancelled) {
+				this.sqs.notificationManager.notify("The Excel export was cancelled.", "info");
+			}
+			else {
+				console.error("SDF Excel export failed", error);
+				this.sqs.notificationManager.notify("Excel export failed: "+(error && error.message ? error.message : "unknown error"), "error");
+			}
 		}
 		finally {
 			$("#export-progress-bar-container").css("display", "none");
+			$("#export-progress-cancel").off("click").hide();
 			$(".export-progress-bar-fill").css({ width: "0%" });
 			$(button).find(".cute-little-loading-indicator").remove();
 			this.exportInProgress = false;
@@ -468,11 +550,64 @@ class ResultModule {
 	}
 
 	/*
+	* Function: sdfJobRequest
+	*
+	* Awaits a request to the SDF export job endpoints and returns its JSON body, or throws
+	* with the server's own message when it refuses (busy, too large, expired, ...).
+	*/
+	async sdfJobRequest(request) {
+		const response = await request;
+		let body = null;
+		try {
+			body = await response.json();
+		}
+		catch(e) {
+			//not a JSON body - the status is reported below
+		}
+		if(!response.ok) {
+			throw new Error(body && body.error ? body.error : "the server returned "+response.status);
+		}
+		return body;
+	}
+
+	/*
+	* Function: showSdfJobStatus
+	*
+	* Shows where a running XLSX export job is: waiting for a free slot on the server, reading
+	* the sites from the database, or writing the workbook.
+	*/
+	showSdfJobStatus(status) {
+		const percent = Math.round((status.progress || 0) * 100);
+		const sites = status.siteCount == 1 ? "1 site" : status.siteCount.toLocaleString("en")+" sites";
+		if(status.state == "queued") {
+			this.showSdfProgress("Waiting for the server, which is busy with other exports...", 0);
+		}
+		else if(status.phase == "gathering") {
+			this.showSdfProgress("Collecting the data for "+sites+"... "+percent+"%", status.progress);
+		}
+		else {
+			this.showSdfProgress("Writing the workbook for "+sites+"... "+percent+"%", status.progress);
+		}
+	}
+
+	/*
+	* Function: showSdfProgress
+	*
+	* Sets the export progress bar's message and fill (0-1). A null fraction leaves the fill as it is.
+	*/
+	showSdfProgress(message, fraction) {
+		$("#export-progress-bar-container .status-msg").text(message);
+		if(fraction !== null && fraction !== undefined) {
+			$(".export-progress-bar-fill").css({ width: Math.min(100, fraction * 100)+"%" });
+		}
+	}
+
+	/*
 	* Function: readSdfResponse
 	*
-	* Reads the workbook body into a Blob, moving the progress bar as it downloads. The server sends
-	* Content-Length once the workbook is built, so the wait before the first byte is the build and
-	* the bar covers the transfer.
+	* Reads the workbook body into a Blob, moving the progress bar as it downloads. By then the
+	* server has built the workbook (exportSitesAsSdfXlsx follows the build), so the bar starts
+	* over from empty and covers the transfer.
 	*/
 	async readSdfResponse(response) {
 		const total = parseInt(response.headers.get("Content-Length"));
@@ -480,7 +615,8 @@ class ResultModule {
 			return await response.blob();
 		}
 
-		$("#export-progress-bar-container .status-msg").text("Downloading...");
+		const mb = (bytes) => (bytes / 1024 / 1024).toFixed(1);
+		this.showSdfProgress("Downloading... 0 of "+mb(total)+" MB", 0);
 		const reader = response.body.getReader();
 		const chunks = [];
 		let received = 0;
@@ -491,7 +627,7 @@ class ResultModule {
 			}
 			chunks.push(value);
 			received += value.length;
-			$(".export-progress-bar-fill").css({ width: Math.min(100, received / total * 100)+"%" });
+			this.showSdfProgress("Downloading... "+mb(received)+" of "+mb(total)+" MB", received / total);
 		}
 		return new Blob(chunks, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 	}
@@ -915,67 +1051,93 @@ class ResultModule {
 		}
 	}
 
-	async exportSitesAsJson(siteIds) {
-		let sitesExportData = await this.fetchExportData(siteIds);
+	/*
+	* Function: exportSiteList
+	*
+	* The "Site list only" export: one row per site, as XLSX, CSV or JSON. Built here from
+	* fetchSiteList, which is quick even for every site in the database.
+	*/
+	async exportSiteList(sites, format, button = "#sites-export-dl") {
+		if(this.exportInProgress) {
+			this.sqs.notificationManager.notify("An export is already in progress. Please wait for it to finish.", "info");
+			return;
+		}
+		this.exportInProgress = true;
+		$(button).append(`<div class="cute-little-loading-indicator"></div>`);
+		try {
+			if(format == "csv") {
+				await this.exportSitesAsCsv(sites);
+			}
+			else if(format == "json") {
+				await this.exportSitesAsJson(sites);
+			}
+			else {
+				await this.exportSitesAsXlsx(sites);
+			}
+		}
+		catch(error) {
+			console.error("Site list export failed", error);
+			this.sqs.notificationManager.notify("Site list export failed: "+(error && error.message ? error.message : "unknown error"), "error");
+		}
+		finally {
+			$(button).find(".cute-little-loading-indicator").remove();
+			this.exportInProgress = false;
+		}
+	}
 
-		let siteExportJson = [];
-		sitesExportData.forEach(site => {
-			siteExportJson.push({
-				site_id: site.site_id,
-				name: site.site_name,
-				national_site_identifier: site.national_site_identifier,
-				lat: site.latitude_dd,
-				lng: site.longitude_dd,
-				description: site.site_description
-			});
-		});
-		
-		this.sqs.dialogManager.hidePopOver();
-		let jsonData = JSON.stringify(siteExportJson, null, 2);
-		const bytes = new TextEncoder().encode(jsonData);
-		const blob = new Blob([bytes], {
-			type: "application/json;charset=utf-8"
-		});
-		saveAs(blob, "sead_sites_export.json");
+	siteListFilename(extension) {
+		const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+		return "sead_site_list_"+date+"."+extension;
+	}
+
+	/*
+	* Function: siteListTable
+	*
+	* The site list as a header row and value rows, in the column order every format uses.
+	*/
+	siteListTable(rows) {
+		const columns = [
+			["site_id", "Site ID"],
+			["site_name", "Site name"],
+			["latitude", "latitude"],
+			["longitude", "longitude"],
+			["altitude", "altitude"],
+			["national_site_identifier", "national_site_identifier"],
+			["domain", "domain"],
+			["sample_groups_num", "sample_groups_num"],
+			["samples_num", "samples_num"],
+			["url", "url"]
+		];
+		return {
+			header: columns.map(c => c[1]),
+			rows: rows.map(row => columns.map(c => row[c[0]] === undefined ? null : row[c[0]]))
+		};
+	}
+
+	async exportSitesAsJson(siteIds) {
+		const rows = await this.fetchSiteList(siteIds);
+		const bytes = new TextEncoder().encode(JSON.stringify(rows, null, 2));
+		saveAs(new Blob([bytes], { type: "application/json;charset=utf-8" }), this.siteListFilename("json"));
 	}
 
 	async exportSitesAsCsv(siteIds) {
-		let sitesExportData = await this.fetchExportData(siteIds);
-	
-		let siteExportCsv = "\uFEFF"; // Byte Order Mark (BOM) to force Excel to open the file with UTF-8 encoding
-		siteExportCsv += `"Id","Name","National site identifier","Latitude","Longitude","Description"\r\n`;
-	
-		// Updated sanitizeForCsv function
-		let sanitizeForCsv = (str) => {
-			if (str == null) {
-				return '""'; // Return empty quotes if the value is null or undefined
+		const table = this.siteListTable(await this.fetchSiteList(siteIds));
+		const csvValue = (value) => {
+			if(value === null || value === undefined) {
+				return '';
 			}
-			str = str.toString(); // Ensure the value is a string
-			if (str.startsWith('"') && str.endsWith('"')) {
-				// If already wrapped in quotes, return as-is
-				return str;
+			if(typeof value == "number") {
+				return String(value);
 			}
-			// Otherwise, wrap in quotes and replace any existing double quotes with escaped quotes
-			return `"${str.replace(/"/g, '""')}"`;
+			return '"'+String(value).replace(/"/g, '""')+'"';
 		};
-	
-		sitesExportData.forEach(site => {
-			// Sanitize each value in the object
-			site.site_name = sanitizeForCsv(site.site_name);
-			site.site_description = sanitizeForCsv(site.site_description);
-			site.national_site_identifier = sanitizeForCsv(site.national_site_identifier);
-	
-			// Add the sanitized values to the CSV string
-			siteExportCsv += `${sanitizeForCsv(site.site_id)},${site.site_name},${site.national_site_identifier},${sanitizeForCsv(site.latitude_dd)},${sanitizeForCsv(site.longitude_dd)},${site.site_description}\r\n`;
+		//the byte order mark makes Excel read the file as UTF-8
+		let csv = "\uFEFF" + table.header.map(csvValue).join(",") + "\r\n";
+		table.rows.forEach(row => {
+			csv += row.map(csvValue).join(",") + "\r\n";
 		});
-	
-		this.sqs.dialogManager.hidePopOver();
-	
-		const bytes = new TextEncoder().encode(siteExportCsv);
-		const blob = new Blob([bytes], {
-			type: "text/csv;charset=utf-8"
-		});
-		saveAs(blob, "sead_sites_export.csv");
+		const bytes = new TextEncoder().encode(csv);
+		saveAs(new Blob([bytes], { type: "text/csv;charset=utf-8" }), this.siteListFilename("csv"));
 	}
 
 	async fetchSites(siteIds) {
@@ -1083,55 +1245,28 @@ class ResultModule {
 	}
 
 	async exportSitesAsXlsx(siteIds) {
-		let workbook = new ExcelJS.Workbook();
-		let worksheet = workbook.addWorksheet('SEAD Data');
-	  
-		let sitesExportData = await this.fetchExportData(siteIds);
-	  
-		// Adding header rows
-		worksheet.addRow(["Content", "List of sites"]);
-		worksheet.addRow(["Description", this.sqs.config.dataExportDescription]);
-		worksheet.addRow(["url", Config.serverRoot]);
-		worksheet.addRow(["Attribution", Config.dataAttributionString]);
-		worksheet.addRow([]); // Empty row
-		worksheet.addRow([
-		  "Site Id",
-		  "Site name",
-		  "National site identifier",
-		  "Latitude",
-		  "Longitude",
-		  "Description"
-		]);
-	  
-		// Adding data rows
-		sitesExportData.forEach(site => {
-		  worksheet.addRow([
-			site.site_id,
-			site.site_name,
-			site.national_site_identifier,
-			site.latitude_dd,
-			site.longitude_dd,
-			site.site_description
-		  ]);
+		const table = this.siteListTable(await this.fetchSiteList(siteIds));
+		const workbook = new ExcelJS.Workbook();
+		const worksheet = workbook.addWorksheet("Sites", { views: [{ state: "frozen", ySplit: 1 }] });
+		worksheet.addRow(table.header).font = { bold: true };
+		const urlColumn = table.header.indexOf("url") + 1;
+		table.rows.forEach(row => {
+			const added = worksheet.addRow(row);
+			//a clickable link, showing the address itself
+			const cell = added.getCell(urlColumn);
+			if(cell.value) {
+				cell.value = { text: cell.value, hyperlink: cell.value };
+				cell.font = { color: { argb: "FF0563C1" }, underline: true };
+			}
 		});
-		
+		worksheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: table.header.length } };
+		worksheet.columns.forEach((column, i) => {
+			column.width = [10, 40, 14, 14, 10, 26, 22, 18, 12, 36][i];
+		});
 
-		// Writing the workbook to a Blob
 		const buffer = await workbook.xlsx.writeBuffer();
-		const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-	  
-		// Create a download link and trigger the download
-		const url = window.URL.createObjectURL(blob);
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = "sead_sites_export.xlsx";
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
-		window.URL.revokeObjectURL(url);
+		saveAs(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), this.siteListFilename("xlsx"));
 	}
-	
-	
 }
 
 export { ResultModule as default }
