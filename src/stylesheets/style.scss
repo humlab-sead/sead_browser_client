@@ -6876,6 +6876,13 @@ svg text {
   height: 100%;
   background: colors.$base-color;
   width: 0%;
+  transition: width 0.4s ease-out;
+}
+
+//Only the XLSX export can be cancelled; it shows the button while its job runs
+#export-progress-cancel {
+  display: none;
+  margin-top: 0.5em;
 }
 
 #lab-filter-selections-has-changed-warning {
@@ -6977,6 +6984,38 @@ svg text {
 }
 
 .sites-export-format-description {
+  display: none;
+  font-size: 0.9em;
+}
+
+.sites-export-contents {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  max-width: 32em;
+  margin-bottom: 1em;
+}
+
+.sites-export-content-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6em;
+  padding: 0.5em 0.75em;
+  border: 1px solid #ddd;
+  font-size: 0.9em;
+  cursor: pointer;
+
+  input {
+    margin-top: 0.2em;
+  }
+
+  &:has(input:checked) {
+    border-color: color.adjust(colors.$base-color, $lightness: 10%);
+    background: color.scale(colors.$base-color, $lightness: 90%);
+  }
+}
+
+.sites-export-content-description {
   display: none;
   font-size: 0.9em;
 }

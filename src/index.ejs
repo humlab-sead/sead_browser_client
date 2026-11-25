@@ -629,6 +629,18 @@
       <div class="sites-export-dialog">
           This export will contain <span style="font-weight:bold;" data-num-sites></span> sites.<br><br>
 
+        <h3>Content</h3>
+          <div class="sites-export-contents">
+            <label class="sites-export-content-option">
+              <input type="radio" name="sites-export-content" value="all" checked>
+              <span><strong>All data</strong><br>Everything SEAD holds on the sites: samples, analyses, datings and references.</span>
+            </label>
+            <label class="sites-export-content-option">
+              <input type="radio" name="sites-export-content" value="sites">
+              <span><strong>Site list only</strong><br>One row per site, without the data itself.</span>
+            </label>
+          </div>
+
         <h3>Format</h3>
           <!-- Hidden in favour of the SDF export below. The handlers are still in ResultModule, so these can be brought back.
           <a id="samples-export-xlsx-dl" class="sites-export-btn light-theme-button">Download XLSX (samples)</a>
@@ -641,6 +653,9 @@
           </div>
 
           <div class="sites-export-format-panel">
+            <div class="sites-export-content-description" data-export-content="sites">
+            A table of the selected sites, one row per site: ID, name, latitude, longitude, altitude, national site identifier, domain, the number of sample groups and samples, and a link to the site's page in SEAD. The domain is the kind of evidence the site mainly holds, the same one its dot on the map is coloured by.
+            </div>
             <div class="sites-export-format-description" data-export-format="xlsx">
             An Excel workbook with all the data SEAD holds on the selected sites, one sheet per table, always including every dataset. The README sheet inside explains how it is laid out.
             </div>
@@ -670,6 +685,7 @@
             <div id="export-progress-bar">
                 <div class="export-progress-bar-fill"></div>
             </div>
+            <a id="export-progress-cancel" class="light-theme-button">Cancel</a>
           </div>
       </div>
   </template>

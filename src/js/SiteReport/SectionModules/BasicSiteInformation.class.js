@@ -1,5 +1,6 @@
 /*OpenLayers imports*/
 import { nanoid } from 'nanoid';
+import { saveAs } from "file-saver";
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { Tile as TileLayer, Vector as VectorLayer, Graticule } from 'ol/layer';
@@ -589,8 +590,8 @@ class BasicSiteInformation {
 
 		let btnId = nanoid();
 		$("#node-"+dialogNodeId).append("<button type='button' id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn sqs-btn'><i class='fa fa-download' aria-hidden='true'></i> Download JSON</button>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
-			this.sqs.exportManager.getJsonExport(this.data).then(objectUrl => {
-				this.triggerDownload(this.data.site_name+".json", objectUrl);
+			this.sqs.exportManager.getJsonExport(this.data, false).then(blob => {
+				saveAs(blob, this.exportFilename("json"));
 			});
 		});
 
@@ -611,10 +612,22 @@ class BasicSiteInformation {
 
 		btnId = nanoid();
 		$("#node-"+dialogNodeId).append("<button type='button' id='site-report-export-btn-"+btnId+"' class='site-report-export-download-btn sqs-btn'><i class='fa fa-download' aria-hidden='true'></i> Download CSV (ZIP)</button>").on("click", "#site-report-export-btn-"+btnId, (evt) => {
-			this.sqs.exportManager.getCsvExport(this.data).then(objectUrl => {
-				this.triggerDownload(this.data.site_name+".zip", objectUrl);
+			this.sqs.exportManager.getCsvExport(this.data, false).then(blob => {
+				saveAs(blob, this.exportFilename("zip"));
 			});
 		});
+	}
+
+	/*
+	* Function: exportFilename
+	*
+	* The name of a download from the export dialog, sead_site_<id>_<yyyymmdd>.<extension>: the
+	* same as the server gives the SDF workbook (json_api_server, SeadDataFormat._filename), so all
+	* the formats of one site's export sort together.
+	*/
+	exportFilename(extension) {
+		const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+		return "sead_site_"+this.siteId+"_"+date+"."+extension;
 	}
 
 	/*
