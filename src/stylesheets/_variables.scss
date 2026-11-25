@@ -17,6 +17,17 @@ $ui-reference-height: 900;
 $ui-min-scale: 0.8;
 // Below this width the mobile layout takes over, which has its own sizing.
 $ui-mobile-breakpoint: 720px;
+// At this height and below, the desktop layout is short: a 1080p screen at 200% zoom leaves around 410-470 CSS px.
+// The scale has bottomed out by then, so instead the room around and between things is cut down. Has to be
+// Config.screenShortHeightBreakPoint.
+$ui-short-breakpoint: 600px;
+
+// Styles for a short desktop viewport, see $ui-short-breakpoint
+@mixin short-viewport {
+  @media (min-width: $ui-mobile-breakpoint + 1px) and (max-height: $ui-short-breakpoint) {
+    @content;
+  }
+}
 
 // A length that is $n px on a full-size viewport and scales down on smaller ones. Resolves against
 // --sqs-px, which is defined on :root in style.scss.

@@ -388,11 +388,14 @@ class DialogManager {
 	
 	/*
 	* Function: showPrivacyPolicy
-	* The privacy policy (#gdpr-infobox in index.ejs), from the Legal menu, the cookie banner
-	* and /privacy.
+	* The privacy policy (#gdpr-infobox in index.ejs), from the Legal menu, the cookie notice
+	* and /privacy. The cookies can be agreed to from here as well, while they're yet to be.
 	*/
 	showPrivacyPolicy() {
 		const content = $("#gdpr-infobox > .overlay-dialog-content").clone();
+		if(this.sqs.cookieConsent && this.sqs.cookieConsent.needsConsent()) {
+			content.append(this.sqs.cookieConsent.renderAcceptRow());
+		}
 		this.showPopOver("Privacy policy", content, {
 			width: "760px"
 		});
@@ -425,6 +428,14 @@ class DialogManager {
 					title: "<i class=\"fa fa-file-text-o\" aria-hidden=\"true\"></i> Legal",
 					callback: () => {
 						this.showPrivacyPolicy();
+					}
+				},
+				{
+					name: "cookies",
+					visible: Config.cookieWarningEnabled,
+					title: "<i class=\"fa fa-shield\" aria-hidden=\"true\"></i> Cookies",
+					callback: () => {
+						this.sqs.cookieConsent.showCookiePolicy();
 					}
 				},
 				{

@@ -27,6 +27,7 @@
 	"requireLoginForViewstateStorage": true,
 	"rangeFilterFuzzyLabels": true,
 	"screenMobileWidthBreakPoint": 720,
+	"screenShortHeightBreakPoint": 600,
 	"dataAttributionString": "Buckland P.I., Sjölander M., Eriksson E.J. (2018) Strategic Environmental Archaeology Database (SEAD). In: Smith C. (eds) Encyclopedia of Global Archaeology. Springer, Cham. DOI:10.1007/978-3-319-51726-1_833-2",
 	"dataExportDescription": "Data export from the SEAD project. Visit https://www.sead.se for more information.",
 	"timelineEnabled": true,
@@ -42,7 +43,7 @@
 	"seadAgentEnabled": false,
 	"globeResultModuleEnabled": true,
 	"dataLabResultModuleEnabled": true,
-	"legalNoticeMsg": "SEAD uses cookies to keep you signed in and to count how the site is used. If you sign in, SEAD keeps an account for you, which you are asked to agree to first. Read our <span id='privacy-policy-link' class='jslink'>privacy policy</span> for what is kept and why. By continuing to use the site you are agreeing to the use of cookies.",
+	"legalNoticeMsg": "SEAD uses cookies to keep you signed in and to count how the site is used. If you sign in, SEAD keeps an account for you, which you are asked to agree to first. Read our <span class='jslink privacy-policy-link'>privacy policy</span> for what is kept and why. By continuing to use the site you are agreeing to the use of cookies.",
 	"indicatorStringsForUnknownSpecies": [
 		"indet.",
 		"indet",
@@ -775,7 +776,7 @@
 					"grid_column": "2"
 				},
 				{
-					"module_name": "mosaic-domain-samples",
+					"module_name": "mosaic-temporal-distribution",
 					"grid_row": "2",
 					"grid_column": "span 2"
 				},

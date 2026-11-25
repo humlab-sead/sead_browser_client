@@ -116,7 +116,7 @@ class ResultMosaic extends ResultModule {
 			module: null
 		});
 		this.modules.push({
-			title: "Temporal distribution of datasets",
+			title: "When the evidence comes from",
 			className: "MosaicTemporalDistributionModule",
 			classTemplate: MosaicTemporalDistributionModule,
 			module: null

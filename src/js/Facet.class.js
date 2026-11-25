@@ -189,6 +189,8 @@ class Facet {
 					// Store the new height as the default height
 					this.defaultHeight = $(this.getDomRef()).css("height");
 					this.bodyHeight = $(".facet-body", this.getDomRef()).css("height");
+					//and keep it, rather than follow the size of the window
+					this.resizedByUser = true;
 				}
 			});
 		});
@@ -206,10 +208,52 @@ class Facet {
 	/*
 	* Function: getMaxBodyHeight
 	*
-	* The configured facet body height, scaled to the current viewport.
+	* The configured facet body height, scaled to the current viewport. Where the filter section is short of height, less
+	* than that, so that the top of the filter below is still in view under this one - but never less than leaves four
+	* rows of a list in view, under its search field and column headings.
 	*/
 	getMaxBodyHeight() {
-		return this.sqs.scalePx(Config.facetBodyHeight);
+		let bodyHeight = this.sqs.scalePx(Config.facetBodyHeight);
+		let roomHeight = this.sqs.facetManager ? this.sqs.facetManager.getFacetRoomHeight() : null;
+		let headerHeight = $(".facet-header", this.domObj).outerHeight();
+		if(roomHeight == null || !headerHeight) {
+			return bodyHeight;
+		}
+		let minBodyHeight = Math.min(bodyHeight, this.sqs.scalePx(76) + 4 * Config.discreteFacetRowHeight);
+		return Math.max(minBodyHeight, Math.min(bodyHeight, Math.floor(roomHeight - headerHeight)));
+	}
+
+	/*
+	* Function: fitHeight
+	*
+	* Gives the facet the body height of getMaxBodyHeight, which follows the size of the window, unless the facet has been
+	* resized by hand. A collapsed facet stays collapsed, and opens to the new height.
+	*
+	* Returns:
+	* Whether the height changed.
+	*/
+	fitHeight() {
+		if(this.virtual || this.resizedByUser) {
+			return false;
+		}
+		let bodyHeight = this.getMaxBodyHeight();
+		if(parseFloat(this.bodyHeight) == bodyHeight) {
+			return false;
+		}
+		//The card is as high as its header and body together
+		this.defaultHeight = (parseFloat(this.defaultHeight) + bodyHeight - parseFloat(this.bodyHeight))+"px";
+		this.bodyHeight = bodyHeight+"px";
+		if(!this.minimized) {
+			$(this.domObj).css("height", this.defaultHeight);
+			$(".facet-body", this.domObj).css("height", this.bodyHeight);
+			if(typeof this.recalculateViewportCapacity === 'function') {
+				this.recalculateViewportCapacity();
+				if(this.isDataLoaded) {
+					this.updateRenderData();
+				}
+			}
+		}
+		return true;
 	}
 
 	setHeight(height = this.getMaxBodyHeight()) {

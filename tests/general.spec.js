@@ -82,6 +82,25 @@ test('overview charts', async ({ page }) => {
   await expect(analysisMethods.locator('.mosaic-bar-row')).toHaveCount(0);
 });
 
+//the overview shows when the dates of the sites are from, a band per kind of dating, and steps through time with the arrow keys
+test('overview temporal distribution', async ({ page }) => {
+  await page.goto('/');
+  await page.click('#result-menu > [menu-item="mosaic"]');
+
+  const temporal = page.locator('.result-mosaic-tile', { has: page.locator('.mosaic-tile-title', { hasText: 'When the evidence comes from' }) });
+  const chart = temporal.locator('svg.mosaic-temporal-svg');
+  await expect(chart.locator('path').first()).toBeVisible({ timeout: 30000 });
+  await expect(temporal.locator('.mosaic-chart-legend-item', { hasText: 'Dendrochronology' })).toBeVisible();
+
+  await chart.focus();
+  await page.keyboard.press('End');
+  await expect(temporal.locator('.mosaic-temporal-readout')).toContainText(/AD \d{4}–\d{4} · \d/);
+
+  await temporal.getByRole('button', { name: 'Table', exact: true }).click();
+  await expect(temporal.locator('.mosaic-data-table tbody tr').first()).toBeVisible();
+  await expect(chart).toHaveCount(0);
+});
+
 //the dendrochronology overview draws its variables as bars and histograms, each with its coverage of the samples
 test('dendrochronology overview charts', async ({ page }) => {
   await page.goto('/dendrochronology');
@@ -101,7 +120,7 @@ test('dendrochronology overview charts', async ({ page }) => {
 test('dendrochronology site report graph', async ({ page }) => {
   await page.goto('/site/3827');
   await expect(page.locator('#site-report-main-container')).toBeVisible({ timeout: 30000 });
-  await page.locator('.site-report-summary-analyses').click();
+  await page.locator('.site-report-summary-cell[data-tab="analyses"]').click();
   await page.locator('.site-report-method-nav-item[data-method-id="10"]').click();
 
   const rows = page.locator('.dendro-timeline-row');
@@ -120,7 +139,7 @@ test('dendrochronology site report graph', async ({ page }) => {
 test('dendrochronology graph links to its undated samples', async ({ page }) => {
   await page.goto('/site/3973');
   await expect(page.locator('#site-report-main-container')).toBeVisible({ timeout: 30000 });
-  await page.locator('.site-report-summary-analyses').click();
+  await page.locator('.site-report-summary-cell[data-tab="analyses"]').click();
   await page.locator('.site-report-method-nav-item[data-method-id="10"]').click();
 
   const dataset = page.locator('.site-report-method-active .content-item-container').first();

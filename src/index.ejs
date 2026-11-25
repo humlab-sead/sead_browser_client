@@ -279,7 +279,7 @@
           </div>
         </div>
 
-        <nav class="site-report-summary sqs-card" aria-label="Site datasheet sections"></nav>
+        <nav class="site-report-summary" aria-label="Site datasheet sections"></nav>
 
         <div id="site-report-content">
           <div class="site-report-tabpanel" data-tab="overview" role="tabpanel" aria-label="Overview">
@@ -373,14 +373,6 @@
       </div>
     </div>
 
-    <div id="tutorial-question" class="tutorial-dialog">
-      <h1>Welcome to SEAD</h1>
-      You seem to be a new visitor, would you like a guided tour of SEAD?
-      <div id="tutorial-select-form-container"></div>
-      <button class="yes-button">Start tour</button><button class="no-button">Not now</button>
-    </div>
-    <div id="cookie-consent-content"></div>
-
     <div id="chatbox-icon" style="display:none;">
       <i class="fa fa-comment-o chat-icon" aria-hidden="true" title="Ask the SEAD Agent"></i>
       <div id="chatbox-inner-panel">
@@ -456,6 +448,27 @@
             <i class="fa fa-sign-out" aria-hidden="true"></i>
             <span>Sign out</span>
           </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- The cookie notice (CookieConsent), in the banner until it's agreed to, and from the Cookies menu item -->
+    <template id="cookie-consent-template">
+      <div id="cookie-consent" role="region" aria-labelledby="cookie-consent-title">
+        <h2 id="cookie-consent-title">Cookies used on the website!</h2>
+        <p class="cookie-consent-message"></p>
+        <div class="cookie-consent-actions">
+          <button type="button" class="sqs-btn sqs-btn-primary cookie-consent-accept">I agree</button>
+        </div>
+      </div>
+    </template>
+
+    <template id="cookie-policy-template">
+      <div class="cookie-policy">
+        <p class="cookie-consent-message"></p>
+        <p class="cookie-policy-status" role="status"></p>
+        <div class="cookie-consent-actions cookie-consent-pending">
+          <button type="button" class="sqs-btn sqs-btn-primary cookie-consent-accept">I agree</button>
         </div>
       </div>
     </template>
@@ -616,6 +629,18 @@
       <div class="sites-export-dialog">
           This export will contain <span style="font-weight:bold;" data-num-sites></span> sites.<br><br>
 
+        <h3>Content</h3>
+          <div class="sites-export-contents">
+            <label class="sites-export-content-option">
+              <input type="radio" name="sites-export-content" value="all" checked>
+              <span><strong>All data</strong><br>Everything SEAD holds on the sites: samples, analyses, datings and references.</span>
+            </label>
+            <label class="sites-export-content-option">
+              <input type="radio" name="sites-export-content" value="sites">
+              <span><strong>Site list only</strong><br>One row per site, without the data itself.</span>
+            </label>
+          </div>
+
         <h3>Format</h3>
           <!-- Hidden in favour of the SDF export below. The handlers are still in ResultModule, so these can be brought back.
           <a id="samples-export-xlsx-dl" class="sites-export-btn light-theme-button">Download XLSX (samples)</a>
@@ -628,6 +653,9 @@
           </div>
 
           <div class="sites-export-format-panel">
+            <div class="sites-export-content-description" data-export-content="sites">
+            A table of the selected sites, one row per site: ID, name, latitude, longitude, altitude, national site identifier, domain, the number of sample groups and samples, and a link to the site's page in SEAD. The domain is the kind of evidence the site mainly holds, the same one its dot on the map is coloured by.
+            </div>
             <div class="sites-export-format-description" data-export-format="xlsx">
             An Excel workbook with all the data SEAD holds on the selected sites, one sheet per table, always including every dataset. The README sheet inside explains how it is laid out.
             </div>
@@ -657,6 +685,7 @@
             <div id="export-progress-bar">
                 <div class="export-progress-bar-fill"></div>
             </div>
+            <a id="export-progress-cancel" class="light-theme-button">Cancel</a>
           </div>
       </div>
   </template>
@@ -719,21 +748,23 @@
     </template>
 
     <template id="result-taxon-container-content-template">
-      <h1 style="display:inline-block;">Taxon datasheet</h1>
-      <div class="taxon-link-container">
-        <div class="label">Direct link</div>
-        <div class="link"></div>
-        <div class="link-copy">
-          <i class="fa fa-clone" aria-hidden="true"></i>
-          <!--<div class="copy-notification">Copied!</div>-->
-        </div>
-        <div id="taxon-print-button">
-          <i class="fa fa-print" aria-hidden="true"></i>
+      <div class="taxon-datasheet-heading">
+        <h1 style="display:inline-block;">Taxon datasheet</h1>
+        <div class="taxon-link-container">
+          <div class="label">Direct link</div>
+          <div class="link"></div>
+          <div class="link-copy">
+            <i class="fa fa-clone" aria-hidden="true"></i>
+            <!--<div class="copy-notification">Copied!</div>-->
+          </div>
+          <div id="taxon-print-button">
+            <i class="fa fa-print" aria-hidden="true"></i>
+          </div>
         </div>
       </div>
 
       <div class="result-taxon-grid-container">
-        <div class="result-content-box" style="grid-area: a;">
+        <div class="result-content-box taxon-species-box" style="grid-area: a;">
 
           <h3 class="header">
             <div>
@@ -757,6 +788,29 @@
             </div>
           </div>
           <div id="result-taxon-image-container">
+          </div>
+          <!-- An image opened from the thumbnails, shown instead of the rest of the box while it is open -->
+          <div class="taxon-image-viewer" aria-label="Image viewer">
+            <div class="taxon-image-viewer-bar">
+              <button type="button" class="taxon-image-viewer-back" title="Back to the datasheet (Esc)">
+                <i class="fa fa-arrow-left" aria-hidden="true"></i>&nbsp;Datasheet
+              </button>
+              <div class="taxon-image-viewer-title"></div>
+              <div class="taxon-image-viewer-bar-end">
+                <a class="taxon-image-viewer-source" target="_blank" rel="noopener">View at source&nbsp;<i class="fa fa-external-link" aria-hidden="true"></i></a>
+                <div class="taxon-image-viewer-count" aria-live="polite"></div>
+              </div>
+            </div>
+            <div class="taxon-image-viewer-stage">
+              <img class="taxon-image-viewer-image" alt="" />
+              <button type="button" class="taxon-image-viewer-nav taxon-image-viewer-prev" aria-label="Previous image" title="Previous image (←)">
+                <i class="fa fa-chevron-left" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="taxon-image-viewer-nav taxon-image-viewer-next" aria-label="Next image" title="Next image (→)">
+                <i class="fa fa-chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="taxon-image-viewer-caption"></div>
           </div>
         </div>
 
@@ -1298,18 +1352,18 @@
         </div>
 
         <div id="logo-section">
-          <a href="https://www.su.se/" target="_blank"><img class="about-section-logo" src="/su_logo.jpg" alt="Stockholm University logo" /></a><br />
-          <a href="https://www.riksbank.se/" target="_blank"><img class="about-section-logo"
-              src="/riksbanken-logo.png" alt="Riksbankens Jubileumsfond logo" /></a><br />
+          <a href="https://www.su.se/" target="_blank"><img class="about-section-logo" src="/su_logo.jpg" alt="Stockholm University logo" /></a>
+          <a href="https://www.riksbank.se/" target="_blank"><img class="about-section-logo about-section-logo-solid"
+              src="/riksbanken-logo.png" alt="Riksbankens Jubileumsfond logo" /></a>
           <!--<a href="https://www.sead.se/" target="_blank"><img class="about-section-logo" src="assets/SEAD-logo-small.png" /></a>-->
-          <a href="http://www.humlab.umu.se/" target="_blank"><img class="about-section-logo"
-              src="/umu-logo-en.png" alt="Umea University logo" /></a><br />
-          <!--<a href="https://www.vr.se/inenglish.html" target="_blank"><img class="about-section-logo" src="assets/vr-logo.png" /></a><br />-->
-          <a href="http://www.idesam.umu.se/english/mal/?languageId=1" target="_blank"><img class="about-section-logo"
-              src="/mal-logo.png" alt="MAL logo" /></a><br />
-          <a href="https://swedigarch.se/" target="_blank"><img class="about-section-logo"
-              src="/swedigarch-logo.png" alt="Swedigarch logo" /></a><br />
-          <a href="http://www.lu.se/" target="_blank"><img class="about-section-logo" src="/lu-logo.png" alt="Lund University logo" /></a>
+          <a href="https://www.umu.se/humlab/" target="_blank"><img class="about-section-logo about-section-logo-wide"
+              src="/umu-logo-en.png" alt="Umea University logo" /></a>
+          <!--<a href="https://www.vr.se/inenglish.html" target="_blank"><img class="about-section-logo" src="assets/vr-logo.png" /></a>-->
+          <a href="https://www.umu.se/en/research/infrastructure/mal/" target="_blank"><img class="about-section-logo about-section-logo-solid"
+              src="/mal-logo.png" alt="MAL logo" /></a>
+          <a href="https://swedigarch.se/" target="_blank"><img class="about-section-logo about-section-logo-wide"
+              src="/swedigarch-logo.png" alt="Swedigarch logo" /></a>
+          <a href="http://www.lu.se/" target="_blank"><img class="about-section-logo about-section-logo-tall" src="/lu-logo.png" alt="Lund University logo" /></a>
         </div>
       </div>
 

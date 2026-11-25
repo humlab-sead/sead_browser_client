@@ -621,6 +621,17 @@ class MapFacet extends Facet {
 		$(".map-filter-selection-info", this.domObj).hide();
 	}
 
+	/*
+	* Function: fitHeight
+	*/
+	fitHeight() {
+		let changed = super.fitHeight();
+		if(changed && this.olMap && !this.minimized) {
+			this.olMap.updateSize();
+		}
+		return changed;
+	}
+
 	updateRenderData() {
 		
 	}

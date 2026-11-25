@@ -9,7 +9,6 @@ class Tutorial {
         this.sqs = sqs;
         this.tour = null;
         this.tourModules = [];
-        this.setCookieOverride = false;
 
         this.tourModules.push({
           name: "general",
@@ -32,53 +31,7 @@ class Tutorial {
         }
     }
 
-    setCookie() {
-      if(!this.setCookieOverride) {
-        //set a cookie to remember that this user has seen the tutorial
-        var d = new Date();
-        d.setTime(d.getTime() + (365*24*60*60*1000));
-        var expires = "expires="+ d.toUTCString();
-        document.cookie = "tutorial_status=dismiss; " + expires + "; path=/";
-      }
-    }
-
-    userHasCookie() {
-      var cookieConsent = document.cookie.indexOf('tutorial_status');
-      if(cookieConsent == -1) {
-          return false;
-      }
-      else {
-          return true;
-      }
-    }
-
-    init() {
-      if(this.sqs.config.tutorialEnabled && this.sqs.layoutManager.getActiveView().name == "filters" && this.userHasCookie() == false) {
-        if(this.sqs.requestUrl.split("/").length < 3) {
-          $(".tutorial-dialog").show();
-
-          $("#tutorial-select-form-container").html(this.getTutorialSelectForm());
-
-          $(".tutorial-dialog .yes-button").on("click", () => {
-            let selectedTour = $("#selected-tour").val();
-            for(let key in this.tourModules) {
-              if(this.tourModules[key].name == selectedTour) {
-                this.tour = this.tourModules[key].module.tour;
-              }
-            }
-            this.start();
-          });
-          $(".tutorial-dialog .no-button").on("click", () => {
-            $(".tutorial-dialog").hide();
-            this.sqs.dialogManager.hidePopOver();   
-            this.setCookie();
-          });
-        }
-      }
-    }
-
     start() {
-      this.setCookie();
       $(".tutorial-dialog").hide();
       this.sqs.dialogManager.hidePopOver();
       $("body").addClass("tutorial-active");
@@ -144,7 +97,6 @@ class Tutorial {
               }
             }
 
-            $("#tutorial-question").hide();
             let content = "<div class='tutorial-dialog'>";
             content += this.getTutorialSelectForm();
             content += "<br />";
