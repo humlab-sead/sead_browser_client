@@ -4,7 +4,6 @@ import { Tile as TileLayer, Vector as VectorLayer, Heatmap as HeatmapLayer, Imag
 import { StadiaMaps, BingMaps, ImageArcGISRest } from 'ol/source';
 import { Group as GroupLayer } from 'ol/layer';
 import Overlay from 'ol/Overlay';
-import GeoJSON from 'ol/format/GeoJSON';
 import { Cluster as ClusterSource, Vector as VectorSource } from 'ol/source';
 import { fromLonLat, transform } from 'ol/proj.js';
 import { Select as SelectInteraction, Draw as DrawInteraction } from 'ol/interaction';
@@ -13,8 +12,6 @@ import { Polygon } from 'ol/geom';
 import { createEmpty as createEmptyExtent, extend as extendExtent, isEmpty as isEmptyExtent } from 'ol/extent';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style.js';
 import { Attribution } from 'ol/control';
-import { click } from 'ol/events/condition.js';
-import countries from "../assets/countries.geo.json";
 import Facet from './Facet.class.js'
 import OpenLayersMap from './Common/OpenLayersMap.class.js'
 /*
@@ -40,8 +37,6 @@ class MapFacet extends Facet {
 		this.olMap = null;
 		this.domObj = this.getDomRef();
 		this.dataFetchingEnabled = true;
-		this.countryLayer = null;
-		this.countryLayerMaxZoom = 5; // Only show country borders at zoom level 5 or below
 		//The source holding the selected polygons. Kept on the instance because the selection
 		//can now come from somewhere other than the user's own drawing - a restored viewstate,
 		//or the agent applying an administrative boundary - and all of them have to be drawn.
@@ -193,106 +188,6 @@ class MapFacet extends Facet {
 		else {
 			$(".map-help-text > .cmd_key_symbol").html("CTRL");
 		}
-
-		this.addCountriesLayer();
-	}
-
-	addCountriesLayer() {
-		const geojsonFormat = new GeoJSON();
-		const features = geojsonFormat.readFeatures(countries, {
-			featureProjection: 'EPSG:3857' 
-		});
-
-		const vectorSource = new VectorSource({
-			features: features
-		});
-
-		this.countryLayer = new VectorLayer({
-			source: vectorSource,
-			style: new Style({
-			  stroke: new Stroke({
-				color: '#333333', // Outline color
-				width: 1
-			  }),
-			  fill: new Fill({
-				color: 'rgba(255, 255, 255, 0.2)' // Polygon fill color
-			  })
-			})
-		});
-
-		this.olMap.addLayer(this.countryLayer);
-
-		// Set initial visibility based on zoom level
-		this.updateCountryLayerVisibility();
-
-		// Listen for zoom changes to show/hide country layer
-		this.olMap.getView().on('change:resolution', () => {
-			this.updateCountryLayerVisibility();
-		});
-
-		// Create a select interaction
-		const selectInteraction = new SelectInteraction({
-			condition: click,
-			// Limit selection to our countryLayer only:
-			layers: [this.countryLayer]
-		});
-		
-		/*
-		// Add the select interaction to your map
-		this.olMap.addInteraction(selectInteraction);
-		
-		// Listen for the 'select' event
-		selectInteraction.on('select', (event) => {
-			const selectedFeatures = event.selected;     // array of newly selected features
-			const deselectedFeatures = event.deselected; // array of newly deselected features
-		
-			if (selectedFeatures.length > 0) {
-				const feature = selectedFeatures[0];
-				// Get properties from the first selected feature
-				const props = feature.getProperties();
-				console.log('Selected Country Name:', props.name);
-				console.log('Selected Country Properties:', props);
-
-				let coordinates = feature.getGeometry().getCoordinates()[0][0];
-				console.log(coordinates);
-				const convertedCoordinates = coordinates.map(coord => transform(coord, 'EPSG:3857', 'EPSG:4326'));
-
-				//swap the lat and long values
-				convertedCoordinates.forEach(coord => {
-					coord.reverse();
-				});
-
-				console.log(convertedCoordinates);
-
-				//flatten the convertedCoordinates array
-				const flatCoordinates = convertedCoordinates.flat();
-				this.selections = flatCoordinates;
-
-				console.log(this.selections);
-				this.broadcastSelection();
-			}
-		
-			if (deselectedFeatures.length > 0) {
-				console.log('Deselected some features');
-			}
-		});
-		*/
-	}
-
-	/*
-	* Function: updateCountryLayerVisibility
-	* 
-	* Shows or hides the country borders layer based on zoom level.
-	* Only shows borders when zoomed out enough to see multiple European countries.
-	*/
-	updateCountryLayerVisibility() {
-		if (!this.countryLayer) {
-			return;
-		}
-		
-		const zoom = this.olMap.getView().getZoom();
-		const visible = zoom <= this.countryLayerMaxZoom;
-		this.countryLayer.setVisible(visible);
 	}
 
 	/*
